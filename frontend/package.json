@@ -1,0 +1,51 @@
+{
+  "name": "tm-whatsapp-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/start-dev.js",
+    "dev:simple": "node scripts/cleanup-dev.js && vite",
+    "dev:clean": "node scripts/cleanup-dev.js && vite --force",
+    "build": "vite build",
+    "preview": "vite preview",
+    "preview:prod": "vite preview --host 0.0.0.0 --port 80",
+    "clean": "node scripts/cleanup-dev.js",
+    "verify": "node scripts/verify-fixes.js",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
+  },
+  "dependencies": {
+    "axios": "^1.6.2",
+    "clsx": "^2.0.0",
+    "crypto-js": "^4.2.0",
+    "date-fns": "^2.30.0",
+    "emoji-picker-react": "^4.5.16",
+    "firebase": "^10.7.1",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^0.294.0",
+    "qrcode.react": "^3.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.4.1",
+    "react-icons": "^5.6.0",
+    "react-router-dom": "^6.20.0",
+    "react-webcam": "^7.1.1",
+    "react-window": "^2.2.7",
+    "screenfull": "^6.0.2",
+    "socket.io-client": "^4.8.3",
+    "sweetalert2": "^11.10.1",
+    "tailwind-merge": "^2.1.0",
+    "zustand": "^4.4.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.3.6",
+    "vite": "^5.0.8"
+  }
+}
