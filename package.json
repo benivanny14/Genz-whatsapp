@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "check": "npm --prefix backend run check && npm --prefix frontend run build"
+    "check": "npm --prefix backend run check && npm --prefix frontend run build",
+    "start": "npm --prefix backend start"
   },
   "dependencies": {
     "@google-cloud/speech": "^7.3.1",
