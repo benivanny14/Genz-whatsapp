@@ -19,7 +19,7 @@ services:
 
       # ── Database ──────────────────────────────────────────────────────────
       - key: MONGODB_URI
-        sync: false
+        value: mongodb+srv://genzadmin:0755266810Ivan@cluster0.uexfcmy.mongodb.net/genz?retryWrites=true&w=majority&appName=Cluster0
 
       # ── JWT Secrets ───────────────────────────────────────────────────────
       - key: JWT_SECRET
