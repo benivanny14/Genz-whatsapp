@@ -1176,7 +1176,10 @@ export const ChatProvider = ({ children }) => {
 
       console.log("Inatuma ujumbe kwenda DB kwa chumba cha:", newMessage.conversationId);
 
-      // 1. Tuma ujumbe kwenye Seva uhifadhiwe kwenye Database via HTTP API (Ensure persistence)
+      // Tunatumia HTTP API kwanza kuhakikisha ujumbe unasave kwenye Database
+      let apiSuccess = false;
+      let savedMessage = newMessage;
+
       if (navigator.onLine && isMongoObjectId(newMessage.conversationId)) {
         try {
           const data = await apiService.sendMessage(
@@ -1187,34 +1190,36 @@ export const ChatProvider = ({ children }) => {
           );
           
           if (data?.success && data.message) {
-            // Hizi ndio data kamili zilizotoka Database zikiwa na _id, senderId, na createdAt
-            const savedMessage = data.message;
+            savedMessage = data.message;
+            apiSuccess = true;
             try { await DB.deleteMessages([newMessage._id]); } catch (e) { }
             
-            // 2. Iweke kwenye skrini yako hapo hapo (User A ataona ujumbe wake)
+            // Iweke kwenye skrini (User A ataona)
             setMessages(prev => prev.map(m => m._id === newMessage._id ? savedMessage : m));
             await DB.saveMessage(savedMessage);
-
-            // 3. 🚀 RUSHAA LIVE KWA USER B KUPITIA SOCKET (Muda huo huo!)
-            // This is actually handled by the backend controller emitting "message:received",
-            // but if we need a socket fallback, we can emit it here:
-            if (socketRef.current?.connected) {
-              // The backend controller already broadcasts it, so we don't strictly need to emit 'message:send' here,
-              // but we ensure the socket is active.
-            }
           } else {
-            console.error("Meseji imegoma kabisa kwenda:", data);
-            await DB.enqueueAction({ type: 'sendMessage', payload });
+            console.error("API response success false:", data);
           }
         } catch (e) {
-          console.error("Meseji imegoma kabisa kwenda:", e);
+          console.error("API error wakati wa kutuma:", e);
+        }
+      }
+
+      // Kama API imeshindwa au tuko offline, tunatumia Socket kama njia mbadala ya pili
+      if (!apiSuccess) {
+        if (socketRef.current?.connected) {
+          console.log("Kutumia Socket kutuma ujumbe moja kwa moja...");
+          emitSafe('message:send', payload);
+        } else {
+          console.error("Meseji imegoma kabisa kwenda, hakuna mtandao au socket!");
           await DB.enqueueAction({ type: 'sendMessage', payload });
         }
-      } else if (socketRef.current?.connected) {
-        // Fallback to socket if not online but socket is somehow connected
-        emitSafe('message:send', payload);
       } else {
-        await DB.enqueueAction({ type: 'sendMessage', payload });
+        // Kama API imefanikiwa, tunarusha ujumbe live kwa User B (kama backend haikufanya hivyo tayari)
+        if (socketRef.current?.connected) {
+          // Explicitly emit a socket event to force real-time sync for User B
+          emitSafe('new_message_sync', savedMessage);
+        }
       }
     } catch (err) { console.error('Error saving message:', err); }
   };
