@@ -558,9 +558,9 @@ exports.sendMessage = async (req, res) => {
     
     // 1. Frontend inaweza kuwa inatuma 'conversationId' au 'chatId', tunasoma zote mbili kulinda usalama
     const finalConversationId = conversationId || chatId;
-
-    if (!content || !finalConversationId) {
-      return res.status(400).json({ message: "Content na Conversation ID vinahitajika!" });
+    
+    if (!finalConversationId || !mongoose.Types.ObjectId.isValid(finalConversationId)) {
+      return res.status(400).json({ success: false, message: "A valid Conversation ID is required" });
     }
 
     const conversation = await Conversation.findById(finalConversationId);
@@ -661,6 +661,15 @@ exports.sendMessage = async (req, res) => {
     const io = req.app.get("io");
     if (io) {
       io.to(finalConversationId).emit("message:received", populatedMessage);
+      
+      // Emit directly to participants to ensure delivery even if they haven't opened the chat
+      if (conversation.participants && Array.isArray(conversation.participants)) {
+        conversation.participants.forEach(participantId => {
+          if (participantId.toString() !== localUserId.toString()) {
+            io.to(participantId.toString()).emit("message:received", populatedMessage);
+          }
+        });
+      }
     }
 
     await notifyMentionedUsers({

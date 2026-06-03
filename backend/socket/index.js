@@ -136,6 +136,7 @@ const setupSocket = (io) => {
       socketToUser.set(socket.id, userId);
       onlineUsers.set(userId, socket.id);
       socket.userId = userId;
+      socket.join(userId.toString());
 
       try {
         const user = await User.findByIdAndUpdate(userId, { isOnline: true, lastSeen: new Date() }, { new: true }).select('settings contacts');
@@ -205,6 +206,11 @@ const setupSocket = (io) => {
         // Mark message as processed
         messageDeduplication.set(dedupKey, Date.now());
 
+        if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+          console.warn('[Socket] Invalid conversationId provided:', conversationId);
+          return socket.emit('message:error', { error: 'Invalid conversation ID format' });
+        }
+
         const conversation = await Conversation.findById(conversationId);
         if (!conversation || !includesId(conversation.participants, socket.userId)) {
           return socket.emit('message:error', { error: 'Not authorized for this conversation' });
@@ -252,6 +258,16 @@ const setupSocket = (io) => {
         }
 
         io.to(conversationId).emit('message:received', outgoingMessage);
+        
+        // Emit directly to participants to ensure delivery even if they haven't opened the chat
+        if (conversation.participants && Array.isArray(conversation.participants)) {
+          conversation.participants.forEach(participantId => {
+            if (participantId.toString() !== socket.userId.toString()) {
+              io.to(participantId.toString()).emit('message:received', outgoingMessage);
+            }
+          });
+        }
+
         socket.emit('message:delivered', {
           messageId: messageId || populatedMessage._id.toString(),
           serverMessageId: populatedMessage._id.toString()
