@@ -7,7 +7,7 @@ const securityService = {
   setupTwoFactor: async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/security/2fa/setup`, {
+      const response = await authFetch(`${API_URL}/security/2fa/setup`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -31,7 +31,7 @@ const securityService = {
   verifyTwoFactorSetup: async (token, secret) => {
     try {
       const authToken = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/security/2fa/verify`, {
+      const response = await authFetch(`${API_URL}/security/2fa/verify`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -55,7 +55,7 @@ const securityService = {
   // Verify 2FA during login
   verifyTwoFactorLogin: async (token) => {
     try {
-      const response = await authFetch(`${API_URL}/api/security/2fa/login-verify`, {
+      const response = await authFetch(`${API_URL}/security/2fa/login-verify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -79,7 +79,7 @@ const securityService = {
   disableTwoFactor: async (token) => {
     try {
       const authToken = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/security/2fa/disable`, {
+      const response = await authFetch(`${API_URL}/security/2fa/disable`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -104,7 +104,7 @@ const securityService = {
   sendEmailVerification: async (email) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/security/email/send-verification`, {
+      const response = await authFetch(`${API_URL}/security/email/send-verification`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -128,7 +128,7 @@ const securityService = {
   // Verify Email with token
   verifyEmail: async (token) => {
     try {
-      const response = await authFetch(`${API_URL}/api/security/email/verify`, {
+      const response = await authFetch(`${API_URL}/security/email/verify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -151,7 +151,7 @@ const securityService = {
   // Resend Email Verification
   resendEmailVerification: async (email) => {
     try {
-      const response = await authFetch(`${API_URL}/api/security/email/resend-verification`, {
+      const response = await authFetch(`${API_URL}/security/email/resend-verification`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -174,7 +174,7 @@ const securityService = {
   // Password Reset
   sendPasswordReset: async (email) => {
     try {
-      const response = await authFetch(`${API_URL}/api/security/password/send-reset`, {
+      const response = await authFetch(`${API_URL}/security/password/send-reset`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -197,7 +197,7 @@ const securityService = {
   // Reset Password with token
   resetPassword: async (token, newPassword) => {
     try {
-      const response = await authFetch(`${API_URL}/api/security/password/reset`, {
+      const response = await authFetch(`${API_URL}/security/password/reset`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -221,7 +221,7 @@ const securityService = {
   getSecuritySettings: async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/security/settings`, {
+      const response = await authFetch(`${API_URL}/security/settings`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -244,7 +244,7 @@ const securityService = {
   updateSecuritySettings: async (settings) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/security/settings`, {
+      const response = await authFetch(`${API_URL}/security/settings`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -269,7 +269,7 @@ const securityService = {
   checkEmailVerification: async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/security/email/status`, {
+      const response = await authFetch(`${API_URL}/security/email/status`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -292,7 +292,7 @@ const securityService = {
   checkTwoFactorStatus: async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/security/2fa/status`, {
+      const response = await authFetch(`${API_URL}/security/2fa/status`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

@@ -9,19 +9,19 @@ const API_URL = import.meta.env.VITE_API_URL || '';
 const chatService = {
   // ── Conversations ─────────────────────────────────────────────────
   getConversations: async () => {
-    const res = await authFetch(`${API_URL}/api/chat/conversations`);
+    const res = await authFetch(`${API_URL}/chat/conversations`);
     if (!res.ok) throw new Error('Failed to fetch conversations');
     return res.json();
   },
 
   getConversation: async (id) => {
-    const res = await authFetch(`${API_URL}/api/chat/conversations/${id}`);
+    const res = await authFetch(`${API_URL}/chat/conversations/${id}`);
     if (!res.ok) throw new Error('Failed to fetch conversation');
     return res.json();
   },
 
   createConversation: async (participantId) => {
-    const res = await authFetch(`${API_URL}/api/chat/conversations`, {
+    const res = await authFetch(`${API_URL}/chat/conversations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ participantId }),
@@ -31,7 +31,7 @@ const chatService = {
   },
 
   createGroup: async (name, participants) => {
-    const res = await authFetch(`${API_URL}/api/chat/groups`, {
+    const res = await authFetch(`${API_URL}/chat/groups`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, participants }),
@@ -41,26 +41,26 @@ const chatService = {
   },
 
   archiveConversation: async (id) => {
-    const res = await authFetch(`${API_URL}/api/chat/conversations/${id}/archive`, { method: 'PUT' });
+    const res = await authFetch(`${API_URL}/chat/conversations/${id}/archive`, { method: 'PUT' });
     if (!res.ok) throw new Error('Failed to archive conversation');
     return res.json();
   },
 
   deleteConversation: async (id) => {
-    const res = await authFetch(`${API_URL}/api/chat/conversations/${id}`, { method: 'DELETE' });
+    const res = await authFetch(`${API_URL}/chat/conversations/${id}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Failed to delete conversation');
     return res.json();
   },
 
   // ── Messages ──────────────────────────────────────────────────────
   getMessages: async (conversationId, page = 1, limit = 50) => {
-    const res = await authFetch(`${API_URL}/api/chat/conversations/${conversationId}/messages?page=${page}&limit=${limit}`);
+    const res = await authFetch(`${API_URL}/chat/conversations/${conversationId}/messages?page=${page}&limit=${limit}`);
     if (!res.ok) throw new Error('Failed to fetch messages');
     return res.json();
   },
 
   sendMessage: async (conversationId, content, type = 'text', extra = {}) => {
-    const res = await authFetch(`${API_URL}/api/chat/messages`, {
+    const res = await authFetch(`${API_URL}/chat/messages`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ conversationId, content, messageType: type, ...extra }),
@@ -74,7 +74,7 @@ const chatService = {
     form.append('file', file);
     form.append('conversationId', conversationId);
     form.append('caption', caption);
-    const res = await authFetch(`${API_URL}/api/chat/messages/media`, {
+    const res = await authFetch(`${API_URL}/chat/messages/media`, {
       method: 'POST',
       body: form,
     });
@@ -83,13 +83,13 @@ const chatService = {
   },
 
   deleteMessage: async (messageId) => {
-    const res = await authFetch(`${API_URL}/api/chat/messages/${messageId}`, { method: 'DELETE' });
+    const res = await authFetch(`${API_URL}/chat/messages/${messageId}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Failed to delete message');
     return res.json();
   },
 
   reactToMessage: async (messageId, emoji) => {
-    const res = await authFetch(`${API_URL}/api/chat/messages/${messageId}/react`, {
+    const res = await authFetch(`${API_URL}/chat/messages/${messageId}/react`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ emoji }),
@@ -99,40 +99,40 @@ const chatService = {
   },
 
   pinMessage: async (messageId) => {
-    const res = await authFetch(`${API_URL}/api/chat/messages/${messageId}/pin`, { method: 'PUT' });
+    const res = await authFetch(`${API_URL}/chat/messages/${messageId}/pin`, { method: 'PUT' });
     if (!res.ok) throw new Error('Failed to pin message');
     return res.json();
   },
 
   // ── Starred Messages ──────────────────────────────────────────────
   starMessage: async (messageId) => {
-    const res = await authFetch(`${API_URL}/api/chat/messages/${messageId}/star`, { method: 'PUT' });
+    const res = await authFetch(`${API_URL}/chat/messages/${messageId}/star`, { method: 'PUT' });
     if (!res.ok) throw new Error('Failed to star message');
     return res.json();
   },
 
   getStarredMessages: async () => {
-    const res = await authFetch(`${API_URL}/api/chat/messages/starred`);
+    const res = await authFetch(`${API_URL}/chat/messages/starred`);
     if (!res.ok) return [];
     return res.json();
   },
 
   // ── Search ────────────────────────────────────────────────────────
   searchMessages: async (query) => {
-    const res = await authFetch(`${API_URL}/api/advanced/search-messages?q=${encodeURIComponent(query)}`);
+    const res = await authFetch(`${API_URL}/advanced/search-messages?q=${encodeURIComponent(query)}`);
     if (!res.ok) return [];
     return res.json();
   },
 
   // ── Broadcast ─────────────────────────────────────────────────────
   getBroadcasts: async () => {
-    const res = await authFetch(`${API_URL}/api/advanced/broadcast`);
+    const res = await authFetch(`${API_URL}/advanced/broadcast`);
     if (!res.ok) return [];
     return res.json();
   },
 
   createBroadcast: async (name, participants) => {
-    const res = await authFetch(`${API_URL}/api/advanced/broadcast`, {
+    const res = await authFetch(`${API_URL}/advanced/broadcast`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, participants }),
@@ -143,7 +143,7 @@ const chatService = {
 
   // ── Disappearing Messages ─────────────────────────────────────────
   setDisappearingMessages: async (conversationId, duration) => {
-    const res = await authFetch(`${API_URL}/api/advanced/conversations/${conversationId}/disappearing-messages`, {
+    const res = await authFetch(`${API_URL}/advanced/conversations/${conversationId}/disappearing-messages`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ duration }),

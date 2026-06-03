@@ -15,7 +15,7 @@ import notificationService from '../services/notificationService';
 
 export const ChatContext = createContext();
 
-const BACKEND_URL = 'https://genz-whatsapp.onrender.com';
+const BACKEND_URL = import.meta.env.VITE_API_URL || 'https://genz-whatsapp.onrender.com/api';
 const SOCKET_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_SOCKET_URL || BACKEND_URL;
 /** Mongo-style demo fallback when no JWT user is present (dev / optional demo mode) */
 const UNAUTHENTICATED_FALLBACK_USER_ID = '60d5ecb8b392cb371c664c12';
@@ -276,7 +276,7 @@ export const ChatProvider = ({ children }) => {
       Promise.resolve().then(async () => {
         try { await DB.saveSetting('mods', newMods); } catch (e) { }
         try {
-          await authFetch(`${BACKEND_URL}/api/genz-mods/settings`, {
+          await authFetch(`${BACKEND_URL}/genz-mods/settings`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(stripLocalOnlyData(newMods))
@@ -385,7 +385,7 @@ export const ChatProvider = ({ children }) => {
 
     const timer = setTimeout(async () => {
       try {
-        await authFetch(`${BACKEND_URL}/api/genz-mods/settings`, {
+        await authFetch(`${BACKEND_URL}/genz-mods/settings`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(stripLocalOnlyData(mods))
@@ -1517,7 +1517,7 @@ export const ChatProvider = ({ children }) => {
   // ── Scheduled messages ──
   const scheduleMessage = async (content, conversationId, sendAt, options = {}) => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/scheduled-messages`, {
+      const response = await authFetch(`${BACKEND_URL}/scheduled-messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1546,7 +1546,7 @@ export const ChatProvider = ({ children }) => {
 
   const cancelScheduledMessage = async (scheduledMessageId) => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/scheduled-messages/${scheduledMessageId}`, {
+      const response = await authFetch(`${BACKEND_URL}/scheduled-messages/${scheduledMessageId}`, {
         method: 'DELETE'
       });
       const data = await response.json();
@@ -1566,8 +1566,8 @@ export const ChatProvider = ({ children }) => {
   const getScheduledMessages = async (conversationId = null) => {
     try {
       const url = conversationId
-        ? `${BACKEND_URL}/api/scheduled-messages?conversationId=${conversationId}`
-        : `${BACKEND_URL}/api/scheduled-messages`;
+        ? `${BACKEND_URL}/scheduled-messages?conversationId=${conversationId}`
+        : `${BACKEND_URL}/scheduled-messages`;
       const response = await authFetch(url);
       const data = await response.json();
       if (data.success) {
@@ -1588,7 +1588,7 @@ export const ChatProvider = ({ children }) => {
     formData.append('file', file);
 
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/advanced/status/upload`, {
+      const response = await authFetch(`${BACKEND_URL}/advanced/status/upload`, {
         method: 'POST',
         body: formData
       });
@@ -1903,7 +1903,7 @@ export const ChatProvider = ({ children }) => {
   // ── Security Functions ──
   const generate2FASecret = async () => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/security/2fa/generate`, {
+      const response = await authFetch(`${BACKEND_URL}/security/2fa/generate`, {
         method: 'POST'
       });
       const data = await response.json();
@@ -1916,7 +1916,7 @@ export const ChatProvider = ({ children }) => {
 
   const verify2FASetup = async (secret, token) => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/security/2fa/verify`, {
+      const response = await authFetch(`${BACKEND_URL}/security/2fa/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ secret, token })
@@ -1931,7 +1931,7 @@ export const ChatProvider = ({ children }) => {
 
   const disable2FA = async () => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/security/2fa/disable`, {
+      const response = await authFetch(`${BACKEND_URL}/security/2fa/disable`, {
         method: 'POST'
       });
       const data = await response.json();
@@ -1944,7 +1944,7 @@ export const ChatProvider = ({ children }) => {
 
   const sendEmailVerification = async (email) => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/security/email/send-verification`, {
+      const response = await authFetch(`${BACKEND_URL}/security/email/send-verification`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
@@ -1959,7 +1959,7 @@ export const ChatProvider = ({ children }) => {
 
   const verifyEmail = async (token) => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/security/email/verify`, {
+      const response = await authFetch(`${BACKEND_URL}/security/email/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token })
@@ -1974,7 +1974,7 @@ export const ChatProvider = ({ children }) => {
 
   const resendEmailVerification = async (email) => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/security/email/resend-verification`, {
+      const response = await authFetch(`${BACKEND_URL}/security/email/resend-verification`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
@@ -1989,7 +1989,7 @@ export const ChatProvider = ({ children }) => {
 
   const sendPasswordReset = async (email) => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/security/password/send-reset`, {
+      const response = await authFetch(`${BACKEND_URL}/security/password/send-reset`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
@@ -2004,7 +2004,7 @@ export const ChatProvider = ({ children }) => {
 
   const resetPassword = async (token, newPassword) => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/security/password/reset`, {
+      const response = await authFetch(`${BACKEND_URL}/security/password/reset`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, newPassword })
@@ -2020,7 +2020,7 @@ export const ChatProvider = ({ children }) => {
   // ── GENZ Mods Functions ──
   const fetchGENZModsSettings = async () => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/genz-mods/settings`);
+      const response = await authFetch(`${BACKEND_URL}/genz-mods/settings`);
       const data = await response.json();
       if (data.success) {
         // MERGE with local state to preserve local-only data (wallpapers, etc.)
@@ -2035,7 +2035,7 @@ export const ChatProvider = ({ children }) => {
 
   const saveGENZModsSettings = async (settings) => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/genz-mods/settings`, {
+      const response = await authFetch(`${BACKEND_URL}/genz-mods/settings`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(stripLocalOnlyData(settings))
@@ -2054,7 +2054,7 @@ export const ChatProvider = ({ children }) => {
 
   const fetchDeletedMessages = async () => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/genz-mods/deleted-messages`);
+      const response = await authFetch(`${BACKEND_URL}/genz-mods/deleted-messages`);
       const data = await response.json();
       return data;
     } catch (err) {
@@ -2065,7 +2065,7 @@ export const ChatProvider = ({ children }) => {
 
   const restoreDeletedMessage = async (messageId) => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/genz-mods/restore-message/${messageId}`, {
+      const response = await authFetch(`${BACKEND_URL}/genz-mods/restore-message/${messageId}`, {
         method: 'POST'
       });
       const data = await response.json();
@@ -2078,7 +2078,7 @@ export const ChatProvider = ({ children }) => {
 
   const processAutoReply = async (userId, message) => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/genz-mods/auto-reply`, {
+      const response = await authFetch(`${BACKEND_URL}/genz-mods/auto-reply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, message })
@@ -2093,7 +2093,7 @@ export const ChatProvider = ({ children }) => {
 
   const getUserStatusWithGhostMode = async (userId) => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/genz-mods/user-status/${userId}`);
+      const response = await authFetch(`${BACKEND_URL}/genz-mods/user-status/${userId}`);
       const data = await response.json();
       return data;
     } catch (err) {
@@ -2105,7 +2105,7 @@ export const ChatProvider = ({ children }) => {
   // ── Broadcast Functions ──
   const fetchBroadcasts = async () => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/advanced/broadcast`);
+      const response = await authFetch(`${BACKEND_URL}/advanced/broadcast`);
       const data = await response.json();
       if (data.success) {
         setBroadcasts(data.broadcasts || []);
@@ -2119,7 +2119,7 @@ export const ChatProvider = ({ children }) => {
 
   const createBroadcast = async (broadcastData) => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/advanced/broadcast`, {
+      const response = await authFetch(`${BACKEND_URL}/advanced/broadcast`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(broadcastData)
@@ -2137,7 +2137,7 @@ export const ChatProvider = ({ children }) => {
 
   const updateBroadcast = async (broadcastId, updateData) => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/advanced/broadcast/${broadcastId}`, {
+      const response = await authFetch(`${BACKEND_URL}/advanced/broadcast/${broadcastId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updateData)
@@ -2155,7 +2155,7 @@ export const ChatProvider = ({ children }) => {
 
   const deleteBroadcast = async (broadcastId) => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/advanced/broadcast/${broadcastId}`, {
+      const response = await authFetch(`${BACKEND_URL}/advanced/broadcast/${broadcastId}`, {
         method: 'DELETE'
       });
       const data = await response.json();
@@ -2171,7 +2171,7 @@ export const ChatProvider = ({ children }) => {
 
   const sendBroadcastMessage = async (broadcastId, message) => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/advanced/broadcast/${broadcastId}/send`, {
+      const response = await authFetch(`${BACKEND_URL}/advanced/broadcast/${broadcastId}/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message })
@@ -2187,7 +2187,7 @@ export const ChatProvider = ({ children }) => {
   // ── Status Functions ──
   const fetchStatuses = useCallback(async () => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/advanced/status`);
+      const response = await authFetch(`${BACKEND_URL}/advanced/status`);
       const data = await response.json();
       if (data.success) {
         setStatuses(data.statuses || []);
@@ -2201,7 +2201,7 @@ export const ChatProvider = ({ children }) => {
 
   const createStatus = useCallback(async (statusData) => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/advanced/status`, {
+      const response = await authFetch(`${BACKEND_URL}/advanced/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(statusData)
@@ -2220,7 +2220,7 @@ export const ChatProvider = ({ children }) => {
   const deleteStatus = useCallback(async (statusId) => {
     try {
       const sid = encodeURIComponent(statusId);
-      const response = await authFetch(`${BACKEND_URL}/api/advanced/status/${sid}`, {
+      const response = await authFetch(`${BACKEND_URL}/advanced/status/${sid}`, {
         method: 'DELETE'
       });
       const data = await response.json();
@@ -2321,7 +2321,7 @@ export const ChatProvider = ({ children }) => {
       // Try to persist via API (best-effort) and update local IndexedDB + State
       try {
         const sid = encodeURIComponent(statusId);
-        const response = await authFetch(`${BACKEND_URL}/api/advanced/status/${sid}/reply`, {
+        const response = await authFetch(`${BACKEND_URL}/advanced/status/${sid}/reply`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...body, conversationId: targetConv._id.startsWith('conv-status-') ? undefined : targetConv._id })
@@ -2437,7 +2437,7 @@ export const ChatProvider = ({ children }) => {
   const updateGroupMember = async (groupId, memberId, updates) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${BACKEND_URL}/api/groups/${groupId}/members/${memberId}`, {
+      const response = await authFetch(`${BACKEND_URL}/groups/${groupId}/members/${memberId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -2456,7 +2456,7 @@ export const ChatProvider = ({ children }) => {
   const joinGroup = async (groupId, inviteCode) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${BACKEND_URL}/api/chat/groups/${groupId}/join`, {
+      const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/join`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -2676,7 +2676,7 @@ export const ChatProvider = ({ children }) => {
       if (!audioBlob) return '';
       const formData = new FormData();
       formData.append('audio', audioBlob, 'voice.webm');
-      const res = await authFetch(`${BACKEND_URL}/api/advanced/transcribe-audio`, { method: 'POST', body: formData });
+      const res = await authFetch(`${BACKEND_URL}/advanced/transcribe-audio`, { method: 'POST', body: formData });
       if (res.ok) { const data = await res.json(); return data?.text || ''; }
     } catch (e) { console.warn('Transcription failed:', e); }
     return '';
@@ -2684,7 +2684,7 @@ export const ChatProvider = ({ children }) => {
   const viewProfile = async (userId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${BACKEND_URL}/api/users/${userId}/profile`, {
+      const response = await authFetch(`${BACKEND_URL}/users/${userId}/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -2703,7 +2703,7 @@ export const ChatProvider = ({ children }) => {
   const addContact = async (contactData) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${BACKEND_URL}/api/contacts`, {
+      const response = await authFetch(`${BACKEND_URL}/contacts`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -2725,7 +2725,7 @@ export const ChatProvider = ({ children }) => {
   const removeContact = async (contactId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${BACKEND_URL}/api/contacts/${contactId}`, {
+      const response = await authFetch(`${BACKEND_URL}/contacts/${contactId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -2746,7 +2746,7 @@ export const ChatProvider = ({ children }) => {
   const updateContact = async (contactId, updates) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${BACKEND_URL}/api/contacts/${contactId}`, {
+      const response = await authFetch(`${BACKEND_URL}/contacts/${contactId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -2767,7 +2767,7 @@ export const ChatProvider = ({ children }) => {
   const blockUser = async (userId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${BACKEND_URL}/api/chat/users/${userId}/block`, {
+      const response = await authFetch(`${BACKEND_URL}/chat/users/${userId}/block`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -2789,7 +2789,7 @@ export const ChatProvider = ({ children }) => {
   const unblockUser = async (userId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${BACKEND_URL}/api/chat/users/${userId}/block`, {
+      const response = await authFetch(`${BACKEND_URL}/chat/users/${userId}/block`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -2811,7 +2811,7 @@ export const ChatProvider = ({ children }) => {
   const updateUserProfile = async (updates) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${BACKEND_URL}/api/user/profile`, {
+      const response = await authFetch(`${BACKEND_URL}/user/profile`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -2836,7 +2836,7 @@ export const ChatProvider = ({ children }) => {
   const searchMessages = async (conversationId, query) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${BACKEND_URL}/api/chat/conversations/${conversationId}/search?query=${encodeURIComponent(query)}`, {
+      const response = await fetch(`${BACKEND_URL}/chat/conversations/${conversationId}/search?query=${encodeURIComponent(query)}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -2852,7 +2852,7 @@ export const ChatProvider = ({ children }) => {
 
   const getMediaGallery = async (conversationId, mediaType = 'all') => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/chat/conversations/${conversationId}/media?mediaType=${mediaType}`);
+      const response = await authFetch(`${BACKEND_URL}/chat/conversations/${conversationId}/media?mediaType=${mediaType}`);
       const data = await response.json();
       const items = data.data || data.media || [];
       const normalizedItems = items.map(item => ({
@@ -2869,7 +2869,7 @@ export const ChatProvider = ({ children }) => {
   const getMessageInfo = async (messageId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${BACKEND_URL}/api/chat/messages/${messageId}/info`, {
+      const response = await fetch(`${BACKEND_URL}/chat/messages/${messageId}/info`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -2886,7 +2886,7 @@ export const ChatProvider = ({ children }) => {
   const markViewOnceViewed = async (messageId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${BACKEND_URL}/api/chat/messages/${messageId}/view-once-viewed`, {
+      const response = await fetch(`${BACKEND_URL}/chat/messages/${messageId}/view-once-viewed`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -2908,7 +2908,7 @@ export const ChatProvider = ({ children }) => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${BACKEND_URL}/api/chat/messages/${messageIdOrContent}/forward`, {
+      const response = await fetch(`${BACKEND_URL}/chat/messages/${messageIdOrContent}/forward`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -2933,7 +2933,7 @@ export const ChatProvider = ({ children }) => {
   const reportMessage = async (messageId, reason, details = '') => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${BACKEND_URL}/api/chat/messages/${messageId}/report`, {
+      const response = await fetch(`${BACKEND_URL}/chat/messages/${messageId}/report`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -2952,7 +2952,7 @@ export const ChatProvider = ({ children }) => {
   const getGroupInfo = async (groupId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${BACKEND_URL}/api/chat/groups/${groupId}/info`, {
+      const response = await fetch(`${BACKEND_URL}/chat/groups/${groupId}/info`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -2969,7 +2969,7 @@ export const ChatProvider = ({ children }) => {
   const regenerateGroupInvite = async (groupId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${BACKEND_URL}/api/chat/groups/${groupId}/invite/regenerate`, {
+      const response = await fetch(`${BACKEND_URL}/chat/groups/${groupId}/invite/regenerate`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -2986,7 +2986,7 @@ export const ChatProvider = ({ children }) => {
   const updateGroupInfo = async (groupId, updates) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${BACKEND_URL}/api/chat/groups/${groupId}/info`, {
+      const response = await fetch(`${BACKEND_URL}/chat/groups/${groupId}/info`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -3012,7 +3012,7 @@ export const ChatProvider = ({ children }) => {
   const removeAdmin = async (groupId, userId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${BACKEND_URL}/api/chat/groups/${groupId}/admins/${userId}`, {
+      const response = await fetch(`${BACKEND_URL}/chat/groups/${groupId}/admins/${userId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

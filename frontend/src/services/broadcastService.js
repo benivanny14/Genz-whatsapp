@@ -7,7 +7,7 @@ const broadcastService = {
   getBroadcasts: async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/advanced/broadcast`, {
+      const response = await authFetch(`${API_URL}/advanced/broadcast`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -30,7 +30,7 @@ const broadcastService = {
   createBroadcast: async (broadcastData) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/advanced/broadcast`, {
+      const response = await authFetch(`${API_URL}/advanced/broadcast`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -55,7 +55,7 @@ const broadcastService = {
   updateBroadcast: async (id, broadcastData) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/advanced/broadcast/${id}`, {
+      const response = await authFetch(`${API_URL}/advanced/broadcast/${id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -80,7 +80,7 @@ const broadcastService = {
   deleteBroadcast: async (id) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/advanced/broadcast/${id}`, {
+      const response = await authFetch(`${API_URL}/advanced/broadcast/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -104,7 +104,7 @@ const broadcastService = {
   sendBroadcastMessage: async (id, messageData) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/advanced/broadcast/${id}/send`, {
+      const response = await authFetch(`${API_URL}/advanced/broadcast/${id}/send`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -129,7 +129,7 @@ const broadcastService = {
   getBroadcastDetails: async (id) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/advanced/broadcast/${id}`, {
+      const response = await authFetch(`${API_URL}/advanced/broadcast/${id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -152,7 +152,7 @@ const broadcastService = {
   addRecipients: async (id, recipients) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/advanced/broadcast/${id}/recipients`, {
+      const response = await authFetch(`${API_URL}/advanced/broadcast/${id}/recipients`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -177,7 +177,7 @@ const broadcastService = {
   removeRecipients: async (id, recipients) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/advanced/broadcast/${id}/recipients`, {
+      const response = await authFetch(`${API_URL}/advanced/broadcast/${id}/recipients`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -202,7 +202,7 @@ const broadcastService = {
   getBroadcastStats: async (id) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/advanced/broadcast/${id}/stats`, {
+      const response = await authFetch(`${API_URL}/advanced/broadcast/${id}/stats`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -225,7 +225,7 @@ const broadcastService = {
   getBroadcastMessages: async (id, page = 1, limit = 50) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/advanced/broadcast/${id}/messages?page=${page}&limit=${limit}`, {
+      const response = await authFetch(`${API_URL}/advanced/broadcast/${id}/messages?page=${page}&limit=${limit}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -248,7 +248,7 @@ const broadcastService = {
   scheduleBroadcastMessage: async (id, messageData) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/advanced/broadcast/${id}/schedule`, {
+      const response = await authFetch(`${API_URL}/advanced/broadcast/${id}/schedule`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -273,7 +273,7 @@ const broadcastService = {
   cancelScheduledBroadcast: async (id, messageId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/advanced/broadcast/${id}/schedule/${messageId}`, {
+      const response = await authFetch(`${API_URL}/advanced/broadcast/${id}/schedule/${messageId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -297,7 +297,7 @@ const broadcastService = {
   getScheduledBroadcasts: async (id) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/advanced/broadcast/${id}/scheduled`, {
+      const response = await authFetch(`${API_URL}/advanced/broadcast/${id}/scheduled`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -324,7 +324,7 @@ const broadcastService = {
       formData.append('file', file);
       formData.append('broadcastId', id);
 
-      const response = await authFetch(`${API_URL}/api/advanced/broadcast/${id}/upload`, {
+      const response = await authFetch(`${API_URL}/advanced/broadcast/${id}/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -348,7 +348,7 @@ const broadcastService = {
   searchRecipients: async (query) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/advanced/broadcast/search-recipients?q=${encodeURIComponent(query)}`, {
+      const response = await authFetch(`${API_URL}/advanced/broadcast/search-recipients?q=${encodeURIComponent(query)}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

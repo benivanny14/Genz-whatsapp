@@ -21,7 +21,7 @@ export const uploadVoiceNote = async (audioBlob, metadata = {}) => {
       formData.append(key, metadata[key]);
     });
 
-    const response = await authFetch(`${API_URL}/api/voice/upload`, {
+    const response = await authFetch(`${API_URL}/voice/upload`, {
       method: 'POST',
       body: formData,
       credentials: 'include'
@@ -52,7 +52,7 @@ export const getVoiceNote = async (voiceNoteId) => {
       throw new Error('Voice note ID is required');
     }
 
-    const response = await authFetch(`${API_URL}/api/voice/${voiceNoteId}`, {
+    const response = await authFetch(`${API_URL}/voice/${voiceNoteId}`, {
       credentials: 'include'
     });
 
@@ -81,7 +81,7 @@ export const deleteVoiceNote = async (voiceNoteId) => {
       throw new Error('Voice note ID is required');
     }
 
-    const response = await authFetch(`${API_URL}/api/voice/${voiceNoteId}`, {
+    const response = await authFetch(`${API_URL}/voice/${voiceNoteId}`, {
       method: 'DELETE',
       credentials: 'include'
     });

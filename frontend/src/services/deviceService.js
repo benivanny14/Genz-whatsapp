@@ -26,7 +26,7 @@ const deviceService = {
   getDevices: async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/device`, {
+      const response = await authFetch(`${API_URL}/device`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -49,7 +49,7 @@ const deviceService = {
   generateQR: async (deviceInfo = {}) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/device/generate-qr`, {
+      const response = await authFetch(`${API_URL}/device/generate-qr`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -74,7 +74,7 @@ const deviceService = {
   pairDevice: async (pairingToken, deviceInfo = {}) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/device/pair`, {
+      const response = await authFetch(`${API_URL}/device/pair`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -99,7 +99,7 @@ const deviceService = {
   unlinkDevice: async (deviceId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/device/${deviceId}`, {
+      const response = await authFetch(`${API_URL}/device/${deviceId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -123,7 +123,7 @@ const deviceService = {
   logoutAllDevices: async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/device/logout-all`, {
+      const response = await authFetch(`${API_URL}/device/logout-all`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -147,7 +147,7 @@ const deviceService = {
   setDeviceActive: async (deviceId, active) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${API_URL}/api/device/${deviceId}/active`, {
+      const response = await authFetch(`${API_URL}/device/${deviceId}/active`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
