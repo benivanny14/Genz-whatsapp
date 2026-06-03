@@ -629,6 +629,12 @@ export const ChatProvider = ({ children }) => {
         console.log('Socket connected successfully');
         setIsSocketConnected(true);
         socket.emit('user:join', userId);
+        
+        const currentConvId = localStorage.getItem('selectedConversationId');
+        if (currentConvId) {
+          socket.emit('join:conversation', currentConvId);
+        }
+        
         window.dispatchEvent(new Event('process-offline-queue'));
       });
 
@@ -688,7 +694,13 @@ export const ChatProvider = ({ children }) => {
               setOnlineNotification(`New message from ${senderName}`);
               setTimeout(() => setOnlineNotification(null), 3000);
             }
-            return [...prev, incoming];
+            
+            // Only append to active chat view if it's the open chat
+            const currentSelectedId = localStorage.getItem('selectedConversationId');
+            if (String(incoming.conversationId) === String(currentSelectedId)) {
+              return [...prev, incoming];
+            }
+            return prev;
           }
 
           const next = [...prev];
