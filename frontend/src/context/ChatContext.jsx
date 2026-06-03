@@ -1175,26 +1175,14 @@ export const ChatProvider = ({ children }) => {
         ...options
       };
 
-      console.log("Inatuma ujumbe kwenda kwa chumba cha:", newMessage.conversationId);
+      console.log("Inatuma ujumbe kwenda DB kwa chumba cha:", newMessage.conversationId);
 
       let messageSent = false;
       let savedMessage = newMessage;
 
-      // 1. Kipaumbele: Tumia Socket.io (Real-time and fastest)
-      if (socketRef.current?.connected) {
-        console.log("Natumia Socket kutuma ujumbe moja kwa moja...");
-        try {
-          emitSafe('message:send', payload);
-          messageSent = true;
-          // Meseji inatarajiwa kupokelewa uthibitisho kupitia 'message:delivered' event
-        } catch (e) {
-          console.error("Socket emit imefeli:", e);
-        }
-      }
-
-      // 2. Njia mbadala: Kama Socket haipo hewani, tumia HTTP API
-      if (!messageSent && navigator.onLine && isMongoObjectId(newMessage.conversationId)) {
-        console.log("Socket haipo, natumia HTTP API kutuma ujumbe...");
+      // 1. Kipaumbele: Tumia HTTP API kuhakikisha ujumbe unasave kwenye Database
+      if (navigator.onLine && isMongoObjectId(newMessage.conversationId)) {
+        console.log("Natumia HTTP API kutuma ujumbe...");
         try {
           const data = await apiService.sendMessage(
             newMessage.conversationId,
@@ -1211,6 +1199,7 @@ export const ChatProvider = ({ children }) => {
             // Iweke kwenye skrini (User A ataona)
             setMessages(prev => prev.map(m => m._id === newMessage._id ? savedMessage : m));
             await DB.saveMessage(savedMessage);
+            console.log("Meseji imehifadhiwa kikamilifu kwenye Database:", savedMessage._id);
           } else {
             console.error("API response success false:", data);
           }
@@ -1219,7 +1208,18 @@ export const ChatProvider = ({ children }) => {
         }
       }
 
-      // 3. Kama zote zimefeli au tupo offline, weka foleni
+      // 2. Njia mbadala: Kama API imefeli au hatupo hewani, tumia Socket
+      if (!messageSent && socketRef.current?.connected) {
+        console.log("API imefeli au ina tatizo, natumia Socket kama mbadala...");
+        try {
+          emitSafe('message:send', payload);
+          messageSent = true;
+        } catch (e) {
+          console.error("Socket emit imefeli:", e);
+        }
+      }
+
+      // 3. Kama zote zimefeli, weka foleni
       if (!messageSent) {
         console.error("Meseji imegoma kwenda, hakuna mtandao au server iko chini!");
         await DB.enqueueAction({ type: 'sendMessage', payload });
