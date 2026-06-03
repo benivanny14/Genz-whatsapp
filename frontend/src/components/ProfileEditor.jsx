@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useUser } from '../context/UserContext';
 import { X, User, Mail, Camera, Save, Check } from 'lucide-react';
+import userService from '../services/userService';
 
 const ProfileEditor = ({ onClose }) => {
   const { user, updateUserProfile } = useUser();
@@ -30,22 +31,37 @@ const ProfileEditor = ({ onClose }) => {
     reader.readAsDataURL(file);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.username.trim()) {
       alert('Username is required');
       return;
     }
-    if (updateUserProfile) {
-      updateUserProfile({
+    
+    try {
+      // API call to backend
+      await userService.updateProfile({
         username: formData.username,
         bio: formData.bio,
-        email: formData.email,
-        profilePicture: formData.profilePicture,
-        avatar: formData.profilePicture
+        email: formData.email
       });
+
+      // Update local context
+      if (updateUserProfile) {
+        updateUserProfile({
+          username: formData.username,
+          bio: formData.bio,
+          email: formData.email,
+          profilePicture: formData.profilePicture,
+          avatar: formData.profilePicture
+        });
+      }
+      
+      setSaved(true);
+      setTimeout(() => { setSaved(false); onClose(); }, 1000);
+    } catch (error) {
+      console.error('Failed to save profile:', error);
+      alert('Failed to save profile: ' + error.message);
     }
-    setSaved(true);
-    setTimeout(() => { setSaved(false); onClose(); }, 1000);
   };
 
   return (

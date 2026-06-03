@@ -63,16 +63,27 @@ export const UserProvider = ({ children }) => {
     const deviceId = getDeviceId();
     const deviceInfo = getDeviceInfo();
 
+    // Load auth user from localStorage as priority
+    const storedAuthUser = localStorage.getItem('user');
+    let authUser = null;
+    if (storedAuthUser) {
+      try {
+        authUser = JSON.parse(storedAuthUser);
+      } catch (e) {
+        console.error('Failed to parse auth user:', e);
+      }
+    }
+
     const userData = {
-      id: deviceId,
-      _id: deviceId,
-      name: userProfile?.username || "GENZ User",
-      username: userProfile?.username || "GENZ User",
-      phoneNumber: userProfile?.phoneNumber || "local",
-      avatar: isBlobUrl(userProfile?.avatar) ? null : (userProfile?.avatar || null),
-      profilePicture: isBlobUrl(userProfile?.profilePicture) ? "" : (userProfile?.profilePicture || ""),
-      bio: userProfile?.bio || "",
-      displayName: userProfile?.username || "GENZ User",
+      id: authUser?._id || deviceId,
+      _id: authUser?._id || deviceId,
+      name: authUser?.username || userProfile?.username || "GENZ User",
+      username: authUser?.username || userProfile?.username || "GENZ User",
+      phoneNumber: authUser?.phoneNumber || authUser?.phone || userProfile?.phoneNumber || "local",
+      avatar: isBlobUrl(authUser?.profilePicture || userProfile?.avatar) ? null : (authUser?.profilePicture || userProfile?.avatar || null),
+      profilePicture: isBlobUrl(authUser?.profilePicture || userProfile?.profilePicture) ? "" : (authUser?.profilePicture || userProfile?.profilePicture || ""),
+      bio: authUser?.bio || authUser?.about || userProfile?.bio || "",
+      displayName: authUser?.username || userProfile?.username || "GENZ User",
       deviceId: deviceId,
       deviceInfo: deviceInfo,
       settings: storedSettings || {
