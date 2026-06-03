@@ -38,9 +38,9 @@ api.interceptors.response.use(
     const status = error.response?.status;
 
     // Only log errors that aren't 401 or 409 on auth endpoints (handled by components)
-    const isAuthEndpoint = originalRequest?.url?.includes('/api/auth/login') ||
-                          originalRequest?.url?.includes('/api/auth/register') ||
-                          originalRequest?.url?.includes('/api/auth/forgot-password');
+    const isAuthEndpoint = originalRequest?.url?.includes('/auth/login') ||
+                          originalRequest?.url?.includes('/auth/register') ||
+                          originalRequest?.url?.includes('/auth/forgot-password');
     
     if (status !== 401 && !(status === 409 && isAuthEndpoint)) {
       console.error('[Axios Response Error]:', {
@@ -62,13 +62,13 @@ api.interceptors.response.use(
       originalRequest._authRetry = true;
 
       // Don't attempt refresh for auth endpoints
-      if (originalRequest.url?.includes('/api/auth/login') ||
-          originalRequest.url?.includes('/api/auth/register') ||
-          originalRequest.url?.includes('/api/auth/forgot-password')) {
+      if (originalRequest.url?.includes('/auth/login') ||
+          originalRequest.url?.includes('/auth/register') ||
+          originalRequest.url?.includes('/auth/forgot-password')) {
         return Promise.reject(error);
       }
 
-      if (originalRequest.url?.includes('/api/auth/refresh')) {
+      if (originalRequest.url?.includes('/auth/refresh')) {
         // Silent clear and redirect on refresh failure
         clearSessionAndRedirect();
         return Promise.reject(error);

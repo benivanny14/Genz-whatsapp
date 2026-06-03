@@ -19,7 +19,7 @@ const authService = {
 
   login: async (payload) => {
     try {
-      const response = await api.post('/api/auth/login', payload);
+      const response = await api.post('/auth/login', payload);
       const data = response.data;
 
       if (!data.requiresTwoFactor) {
@@ -39,7 +39,7 @@ const authService = {
 
   register: async (payload) => {
     try {
-      const response = await api.post('/api/auth/register', payload);
+      const response = await api.post('/auth/register', payload);
       const data = response.data;
       // Save tokens to localStorage after successful registration
       authService.saveTokens(data);
@@ -54,13 +54,13 @@ const authService = {
   },
 
   getMe: async () => {
-    const response = await api.get('/api/auth/me');
+    const response = await api.get('/auth/me');
     return response.data;
   },
 
   logout: async () => {
     try {
-      await api.post('/api/auth/logout');
+      await api.post('/auth/logout');
     } catch (error) {
       console.error('[AuthService] Logout error:', error);
     } finally {
