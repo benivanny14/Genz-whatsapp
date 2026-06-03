@@ -171,7 +171,7 @@ const LinkPreviewCard = ({ url }) => {
   useEffect(() => {
     if (!url) return;
     setLoading(true);
-    authFetch(`${API_URL}/api/advanced/link-preview?url=${encodeURIComponent(url)}`)
+    authFetch(`${API_URL}/advanced/link-preview?url=${encodeURIComponent(url)}`)
       .then(r => r.json())
       .then(data => { if (data.success) setPreview(data.preview); })
       .catch(() => { })
@@ -582,7 +582,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       .join('\n');
 
     try {
-      const response = await authFetch(`${API_URL}/api/advanced/ai-assistant`, {
+      const response = await authFetch(`${API_URL}/advanced/ai-assistant`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -700,7 +700,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
         try {
           const API_URL = import.meta.env.VITE_API_URL || '';
-          const response = await authFetch(`${API_URL}/api/media/upload`, {
+          const response = await authFetch(`${API_URL}/media/upload`, {
             method: 'POST',
             body: formData,
           });
@@ -892,7 +892,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       formData.append('file', audioFile);
       formData.append('duration', durationSecs || 0);
 
-      const response = await authFetch(`${API_URL}/api/media/upload`, { method: 'POST', body: formData });
+      const response = await authFetch(`${API_URL}/media/upload`, { method: 'POST', body: formData });
       const data = await response.json().catch(() => ({}));
 
       if (response.ok && (data.success || data.fileUrl)) {
@@ -924,7 +924,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       }
 
       const API_URL = import.meta.env.VITE_API_URL || '';
-      const response = await authFetch(`${API_URL}/api/chat/messages/${messageId}/delete-for-everyone`, {
+      const response = await authFetch(`${API_URL}/chat/messages/${messageId}/delete-for-everyone`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -1101,7 +1101,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
     try {
       const API_URL = import.meta.env.VITE_API_URL || '';
-      const response = await authFetch(`${API_URL}/api/media/upload`, {
+      const response = await authFetch(`${API_URL}/media/upload`, {
         method: 'POST',
         // No auth headers needed
 
@@ -1187,7 +1187,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       const caption = window.prompt("Add a caption (optional):");
 
       try {
-        const response = await authFetch(`${API_URL}/api/media/upload`, { method: 'POST', body: formData });
+        const response = await authFetch(`${API_URL}/media/upload`, { method: 'POST', body: formData });
         const data = await response.json();
         if (response.ok && data.success) {
           await sendMessage(data.fileUrl, user?.username, {
@@ -1247,7 +1247,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     const caption = window.prompt("Add a caption (optional):");
 
     try {
-      const response = await authFetch(`${API_URL}/api/media/upload`, { method: 'POST', body: formData });
+      const response = await authFetch(`${API_URL}/media/upload`, { method: 'POST', body: formData });
       const data = await response.json();
       if (response.ok && data.success) {
         await sendMessage(data.fileUrl, user?.username, {
@@ -1325,7 +1325,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     formData.append('file', file);
 
     try {
-      const response = await authFetch(`${API_URL}/api/media/upload`, { method: 'POST', body: formData });
+      const response = await authFetch(`${API_URL}/media/upload`, { method: 'POST', body: formData });
       const data = await response.json();
       if (response.ok && data.success) {
         await sendMessage(data.fileUrl, user?.username, {
@@ -1544,7 +1544,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
     try {
       // Try backend translation endpoint first
-      const res = await authFetch(`${API_URL}/api/advanced/translate`, {
+      const res = await authFetch(`${API_URL}/advanced/translate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, target: targetLang })
