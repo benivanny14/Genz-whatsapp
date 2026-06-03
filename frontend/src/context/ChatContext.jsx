@@ -1773,6 +1773,18 @@ export const ChatProvider = ({ children }) => {
           console.error('[ChatContext] Failed to load scheduled messages:', err);
         }
 
+        // Fetch contacts from backend
+        try {
+          const contactsResponse = await authFetch(`${BACKEND_URL}/chat/contacts`);
+          const contactsData = await contactsResponse.json();
+          if (contactsData?.success) {
+            setContacts(contactsData.contacts || []);
+            console.log('[ChatContext] Contacts loaded successfully:', (contactsData.contacts || []).length);
+          }
+        } catch (err) {
+          console.error('[ChatContext] Failed to load contacts:', err);
+        }
+
         // Log any errors
         const errors = [devicesData, modsData, broadcastsData, statusesData, conversationsData, callsData]
           .filter(result => result.status === 'rejected')

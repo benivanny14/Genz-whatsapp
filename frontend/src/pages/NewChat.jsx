@@ -1,47 +1,87 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { chatAPI } from '../services/api';
-import { ArrowLeft, Search, UserPlus } from 'lucide-react';
+import { ArrowLeft, Search, UserPlus, MessageCircle } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
+import { authFetch } from '../utils/authFetch';
 import AddContactModal from '../components/AddContactModal';
+
+const BACKEND_URL = import.meta.env.VITE_API_URL || 'https://genz-whatsapp.onrender.com/api';
 
 const NewChat = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { selectConversation } = useChat();
+  const [myContacts, setMyContacts] = useState([]);
+  const { selectConversation, contacts, conversations } = useChat();
 
+  // Load contacts from backend on mount
   useEffect(() => {
-    const searchUsers = async () => {
-      if (searchQuery.trim().length >= 2) {
-        setLoading(true);
-        try {
-          const response = await chatAPI.searchUsers(searchQuery);
-          setUsers(response.data.users || []);
-        } catch (error) {
-          console.error('Search failed:', error);
-        } finally {
-          setLoading(false);
+    const fetchContacts = async () => {
+      setLoading(true);
+      try {
+        const response = await authFetch(`${BACKEND_URL}/chat/contacts`);
+        const data = await response.json();
+        if (data.success && data.contacts) {
+          setMyContacts(data.contacts);
         }
-      } else {
-        setUsers([]);
+      } catch (error) {
+        console.error('[NewChat] Failed to load contacts:', error);
+      } finally {
+        setLoading(false);
       }
     };
+    fetchContacts();
+  }, [contacts]); // Re-fetch when contacts state changes (after addContact)
 
-    const debounceTimer = setTimeout(searchUsers, 300);
-    return () => clearTimeout(debounceTimer);
-  }, [searchQuery]);
+  // Filter contacts locally based on search query
+  const filteredContacts = myContacts.filter(contact => {
+    if (!searchQuery.trim()) return true; // Show all contacts when no search
+    const query = searchQuery.toLowerCase();
+    const nameMatch = (contact.savedName || '').toLowerCase().includes(query);
+    const usernameMatch = (contact.user?.username || '').toLowerCase().includes(query);
+    const phoneMatch = (contact.user?.phoneNumber || '').includes(query);
+    return nameMatch || usernameMatch || phoneMatch;
+  });
 
-  const handleSelectUser = async (userId) => {
+  // Start a conversation with a contact
+  const handleSelectContact = async (contactUser) => {
+    if (!contactUser?._id) return;
     try {
-      const response = await chatAPI.getOrCreateConversation(userId);
-      selectConversation(response.data.conversation);
+      // Check if a conversation with this user already exists
+      const existingConv = (conversations || []).find(conv => {
+        const participants = conv.participants || [];
+        return participants.some(p => {
+          const pid = typeof p === 'string' ? p : p?._id;
+          return pid === contactUser._id;
+        });
+      });
+
+      if (existingConv) {
+        selectConversation(existingConv);
+        navigate('/chat');
+        return;
+      }
+
+      // Create a new conversation
+      const response = await authFetch(`${BACKEND_URL}/chat/conversations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ participantId: contactUser._id })
+      });
+      const data = await response.json();
+      if (data.success && data.conversation) {
+        selectConversation(data.conversation);
+      }
       navigate('/chat');
     } catch (error) {
-      console.error('Failed to create conversation:', error);
+      console.error('[NewChat] Failed to start conversation:', error);
     }
+  };
+
+  // Callback to refresh contacts after adding a new one
+  const handleModalClose = () => {
+    setIsModalOpen(false);
   };
 
   return (
@@ -56,7 +96,7 @@ const NewChat = () => {
         <h1 className="text-xl font-semibold text-white">New Chat</h1>
       </header>
 
-      <div className="p-4">
+      <div className="p-4 flex-1 overflow-y-auto">
         <button 
           onClick={() => setIsModalOpen(true)}
           className="w-full mb-4 p-3 bg-slate-700 text-white font-medium rounded-lg hover:bg-slate-600 transition-all flex items-center justify-center gap-2"
@@ -68,60 +108,69 @@ const NewChat = () => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-dark-textSecondary" />
           <input
             type="text"
-            placeholder="Search users..."
+            placeholder="Tafuta kwa jina au namba ya simu..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-3 bg-dark-surface border border-dark-border rounded-lg text-dark-text placeholder-dark-textSecondary focus:outline-none focus:border-primary-500"
           />
         </div>
 
+        {/* Contacts count */}
+        {!loading && myContacts.length > 0 && (
+          <p className="text-xs text-dark-textSecondary mb-3 px-1 uppercase tracking-wider font-semibold">
+            Contacts kwenye simu yako &middot; {filteredContacts.length}
+          </p>
+        )}
+
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
           </div>
-        ) : (users || []).length > 0 ? (
-          <div className="space-y-2">
-            {(users || []).map((user) => (
+        ) : filteredContacts.length > 0 ? (
+          <div className="space-y-1">
+            {filteredContacts.map((contact, index) => (
               <button
-                key={user._id}
-                onClick={() => handleSelectUser(user._id)}
+                key={contact.user?._id || index}
+                onClick={() => handleSelectContact(contact.user)}
                 className="w-full flex items-center gap-3 p-3 bg-dark-surface hover:bg-dark-hover rounded-lg transition-colors"
               >
-                <div className="w-12 h-12 rounded-full bg-primary-600 flex items-center justify-center overflow-hidden">
-                  {user.profilePicture ? (
+                <div className="w-12 h-12 rounded-full bg-primary-600 flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {contact.user?.profilePicture ? (
                     <img
-                      src={user.profilePicture}
+                      src={contact.user.profilePicture}
                       alt=""
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span className="text-white font-semibold">
-                      {user.username.charAt(0).toUpperCase()}
+                    <span className="text-white font-semibold text-lg">
+                      {(contact.savedName || contact.user?.username || '?').charAt(0).toUpperCase()}
                     </span>
                   )}
                 </div>
-                <div className="flex-1 text-left">
-                  <h3 className="text-dark-text font-medium">{user.username}</h3>
-                  <p className="text-sm text-dark-textSecondary">{user.bio || 'Hey there! I am using GENZ WhatsApp'}</p>
+                <div className="flex-1 text-left min-w-0">
+                  <h3 className="text-dark-text font-medium truncate">{contact.savedName}</h3>
+                  <p className="text-sm text-dark-textSecondary truncate">
+                    {contact.user?.about || contact.user?.bio || 'Hey there! I am using GENZ'}
+                  </p>
                 </div>
-                <button className="p-2 hover:bg-dark-bg rounded-lg">
-                  <UserPlus className="w-5 h-5 text-primary-500" />
-                </button>
+                <MessageCircle className="w-5 h-5 text-primary-500 flex-shrink-0" />
               </button>
             ))}
           </div>
-        ) : searchQuery.trim().length >= 2 ? (
+        ) : searchQuery.trim() ? (
           <div className="text-center py-8">
-            <p className="text-dark-textSecondary">No users found</p>
+            <p className="text-dark-textSecondary">Hakuna mwasiliano aliyepatikana.</p>
           </div>
         ) : (
           <div className="text-center py-8">
-            <p className="text-dark-textSecondary">Search for users to start a conversation</p>
+            <UserPlus className="w-12 h-12 text-dark-textSecondary mx-auto mb-3 opacity-40" />
+            <p className="text-dark-textSecondary mb-1">Huna contacts bado</p>
+            <p className="text-sm text-dark-textSecondary opacity-70">Bonyeza "Add New Contact" kuongeza mtu mpya</p>
           </div>
         )}
       </div>
       
-      <AddContactModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <AddContactModal isOpen={isModalOpen} onClose={handleModalClose} />
     </div>
   );
 };
