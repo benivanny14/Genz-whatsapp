@@ -591,7 +591,10 @@ export const ChatProvider = ({ children }) => {
         if (u?._id) userId = u._id;
       } catch (_) { /* keep default */ }
 
-      socket = io(BACKEND_URL, {
+      socket = io(BACKEND_URL.replace(/\/api\/?$/, ''), {
+        path: '/socket.io/',
+        transports: ['websocket', 'polling'],
+        withCredentials: true,
         auth: {
           token: token || undefined,
           userId: userId,
