@@ -722,6 +722,36 @@ export const ChatProvider = ({ children }) => {
         ));
       });
 
+      socket.on('notification:new_message', async (data) => {
+        if (!data || !data.message) return;
+        const incoming = await decryptMessageContent(data.message);
+        
+        setMessages(prev => {
+          const serverId = String(incoming._id || '');
+          const existingIndex = prev.findIndex(m => String(m._id) === serverId);
+
+          if (existingIndex === -1) {
+            const currentSelectedId = localStorage.getItem('selectedConversationId');
+            if (String(incoming.conversationId) === String(currentSelectedId)) {
+              return [...prev, incoming];
+            }
+            return prev;
+          }
+          
+          const next = [...prev];
+          next[existingIndex] = { ...next[existingIndex], ...incoming };
+          return next;
+        });
+
+        try {
+          await DB.saveMessage(incoming);
+        } catch (e) { }
+
+        setConversations(prev => prev.map(c =>
+          c._id === incoming.conversationId ? { ...c, lastMessage: incoming, updatedAt: new Date() } : c
+        ));
+      });
+
       socket.on('notification:mention', async ({ conversationId, message }) => {
         const senderName = message?.sender?.username || 'Someone';
         const preview = typeof message?.content === 'string'
