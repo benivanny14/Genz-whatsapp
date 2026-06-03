@@ -2705,7 +2705,7 @@ export const ChatProvider = ({ children }) => {
   };
   const addContact = async (phone, savedName) => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/contacts/add`, {
+      const response = await authFetch(`${BACKEND_URL}/chat/contacts/add`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, savedName })

@@ -411,7 +411,7 @@ const ContactInfo = ({
 
   const isStatusConversation = conversation?._id?.startsWith('conv-status-') || conversation?.isStatusReply;
 
-  const { messages } = useChat();
+  const { messages, contacts } = useChat();
 
   /* Fetch media preview */
   useEffect(() => {
@@ -442,8 +442,11 @@ const ContactInfo = ({
   }, [conversation?._id, messages]);
 
   /* Derived values */
+  const savedContact = (contacts || []).find(c => c.user && (c.user._id === contact?._id || c.user === contact?._id));
+  const savedName = savedContact?.savedName;
+  const systemName = contact?.username || 'Unknown';
+  const displayName = savedName || systemName;
   const profilePicture = contact?.profilePicture || '';
-  const displayName = contact?.username || 'Unknown';
   const phoneNumber = contact?.phoneNumber || contact?.email || '';
   const aboutText = contact?.about || 'Hey there! I am using GENZ.';
   const isOnline = contact?.isOnline;
@@ -517,10 +520,13 @@ const ContactInfo = ({
 
             {/* Name */}
             <h3 className="text-white text-xl font-semibold">{displayName}</h3>
+            {savedName && systemName !== savedName && (
+              <p className="text-white/50 text-sm">~ {systemName}</p>
+            )}
 
             {/* Phone */}
             {phoneNumber && (
-              <p className="text-white/60 text-sm">{phoneNumber}</p>
+              <p className="text-white/60 text-sm mt-1">{phoneNumber}</p>
             )}
 
             {/* Online status */}

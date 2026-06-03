@@ -111,6 +111,13 @@ const ProfileEditor = ({ onClose }) => {
           </div>
 
           <div>
+            <label className="text-xs text-dark-textSecondary uppercase font-bold mb-2 block">Phone Number</label>
+            <p className="text-base text-emerald-400 font-medium tracking-wide">
+              {user?.phoneNumber || user?.phone || "Namba haijapatikana"}
+            </p>
+          </div>
+
+          <div>
             <label className="text-xs text-dark-textSecondary uppercase font-bold mb-2 block">Bio</label>
             <textarea
               name="bio"
