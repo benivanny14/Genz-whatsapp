@@ -544,6 +544,7 @@ exports.sendMessage = async (req, res) => {
     const localUserId = getCurrentUserId(req);
     const {
       conversationId,
+      chatId,
       content,
       messageType,
       mediaUrl,
@@ -554,7 +555,15 @@ exports.sendMessage = async (req, res) => {
       isViewOnce,
       mentions,
     } = req.body;
-    const conversation = await Conversation.findById(conversationId);
+    
+    // 1. Frontend inaweza kuwa inatuma 'conversationId' au 'chatId', tunasoma zote mbili kulinda usalama
+    const finalConversationId = conversationId || chatId;
+
+    if (!content || !finalConversationId) {
+      return res.status(400).json({ message: "Content na Conversation ID vinahitajika!" });
+    }
+
+    const conversation = await Conversation.findById(finalConversationId);
 
     if (!ensureParticipant(conversation, localUserId, res)) return;
     const safeContent =
@@ -614,8 +623,9 @@ exports.sendMessage = async (req, res) => {
       disappearAt = new Date(Date.now() + durationMs);
     }
 
+    // 2. Hifadhi ujumbe rasmi kwenye MongoDB Database
     const message = await Message.create({
-      conversationId,
+      conversationId: finalConversationId,
       sender: localUserId,
       content: safeContent,
       messageType: messageType || "text",
@@ -640,6 +650,7 @@ exports.sendMessage = async (req, res) => {
       populatedMessage = message;
     }
 
+    // 3. Update mazungumzo (Conversation) ili iweke ujumbe huu kama ujumbe wa mwisho (Last Message)
     conversation.lastMessage = message._id;
     conversation.updatedAt = new Date();
     if (conversation.deletedFor?.length) {
@@ -649,7 +660,7 @@ exports.sendMessage = async (req, res) => {
 
     const io = req.app.get("io");
     if (io) {
-      io.to(conversationId).emit("message:received", populatedMessage);
+      io.to(finalConversationId).emit("message:received", populatedMessage);
     }
 
     await notifyMentionedUsers({
@@ -661,12 +672,14 @@ exports.sendMessage = async (req, res) => {
     });
 
     // Invalidate caches
-    await invalidateCachePattern(req, `messages:${conversationId}:*`);
+    await invalidateCachePattern(req, `messages:${finalConversationId}:*`);
     await invalidateCachePattern(req, `conversations:*`); // Simplest way to refresh latest message in list
 
-    res.status(201).json({ success: true, message: populatedMessage });
+    // 4. Rudisha ujumbe uliosavewa kwenda Frontend
+    res.status(201).json({ success: true, message: populatedMessage, ...populatedMessage.toObject() });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Database Error - Kushindwa kusave meseji:", error);
+    res.status(500).json({ success: false, message: "Server error", error: error.message });
   }
 };
 

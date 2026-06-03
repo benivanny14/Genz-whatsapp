@@ -1174,9 +1174,10 @@ export const ChatProvider = ({ children }) => {
         ...options
       };
 
-      if (socketRef.current?.connected) {
-        emitSafe('message:send', payload);
-      } else if (navigator.onLine && isMongoObjectId(newMessage.conversationId)) {
+      console.log("Inatuma ujumbe kwenda DB kwa chumba cha:", newMessage.conversationId);
+
+      // 1. Tuma ujumbe kwenye Seva uhifadhiwe kwenye Database via HTTP API (Ensure persistence)
+      if (navigator.onLine && isMongoObjectId(newMessage.conversationId)) {
         try {
           const data = await apiService.sendMessage(
             newMessage.conversationId,
@@ -1184,16 +1185,34 @@ export const ChatProvider = ({ children }) => {
             newMessage.messageType,
             options
           );
+          
           if (data?.success && data.message) {
+            // Hizi ndio data kamili zilizotoka Database zikiwa na _id, senderId, na createdAt
+            const savedMessage = data.message;
             try { await DB.deleteMessages([newMessage._id]); } catch (e) { }
-            setMessages(prev => prev.map(m => m._id === newMessage._id ? data.message : m));
-            await DB.saveMessage(data.message);
+            
+            // 2. Iweke kwenye skrini yako hapo hapo (User A ataona ujumbe wake)
+            setMessages(prev => prev.map(m => m._id === newMessage._id ? savedMessage : m));
+            await DB.saveMessage(savedMessage);
+
+            // 3. 🚀 RUSHAA LIVE KWA USER B KUPITIA SOCKET (Muda huo huo!)
+            // This is actually handled by the backend controller emitting "message:received",
+            // but if we need a socket fallback, we can emit it here:
+            if (socketRef.current?.connected) {
+              // The backend controller already broadcasts it, so we don't strictly need to emit 'message:send' here,
+              // but we ensure the socket is active.
+            }
           } else {
+            console.error("Meseji imegoma kabisa kwenda:", data);
             await DB.enqueueAction({ type: 'sendMessage', payload });
           }
         } catch (e) {
+          console.error("Meseji imegoma kabisa kwenda:", e);
           await DB.enqueueAction({ type: 'sendMessage', payload });
         }
+      } else if (socketRef.current?.connected) {
+        // Fallback to socket if not online but socket is somehow connected
+        emitSafe('message:send', payload);
       } else {
         await DB.enqueueAction({ type: 'sendMessage', payload });
       }
