@@ -64,10 +64,10 @@ const NewChat = () => {
       }
 
       // Create a new conversation
-      const response = await authFetch(`${BACKEND_URL}/chat/conversations`, {
+      const response = await authFetch(`${BACKEND_URL}/chat/conversation`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ participantId: contactUser._id })
+        body: JSON.stringify({ userId: contactUser._id })
       });
       const data = await response.json();
       if (data.success && data.conversation) {

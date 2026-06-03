@@ -300,7 +300,11 @@ class NotificationService {
       this.subscribed = true;
       return pushSubscription;
     } catch (error) {
-      console.error('Push subscription failed:', error);
+      if (error.name === 'InvalidAccessError') {
+        console.warn('Push notifications disabled: VAPID key not configured properly.');
+      } else {
+        console.warn('Push subscription skipped:', error.message);
+      }
       return null;
     }
   }
