@@ -49,7 +49,7 @@ export const connectSocket = (userId) => {
       socketConfig.auth = { token };
     }
     
-    socket = io(SOCKET_URL, socketConfig);
+    socket = io(BACKEND_URL, socketConfig);
 
     socket.on('connect', () => {
       console.log('Connected to socket server');
