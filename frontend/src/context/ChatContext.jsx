@@ -205,6 +205,11 @@ export const ChatProvider = ({ children }) => {
 
   // Core state
   const [conversations, setConversations] = useState([]);
+  const conversationsRef = useRef(conversations);
+  useEffect(() => {
+    conversationsRef.current = conversations;
+  }, [conversations]);
+
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
