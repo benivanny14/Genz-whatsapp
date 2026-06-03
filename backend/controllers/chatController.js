@@ -936,7 +936,7 @@ exports.searchUsers = async (req, res) => {
 exports.addContact = async (req, res) => {
   try {
     const localUserId = getCurrentUserId(req);
-    const { userId } = req.body;
+    const { userId, savedName } = req.body;
 
     if (!userId || userId === localUserId) {
       return res
@@ -963,16 +963,58 @@ exports.addContact = async (req, res) => {
       });
     }
 
-    if (!includesId(user.contacts, userId)) {
-      user.contacts.push(userId);
+    const alreadyExists = user.contacts.some(c => c.user && c.user.toString() === userId.toString());
+
+    if (!alreadyExists) {
+      user.contacts.push({ user: userId, savedName: savedName || contact.username });
       await user.save();
     }
 
     const filteredContact = applyPrivacyFilter(contact, localUserId);
 
-    res.status(200).json({ success: true, contact: filteredContact, message: "Contact added" });
+    res.status(200).json({ success: true, contact: { user: filteredContact, savedName: savedName || contact.username }, message: "Contact added" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.addContactByPhone = async (req, res) => {
+  try {
+    const localUserId = getCurrentUserId(req);
+    const { phone, savedName } = req.body;
+
+    if (!phone || !savedName) {
+      return res.status(400).json({ success: false, message: 'Tafadhali jaza jina na namba ya simu' });
+    }
+
+    const contactUser = await User.findOne({ phoneNumber: phone });
+    if (!contactUser) {
+      return res.status(404).json({ success: false, message: 'Namba hii bado haijasajiliwa kwenye GENZ WhatsApp' });
+    }
+
+    if (contactUser._id.toString() === localUserId.toString()) {
+      return res.status(400).json({ success: false, message: 'Huwezi kujisave namba yako mwenyewe' });
+    }
+
+    const currentUser = await User.findById(localUserId);
+    const alreadyExists = currentUser.contacts.some(
+      (c) => c.user && c.user.toString() === contactUser._id.toString()
+    );
+
+    if (alreadyExists) {
+      return res.status(400).json({ success: false, message: 'Mwasiliano huyu tayari yupo kwenye orodha yako' });
+    }
+
+    currentUser.contacts.push({ user: contactUser._id, savedName });
+    await currentUser.save();
+
+    res.status(200).json({ 
+      success: true,
+      message: 'Contact imeongezwa kikamilifu!', 
+      contact: { user: contactUser, savedName } 
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };
 
@@ -980,11 +1022,17 @@ exports.getContacts = async (req, res) => {
   try {
     const localUserId = getCurrentUserId(req);
     const user = await User.findById(localUserId).populate(
-      "contacts",
+      "contacts.user",
       "username phoneNumber email profilePicture about isOnline lastSeen settings contacts",
     );
 
-    const filteredContacts = (user?.contacts || []).map(contact => applyPrivacyFilter(contact, localUserId));
+    const filteredContacts = (user?.contacts || []).map(contact => {
+      if (!contact.user) return null;
+      return {
+        user: applyPrivacyFilter(contact.user, localUserId),
+        savedName: contact.savedName
+      };
+    }).filter(Boolean);
 
     res.status(200).json({ success: true, contacts: filteredContacts });
   } catch (error) {
@@ -1014,7 +1062,7 @@ exports.blockUser = async (req, res) => {
     if (!includesId(user.blockedUsers, targetId)) {
       user.blockedUsers.push(targetId);
     }
-    user.contacts = user.contacts.filter((id) => id.toString() !== targetId);
+    user.contacts = user.contacts.filter((c) => c.user && c.user.toString() !== targetId);
     await user.save();
 
     res.status(200).json({ success: true, message: "User blocked" });

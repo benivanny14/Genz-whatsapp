@@ -168,8 +168,8 @@ const userSchema = new mongoose.Schema({
     default: ''
   },
   contacts: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    savedName: { type: String, required: true }
   }],
   blockedUsers: [{
     type: mongoose.Schema.Types.ObjectId,

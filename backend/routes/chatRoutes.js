@@ -21,6 +21,7 @@ const {
   removeReaction,
   searchUsers,
   addContact,
+  addContactByPhone,
   getContacts,
   blockUser,
   unblockUser,
@@ -95,6 +96,7 @@ router.delete("/conversations/:chatId", deleteChat);
 
 // Contact & user management
 router.get("/users/search", searchUsers);
+router.post("/contacts/add", addContactByPhone);
 router.post("/contacts", addContact);
 router.get("/contacts", getContacts);
 router.post("/users/:id/block", blockUser);

@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { chatAPI } from '../services/api';
 import { ArrowLeft, Search, UserPlus } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
+import AddContactModal from '../components/AddContactModal';
 
 const NewChat = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { selectConversation } = useChat();
 
   useEffect(() => {
@@ -17,7 +19,7 @@ const NewChat = () => {
         setLoading(true);
         try {
           const response = await chatAPI.searchUsers(searchQuery);
-          setUsers(response.data.users);
+          setUsers(response.data.users || []);
         } catch (error) {
           console.error('Search failed:', error);
         } finally {
@@ -55,6 +57,13 @@ const NewChat = () => {
       </header>
 
       <div className="p-4">
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="w-full mb-4 p-3 bg-slate-700 text-white font-medium rounded-lg hover:bg-slate-600 transition-all flex items-center justify-center gap-2"
+        >
+          ➕ Add New Contact
+        </button>
+
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-dark-textSecondary" />
           <input
@@ -70,7 +79,7 @@ const NewChat = () => {
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
           </div>
-        ) : users.length > 0 ? (
+        ) : (users || []).length > 0 ? (
           <div className="space-y-2">
             {(users || []).map((user) => (
               <button
@@ -111,6 +120,8 @@ const NewChat = () => {
           </div>
         )}
       </div>
+      
+      <AddContactModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 };

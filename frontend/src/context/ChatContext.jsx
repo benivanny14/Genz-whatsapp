@@ -2703,25 +2703,22 @@ export const ChatProvider = ({ children }) => {
       return { success: false };
     }
   };
-  const addContact = async (contactData) => {
+  const addContact = async (phone, savedName) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await authFetch(`${BACKEND_URL}/contacts`, {
+      const response = await authFetch(`${BACKEND_URL}/contacts/add`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(contactData)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, savedName })
       });
       const data = await response.json();
       if (data.success) {
         setContacts(prev => [...prev, data.contact]);
+        return { success: true, message: data.message };
+      } else {
+        return { success: false, message: data.message };
       }
-      return data;
-    } catch (err) {
-      console.error('Add contact error:', err);
-      return { success: false };
+    } catch (error) {
+      return { success: false, message: 'Imeshindikana kuongeza contact' };
     }
   };
 
