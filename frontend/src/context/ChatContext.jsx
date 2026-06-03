@@ -675,6 +675,7 @@ export const ChatProvider = ({ children }) => {
 
       // ── Incoming message ──
       socket.on('message:received', async (msg) => {
+        console.log('Ujumbe mpya umeingia kutoka Socket (message:received):', msg);
         const incoming = await decryptMessageContent(msg);
         setMessages(prev => {
           const serverId = String(incoming._id || '');
@@ -723,6 +724,7 @@ export const ChatProvider = ({ children }) => {
       });
 
       socket.on('notification:new_message', async (data) => {
+        console.log('Ujumbe mpya umeingia kutoka Socket (notification:new_message):', data);
         if (!data || !data.message) return;
         const incoming = await decryptMessageContent(data.message);
         
