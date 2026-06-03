@@ -1,6 +1,7 @@
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || '';
+const BACKEND_URL = 'https://genz-whatsapp.onrender.com';
+const SOCKET_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_SOCKET_URL || BACKEND_URL;
 
 let socket = null;
 let reconnectAttempts = 0;

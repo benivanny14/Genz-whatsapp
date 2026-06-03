@@ -15,7 +15,8 @@ import notificationService from '../services/notificationService';
 
 export const ChatContext = createContext();
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || '';
+const BACKEND_URL = 'https://genz-whatsapp.onrender.com';
+const SOCKET_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_SOCKET_URL || BACKEND_URL;
 /** Mongo-style demo fallback when no JWT user is present (dev / optional demo mode) */
 const UNAUTHENTICATED_FALLBACK_USER_ID = '60d5ecb8b392cb371c664c12';
 const REQUIRE_AUTH = import.meta.env.VITE_REQUIRE_AUTH !== 'false';
@@ -590,7 +591,7 @@ export const ChatProvider = ({ children }) => {
         if (u?._id) userId = u._id;
       } catch (_) { /* keep default */ }
 
-      socket = io(SOCKET_URL, {
+      socket = io(BACKEND_URL, {
         auth: {
           token: token || undefined,
           userId: userId,
@@ -2186,7 +2187,7 @@ export const ChatProvider = ({ children }) => {
   // ── Status Functions ──
   const fetchStatuses = useCallback(async () => {
     try {
-      const response = await authFetch(`${SOCKET_URL}/api/advanced/status`);
+      const response = await authFetch(`${BACKEND_URL}/api/advanced/status`);
       const data = await response.json();
       if (data.success) {
         setStatuses(data.statuses || []);
@@ -2200,7 +2201,7 @@ export const ChatProvider = ({ children }) => {
 
   const createStatus = useCallback(async (statusData) => {
     try {
-      const response = await authFetch(`${SOCKET_URL}/api/advanced/status`, {
+      const response = await authFetch(`${BACKEND_URL}/api/advanced/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(statusData)
