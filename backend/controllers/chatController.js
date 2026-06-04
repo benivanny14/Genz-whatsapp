@@ -675,17 +675,32 @@ exports.sendMessage = async (req, res) => {
     const baseMsg = populatedMessage || message;
     const msgObj = baseMsg.toObject ? baseMsg.toObject() : baseMsg;
     
+    const serializeSender = (sender) => {
+      if (!sender || typeof sender !== 'object') return localUserId.toString();
+      return {
+        _id: sender._id?.toString?.() || String(sender._id || ''),
+        username: sender.username,
+        profilePicture: sender.profilePicture || null
+      };
+    };
+    const serializeReplyTo = (replyTo) => {
+      if (!replyTo) return null;
+      if (typeof replyTo === 'string') return replyTo;
+      if (typeof replyTo === 'object' && replyTo._id) return replyTo._id.toString();
+      return null;
+    };
+
     plainMessage = {
       _id: msgObj._id ? msgObj._id.toString() : null,
       conversationId: finalConversationId.toString(),
-      sender: typeof msgObj.sender === 'object' && msgObj.sender ? msgObj.sender : localUserId.toString(),
+      sender: serializeSender(msgObj.sender),
       content: msgObj.content,
       messageType: msgObj.messageType,
       mediaUrl: msgObj.mediaUrl,
       fileName: msgObj.fileName,
       fileSize: msgObj.fileSize,
       duration: msgObj.duration,
-      replyTo: typeof msgObj.replyTo === 'object' && msgObj.replyTo ? msgObj.replyTo : (msgObj.replyTo ? msgObj.replyTo.toString() : null),
+      replyTo: serializeReplyTo(msgObj.replyTo),
       isViewOnce: msgObj.isViewOnce,
       mentions: Array.isArray(msgObj.mentions) ? msgObj.mentions.map(m => ({
         user: typeof m.user === 'object' && m.user ? m.user : (m.user ? m.user.toString() : null),
@@ -740,8 +755,8 @@ exports.sendMessage = async (req, res) => {
     await invalidateCachePattern(req, `messages:${finalConversationId}:*`);
     await invalidateCachePattern(req, `conversations:*`); // Simplest way to refresh latest message in list
 
-    // 4. Rudisha ujumbe uliosavewa kwenda Frontend
-    res.status(201).json({ success: true, message: plainMessage, ...plainMessage });
+    // 4. Rudisha ujumbe uliosavewa kwenda Frontend (avoid spreading plainMessage — duplicates keys and can overflow JSON serialization)
+    res.status(201).json({ success: true, message: plainMessage });
   } catch (error) {
     console.error("Database Error - Kushindwa kusave meseji:", error);
     res.status(500).json({ success: false, message: "Server error", error: error.message });
