@@ -673,16 +673,39 @@ exports.sendMessage = async (req, res) => {
     const io = req.app.get("io");
     let plainMessage;
     try {
-      plainMessage = JSON.parse(JSON.stringify(populatedMessage));
+      // Tunatumia stringify kwanza kujaribu kama ni plain object.
+      // Kuondoa kabisa uwezekano wa Mongoose document kupita
+      plainMessage = JSON.parse(JSON.stringify(populatedMessage || message));
+      
+      // Ikiwa kuna property zozote zinazokosa, tunaziweka vizuri
+      if (!plainMessage._id) plainMessage._id = message._id.toString();
+      if (!plainMessage.conversationId) plainMessage.conversationId = finalConversationId;
     } catch (e) {
-      console.warn("Failed to stringify message, falling back to toObject", e);
-      plainMessage = populatedMessage.toObject ? populatedMessage.toObject() : populatedMessage;
+      console.warn("Failed to stringify message, building manually", e);
+      // Fallback ya kuunda object manual ili kukwepa Maximum Call Stack kabisa
+      plainMessage = {
+        _id: message._id.toString(),
+        conversationId: finalConversationId,
+        sender: localUserId, // Client itashindwa kuonyesha jina lakini haitacrash
+        content: message.content,
+        messageType: message.messageType,
+        mediaUrl: message.mediaUrl,
+        fileName: message.fileName,
+        fileSize: message.fileSize,
+        duration: message.duration,
+        replyTo: message.replyTo,
+        isViewOnce: message.isViewOnce,
+        mentions: message.mentions,
+        status: message.status,
+        createdAt: message.createdAt
+      };
     }
     
     if (io) {
       if (messageId) {
         plainMessage.clientMessageId = messageId;
       }
+
       
       // Get the sender's socket ID if they are connected
       let senderSocketId = null;
