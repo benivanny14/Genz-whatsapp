@@ -35,7 +35,12 @@ const invalidateCachePattern = async (req, pattern) => {
   if (!redisClient || !redisClient.isOpen) return;
   try {
     const keys = await redisClient.keys(pattern);
-    if (keys.length > 0) await redisClient.del(keys);
+    if (!keys.length) return;
+    // Delete in batches — passing a huge array to del() can exceed the call stack
+    const BATCH = 500;
+    for (let i = 0; i < keys.length; i += BATCH) {
+      await redisClient.del(keys.slice(i, i + BATCH));
+    }
   } catch (e) {}
 };
 
@@ -649,7 +654,7 @@ exports.sendMessage = async (req, res) => {
     try {
       populatedMessage = await Message.findById(message._id)
         .populate("sender", "username profilePicture")
-        .populate("replyTo")
+        .populate("replyTo", "_id content messageType sender")
         .populate("mentions.user", "username profilePicture")
         .lean();
     } catch (popErr) {
@@ -715,48 +720,56 @@ exports.sendMessage = async (req, res) => {
       plainMessage.clientMessageId = messageId;
     }
     
-    if (io) {
-      if (messageId) {
-        plainMessage.clientMessageId = messageId;
-      }
+    // 4. Rudisha ujumbe uliosavewa kwenda Frontend (respond before socket/cache side effects)
+    res.status(201).json({ success: true, message: plainMessage });
 
-      
-      // Get the sender's socket ID if they are connected
-      let senderSocketId = null;
-      if (global.onlineUsers && global.onlineUsers.get(localUserId.toString())) {
-         senderSocketId = global.onlineUsers.get(localUserId.toString());
+    try {
+      if (io) {
+        if (messageId) {
+          plainMessage.clientMessageId = messageId;
+        }
+
+        let senderSocketId = null;
+        if (global.onlineUsers && global.onlineUsers.get(localUserId.toString())) {
+          senderSocketId = global.onlineUsers.get(localUserId.toString());
+        }
+
+        if (senderSocketId) {
+          io.to(finalConversationId).except(senderSocketId).emit("message:received", plainMessage);
+        } else {
+          io.to(finalConversationId).emit("message:received", plainMessage);
+        }
+
+        if (conversation.participants && Array.isArray(conversation.participants)) {
+          conversation.participants.forEach((participantId) => {
+            if (participantId.toString() !== localUserId.toString()) {
+              io.to(participantId.toString()).emit("message:received", plainMessage);
+            }
+          });
+        }
       }
-      
-      if (senderSocketId) {
-        io.to(finalConversationId).except(senderSocketId).emit("message:received", plainMessage);
-      } else {
-        io.to(finalConversationId).emit("message:received", plainMessage);
-      }
-      
-      // Emit directly to participants to ensure delivery even if they haven't opened the chat
-      if (conversation.participants && Array.isArray(conversation.participants)) {
-        conversation.participants.forEach(participantId => {
-          if (participantId.toString() !== localUserId.toString()) {
-            io.to(participantId.toString()).emit("message:received", plainMessage);
-          }
-        });
-      }
+    } catch (emitErr) {
+      console.warn("[ChatController] Socket emit failed:", emitErr?.message || emitErr);
     }
 
-    await notifyMentionedUsers({
-      mentionedUserIds: mentionData.mentionedUserIds,
-      message: populatedMessage,
-      senderName: populatedMessage.sender?.username,
-      text: safeContent,
-      mentionerId: localUserId
-    });
+    try {
+      await notifyMentionedUsers({
+        mentionedUserIds: mentionData.mentionedUserIds,
+        message: populatedMessage,
+        senderName: populatedMessage?.sender?.username,
+        text: safeContent,
+        mentionerId: localUserId
+      });
+    } catch (notifyErr) {
+      console.warn("[ChatController] Mention notify failed:", notifyErr?.message || notifyErr);
+    }
 
-    // Invalidate caches
-    await invalidateCachePattern(req, `messages:${finalConversationId}:*`);
-    await invalidateCachePattern(req, `conversations:*`); // Simplest way to refresh latest message in list
-
-    // 4. Rudisha ujumbe uliosavewa kwenda Frontend (avoid spreading plainMessage — duplicates keys and can overflow JSON serialization)
-    res.status(201).json({ success: true, message: plainMessage });
+    try {
+      await invalidateCachePattern(req, `messages:${finalConversationId}:*`);
+      await invalidateCachePattern(req, `conversations:*`);
+    } catch (cacheErr) {
+      console.warn("[ChatController] Cache invalidation failed:", cacheErr?.message || cacheErr);
+    }
   } catch (error) {
     console.error("Database Error - Kushindwa kusave meseji:", error);
     res.status(500).json({ success: false, message: "Server error", error: error.message });
