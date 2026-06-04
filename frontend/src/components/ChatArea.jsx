@@ -739,8 +739,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               mediaUrl: data.fileUrl,
               voiceEffect: mods?.voiceEffect || 'none',
               duration: recordingDuration,
-              size: audioFile.size
+              size: audioFile.size,
+              chatId: selectedConversation._id,
+              isGroup: selectedConversation.isGroup,
+              isViewOnce: isViewOnceEnabled
             });
+            setIsViewOnceEnabled(false);
           } else {
             toast.error(`Upload failed: ${data.error || data.message || 'Unknown error'}`);
           }
@@ -909,7 +913,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   };
 
   // VoiceRecorder: blob is already processed with VoiceRecorder effective effect + GENZ default mod
-  const handleVoiceNoteSend = async (audioBlob, durationSecs, appliedVoiceEffect) => {
+  const handleVoiceNoteSend = async (audioBlob, durationSecs, appliedVoiceEffect, viewOnceFlag = false) => {
     try {
       if (!audioBlob || !selectedConversation) return;
 
@@ -918,20 +922,25 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       const audioFile = new File([audioBlob], `voice-note.${ext}`, { type: mime });
       const formData = new FormData();
       formData.append('file', audioFile);
-      formData.append('duration', durationSecs || 0);
+      formData.append('duration', String(durationSecs || 0));
 
       const response = await authFetch(`${API_URL}/media/upload`, { method: 'POST', body: formData });
       const data = await response.json().catch(() => ({}));
 
       if (response.ok && (data.success || data.fileUrl)) {
         const voiceFxLabel = appliedVoiceEffect ?? mods?.voiceEffect ?? 'none';
+        const useViewOnce = Boolean(viewOnceFlag || isViewOnceEnabled);
         await sendMessage(data.fileUrl || data.url, user?.username, {
           messageType: 'audio',
           mediaUrl: data.fileUrl || data.url,
           voiceEffect: voiceFxLabel,
           duration: durationSecs || 0,
-          size: audioFile.size
+          size: audioFile.size,
+          chatId: selectedConversation._id,
+          isGroup: selectedConversation.isGroup,
+          isViewOnce: useViewOnce
         });
+        if (useViewOnce) setIsViewOnceEnabled(false);
       } else {
         toast.error(`Voice note upload failed: ${data.error || data.message || 'Upload failed'}`);
       }
@@ -2402,10 +2411,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                           duration={message.duration}
                           senderAvatar={senderAvatar}
                           senderName={senderName}
-                          autoPlay={mods?.voiceAutoPlay && index === messages.length - 1 && !isOwnMessage(message)}
+                          autoPlay={mods?.voiceAutoPlay && index === messages.length - 1 && !isOwnMessage(message) && !message.isViewOnce}
                           defaultSpeed={mods?.voiceDefaultSpeed || 1}
                           messageId={message.id || message._id}
                           isLocked={message.isLocked || false}
+                          isViewOnce={Boolean(message.isViewOnce) && !mods?.antiViewOnce}
+                          onViewOnceComplete={() => openViewOnceMessage(message)}
                           onToggleLock={toggleMessageLock}
                           onDownload={() => {
                             const link = document.createElement('a');

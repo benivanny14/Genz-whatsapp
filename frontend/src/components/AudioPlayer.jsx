@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback, memo } from 'react';
-import { Play, Pause, Download } from 'lucide-react';
+import { Play, Pause, Download, Eye } from 'lucide-react';
 import { resolveMediaPlaybackUrl } from '../utils/sanitizeMediaUrl';
 
 // Static waveform bars — deterministic so they don't re-render randomly
@@ -31,6 +31,8 @@ const AudioPlayer = ({
   messageId,
   onToggleLock,
   isLocked = false,
+  isViewOnce = false,
+  onViewOnceComplete,
 }) => {
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -42,6 +44,7 @@ const AudioPlayer = ({
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
   const [locked, setLocked] = useState(isLocked);
+  const [viewOnceConsumed, setViewOnceConsumed] = useState(false);
   const rafRef = useRef(null);
 
   const formatTime = (s) => {
@@ -71,7 +74,14 @@ const AudioPlayer = ({
       }
     };
     audio.ontimeupdate = () => setCurrentTime(audio.currentTime);
-    audio.onended = () => { setIsPlaying(false); setCurrentTime(0); };
+    audio.onended = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+      if (isViewOnce && !isOwn) {
+        setViewOnceConsumed(true);
+        onViewOnceComplete?.();
+      }
+    };
     audio.onerror = () => setError(true);
 
     return () => {
@@ -79,7 +89,7 @@ const AudioPlayer = ({
       audio.src = '';
       cancelAnimationFrame(rafRef.current);
     };
-  }, [playbackUrl]);
+  }, [playbackUrl, autoPlay, initialDuration, parsedDefaultSpeed, isViewOnce, isOwn, onViewOnceComplete]);
 
   const toggle = useCallback(() => {
     const audio = audioRef.current;
@@ -137,10 +147,33 @@ const AudioPlayer = ({
     return (
       <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl ${bgColor} min-w-[200px]`}>
         <span className="text-white/60 text-xs">⚠ Audio unavailable</span>
-        <button onClick={handleDownload} className="ml-auto p-1.5 rounded-full hover:bg-white/10">
-          <Download size={14} className="text-white/60" />
-        </button>
+        {!isViewOnce && (
+          <button onClick={handleDownload} className="ml-auto p-1.5 rounded-full hover:bg-white/10">
+            <Download size={14} className="text-white/60" />
+          </button>
+        )}
       </div>
+    );
+  }
+
+  if (isViewOnce && !isOwn && viewOnceConsumed) {
+    return (
+      <div className={`flex items-center gap-2 px-3 py-2.5 rounded-xl ${bgColor} min-w-[200px] text-white/70 italic text-sm`}>
+        <Eye size={16} /> Voice note opened
+      </div>
+    );
+  }
+
+  if (isViewOnce && !isOwn && !viewOnceConsumed) {
+    return (
+      <button
+        type="button"
+        onClick={toggle}
+        className={`flex items-center gap-2 px-3 py-2.5 rounded-xl ${bgColor} min-w-[200px] text-white/90 text-sm hover:opacity-90 transition-opacity`}
+      >
+        <Eye size={16} />
+        <span>Tap to play view-once voice</span>
+      </button>
     );
   }
 

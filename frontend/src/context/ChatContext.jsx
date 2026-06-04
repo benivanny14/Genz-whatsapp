@@ -130,6 +130,7 @@ import {
   isLikelySpamMessage,
   autoSaveMediaFromMessage
 } from '../utils/genzModsNormalize';
+import { applyAntiScreenshot, initAntiScreenshotListeners } from '../utils/antiScreenshot';
 export { applyVoiceEffect };
 
 // ─── Audio Processing Utilities ─────────────────────────────────────────────
@@ -345,7 +346,11 @@ export const ChatProvider = ({ children }) => {
     if (mods.glassMode) body.classList.add('glass-mode-active');
     else body.classList.remove('glass-mode-active');
 
-  }, [mods.fontFamily, mods.fontSize, mods.bubbleSentColor, mods.bubbleReceivedColor, mods.bubbleStyle, mods.tickStyle, mods.bubbleAnimations, mods.reelMode, mods.glassMode]);
+    initAntiScreenshotListeners();
+    applyAntiScreenshot(mods.antiScreenshot);
+    window.dispatchEvent(new CustomEvent('genz-mods-updated', { detail: mods }));
+
+  }, [mods.fontFamily, mods.fontSize, mods.bubbleSentColor, mods.bubbleReceivedColor, mods.bubbleStyle, mods.tickStyle, mods.bubbleAnimations, mods.reelMode, mods.glassMode, mods.antiScreenshot]);
 
   // ── Load GENZ settings from localStorage on mount ──
   useEffect(() => {
@@ -3032,13 +3037,9 @@ export const ChatProvider = ({ children }) => {
 
   const markViewOnceViewed = async (messageId) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${BACKEND_URL}/chat/messages/${messageId}/view-once-viewed`, {
+      const response = await authFetch(`${BACKEND_URL}/chat/messages/${messageId}/view-once-viewed`, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' }
       });
       const data = await response.json();
       return data;

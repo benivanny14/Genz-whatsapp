@@ -6,6 +6,7 @@ import OfflineBanner from './components/OfflineBanner';
 import ProtectedRoute from './components/ProtectedRoute';
 import notificationService from './services/notificationService';
 import { cleanupLocalBlobUrls, sanitizeBlobUrls } from './utils/sanitizeStorage';
+import { applyAntiScreenshot, initAntiScreenshotListeners } from './utils/antiScreenshot';
 
 // Lazy load pages for performance optimization
 const Chat = lazy(() => import('./pages/Chat'));
@@ -93,22 +94,18 @@ function App() {
           videoBg.load?.();
           videoBg.style.display = 'none';
         }
-        // Apply anti-screenshot on body
-        if (mods.antiScreenshot) {
-          document.body.classList.add('no-screenshot');
-        } else {
-          document.body.classList.remove('no-screenshot');
-        }
+        initAntiScreenshotListeners();
+        applyAntiScreenshot(mods.antiScreenshot);
       } catch { /* silent */ }
     };
 
     syncGlassMode();
-    // Listen for mods changes from other tabs / storage events
     window.addEventListener('storage', syncGlassMode);
-    // Also poll every 2s in case mods changed in same tab
+    window.addEventListener('genz-mods-updated', syncGlassMode);
     const poll = setInterval(syncGlassMode, 2000);
     return () => {
       window.removeEventListener('storage', syncGlassMode);
+      window.removeEventListener('genz-mods-updated', syncGlassMode);
       clearInterval(poll);
     };
   }, []);
@@ -123,21 +120,6 @@ function App() {
     return () => {
       notificationService.clearNotifications();
     };
-  }, []);
-
-  // --- Screenshot Detection (anti-screenshot warning) ---
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      try {
-        const mods = readStoredMods();
-        if (mods.antiScreenshot && document.visibilityState === 'hidden') {
-          document.body.classList.add('screenshot-warning');
-          setTimeout(() => document.body.classList.remove('screenshot-warning'), 1200);
-        }
-      } catch { /* silent */ }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   return (
