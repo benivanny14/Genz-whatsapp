@@ -586,59 +586,33 @@ exports.sendMessage = async (req, res) => {
       });
     }
 
-    // If this is a direct 1:1 chat and the recipient has registered public keys,
-    // require the client to send an encrypted payload (to avoid leaking plaintext).
+    let mentionData = { mentions: [], mentionedUserIds: [], mentionedUsers: [] };
     try {
-      if (!conversation.isGroup) {
-        const recipientId = conversation.participants.find(p => String(p) !== String(localUserId));
-        if (recipientId) {
-          let recipientKeys = null;
-          try {
-            recipientKeys = await getUserPublicKeys(recipientId);
-          } catch (e) { recipientKeys = null; }
-
-          const looksEncrypted = (typeof safeContent === 'string' && safeContent.trim().startsWith('{') && (() => {
-            try {
-              const parsed = JSON.parse(safeContent);
-              return parsed && (parsed.ciphertext || parsed.encryptedData || parsed.algorithm);
-            } catch (e) { return false; }
-          })());
-
-          if (recipientKeys && recipientKeys.publicKey && !looksEncrypted && messageType === 'text') {
-            console.warn('[ChatController] E2EE enforcement triggered, but allowing plaintext for compatibility.');
-            // Temporarily disable E2EE enforcement to fix 400 Bad Request bugs
-            // return res.status(400).json({
-            //   success: false,
-            //   message: 'Recipient supports end-to-end encryption. Send an encrypted payload or register your public key before sending plaintext.'
-            // });
-          }
-        }
-      }
-    } catch (e) {
-      // If anything goes wrong with key checks, continue without enforcement
-      console.warn('[ChatController] E2EE enforcement check failed:', e?.message || e);
+      mentionData = await resolveMessageMentions({
+        conversation,
+        senderId: localUserId,
+        content: safeContent,
+        mentions
+      });
+    } catch (mentionErr) {
+      console.warn('[ChatController] Mentions resolve failed, continuing without mentions:', mentionErr?.message || mentionErr);
     }
 
-    const mentionData = await resolveMessageMentions({
-      conversation,
-      senderId: localUserId,
-      content: safeContent,
-      mentions
-    });
-
-    // Calculate disappearAt if disappearing messages are enabled
     let disappearAt = null;
-    if (conversation.disappearingMessages && conversation.disappearingMessages.enabled) {
-      const timer = conversation.disappearingMessages.timer || 24; // default 24 hours
-      const durationMs = timer * 60 * 60 * 1000; // convert hours to milliseconds
-      disappearAt = new Date(Date.now() + durationMs);
+    try {
+      if (conversation.disappearingMessages?.enabled) {
+        const timer = Number(conversation.disappearingMessages.timer) || 24;
+        disappearAt = new Date(Date.now() + timer * 60 * 60 * 1000);
+      }
+    } catch (disappearErr) {
+      console.warn('[ChatController] Disappearing timer skipped:', disappearErr?.message || disappearErr);
     }
 
     // 2. Hifadhi ujumbe rasmi kwenye MongoDB Database
     const message = await Message.create({
       conversationId: finalConversationId,
       sender: localUserId,
-      content: safeContent,
+      content: String(safeContent),
       messageType: messageType || "text",
       mediaUrl: mediaUrl || "",
       fileName: fileName || "",
@@ -646,7 +620,7 @@ exports.sendMessage = async (req, res) => {
       duration: duration || 0,
       replyTo: replyTo || null,
       isViewOnce: isViewOnce || false,
-      mentions: mentionData.mentions,
+      mentions: mentionData.mentions || [],
       disappearAt,
     });
 
@@ -659,7 +633,15 @@ exports.sendMessage = async (req, res) => {
         .lean();
     } catch (popErr) {
       console.warn('[ChatController] Message population failed, falling back to raw message:', popErr?.message || popErr);
-      populatedMessage = message.toObject ? message.toObject() : message;
+      populatedMessage = {
+        _id: message._id,
+        conversationId: message.conversationId,
+        sender: message.sender,
+        content: message.content,
+        messageType: message.messageType,
+        status: message.status || 'sent',
+        createdAt: message.createdAt
+      };
     }
 
     // 3. Update mazungumzo (Conversation) ili iweke ujumbe huu kama ujumbe wa mwisho (Last Message)
