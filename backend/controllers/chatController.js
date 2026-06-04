@@ -6,7 +6,6 @@ const crypto = require("crypto");
 const { applyPrivacyFilter } = require("../utils/privacyHelper");
 const { resolveMessageMentions } = require("../utils/mentions");
 const { sendMentionNotification } = require("../services/notificationService");
-const { getUserPublicKeys } = require('../services/encryptionService');
 
 const LOCAL_USER_ID = process.env.LOCAL_USER_ID || "60d5ecb8b392cb371c664c12";
 
