@@ -513,8 +513,8 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-dark-textSecondary truncate flex-1">
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-sm text-dark-textSecondary truncate flex-1 text-left">
                         {getLastMessage(conv)}
                       </p>
                       {conv.lastMessage && (

@@ -881,6 +881,9 @@ export const ChatProvider = ({ children }) => {
       // Read receipts — update state AND IndexedDB ──
       socket.on('message:read_receipt', async ({ messageId }) => {
         setMessages(prev => prev.map(m => m._id === messageId ? { ...m, status: 'read' } : m));
+        setConversations(prev => prev.map(c => 
+          (c.lastMessage && c.lastMessage._id === messageId) ? { ...c, lastMessage: { ...c.lastMessage, status: 'read' } } : c
+        ));
         try { await DB.saveMessage({ _id: messageId, status: 'read' }); } catch (e) { }
       });
 
@@ -892,12 +895,20 @@ export const ChatProvider = ({ children }) => {
               ? { ...m, status: 'read' } 
               : m
           ));
+          setConversations(prev => prev.map(c => 
+            (c._id === chatId && c.lastMessage && c.lastMessage.sender === currentUserId) 
+              ? { ...c, lastMessage: { ...c.lastMessage, status: 'read' } } 
+              : c
+          ));
         }
       });
 
       // ── Delivered receipt ──
       socket.on('message:delivered', async ({ messageId }) => {
         setMessages(prev => prev.map(m => m._id === messageId ? { ...m, status: 'delivered' } : m));
+        setConversations(prev => prev.map(c => 
+          (c.lastMessage && c.lastMessage._id === messageId) ? { ...c, lastMessage: { ...c.lastMessage, status: 'delivered' } } : c
+        ));
         try { await DB.saveMessage({ _id: messageId, status: 'delivered' }); } catch (e) { }
       });
 
