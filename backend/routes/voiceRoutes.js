@@ -17,8 +17,9 @@ const storage = multer.diskStorage({
     cb(null, 'uploads/');
   },
   filename: function (req, file, cb) {
+    const ext = file.mimetype === 'audio/webm' ? '.webm' : '.mp3';
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'voice-' + uniqueSuffix + path.extname(file.originalname));
+    cb(null, 'voice-' + uniqueSuffix + ext);
   }
 });
 

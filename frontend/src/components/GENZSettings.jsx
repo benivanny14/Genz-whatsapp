@@ -169,7 +169,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
   useEffect(() => {
     const checkSubscription = async () => {
       try {
-        const response = await authFetch(`${API_URL}/api/payment/subscription`);
+        const response = await authFetch(`${API_URL}/payment/subscription`);
 
         if (response.ok) {
           const data = await response.json();
@@ -243,7 +243,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
     setPaymentMessage('');
 
     try {
-      const response = await authFetch(`${API_URL}/api/payment/initiate`, {
+      const response = await authFetch(`${API_URL}/payment/initiate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -263,7 +263,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
         // Check payment status after 5 seconds
         setTimeout(async () => {
           try {
-            const subResponse = await authFetch(`${API_URL}/api/payment/subscription`);
+            const subResponse = await authFetch(`${API_URL}/payment/subscription`);
             if (subResponse.ok) {
               const subData = await subResponse.json();
               setSubscriptionStatus(subData);
@@ -304,7 +304,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
     setPaymentMessage('');
 
     try {
-      const response = await authFetch(`${API_URL}/api/payment/renew`, {
+      const response = await authFetch(`${API_URL}/payment/renew`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -317,7 +317,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
       if (response.ok) {
         setPaymentMessage('Udhibiti wa malipo umekamilika. Tafadhali maliza kwenye simu yako.');
         setTimeout(async () => {
-          const subResponse = await authFetch(`${API_URL}/api/payment/subscription`);
+          const subResponse = await authFetch(`${API_URL}/payment/subscription`);
           if (subResponse.ok) {
             const subData = await subResponse.json();
             setSubscriptionStatus(subData);
@@ -2069,7 +2069,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               >✕</button>
             </div>
 
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-4 overflow-y-auto custom-scrollbar flex-1">
 
               {/* Price Card */}
               <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/10 rounded-2xl p-4 border border-green-500/30">

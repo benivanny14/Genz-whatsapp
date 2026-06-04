@@ -202,7 +202,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const { user: localUser } = useUser();
   const {
     user: chatUser,
-    selectedConversation, messages, loading, sendMessage,
+    selectedConversation, messages, setMessages, loading, sendMessage,
     editMessage, deleteMessage, clearChat, deleteChat, addReaction,
     sendTypingStatus, forwardMessage, conversations,
     sendRecordingStatus, isOtherUserTyping, isOtherUserRecording,
@@ -403,8 +403,33 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   useEffect(() => {
     if (selectedConversation && !mods?.hideReadReceipts && !mods?.ghostMode) {
       markAsRead(selectedConversation._id);
+      
+      const socket = getSocket();
+      if (socket) {
+        socket.emit('message:read', {
+          conversationId: selectedConversation._id,
+          userId: user?.id || user?._id
+        });
+      }
     }
-  }, [selectedConversation, messages.length, mods?.hideReadReceipts, mods?.ghostMode]); // Check whenever new messages arrive
+  }, [selectedConversation, messages.length, mods?.hideReadReceipts, mods?.ghostMode, user]); // Check whenever new messages arrive
+
+  // Listen for read receipts to update blue ticks in real-time
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleMarkedAsRead = ({ conversationId }) => {
+      if (selectedConversation?._id === conversationId) {
+        setMessages((prev) =>
+          (prev || []).map((msg) => (msg.status !== 'read' ? { ...msg, status: 'read' } : msg))
+        );
+      }
+    };
+
+    socket.on('messages:marked-as-read', handleMarkedAsRead);
+    return () => socket.off('messages:marked-as-read', handleMarkedAsRead);
+  }, [selectedConversation?._id, setMessages]);
 
   // GENZ MOD: Chat Background Music Logic
   useEffect(() => {
@@ -2137,20 +2162,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       </div>
                     )}
                     {/* ── Quoted Status Reply (WhatsApp style) ── */}
-                    {message.quotedStatus && (
-                      <div className="mb-2 bg-black/25 border-l-4 border-[#25d366] rounded-lg p-2 text-xs cursor-pointer hover:bg-black/30 transition-colors">
-                        <div className="flex items-center gap-1.5 text-[#25d366] font-bold text-[11px] mb-1">
-                          <span>📸</span>
-                          <span>{typeof message.quotedStatus.ownerName === 'string' ? message.quotedStatus.ownerName : 'Status'}</span>
-                        </div>
-                        {message.quotedStatus.mediaUrl ? (
-                          <div className="flex items-center gap-2">
-                            <img src={message.quotedStatus.mediaUrl} alt="Status" className="w-10 h-10 rounded object-cover" onError={e => { e.target.style.display = 'none'; }} />
-                            <p className="text-white/60 text-[11px] truncate">{typeof message.quotedStatus.preview === 'string' ? message.quotedStatus.preview : 'Status'}</p>
-                          </div>
-                        ) : (
-                          <p className="text-white/60 italic truncate">{typeof message.quotedStatus.preview === 'string' ? message.quotedStatus.preview : '📸 Status'}</p>
-                        )}
+                    {message.isStatusReply === true && message.statusContext && (
+                      <div className="bg-opacity-20 bg-black p-2 rounded border-l-4 border-green-500 mb-1 text-xs">
+                        <span className="text-green-400 font-bold">📷 Status</span>
+                        <p className="text-gray-300 line-clamp-1">{message.statusContext.text}</p>
                       </div>
                     )}
                     {/* ── Forwarded Label ── */}
