@@ -650,10 +650,11 @@ exports.sendMessage = async (req, res) => {
       populatedMessage = await Message.findById(message._id)
         .populate("sender", "username profilePicture")
         .populate("replyTo")
-        .populate("mentions.user", "username profilePicture");
+        .populate("mentions.user", "username profilePicture")
+        .lean();
     } catch (popErr) {
       console.warn('[ChatController] Message population failed, falling back to raw message:', popErr?.message || popErr);
-      populatedMessage = message;
+      populatedMessage = message.toObject ? message.toObject() : message;
     }
 
     // 3. Update mazungumzo (Conversation) ili iweke ujumbe huu kama ujumbe wa mwisho (Last Message)
@@ -670,7 +671,13 @@ exports.sendMessage = async (req, res) => {
     );
 
     const io = req.app.get("io");
-    const plainMessage = populatedMessage.toObject ? populatedMessage.toObject() : populatedMessage;
+    let plainMessage;
+    try {
+      plainMessage = JSON.parse(JSON.stringify(populatedMessage));
+    } catch (e) {
+      console.warn("Failed to stringify message, falling back to toObject", e);
+      plainMessage = populatedMessage.toObject ? populatedMessage.toObject() : populatedMessage;
+    }
     
     if (io) {
       if (messageId) {
