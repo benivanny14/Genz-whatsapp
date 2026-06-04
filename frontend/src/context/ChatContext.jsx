@@ -703,7 +703,15 @@ export const ChatProvider = ({ children }) => {
             
             // Only append to active chat view if it's the open chat
             const currentSelectedId = localStorage.getItem('selectedConversationId');
+            
+            // Mark as delivered since we received it, if from another user
+            if (incoming.sender && incoming.sender !== currentUserId && incoming.sender._id !== currentUserId) {
+              emitSafe('message:mark_delivered', { messageId: serverId });
+            }
+
             if (String(incoming.conversationId) === String(currentSelectedId)) {
+              // Auto mark as read if chat is open
+              emitSafe('mark_as_read', { chatId: incoming.conversationId, userId: currentUserId });
               return [...prev, incoming];
             }
             return prev;
@@ -874,6 +882,17 @@ export const ChatProvider = ({ children }) => {
       socket.on('message:read_receipt', async ({ messageId }) => {
         setMessages(prev => prev.map(m => m._id === messageId ? { ...m, status: 'read' } : m));
         try { await DB.saveMessage({ _id: messageId, status: 'read' }); } catch (e) { }
+      });
+
+      // Bulk Read receipt ──
+      socket.on('messages:read', async ({ chatId, userId }) => {
+        if (userId !== currentUserId) {
+          setMessages(prev => prev.map(m => 
+            (m.conversationId === chatId && m.sender === currentUserId) 
+              ? { ...m, status: 'read' } 
+              : m
+          ));
+        }
       });
 
       // ── Delivered receipt ──
@@ -1188,7 +1207,7 @@ export const ChatProvider = ({ children }) => {
             newMessage.conversationId,
             newMessage.content,
             newMessage.messageType,
-            options
+            { ...options, messageId: newMessage._id }
           );
           
           if (data?.success && data.message) {

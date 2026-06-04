@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
 const User = require('../models/User');
@@ -257,7 +258,8 @@ const setupSocket = (io) => {
           outgoingMessage.clientMessageId = messageId;
         }
 
-        io.to(conversationId).emit('message:received', outgoingMessage);
+        // Emit to everyone in the room except the sender
+        socket.to(conversationId).emit('message:received', outgoingMessage);
         
         // Emit directly to participants to ensure delivery even if they haven't opened the chat
         if (conversation.participants && Array.isArray(conversation.participants)) {
@@ -310,6 +312,27 @@ const setupSocket = (io) => {
         conversationId,
         isTyping
       });
+    });
+
+    socket.on('message:mark_delivered', async (data) => {
+      try {
+        const { messageId } = data;
+        const result = await getMessageIfParticipant(messageId, socket);
+        if (!result) return;
+        const { message } = result;
+
+        if (message.sender.toString() !== socket.userId && message.status === 'sent') {
+          message.status = 'delivered';
+          await message.save();
+          
+          const senderSocketId = onlineUsers.get(message.sender.toString());
+          if (senderSocketId) {
+            io.to(senderSocketId).emit('message:delivered', { messageId });
+          }
+        }
+      } catch (error) {
+        console.error('Error marking message as delivered:', error);
+      }
     });
 
     socket.on('message:read', async (data) => {

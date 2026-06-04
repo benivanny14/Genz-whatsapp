@@ -555,6 +555,7 @@ exports.sendMessage = async (req, res) => {
       replyTo,
       isViewOnce,
       mentions,
+      messageId,
     } = req.body;
     
     // 1. Frontend inaweza kuwa inatuma 'conversationId' au 'chatId', tunasoma zote mbili kulinda usalama
@@ -672,7 +673,21 @@ exports.sendMessage = async (req, res) => {
     const plainMessage = populatedMessage.toObject ? populatedMessage.toObject() : populatedMessage;
     
     if (io) {
-      io.to(finalConversationId).emit("message:received", plainMessage);
+      if (messageId) {
+        plainMessage.clientMessageId = messageId;
+      }
+      
+      // Get the sender's socket ID if they are connected
+      let senderSocketId = null;
+      if (global.onlineUsers && global.onlineUsers.get(localUserId.toString())) {
+         senderSocketId = global.onlineUsers.get(localUserId.toString());
+      }
+      
+      if (senderSocketId) {
+        io.to(finalConversationId).except(senderSocketId).emit("message:received", plainMessage);
+      } else {
+        io.to(finalConversationId).emit("message:received", plainMessage);
+      }
       
       // Emit directly to participants to ensure delivery even if they haven't opened the chat
       if (conversation.participants && Array.isArray(conversation.participants)) {
