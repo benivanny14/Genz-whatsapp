@@ -1097,39 +1097,7 @@ export const ChatProvider = ({ children }) => {
 
 
   // ── Auto-Reply Bot (Item 3) ──
-  // Watches for incoming messages and auto-replies if the mod is enabled
-  const autoReplyTimerRef = useRef(null);
-  const lastAutoReplyTimeRef = useRef({});
-
-  useEffect(() => {
-    if (!mods.autoReply || messages.length === 0) return;
-    const lastMsg = messages[messages.length - 1];
-    // Only reply to messages from OTHER users, not my own
-    const isFromOther = lastMsg?.sender?._id !== currentUserId &&
-      lastMsg?.sender?.username !== 'Me' &&
-      lastMsg?.sender?.username !== 'System';
-    if (!isFromOther) return;
-
-    const replyText = mods.autoReplyMsg || "I'm currently unavailable. I'll reply soon! 🤖";
-    
-    // Prevent replying to their auto-reply (if they use the exact same text)
-    if (lastMsg.content === replyText) return;
-
-    // Rate limit: Only auto-reply once every 15 seconds per conversation to prevent bot loops
-    const chatId = lastMsg.conversationId;
-    const now = Date.now();
-    if (lastAutoReplyTimeRef.current[chatId] && (now - lastAutoReplyTimeRef.current[chatId] < 15000)) {
-      return;
-    }
-    lastAutoReplyTimeRef.current[chatId] = now;
-
-    // Avoid double-replying to same message
-    if (autoReplyTimerRef.current) clearTimeout(autoReplyTimerRef.current);
-    autoReplyTimerRef.current = setTimeout(() => {
-      sendMessage(replyText, 'Me', { isAutoReply: true });
-    }, 1500);
-    return () => { if (autoReplyTimerRef.current) clearTimeout(autoReplyTimerRef.current); };
-  }, [messages, mods.autoReply, mods.autoReplyMsg]);
+  // ── Auto-Reply removed as requested ──
 
   // ── Self-Destruct Timer (Item 4) ──
   // When a self-destruct message is received from others, delete it after 10 seconds once visible

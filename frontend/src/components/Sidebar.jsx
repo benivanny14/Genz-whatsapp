@@ -517,7 +517,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                       <p className="text-sm text-dark-textSecondary truncate flex-1 text-left">
                         {getLastMessage(conv)}
                       </p>
-                      {conv.lastMessage && (
+                      {conv.lastMessage && (conv.lastMessage.sender?._id || conv.lastMessage.sender) === (user?._id || user?.id) && (
                         <div className="flex items-center gap-1 ml-2">
                           {conv.lastMessage.status === 'sent' && (
                             <Check size={12} className="text-dark-textSecondary" />
