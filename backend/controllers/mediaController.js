@@ -6,7 +6,9 @@ const {
   generateSignedUrl,
   transformImage,
   getVideoThumbnail,
-  isConfigured: isCloudinaryConfigured
+  isConfigured: isCloudinaryConfigured,
+  uploadFile: uploadToMediaStorage,
+  getFileType
 } = require('../config/cloudinary');
 const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
@@ -14,19 +16,34 @@ const Status = require('../models/Status');
 const fs = require('fs');
 const path = require('path');
 const { signLocalUrlIfNeeded, buildSignedUploadPath } = require('../utils/mediaAccess');
+const { resolvePublicBaseUrl } = require('../utils/publicBaseUrl');
 
 /**
  * Media Controller
  * Handles all media operations using Cloudinary storage
  */
 
-const getPublicBaseUrl = (req) => (
-  process.env.PUBLIC_API_URL ||
-  process.env.BACKEND_URL ||
-  ""
-).replace(/\/$/, '');
+const getPublicBaseUrl = (req) => resolvePublicBaseUrl(req);
 
-const normalizeUploadedFile = (req, file) => {
+const normalizeUploadedFile = (req, file, uploadResult = null) => {
+  if (uploadResult?.url) {
+    return {
+      success: true,
+      fileUrl: uploadResult.url,
+      publicId: uploadResult.publicId || file.filename || file.originalname,
+      fileName: file.originalname,
+      fileSize: file.size,
+      mimeType: file.mimetype,
+      resourceType: uploadResult.resourceType || (file.mimetype || '').split('/')[0] || 'raw',
+      format: uploadResult.format || (file.originalname || '').split('.').pop(),
+      width: uploadResult.width,
+      height: uploadResult.height,
+      duration: uploadResult.duration,
+      storageProvider: uploadResult.storageProvider || 'cloudinary',
+      thumbnailUrl: uploadResult.thumbnailUrl || null
+    };
+  }
+
   const isCloudinaryFile = Boolean(file.secure_url);
   const localPath = file.filename ? `/uploads/${file.filename}` : '';
   const localUrl = localPath
@@ -132,7 +149,16 @@ exports.uploadFile = async (req, res) => {
       });
     }
 
-    const fileInfo = normalizeUploadedFile(req, req.file);
+    let uploadResult = null;
+    if (isCloudinaryConfigured() && req.file.path && fs.existsSync(req.file.path)) {
+      const fileType = getFileType(req.file.originalname, req.file.mimetype) || 'document';
+      uploadResult = await uploadToMediaStorage(req.file.path, fileType, {
+        folder: `genz-whatsapp/${fileType}`
+      });
+      fs.promises.unlink(req.file.path).catch(() => {});
+    }
+
+    const fileInfo = normalizeUploadedFile(req, req.file, uploadResult);
     console.log('[MediaController] File info:', fileInfo);
 
     res.status(200).json(fileInfo);

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, memo } from 'react';
 import { Mic, Play, Pause, Trash2, Forward, Download, MoreVertical } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
+import { resolveMediaPlaybackUrl } from '../utils/sanitizeMediaUrl';
 
 const VoiceMessageBubble = memo(({ message, isOwn, onForward, onDelete, onDownload, onEnded }) => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -148,7 +149,7 @@ const VoiceMessageBubble = memo(({ message, isOwn, onForward, onDelete, onDownlo
 
   return (
     <div className={`relative max-w-[280px] ${isOwn ? 'ml-auto' : 'mr-auto'}`}>
-      <audio ref={audioRef} src={message.mediaUrl} />
+      <audio ref={audioRef} src={resolveMediaPlaybackUrl(message.mediaUrl || message.content)} />
 
       {/* Voice Message Bubble */}
       <div className={`p-3 rounded-2xl shadow-lg ${isOwn

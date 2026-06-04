@@ -1095,10 +1095,24 @@ exports.addContactByPhone = async (req, res) => {
     currentUser.contacts.push({ user: contactUser._id, savedName });
     await currentUser.save();
 
-    res.status(200).json({ 
+    let conversation = await Conversation.findOne({
+      participants: { $all: [localUserId, contactUser._id] },
+      isGroup: false,
+    });
+
+    if (!conversation) {
+      conversation = await Conversation.create({
+        participants: [localUserId, contactUser._id],
+        isGroup: false,
+      });
+    }
+
+    res.status(200).json({
       success: true,
-      message: 'Contact imeongezwa kikamilifu!', 
-      contact: { user: contactUser, savedName } 
+      message: 'Contact imeongezwa kikamilifu!',
+      contact: { user: contactUser, savedName },
+      conversationId: conversation._id,
+      conversation,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server Error', error: error.message });

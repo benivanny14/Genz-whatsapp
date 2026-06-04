@@ -91,11 +91,8 @@ if (process.env.NODE_ENV === 'production' && JWT_SECRET === 'genz-development-se
 }
 
 const DEFAULT_LOCAL_USER_ID = process.env.LOCAL_USER_ID || '60d5ecb8b392cb371c664c12';
-const getPublicBaseUrl = (req) => (
-  process.env.PUBLIC_API_URL ||
-  process.env.BACKEND_URL ||
-  ""
-).replace(/\/$/, '');
+const { resolvePublicBaseUrl } = require('./utils/publicBaseUrl');
+const getPublicBaseUrl = (req) => resolvePublicBaseUrl(req);
 const publicApiOrigin = (process.env.PUBLIC_API_URL || process.env.BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '');
 const frontendOrigin = process.env.FRONTEND_URL?.replace(/\/$/, '');
 const cspConnectSources = ["'self'", "https:", publicApiOrigin, "http://localhost:5000", ...(frontendOrigin ? [frontendOrigin] : [])];
@@ -646,6 +643,17 @@ app.use('/api', (req, res) => {
     message: 'API route not found'
   });
 });
+
+// Serve built frontend when deployed as a single service (e.g. genz-whatsapp.onrender.com)
+const frontendDistPath = path.resolve(__dirname, '../frontend/dist');
+const frontendIndexPath = path.join(frontendDistPath, 'index.html');
+if (fs.existsSync(frontendIndexPath)) {
+  app.use(express.static(frontendDistPath, { maxAge: '1d', index: false }));
+  app.get(/^\/(?!api\/|uploads\/|socket\.io).*/, (req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+    res.sendFile(frontendIndexPath);
+  });
+}
 
 const server = http.createServer(app);
 

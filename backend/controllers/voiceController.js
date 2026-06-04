@@ -10,11 +10,8 @@ const {
 
 const LOCAL_USER_ID = process.env.LOCAL_USER_ID || '60d5ecb8b392cb371c664c12';
 const getCurrentUserId = (req) => req.user?._id?.toString() || LOCAL_USER_ID;
-const getPublicBaseUrl = (req) => (
-  process.env.PUBLIC_API_URL ||
-  process.env.BACKEND_URL ||
-  ""
-).replace(/\/$/, '');
+const { resolvePublicBaseUrl } = require('../utils/publicBaseUrl');
+const getPublicBaseUrl = (req) => resolvePublicBaseUrl(req);
 const toAbsoluteUrl = (req, fileUrl = '') => (
   /^https?:\/\//i.test(fileUrl) ? fileUrl : `${getPublicBaseUrl(req)}${fileUrl}`
 );

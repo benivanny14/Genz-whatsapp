@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback, memo } from 'react';
 import { Play, Pause, Download } from 'lucide-react';
+import { resolveMediaPlaybackUrl } from '../utils/sanitizeMediaUrl';
 
 // Static waveform bars — deterministic so they don't re-render randomly
 const BARS = Array.from({ length: 36 }, (_, i) => {
@@ -50,10 +51,12 @@ const AudioPlayer = ({
     return `${m}:${sec.toString().padStart(2, '0')}`;
   };
 
+  const playbackUrl = resolveMediaPlaybackUrl(audioUrl);
+
   // Create / update audio element
   useEffect(() => {
-    if (!audioUrl) return;
-    const audio = new Audio(audioUrl);
+    if (!playbackUrl) return;
+    const audio = new Audio(playbackUrl);
     audio.preload = 'metadata';
     audio.playbackRate = parsedDefaultSpeed;
     audioRef.current = audio;
@@ -76,7 +79,7 @@ const AudioPlayer = ({
       audio.src = '';
       cancelAnimationFrame(rafRef.current);
     };
-  }, [audioUrl]);
+  }, [playbackUrl]);
 
   const toggle = useCallback(() => {
     const audio = audioRef.current;

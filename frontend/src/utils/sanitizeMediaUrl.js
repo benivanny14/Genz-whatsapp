@@ -5,6 +5,20 @@
 
 const signedUrlCache = new Map();
 
+const STALE_MEDIA_HOSTS = [
+  'genz-whatsapp-backend.onrender.com',
+  '0.0.0.0',
+];
+
+const getApiOrigin = () => {
+  const api = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+  if (api) return api.replace(/\/api$/, '');
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin;
+  }
+  return '';
+};
+
 export function sanitizeMediaUrl(url) {
   if (!url || typeof url !== 'string') return url;
 
@@ -21,7 +35,35 @@ export function sanitizeMediaUrl(url) {
     return `${localhostMatch[1]}${querySuffix}`;
   }
 
+  try {
+    const parsed = new URL(pathPart);
+    if (STALE_MEDIA_HOSTS.includes(parsed.hostname)) {
+      const origin = getApiOrigin();
+      if (origin) {
+        return `${origin}${parsed.pathname}${querySuffix}`;
+      }
+    }
+  } catch {
+    // relative URL — leave as-is
+  }
+
+  if (pathPart.startsWith('/uploads/')) {
+    const origin = getApiOrigin();
+    if (origin) return `${origin}${pathPart}${querySuffix}`;
+  }
+
   return url;
+}
+
+/** Resolve a URL for HTML audio/video playback (absolute, correct API host). */
+export function resolveMediaPlaybackUrl(url) {
+  const clean = sanitizeMediaUrl(url);
+  if (!clean || typeof clean !== 'string') return clean;
+  if (clean.startsWith('http://') || clean.startsWith('https://') || clean.startsWith('blob:')) {
+    return clean;
+  }
+  const origin = getApiOrigin();
+  return origin ? `${origin}${clean.startsWith('/') ? clean : `/${clean}`}` : clean;
 }
 
 /**

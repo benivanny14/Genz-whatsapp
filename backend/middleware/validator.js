@@ -40,9 +40,14 @@ exports.validateLogin = [
 
 exports.validateMessage = [
   body('content')
-    .trim()
-    .notEmpty()
-    .withMessage('Message content is required'),
+    .optional({ values: 'null' })
+    .custom((value, { req }) => {
+      const mediaUrl = req.body?.mediaUrl;
+      const hasMedia = typeof mediaUrl === 'string' && mediaUrl.trim().length > 0;
+      const hasContent = typeof value === 'string' && value.trim().length > 0;
+      if (hasMedia || hasContent) return true;
+      throw new Error('Message content or media is required');
+    }),
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
