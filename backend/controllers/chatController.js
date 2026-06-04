@@ -672,33 +672,32 @@ exports.sendMessage = async (req, res) => {
 
     const io = req.app.get("io");
     let plainMessage;
-    try {
-      // Tunatumia stringify kwanza kujaribu kama ni plain object.
-      // Kuondoa kabisa uwezekano wa Mongoose document kupita
-      plainMessage = JSON.parse(JSON.stringify(populatedMessage || message));
-      
-      // Ikiwa kuna property zozote zinazokosa, tunaziweka vizuri
-      if (!plainMessage._id) plainMessage._id = message._id.toString();
-      if (!plainMessage.conversationId) plainMessage.conversationId = finalConversationId;
-    } catch (e) {
-      console.warn("Failed to stringify message, building manually", e);
-      // Fallback ya kuunda object manual ili kukwepa Maximum Call Stack kabisa
-      plainMessage = {
-        _id: message._id.toString(),
-        conversationId: finalConversationId,
-        sender: localUserId, // Client itashindwa kuonyesha jina lakini haitacrash
-        content: message.content,
-        messageType: message.messageType,
-        mediaUrl: message.mediaUrl,
-        fileName: message.fileName,
-        fileSize: message.fileSize,
-        duration: message.duration,
-        replyTo: message.replyTo,
-        isViewOnce: message.isViewOnce,
-        mentions: message.mentions,
-        status: message.status,
-        createdAt: message.createdAt
-      };
+    const baseMsg = populatedMessage || message;
+    const msgObj = baseMsg.toObject ? baseMsg.toObject() : baseMsg;
+    
+    plainMessage = {
+      _id: msgObj._id ? msgObj._id.toString() : null,
+      conversationId: finalConversationId.toString(),
+      sender: typeof msgObj.sender === 'object' && msgObj.sender ? msgObj.sender : localUserId.toString(),
+      content: msgObj.content,
+      messageType: msgObj.messageType,
+      mediaUrl: msgObj.mediaUrl,
+      fileName: msgObj.fileName,
+      fileSize: msgObj.fileSize,
+      duration: msgObj.duration,
+      replyTo: typeof msgObj.replyTo === 'object' && msgObj.replyTo ? msgObj.replyTo : (msgObj.replyTo ? msgObj.replyTo.toString() : null),
+      isViewOnce: msgObj.isViewOnce,
+      mentions: Array.isArray(msgObj.mentions) ? msgObj.mentions.map(m => ({
+        user: typeof m.user === 'object' && m.user ? m.user : (m.user ? m.user.toString() : null),
+        username: m.username,
+        displayName: m.displayName
+      })) : [],
+      status: msgObj.status,
+      createdAt: msgObj.createdAt
+    };
+    
+    if (messageId) {
+      plainMessage.clientMessageId = messageId;
     }
     
     if (io) {
