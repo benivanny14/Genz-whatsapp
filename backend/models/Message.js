@@ -171,6 +171,10 @@ const messageSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isSelfDestruct: {
+    type: Boolean,
+    default: false
+  },
   translation: {
     originalLanguage: String,
     translatedText: String,

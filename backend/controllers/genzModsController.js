@@ -14,11 +14,68 @@ const defaultSettings = {
   voiceEffect: 'none',
   highResMedia: false,
   autoDownloadMedia: false,
+  autoSaveMedia: false,
   chatBackgroundMusic: { enabled: false, track: '' },
   readReceipts: true,
   typingIndicators: true,
   onlineStatusVisible: true,
-  freezeLastSeen: false
+  freezeLastSeen: false,
+  alwaysOnline: false,
+  spamFilter: false,
+  selfDestruct: false,
+  noForwardLabel: false,
+  hideBlueTickColor: false,
+  linkPreview: true,
+  clientE2EE: false,
+  debugEncryption: false
+};
+
+const normalizeIncomingMods = (incoming = {}, existing = {}) => {
+  const normalized = { ...incoming };
+
+  if (typeof incoming.autoReply === 'boolean') {
+    normalized.autoReply = {
+      ...defaultSettings.autoReply,
+      ...(existing.autoReply || {}),
+      enabled: incoming.autoReply,
+      message: incoming.autoReplyMsg || existing.autoReply?.message || ''
+    };
+    delete normalized.autoReplyMsg;
+  } else if (incoming.autoReplyMsg && typeof incoming.autoReply === 'object') {
+    normalized.autoReply = {
+      ...defaultSettings.autoReply,
+      ...incoming.autoReply,
+      message: incoming.autoReplyMsg
+    };
+    delete normalized.autoReplyMsg;
+  }
+
+  if (typeof incoming.chatMusic === 'boolean' || incoming.chatMusicUrl !== undefined) {
+    normalized.chatBackgroundMusic = {
+      ...defaultSettings.chatBackgroundMusic,
+      ...(existing.chatBackgroundMusic || {}),
+      enabled: Boolean(incoming.chatMusic),
+      track: incoming.chatMusicUrl || existing.chatBackgroundMusic?.track || ''
+    };
+    delete normalized.chatMusic;
+    delete normalized.chatMusicUrl;
+  }
+
+  if (typeof incoming.antiDelete === 'boolean') {
+    normalized.antiDeleteMessages = incoming.antiDelete;
+  }
+
+  if (typeof incoming.hideReadReceipts === 'boolean') {
+    normalized.readReceipts = !incoming.hideReadReceipts;
+  }
+
+  if (typeof incoming.ghostMode === 'boolean' && incoming.ghostMode) {
+    normalized.hideOnline = true;
+    normalized.hideTyping = true;
+    normalized.hideRecording = true;
+  }
+
+  return normalized;
 };
 
 const getUser = async (req, res) => {
@@ -49,12 +106,17 @@ exports.updateGenzModsSettings = async (req, res) => {
     if (!user) return;
 
     const incoming = req.body.settings || req.body;
-    user.genzMods = mergeSettings({ ...(user.genzMods?.toObject?.() || user.genzMods || {}), ...incoming });
+    const existing = user.genzMods?.toObject?.() || user.genzMods || {};
+    const normalizedIncoming = normalizeIncomingMods(incoming, existing);
+    user.genzMods = mergeSettings({ ...existing, ...normalizedIncoming });
     user.markModified('genzMods');
 
-    if (Object.prototype.hasOwnProperty.call(incoming, 'autoReply')) {
-      user.autoReplyEnabled = Boolean(user.genzMods.autoReply.enabled);
-      user.autoReplyMessage = user.genzMods.autoReply.message || '';
+    if (
+      Object.prototype.hasOwnProperty.call(normalizedIncoming, 'autoReply') ||
+      Object.prototype.hasOwnProperty.call(incoming, 'autoReply')
+    ) {
+      user.autoReplyEnabled = Boolean(user.genzMods.autoReply?.enabled);
+      user.autoReplyMessage = user.genzMods.autoReply?.message || '';
     }
 
     await user.save();

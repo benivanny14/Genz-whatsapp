@@ -165,6 +165,10 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
     return () => clearTimeout(timer);
   }, [editProfile.username, editProfile.bio, editProfile.profilePicture]);
 
+  useEffect(() => {
+    if (mods?.autoReplyMsg) setAutoReplyMsg(mods.autoReplyMsg);
+  }, [mods?.autoReplyMsg]);
+
   // Check subscription status on mount
   useEffect(() => {
     const checkSubscription = async () => {
@@ -359,7 +363,14 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
   };
 
   const toggleMod = (key) => {
-    setMods(prev => ({ ...prev, [key]: !prev[key] }));
+    setMods((prev) => {
+      const nextVal = !prev[key];
+      const next = { ...prev, [key]: nextVal };
+      if (key === 'autoReply') {
+        updateAutoReply(nextVal, prev.autoReplyMsg || autoReplyMsg);
+      }
+      return next;
+    });
   };
 
   const showMsg = (msg) => {
@@ -1582,13 +1593,29 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
             <ModItem
               icon={<Bell size={20} className="text-orange-500" />}
               title="Auto-Reply Bot"
-              desc="Reply to messages automatically with AI"
+              desc="Reply to messages automatically when you are away"
               active={mods.autoReply}
               onClick={() => toggleMod('autoReply')}
             />
+            {mods.autoReply && (
+              <div className="px-4 pb-3">
+                <label className="text-xs text-gray-400 block mb-1">Auto-reply message</label>
+                <textarea
+                  value={autoReplyMsg}
+                  onChange={(e) => {
+                    const msg = e.target.value;
+                    setAutoReplyMsg(msg);
+                    setMods((prev) => ({ ...prev, autoReplyMsg: msg }));
+                    updateAutoReply(true, msg);
+                  }}
+                  rows={2}
+                  className="w-full bg-black/30 border border-white/10 rounded-lg p-2 text-sm text-white resize-none"
+                  placeholder="I'm offline, will reply soon."
+                />
+              </div>
+            )}
             <ModItem
               icon={<HardDrive size={20} className="text-green-500" />}
-              title="High-Res Media"
               desc="Send images up to 50MB without quality loss"
               active={mods.highResMedia}
               onClick={() => toggleMod('highResMedia')}

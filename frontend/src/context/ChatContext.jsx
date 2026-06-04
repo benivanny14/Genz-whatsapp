@@ -124,6 +124,12 @@ const createClientMessageId = (prefix = 'client-message') => {
 };
 
 import { applyVoiceEffect } from '../utils/voiceEffects';
+import {
+  flattenModsFromServer,
+  normalizeModsForServer,
+  isLikelySpamMessage,
+  autoSaveMediaFromMessage
+} from '../utils/genzModsNormalize';
 export { applyVoiceEffect };
 
 // ─── Audio Processing Utilities ─────────────────────────────────────────────
@@ -284,7 +290,7 @@ export const ChatProvider = ({ children }) => {
           await authFetch(`${BACKEND_URL}/genz-mods/settings`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(stripLocalOnlyData(newMods))
+            body: JSON.stringify(normalizeModsForServer(stripLocalOnlyData(newMods)))
           });
         } catch (e) { }
       });
@@ -334,8 +340,12 @@ export const ChatProvider = ({ children }) => {
     if (mods.bubbleStyle === '3d') body.classList.add('bubble-style-3d');
     if (mods.tickStyle === 'ios') body.classList.add('tick-style-ios');
     if (mods.bubbleAnimations) body.classList.add('bubble-animations');
+    if (mods.reelMode) body.classList.add('reel-mode-chat');
+    else body.classList.remove('reel-mode-chat');
+    if (mods.glassMode) body.classList.add('glass-mode-active');
+    else body.classList.remove('glass-mode-active');
 
-  }, [mods.fontFamily, mods.fontSize, mods.bubbleSentColor, mods.bubbleReceivedColor, mods.bubbleStyle, mods.tickStyle, mods.bubbleAnimations]);
+  }, [mods.fontFamily, mods.fontSize, mods.bubbleSentColor, mods.bubbleReceivedColor, mods.bubbleStyle, mods.tickStyle, mods.bubbleAnimations, mods.reelMode, mods.glassMode]);
 
   // ── Load GENZ settings from localStorage on mount ──
   useEffect(() => {
@@ -393,7 +403,7 @@ export const ChatProvider = ({ children }) => {
         await authFetch(`${BACKEND_URL}/genz-mods/settings`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(stripLocalOnlyData(mods))
+          body: JSON.stringify(normalizeModsForServer(stripLocalOnlyData(mods)))
         });
       } catch (error) {
         console.warn('[ChatContext] Remote GENZ settings sync failed:', error.message);
@@ -416,6 +426,26 @@ export const ChatProvider = ({ children }) => {
       }
     })();
   }, [isAuthReady, authLoading, isAuthenticated]);
+
+  // Sync auto-reply bot fields to backend user record
+  useEffect(() => {
+    if (!isAuthReady || (REQUIRE_AUTH && (authLoading || !isAuthenticated))) return;
+    const timer = setTimeout(async () => {
+      try {
+        await authFetch(`${BACKEND_URL}/genz-mods/auto-reply`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            enabled: Boolean(mods.autoReply),
+            message: mods.autoReplyMsg || "I'm offline, will reply soon."
+          })
+        });
+      } catch (e) {
+        console.warn('[ChatContext] Auto-reply sync failed:', e?.message || e);
+      }
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [mods.autoReply, mods.autoReplyMsg, isAuthReady, authLoading, isAuthenticated]);
 
   // Initialize client-side E2EE keys (generate or sync with backend)
   useEffect(() => {
@@ -682,6 +712,14 @@ export const ChatProvider = ({ children }) => {
       socket.on('message:received', async (msg) => {
         console.log('Ujumbe mpya umeingia kutoka Socket (message:received):', msg);
         const incoming = await decryptMessageContent(msg);
+        const senderId = String(incoming.sender?._id || incoming.sender || '');
+        if (senderId !== String(currentUserId) && modsRef.current.spamFilter && isLikelySpamMessage(incoming)) {
+          console.log('[ChatContext] Spam message filtered');
+          return;
+        }
+        if (senderId !== String(currentUserId) && modsRef.current.autoSaveMedia) {
+          autoSaveMediaFromMessage(incoming);
+        }
         setMessages(prev => {
           const serverId = String(incoming._id || '');
           const clientId = incoming.clientMessageId ? String(incoming.clientMessageId) : '';
@@ -796,9 +834,12 @@ export const ChatProvider = ({ children }) => {
       });
 
       // ── Anti-Delete (Phase 3): intercept deletion, keep visible ──
-      socket.on('message:deleted', ({ messageId, forEveryone }) => {
+      socket.on('message:deleted', ({ messageId, forEveryone, reason }) => {
+        if (reason === 'view_once_viewed') {
+          setMessages(prev => prev.filter(m => m._id !== messageId));
+          return;
+        }
         if (forEveryone && modsRef.current.antiDelete) {
-          // Mark as "deleted" but keep content visible
           setMessages(prev => prev.map(m =>
             m._id === messageId ? { ...m, deletedForEveryone: true, _antiDeletePreserved: true } : m
           ));
@@ -2127,8 +2168,8 @@ export const ChatProvider = ({ children }) => {
       const response = await authFetch(`${BACKEND_URL}/genz-mods/settings`);
       const data = await response.json();
       if (data.success) {
-        // MERGE with local state to preserve local-only data (wallpapers, etc.)
-        setModsState(prev => ({ ...prev, ...(data.settings || {}) }));
+        const flat = flattenModsFromServer(data.settings || {});
+        setModsState(prev => ({ ...prev, ...flat }));
       }
       return data;
     } catch (err) {
@@ -2142,12 +2183,12 @@ export const ChatProvider = ({ children }) => {
       const response = await authFetch(`${BACKEND_URL}/genz-mods/settings`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(stripLocalOnlyData(settings))
+        body: JSON.stringify(normalizeModsForServer(stripLocalOnlyData(settings)))
       });
       const data = await response.json();
       if (data.success) {
-        // MERGE with local state to preserve local-only data (wallpapers, etc.)
-        setModsState(prev => ({ ...prev, ...(data.settings || {}) }));
+        const flat = flattenModsFromServer(data.settings || {});
+        setModsState(prev => ({ ...prev, ...flat }));
       }
       return data;
     } catch (err) {
@@ -2205,6 +2246,11 @@ export const ChatProvider = ({ children }) => {
       return { success: false };
     }
   };
+
+  useEffect(() => {
+    if (!isAuthReady || (REQUIRE_AUTH && (authLoading || !isAuthenticated))) return;
+    fetchGENZModsSettings();
+  }, [isAuthReady, authLoading, isAuthenticated]);
 
   // ── Broadcast Functions ──
   const fetchBroadcasts = async () => {

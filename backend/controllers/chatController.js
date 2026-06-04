@@ -558,6 +558,7 @@ exports.sendMessage = async (req, res) => {
       duration,
       replyTo,
       isViewOnce,
+      isSelfDestruct,
       mentions,
       messageId,
     } = req.body;
@@ -618,7 +619,8 @@ exports.sendMessage = async (req, res) => {
       fileSize: fileSize || 0,
       duration: duration || 0,
       replyTo: replyTo || null,
-      isViewOnce: isViewOnce || false,
+      isViewOnce: Boolean(isViewOnce),
+      isSelfDestruct: Boolean(isSelfDestruct),
       mentions: mentionData.mentions || [],
       disappearAt,
     });
@@ -688,6 +690,7 @@ exports.sendMessage = async (req, res) => {
       duration: msgObj.duration,
       replyTo: serializeReplyTo(msgObj.replyTo),
       isViewOnce: msgObj.isViewOnce,
+      isSelfDestruct: msgObj.isSelfDestruct,
       mentions: Array.isArray(msgObj.mentions) ? msgObj.mentions.map(m => ({
         user: typeof m.user === 'object' && m.user ? m.user : (m.user ? m.user.toString() : null),
         username: m.username,

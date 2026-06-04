@@ -210,7 +210,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     createPoll, votePoll, scheduleMessage, scheduledMessages, cancelScheduledMessage,
     initiateCall, endCall, activeCall,
     updateGroupMember, joinGroup, updateDisappearingMessages, toggleAdminOnlyMessaging, updateGroupPermission, createCustomRole, assignRole, viewProfile,
-    pinMessage, unpinMessage, pinnedMessages, presenceHistory, unlockedSessionChats, verifyChatUnlock, toggleChatLock, stickerPacks, downloadedStickers, downloadStickerPack, sendSticker, addFavoriteSticker, toggleStarMessage, toggleMessageLock, toggleMuteChat, toggleArchiveChat, transcribeAudio, markAsRead,
+    pinMessage, unpinMessage, pinnedMessages, presenceHistory, unlockedSessionChats, verifyChatUnlock, toggleChatLock, stickerPacks, downloadedStickers, downloadStickerPack, sendSticker, addFavoriteSticker, toggleStarMessage, toggleMessageLock, toggleMuteChat, toggleArchiveChat, transcribeAudio, markAsRead, markViewOnceViewed, getUserStatusWithGhostMode,
     isDNDMode, toggleDNDMode, selectConversation, setMods
   } = useChat();
   const user = chatUser || localUser;
@@ -242,6 +242,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [editingMessage, setEditingMessage] = useState(null); // {id, content}
   const [isViewOnceEnabled, setIsViewOnceEnabled] = useState(false);
   const [openedViewOnce, setOpenedViewOnce] = useState(new Set());
+  const [peerPresence, setPeerPresence] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
   const [showSearchMessages, setShowSearchMessages] = useState(false);
@@ -406,6 +407,31 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     }
   }, [selectedConversation, messages.length, mods?.hideReadReceipts, mods?.ghostMode, user]); // Check whenever new messages arrive
 
+  useEffect(() => {
+    if (!selectedConversation || selectedConversation.isGroup) {
+      setPeerPresence(null);
+      return;
+    }
+    const me = String(user?.id || user?._id || '');
+    const other = (selectedConversation.participants || []).find(
+      (p) => String(p?._id || p?.id || p) !== me
+    );
+    const otherId = other?._id || other?.id || other;
+    if (!otherId) return;
+
+    let cancelled = false;
+    (async () => {
+      const data = await getUserStatusWithGhostMode(otherId);
+      if (!cancelled && data?.success) {
+        setPeerPresence(data.userStatus || null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedConversation?._id, user?.id, user?._id, getUserStatusWithGhostMode]);
+
   // GENZ MOD: Chat Background Music Logic
   useEffect(() => {
     if (mods?.chatMusic && mods?.chatMusicUrl && selectedConversation) {
@@ -534,10 +560,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         isGroup: selectedConversation.isGroup,
         ghostMode: mods.ghostMode,
         isSelfDestruct: mods.selfDestruct,
+        isViewOnce: isViewOnceEnabled,
         mentions
       });
     }
     setMessageInput('');
+    setIsViewOnceEnabled(false);
     setMentionState({ open: false, query: '', start: -1, cursor: 0, activeIndex: 0 });
     setShowEmojiPicker(false);
     setReplyingTo(null);
@@ -1082,14 +1110,13 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     sendMessage('🛑 Live Location Sharing Stopped.', user?.username, { messageType: 'text' });
   };
 
-  const handleFileUpload = async (e, forcedType = null, isViewOnce = false) => {
+  const handleFileUpload = async (e, forcedType = null, isViewOnce = isViewOnceEnabled) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // File size validation (max 10MB)
-    const maxSize = 10 * 1024 * 1024;
+    const maxSize = (mods?.highResMedia ? 50 : 10) * 1024 * 1024;
     if (file.size > maxSize) {
-      toast.error("GENZ WhatsApp: File too large (max 10MB)");
+      toast.error(`GENZ WhatsApp: File too large (max ${mods?.highResMedia ? 50 : 10}MB)`);
       return;
     }
 
@@ -1130,7 +1157,24 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       }
     } catch (error) {
       console.error('Upload failed:', error);
-      toast.error("GENZ WhatsApp: Failed to upload file. Please try again.");
+        toast.error("GENZ WhatsApp: Failed to upload file. Please try again.");
+    }
+    setIsViewOnceEnabled(false);
+    if (e?.target) e.target.value = '';
+  };
+
+  const openViewOnceMessage = async (message) => {
+    const messageId = message.id || message._id;
+    if (!messageId) return;
+    setOpenedViewOnce((prev) => new Set([...prev, messageId]));
+    const senderId = String(message.sender?._id || message.sender || '');
+    const me = String(user?.id || user?._id || '');
+    if (senderId && senderId !== me) {
+      try {
+        await markViewOnceViewed(messageId);
+      } catch {
+        /* local reveal still works if API fails */
+      }
     }
   };
 
@@ -1867,7 +1911,16 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                     {groupOnlineCount} online · {(selectedConversation.participants || []).length} members
                   </p>
                 )}
-                {!selectedConversation.isGroup && history.length > 0 && !isOtherUserTyping && (
+                {!selectedConversation.isGroup && peerPresence && !isOtherUserTyping && (
+                  <p className="text-[10px] text-white/60 truncate">
+                    {peerPresence.isOnline
+                      ? 'online'
+                      : peerPresence.lastSeen
+                        ? `last seen ${formatMessageTime(peerPresence.lastSeen)}`
+                        : 'offline'}
+                  </p>
+                )}
+                {!selectedConversation.isGroup && !peerPresence && history.length > 0 && !isOtherUserTyping && (
                   <p className="text-[10px] text-white/60 truncate">
                     Last 24h activity: {history.slice(-3).map(h => formatMessageTime(h.time)).join(', ')}
                   </p>
@@ -2184,7 +2237,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                           <video
                             src={message.mediaUrl}
                             className="max-w-full rounded-lg max-h-64 w-full cursor-pointer blur-md"
-                            onClick={() => setOpenedViewOnce(prev => new Set([...prev, message.id || message._id]))}
+                            onClick={() => openViewOnceMessage(message)}
                           />
                           <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg pointer-events-none">
                             <Eye size={24} className="text-white" />
@@ -2229,9 +2282,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                             alt={typeof message.content === 'string' ? message.content : 'Media'}
                             className="max-w-full rounded-lg cursor-pointer"
                             loading="lazy"
-                            onClick={() => {
-                              setOpenedViewOnce(prev => new Set([...prev, message.id || message._id]));
-                            }}
+                            onClick={() => openViewOnceMessage(message)}
                           />
                           <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
                             <Eye size={24} className="text-white" />
@@ -2382,6 +2433,28 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                         <span>💣</span> Self-destructing in 10s
                       </div>
                     )}
+                    {message.isViewOnce &&
+                      message.messageType === 'text' &&
+                      !isOwnMessage(message) &&
+                      !mods?.antiViewOnce &&
+                      !openedViewOnce.has(message.id || message._id) && (
+                        <button
+                          type="button"
+                          onClick={() => openViewOnceMessage(message)}
+                          className="flex items-center gap-2 text-sm italic text-dark-textSecondary py-2 px-3 rounded-lg bg-black/20 border border-white/10 hover:bg-black/30 transition-colors"
+                        >
+                          <Eye size={16} /> Tap to view once
+                        </button>
+                      )}
+                    {message.isViewOnce &&
+                      message.messageType === 'text' &&
+                      !isOwnMessage(message) &&
+                      !mods?.antiViewOnce &&
+                      openedViewOnce.has(message.id || message._id) && (
+                        <div className="flex items-center gap-2 text-dark-textSecondary py-2 italic text-sm">
+                          <Eye size={16} /> Opened
+                        </div>
+                      )}
                     {(!['image', 'video', 'location', 'sticker', 'audio', 'gif'].includes(message.messageType) ||
                       (plaintextOf(message) &&
                         plaintextOf(message) !== message.mediaUrl &&
@@ -2389,7 +2462,14 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                         !plaintextOf(message).includes('res.cloudinary.com') &&
                         !plaintextOf(message).includes('maps.google.com') &&
                         !plaintextOf(message).includes('maps.apple.com') &&
-                        plaintextOf(message).trim() !== '')) && (
+                        plaintextOf(message).trim() !== '')) &&
+                      !(
+                        message.isViewOnce &&
+                        message.messageType === 'text' &&
+                        !isOwnMessage(message) &&
+                        !mods?.antiViewOnce &&
+                        !openedViewOnce.has(message.id || message._id)
+                      ) && (
                         <p className="break-words whitespace-pre-wrap">
                           {mods?.debugEncryption
                             ? (() => {
