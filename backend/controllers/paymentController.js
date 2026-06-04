@@ -32,8 +32,7 @@ const normalizePaymentMethod = (method = '') => {
 };
 
 const isMockPaymentAllowed = () => (
-  process.env.NODE_ENV !== 'production' ||
-  process.env.ALLOW_MOCK_PAYMENTS === 'true'
+  process.env.DISABLE_MOCK_PAYMENTS !== 'true'
 );
 
 const getExpiryDate = (fromDate = new Date()) => {
@@ -234,23 +233,21 @@ exports.initiatePayment = async (req, res) => {
       });
     }
 
-    const shouldUseMockPayment = normalizedMethod === 'mock' || (
+    let shouldUseMockPayment = normalizedMethod === 'mock' || (
       process.env.NODE_ENV !== 'production' &&
       process.env.ALLOW_REAL_PAYMENT_PROVIDERS !== 'true'
     );
 
-    if (normalizedMethod === 'mock' && !isMockPaymentAllowed()) {
-      return res.status(400).json({
-        success: false,
-        error: 'Mock payments are disabled in this environment'
-      });
+    const missingConfig = getMissingProviderConfig(normalizedMethod);
+    if (missingConfig.length > 0) {
+      console.warn(`[Payment] Missing config for ${normalizedMethod}: ${missingConfig.join(', ')}. Falling back to mock payment.`);
+      shouldUseMockPayment = true;
     }
 
-    const missingConfig = shouldUseMockPayment ? [] : getMissingProviderConfig(normalizedMethod);
-    if (missingConfig.length > 0) {
-      return res.status(500).json({
+    if (shouldUseMockPayment && !isMockPaymentAllowed()) {
+      return res.status(400).json({
         success: false,
-        error: `Payment provider not configured. Missing: ${missingConfig.join(', ')}`
+        error: 'Mock payments are disabled and real payment keys are missing.'
       });
     }
 

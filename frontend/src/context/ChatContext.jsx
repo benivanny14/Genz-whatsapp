@@ -891,12 +891,12 @@ export const ChatProvider = ({ children }) => {
       socket.on('messages:read', async ({ chatId, userId }) => {
         if (userId !== currentUserId) {
           setMessages(prev => prev.map(m => 
-            (m.conversationId === chatId && m.sender === currentUserId) 
+            (String(m.conversationId) === String(chatId) && (String(m.sender?._id || m.sender) === String(currentUserId))) 
               ? { ...m, status: 'read' } 
               : m
           ));
           setConversations(prev => prev.map(c => 
-            (c._id === chatId && c.lastMessage && c.lastMessage.sender === currentUserId) 
+            (String(c._id) === String(chatId) && c.lastMessage && (String(c.lastMessage.sender?._id || c.lastMessage.sender) === String(currentUserId))) 
               ? { ...c, lastMessage: { ...c.lastMessage, status: 'read' } } 
               : c
           ));
