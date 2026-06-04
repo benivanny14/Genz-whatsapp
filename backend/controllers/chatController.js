@@ -764,9 +764,9 @@ exports.sendMessage = async (req, res) => {
       console.warn("[ChatController] Mention notify failed:", notifyErr?.message || notifyErr);
     }
 
+    // Only invalidate this chat's message cache; avoid conversations:* (bulk KEYS/DEL caused stack overflows)
     try {
       await invalidateCachePattern(req, `messages:${finalConversationId}:*`);
-      await invalidateCachePattern(req, `conversations:*`);
     } catch (cacheErr) {
       console.warn("[ChatController] Cache invalidation failed:", cacheErr?.message || cacheErr);
     }
