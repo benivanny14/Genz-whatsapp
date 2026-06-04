@@ -656,22 +656,29 @@ exports.sendMessage = async (req, res) => {
     }
 
     // 3. Update mazungumzo (Conversation) ili iweke ujumbe huu kama ujumbe wa mwisho (Last Message)
-    conversation.lastMessage = message._id;
-    conversation.updatedAt = new Date();
-    if (conversation.deletedFor?.length) {
-      conversation.deletedFor = [];
-    }
-    await conversation.save();
+    await Conversation.findByIdAndUpdate(
+      finalConversationId,
+      {
+        $set: {
+          lastMessage: message._id,
+          updatedAt: new Date(),
+          deletedFor: []
+        }
+      },
+      { new: true, runValidators: false }
+    );
 
     const io = req.app.get("io");
+    const plainMessage = populatedMessage.toObject ? populatedMessage.toObject() : populatedMessage;
+    
     if (io) {
-      io.to(finalConversationId).emit("message:received", populatedMessage);
+      io.to(finalConversationId).emit("message:received", plainMessage);
       
       // Emit directly to participants to ensure delivery even if they haven't opened the chat
       if (conversation.participants && Array.isArray(conversation.participants)) {
         conversation.participants.forEach(participantId => {
           if (participantId.toString() !== localUserId.toString()) {
-            io.to(participantId.toString()).emit("message:received", populatedMessage);
+            io.to(participantId.toString()).emit("message:received", plainMessage);
           }
         });
       }
@@ -690,7 +697,7 @@ exports.sendMessage = async (req, res) => {
     await invalidateCachePattern(req, `conversations:*`); // Simplest way to refresh latest message in list
 
     // 4. Rudisha ujumbe uliosavewa kwenda Frontend
-    res.status(201).json({ success: true, message: populatedMessage, ...populatedMessage.toObject() });
+    res.status(201).json({ success: true, message: plainMessage, ...plainMessage });
   } catch (error) {
     console.error("Database Error - Kushindwa kusave meseji:", error);
     res.status(500).json({ success: false, message: "Server error", error: error.message });
