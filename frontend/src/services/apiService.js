@@ -48,6 +48,9 @@ const apiCall = async (endpoint, options = {}) => {
       
     } catch (error) {
       console.error(`[API Error] ${endpoint}:`, error.message);
+      if (error.response?.data) {
+        console.error(`[API Error Data] ${endpoint}:`, error.response.data);
+      }
       
       if (error.response?.status === 401) {
         // 401 errors are handled by axios interceptor
