@@ -183,10 +183,16 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
 
   const getConversationAvatar = (conv) => {
     if (conv.isGroup) {
-      return conv.groupPhoto || '';
+      // Group: use group photo or fallback to first participant's avatar
+      if (conv.groupPhoto) return conv.groupPhoto;
+      const firstParticipant = conv.participants?.[0];
+      if (firstParticipant?.profilePicture) return firstParticipant.profilePicture;
+      return `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.groupName || 'Group')}&background=random&color=fff`;
     }
-    const otherUser = conv.participants.find((p) => p._id !== user?.id);
-    return otherUser?.profilePicture || '';
+    const otherUser = conv.participants?.find((p) => p._id !== user?.id);
+    if (otherUser?.profilePicture) return otherUser.profilePicture;
+    // Fallback avatar: use ui-avatars service
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(otherUser?.username || 'User')}&background=random&color=fff`;
   };
 
   const getLastMessage = (conv) => {

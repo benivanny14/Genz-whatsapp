@@ -498,10 +498,22 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const getConversationAvatar = () => {
     if (!selectedConversation) return '';
     if (selectedConversation.isGroup) {
-      return hasStaleBlobUrl(selectedConversation.groupPhoto) ? '' : selectedConversation.groupPhoto;
+      if (!hasStaleBlobUrl(selectedConversation.groupPhoto) && selectedConversation.groupPhoto) {
+        return selectedConversation.groupPhoto;
+      }
+      // Fallback: use first participant's avatar or generic group avatar
+      const firstParticipant = selectedConversation.participants?.[0];
+      if (firstParticipant?.profilePicture && !hasStaleBlobUrl(firstParticipant.profilePicture)) {
+        return firstParticipant.profilePicture;
+      }
+      return `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedConversation.groupName || 'Group')}&background=random&color=fff`;
     }
-    const otherUser = selectedConversation.participants.find((p) => p._id !== user?.id);
-    return hasStaleBlobUrl(otherUser?.profilePicture) ? '' : otherUser?.profilePicture;
+    const otherUser = selectedConversation.participants?.find((p) => p._id !== user?.id);
+    if (otherUser?.profilePicture && !hasStaleBlobUrl(otherUser.profilePicture)) {
+      return otherUser.profilePicture;
+    }
+    // Fallback: generic avatar from ui-avatars
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(otherUser?.username || 'User')}&background=random&color=fff`;
   };
 
   const handleGIFSelect = (gif) => {

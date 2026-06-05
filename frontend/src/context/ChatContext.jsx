@@ -927,6 +927,14 @@ export const ChatProvider = ({ children }) => {
         setMessages(prev => prev.map(m => m._id === messageId ? { ...m, isViewOnce: false, viewedAt: new Date() } : m));
       });
 
+      // ── Screenshot attempted notification ──
+      socket.on('message:screenshot-attempted', ({ messageId, userId, username }) => {
+        const screenshotUser = username || userId || 'Someone';
+        setOnlineNotification(`📸 ${screenshotUser} took a screenshot`);
+        setTimeout(() => setOnlineNotification(null), 4000);
+        console.log(`[ChatContext] Screenshot attempt detected: ${screenshotUser} on message ${messageId}`);
+      });
+
       // Read receipts — update state AND IndexedDB ──
       socket.on('message:read_receipt', async ({ messageId }) => {
         setMessages(prev => prev.map(m => m._id === messageId ? { ...m, status: 'read' } : m));
