@@ -192,6 +192,18 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   const getLastMessage = (conv) => {
     if (!conv.lastMessage) return 'No messages yet';
 
+    if (conv.lastMessage.isConsumed) {
+      if (conv.lastMessage.isSelfDestruct) return '💥 Message self-destructed';
+      return '👁️ Opened';
+    }
+
+    if (conv.lastMessage.isViewOnce) {
+      if (conv.lastMessage.messageType === 'image') return '📷 Photo (View once)';
+      if (conv.lastMessage.messageType === 'video') return '🎥 Video (View once)';
+      if (conv.lastMessage.messageType === 'audio') return '🎵 Voice note (View once)';
+      return '🤫 View once message';
+    }
+
     // Support for media previews in sidebar
     if (conv.lastMessage.messageType === 'gif') return '🎞️ GIF';
     if (conv.lastMessage.messageType === 'image') return '📷 Photo' + (conv.lastMessage.caption ? `: ${conv.lastMessage.caption}` : '');

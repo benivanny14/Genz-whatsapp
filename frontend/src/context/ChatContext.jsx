@@ -840,10 +840,6 @@ export const ChatProvider = ({ children }) => {
 
       // ── Anti-Delete (Phase 3): intercept deletion, keep visible ──
       socket.on('message:deleted', ({ messageId, forEveryone, reason }) => {
-        if (reason === 'view_once_viewed') {
-          setMessages(prev => prev.filter(m => m._id !== messageId));
-          return;
-        }
         if (forEveryone && modsRef.current.antiDelete) {
           setMessages(prev => prev.map(m =>
             m._id === messageId ? { ...m, deletedForEveryone: true, _antiDeletePreserved: true } : m
@@ -851,6 +847,12 @@ export const ChatProvider = ({ children }) => {
         } else {
           setMessages(prev => prev.filter(m => m._id !== messageId));
         }
+      });
+
+      socket.on('message:consumed', ({ messageId }) => {
+        setMessages(prev => prev.map(m =>
+          m._id === messageId ? { ...m, isConsumed: true, content: 'View Once message opened', mediaUrl: '', fileName: '' } : m
+        ));
       });
 
       // ── Message edited ──
@@ -1160,8 +1162,12 @@ export const ChatProvider = ({ children }) => {
           if (!selfDestructTimers.current.has(msgId)) {
             selfDestructTimers.current.add(msgId);
             setTimeout(async () => {
-              setMessages(current => current.filter(msg => msg._id !== msgId));
-              try { await DB.saveMessage({ _id: msgId, _deleted: true }); } catch (e) { }
+              try {
+                // Let the backend mark it as consumed for everyone
+                await api.put(`/chat/messages/${msgId}/view-once-viewed`);
+              } catch (e) {
+                console.error("Failed to self-destruct message on server:", e);
+              }
               selfDestructTimers.current.delete(msgId);
             }, 10000);
           }

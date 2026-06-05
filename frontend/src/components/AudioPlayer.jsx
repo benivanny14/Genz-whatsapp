@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useCallback, memo } from 'react';
 import { Play, Pause, Download, Eye } from 'lucide-react';
-import { resolveMediaPlaybackUrl } from '../utils/sanitizeMediaUrl';
+import { resolveMediaPlaybackUrl, ensureSignedMediaUrl } from '../utils/sanitizeMediaUrl';
+import { useAuth } from '../context/AuthContext';
 
 // Static waveform bars — deterministic so they don't re-render randomly
 const BARS = Array.from({ length: 36 }, (_, i) => {
@@ -54,7 +55,22 @@ const AudioPlayer = ({
     return `${m}:${sec.toString().padStart(2, '0')}`;
   };
 
-  const playbackUrl = resolveMediaPlaybackUrl(audioUrl);
+  const [playbackUrl, setPlaybackUrl] = useState('');
+  const { token } = useAuth(); // We need token from AuthContext
+
+  useEffect(() => {
+    let active = true;
+    const fetchSignedUrl = async () => {
+      try {
+        const signedUrl = await ensureSignedMediaUrl(audioUrl, token);
+        if (active) setPlaybackUrl(resolveMediaPlaybackUrl(signedUrl));
+      } catch (e) {
+        if (active) setPlaybackUrl(resolveMediaPlaybackUrl(audioUrl));
+      }
+    };
+    fetchSignedUrl();
+    return () => { active = false; };
+  }, [audioUrl, token]);
 
   // Create / update audio element
   useEffect(() => {

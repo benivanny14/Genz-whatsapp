@@ -1484,24 +1484,27 @@ exports.markViewOnceViewed = async (req, res) => {
       });
     }
 
-    if (!message.isViewOnce) {
+    if (!message.isViewOnce && !message.isSelfDestruct) {
       return res.status(400).json({
         success: false,
-        message: "Message is not a view-once message",
+        message: "Message is not a view-once or self-destruct message",
       });
     }
 
-    // Delete the message after viewing
-    message.deletedForEveryone = true;
-    message.deletedAt = new Date();
+    // Mark the message as consumed
+    message.isConsumed = true;
+    message.content = message.isSelfDestruct ? '💥 Message self-destructed' : 'View Once message opened';
+    message.mediaUrl = '';
+    message.fileName = '';
     await message.save();
 
     const io = req.app.get("io");
     if (io) {
-      io.to(message.conversationId.toString()).emit("message:deleted", {
+      io.to(message.conversationId.toString()).emit("message:consumed", {
         messageId: message._id,
-        forEveryone: true,
-        reason: "view_once_viewed",
+        conversationId: message.conversationId,
+        isViewOnce: message.isViewOnce,
+        isSelfDestruct: message.isSelfDestruct
       });
     }
 

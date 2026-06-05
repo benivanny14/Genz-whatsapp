@@ -171,6 +171,10 @@ const messageSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isConsumed: {
+    type: Boolean,
+    default: false
+  },
   isSelfDestruct: {
     type: Boolean,
     default: false
