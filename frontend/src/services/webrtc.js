@@ -275,25 +275,43 @@ class WebRTCService {
     this.callType = callType;
     this.reconnectAttempts = 0;
 
-    await this.initLocalStream(callType);
-    const pc = await this._createPeer();
-    this.startHealthMonitoring();
+    try {
+      await this.initLocalStream(callType);
+      const pc = await this._createPeer();
+      this.startHealthMonitoring();
 
-    await pc.setRemoteDescription(new RTCSessionDescription(offer));
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
+      // Validate and set remote description with error handling
+      if (!offer || !offer.type || !offer.sdp) {
+        throw new Error('Invalid offer: missing type or SDP');
+      }
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
 
-    socket.emit('webrtc:answer', { to: callerId, answer });
-    return this.localStream;
+      socket.emit('webrtc:answer', { to: callerId, answer });
+      return this.localStream;
+    } catch (err) {
+      console.error('[WebRTC] answerCall error:', err);
+      this.onCallError?.(err);
+      throw err;
+    }
   }
 
   // ── Handle incoming answer ──────────────────────────────────────────────
   async handleAnswer(answer) {
-    if (!this.pc) return;
+    if (!this.pc) {
+      console.warn('[WebRTC] handleAnswer: PC not initialized yet');
+      return;
+    }
     try {
+      // Validate answer before setting
+      if (!answer || !answer.type || !answer.sdp) {
+        throw new Error('Invalid answer: missing type or SDP');
+      }
       await this.pc.setRemoteDescription(new RTCSessionDescription(answer));
     } catch (err) {
       console.error('[WebRTC] setRemoteDescription error:', err);
+      this.onCallError?.(err);
     }
   }
 

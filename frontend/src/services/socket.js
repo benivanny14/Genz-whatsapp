@@ -1,7 +1,7 @@
 import { io } from 'socket.io-client';
 
-const BACKEND_URL = 'https://genz-whatsapp.onrender.com';
-const SOCKET_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_SOCKET_URL || BACKEND_URL;
+const BACKEND_URL = (import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || 'https://genz-whatsapp.onrender.com').replace('/api', '');
+const SOCKET_URL = BACKEND_URL;
 
 let socket = null;
 let reconnectAttempts = 0;
@@ -52,30 +52,34 @@ export const connectSocket = (userId) => {
     socket = io(BACKEND_URL, socketConfig);
 
     socket.on('connect', () => {
-      console.log('Connected to socket server');
+      console.log('Socket connected successfully to:', BACKEND_URL);
       reconnectAttempts = 0;
       socket.emit('user:join', resolveSocketUserId(userId));
     });
 
     socket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
+      console.error('[Socket] Connection error:', error?.message || error);
+      console.warn('[Socket] Attempting reconnect...');
       reconnectAttempts++;
-      if (reconnectAttempts >= 5) {
-        console.error('Max reconnection attempts reached, stopping retries');
-        socket.disconnect();
+      if (reconnectAttempts >= socketConfig.reconnectionAttempts) {
+        console.error('[Socket] Max reconnection attempts reached');
       }
     });
 
     socket.on('disconnect', (reason) => {
-      console.log('Disconnected from socket server:', reason);
+      console.log('[Socket] Disconnected:', reason);
       if (reason === 'io server disconnect') {
-        // Server disconnected, try to reconnect
-        socket.connect();
+        console.log('[Socket] Server initiated disconnect, attempting reconnect');
+        setTimeout(() => socket?.connect?.(), 1000);
       }
     });
 
+    socket.on('error', (error) => {
+      console.error('[Socket] Error event:', error);
+    });
+
     socket.on('reconnect', (attemptNumber) => {
-      console.log('Reconnected after', attemptNumber, 'attempts');
+      console.log('[Socket] Reconnected after', attemptNumber, 'attempts');
       reconnectAttempts = 0;
       socket.emit('user:join', resolveSocketUserId(userId));
     });
