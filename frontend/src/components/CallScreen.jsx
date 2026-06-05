@@ -184,10 +184,12 @@ const CallScreen = ({ call, onEndCall, onAcceptCall, onRejectCall, onToggleMute,
           return;
         }
 
+        const targetUserId = call.calleeId || call.targetUserId || call.user?._id || call.callerId;
         const stream = await webRTCService.createCall(
-          call.user?._id || call.callerId,
+          targetUserId,
           call.type || 'audio',
-          socket
+          socket,
+          call.conversationId
         );
         setHasLocalStream(true);
         if (localVideoRef.current && stream) localVideoRef.current.srcObject = stream;
@@ -242,7 +244,8 @@ const CallScreen = ({ call, onEndCall, onAcceptCall, onRejectCall, onToggleMute,
         call.offer,
         call.type || 'audio',
         socket,
-        call.callerId
+        call.callerId,
+        call.callerSocketId
       );
       setHasLocalStream(true);
       if (localVideoRef.current && stream) localVideoRef.current.srcObject = stream;
@@ -254,6 +257,7 @@ const CallScreen = ({ call, onEndCall, onAcceptCall, onRejectCall, onToggleMute,
       };
     } catch (err) {
       console.error('[CallScreen] Error accepting call:', err);
+      setCallStatus(call?.offer ? 'incoming' : 'connecting');
     }
     onAcceptCall?.();
   };

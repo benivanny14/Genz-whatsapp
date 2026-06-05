@@ -51,6 +51,7 @@ import { getAvatarUrl } from '../utils/avatar';
 
 const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added mods prop
   const { user } = useUser();
+  const currentUserId = String(user?._id || user?.id || '');
   const navigate = useNavigate();
   const { conversations, selectConversation, selectedConversation, onlineUsers, togglePinChat, toggleMuteChat, toggleArchiveChat, clearChat, deleteChat, callLogs, statuses, addStatus, uploadStatusMedia, profileVisitors, showProfileEditor, setShowProfileEditor } = useChat();
   const [searchQuery, setSearchQuery] = useState('');
@@ -164,7 +165,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     if (conv.isGroup) {
       return conv.groupName?.toLowerCase().includes(searchQuery.toLowerCase());
     } else {
-      const otherUser = conv.participants.find((p) => p._id !== user?.id);
+      const otherUser = conv.participants.find((p) => String(p._id || p) !== currentUserId);
       return otherUser?.username?.toLowerCase().includes(searchQuery.toLowerCase());
     }
   });
@@ -177,7 +178,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     if (conv.isGroup) {
       return conv.groupName;
     }
-    const otherUser = conv.participants.find((p) => p._id !== user?.id);
+    const otherUser = conv.participants.find((p) => String(p._id || p) !== currentUserId);
     return otherUser?.username || 'Unknown';
   };
 
@@ -185,7 +186,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     if (conv.isGroup) {
       return conv.groupPhoto || '';
     }
-    const otherUser = conv.participants.find((p) => p._id !== user?.id);
+    const otherUser = conv.participants.find((p) => String(p._id || p) !== currentUserId);
     return otherUser?.profilePicture || '';
   };
 
@@ -508,7 +509,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                       </span>
                     )}
                     {/* GENZ MOD: Online Indicator */}
-                    {!conv.isGroup && onlineUsers.includes(conv.participants.find(p => p._id !== user?.id)?._id) && (
+                    {!conv.isGroup && onlineUsers.includes(String(conv.participants.find(p => String(p._id || p) !== currentUserId)?._id || conv.participants.find(p => String(p._id || p) !== currentUserId) || '')) && (
                       <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-dark-surface rounded-full shadow-sm" />
                     )}
                   </div>
@@ -529,7 +530,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                       <p className="text-sm text-dark-textSecondary truncate flex-1 text-left">
                         {getLastMessage(conv)}
                       </p>
-                      {conv.lastMessage && (conv.lastMessage.sender?._id || conv.lastMessage.sender) === (user?._id || user?.id) && (
+                      {conv.lastMessage && String(conv.lastMessage.sender?._id || conv.lastMessage.sender) === currentUserId && (
                         <div className="flex items-center gap-1 ml-2">
                           {conv.lastMessage.status === 'sent' && (
                             <Check size={12} className="text-dark-textSecondary" />
@@ -541,6 +542,11 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                             <CheckCheck size={12} className="text-blue-500" />
                           )}
                         </div>
+                      )}
+                      {Number(conv.unreadCount || 0) > 0 && (
+                        <span className="ml-2 min-w-[20px] h-5 px-1.5 rounded-full bg-primary-600 text-white text-[11px] font-bold flex items-center justify-center leading-none">
+                          {Number(conv.unreadCount) > 99 ? '99+' : Number(conv.unreadCount)}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -651,7 +657,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
             <div
               className="flex items-center gap-3 p-3 hover:bg-dark-hover rounded-lg transition-colors cursor-pointer group"
               onClick={() => {
-                const myStatuses = (statuses || []).filter(s => s.userId === user?.id || s.userId === user?._id);
+                const myStatuses = (statuses || []).filter(s => String(s.userId || s.sender?._id || '') === currentUserId);
                 if (myStatuses.length > 0) {
                   setSelectedStatus(myStatuses[myStatuses.length - 1]); // Show latest
                 } else {
@@ -673,15 +679,15 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
               <div className="flex-1">
                 <h3 className="text-dark-text font-medium">My Status</h3>
                 <p className="text-xs text-dark-textSecondary">
-                  {statusUploading ? 'Sending...' : ((statuses || []).some(s => s.userId === user?.id || s.userId === user?._id) ? 'Tap to view your status' : 'Tap to add status update')}
+                  {statusUploading ? 'Sending...' : ((statuses || []).some(s => String(s.userId || s.sender?._id || '') === currentUserId) ? 'Tap to view your status' : 'Tap to add status update')}
                 </p>
               </div>
               {/* Delete latest status button */}
-              {(statuses || []).filter(s => s.userId === user?.id || s.userId === user?._id).length > 0 && (
+              {(statuses || []).filter(s => String(s.userId || s.sender?._id || '') === currentUserId).length > 0 && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    const myStatuses = (statuses || []).filter(s => s.userId === user?.id || s.userId === user?._id);
+                    const myStatuses = (statuses || []).filter(s => String(s.userId || s.sender?._id || '') === currentUserId);
                     if (myStatuses.length > 0) {
                       deleteStatus(myStatuses[myStatuses.length - 1]._id || myStatuses[myStatuses.length - 1].id);
                     }
@@ -696,13 +702,13 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
 
             {/* GENZ Ultra: Story Highlights */}
             {mods?.storyHighlights && (
-              <StoryHighlights statuses={(statuses || []).filter(s => s.userId === user?.id)} />
+              <StoryHighlights statuses={(statuses || []).filter(s => String(s.userId || s.sender?._id || '') === currentUserId)} />
             )}
 
             {/* Friends' Statuses */}
             <div className="space-y-2">
               <h4 className="text-xs text-dark-textSecondary uppercase font-bold px-3">Recent updates</h4>
-              {(statuses || []).filter(s => s.userId !== user?.id).map((status, index) => (
+              {(statuses || []).filter(s => String(s.userId || s.sender?._id || '') !== currentUserId).map((status, index) => (
                 <div
                   key={status.id || status._id || `status-${index}`}
                   className="flex items-center gap-3 p-3 hover:bg-dark-hover rounded-lg transition-colors cursor-pointer"

@@ -175,6 +175,25 @@ const messageSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  consumedAt: {
+    type: Date,
+    default: null
+  },
+  consumedReason: {
+    type: String,
+    enum: ['view_once', 'self_destruct', ''],
+    default: ''
+  },
+  consumedBy: [{
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    consumedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   isSelfDestruct: {
     type: Boolean,
     default: false

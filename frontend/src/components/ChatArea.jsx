@@ -271,6 +271,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const timerRef = useRef(null);
   const audioRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  const previousMessageCountRef = useRef(0);
+  const previousConversationIdRef = useRef(null);
   const [translatedMessages, setTranslatedMessages] = useState({});
   const liveLocationWatchIdRef = useRef(null);
   const liveLocationIntervalRef = useRef(null);
@@ -391,8 +393,18 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   }, [messages, selectedConversation?._id]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    const container = messagesContainerRef.current;
+    const conversationChanged = previousConversationIdRef.current !== selectedConversation?._id;
+    const countIncreased = messages.length > previousMessageCountRef.current;
+    const wasNearBottom = !container || (container.scrollHeight - container.scrollTop - container.clientHeight < 160);
+
+    previousConversationIdRef.current = selectedConversation?._id;
+    previousMessageCountRef.current = messages.length;
+
+    if ((conversationChanged && messages.length) || (countIncreased && wasNearBottom)) {
+      requestAnimationFrame(() => scrollToBottom('auto'));
+    }
+  }, [messages.length, selectedConversation?._id]);
 
   useEffect(() => {
     if (selectedConversation) {
@@ -458,8 +470,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     };
   }, [selectedConversation, mods?.chatMusic, mods?.chatMusicUrl]);
 
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = useCallback((behavior = 'auto') => {
+    messagesEndRef.current?.scrollIntoView({ behavior, block: 'end' });
   }, []);
 
   const handleUploadWallpaper = async (file) => {

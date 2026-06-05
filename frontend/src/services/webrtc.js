@@ -245,7 +245,7 @@ class WebRTCService {
   }
 
   // ── Outgoing call: Create offer ─────────────────────────────────────────
-  async createCall(targetUserId, callType = 'audio', socket) {
+  async createCall(targetUserId, callType = 'audio', socket, conversationId = '') {
     this.socket = socket;
     this.targetUserId = targetUserId;
     this.callType = callType;
@@ -264,12 +264,15 @@ class WebRTCService {
     const offer = await pc.createOffer(offerOptions);
     await pc.setLocalDescription(offer);
 
-    socket.emit('webrtc:offer', { to: targetUserId, offer, callType });
+    socket.emit('webrtc:offer', { to: targetUserId, offer, callType, conversationId });
     return this.localStream;
   }
 
   // ── Incoming call: Answer offer ─────────────────────────────────────────
-  async answerCall(offer, callType = 'audio', socket, callerId) {
+  async answerCall(offer, callType = 'audio', socket, callerId, callerSocketId = '') {
+    if (!offer) {
+      throw new Error('Cannot answer call before a WebRTC offer is received');
+    }
     this.socket = socket;
     this.targetUserId = callerId;
     this.callType = callType;
@@ -280,10 +283,21 @@ class WebRTCService {
     this.startHealthMonitoring();
 
     await pc.setRemoteDescription(new RTCSessionDescription(offer));
+
+    // Process any ICE candidates that were queued while pc was null or remote description wasn't set
+    while (this.iceCandidatesQueue.length > 0) {
+      const queued = this.iceCandidatesQueue.shift();
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(queued));
+      } catch (e) {
+        console.error('[WebRTC] Error adding queued ICE candidate:', e);
+      }
+    }
+
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
 
-    socket.emit('webrtc:answer', { to: callerId, answer });
+    socket.emit('webrtc:answer', { to: callerId, callerSocketId, answer });
     return this.localStream;
   }
 
@@ -292,6 +306,16 @@ class WebRTCService {
     if (!this.pc) return;
     try {
       await this.pc.setRemoteDescription(new RTCSessionDescription(answer));
+
+      // Process any ICE candidates that were queued
+      while (this.iceCandidatesQueue.length > 0) {
+        const queued = this.iceCandidatesQueue.shift();
+        try {
+          await this.pc.addIceCandidate(new RTCIceCandidate(queued));
+        } catch (e) {
+          console.error('[WebRTC] Error adding queued ICE candidate after answer:', e);
+        }
+      }
     } catch (err) {
       console.error('[WebRTC] setRemoteDescription error:', err);
     }
@@ -299,8 +323,8 @@ class WebRTCService {
 
   // ── Handle ICE candidate with queue for late arrivals ───────────────────
   async handleIceCandidate(candidate) {
-    if (!this.pc) {
-      // Queue candidate if PC not ready yet
+    if (!this.pc || !this.pc.remoteDescription) {
+      // Queue candidate if PC not ready or remote description not yet set
       this.iceCandidatesQueue.push(candidate);
       return;
     }

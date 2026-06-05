@@ -218,6 +218,11 @@ export const ChatProvider = ({ children }) => {
   }, [conversations]);
 
   const [selectedConversation, setSelectedConversation] = useState(null);
+  const selectedConversationRef = useRef(null);
+  useEffect(() => {
+    selectedConversationRef.current = selectedConversation;
+  }, [selectedConversation]);
+  const seenIncomingMessageIdsRef = useRef(new Set());
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeCall, setActiveCall] = useState(null);
@@ -367,6 +372,36 @@ export const ChatProvider = ({ children }) => {
   // ── Persist mods ref for socket callbacks ──
   useEffect(() => { modsRef.current = mods; }, [mods]);
   useEffect(() => { isDNDModeRef.current = isDNDMode; }, [isDNDMode]);
+
+  const getMessageSenderId = useCallback((message) => (
+    message?.sender?._id || message?.sender || message?.senderId || ''
+  ).toString(), []);
+
+  const shouldKeepConsumedMessage = useCallback((message) => {
+    const senderId = getMessageSenderId(message);
+    return Boolean(
+      message?.isConsumed &&
+      message?.isViewOnce &&
+      !message?.isSelfDestruct &&
+      senderId === currentUserId
+    );
+  }, [currentUserId, getMessageSenderId]);
+
+  const filterVisibleMessagesForUser = useCallback((list = []) => (
+    list.filter((message) => !message?.isConsumed || shouldKeepConsumedMessage(message))
+  ), [shouldKeepConsumedMessage]);
+
+  const rememberIncomingMessage = useCallback((id) => {
+    if (!id) return true;
+    const key = String(id);
+    if (seenIncomingMessageIdsRef.current.has(key)) return false;
+    seenIncomingMessageIdsRef.current.add(key);
+    if (seenIncomingMessageIdsRef.current.size > 500) {
+      const first = seenIncomingMessageIdsRef.current.values().next().value;
+      seenIncomingMessageIdsRef.current.delete(first);
+    }
+    return true;
+  }, []);
 
   // ── Persist unlocked session chats to localStorage ──
   useEffect(() => {
@@ -646,8 +681,6 @@ export const ChatProvider = ({ children }) => {
         reconnectionDelayMax: 5000,
         randomizationFactor: 0.5,
         timeout: 10000,
-        transports: ['websocket', 'polling'], // Add polling as fallback
-        withCredentials: true,
         forceNew: true,
         autoConnect: false // Don't auto-connect, connect manually
       });
@@ -718,6 +751,12 @@ export const ChatProvider = ({ children }) => {
         console.log('Ujumbe mpya umeingia kutoka Socket (message:received):', msg);
         const incoming = await decryptMessageContent(msg);
         const senderId = String(incoming.sender?._id || incoming.sender || '');
+        const serverId = String(incoming._id || '');
+        const incomingKey = serverId || incoming.clientMessageId;
+        const shouldIncrementUnread = rememberIncomingMessage(incomingKey);
+        const currentSelectedId = localStorage.getItem('selectedConversationId');
+        const isActiveConversation = String(incoming.conversationId) === String(currentSelectedId);
+        const isFromMe = senderId === String(currentUserId);
         if (senderId !== String(currentUserId) && modsRef.current.spamFilter && isLikelySpamMessage(incoming)) {
           console.log('[ChatContext] Spam message filtered');
           return;
@@ -726,7 +765,6 @@ export const ChatProvider = ({ children }) => {
           autoSaveMediaFromMessage(incoming);
         }
         setMessages(prev => {
-          const serverId = String(incoming._id || '');
           const clientId = incoming.clientMessageId ? String(incoming.clientMessageId) : '';
           const existingIndex = prev.findIndex(m =>
             String(m._id) === serverId ||
@@ -745,14 +783,12 @@ export const ChatProvider = ({ children }) => {
             }
             
             // Only append to active chat view if it's the open chat
-            const currentSelectedId = localStorage.getItem('selectedConversationId');
-            
             // Mark as delivered since we received it, if from another user
             if (incoming.sender && incoming.sender !== currentUserId && incoming.sender._id !== currentUserId) {
               emitSafe('message:mark_delivered', { messageId: serverId });
             }
 
-            if (String(incoming.conversationId) === String(currentSelectedId)) {
+            if (isActiveConversation) {
               // Auto mark as read if chat is open
               emitSafe('mark_as_read', { chatId: incoming.conversationId, userId: currentUserId });
               return [...prev, incoming];
@@ -774,23 +810,31 @@ export const ChatProvider = ({ children }) => {
           }
           await DB.saveMessage(incoming);
         } catch (e) { }
-        setConversations(prev => prev.map(c =>
-          c._id === incoming.conversationId ? { ...c, lastMessage: incoming, updatedAt: new Date() } : c
-        ));
+        setConversations(prev => prev.map(c => {
+          if (String(c._id) !== String(incoming.conversationId)) return c;
+          const nextUnread = !isFromMe && !isActiveConversation && shouldIncrementUnread
+            ? Number(c.unreadCount || 0) + 1
+            : isActiveConversation ? 0 : Number(c.unreadCount || 0);
+          return { ...c, lastMessage: incoming, updatedAt: new Date(), unreadCount: nextUnread };
+        }));
       });
 
       socket.on('notification:new_message', async (data) => {
         console.log('Ujumbe mpya umeingia kutoka Socket (notification:new_message):', data);
         if (!data || !data.message) return;
         const incoming = await decryptMessageContent(data.message);
+        const serverId = String(incoming._id || '');
+        const currentSelectedId = localStorage.getItem('selectedConversationId');
+        const isActiveConversation = String(incoming.conversationId) === String(currentSelectedId);
+        const senderId = String(incoming.sender?._id || incoming.sender || '');
+        const isFromMe = senderId === String(currentUserId);
+        const shouldIncrementUnread = rememberIncomingMessage(serverId);
         
         setMessages(prev => {
-          const serverId = String(incoming._id || '');
           const existingIndex = prev.findIndex(m => String(m._id) === serverId);
 
           if (existingIndex === -1) {
-            const currentSelectedId = localStorage.getItem('selectedConversationId');
-            if (String(incoming.conversationId) === String(currentSelectedId)) {
+            if (isActiveConversation) {
               return [...prev, incoming];
             }
             return prev;
@@ -805,9 +849,13 @@ export const ChatProvider = ({ children }) => {
           await DB.saveMessage(incoming);
         } catch (e) { }
 
-        setConversations(prev => prev.map(c =>
-          c._id === incoming.conversationId ? { ...c, lastMessage: incoming, updatedAt: new Date() } : c
-        ));
+        setConversations(prev => prev.map(c => {
+          if (String(c._id) !== String(incoming.conversationId)) return c;
+          const nextUnread = !isFromMe && !isActiveConversation && shouldIncrementUnread
+            ? Number(c.unreadCount || 0) + 1
+            : isActiveConversation ? 0 : Number(c.unreadCount || 0);
+          return { ...c, lastMessage: incoming, updatedAt: new Date(), unreadCount: nextUnread };
+        }));
       });
 
       socket.on('notification:mention', async ({ conversationId, message }) => {
@@ -849,10 +897,71 @@ export const ChatProvider = ({ children }) => {
         }
       });
 
-      socket.on('message:consumed', ({ messageId }) => {
-        setMessages(prev => prev.map(m =>
-          m._id === messageId ? { ...m, isConsumed: true, content: 'View Once message opened', mediaUrl: '', fileName: '' } : m
-        ));
+      socket.on('message:consumed', async (payload = {}) => {
+        const { messageId, conversationId, viewerId, senderId, isSelfDestruct, isViewOnce, consumedAt, preview } = payload;
+        const isViewer = String(viewerId || '') === String(currentUserId);
+        const isSender = String(senderId || '') === String(currentUserId);
+        const consumedMessage = {
+          _id: messageId,
+          conversationId,
+          sender: senderId,
+          isConsumed: true,
+          isViewOnce,
+          isSelfDestruct,
+          consumedAt,
+          content: preview || (isSelfDestruct ? 'Message self-destructed' : 'View once message opened'),
+          mediaUrl: '',
+          fileName: ''
+        };
+
+        setMessages(prev => {
+          if (isSelfDestruct || isViewer) {
+            return prev.filter(m => String(m._id) !== String(messageId));
+          }
+          if (isSender) {
+            return prev.map(m => String(m._id) === String(messageId) ? { ...m, ...consumedMessage } : m);
+          }
+          return prev;
+        });
+
+        try {
+          if (isSelfDestruct || isViewer) {
+            await DB.deleteMessages([messageId]);
+          } else if (isSender) {
+            await DB.saveMessage(consumedMessage);
+          }
+        } catch (e) { }
+
+        setConversations(prev => prev.map(c => {
+          const lastId = c.lastMessage?._id || c.lastMessage;
+          if (String(c._id) !== String(conversationId) || String(lastId) !== String(messageId)) return c;
+          return { ...c, lastMessage: consumedMessage, updatedAt: consumedAt || c.updatedAt };
+        }));
+      });
+
+      socket.on('notification:ephemeral', async (notification = {}) => {
+        const title = notification.title || 'Ephemeral message opened';
+        const body = notification.body || notification.preview || 'Your disappearing message was opened.';
+        const item = {
+          id: `ephemeral-${notification.messageId || Date.now()}`,
+          type: 'ephemeral',
+          title,
+          body,
+          conversationId: notification.conversationId,
+          messageId: notification.messageId,
+          createdAt: notification.consumedAt || new Date().toISOString(),
+          read: false
+        };
+        setNotifications((prev) => [item, ...prev].slice(0, 100));
+        if (!isDNDModeRef.current) {
+          setOnlineNotification(title);
+          setTimeout(() => setOnlineNotification(null), 3500);
+          await showLocalNotification(title, body, {
+            conversationId: notification.conversationId,
+            tag: item.id,
+            data: { conversationId: notification.conversationId, messageId: notification.messageId, type: 'ephemeral', url: '/chat' }
+          });
+        }
       });
 
       // ── Message edited ──
@@ -971,7 +1080,7 @@ export const ChatProvider = ({ children }) => {
       });
 
       // ── Calls (Phase 8 WebRTC signaling) ──
-      socket.on('call:incoming', ({ callerId, callType, conversationId, offer }) => {
+      socket.on('call:incoming', ({ callerId, callerSocketId, callType, conversationId, offer }) => {
         // Resolve caller name from conversations list
         let callerName = 'Unknown';
         let callerPicture = '';
@@ -986,6 +1095,7 @@ export const ChatProvider = ({ children }) => {
         setActiveCall({
           type: callType,
           callerId,
+          callerSocketId,
           callerName,
           callerPicture,
           conversationId,
@@ -1004,6 +1114,25 @@ export const ChatProvider = ({ children }) => {
           setOnlineNotification(`${username} is now online`);
           setTimeout(() => setOnlineNotification(null), 3000);
         }
+      });
+
+      socket.on('user:profile_updated', (updatedUser = {}) => {
+        const updatedId = String(updatedUser._id || updatedUser.id || '');
+        if (!updatedId) return;
+        const mergeUser = (participant) => (
+          String(participant?._id || participant?.id || participant || '') === updatedId
+            ? { ...participant, ...updatedUser }
+            : participant
+        );
+        setContacts(prev => prev.map(mergeUser));
+        setConversations(prev => prev.map(conv => ({
+          ...conv,
+          participants: (conv.participants || []).map(mergeUser)
+        })));
+        setSelectedConversation(prev => prev ? {
+          ...prev,
+          participants: (prev.participants || []).map(mergeUser)
+        } : prev);
       });
 
       // ── Reactions ──
@@ -1028,7 +1157,41 @@ export const ChatProvider = ({ children }) => {
 
       // ── WebRTC signaling ──
       socket.on('webrtc:offer', (data) => {
-        socket.emit('webrtc:answer_needed', data);
+        const callerId = data?.callerId || data?.from;
+        setActiveCall(prev => ({
+          ...(prev || {}),
+          type: data?.callType || prev?.type || 'audio',
+          callerId,
+          callerSocketId: data?.callerSocketId,
+          conversationId: data?.conversationId || prev?.conversationId,
+          offer: data?.offer,
+          status: 'incoming',
+          user: prev?.user || { _id: callerId, username: data?.callerName || 'Incoming call' }
+        }));
+      });
+
+      socket.on('chat:screenshot_detected', async (event = {}) => {
+        const title = 'Screenshot alert';
+        const body = `${event.actorName || 'Someone'} tried to screenshot your chat.`;
+        const item = {
+          id: `screenshot-${event.conversationId || 'chat'}-${event.timestamp || Date.now()}`,
+          type: 'screenshot',
+          title,
+          body,
+          conversationId: event.conversationId,
+          createdAt: event.timestamp || new Date().toISOString(),
+          read: false
+        };
+        setNotifications((prev) => [item, ...prev].slice(0, 100));
+        if (!isDNDModeRef.current) {
+          setOnlineNotification(body);
+          setTimeout(() => setOnlineNotification(null), 3500);
+          await showLocalNotification(title, body, {
+            conversationId: event.conversationId,
+            tag: item.id,
+            data: { conversationId: event.conversationId, type: 'screenshot', url: '/chat' }
+          });
+        }
       });
 
       // ── Status ──
@@ -1062,6 +1225,10 @@ export const ChatProvider = ({ children }) => {
         });
       });
 
+      socket.on('status:deleted', ({ statusId }) => {
+        setStatuses(prev => prev.filter(s => String(s._id || s.id) !== String(statusId)));
+      });
+
       return () => {
         // Safe cleanup - remove all listeners first
         clearTimeout(connectionTimeout);
@@ -1082,7 +1249,7 @@ export const ChatProvider = ({ children }) => {
         socketRef.current = null;
       }
     }
-  }, [isAuthenticated, authLoading, authUser?._id]);
+  }, [isAuthenticated, authLoading, authUser?._id, currentUserId, rememberIncomingMessage]);
 
 
   // ── Ghost Mode: block typing/presence emissions ──
@@ -1092,6 +1259,16 @@ export const ChatProvider = ({ children }) => {
     if (ghostMode && (event === 'message:typing' || event === 'user_online')) return;
     socketRef.current.emit(event, data);
   };
+
+  useEffect(() => {
+    const notifyPeerOfScreenshotAttempt = () => {
+      const conversationId = selectedConversationRef.current?._id;
+      if (!conversationId) return;
+      emitSafe('chat:screenshot_attempt', { conversationId });
+    };
+    window.addEventListener('genz:screenshot-attempt', notifyPeerOfScreenshotAttempt);
+    return () => window.removeEventListener('genz:screenshot-attempt', notifyPeerOfScreenshotAttempt);
+  }, []);
 
   // ── Offline Queue Processor ──
   const processOfflineQueue = useCallback(async () => {
@@ -1313,9 +1490,10 @@ export const ChatProvider = ({ children }) => {
         try {
           const remoteData = await apiService.getMessages(conv._id);
           if (remoteData?.success) {
-            const decrypted = await decryptMessagesList(remoteData.messages || []);
+            const decrypted = filterVisibleMessagesForUser(await decryptMessagesList(remoteData.messages || []));
             setMessages(decrypted);
             try {
+              await DB.deleteMessagesForConversation(conv._id);
               await Promise.all(decrypted.map((message) => DB.saveMessage(message)));
             } catch (_) { /* IndexedDB cache is best-effort */ }
             if (socketRef.current) socketRef.current.emit('join:conversation', conv._id);
@@ -1328,7 +1506,7 @@ export const ChatProvider = ({ children }) => {
 
       const offlineMsgs = await DB.getMessages(conv._id);
       if (offlineMsgs && offlineMsgs.length > 0) {
-        setMessages(await decryptMessagesList(offlineMsgs));
+        setMessages(filterVisibleMessagesForUser(await decryptMessagesList(offlineMsgs)));
       } else {
         setMessages([]);
       }
@@ -1414,6 +1592,12 @@ export const ChatProvider = ({ children }) => {
   };
 
   const markAsRead = (chatId) => {
+    setConversations(prev => prev.map(c =>
+      String(c._id) === String(chatId) ? { ...c, unreadCount: 0 } : c
+    ));
+    setSelectedConversation(prev =>
+      prev && String(prev._id) === String(chatId) ? { ...prev, unreadCount: 0 } : prev
+    );
     if (!modsRef.current.hideReadReceipts) {
       emitSafe('mark_as_read', { chatId, userId: currentUserId });
     }
@@ -1522,7 +1706,7 @@ export const ChatProvider = ({ children }) => {
       return acc;
     }, {});
     const sentByMe = messages.filter(m =>
-      m.sender?._id === currentUserId || m.sender?.username === 'Me'
+      String(m.sender?._id || m.sender || '') === String(currentUserId) || m.sender?.username === 'Me'
     ).length;
     const received = total - sentByMe;
     const today = messages.filter(m => {

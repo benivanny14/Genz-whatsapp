@@ -281,6 +281,11 @@ exports.updateProfile = async (req, res) => {
       { new: true, runValidators: true }
     );
 
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('user:profile_updated', safeUser(user));
+    }
+
     res.json({
       success: true,
       user: safeUser(user)
@@ -306,6 +311,11 @@ exports.uploadProfilePicture = async (req, res) => {
       { new: true }
     );
     
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('user:profile_updated', safeUser(user));
+    }
+
     res.json({ success: true, user: safeUser(user) });
   } catch (error) {
     console.error('Upload profile picture error:', error);
