@@ -726,7 +726,7 @@ exports.getStatuses = async (req, res) => {
     const currentUserId = getCurrentUserId(req);
     const privacyFilter = {
       $or: [
-        { userId: currentUserId },
+        { userId: currentUserId }, // Always show own statuses
         { privacy: 'everyone' },
         { privacy: 'contacts' }
       ]

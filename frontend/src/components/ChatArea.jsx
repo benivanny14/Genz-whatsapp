@@ -241,7 +241,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [previewFile, setPreviewFile] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null); // {id, content}
   const [isViewOnceEnabled, setIsViewOnceEnabled] = useState(false);
-  const [openedViewOnce, setOpenedViewOnce] = useState(new Set());
   const [peerPresence, setPeerPresence] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
@@ -1187,7 +1186,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const openViewOnceMessage = async (message) => {
     const messageId = message.id || message._id;
     if (!messageId) return;
-    setOpenedViewOnce((prev) => new Set([...prev, messageId]));
     const senderId = String(message.sender?._id || message.sender || '');
     const me = String(user?.id || user?._id || '');
     if (senderId && senderId !== me) {
@@ -2249,7 +2247,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
                     {/* 📽️ Video Message 📽️ */}
                     {message.messageType === 'video' && message.mediaUrl && (
-                      message.isViewOnce && !mods.antiViewOnce && (message.isConsumed || openedViewOnce.has(message.id || message._id)) ? (
+                      message.isViewOnce && !mods.antiViewOnce && message.isConsumed ? (
                         <div className="flex items-center gap-2 text-dark-textSecondary py-2 italic text-sm">
                           <Eye size={16} /> Opened
                         </div>
@@ -2292,7 +2290,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
                     {/* ── Image Message ── */}
                     {message.messageType === 'image' && (
-                      message.isViewOnce && !mods.antiViewOnce && (message.isConsumed || openedViewOnce.has(message.id || message._id)) ? (
+                      message.isViewOnce && !mods.antiViewOnce && message.isConsumed ? (
                         <div className="flex items-center gap-2 text-dark-textSecondary py-2 italic text-sm">
                           <Eye size={16} /> Opened
                         </div>
@@ -2460,7 +2458,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       message.messageType === 'text' &&
                       !isOwnMessage(message) &&
                       !mods?.antiViewOnce &&
-                      !(message.isConsumed || openedViewOnce.has(message.id || message._id)) && (
+                      !message.isConsumed && (
                         <button
                           type="button"
                           onClick={() => openViewOnceMessage(message)}
@@ -2471,7 +2469,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       )}
                     {message.isViewOnce &&
                       (!isOwnMessage(message) && !mods?.antiViewOnce || message.isConsumed) &&
-                      (message.isConsumed || openedViewOnce.has(message.id || message._id)) && (
+                      message.isConsumed && (
                         <div className="flex items-center gap-2 text-dark-textSecondary py-2 italic text-sm">
                           <Eye size={16} /> Opened
                         </div>
@@ -2494,7 +2492,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                         message.messageType === 'text' &&
                         !isOwnMessage(message) &&
                         !mods?.antiViewOnce &&
-                        !(message.isConsumed || openedViewOnce.has(message.id || message._id))
+                        !message.isConsumed
                       ) && !message.isConsumed && (
                         <p className="break-words whitespace-pre-wrap">
                           {mods?.debugEncryption

@@ -223,12 +223,14 @@ const CallScreen = ({ call, onEndCall, onAcceptCall, onRejectCall, onToggleMute,
 
     socket.on('webrtc:answer', handleAnswer);
     socket.on('webrtc:ice_candidate', handleIce);
+    socket.on('call:accepted', () => { setCallStatus('connected'); });
     socket.on('call:ended', () => { setCallStatus('ended'); onEndCall?.(); });
     socket.on('call:rejected', () => { setCallStatus('ended'); onEndCall?.(); });
 
     return () => {
       socket.off('webrtc:answer', handleAnswer);
       socket.off('webrtc:ice_candidate', handleIce);
+      socket.off('call:accepted');
       socket.off('call:ended');
       socket.off('call:rejected');
     };

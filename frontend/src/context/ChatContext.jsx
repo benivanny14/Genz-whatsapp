@@ -349,6 +349,24 @@ export const ChatProvider = ({ children }) => {
 
     initAntiScreenshotListeners();
     applyAntiScreenshot(mods.antiScreenshot);
+    
+    // Set up screenshot attempt callback to notify via socket
+    if (mods.antiScreenshot && socketRef.current) {
+      const { setScreenshotAttemptCallback } = require('../utils/antiScreenshot');
+      setScreenshotAttemptCallback(async () => {
+        if (selectedConversation && socketRef.current?.connected) {
+          try {
+            await authFetch(`${BACKEND_URL}/chat/messages/${selectedConversation._id}/screenshot-attempt`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            });
+          } catch (e) {
+            console.error('Failed to report screenshot attempt:', e);
+          }
+        }
+      });
+    }
+    
     window.dispatchEvent(new CustomEvent('genz-mods-updated', { detail: mods }));
 
   }, [mods.fontFamily, mods.fontSize, mods.bubbleSentColor, mods.bubbleReceivedColor, mods.bubbleStyle, mods.tickStyle, mods.bubbleAnimations, mods.reelMode, mods.glassMode, mods.antiScreenshot]);
@@ -850,10 +868,16 @@ export const ChatProvider = ({ children }) => {
         }
       });
 
-      socket.on('message:consumed', ({ messageId }) => {
-        setMessages(prev => prev.map(m =>
-          m._id === messageId ? { ...m, isConsumed: true, content: 'View Once message opened', mediaUrl: '', fileName: '' } : m
-        ));
+      socket.on('message:consumed', ({ messageId, isViewOnce, isSelfDestruct }) => {
+        setMessages(prev => prev.filter(m => m._id !== messageId));
+        // Also update conversation last message if it was the consumed message
+        setConversations(prev => prev.map(c => {
+          if (c.lastMessage && c.lastMessage._id === messageId) {
+            const newLastMsg = isSelfDestruct ? '💥 Message self-destructed' : '👁️ View once message opened';
+            return { ...c, lastMessage: { ...c.lastMessage, content: newLastMsg, isConsumed: true, mediaUrl: '', fileName: '' } };
+          }
+          return c;
+        }));
       });
 
       // ── Message edited ──
@@ -924,7 +948,24 @@ export const ChatProvider = ({ children }) => {
 
       // ── View-once message viewed ──
       socket.on('message:view-once-viewed', ({ messageId }) => {
-        setMessages(prev => prev.map(m => m._id === messageId ? { ...m, isViewOnce: false, viewedAt: new Date() } : m));
+        setMessages(prev => prev.filter(m => m._id !== messageId));
+        // Also update conversation last message if it was the viewed message
+        setConversations(prev => prev.map(c => {
+          if (c.lastMessage && c.lastMessage._id === messageId) {
+            return { ...c, lastMessage: { ...c.lastMessage, content: '👁️ View once message opened', isConsumed: true, mediaUrl: '', fileName: '' } };
+          }
+          return c;
+        }));
+      });
+
+      // ── Message viewed notification for sender ──
+      socket.on('message:viewed', ({ messageId, conversationId, viewedBy, viewedAt, isViewOnce, isSelfDestruct }) => {
+        const notificationText = isSelfDestruct 
+          ? '💥 Your self-destruct message was read and destroyed' 
+          : '👁️ Your view once message was opened';
+        setOnlineNotification(notificationText);
+        setTimeout(() => setOnlineNotification(null), 4000);
+        console.log(`[ChatContext] Message viewed notification: ${notificationText}`);
       });
 
       // ── Screenshot attempted notification ──

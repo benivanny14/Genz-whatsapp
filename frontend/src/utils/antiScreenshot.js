@@ -2,6 +2,7 @@ const OVERLAY_ID = 'genz-anti-screenshot-overlay';
 
 let listenersAttached = false;
 let enabled = false;
+let onScreenshotAttempt = null;
 
 const ensureOverlay = () => {
   let el = document.getElementById(OVERLAY_ID);
@@ -20,10 +21,20 @@ export const triggerScreenshotWarning = () => {
   const overlay = ensureOverlay();
   document.body.classList.add('screenshot-warning');
   overlay.classList.add('active');
+  
+  // Notify via callback if registered
+  if (onScreenshotAttempt) {
+    onScreenshotAttempt();
+  }
+  
   window.setTimeout(() => {
     overlay.classList.remove('active');
     document.body.classList.remove('screenshot-warning');
   }, 1400);
+};
+
+export const setScreenshotAttemptCallback = (callback) => {
+  onScreenshotAttempt = callback;
 };
 
 export const applyAntiScreenshot = (shouldEnable) => {
