@@ -19,7 +19,6 @@ const isUserStillOnline = (userId) =>
 const MESSAGE_DEDUP_TTL = 60000; // 1 minute TTL for deduplication
 const SOCKET_SETUP_FLAG = Symbol.for('genz.socket.setup');
 const includesId = (items = [], id) => items.some(item => item?.toString() === id?.toString());
-const getEntityId = (value) => value?._id?.toString?.() || value?.toString?.() || '';
 
 const getConversationIfParticipant = async (conversationId, socket) => {
   if (!conversationId || !socket.userId) return null;
@@ -55,15 +54,6 @@ const setMapValue = (doc, field, key, value) => {
     doc[field][String(key)] = value;
   }
   doc.markModified(field);
-};
-const incrementUnreadForRecipients = (conversation, senderId) => {
-  if (!conversation?.participants) return;
-  conversation.participants.forEach((participant) => {
-    const participantId = getEntityId(participant);
-    if (!participantId || participantId === senderId?.toString()) return;
-    const current = Number(getMapValue(conversation.unreadCount, participantId) || 0);
-    setMapValue(conversation, 'unreadCount', participantId, current + 1);
-  });
 };
 const deleteMapValue = (doc, field, key) => {
   if (!doc[field]) return;
@@ -199,21 +189,7 @@ const setupSocket = (io) => {
 
     socket.on('message:send', async (data) => {
       try {
-        const {
-          conversationId,
-          content,
-          messageType,
-          mediaUrl,
-          fileName,
-          fileSize,
-          duration,
-          replyTo,
-          messageId,
-          mentions,
-          isViewOnce,
-          isSelfDestruct,
-          isClientE2EE: clientE2EEFlag
-        } = data;
+        const { conversationId, content, messageType, mediaUrl, fileName, fileSize, duration, replyTo, messageId, mentions } = data;
         const safeContent = content || fileName || (mediaUrl ? `${messageType || 'media'} message` : '');
         if (!safeContent) {
           return socket.emit('message:error', { error: 'Message content or media is required' });
@@ -248,23 +224,17 @@ const setupSocket = (io) => {
           mentions
         });
 
-        const isClientE2EE = Boolean(clientE2EEFlag) ||
+        const isClientE2EE =
           typeof safeContent === 'string' &&
           safeContent.trim().startsWith('{') &&
           safeContent.includes('ciphertext') &&
           safeContent.includes('senderPublicKey');
-        const disappearAt = conversation.disappearingMessages?.enabled
-          ? new Date(Date.now() + (Number(conversation.disappearingMessages.timer || 24) * 60 * 60 * 1000))
-          : null;
 
         const message = await Message.create({
           conversationId,
           sender: socket.userId,
           content: safeContent,
           isClientE2EE,
-          isViewOnce: Boolean(isViewOnce),
-          isSelfDestruct: Boolean(isSelfDestruct),
-          disappearAt,
           messageType: messageType || 'text',
           mediaUrl: mediaUrl || '',
           fileName: fileName || '',
@@ -281,7 +251,6 @@ const setupSocket = (io) => {
 
         conversation.lastMessage = message._id;
         conversation.updatedAt = new Date();
-        incrementUnreadForRecipients(conversation, socket.userId);
         await conversation.save();
 
         const outgoingMessage = populatedMessage.toObject ? populatedMessage.toObject() : populatedMessage;
@@ -544,48 +513,18 @@ const setupSocket = (io) => {
 
     socket.on('call:start', (data) => {
       const { conversationId, callType, calleeId, targetUserId } = data;
-      const directCalleeId = calleeId || targetUserId;
       if (socket.userId) {
         activeCalls.startCall(socket.userId, {
           conversationId,
           callType,
-          calleeId: directCalleeId
+          calleeId: calleeId || targetUserId
         });
       }
-      const incomingPayload = {
+      socket.to(conversationId).emit('call:incoming', {
         callerId: socket.userId,
-        callerSocketId: socket.id,
         conversationId,
         callType
-      };
-      if (conversationId) socket.to(conversationId).emit('call:incoming', incomingPayload);
-      if (directCalleeId) io.to(String(directCalleeId)).emit('call:incoming', incomingPayload);
-    });
-
-    socket.on('chat:screenshot_attempt', async ({ conversationId }) => {
-      try {
-        const conversation = await getConversationIfParticipant(conversationId, socket);
-        if (!conversation) return;
-
-        const actor = await User.findById(socket.userId).select('username profilePicture');
-        const payload = {
-          conversationId,
-          actorId: socket.userId,
-          actorName: actor?.username || 'Someone',
-          actorPicture: actor?.profilePicture || '',
-          timestamp: new Date().toISOString()
-        };
-
-        conversation.participants.forEach((participant) => {
-          const participantId = getEntityId(participant);
-          if (participantId && participantId !== socket.userId?.toString()) {
-            io.to(participantId).emit('chat:screenshot_detected', payload);
-          }
-        });
-        socket.to(conversationId).emit('chat:screenshot_detected', payload);
-      } catch (error) {
-        console.error('Error handling screenshot attempt:', error);
-      }
+      });
     });
 
     socket.on('call_user', (data = {}) => {
@@ -1340,10 +1279,7 @@ const setupSocket = (io) => {
             await msg.save();
           }
         }
-        setMapValue(conversation, 'unreadCount', userId, 0);
-        await conversation.save();
         io.to(chatId).emit('messages:read', { chatId, userId });
-        io.to(userId).emit('conversation:unread_updated', { chatId, unreadCount: 0 });
       } catch (error) {
         console.error('Error marking messages as read:', error);
       }

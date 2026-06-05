@@ -19,23 +19,6 @@ const getApiOrigin = () => {
   return '';
 };
 
-const getMediaApiBase = () => {
-  const api = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
-  if (api) return api.endsWith('/api') ? api : `${api}/api`;
-  const origin = getApiOrigin();
-  return origin ? `${origin}/api` : '';
-};
-
-const signedUrlIsFresh = (url) => {
-  try {
-    const parsed = new URL(url, typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
-    const expires = Number(parsed.searchParams.get('expires'));
-    return Boolean(expires && expires * 1000 > Date.now() + 60 * 1000);
-  } catch {
-    return false;
-  }
-};
-
 export function sanitizeMediaUrl(url) {
   if (!url || typeof url !== 'string') return url;
 
@@ -90,7 +73,7 @@ export async function ensureSignedMediaUrl(url, token) {
   const clean = sanitizeMediaUrl(url);
   if (!clean || typeof clean !== 'string') return clean;
   if (!clean.includes('/uploads/')) return clean;
-  if (clean.includes('sig=') && clean.includes('expires=') && signedUrlIsFresh(clean)) return clean;
+  if (clean.includes('sig=') && clean.includes('expires=')) return clean;
 
   const cached = signedUrlCache.get(clean);
   if (cached && cached.expiresAt > Date.now()) {
@@ -100,10 +83,10 @@ export async function ensureSignedMediaUrl(url, token) {
   if (!token) return clean;
 
   try {
-    const apiBase = getMediaApiBase();
-    const unsignedPath = clean.split('?')[0];
+    const apiBase = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+    const pathOnly = clean.startsWith('http') ? clean : clean;
     const response = await fetch(
-      `${apiBase}/media/sign-local?path=${encodeURIComponent(unsignedPath)}`,
+      `${apiBase}/api/media/sign-local?path=${encodeURIComponent(pathOnly)}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
     const data = await response.json();

@@ -17,9 +17,6 @@ const ensureOverlay = () => {
 
 export const triggerScreenshotWarning = () => {
   if (!enabled) return;
-  window.dispatchEvent(new CustomEvent('genz:screenshot-attempt', {
-    detail: { timestamp: Date.now() }
-  }));
   const overlay = ensureOverlay();
   document.body.classList.add('screenshot-warning');
   overlay.classList.add('active');

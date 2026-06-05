@@ -72,44 +72,7 @@ const setMapValue = (obj, mapField, key, value) => {
   } else {
     obj[mapField][key] = value;
   }
-  if (typeof obj.markModified === "function") obj.markModified(mapField);
 };
-
-const getEntityId = (value) => {
-  if (!value) return "";
-  if (typeof value === "object") return String(value._id || value.id || value);
-  return String(value);
-};
-
-const buildUnreadIncrement = (participants = [], senderId) => {
-  const $inc = {};
-  const sender = getEntityId(senderId);
-  participants.forEach((participantId) => {
-    const id = getEntityId(participantId);
-    if (id && id !== sender) {
-      $inc[`unreadCount.${id}`] = 1;
-    }
-  });
-  return $inc;
-};
-
-const buildConsumedLastMessagePreview = (lastMessage) => ({
-  _id: lastMessage._id,
-  conversationId: lastMessage.conversationId,
-  sender: lastMessage.sender,
-  messageType: lastMessage.messageType || "text",
-  isViewOnce: Boolean(lastMessage.isViewOnce),
-  isSelfDestruct: Boolean(lastMessage.isSelfDestruct),
-  isConsumed: true,
-  content: lastMessage.isSelfDestruct
-    ? "Message self-destructed"
-    : "View once message opened",
-  mediaUrl: "",
-  fileName: "",
-  status: lastMessage.status,
-  createdAt: lastMessage.consumedAt || lastMessage.createdAt,
-  consumedAt: lastMessage.consumedAt || lastMessage.updatedAt || new Date(),
-});
 
 const transformConversationForUser = (conversation, userId) => {
   const conv = conversation.toObject ? conversation.toObject() : conversation;
@@ -118,29 +81,12 @@ const transformConversationForUser = (conversation, userId) => {
   conv.isArchived = Boolean(getMapValue(conv.isArchived, userId));
   conv.isPinned = Boolean(getMapValue(conv.isPinned, userId));
   conv.isLocked = Boolean(getMapValue(conv.lockedBy, userId));
-  conv.unreadCount = Number(getMapValue(conv.unreadCount, userId) || 0);
   conv.isMuted =
     Boolean(getMapValue(conv.mutedUntil, userId)) &&
     new Date(getMapValue(conv.mutedUntil, userId)) > new Date();
 
   if (conv.participants && Array.isArray(conv.participants)) {
     conv.participants = conv.participants.map(p => applyPrivacyFilter(p, userId));
-  }
-
-  if (conv.lastMessage) {
-    const deletedFor = (conv.lastMessage.deletedFor || []).map(getEntityId);
-    const senderId = getEntityId(conv.lastMessage.sender);
-    const hiddenForUser =
-      conv.lastMessage.deletedForEveryone ||
-      deletedFor.includes(String(userId)) ||
-      (conv.lastMessage.isConsumed && conv.lastMessage.isSelfDestruct) ||
-      (conv.lastMessage.isConsumed && senderId !== String(userId));
-
-    if (hiddenForUser && (conv.lastMessage.isViewOnce || conv.lastMessage.isSelfDestruct)) {
-      conv.lastMessage = buildConsumedLastMessagePreview(conv.lastMessage);
-    } else if (hiddenForUser) {
-      conv.lastMessage = null;
-    }
   }
 
   return conv;
@@ -569,21 +515,6 @@ exports.getMessages = async (req, res) => {
       conversationId: conversationId,
       deletedFor: { $ne: localUserId },
       deletedForEveryone: false,
-      $and: [
-        {
-          $or: [
-            { disappearAt: null },
-            { disappearAt: { $exists: false } },
-            { disappearAt: { $gt: new Date() } },
-          ],
-        },
-        {
-          $or: [
-            { isConsumed: { $ne: true } },
-            { sender: localUserId, isSelfDestruct: { $ne: true } },
-          ],
-        },
-      ],
     };
 
     const messages = await Message.find(filter)
@@ -715,21 +646,15 @@ exports.sendMessage = async (req, res) => {
     }
 
     // 3. Update mazungumzo (Conversation) ili iweke ujumbe huu kama ujumbe wa mwisho (Last Message)
-    const unreadIncrements = buildUnreadIncrement(conversation.participants, localUserId);
-    const conversationUpdate = {
-      $set: {
-        lastMessage: message._id,
-        updatedAt: new Date(),
-        deletedFor: []
-      }
-    };
-    if (Object.keys(unreadIncrements).length) {
-      conversationUpdate.$inc = unreadIncrements;
-    }
-
     await Conversation.findByIdAndUpdate(
       finalConversationId,
-      conversationUpdate,
+      {
+        $set: {
+          lastMessage: message._id,
+          updatedAt: new Date(),
+          deletedFor: []
+        }
+      },
       { new: true, runValidators: false }
     );
 
@@ -1566,68 +1491,24 @@ exports.markViewOnceViewed = async (req, res) => {
       });
     }
 
-    const consumedAt = message.consumedAt || new Date();
-    const senderId = message.sender?.toString();
-    const viewerId = userId.toString();
-    const consumedReason = message.isSelfDestruct ? "self_destruct" : "view_once";
-
-    if (!message.isConsumed) {
-      message.isConsumed = true;
-      message.consumedAt = consumedAt;
-      message.consumedReason = consumedReason;
-      if (!message.consumedBy?.some((entry) => entry.user?.toString() === viewerId)) {
-        message.consumedBy.push({ user: viewerId, consumedAt });
-      }
-      if (!message.readBy?.some((entry) => entry.user?.toString() === viewerId)) {
-        message.readBy.push({ user: viewerId, readAt: consumedAt });
-      }
-      message.status = "read";
-      message.content = message.isSelfDestruct ? "Message self-destructed" : "View once message opened";
-      message.mediaUrl = "";
-      message.fileName = "";
-
-      const deleteFor = message.isSelfDestruct
-        ? conversation.participants.map((participant) => participant.toString())
-        : [viewerId];
-      deleteFor.forEach((participantId) => {
-        if (!includesId(message.deletedFor, participantId)) {
-          message.deletedFor.push(participantId);
-        }
-      });
-      await message.save();
-
-      setMapValue(conversation, "unreadCount", viewerId, 0);
-      await conversation.save();
-    }
-
-    const consumedPayload = {
-      messageId: message._id,
-      conversationId: message.conversationId,
-      viewerId,
-      senderId,
-      isViewOnce: message.isViewOnce,
-      isSelfDestruct: message.isSelfDestruct,
-      consumedAt,
-      consumedReason,
-      preview: message.isSelfDestruct ? "Message self-destructed" : "View once message opened"
-    };
+    // Mark the message as consumed
+    message.isConsumed = true;
+    message.content = message.isSelfDestruct ? '💥 Message self-destructed' : 'View Once message opened';
+    message.mediaUrl = '';
+    message.fileName = '';
+    await message.save();
 
     const io = req.app.get("io");
     if (io) {
-      io.to(message.conversationId.toString()).emit("message:consumed", consumedPayload);
-      if (senderId) {
-        io.to(senderId).emit("notification:ephemeral", {
-          ...consumedPayload,
-          title: message.isSelfDestruct ? "Self-destruct message opened" : "View-once message opened",
-          body: message.isSelfDestruct
-            ? "Your self-destruct message was opened and deleted."
-            : "Your view-once message was opened."
-        });
-        io.to(senderId).emit("message:ephemeral_status", consumedPayload);
-      }
+      io.to(message.conversationId.toString()).emit("message:consumed", {
+        messageId: message._id,
+        conversationId: message.conversationId,
+        isViewOnce: message.isViewOnce,
+        isSelfDestruct: message.isSelfDestruct
+      });
     }
 
-    res.json({ success: true, message: "View-once message deleted", consumed: consumedPayload });
+    res.json({ success: true, message: "View-once message deleted" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -2010,3 +1891,4 @@ exports.joinGroup = async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to join group' });
   }
 };
+
