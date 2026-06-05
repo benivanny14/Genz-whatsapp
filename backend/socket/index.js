@@ -251,6 +251,22 @@ const setupSocket = (io) => {
 
         conversation.lastMessage = message._id;
         conversation.updatedAt = new Date();
+        
+        // Increment unread count for all participants except sender
+        if (!conversation.unreadCount) {
+          conversation.unreadCount = new Map();
+        }
+        
+        if (conversation.participants && Array.isArray(conversation.participants)) {
+          conversation.participants.forEach(participantId => {
+            if (participantId.toString() !== socket.userId.toString()) {
+              const userId = participantId.toString();
+              const currentCount = conversation.unreadCount.get(userId) || 0;
+              conversation.unreadCount.set(userId, currentCount + 1);
+            }
+          });
+        }
+        
         await conversation.save();
 
         const outgoingMessage = populatedMessage.toObject ? populatedMessage.toObject() : populatedMessage;
@@ -261,11 +277,18 @@ const setupSocket = (io) => {
         // Emit to everyone in the room except the sender
         socket.to(conversationId).emit('message:received', outgoingMessage);
         
-        // Emit directly to participants to ensure delivery even if they haven't opened the chat
+        // Emit directly to participants to ensure delivery and send unread counts
         if (conversation.participants && Array.isArray(conversation.participants)) {
           conversation.participants.forEach(participantId => {
             if (participantId.toString() !== socket.userId.toString()) {
-              io.to(participantId.toString()).emit('message:received', outgoingMessage);
+              const userId = participantId.toString();
+              io.to(userId).emit('message:received', outgoingMessage);
+              
+              // Send updated unread count
+              io.to(userId).emit('conversation:unread-update', {
+                conversationId: conversation._id,
+                unreadCount: conversation.unreadCount.get(userId) || 0
+              });
             }
           });
         }
@@ -337,7 +360,7 @@ const setupSocket = (io) => {
 
     socket.on('message:read', async (data) => {
       try {
-        const { messageId } = data;
+        const { messageId, conversationId } = data;
         const result = await getMessageIfParticipant(messageId, socket);
         if (!result) return;
         const { message } = result;
@@ -348,6 +371,23 @@ const setupSocket = (io) => {
             message.readBy.push({ user: socket.userId, readAt: new Date() });
             message.status = 'read';
             await message.save();
+            
+            // Update unread count in conversation
+            const conversation = await Conversation.findById(conversationId || message.conversationId);
+            if (conversation && conversation.unreadCount) {
+              const userId = socket.userId.toString();
+              const currentCount = conversation.unreadCount.get(userId) || 0;
+              if (currentCount > 0) {
+                conversation.unreadCount.set(userId, currentCount - 1);
+                await conversation.save();
+                
+                // Notify about updated unread count
+                io.to(userId).emit('conversation:unread-update', {
+                  conversationId: conversation._id,
+                  unreadCount: conversation.unreadCount.get(userId) || 0
+                });
+              }
+            }
 
             const reader = await User.findById(socket.userId).select('settings');
             const readReceiptsEnabled = reader?.settings?.privacy?.readReceipts !== false;
@@ -1592,18 +1632,28 @@ const setupSocket = (io) => {
     // WebRTC Signaling: ICE candidate
     socket.on('call:ice-candidate', async (data) => {
       try {
-        const { targetSocketId, candidate } = data;
-        io.to(targetSocketId).emit('call:ice-candidate', {
+        const { targetSocketId, targetUserId, candidate } = data;
+        const resolvedSocketId = targetSocketId || onlineUsers.get(String(targetUserId));
+        
+        if (!resolvedSocketId) {
+          console.warn('[WebRTC] ICE candidate target not found', { targetUserId, targetSocketId });
+          return socket.emit('call:error', { message: 'Target user is offline' });
+        }
+        
+        console.log('[WebRTC] Relaying ICE candidate', { from: socket.userId, to: resolvedSocketId });
+        
+        io.to(resolvedSocketId).emit('call:ice-candidate', {
           candidate,
           senderId: socket.userId
         });
-        io.to(targetSocketId).emit('webrtc:ice_candidate', {
+        io.to(resolvedSocketId).emit('webrtc:ice_candidate', {
           candidate,
           from: socket.userId,
           senderId: socket.userId
         });
       } catch (error) {
         console.error('Error sending ICE candidate:', error);
+        socket.emit('call:error', { message: 'Failed to relay ICE candidate' });
       }
     });
 
@@ -1615,8 +1665,11 @@ const setupSocket = (io) => {
         const targetSocketId = onlineUsers.get(String(targetId)) || targetId;
 
         if (!targetSocketId) {
-          return socket.emit('call:error', { message: 'Target user is required' });
+          console.error('[WebRTC] Target user not found', { targetId });
+          return socket.emit('call:error', { message: 'Target user is offline' });
         }
+
+        console.log('[WebRTC] Sending offer', { from: socket.userId, to: targetId, callType });
 
         io.to(targetSocketId).emit('webrtc:offer', {
           from: socket.userId,
@@ -1644,8 +1697,11 @@ const setupSocket = (io) => {
         const { to, callerSocketId, answer } = data;
         const targetSocketId = callerSocketId || onlineUsers.get(String(to)) || to;
         if (!targetSocketId) {
-          return socket.emit('call:error', { message: 'Target user is required' });
+          console.error('[WebRTC] Caller socket not found', { to, callerSocketId });
+          return socket.emit('call:error', { message: 'Caller is offline' });
         }
+
+        console.log('[WebRTC] Sending answer', { from: socket.userId, to: targetSocketId });
 
         io.to(targetSocketId).emit('webrtc:answer', {
           from: socket.userId,
@@ -1658,6 +1714,7 @@ const setupSocket = (io) => {
         });
       } catch (error) {
         console.error('Error relaying WebRTC answer:', error);
+        socket.emit('call:error', { message: 'Failed to send answer' });
       }
     });
 
@@ -1665,7 +1722,12 @@ const setupSocket = (io) => {
       try {
         const { to, targetSocketId, candidate } = data;
         const relaySocketId = targetSocketId || onlineUsers.get(String(to)) || to;
-        if (!relaySocketId) return;
+        if (!relaySocketId) {
+          console.warn('[WebRTC] ICE candidate relay target not found', { to, targetSocketId });
+          return;
+        }
+
+        console.log('[WebRTC] Relaying ICE candidate via webrtc event', { from: socket.userId, to: relaySocketId });
 
         io.to(relaySocketId).emit('webrtc:ice_candidate', {
           from: socket.userId,

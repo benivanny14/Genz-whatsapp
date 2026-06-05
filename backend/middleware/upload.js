@@ -88,19 +88,45 @@ const uploadMultipleVideos = createMultipleUploadMiddleware('videos', 5, 'video'
 const uploadMultipleDocuments = createMultipleUploadMiddleware('documents', 5, 'document');
 
 /**
- * Generic upload middleware (accepts any supported type)
+ * Generic upload middleware (accepts any supported type and flexible field names)
  */
-const uploadAny = multer({
+const uploadAnyBase = multer({
   storage: storage,
   fileFilter: (req, file, cb) => {
     // Allow all file types for generic upload, validation happens in cloudinary config
+    console.log('[uploadAny] Processing file:', { name: file.originalname, mimetype: file.mimetype, fieldname: file.fieldname });
     cb(null, true);
   },
   limits: {
     fileSize: 100 * 1024 * 1024,
     files: 10
   }
-}).single('file');
+});
+
+/**
+ * Wrapper to handle multiple possible field names for file uploads
+ */
+const uploadAny = (req, res, next) => {
+  console.log('[uploadAny] Processing request');
+  
+  // Create a custom handler that tries single upload with multiple field names
+  const handler = uploadAnyBase.any();
+  
+  handler(req, res, (err) => {
+    if (err) {
+      console.error('[uploadAny] Error:', err);
+      return next(err);
+    }
+    
+    // If we have files, use the first one and move it to req.file
+    if (req.files && req.files.length > 0) {
+      req.file = req.files[0];
+      console.log('[uploadAny] File processed:', { name: req.file.originalname, size: req.file.size });
+    }
+    
+    next();
+  });
+};
 
 /**
  * Error handler for upload errors

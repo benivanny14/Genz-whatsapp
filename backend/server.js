@@ -182,6 +182,7 @@ const ensureLocalUser = async () => {
 
 let scheduledMessageInterval = null;
 let paymentTimeoutInterval = null;
+let expiredMessageCleanupInterval = null;
 
 const startScheduledMessageDispatcher = (ioInstance) => {
   if (scheduledMessageInterval) {
@@ -257,10 +258,50 @@ const startScheduledMessageDispatcher = (ioInstance) => {
   return scheduledMessageInterval;
 };
 
+const startExpiredMessageCleanup = (ioInstance) => {
+  if (expiredMessageCleanupInterval) {
+    return expiredMessageCleanupInterval;
+  }
+
+  expiredMessageCleanupInterval = setInterval(async () => {
+    try {
+      if (mongoose.connection.readyState !== 1) return;
+
+      const now = new Date();
+      
+      // Delete self-destruct messages that have expired
+      const result = await Message.deleteMany({
+        isSelfDestruct: true,
+        disappearAt: { $lte: now }
+      });
+
+      if (result.deletedCount > 0) {
+        console.log(`[ExpiredMessageCleanup] Deleted ${result.deletedCount} expired self-destruct messages`);
+      }
+
+      // Also handle view-once messages that should be permanently removed
+      const viewOnceResult = await Message.deleteMany({
+        isViewOnce: true,
+        isConsumed: true,
+        createdAt: { $lt: new Date(now.getTime() - 24 * 60 * 60 * 1000) } // Delete after 24 hours
+      });
+
+      if (viewOnceResult.deletedCount > 0) {
+        console.log(`[ExpiredMessageCleanup] Deleted ${viewOnceResult.deletedCount} old view-once messages`);
+      }
+    } catch (error) {
+      console.error('[ExpiredMessageCleanup] Error cleaning up expired messages:', error.message);
+    }
+  }, 60 * 1000); // Run every minute
+
+  return expiredMessageCleanupInterval;
+};
+
 const startBackgroundServices = async (ioInstance) => {
   await connectDB();
   await ensureLocalUser();
   startScheduledMessageDispatcher(ioInstance);
+  startExpiredMessageCleanup(ioInstance);
 
   // Start subscription expiry checker
   startExpiryChecker();

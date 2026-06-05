@@ -195,6 +195,21 @@ const messageSchema = new mongoose.Schema({
     type: { type: String, default: 'text' },
     mediaUrl: { type: String, default: null }
   },
+  // Anti-screenshot tracking
+  allowScreenshot: {
+    type: Boolean,
+    default: true
+  },
+  screenshotAttempts: [{
+    attemptedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    attemptedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   createdAt: {
     type: Date,
     default: Date.now

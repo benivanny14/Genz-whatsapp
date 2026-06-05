@@ -19,6 +19,7 @@ const {
   markAsRead,
   addReaction,
   removeReaction,
+  reportScreenshotAttempt,
   searchUsers,
   addContact,
   addContactByPhone,
@@ -85,6 +86,9 @@ router.post("/messages/:messageId/report", reportMessage);
 // Message reactions
 router.post("/messages/:id/reactions", addReaction);
 router.delete("/messages/:id/reactions", removeReaction);
+
+// Anti-screenshot
+router.post("/messages/:messageId/screenshot-attempt", reportScreenshotAttempt);
 
 // Chat settings
 router.put("/conversations/:conversationId/pin", togglePinConversation);

@@ -4,14 +4,17 @@
  */
 
 /**
- * Default STUN servers (free, public)
+ * Default STUN servers (free, public) - multiple options for redundancy
  */
 const DEFAULT_STUN_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
   { urls: 'stun:stun2.l.google.com:19302' },
   { urls: 'stun:stun3.l.google.com:19302' },
-  { urls: 'stun:stun4.l.google.com:19302' }
+  { urls: 'stun:stun4.l.google.com:19302' },
+  // Additional STUN servers for better connectivity
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stunserver.org:3478' }
 ];
 
 /**
@@ -53,7 +56,7 @@ const getIceServers = () => {
 };
 
 /**
- * Get WebRTC configuration options
+ * Get WebRTC configuration options with better defaults for stability
  * @returns {Object} WebRTC configuration
  */
 const getWebRTCConfig = () => {
@@ -62,7 +65,12 @@ const getWebRTCConfig = () => {
     iceTransportPolicy: process.env.ICE_TRANSPORT_POLICY || 'all', // 'all', 'relay', or 'none'
     iceCandidatePoolSize: parseInt(process.env.ICE_CANDIDATE_POOL_SIZE) || 10,
     bundlePolicy: process.env.BUNDLE_POLICY || 'balanced', // 'balanced', 'max-bundle', or 'max-compat'
-    rtcpMuxPolicy: process.env.RTCP_MUX_POLICY || 'require'
+    rtcpMuxPolicy: process.env.RTCP_MUX_POLICY || 'require',
+    // Additional settings for better connectivity
+    enableIceUfrag: true,
+    enableIceRestart: true,
+    iceConnectionTimeout: parseInt(process.env.ICE_CONNECTION_TIMEOUT) || 5000,
+    iceGatheringTimeout: parseInt(process.env.ICE_GATHERING_TIMEOUT) || 3000
   };
 };
 

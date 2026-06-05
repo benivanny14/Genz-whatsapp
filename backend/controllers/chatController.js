@@ -84,6 +84,9 @@ const transformConversationForUser = (conversation, userId) => {
   conv.isMuted =
     Boolean(getMapValue(conv.mutedUntil, userId)) &&
     new Date(getMapValue(conv.mutedUntil, userId)) > new Date();
+  
+  // Include unread count for this specific user
+  conv.unreadCount = conv.unreadCount ? (conv.unreadCount.get ? conv.unreadCount.get(userId) : conv.unreadCount[userId]) : 0;
 
   if (conv.participants && Array.isArray(conv.participants)) {
     conv.participants = conv.participants.map(p => applyPrivacyFilter(p, userId));
@@ -515,6 +518,11 @@ exports.getMessages = async (req, res) => {
       conversationId: conversationId,
       deletedFor: { $ne: localUserId },
       deletedForEveryone: false,
+      // Filter out self-destructed messages that have expired
+      $or: [
+        { isSelfDestruct: false },
+        { isSelfDestruct: true, disappearAt: { $gt: new Date() } }
+      ]
     };
 
     const messages = await Message.find(filter)
@@ -603,6 +611,13 @@ exports.sendMessage = async (req, res) => {
       if (conversation.disappearingMessages?.enabled) {
         const timer = Number(conversation.disappearingMessages.timer) || 24;
         disappearAt = new Date(Date.now() + timer * 60 * 60 * 1000);
+      }
+      
+      // If message is marked as self-destruct, set disappearAt time
+      if (isSelfDestruct && !disappearAt) {
+        // Default to 12 hours for self-destruct messages if no conversation setting
+        const defaultSelfDestructTimer = Number(process.env.SELF_DESTRUCT_TIMER) || 12;
+        disappearAt = new Date(Date.now() + defaultSelfDestructTimer * 60 * 60 * 1000);
       }
     } catch (disappearErr) {
       console.warn('[ChatController] Disappearing timer skipped:', disappearErr?.message || disappearErr);
@@ -979,6 +994,59 @@ exports.removeReaction = async (req, res) => {
     }
 
     res.status(200).json({ success: true, message: updatedMessage });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Report screenshot attempt on message
+exports.reportScreenshotAttempt = async (req, res) => {
+  try {
+    const userId = getCurrentUserId(req);
+    const messageId = req.params.messageId || req.params.id;
+
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Message not found" });
+    }
+
+    const conversation = await Conversation.findById(message.conversationId);
+    if (!ensureParticipant(conversation, userId, res)) return;
+
+    // Only allow screenshot notification if sender enabled it
+    if (!message.allowScreenshot) {
+      // Add screenshot attempt
+      if (!message.screenshotAttempts) {
+        message.screenshotAttempts = [];
+      }
+      
+      message.screenshotAttempts.push({
+        attemptedBy: userId,
+        attemptedAt: new Date()
+      });
+      
+      await message.save();
+
+      const io = req.app.get("io");
+      if (io) {
+        // Notify sender about screenshot attempt
+        io.to(message.sender.toString()).emit("message:screenshot-attempted", {
+          messageId: message._id,
+          conversationId: message.conversationId,
+          attemptedBy: userId,
+          attemptedAt: new Date()
+        });
+      }
+
+      res.json({ success: true, message: "Screenshot attempt reported" });
+    } else {
+      res.status(403).json({
+        success: false,
+        message: "Screenshot protection is not enabled for this message"
+      });
+    }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -1496,19 +1564,37 @@ exports.markViewOnceViewed = async (req, res) => {
     message.content = message.isSelfDestruct ? '💥 Message self-destructed' : 'View Once message opened';
     message.mediaUrl = '';
     message.fileName = '';
+    
+    // For self-destruct messages, set disappearAt to immediate deletion
+    if (message.isSelfDestruct) {
+      message.disappearAt = new Date();
+    }
+    
     await message.save();
 
     const io = req.app.get("io");
     if (io) {
+      // Notify sender that message was viewed/consumed
+      io.to(message.sender.toString()).emit("message:viewed", {
+        messageId: message._id,
+        conversationId: message.conversationId,
+        viewedBy: userId,
+        viewedAt: new Date(),
+        isViewOnce: message.isViewOnce,
+        isSelfDestruct: message.isSelfDestruct
+      });
+
+      // Broadcast consumption to conversation
       io.to(message.conversationId.toString()).emit("message:consumed", {
         messageId: message._id,
         conversationId: message.conversationId,
         isViewOnce: message.isViewOnce,
-        isSelfDestruct: message.isSelfDestruct
+        isSelfDestruct: message.isSelfDestruct,
+        consumedBy: userId
       });
     }
 
-    res.json({ success: true, message: "View-once message deleted" });
+    res.json({ success: true, message: "Message marked as viewed" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
