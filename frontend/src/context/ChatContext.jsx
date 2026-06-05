@@ -1213,13 +1213,11 @@ export const ChatProvider = ({ children }) => {
             selfDestructTimers.current.add(msgId);
             setTimeout(async () => {
               try {
-                // Guard against missing API client to avoid infinite ReferenceError loops
-                if (typeof api !== 'undefined' && api && typeof api.put === 'function') {
-                  // Let the backend mark it as consumed for everyone
-                  await api.put(`/chat/messages/${msgId}/view-once-viewed`);
-                } else {
-                  console.error('API client not available; cannot self-destruct message', msgId);
-                }
+                // Use authFetch to include authentication headers
+                await authFetch(`${BACKEND_URL}/chat/messages/${msgId}/view-once-viewed`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' }
+                });
               } catch (e) {
                 console.error("Failed to self-destruct message on server:", e);
               }
