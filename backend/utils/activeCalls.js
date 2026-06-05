@@ -25,3 +25,29 @@ exports.endCall = (userId, conversationId) => {
 };
 
 exports.getCall = (userId, conversationId) => activeCalls.get(callKey(userId, conversationId));
+
+exports.endCallsForUser = (userId) => {
+  if (!userId) return [];
+  const ended = [];
+  for (const [key, session] of activeCalls.entries()) {
+    if (session.userId?.toString() === userId?.toString() || session.calleeId?.toString() === userId?.toString()) {
+      activeCalls.delete(key);
+      ended.push(session);
+    }
+  }
+  return ended;
+};
+
+exports.cleanupExpired = (maxAgeMs = 2 * 60 * 60 * 1000) => {
+  const now = Date.now();
+  let removed = 0;
+  for (const [key, session] of activeCalls.entries()) {
+    if (!session.startedAt || now - session.startedAt > maxAgeMs) {
+      activeCalls.delete(key);
+      removed += 1;
+    }
+  }
+  return removed;
+};
+
+exports.size = () => activeCalls.size;

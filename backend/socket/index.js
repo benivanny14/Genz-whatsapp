@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
 const User = require('../models/User');
@@ -17,9 +18,17 @@ const isUserStillOnline = (userId) =>
   [...socketToUser.values()].some((id) => id?.toString() === userId?.toString());
 
 const MESSAGE_DEDUP_TTL = 60000; // 1 minute TTL for deduplication
+const MAX_DEDUP_ENTRIES = 1000;
 const SOCKET_SETUP_FLAG = Symbol.for('genz.socket.setup');
 const includesId = (items = [], id) => items.some(item => item?.toString() === id?.toString());
 const getEntityId = (value) => value?._id?.toString?.() || value?.toString?.() || '';
+const getDedupKey = ({ userId, conversationId, messageId, content }) => {
+  const contentHash = crypto
+    .createHash('sha1')
+    .update(String(content || '').slice(0, 4096))
+    .digest('hex');
+  return `${userId}_${conversationId}_${messageId || contentHash}`;
+};
 
 const getConversationIfParticipant = async (conversationId, socket) => {
   if (!conversationId || !socket.userId) return null;
@@ -115,6 +124,12 @@ const setupSocket = (io) => {
         messageDeduplication.delete(key);
       }
     }
+    while (messageDeduplication.size > MAX_DEDUP_ENTRIES) {
+      const oldestKey = messageDeduplication.keys().next().value;
+      if (!oldestKey) break;
+      messageDeduplication.delete(oldestKey);
+    }
+    activeCalls.cleanupExpired?.();
   }, 60000);
   deduplicationCleanupInterval.unref?.();
 
@@ -220,7 +235,12 @@ const setupSocket = (io) => {
         }
 
         // Generate deduplication key
-        const dedupKey = `${socket.userId}_${conversationId}_${messageId || Date.now()}_${safeContent}`;
+        const dedupKey = getDedupKey({
+          userId: socket.userId,
+          conversationId,
+          messageId,
+          content: safeContent
+        });
         
         // Check if message was already processed
         if (messageDeduplication.has(dedupKey)) {
@@ -1784,6 +1804,7 @@ const setupSocket = (io) => {
 
       const disconnectedUserId = socketToUser.get(socket.id) || socket.userId;
       socketToUser.delete(socket.id);
+      activeCalls.endCallsForUser?.(disconnectedUserId);
 
       if (disconnectedUserId && !isUserStillOnline(disconnectedUserId)) {
         onlineUsers.delete(disconnectedUserId);
