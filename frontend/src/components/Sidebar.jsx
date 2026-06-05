@@ -520,13 +520,22 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                       <div className="flex items-center gap-2">
                         {conv.isMuted && <VolumeX size={12} className="text-dark-textSecondary" />}
                         {isChatPinned(conv) && <Pin size={12} className="text-primary-500 rotate-45" />}
-                        <span className="text-xs text-dark-textSecondary">
-                          {conv.lastMessage && formatConversationTime(conv.lastMessage.createdAt)}
-                        </span>
+                        {/* Unread count badge */}
+                        {conv.unreadCount > 0 ? (
+                          <span className="inline-flex items-center justify-center px-2 py-0.5 bg-red-500 text-white text-[11px] font-bold rounded-full min-w-[24px]">
+                            {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-dark-textSecondary">
+                            {conv.lastMessage && formatConversationTime(conv.lastMessage.createdAt)}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center justify-between mt-1">
-                      <p className="text-sm text-dark-textSecondary truncate flex-1 text-left">
+                      <p className={`text-sm truncate flex-1 text-left ${
+                        conv.unreadCount > 0 ? 'text-dark-text font-medium' : 'text-dark-textSecondary'
+                      }`}>
                         {getLastMessage(conv)}
                       </p>
                       {conv.lastMessage && (conv.lastMessage.sender?._id || conv.lastMessage.sender) === (user?._id || user?.id) && (
