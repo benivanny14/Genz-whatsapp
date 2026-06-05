@@ -7,6 +7,7 @@ import apiService from '../services/apiService';
 import backupService from '../services/backupService';
 import { useAuth } from './AuthContext';
 import { authFetch } from '../utils/authFetch';
+import api from '../services/api';
 import { cleanupLocalBlobUrls, sanitizeBlobUrls } from '../utils/sanitizeStorage';
 import encryptionService from '../services/encryptionService';
 import { decryptMessageContent, decryptMessagesList } from '../utils/e2eeMessage';
@@ -1163,8 +1164,13 @@ export const ChatProvider = ({ children }) => {
             selfDestructTimers.current.add(msgId);
             setTimeout(async () => {
               try {
-                // Let the backend mark it as consumed for everyone
-                await api.put(`/chat/messages/${msgId}/view-once-viewed`);
+                // Guard against missing API client to avoid infinite ReferenceError loops
+                if (typeof api !== 'undefined' && api && typeof api.put === 'function') {
+                  // Let the backend mark it as consumed for everyone
+                  await api.put(`/chat/messages/${msgId}/view-once-viewed`);
+                } else {
+                  console.error('API client not available; cannot self-destruct message', msgId);
+                }
               } catch (e) {
                 console.error("Failed to self-destruct message on server:", e);
               }
