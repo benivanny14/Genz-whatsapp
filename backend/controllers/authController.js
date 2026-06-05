@@ -44,21 +44,6 @@ const signRefreshToken = (user) => jwt.sign(
 
 
 const safeUser = (user) => (typeof user.toSafeJSON === 'function' ? user.toSafeJSON() : user);
-const publicProfilePayload = (user) => {
-  const safe = safeUser(user) || {};
-  const id = safe._id?.toString?.() || safe.id?.toString?.() || '';
-  return {
-    _id: id,
-    id,
-    username: safe.username,
-    phoneNumber: safe.phoneNumber,
-    profilePicture: safe.profilePicture || '',
-    about: safe.about || safe.bio || '',
-    bio: safe.bio || safe.about || '',
-    isOnline: safe.isOnline,
-    lastSeen: safe.lastSeen
-  };
-};
 
 exports.register = async (req, res) => {
   try {
@@ -298,7 +283,7 @@ exports.updateProfile = async (req, res) => {
 
     const io = req.app.get('io');
     if (io) {
-      io.emit('user:profile_updated', publicProfilePayload(user));
+      io.emit('user:profile_updated', safeUser(user));
     }
 
     res.json({
@@ -328,7 +313,7 @@ exports.uploadProfilePicture = async (req, res) => {
     
     const io = req.app.get('io');
     if (io) {
-      io.emit('user:profile_updated', publicProfilePayload(user));
+      io.emit('user:profile_updated', safeUser(user));
     }
 
     res.json({ success: true, user: safeUser(user) });

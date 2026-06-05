@@ -253,7 +253,6 @@ const startScheduledMessageDispatcher = (ioInstance) => {
       console.error('Scheduled message dispatcher error:', error.message);
     }
   }, 30 * 1000);
-  scheduledMessageInterval.unref?.();
 
   return scheduledMessageInterval;
 };
@@ -277,7 +276,6 @@ const startBackgroundServices = async (ioInstance) => {
         logger.error('Payment timeout check failed', { message: error.message });
       }
     }, 15 * 60 * 1000);
-    paymentTimeoutInterval.unref?.();
   }
 };
 
@@ -682,10 +680,7 @@ const ioConfig = {
   transports: ['websocket', 'polling'],
   allowUpgrades: true,
   pingTimeout: 60000,
-  pingInterval: 25000,
-  perMessageDeflate: false,
-  httpCompression: false,
-  maxHttpBufferSize: 2 * 1024 * 1024
+  pingInterval: 25000
 };
 
 const io = new Server(server, ioConfig);
@@ -716,18 +711,11 @@ io.use(async (socket, next) => {
       if (decoded.typ === 'refresh') {
         return next(new Error('Invalid token type for socket'));
       }
-      const user = await User.findById(decoded.id)
-        .select('_id username profilePicture isBlocked settings.privacy')
-        .lean();
+      const user = await User.findById(decoded.id).select('-passwordHash -twoFactorSecret');
 
       if (user && !user.isBlocked) {
         socket.userId = user._id.toString();
-        socket.user = {
-          _id: socket.userId,
-          username: user.username,
-          profilePicture: user.profilePicture || '',
-          settings: user.settings || {}
-        };
+        socket.user = user;
         return next();
       }
       return next(new Error('User not authorized'));
