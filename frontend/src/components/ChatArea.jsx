@@ -8,7 +8,7 @@ import encryptionService from '../services/encryptionService';
 import { getE2EEEnvelope } from '../utils/e2eeContent';
 import { getSocket } from '../services/socket';
 import { AnimatePresence } from 'framer-motion';
-import EmojiPicker from 'emoji-picker-react';
+const EmojiPicker = React.lazy(() => import('emoji-picker-react'));
 import PollModal from './PollModal';
 import FilePreview from './FilePreview';
 import SearchMessages from './SearchMessages';
@@ -2893,8 +2893,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
       <div className="bg-dark-surface border-t border-dark-border p-4 relative z-10">
         {showEmojiPicker && (
-          <div className="absolute bottom-20 left-2 right-2 md:left-4 md:right-auto md:w-[350px] max-w-[calc(100vw-1rem)] z-50 overflow-hidden rounded-lg shadow-2xl border border-dark-border">
-            <EmojiPicker onEmojiClick={handleEmojiClick} theme="dark" width="100%" />
+          <div className="absolute bottom-20 left-2 right-2 md:left-4 md:right-auto md:w-[350px] max-w-[calc(100vw-1rem)] z-50 overflow-hidden rounded-lg shadow-2xl border border-dark-border bg-dark-surface min-h-[350px] flex items-center justify-center">
+            <React.Suspense fallback={<div className="animate-pulse text-dark-textSecondary">Loading emojis...</div>}>
+              <EmojiPicker onEmojiClick={handleEmojiClick} theme="dark" width="100%" />
+            </React.Suspense>
           </div>
         )}
 
