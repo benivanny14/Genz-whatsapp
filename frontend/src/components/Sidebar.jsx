@@ -666,7 +666,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
             <div
               className="flex items-center gap-3 p-3 hover:bg-dark-hover rounded-lg transition-colors cursor-pointer group"
               onClick={() => {
-                const myStatuses = (statuses || []).filter(s => s.userId === user?.id || s.userId === user?._id);
+                const myStatuses = (statuses || []).filter(s => String(s.userId) === String(user?.id) || String(s.userId) === String(user?._id));
                 if (myStatuses.length > 0) {
                   setSelectedStatus(myStatuses[myStatuses.length - 1]); // Show latest
                 } else {
@@ -688,15 +688,15 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
               <div className="flex-1">
                 <h3 className="text-dark-text font-medium">My Status</h3>
                 <p className="text-xs text-dark-textSecondary">
-                  {statusUploading ? 'Sending...' : ((statuses || []).some(s => s.userId === user?.id || s.userId === user?._id) ? 'Tap to view your status' : 'Tap to add status update')}
+                  {statusUploading ? 'Sending...' : ((statuses || []).some(s => String(s.userId) === String(user?.id) || String(s.userId) === String(user?._id)) ? 'Tap to view your status' : 'Tap to add status update')}
                 </p>
               </div>
               {/* Delete latest status button */}
-              {(statuses || []).filter(s => s.userId === user?.id || s.userId === user?._id).length > 0 && (
+              {(statuses || []).filter(s => String(s.userId) === String(user?.id) || String(s.userId) === String(user?._id)).length > 0 && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    const myStatuses = (statuses || []).filter(s => s.userId === user?.id || s.userId === user?._id);
+                    const myStatuses = (statuses || []).filter(s => String(s.userId) === String(user?.id) || String(s.userId) === String(user?._id));
                     if (myStatuses.length > 0) {
                       deleteStatus(myStatuses[myStatuses.length - 1]._id || myStatuses[myStatuses.length - 1].id);
                     }
@@ -717,7 +717,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
             {/* Friends' Statuses */}
             <div className="space-y-2">
               <h4 className="text-xs text-dark-textSecondary uppercase font-bold px-3">Recent updates</h4>
-              {(statuses || []).filter(s => s.userId !== user?.id).map((status, index) => (
+              {(statuses || []).filter(s => String(s.userId) !== String(user?.id) && String(s.userId) !== String(user?._id)).map((status, index) => (
                 <div
                   key={status.id || status._id || `status-${index}`}
                   className="flex items-center gap-3 p-3 hover:bg-dark-hover rounded-lg transition-colors cursor-pointer"

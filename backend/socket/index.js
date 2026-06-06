@@ -1319,6 +1319,11 @@ const setupSocket = (io) => {
             await msg.save();
           }
         }
+
+        // Reset unread count for this user
+        conversation.unreadCount.set(String(userId), 0);
+        await conversation.save();
+
         io.to(chatId).emit('messages:read', { chatId, userId });
       } catch (error) {
         console.error('Error marking messages as read:', error);

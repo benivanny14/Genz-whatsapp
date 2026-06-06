@@ -663,16 +663,30 @@ exports.sendMessage = async (req, res) => {
       };
     }
 
+    const incObject = {};
+    if (conversation && conversation.participants) {
+      conversation.participants.forEach(p => {
+        if (p.toString() !== localUserId.toString()) {
+          incObject[`unreadCount.${p.toString()}`] = 1;
+        }
+      });
+    }
+
+    const updateQuery = {
+      $set: {
+        lastMessage: message._id,
+        updatedAt: new Date(),
+        deletedFor: []
+      }
+    };
+    if (Object.keys(incObject).length > 0) {
+      updateQuery.$inc = incObject;
+    }
+
     // 3. Update mazungumzo (Conversation) ili iweke ujumbe huu kama ujumbe wa mwisho (Last Message)
     await Conversation.findByIdAndUpdate(
       finalConversationId,
-      {
-        $set: {
-          lastMessage: message._id,
-          updatedAt: new Date(),
-          deletedFor: []
-        }
-      },
+      updateQuery,
       { new: true, runValidators: false }
     );
 
@@ -903,6 +917,9 @@ exports.markAsRead = async (req, res) => {
       message.status = "read";
       await message.save();
     }
+
+    conversation.unreadCount.set(String(localUserId), 0);
+    await conversation.save();
 
     const io = req.app.get("io");
     if (io) {

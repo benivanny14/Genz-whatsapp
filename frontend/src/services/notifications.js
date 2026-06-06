@@ -54,9 +54,14 @@ export const showLocalNotification = async (title, body, options = {}) => {
     ...options
   };
 
-  if (reg) {
-    // Use Service Worker for richer notifications
-    await reg.showNotification(title, notifOptions);
+  if (reg && typeof reg.showNotification === 'function') {
+    try {
+      // Use Service Worker for richer notifications
+      await reg.showNotification(title, notifOptions);
+    } catch (err) {
+      console.warn('[Notifications] SW showNotification failed, falling back:', err);
+      new Notification(title, notifOptions);
+    }
   } else {
     // Fallback to basic Notification API
     new Notification(title, notifOptions);

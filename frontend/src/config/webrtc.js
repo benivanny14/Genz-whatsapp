@@ -2,7 +2,7 @@
  * WebRTC Configuration (Frontend)
  * Handles ICE server configuration for STUN/TURN servers
  */
-import { authFetch } from '../utils/authFetch';
+import api from '../services/api';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -81,10 +81,9 @@ const getRuntimeWebRTCConfig = async () => {
   if (runtimeConfigCache) return runtimeConfigCache;
   if (runtimeConfigPromise) return runtimeConfigPromise;
 
-  runtimeConfigPromise = authFetch(`${API_URL}/api/webrtc/config`)
-    .then(async (response) => {
-      if (!response.ok) throw new Error(`WebRTC config unavailable: ${response.status}`);
-      const data = await response.json();
+  runtimeConfigPromise = api.get('/webrtc/config')
+    .then((response) => {
+      const data = response.data;
       if (!data.success || !data.config?.iceServers) {
         throw new Error('Invalid WebRTC config response');
       }

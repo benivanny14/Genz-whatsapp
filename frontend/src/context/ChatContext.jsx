@@ -1093,7 +1093,20 @@ export const ChatProvider = ({ children }) => {
 
       // ── WebRTC signaling ──
       socket.on('webrtc:offer', (data) => {
-        socket.emit('webrtc:answer_needed', data);
+        setActiveCall(prev => {
+          if (prev) {
+            return { ...prev, offer: data.offer };
+          }
+          // If webrtc:offer arrives before call:incoming
+          return {
+            type: data.callType || 'audio',
+            callerId: data.from || data.callerId,
+            status: 'incoming',
+            offer: data.offer,
+            conversationId: data.conversationId,
+            user: { _id: data.from || data.callerId }
+          };
+        });
       });
 
       // ── Status ──

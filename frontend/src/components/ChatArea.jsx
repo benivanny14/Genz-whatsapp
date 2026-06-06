@@ -570,7 +570,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         chatId: selectedConversation._id,
         isGroup: selectedConversation.isGroup,
         ghostMode: mods.ghostMode,
-        isSelfDestruct: mods.selfDestruct || Boolean(selectedConversation?.disappearingMessages),
+        isSelfDestruct: mods.selfDestruct || Boolean(selectedConversation?.disappearingMessages?.enabled),
         selfDestructTimer: selectedConversation?.disappearingMessages?.duration ? parseInt(selectedConversation.disappearingMessages.duration) * 3600 : (mods.selfDestruct ? 43200 : null),
         isViewOnce: isViewOnceEnabled,
         mentions
@@ -2498,6 +2498,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                     {(!['image', 'video', 'location', 'sticker', 'audio', 'gif'].includes(message.messageType) ||
                       (plaintextOf(message) &&
                         plaintextOf(message) !== message.mediaUrl &&
+                        plaintextOf(message) !== `${message.messageType} message` &&
                         !plaintextOf(message).includes('firebasestorage.googleapis.com') &&
                         !plaintextOf(message).includes('res.cloudinary.com') &&
                         !plaintextOf(message).includes('maps.google.com') &&
