@@ -666,7 +666,11 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
             <div
               className="flex items-center gap-3 p-3 hover:bg-dark-hover rounded-lg transition-colors cursor-pointer group"
               onClick={() => {
-                const myStatuses = (statuses || []).filter(s => String(s.userId) === String(user?.id) || String(s.userId) === String(user?._id));
+                const myStatuses = (statuses || []).filter(s => 
+                  String(s.userId) === String(user?.id) || 
+                  String(s.userId) === String(user?._id) ||
+                  (s.username && user?.username && s.username === user.username)
+                );
                 if (myStatuses.length > 0) {
                   setSelectedStatus(myStatuses[myStatuses.length - 1]); // Show latest
                 } else {

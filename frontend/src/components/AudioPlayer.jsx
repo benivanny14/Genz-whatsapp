@@ -62,13 +62,26 @@ const AudioPlayer = ({
     let active = true;
     const fetchSignedUrl = async () => {
       try {
+        // Try signed URL first
         const signedUrl = await ensureSignedMediaUrl(audioUrl, token);
-        if (active) setPlaybackUrl(resolveMediaPlaybackUrl(signedUrl));
+        if (active) {
+          const resolved = resolveMediaPlaybackUrl(signedUrl);
+          setPlaybackUrl(resolved);
+          console.log('[AudioPlayer] Using signed URL:', resolved?.substring(0, 100));
+        }
       } catch (e) {
-        if (active) setPlaybackUrl(resolveMediaPlaybackUrl(audioUrl));
+        console.warn('[AudioPlayer] Signed URL failed, trying direct:', e);
+        if (active) {
+          // Fallback to direct URL
+          const resolved = resolveMediaPlaybackUrl(audioUrl);
+          setPlaybackUrl(resolved);
+          console.log('[AudioPlayer] Using direct URL:', resolved?.substring(0, 100));
+        }
       }
     };
-    fetchSignedUrl();
+    if (audioUrl) {
+      fetchSignedUrl();
+    }
     return () => { active = false; };
   }, [audioUrl, token]);
 
