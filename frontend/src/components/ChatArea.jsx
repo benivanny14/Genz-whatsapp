@@ -389,9 +389,33 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     };
   }, [messages, selectedConversation?._id]);
 
+  // Smart scroll: only auto-scroll when user is at bottom or new messages arrive
+  const userScrollPositionRef = useRef(null);
+  const shouldAutoScrollRef = useRef(true);
+  
   useEffect(() => {
-    scrollToBottom();
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    
+    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+    shouldAutoScrollRef.current = isAtBottom;
+    
+    if (shouldAutoScrollRef.current) {
+      scrollToBottom();
+    }
   }, [messages]);
+  
+  // Track user scroll position
+  const handleMessagesScroll = useCallback((e) => {
+    const container = e.target;
+    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+    shouldAutoScrollRef.current = isAtBottom;
+    
+    // Load more messages when scrolling to top
+    if (container.scrollTop === 0) {
+      setVisibleCount(prev => Math.min(prev + 50, filteredMessages.length));
+    }
+  }, [filteredMessages.length]);
 
   useEffect(() => {
     if (selectedConversation) {
