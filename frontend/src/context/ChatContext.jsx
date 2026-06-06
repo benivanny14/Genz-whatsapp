@@ -3129,6 +3129,15 @@ export const ChatProvider = ({ children }) => {
         headers: { 'Content-Type': 'application/json' }
       });
       const data = await response.json();
+      
+      // Update local state to mark as consumed
+      setMessages(prev => prev.map(m => {
+        if (m._id === messageId || m.id === messageId) {
+          return { ...m, isConsumed: true, viewedAt: new Date() };
+        }
+        return m;
+      }));
+      
       return data;
     } catch (err) {
       console.error('Mark view once viewed error:', err);

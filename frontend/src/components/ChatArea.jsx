@@ -1841,14 +1841,23 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const visibleMessages = (messages || []).filter((message) => {
     if (isStaleBlobMessage(message)) return false;
 
-    // Kama ni view once ishasomwa na hakuna anti-view-once, ifiche kabisa
-    if (message.isViewOnce && !mods.antiViewOnce && message.isConsumed) {
-      return false;
+    const isSender = String(message.sender?._id || message.sender) === String(user?.id || user?._id);
+    
+    // View once logic: Hide from recipient after consumed, always show to sender
+    if (message.isViewOnce && !isSender) {
+      // If anti-view-once is enabled, always show
+      if (mods.antiViewOnce) return true;
+      // If consumed, hide from recipient
+      if (message.isConsumed) return false;
     }
     
-    // Kama ni self-destruct na isha-expire au ishasomwa na hakuna anti-view-once, ifiche kabisa
-    if (message.isSelfDestruct && !mods.antiViewOnce) {
+    // Self-destruct logic: Hide after expiration or consumption
+    if (message.isSelfDestruct && !isSender) {
+      // If anti-view-once is enabled, always show
+      if (mods.antiViewOnce) return true;
+      // If consumed, hide
       if (message.isConsumed) return false;
+      // If expired, hide
       if (message.disappearAt && new Date(message.disappearAt) < new Date()) return false;
     }
 
