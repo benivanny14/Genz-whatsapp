@@ -131,7 +131,7 @@ import {
   isLikelySpamMessage,
   autoSaveMediaFromMessage
 } from '../utils/genzModsNormalize';
-import { applyAntiScreenshot, initAntiScreenshotListeners } from '../utils/antiScreenshot';
+import { applyAntiScreenshot, initAntiScreenshotListeners, setScreenshotAttemptCallback } from '../utils/antiScreenshot';
 export { applyVoiceEffect };
 
 // ─── Audio Processing Utilities ─────────────────────────────────────────────
@@ -352,7 +352,7 @@ export const ChatProvider = ({ children }) => {
     
     // Set up screenshot attempt callback to notify via socket
     if (mods.antiScreenshot && socketRef.current) {
-      const { setScreenshotAttemptCallback } = require('../utils/antiScreenshot');
+      // use imported setScreenshotAttemptCallback
       setScreenshotAttemptCallback(async () => {
         if (selectedConversation && socketRef.current?.connected) {
           try {
