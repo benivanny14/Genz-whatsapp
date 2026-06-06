@@ -520,7 +520,7 @@ exports.getMessages = async (req, res) => {
       deletedForEveryone: false,
       // Filter out self-destructed messages that have expired
       $or: [
-        { isSelfDestruct: false },
+        { isSelfDestruct: { $ne: true } },
         { isSelfDestruct: true, disappearAt: { $gt: new Date() } }
       ]
     };
@@ -569,6 +569,7 @@ exports.sendMessage = async (req, res) => {
       isSelfDestruct,
       mentions,
       messageId,
+      selfDestructTimer,
     } = req.body;
     
     // 1. Frontend inaweza kuwa inatuma 'conversationId' au 'chatId', tunasoma zote mbili kulinda usalama
@@ -615,9 +616,11 @@ exports.sendMessage = async (req, res) => {
       
       // If message is marked as self-destruct, set disappearAt time
       if (isSelfDestruct && !disappearAt) {
-        // Default to 12 hours for self-destruct messages if no conversation setting
-        const defaultSelfDestructTimer = Number(process.env.SELF_DESTRUCT_TIMER) || 12;
-        disappearAt = new Date(Date.now() + defaultSelfDestructTimer * 60 * 60 * 1000);
+        let timerSeconds = Number(process.env.SELF_DESTRUCT_TIMER) * 60 * 60 || 12 * 60 * 60; // default 12 hours
+        if (selfDestructTimer && !isNaN(selfDestructTimer)) {
+          timerSeconds = Number(selfDestructTimer);
+        }
+        disappearAt = new Date(Date.now() + timerSeconds * 1000);
       }
     } catch (disappearErr) {
       console.warn('[ChatController] Disappearing timer skipped:', disappearErr?.message || disappearErr);

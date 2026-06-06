@@ -665,8 +665,6 @@ export const ChatProvider = ({ children }) => {
         reconnectionDelayMax: 5000,
         randomizationFactor: 0.5,
         timeout: 10000,
-        transports: ['websocket', 'polling'], // Add polling as fallback
-        withCredentials: true,
         forceNew: true,
         autoConnect: false // Don't auto-connect, connect manually
       });
@@ -757,7 +755,13 @@ export const ChatProvider = ({ children }) => {
             const isMuted = targetConv?.isMuted || false;
             if (!isMuted && !isDNDModeRef.current) {
               const senderName = incoming.sender?.username || 'Someone';
-              const preview = typeof incoming.content === 'string' ? incoming.content : 'New message';
+              let preview = typeof incoming.content === 'string' ? incoming.content : 'New message';
+              if (incoming.isViewOnce) preview = '🤫 View once message';
+              else if (incoming.messageType === 'image') preview = '📷 Photo';
+              else if (incoming.messageType === 'video') preview = '🎥 Video';
+              else if (incoming.messageType === 'audio') preview = '🎵 Voice note';
+              else if (incoming.messageType === 'sticker') preview = '🖼️ Sticker';
+              else if (incoming.messageType === 'gif') preview = '🎞️ GIF';
               notifyNewMessage(senderName, preview, incoming.conversationId);
               setOnlineNotification(`New message from ${senderName}`);
               setTimeout(() => setOnlineNotification(null), 3000);
@@ -831,9 +835,13 @@ export const ChatProvider = ({ children }) => {
 
       socket.on('notification:mention', async ({ conversationId, message }) => {
         const senderName = message?.sender?.username || 'Someone';
-        const preview = typeof message?.content === 'string'
+        let preview = typeof message?.content === 'string'
           ? message.content
           : 'You were mentioned in a message';
+        if (message?.isViewOnce) preview = '🤫 View once message';
+        else if (message?.messageType === 'image') preview = '📷 Photo';
+        else if (message?.messageType === 'video') preview = '🎥 Video';
+        else if (message?.messageType === 'audio') preview = '🎵 Voice note';
         const notification = {
           id: `mention-${message?._id || Date.now()}`,
           type: 'mention',
@@ -947,12 +955,17 @@ export const ChatProvider = ({ children }) => {
       });
 
       // ── View-once message viewed ──
-      socket.on('message:view-once-viewed', ({ messageId }) => {
-        setMessages(prev => prev.filter(m => m._id !== messageId));
-        // Also update conversation last message if it was the viewed message
+      socket.on('message:consumed', ({ messageId, conversationId, isViewOnce, isSelfDestruct, consumedBy }) => {
+        setMessages(prev => prev.map(m => {
+          if (m._id === messageId || m.id === messageId) {
+            return { ...m, isConsumed: true, content: isSelfDestruct ? '💥 Message self-destructed' : '👁️ Opened', mediaUrl: '', fileName: '' };
+          }
+          return m;
+        }));
+        
         setConversations(prev => prev.map(c => {
-          if (c.lastMessage && c.lastMessage._id === messageId) {
-            return { ...c, lastMessage: { ...c.lastMessage, content: '👁️ View once message opened', isConsumed: true, mediaUrl: '', fileName: '' } };
+          if (c.lastMessage && (c.lastMessage._id === messageId || c.lastMessage.id === messageId)) {
+            return { ...c, lastMessage: { ...c.lastMessage, isConsumed: true, content: isSelfDestruct ? '💥 Message self-destructed' : '👁️ Opened', mediaUrl: '', fileName: '' } };
           }
           return c;
         }));
@@ -960,12 +973,11 @@ export const ChatProvider = ({ children }) => {
 
       // ── Message viewed notification for sender ──
       socket.on('message:viewed', ({ messageId, conversationId, viewedBy, viewedAt, isViewOnce, isSelfDestruct }) => {
-        const notificationText = isSelfDestruct 
-          ? '💥 Your self-destruct message was read and destroyed' 
-          : '👁️ Your view once message was opened';
-        setOnlineNotification(notificationText);
-        setTimeout(() => setOnlineNotification(null), 4000);
-        console.log(`[ChatContext] Message viewed notification: ${notificationText}`);
+        // Notification is mostly redundant if UI updates instantly, but we can keep a toast for self destruct.
+        if (isSelfDestruct) {
+          setOnlineNotification('💥 Your self-destruct message was read and destroyed');
+          setTimeout(() => setOnlineNotification(null), 4000);
+        }
       });
 
       // ── Screenshot attempted notification ──

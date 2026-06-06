@@ -310,9 +310,12 @@ const VoiceRecorder = ({
         const fx = effectiveEffectRef.current;
         let processed = raw;
         try {
-          processed = await applyVoiceEffect(raw, fx);
+          processed = await blobToPlayablePreview(raw);
+          if (fx !== 'none') {
+            processed = await applyVoiceEffect(processed, fx);
+          }
         } catch (effectError) {
-          console.error('[VoiceRecorder] Voice effect application failed:', effectError);
+          console.error('[VoiceRecorder] Voice processing failed:', effectError);
           // Fall back to original audio if effect fails
           processed = raw;
         }
@@ -329,16 +332,8 @@ const VoiceRecorder = ({
           if (!ghostMode && sendRecordingStatus) sendRecordingStatus(false);
           setPickerEffect(null);
         } else {
-          let playable = processed;
-          try {
-            playable = await blobToPlayablePreview(processed);
-          } catch (previewError) {
-            console.error('[VoiceRecorder] Preview conversion failed:', previewError);
-            // Fall back to processed blob if preview conversion fails
-            playable = processed;
-          }
           revokePreviewObjectUrl();
-          const url = URL.createObjectURL(playable);
+          const url = URL.createObjectURL(processed);
           previewObjectUrlRef.current = url;
           setPreviewAudioUrl(url);
           setIsPreviewMode(true);

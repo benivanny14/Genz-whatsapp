@@ -570,7 +570,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         chatId: selectedConversation._id,
         isGroup: selectedConversation.isGroup,
         ghostMode: mods.ghostMode,
-        isSelfDestruct: mods.selfDestruct,
+        isSelfDestruct: mods.selfDestruct || Boolean(activeDisappearingTimer),
+        selfDestructTimer: activeDisappearingTimer || (mods.selfDestruct ? 43200 : null),
         isViewOnce: isViewOnceEnabled,
         mentions
       });
@@ -1837,7 +1838,22 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     hasStaleBlobUrl(message.thumbnailUrl) ||
     hasStaleBlobUrl(message.quotedStatus?.mediaUrl)
   );
-  const visibleMessages = (messages || []).filter((message) => !isStaleBlobMessage(message));
+  const visibleMessages = (messages || []).filter((message) => {
+    if (isStaleBlobMessage(message)) return false;
+
+    // Kama ni view once ishasomwa na hakuna anti-view-once, ifiche kabisa
+    if (message.isViewOnce && !mods.antiViewOnce && message.isConsumed) {
+      return false;
+    }
+    
+    // Kama ni self-destruct na isha-expire au ishasomwa na hakuna anti-view-once, ifiche kabisa
+    if (message.isSelfDestruct && !mods.antiViewOnce) {
+      if (message.isConsumed) return false;
+      if (message.disappearAt && new Date(message.disappearAt) < new Date()) return false;
+    }
+
+    return true;
+  });
   const safeChatWallpaper = hasStaleBlobUrl(mods.chatWallpaper) ? null : mods.chatWallpaper;
 
   // Custom per-chat wallpaper logic (TM Style)
