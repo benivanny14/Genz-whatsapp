@@ -406,7 +406,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   }, [messages]);
   
   // Track user scroll position
-  const handleMessagesScroll = useCallback((e) => {
+  const handleMessagesScroll = (e) => {
     const container = e.target;
     const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
     shouldAutoScrollRef.current = isAtBottom;
@@ -415,7 +415,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     if (container.scrollTop === 0) {
       setVisibleCount(prev => Math.min(prev + 50, filteredMessages.length));
     }
-  }, [filteredMessages.length]);
+  };
 
   useEffect(() => {
     if (selectedConversation) {
@@ -2166,11 +2166,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
       <div
         ref={messagesContainerRef}
-        onScroll={(e) => {
-          if (e.target.scrollTop === 0) {
-            setVisibleCount(prev => Math.min(prev + 50, filteredMessages.length));
-          }
-        }}
+        onScroll={handleMessagesScroll}
         className={`flex-1 overflow-y-auto p-4 scrollbar-thin transition-all relative z-10 ${mods?.fontSize === 'small' ? 'text-xs' :
           mods?.fontSize === 'large' ? 'text-base' :
             mods?.fontSize === 'xlarge' ? 'text-lg' : 'text-sm'
