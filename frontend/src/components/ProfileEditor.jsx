@@ -2,6 +2,10 @@ import React, { useState, useRef } from 'react';
 import { useUser } from '../context/UserContext';
 import { X, User, Mail, Camera, Save, Check } from 'lucide-react';
 import userService from '../services/userService';
+import { authFetch } from '../utils/authFetch';
+import toast from 'react-hot-toast';
+
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 const ProfileEditor = ({ onClose }) => {
   const { user, updateUserProfile } = useUser();
@@ -12,6 +16,7 @@ const ProfileEditor = ({ onClose }) => {
     profilePicture: user?.profilePicture || ''
   });
   const [saved, setSaved] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleChange = (e) => {
@@ -21,14 +26,56 @@ const ProfileEditor = ({ onClose }) => {
     }));
   };
 
-  const handlePhotoChange = (e) => {
+  const handlePhotoChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setFormData(prev => ({ ...prev, profilePicture: ev.target.result }));
-    };
-    reader.readAsDataURL(file);
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      // Upload to server
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', file);
+      formDataUpload.append('type', 'profile-picture');
+
+      const response = await authFetch(`${API_URL}/media/upload`, {
+        method: 'POST',
+        body: formDataUpload
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.fileUrl) {
+        setFormData(prev => ({ ...prev, profilePicture: data.fileUrl }));
+        toast.success('Profile picture uploaded!');
+      } else {
+        throw new Error(data.error || 'Upload failed');
+      }
+    } catch (error) {
+      console.error('Failed to upload profile picture:', error);
+      toast.error('Failed to upload image. Using local preview.');
+      
+      // Fallback to local preview
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setFormData(prev => ({ ...prev, profilePicture: ev.target.result }));
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -42,7 +89,8 @@ const ProfileEditor = ({ onClose }) => {
       await userService.updateProfile({
         username: formData.username,
         bio: formData.bio,
-        email: formData.email
+        email: formData.email,
+        profilePicture: formData.profilePicture
       });
 
       // Update local context
@@ -57,10 +105,11 @@ const ProfileEditor = ({ onClose }) => {
       }
       
       setSaved(true);
-      setTimeout(() => { setSaved(false); onClose(); }, 1000);
+      toast.success('Profile updated successfully!');
+      setTimeout(() => { setSaved(false); onClose(); }, 1500);
     } catch (error) {
       console.error('Failed to save profile:', error);
-      alert('Failed to save profile: ' + error.message);
+      toast.error('Failed to save profile: ' + error.message);
     }
   };
 

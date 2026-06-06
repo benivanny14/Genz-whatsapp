@@ -1604,24 +1604,68 @@ export const ChatProvider = ({ children }) => {
   };
 
   // ── Message Statistics (Item 15) ──
-  const getMessageStats = () => {
+  const getMessageStats = useCallback(() => {
     const total = messages.length;
+    const currentUserId = String(user?._id || user?.id || '');
+    
     const byType = messages.reduce((acc, m) => {
       const type = m.messageType || 'text';
       acc[type] = (acc[type] || 0) + 1;
       return acc;
     }, {});
+    
     const sentByMe = messages.filter(m =>
-      m.sender?._id === currentUserId || m.sender?.username === 'Me'
+      String(m.sender?._id) === currentUserId || 
+      String(m.sender?.username) === String(user?.username) ||
+      m.senderId === currentUserId
     ).length;
+    
     const received = total - sentByMe;
-    const today = messages.filter(m => {
-      const d = new Date(m.createdAt);
-      const now = new Date();
-      return d.toDateString() === now.toDateString();
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayCount = messages.filter(m => {
+      const msgDate = new Date(m.createdAt || m.timestamp);
+      return msgDate >= today;
     }).length;
-    return { total, byType, sentByMe, received, today };
-  };
+    
+    const thisWeek = new Date();
+    thisWeek.setDate(thisWeek.getDate() - 7);
+    const weekCount = messages.filter(m => {
+      const msgDate = new Date(m.createdAt || m.timestamp);
+      return msgDate >= thisWeek;
+    }).length;
+    
+    const thisMonth = new Date();
+    thisMonth.setDate(thisMonth.getDate() - 30);
+    const monthCount = messages.filter(m => {
+      const msgDate = new Date(m.createdAt || m.timestamp);
+      return msgDate >= thisMonth;
+    }).length;
+    
+    const activeStatuses = (statuses || []).filter(s => {
+      const statusDate = new Date(s.createdAt || s.timestamp);
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      return statusDate >= oneDayAgo;
+    }).length;
+    
+    return { 
+      total, 
+      byType, 
+      sentByMe, 
+      received, 
+      today: todayCount,
+      thisWeek: weekCount,
+      thisMonth: monthCount,
+      activeStatuses,
+      images: byType.image || 0,
+      videos: byType.video || 0,
+      audio: byType.audio || 0,
+      documents: byType.file || 0,
+      stickers: byType.sticker || 0,
+      gifs: byType.gif || 0
+    };
+  }, [messages, user?._id, user?.id, user?.username, statuses]);
 
   // ── Dark/Light Theme Toggle (Item 26) ──
   const toggleAppTheme = () => {
