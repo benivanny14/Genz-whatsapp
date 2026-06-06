@@ -173,22 +173,37 @@ const CallScreen = ({ call, onEndCall, onAcceptCall, onRejectCall, onToggleMute,
   }, [callStatus]);
 
   // ── Initialize outgoing call ──
+  const socketRetryRef = useRef(0);
+
   useEffect(() => {
     if (!call || isIncoming) return;
+    socketRetryRef.current = 0;
+    let retryTimer = null;
+    let cancelled = false;
 
     const startCall = async () => {
-      try {
-        if (!socket) {
-          console.warn('[CallScreen] Socket not available yet, waiting...');
-          setTimeout(startCall, 500);
+      if (cancelled) return;
+
+      if (!socket) {
+        socketRetryRef.current += 1;
+        if (socketRetryRef.current > 5) {
+          console.error('[CallScreen] Socket unavailable after 5 retries, aborting call.');
+          setCallStatus('ended');
+          onEndCall?.();
           return;
         }
+        console.warn(`[CallScreen] Socket not available yet, retry ${socketRetryRef.current}/5...`);
+        retryTimer = setTimeout(startCall, 2000);
+        return;
+      }
 
+      try {
         const stream = await webRTCService.createCall(
           call.user?._id || call.callerId,
           call.type || 'audio',
           socket
         );
+        if (cancelled) return;
         setHasLocalStream(true);
         if (localVideoRef.current && stream) localVideoRef.current.srcObject = stream;
 
@@ -207,6 +222,11 @@ const CallScreen = ({ call, onEndCall, onAcceptCall, onRejectCall, onToggleMute,
     };
 
     if (call.status !== 'incoming') startCall();
+
+    return () => {
+      cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
+    };
   }, [call?.conversationId, socket]);
 
   // ── Socket: receive WebRTC answer + ICE candidates ──
