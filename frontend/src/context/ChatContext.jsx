@@ -1606,7 +1606,8 @@ export const ChatProvider = ({ children }) => {
   // ── Message Statistics (Item 15) ──
   const getMessageStats = useCallback(() => {
     const total = messages.length;
-    const currentUserId = String(user?._id || user?.id || '');
+    const statsUserId = String(currentUserId || '');
+    const statsUsername = authUser?.username || localStorage.getItem('username') || 'GENZ User';
     
     const byType = messages.reduce((acc, m) => {
       const type = m.messageType || 'text';
@@ -1615,9 +1616,9 @@ export const ChatProvider = ({ children }) => {
     }, {});
     
     const sentByMe = messages.filter(m =>
-      String(m.sender?._id) === currentUserId || 
-      String(m.sender?.username) === String(user?.username) ||
-      m.senderId === currentUserId
+      String(m.sender?._id || m.sender || '') === statsUserId ||
+      String(m.sender?.username || '') === String(statsUsername) ||
+      String(m.senderId || '') === statsUserId
     ).length;
     
     const received = total - sentByMe;
@@ -1665,7 +1666,7 @@ export const ChatProvider = ({ children }) => {
       stickers: byType.sticker || 0,
       gifs: byType.gif || 0
     };
-  }, [messages, user?._id, user?.id, user?.username, statuses]);
+  }, [messages, currentUserId, authUser?.username, statuses]);
 
   // ── Dark/Light Theme Toggle (Item 26) ──
   const toggleAppTheme = () => {
