@@ -356,10 +356,13 @@ export const ChatProvider = ({ children }) => {
       setScreenshotAttemptCallback(async () => {
         if (selectedConversation && socketRef.current?.connected) {
           try {
+            // Temporarily commented out until backend supports conversation-level screenshots
+            /*
             await authFetch(`${BACKEND_URL}/chat/messages/${selectedConversation._id}/screenshot-attempt`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' }
             });
+            */
           } catch (e) {
             console.error('Failed to report screenshot attempt:', e);
           }

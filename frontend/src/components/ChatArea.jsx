@@ -570,8 +570,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         chatId: selectedConversation._id,
         isGroup: selectedConversation.isGroup,
         ghostMode: mods.ghostMode,
-        isSelfDestruct: mods.selfDestruct || Boolean(activeDisappearingTimer),
-        selfDestructTimer: activeDisappearingTimer || (mods.selfDestruct ? 43200 : null),
+        isSelfDestruct: mods.selfDestruct || Boolean(selectedConversation?.disappearingMessages),
+        selfDestructTimer: selectedConversation?.disappearingMessages?.duration ? parseInt(selectedConversation.disappearingMessages.duration) * 3600 : (mods.selfDestruct ? 43200 : null),
         isViewOnce: isViewOnceEnabled,
         mentions
       });
