@@ -22,10 +22,17 @@ export const triggerScreenshotWarning = () => {
   document.body.classList.add('screenshot-warning');
   overlay.classList.add('active');
   
-  // Notify via callback if registered
+  // Notify via callback if registered (for socket notification)
   if (onScreenshotAttempt) {
     onScreenshotAttempt();
   }
+  
+  // Also show a toast notification
+  if (window.showToast) {
+    window.showToast('⚠️ Screenshot attempt detected!');
+  }
+  
+  console.warn('[Anti-Screenshot] Screenshot attempt blocked!');
   
   window.setTimeout(() => {
     overlay.classList.remove('active');
