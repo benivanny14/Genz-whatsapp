@@ -1567,6 +1567,15 @@ export const ChatProvider = ({ children }) => {
     if (activeCall) {
       emitSafe('call:accept', { conversationId: activeCall.conversationId, callerId: activeCall.callerId });
       setActiveCall(prev => prev ? { ...prev, status: 'connected' } : prev);
+      
+      // Also emit WebRTC answer if we have an offer
+      if (activeCall.offer && socketRef.current) {
+        socketRef.current.emit('webrtc:answer', {
+          to: activeCall.callerId,
+          answer: activeCall.answer,
+          callType: activeCall.type
+        });
+      }
     }
   };
   const rejectCall = () => {
