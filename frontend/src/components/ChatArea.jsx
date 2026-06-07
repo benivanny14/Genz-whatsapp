@@ -282,6 +282,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [currentLocationCoords, setCurrentLocationCoords] = useState(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
+  const [viewOnceModalOpen, setViewOnceModalOpen] = useState(false);
+  const [viewOnceMessageData, setViewOnceMessageData] = useState(null);
 
   // Debug showScheduleModal state
   useEffect(() => {
@@ -1219,18 +1221,30 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     if (e?.target) e.target.value = '';
   };
 
-  const openViewOnceMessage = async (message) => {
-    const messageId = message.id || message._id;
-    if (!messageId) return;
-    const senderId = String(message.sender?._id || message.sender || '');
-    const me = String(user?.id || user?._id || '');
-    if (senderId && senderId !== me) {
-      try {
-        await markViewOnceViewed(messageId);
-      } catch {
-        /* local reveal still works if API fails */
+  // Open View Once modal - shows content without marking as viewed yet
+  const openViewOnceModal = (message) => {
+    setViewOnceMessageData(message);
+    setViewOnceModalOpen(true);
+  };
+
+  // Close View Once modal - NOW mark as viewed/consumed
+  const closeViewOnceModal = async () => {
+    if (viewOnceMessageData) {
+      const messageId = viewOnceMessageData.id || viewOnceMessageData._id;
+      const senderId = String(viewOnceMessageData.sender?._id || viewOnceMessageData.sender || '');
+      const me = String(user?.id || user?._id || '');
+      
+      // Only mark as viewed if not the sender
+      if (senderId && senderId !== me) {
+        try {
+          await markViewOnceViewed(messageId);
+        } catch (err) {
+          console.error('Failed to mark view-once as viewed:', err);
+        }
       }
     }
+    setViewOnceModalOpen(false);
+    setViewOnceMessageData(null);
   };
 
   // --- CAMERA MODAL HANDLERS ---
@@ -2340,7 +2354,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                           <video
                             src={mediaSourceOf(message)}
                             className="max-w-full rounded-lg max-h-64 w-full cursor-pointer blur-md"
-                            onClick={() => openViewOnceMessage(message)}
+                          onClick={() => openViewOnceModal(message)}
                           />
                           <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg pointer-events-none">
                             <Eye size={24} className="text-white" />
@@ -2385,7 +2399,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                             alt={typeof message.content === 'string' ? message.content : 'Media'}
                             className="max-w-full rounded-lg cursor-pointer"
                             loading="lazy"
-                            onClick={() => openViewOnceMessage(message)}
+                            onClick={() => openViewOnceModal(message)}
                           />
                           <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
                             <Eye size={24} className="text-white" />
@@ -2545,7 +2559,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       !message.isConsumed && (
                         <button
                           type="button"
-                          onClick={() => openViewOnceMessage(message)}
+                          onClick={() => openViewOnceModal(message)}
                           className="flex items-center gap-2 text-sm italic text-dark-textSecondary py-2 px-3 rounded-lg bg-black/20 border border-white/10 hover:bg-black/30 transition-colors"
                         >
                           <Eye size={16} /> Tap to view once
@@ -3664,6 +3678,71 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                   <Send size={20} className="ml-1" />
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── View Once Modal ── */}
+      {viewOnceModalOpen && viewOnceMessageData && (
+        <div className="fixed inset-0 bg-black/95 z-[10000] flex items-center justify-center" onClick={closeViewOnceModal}>
+          <div className="relative max-w-4xl max-h-[90vh] flex items-center justify-center p-4" onClick={e => e.stopPropagation()}>
+            {/* Close button */}
+            <button
+              onClick={closeViewOnceModal}
+              className="absolute top-4 right-4 z-10 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
+            >
+              <X size={24} />
+            </button>
+            
+            {/* Content */}
+            {viewOnceMessageData.messageType === 'image' ? (
+              <img
+                src={mediaSourceOf(viewOnceMessageData)}
+                alt="View Once"
+                className="max-w-full max-h-[80vh] object-contain rounded-lg"
+              />
+            ) : viewOnceMessageData.messageType === 'video' ? (
+              <video
+                src={mediaSourceOf(viewOnceMessageData)}
+                controls
+                autoPlay
+                className="max-w-full max-h-[80vh] object-contain rounded-lg"
+              />
+            ) : viewOnceMessageData.messageType === 'audio' ? (
+              <div className="bg-dark-surface p-8 rounded-2xl border border-dark-border">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-16 h-16 rounded-full bg-primary-600/20 flex items-center justify-center">
+                    <Mic size={24} className="text-primary-500" />
+                  </div>
+                  <div>
+                    <p className="text-white font-medium">Voice Note</p>
+                    <p className="text-dark-textSecondary text-sm">
+                      {viewOnceMessageData.duration ? `${Math.floor(viewOnceMessageData.duration / 60)}:${(viewOnceMessageData.duration % 60).toString().padStart(2, '0')}` : ''}
+                    </p>
+                  </div>
+                </div>
+                <AudioPlayer
+                  audioUrl={mediaSourceOf(viewOnceMessageData)}
+                  isOwn={false}
+                  duration={viewOnceMessageData.duration}
+                  autoPlay={true}
+                />
+              </div>
+            ) : (
+              <div className="bg-dark-surface p-8 rounded-2xl border border-dark-border text-center">
+                <Eye size={48} className="text-primary-500 mx-auto mb-4" />
+                <p className="text-white text-lg">View Once Message</p>
+                <p className="text-dark-textSecondary mt-2">This message can only be viewed once</p>
+              </div>
+            )}
+            
+            {/* Warning text */}
+            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-center">
+              <p className="text-white/60 text-sm flex items-center gap-2">
+                <Eye size={16} />
+                This message will be marked as opened when you close this view
+              </p>
             </div>
           </div>
         </div>
