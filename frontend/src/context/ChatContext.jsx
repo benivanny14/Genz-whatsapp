@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { io } from 'socket.io-client';
 // Socket.io is now handled by frontend/src/services/socket.js
 // This file only uses the socket through the centralized service
 import { DB } from '../services/db';
