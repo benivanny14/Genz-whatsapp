@@ -1449,9 +1449,21 @@ export const ChatProvider = ({ children }) => {
       let messageSent = false;
       let savedMessage = newMessage;
 
-      // 1. Kipaumbele: Tumia HTTP API kuhakikisha ujumbe unasave kwenye Database
-      if (navigator.onLine && isMongoObjectId(newMessage.conversationId)) {
-        console.log("Natumia HTTP API kutuma ujumbe...");
+      // 1. Kipaumbele: Tumia Socket kwanza (real-time)
+      if (socketRef.current?.connected) {
+        console.log("Natumia Socket kutuma ujumbe...");
+        try {
+          emitSafe('message:send', payload);
+          messageSent = true;
+          console.log("Ujumbe umetumwa kupitia Socket");
+        } catch (e) {
+          console.error("Socket emit imefeli:", e);
+        }
+      }
+
+      // 2. Njia mbadala: Kama Socket haifanyi kazi, tumia HTTP API
+      if (!messageSent && navigator.onLine && isMongoObjectId(newMessage.conversationId)) {
+        console.log("Socket haifanyi kazi, natumia HTTP API...");
         try {
           const data = await apiService.sendMessage(
             newMessage.conversationId,
@@ -1474,17 +1486,6 @@ export const ChatProvider = ({ children }) => {
           }
         } catch (e) {
           console.error("API error wakati wa kutuma:", e);
-        }
-      }
-
-      // 2. Njia mbadala: Kama API imefeli au hatupo hewani, tumia Socket
-      if (!messageSent && socketRef.current?.connected) {
-        console.log("API imefeli au ina tatizo, natumia Socket kama mbadala...");
-        try {
-          emitSafe('message:send', payload);
-          messageSent = true;
-        } catch (e) {
-          console.error("Socket emit imefeli:", e);
         }
       }
 
