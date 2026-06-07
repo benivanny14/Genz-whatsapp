@@ -112,29 +112,31 @@ let pubClient = null;
 let subClient = null;
 let redisReadyPromise = null;
 
-if (!isTestEnvironment && (process.env.REDIS_URL || process.env.REDIS_HOST)) {
+// Redis client setup for distributed socket architecture
+// Redis is optional - the system works in single-instance mode without it
+if (!isTestEnvironment && process.env.REDIS_URL) {
   try {
     redisClient = createClient({
-      url: process.env.REDIS_URL || `redis://${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || 6379}`,
+      url: process.env.REDIS_URL,
       password: process.env.REDIS_PASSWORD || undefined
     });
 
     pubClient = redisClient.duplicate();
     subClient = redisClient.duplicate();
 
-    redisClient.on('error', (err) => console.error('Redis Client Error:', err));
-    pubClient.on('error', (err) => console.error('Redis Pub Client Error:', err));
-    subClient.on('error', (err) => console.error('Redis Sub Client Error:', err));
+    redisClient.on('error', (err) => logger.warn('Redis Client Error:', err.message));
+    pubClient.on('error', (err) => logger.warn('Redis Pub Client Error:', err.message));
+    subClient.on('error', (err) => logger.warn('Redis Sub Client Error:', err.message));
 
     redisReadyPromise = (async () => {
       await redisClient.connect();
       await pubClient.connect();
       await subClient.connect();
       if (app) app.set('redisClient', redisClient);
-      console.log('✅ Redis connected for distributed socket architecture');
+      logger.info('✅ Redis connected for distributed socket architecture');
       return true;
     })().catch((err) => {
-      console.warn('Redis connection failed, falling back to single-instance mode:', err.message);
+      logger.warn('Redis connection failed, running in single-instance mode:', err.message);
       redisClient = null;
       pubClient = null;
       subClient = null;
@@ -142,10 +144,39 @@ if (!isTestEnvironment && (process.env.REDIS_URL || process.env.REDIS_HOST)) {
       return false;
     });
   } catch (err) {
-    console.warn('⚠️  Redis connection failed, falling back to single-instance mode:', err.message);
+    logger.warn('⚠️  Redis setup failed, running in single-instance mode:', err.message);
   }
-} else if (!isTestEnvironment) {
-  console.log('ℹ️  Redis not configured, running in single-instance mode');
+} else if (!isTestEnvironment && process.env.REDIS_HOST) {
+  // Legacy REDIS_HOST support
+  try {
+    const redisUrl = `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT || 6379}`;
+    redisClient = createClient({
+      url: redisUrl,
+      password: process.env.REDIS_PASSWORD || undefined
+    });
+
+    pubClient = redisClient.duplicate();
+    subClient = redisClient.duplicate();
+
+    redisClient.on('error', (err) => logger.warn('Redis Client Error:', err.message));
+
+    redisReadyPromise = (async () => {
+      await redisClient.connect();
+      await pubClient.connect();
+      await subClient.connect();
+      if (app) app.set('redisClient', redisClient);
+      logger.info('✅ Redis connected for distributed socket architecture');
+      return true;
+    })().catch((err) => {
+      logger.warn('Redis connection failed, running in single-instance mode:', err.message);
+      redisClient = null;
+      pubClient = null;
+      subClient = null;
+      return false;
+    });
+  } catch (err) {
+    logger.warn('⚠️  Redis setup failed, running in single-instance mode:', err.message);
+  }
 }
 
 // Import MongoDB Models
@@ -769,756 +800,18 @@ io.use(async (socket, next) => {
 
 setupSocket(io);
 
-if (process.env.ENABLE_LEGACY_SOCKET === 'true') {
-console.warn('ENABLE_LEGACY_SOCKET=true: running legacy in-memory socket handlers alongside the persistent socket layer.');
-
-// In-memory storage for messages (fallback when MongoDB is not available)
-let messages = [];
-// TM MOD: Track online users and pinned chats
-let onlineUsers = new Set();
-// TM MOD: Map socket IDs to user data for presence tracking
-let socketToUser = {};
-// TM MOD: Profile Visitors storage
-let profileVisitors = []; // { visitorId, visitorName, timestamp }
-// TM MOD: Online Presence History (Last 24 hours)
-let presenceHistory = {}; // { userId: [{ status, time }] }
-// TM MOD: Active Group Live Streams
-let activeLiveStreams = {}; // { chatId: { host, viewers: [], startTime } }
-// TM MOD: User Settings for Auto-Reply
-let userAppSettings = {}; // { userId: { autoReplyEnabled, autoReplyMessage } }
-// TM MOD: Group settings (for admin-only messaging, disappearing messages, permissions, etc.)
-let groups = [
-  {
-    _id: "g1",
-    adminOnlyMessaging: false,
-    disappearingDuration: "Off",
-    // New: Custom Group Permissions
-    canSendMedia: true,
-    canCreatePolls: true,
-    canChangeGroupInfo: true,
-    customRoles: [], // TM MOD: Store custom roles here
-  },
-  // Add other group settings here
-];
-// TM MOD: Scheduled Messages storage
-let scheduledMessages = [];
-// TM MOD: Mock statuses storage for anti-delete
-let statuses = [];
-// TM MOD: Sticker Store Simulation Data
-let stickerStore = [
-  {
-    id: "p1",
-    name: "TM Memes",
-    author: "TM Dev",
-    stickers: [
-      "https://cdn-icons-png.flaticon.com/512/3532/3532827.png",
-      "https://cdn-icons-png.flaticon.com/512/3532/3532840.png",
-    ],
-  },
-  {
-    id: "p2",
-    name: "Love & Hearts",
-    author: "TM Designer",
-    stickers: [
-      "https://cdn-icons-png.flaticon.com/512/2589/2589175.png",
-      "https://cdn-icons-png.flaticon.com/512/2107/2107845.png",
-    ],
-  },
-  {
-    id: "p3",
-    name: "Tech Life",
-    author: "Genz Tech",
-    stickers: [
-      "https://cdn-icons-png.flaticon.com/512/4257/4257487.png",
-      "https://cdn-icons-png.flaticon.com/512/2165/2165249.png",
-    ],
-  },
-];
-
-// Helper function to parse disappearing duration
-function parseDisappearingDuration(duration) {
-  switch (duration) {
-    case "24h":
-      return 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-    case "7d":
-      return 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
-    case "90d":
-      return 90 * 24 * 60 * 60 * 1000; // 90 days in milliseconds
-    default:
-      return 0;
-  }
-}
-
-// Periodically check for scheduled messages
-setInterval(() => {
-  const now = new Date();
-  scheduledMessages = scheduledMessages.filter((item) => {
-    if (new Date(item.scheduleTime) <= now) {
-      const newMessage = {
-        ...item.messageData,
-        timestamp: new Date(),
-        id: Date.now(),
-      };
-      messages.push(newMessage);
-      io.emit("receive_message", {
-        ...newMessage,
-        message: item.plainText,
-      });
-      return false; // Remove from scheduled
-    }
-    return true;
-  });
-}, 5000); // Check every 5 seconds
-
-io.on("connection", async (socket) => {
-  console.log("User Connected:", socket.id, "User ID:", socket.userId);
-
-  // Update user online status (no database)
-  if (socket.userId && !socket.handshake.auth.freezeLastSeen) {
-    onlineUsers.add(socket.userId);
-    socketToUser[socket.id] = { userId: socket.userId, username: socket.user?.username || 'GENZ User' };
-    
-    // Notify others user is online
-    socket.broadcast.emit("user:online", { userId: socket.userId });
-  } else if (socket.userId && socket.handshake.auth.freezeLastSeen) {
-    socketToUser[socket.id] = { userId: socket.userId, username: socket.user?.username || 'GENZ Ghost' };
-  }
-
-  socket.on("send_message", async (data) => {
-    try {
-      console.log("Received send_message:", data);
-      const group = data.isGroup
-        ? groups.find((g) => g._id === data.chatId)
-        : null; // Find group here
-
-      // 1. Encrypt Message for Security
-      const encryptedMsg = data.message ? encrypt(data.message) : null;
-
-      const newMessage = {
-        id: Date.now(),
-        sender: data.sender,
-        content: encryptedMsg,
-        messageType: data.messageType || "text",
-        mediaUrl: data.mediaUrl || null,
-        caption: data.caption || null, // TM MOD: Added caption support
-        voiceEffect: data.voiceEffect || "none",
-        timestamp: new Date(),
-        isDeleted: false,
-        editedAt: null,
-        isAdmin: data.sender === "TM Admin",
-        ghostMode: data.ghostMode || false,
-        isSelfDestruct: data.isSelfDestruct || false,
-        chatId: data.chatId, // Ensure chatId is passed
-        isGroup: data.isGroup || false,
-        isLiveLocation: data.isLiveLocation || false,
-      };
-
-      // TM MOD: Admin-Only Messaging Check
-      if (data.isGroup && group) {
-        if (group.adminOnlyMessaging) {
-          if (data.senderRole !== "admin") {
-            // Optionally, send an error back to the sender
-            return; // Block message from non-admin
-          }
-        }
-        // TM MOD: Custom Group Permissions - Media
-        if (
-          data.messageType &&
-          (data.messageType === "image" ||
-            data.messageType === "audio" ||
-            data.messageType === "file" ||
-            data.messageType === "location")
-        ) {
-          if (!group.canSendMedia && data.senderRole !== "admin") {
-            return; // Block media from non-permitted members
-          }
-        }
-      }
-
-      // TM MOD: Disappearing Messages Logic (server-side deletion simulation)
-      if (data.isGroup && group && group.disappearingDuration !== "Off") {
-        const durationMs = parseDisappearingDuration(
-          group.disappearingDuration,
-        );
-        if (durationMs > 0 && newMessage.id) {
-          setTimeout(async () => {
-            // Find and mark message as disappeared (or remove it)
-            const msgIndex = messages.findIndex((m) => m.id === newMessage.id);
-            if (msgIndex !== -1) {
-              messages[msgIndex].isDisappeared = true;
-              // Also update in MongoDB
-              try {
-                await Message.updateOne(
-                  { id: newMessage.id },
-                  { $set: { isDisappeared: true } }
-                );
-              } catch (err) {
-                console.error("Error updating disappeared message:", err);
-              }
-              io.emit("message_disappeared_signal", { id: newMessage.id });
-            }
-          }, durationMs);
-        }
-      }
-
-      // Save message to MongoDB (Database Integration)
-      try {
-        // Find conversation to get proper sender reference
-        const conversation = await Conversation.findOne({ _id: data.chatId });
-        
-        if (conversation) {
-          // Find the sender user
-          const senderUser = await User.findOne({ username: data.sender });
-          
-          if (senderUser) {
-            const messageDoc = await Message.create({
-              conversationId: conversation._id,
-              sender: senderUser._id,
-              content: data.message, // Store plain text for now (encrypted version in content field)
-              messageType: data.messageType || "text",
-              mediaUrl: data.mediaUrl || "",
-              fileName: data.fileName || "",
-              fileSize: data.fileSize || 0,
-              duration: data.duration || 0,
-            });
-
-            newMessage.dbId = messageDoc._id;
-            console.log("Message saved to MongoDB:", messageDoc._id);
-          }
-        }
-      } catch (dbError) {
-        console.error("Error saving message to database:", dbError.message);
-        // Continue with in-memory storage as fallback
-      }
-
-      messages.push(newMessage); // Push message after all checks
-
-      // TM MOD: AI Auto-Reply Check (Only for 1-on-1 chats)
-      if (!data.isGroup) {
-        // In this mock, conversation ID '1' is between user '1' and '2'
-        // We find the recipient (the one who is NOT the sender)
-        const recipientId = data.sender === "TM User" ? "2" : "1";
-        
-        // Check if recipient is offline and has auto-reply enabled
-        if (!onlineUsers.has(recipientId)) {
-          const settings = userAppSettings[recipientId];
-          if (settings && settings.autoReplyEnabled) {
-            setTimeout(() => {
-              const autoReplyMsg = {
-                id: Date.now() + 1,
-                sender: recipientId === "2" ? "TM Admin" : "TM User",
-                content: encrypt(settings.autoReplyMessage),
-                messageType: "text",
-                timestamp: new Date(),
-                isDeleted: false,
-                isAutoReply: true,
-                chatId: data.chatId
-              };
-              messages.push(autoReplyMsg);
-              io.emit("receive_message", { ...autoReplyMsg, message: settings.autoReplyMessage });
-            }, 2000); // 2 second delay for realistic feel
-          }
-        }
-      }
-
-      io.emit("receive_message", {
-        ...newMessage,
-        ...data,
-        message: data.message,
-      });
-    } catch (error) {
-      console.error("Error in send_message:", error);
-      socket.emit("send_message_error", { error: "Failed to send message." });
-    }
-  });
-
-  // TM MOD: Anti-Delete Logic
-  socket.on("delete_message", (messageId) => {
-    const msgIndex = messages.findIndex((m) => m.id === messageId);
-    if (msgIndex !== -1) {
-      messages[msgIndex].isDeleted = true;
-      // Tuma taarifa kuwa imefutwa, lakini TM Mod itaitunza
-      io.emit("message_deleted_signal", {
-        id: messageId,
-        adminOverride: false,
-      });
-    }
-  });
-
-  // TM MOD: Mass Message Sender Logic
-  socket.on("send_mass_message", (data) => {
-    const { recipients, message, sender } = data;
-    recipients.forEach(recipientId => {
-      const encryptedMsg = encrypt(message);
-      const massMsg = {
-        id: Date.now() + Math.random(),
-        sender: sender,
-        content: encryptedMsg,
-        timestamp: new Date(),
-        isDeleted: false,
-        chatId: recipientId // Assuming chatId is userId for 1-on-1
-      };
-      messages.push(massMsg);
-      io.emit("receive_message", { ...massMsg, message: message });
-    });
-  });
-
-  // TM MOD: Status Deletion logic for Anti-Delete
-  socket.on("delete_status", (statusId) => { // Fixed: Ensure statusId is passed
-    // In reality, statuses would be in a DB. Here we signal a delete event.
-    io.emit("status_deleted_signal", { statusId });
-  });
-
-  // TM MOD: Live Stream Logic
-  socket.on("start_live_stream", ({ chatId, hostName }) => {
-    activeLiveStreams[chatId] = { host: hostName, viewers: [socket.id], startTime: new Date() };
-    io.emit("live_stream_started", { chatId, host: hostName });
-    
-    // Simulation: Tuma maoni ya uongo kila baada ya muda (Fixed: Use GENZ instead of TM)
-    const comments = ["🔥 Kaa kilele!", "TM WhatsApp is the best", "Looking good admin!", "Noma sana 🚀", "Hii feature ni fire", "Greeting from Arusha!"];
-    const interval = setInterval(() => {
-      if (!activeLiveStreams[chatId]) {
-        clearInterval(interval);
-        return;
-      }
-      const randomComment = comments[Math.floor(Math.random() * comments.length)];
-      io.emit("live_stream_comment", { chatId, user: "Guest_" + Math.floor(Math.random() * 100), text: randomComment });
-    }, 3000);
-  }); // Fixed: Ensure live_stream_started is emitted
-
-  socket.on("join_live_stream", (chatId) => {
-    if (activeLiveStreams[chatId]) {
-      activeLiveStreams[chatId].viewers.push(socket.id);
-      io.emit("live_viewers_update", { chatId, count: activeLiveStreams[chatId].viewers.length });
-    }
-  });
-
-  socket.on("stop_live_stream", (chatId) => {
-    delete activeLiveStreams[chatId];
-    io.emit("live_stream_ended", chatId);
-  }); // Fixed: Ensure live_stream_ended is emitted
-
-  // TM MOD: Message Editing Logic
-  socket.on("edit_message", ({ messageId, newContent }) => {
-    const msgIndex = messages.findIndex((m) => m.id === messageId);
-    if (msgIndex !== -1) {
-      const message = messages[msgIndex];
-      // Allow editing within 5 minutes (300,000 ms)
-      if (Date.now() - message.timestamp < 300000) {
-        message.content = encrypt(newContent); // Re-encrypt new content
-        message.editedAt = new Date();
-        io.emit("message_edited_signal", {
-          id: messageId,
-          newContent: newContent, // Send plain text for client display
-        });
-      }
-    }
-  });
-
-  // TM MOD: Star Message Logic
-  socket.on("star_message", (messageId) => {
-    const msgIndex = messages.findIndex((m) => m.id === messageId);
-    if (msgIndex !== -1) {
-      messages[msgIndex].isStarred = !messages[msgIndex].isStarred;
-      // Tuma mabadiliko kwa wote
-      io.emit("message_starred_signal", {
-        id: messageId,
-        isStarred: messages[msgIndex].isStarred,
-      });
-    }
-  });
-
-  // TM MOD: Forward Message Logic
-  socket.on("forward_message", (data) => {
-    // 1. Encrypt Message for Security
-    const encryptedMsg = encrypt(data.message);
-
-    const newMessage = {
-      id: Date.now(),
-      sender: data.sender,
-      content: encryptedMsg,
-      timestamp: new Date(),
-      isDeleted: false,
-      isForwarded: true, // Mark as forwarded
-    };
-
-    messages.push(newMessage);
-
-    io.emit("receive_message", {
-      ...newMessage,
-      message: data.message,
-    });
-  });
-
-  // TM MOD: Broadcast Message Logic
-  socket.on("send_broadcast", (data) => {
-    const encryptedMsg = encrypt(data.message);
-
-    // Katika maisha halisi, tungetuma kwa kila recipient mmoja mmoja
-    // Hapa tunasimulate kwa ku-emit ujumbe wenye alama ya "broadcast"
-    const broadcastMsg = {
-      id: Date.now(),
-      sender: data.sender,
-      content: encryptedMsg,
-      timestamp: new Date(),
-      isDeleted: false,
-      isBroadcast: true,
-      recipients: data.recipients, // ID za watumiaji
-    };
-
-    messages.push(broadcastMsg);
-    io.emit("receive_message", {
-      ...broadcastMsg,
-      message: data.message,
-    });
-  });
-
-  socket.on("disconnect", async () => {
-    const userData = socketToUser[socket.id];
-    if (userData) {
-      onlineUsers.delete(userData.userId);
-      
-      if (!presenceHistory[userData.userId])
-        presenceHistory[userData.userId] = [];
-      presenceHistory[userData.userId].push({
-        status: "offline",
-        time: new Date(),
-      });
-
-      io.emit("update_online_users", Array.from(onlineUsers));
-      delete socketToUser[socket.id];
-    }
-    console.log("User Disconnected:", socket.id);
-  });
-
-  // TM MOD: Mark messages as read
-  socket.on("mark_as_read", ({ chatId, userId }) => {
-    // Katika production ungesasisha DB status = 'read'
-    io.emit("messages_read_signal", { chatId, userId });
-  });
-
-  // Handle typing status
-  socket.on("typing", (data) => {
-    // In a real app, you'd use data.conversationId to target specific room
-    socket.broadcast.emit("typing_status", {
-      sender: data.sender,
-      isTyping: data.isTyping,
-    });
-  });
-
-  // TM MOD: Poll System Logic
-  socket.on("create_poll", (data) => {
-    const group = data.isGroup
-      ? groups.find((g) => g._id === data.chatId)
-      : null;
-    // TM MOD: Custom Group Permissions - Polls
-    if (
-      data.isGroup &&
-      group &&
-      group.canCreatePolls === false &&
-      data.senderRole !== "admin"
-    ) {
-      // Corrected check
-      return; // Block poll creation from non-permitted members
-    }
-
-    const pollMessage = {
-      id: Date.now(),
-      sender: data.sender,
-      timestamp: new Date(),
-      isPoll: true,
-      question: data.question,
-      options: data.options.map((opt) => ({ text: opt, votes: [] })),
-      isDeleted: false,
-      chatId: data.chatId,
-      isGroup: data.isGroup,
-    };
-    messages.push(pollMessage);
-    io.emit("receive_message", pollMessage);
-  });
-
-  socket.on("vote_poll", ({ messageId, optionIndex, userId }) => {
-    const msgIndex = messages.findIndex((m) => m.id === messageId);
-    if (msgIndex !== -1 && messages[msgIndex].isPoll) {
-      // Remove user from any other options (allow only one vote)
-      messages[msgIndex].options.forEach((opt) => {
-        opt.votes = opt.votes.filter((id) => id !== userId);
-      });
-      // Add vote
-      messages[msgIndex].options[optionIndex].votes.push(userId);
-
-      io.emit("poll_updated", {
-        id: messageId,
-        options: messages[msgIndex].options,
-      });
-    }
-  });
-
-  // TM MOD: Message Scheduling Logic
-  socket.on("schedule_message", (data) => {
-    const encryptedMsg = encrypt(data.message);
-    scheduledMessages.push({
-      scheduleTime: data.scheduleTime,
-      plainText: data.message,
-      messageData: {
-        sender: data.sender,
-        content: encryptedMsg,
-        isScheduled: true,
-      },
-    });
-  });
-
-  // TM MOD: Online Status Logic
-  socket.on("user_online", (data) => {
-    if (socket.handshake.auth.freezeLastSeen) return;
-
-    onlineUsers.add(data.userId);
-    socketToUser[socket.id] = { userId: data.userId, username: data.username };
-    io.emit("update_online_users", Array.from(onlineUsers));
-
-    // Log presence
-    if (!presenceHistory[data.userId]) presenceHistory[data.userId] = [];
-    presenceHistory[data.userId].push({ status: "online", time: new Date() });
-
-    // Safisha data za zamani (> 24h)
-    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-    presenceHistory[data.userId] = presenceHistory[data.userId].filter(
-      (h) => new Date(h.time) > oneDayAgo,
-    );
-
-    // Tuma history kwa yule anayeihitaji
-    socket.emit("presence_history_update", {
-      userId: data.userId,
-      history: presenceHistory[data.userId],
-    });
-
-    // TM MOD: Broadcast online notification to others
-    socket.broadcast.emit("friend_online_notification", {
-      username: data.username,
-    });
-  }); // Fixed: Ensure friend_online_notification is emitted
-
-  // TM MOD: Request History Logic
-  socket.on("request_presence_history", (userId) => {
-    socket.emit("presence_history_update", {
-      userId,
-      history: presenceHistory[userId] || [],
-    });
-  });
-
-  // TM MOD: Mute Chat Logic
-  socket.on("mute_chat", (payload) => {
-    const chatId = typeof payload === 'object' ? payload.chatId : payload;
-    io.emit("chat_muted_signal", { chatId });
-  });
-
-  // TM MOD: Chat Lock Logic (Fixed: Use isLocked and pin)
-  socket.on("toggle_chat_lock", ({ chatId, isLocked, pin }) => {
-    io.emit("chat_locked_signal", { chatId, isLocked, pin });
-  });
-
-  // TM MOD: Update Auto-Reply Settings
-  socket.on("update_auto_reply", (data) => {
-    userAppSettings[data.userId] = {
-      autoReplyEnabled: data.autoReplyEnabled,
-      autoReplyMessage: data.autoReplyMessage
-    };
-    console.log("Auto-reply settings updated for user:", data.userId);
-  });
-
-  // TM MOD: Archive Chat Logic
-  socket.on("archive_chat", (chatId) => {
-    io.emit("chat_archived_signal", { chatId });
-  });
-
-  // TM MOD: Pin Message Logic
-  socket.on("pin_message", ({ chatId, messageId }) => {
-    // Kwenye mfumo wa kweli ungehifadhi pinnedMessageId kwenye DB
-    io.emit("message_pinned_signal", { chatId, messageId });
-  });
-
-  socket.on("unpin_message", ({ chatId }) => {
-    io.emit("message_unpinned_signal", { chatId });
-  });
-
-  // TM MOD: Group Admin Tools Logic
-  socket.on("group_admin_action", (data) => {
-    io.emit("group_update_signal", data);
-  });
-
-  // TM MOD: Custom Group Roles Logic
-  socket.on("create_custom_role", ({ chatId, roleName, permissions }) => {
-    const groupIndex = groups.findIndex((g) => g._id === chatId);
-    if (groupIndex !== -1) {
-      if (!groups[groupIndex].customRoles) groups[groupIndex].customRoles = [];
-      const newRole = { id: "r" + Date.now(), name: roleName, permissions };
-      groups[groupIndex].customRoles.push(newRole);
-      io.emit("group_update_signal", {
-        chatId,
-        action: "add_role",
-        role: newRole,
-      });
-    }
-  });
-
-  socket.on("assign_role", ({ chatId, userId, roleId }) => {
-    // Kwenye production hii ingehifadhiwa kwenye database
-    io.emit("group_update_signal", {
-      chatId,
-      userId,
-      action: "assign_role",
-      roleId,
-    });
-  });
-
-  // TM MOD: Update Group Setting (e.g., adminOnlyMessaging)
-  socket.on("update_group_setting", ({ chatId, setting, value }) => {
-    io.emit("group_update_signal", {
-      chatId,
-      action: "update_setting",
-      setting,
-      value,
-    });
-  });
-
-  // TM MOD: Profile Visitors Logic
-  socket.on("visit_profile", ({ visitorId, visitorName, visitedUserId }) => {
-    // In a real app, you'd store this in a database and filter by visitedUserId
-    const newVisitor = { visitorId, visitorName, timestamp: new Date() };
-    profileVisitors.push(newVisitor);
-    // For simulation, we'll just send the full list to all for simplicity
-    io.emit("profile_visitors_update", profileVisitors);
-  });
-
-  // Send current visitors on connection (for initial load)
-  socket.on("get_profile_visitors", () => {
-    socket.emit("profile_visitors_update", profileVisitors);
-  });
-
-  // TM MOD: Disappearing Messages Logic
-  socket.on("update_disappearing_messages", ({ chatId, duration }) => {
-    io.emit("group_update_signal", {
-      chatId,
-      action: "update_disappearing",
-      duration,
-    });
-  });
-
-  // TM MOD: Join Group via Link Logic
-  socket.on("join_group", ({ chatId, userId, username }) => {
-    io.emit("group_update_signal", {
-      chatId,
-      userId,
-      action: "add",
-      username,
-    });
-  });
-
-  // TM MOD: Cloud Backup Simulation Logic
-  socket.on("start_backup", () => {
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += Math.floor(Math.random() * 15) + 5;
-      if (progress >= 100) {
-        progress = 100;
-        clearInterval(interval);
-      }
-      socket.emit("backup_progress", progress);
-    }, 800);
-  });
-
-  // TM MOD: Call Simulation Logic
-  socket.on("call_user", (data) => {
-    // Tuma signal ya simu kwa wengine
-    socket.broadcast.emit("incoming_call_signal", data);
-  });
-
-  socket.on("end_call", (data) => {
-    socket.broadcast.emit("call_ended_signal", data);
-  });
-
-  // TM MOD: Message Reaction Logic
-  socket.on("message_reaction", ({ messageId, emoji, userId }) => {
-    const msgIndex = messages.findIndex(
-      (m) => m._id === messageId || m.id === messageId,
-    );
-    if (msgIndex !== -1) {
-      if (!messages[msgIndex].reactions) messages[msgIndex].reactions = [];
-
-      // Check if user already reacted
-      const existingReactionIndex = messages[msgIndex].reactions.findIndex(
-        (r) => r.userId === userId,
-      );
-      if (existingReactionIndex !== -1) {
-        messages[msgIndex].reactions[existingReactionIndex].emoji = emoji;
-      } else {
-        messages[msgIndex].reactions.push({ userId, emoji });
-      }
-
-      io.emit("message_reaction_signal", {
-        messageId,
-        reactions: messages[msgIndex].reactions,
-      });
-    }
-  });
-
-  // TM MOD: Status View Signal Handling
-  socket.on("view_status", (data) => {
-    io.emit("status_view_signal", data);
-  });
-
-  // ── GENZ: Status Like (real-time) ──
-  socket.on("status_like", (data) => {
-    // Broadcast to all so like counters sync live
-    socket.broadcast.emit("status_liked_signal", {
-      statusId: data.statusId,
-      liked: data.liked,
-      userId: socket.userId || socket.id
-    });
-  });
-
-  // ── GENZ: Status Comment / Reply (real-time) ──
-  socket.on("status_comment", (data) => {
-    socket.broadcast.emit("status_comment_signal", {
-      statusId: data.statusId,
-      content: data.content,
-      userId: socket.userId || socket.id,
-      timestamp: new Date().toISOString()
-    });
-  });
-
-  // ── GENZ: Live Reactions (floating emojis) ──
-  socket.on("live_reaction", (data) => {
-    socket.broadcast.emit("live_reaction_signal", {
-      chatId: data.chatId,
-      emoji: data.emoji,
-      userId: socket.userId || socket.id
-    });
-  });
-
-  socket.on("recording", (data) => {
-    // Sambaza hali ya kurekodi sauti
-    socket.broadcast.emit("recording_status", {
-      sender: data.sender,
-      isRecording: data.isRecording,
-    });
-  });
-
-  // TM MOD: Pin Chat Logic
-  socket.on("pin_chat", (chatId) => {
-    // Kwenye mfumo huu wa mock, tunatafuta conversation na ku-toggle pin
-    // Note: Kwenye production hii ingehifadhiwa kwenye Database kwa kila mtumiaji
-    io.emit("chat_pinned_signal", { chatId });
-  });
-
-  socket.on("stop_typing", (data) => {
-    socket.broadcast.emit("typing_status", {
-      sender: data.sender,
-      isTyping: data.isTyping,
-    });
-  });
-});
-}
+// Legacy socket handlers have been removed. All socket functionality is now
+// handled by the modern socket layer in backend/socket/index.js which provides:
+// - Proper database integration
+// - Better error handling
+// - Memory leak prevention
+// - Distributed architecture support
+
+// If you need to enable legacy mode for testing, set ENABLE_LEGACY_SOCKET=true
+// but note this may cause instability and is not recommended for production.
+// Legacy socket handlers have been completely removed.
+// All socket functionality is now handled by the modern socket layer
+// in backend/socket/index.js for better stability and performance.
 
 // Error handling middleware (must be after all routes)
 app.use(errorHandler);
