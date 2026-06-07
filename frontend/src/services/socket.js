@@ -40,7 +40,7 @@ export const connectSocket = (userId) => {
       reconnectionDelayMax: 5000,
       timeout: 10000,
       autoConnect: true,
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       forceNew: false // Prevent creating new connections
     };
     
