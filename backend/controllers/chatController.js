@@ -518,10 +518,11 @@ exports.getMessages = async (req, res) => {
       conversationId: conversationId,
       deletedFor: { $ne: localUserId },
       deletedForEveryone: false,
-      // Filter out self-destructed messages that have expired
+      // Filter out any expired ephemeral messages before MongoDB TTL catches up.
       $or: [
-        { isSelfDestruct: { $ne: true } },
-        { isSelfDestruct: true, disappearAt: { $gt: new Date() } }
+        { disappearAt: { $exists: false } },
+        { disappearAt: null },
+        { disappearAt: { $gt: new Date() } }
       ]
     };
 
@@ -723,6 +724,8 @@ exports.sendMessage = async (req, res) => {
       replyTo: serializeReplyTo(msgObj.replyTo),
       isViewOnce: msgObj.isViewOnce,
       isSelfDestruct: msgObj.isSelfDestruct,
+      isConsumed: msgObj.isConsumed,
+      disappearAt: msgObj.disappearAt,
       mentions: Array.isArray(msgObj.mentions) ? msgObj.mentions.map(m => ({
         user: typeof m.user === 'object' && m.user ? m.user : (m.user ? m.user.toString() : null),
         username: m.username,

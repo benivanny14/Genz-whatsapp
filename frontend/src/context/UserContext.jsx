@@ -1,17 +1,60 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { getDeviceId, getDeviceInfo } from '../utils/deviceIdentity';
 import { isBlobUrl, sanitizeBlobUrls } from '../utils/sanitizeStorage';
+import { authFetch } from '../utils/authFetch';
 
 const UserContext = createContext();
 
 const USER_STORAGE_KEY = 'genz_user_profile';
 const USER_SETTINGS_KEY = 'genz_user_settings';
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
 
   // Function to update user profile and persist to localStorage
-  const updateUserProfile = (updates) => {
+  const syncProfileToBackend = async (updates) => {
+    try {
+      const payload = {};
+      ['username', 'phoneNumber', 'bio', 'about'].forEach((field) => {
+        if (Object.prototype.hasOwnProperty.call(updates, field) && updates[field] !== undefined) {
+          payload[field] = updates[field];
+        }
+      });
+
+      if (
+        Object.prototype.hasOwnProperty.call(updates, 'profilePicture') &&
+        updates.profilePicture &&
+        !isBlobUrl(updates.profilePicture) &&
+        !String(updates.profilePicture).startsWith('data:')
+      ) {
+        payload.profilePicture = updates.profilePicture;
+      }
+
+      if (!Object.keys(payload).length) return;
+
+      const response = await authFetch(`${API_URL}/auth/profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) return;
+      const data = await response.json().catch(() => ({}));
+      if (data?.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+        setUser(prev => prev ? {
+          ...prev,
+          ...data.user,
+          id: data.user._id || data.user.id || prev.id,
+          displayName: data.user.username || prev.displayName
+        } : prev);
+      }
+    } catch (e) {
+      console.warn('Failed to sync profile to backend:', e?.message || e);
+    }
+  };
+
+  const updateUserProfile = (updates, options = {}) => {
     setUser(prev => {
       if (!prev) return prev;
       const updated = { ...prev, ...updates };
@@ -30,6 +73,10 @@ export const UserProvider = ({ children }) => {
       }
       return updated;
     });
+
+    if (options.sync !== false) {
+      syncProfileToBackend(updates);
+    }
   };
 
   useEffect(() => {

@@ -26,7 +26,7 @@ const userService = {
 
   uploadProfilePicture: async (file) => {
     const form = new FormData();
-    form.append('profilePicture', file);
+    form.append('image', file);
     const res = await authFetch(`${API_URL}/auth/profile/picture`, {
       method: 'POST',
       body: form,

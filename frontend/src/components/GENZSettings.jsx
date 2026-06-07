@@ -101,7 +101,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
     return {
       username: profileData.username || user?.username || '',
       bio: profileData.bio || user?.bio || 'Using GENZ WhatsApp Ultra Secure',
-      profilePicture: profileData.profilePicture || ''
+      profilePicture: profileData.profilePicture || user?.profilePicture || ''
     };
   });
   const [subscriptionStatus, setSubscriptionStatus] = useState({
@@ -130,7 +130,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
   const [backupError, setBackupError] = useState('');
   const profilePictureInputRef = useRef(null);
   const wallpaperInputRef = useRef(null);
-  const previousProfileRef = useRef({ username: '', bio: '', profilePicture: '' });
+  const previousProfileRef = useRef(null);
 
   // Save profile data to localStorage when it changes (debounced to avoid issues)
   useEffect(() => {
@@ -139,6 +139,11 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
       bio: editProfile.bio,
       profilePicture: editProfile.profilePicture
     };
+
+    if (!previousProfileRef.current) {
+      previousProfileRef.current = currentProfile;
+      return;
+    }
 
     // Only save if data actually changed
     const hasChanged =
@@ -152,6 +157,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
       try {
         localStorage.setItem('genz_user_profile', JSON.stringify(currentProfile));
         previousProfileRef.current = currentProfile;
+        if (updateUserProfile) updateUserProfile(currentProfile);
         console.log('Saved profile to localStorage:', { ...currentProfile, profilePicture: currentProfile.profilePicture?.length + ' chars' });
       } catch (e) {
         if (e.name === 'QuotaExceededError') {
@@ -163,7 +169,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
       }
     }, 800); // Increased debounce time for better performance
     return () => clearTimeout(timer);
-  }, [editProfile.username, editProfile.bio, editProfile.profilePicture]);
+  }, [editProfile.username, editProfile.bio, editProfile.profilePicture, updateUserProfile]);
 
   useEffect(() => {
     if (mods?.autoReplyMsg) setAutoReplyMsg(mods.autoReplyMsg);
@@ -351,14 +357,40 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
     }
   };
 
-  const handleProfilePictureUpload = (e) => {
+  const handleProfilePictureUpload = async (e) => {
     const file = e.target.files[0];
-    if (file) {
+    if (!file) return;
+
+    try {
+      const preview = await compressImage(file, 512, 0.75);
+      setEditProfile(prev => ({ ...prev, profilePicture: preview }));
+    } catch (_) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setEditProfile(prev => ({ ...prev, profilePicture: reader.result }));
-      };
+      reader.onloadend = () => setEditProfile(prev => ({ ...prev, profilePicture: reader.result }));
       reader.readAsDataURL(file);
+    }
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const response = await authFetch(`${API_URL}/auth/profile/picture`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json().catch(() => ({}));
+      const uploadedUrl = data.user?.profilePicture || data.fileUrl || data.url;
+      if (!response.ok || !uploadedUrl) {
+        throw new Error(data.message || data.error || 'Profile picture upload failed');
+      }
+      setEditProfile(prev => ({ ...prev, profilePicture: uploadedUrl }));
+      if (updateUserProfile) updateUserProfile({ profilePicture: uploadedUrl, avatar: uploadedUrl });
+      showMsg('✅ Profile picture updated');
+    } catch (error) {
+      console.error('Profile picture upload failed:', error);
+      showMsg('⚠️ Preview shown, but upload failed. Try again.');
+    } finally {
+      if (e?.target) e.target.value = '';
     }
   };
 

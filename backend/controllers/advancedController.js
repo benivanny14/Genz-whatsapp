@@ -1301,13 +1301,40 @@ exports.sendBroadcastMessage = async (req, res) => {
   }
 };
 
+const normalizeDisappearingMessages = ({ enabled, duration, timer } = {}) => {
+  const raw = duration ?? timer ?? enabled;
+  const text = String(raw ?? '').trim();
+  if (!text || /^(false|off|none|0)$/i.test(text)) {
+    return { enabled: false, duration: 'Off', timer: 0 };
+  }
+
+  if (/^\d+$/.test(text)) {
+    const hours = Math.max(1, Number(text));
+    return { enabled: true, duration: `${hours}h`, timer: hours };
+  }
+
+  const match = text.match(/^(\d+)\s*([hd])$/i);
+  if (match) {
+    const amount = Math.max(1, Number(match[1]));
+    const unit = match[2].toLowerCase();
+    return {
+      enabled: true,
+      duration: `${amount}${unit}`,
+      timer: unit === 'd' ? amount * 24 : amount
+    };
+  }
+
+  const hours = Number(timer) || 24;
+  return { enabled: Boolean(enabled ?? true), duration: text || `${hours}h`, timer: hours };
+};
+
 // @desc    Set disappearing messages
 // @route   PUT /api/advanced/conversations/:id/disappearing-messages
 // @access  Public (no auth)
 exports.setDisappearingMessages = async (req, res) => {
   try {
     const currentUserId = getCurrentUserId(req);
-    const { enabled, timer } = req.body;
+    const settings = normalizeDisappearingMessages(req.body || {});
     const conversation = await Conversation.findById(req.params.id);
 
     if (!conversation) {
@@ -1318,11 +1345,17 @@ exports.setDisappearingMessages = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
-    conversation.disappearingMessages = {
-      enabled: enabled || false,
-      timer: timer || 24
-    };
+    conversation.disappearingMessages = settings;
     await conversation.save();
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(conversation._id.toString()).emit('disappearing_messages:set', {
+        chatId: conversation._id.toString(),
+        disappearingMessages: conversation.disappearingMessages,
+        ...conversation.disappearingMessages
+      });
+    }
 
     res.status(200).json({
       success: true,

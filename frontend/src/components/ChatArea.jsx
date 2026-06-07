@@ -594,8 +594,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         chatId: selectedConversation._id,
         isGroup: selectedConversation.isGroup,
         ghostMode: mods.ghostMode,
-        isSelfDestruct: mods.selfDestruct || Boolean(selectedConversation?.disappearingMessages?.enabled),
-        selfDestructTimer: selectedConversation?.disappearingMessages?.duration ? parseInt(selectedConversation.disappearingMessages.duration) * 3600 : (mods.selfDestruct ? 43200 : null),
+        isSelfDestruct: Boolean(mods.selfDestruct),
+        selfDestructTimer: mods.selfDestruct ? 43200 : null,
         isViewOnce: isViewOnceEnabled,
         mentions
       });
@@ -769,10 +769,13 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
             body: formData,
           });
           const data = await response.json();
-          if (data.success) {
-            await sendMessage(data.fileUrl, user?.username, {
+          if (data.success || data.fileUrl || data.url) {
+            const uploadedUrl = data.fileUrl || data.url;
+            if (!uploadedUrl) throw new Error('Upload succeeded without a media URL');
+            await sendMessage('Voice note', user?.username, {
               messageType: 'audio',
-              mediaUrl: data.fileUrl,
+              mediaUrl: uploadedUrl,
+              fileName: audioFile.name,
               voiceEffect: mods?.voiceEffect || 'none',
               duration: recordingDuration,
               size: audioFile.size,
@@ -963,12 +966,15 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       const response = await authFetch(`${API_URL}/media/upload`, { method: 'POST', body: formData });
       const data = await response.json().catch(() => ({}));
 
-      if (response.ok && (data.success || data.fileUrl)) {
+      if (response.ok && (data.success || data.fileUrl || data.url)) {
+        const uploadedUrl = data.fileUrl || data.url;
+        if (!uploadedUrl) throw new Error('Upload succeeded without a media URL');
         const voiceFxLabel = appliedVoiceEffect ?? mods?.voiceEffect ?? 'none';
         const useViewOnce = Boolean(viewOnceFlag || isViewOnceEnabled);
-        await sendMessage(data.fileUrl || data.url, user?.username, {
+        await sendMessage('Voice note', user?.username, {
           messageType: 'audio',
-          mediaUrl: data.fileUrl || data.url,
+          mediaUrl: uploadedUrl,
+          fileName: audioFile.name,
           voiceEffect: voiceFxLabel,
           duration: durationSecs || 0,
           size: audioFile.size,
@@ -1180,7 +1186,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         body: formData,
       });
       const data = await response.json().catch(() => ({}));
-      if (response.ok && data.success) {
+      if (response.ok && (data.success || data.fileUrl || data.url)) {
+        const uploadedUrl = data.fileUrl || data.url;
+        if (!uploadedUrl) throw new Error('Upload succeeded without a media URL');
         let type = forcedType || 'file';
         if (!forcedType) {
           if (file.type.startsWith('image/')) type = 'image';
@@ -1188,9 +1196,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           else if (file.type.startsWith('audio/')) type = 'audio';
         }
 
-        await sendMessage(data.fileUrl, user?.username, {
+        const mediaContent = caption?.trim()
+          || (type === 'image' ? 'Photo' : type === 'video' ? 'Video' : type === 'audio' ? 'Audio' : file.name || 'Document');
+
+        await sendMessage(mediaContent, user?.username, {
           messageType: type,
-          mediaUrl: data.fileUrl,
+          mediaUrl: uploadedUrl,
           fileName: file.name,
           caption: caption,
           isViewOnce: isViewOnce,
@@ -1277,10 +1288,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       try {
         const response = await authFetch(`${API_URL}/media/upload`, { method: 'POST', body: formData });
         const data = await response.json();
-        if (response.ok && data.success) {
-          await sendMessage(data.fileUrl, user?.username, {
+        if (response.ok && (data.success || data.fileUrl || data.url)) {
+          const uploadedUrl = data.fileUrl || data.url;
+          if (!uploadedUrl) throw new Error('Upload succeeded without a media URL');
+          await sendMessage(caption?.trim() || 'Photo', user?.username, {
             messageType: 'image',
-            mediaUrl: data.fileUrl,
+            mediaUrl: uploadedUrl,
             fileName: file.name,
             caption: caption,
             chatId: selectedConversation._id,
@@ -1337,10 +1350,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     try {
       const response = await authFetch(`${API_URL}/media/upload`, { method: 'POST', body: formData });
       const data = await response.json();
-      if (response.ok && data.success) {
-        await sendMessage(data.fileUrl, user?.username, {
+      if (response.ok && (data.success || data.fileUrl || data.url)) {
+        const uploadedUrl = data.fileUrl || data.url;
+        if (!uploadedUrl) throw new Error('Upload succeeded without a media URL');
+        await sendMessage(caption?.trim() || 'Video', user?.username, {
           messageType: 'video',
-          mediaUrl: data.fileUrl,
+          mediaUrl: uploadedUrl,
           fileName: file.name,
           caption: caption,
           chatId: selectedConversation._id,
@@ -1415,10 +1430,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     try {
       const response = await authFetch(`${API_URL}/media/upload`, { method: 'POST', body: formData });
       const data = await response.json();
-      if (response.ok && data.success) {
-        await sendMessage(data.fileUrl, user?.username, {
+      if (response.ok && (data.success || data.fileUrl || data.url)) {
+        const uploadedUrl = data.fileUrl || data.url;
+        if (!uploadedUrl) throw new Error('Upload succeeded without a media URL');
+        await sendMessage('Audio', user?.username, {
           messageType: 'audio',
-          mediaUrl: data.fileUrl,
+          mediaUrl: uploadedUrl,
           fileName: file.name,
           chatId: selectedConversation._id,
           isGroup: selectedConversation.isGroup
@@ -1493,13 +1510,28 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     addReaction(messageId, '❤️');
   };
 
-  const handleSetDisappearingMessages = () => {
-    const duration = prompt("Set disappearing messages duration (in hours):", "24");
-    if (duration && selectedConversation?._id) {
-      const socket = getSocket();
-      if (socket) {
-        socket.emit('disappearing_messages:set', { chatId: selectedConversation._id, duration: `${duration}h` });
-      }
+  const handleSetDisappearingMessages = async () => {
+    const currentDuration = selectedConversation?.disappearingMessages?.enabled
+      ? selectedConversation.disappearingMessages.duration || '24h'
+      : '24';
+    const rawDuration = window.prompt('Set disappearing messages in hours, or type Off:', currentDuration);
+    if (rawDuration === null || !selectedConversation?._id) return;
+
+    const trimmed = String(rawDuration).trim();
+    const normalizedDuration = /^(off|0|none)$/i.test(trimmed)
+      ? 'Off'
+      : /^\d+$/.test(trimmed)
+        ? `${trimmed}h`
+        : trimmed;
+
+    try {
+      const result = await updateDisappearingMessages(selectedConversation._id, normalizedDuration);
+      if (result?.success === false) throw new Error(result.message || 'Failed to update disappearing messages');
+      toast.success(normalizedDuration === 'Off' ? 'Disappearing messages off' : `Disappearing messages set to ${normalizedDuration}`);
+      setShowAttachmentMenu(false);
+    } catch (err) {
+      console.error('Disappearing messages update failed:', err);
+      toast.error(err.message || 'Could not update disappearing messages');
     }
   };
 
@@ -1855,6 +1887,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const pinnedMessage = pinnedMessageId ? messages.find(m => (m._id || m.id) === pinnedMessageId) : null; // Added null check
 
   const hasStaleBlobUrl = (value) => typeof value === 'string' && value.startsWith('blob:');
+  const isHttpUrl = (value) => typeof value === 'string' && /^https?:\/\//i.test(value);
+  const mediaSourceOf = (message = {}) => (
+    message.mediaUrl ||
+    message.fileUrl ||
+    (isHttpUrl(message.content) ? message.content : '')
+  );
   const isStaleBlobMessage = (message = {}) => (
     hasStaleBlobUrl(message.content) ||
     hasStaleBlobUrl(message.mediaUrl) ||
@@ -1864,6 +1902,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   );
   const visibleMessages = (messages || []).filter((message) => {
     if (isStaleBlobMessage(message)) return false;
+    if (message.disappearAt && new Date(message.disappearAt).getTime() <= Date.now()) return false;
 
     const isSender = String(message.sender?._id || message.sender) === String(user?.id || user?._id);
     
@@ -2190,7 +2229,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
             </div>
           ) : (
             <div className="space-y-4 w-full">
-              {selectedConversation?.disappearingMessages && (
+              {selectedConversation?.disappearingMessages?.enabled && (
                 <div className="bg-yellow-100 dark:bg-yellow-900/30 border-l-4 border-yellow-500 p-2 text-yellow-700 dark:text-yellow-300 text-xs rounded-md shadow-sm mb-2 mx-auto max-w-md">
                   <p className="font-medium">⏰ Disappearing Messages</p>
                   <p>Messages disappear after {selectedConversation.disappearingMessages?.duration || selectedConversation.disappearingMessages}</p>
@@ -2291,7 +2330,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                     )}
 
                     {/* 📽️ Video Message 📽️ */}
-                    {message.messageType === 'video' && message.mediaUrl && (
+                    {message.messageType === 'video' && mediaSourceOf(message) && (
                       message.isViewOnce && !mods.antiViewOnce && message.isConsumed ? (
                         <div className="flex items-center gap-2 text-dark-textSecondary py-2 italic text-sm">
                           <Eye size={16} /> Opened
@@ -2299,7 +2338,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       ) : message.isViewOnce && !mods.antiViewOnce ? (
                         <div className="relative mb-1">
                           <video
-                            src={message.mediaUrl}
+                            src={mediaSourceOf(message)}
                             className="max-w-full rounded-lg max-h-64 w-full cursor-pointer blur-md"
                             onClick={() => openViewOnceMessage(message)}
                           />
@@ -2311,7 +2350,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                         <div className="mb-1">
                           <SignedMedia
                             as="video"
-                            src={message.mediaUrl}
+                            src={mediaSourceOf(message)}
                             controls
                             className="max-w-full rounded-lg max-h-64 w-full"
                             preload="metadata"
@@ -2342,7 +2381,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       ) : message.isViewOnce && !mods.antiViewOnce ? (
                         <div className="relative">
                           <SignedMedia
-                            src={message.mediaUrl}
+                            src={mediaSourceOf(message)}
                             alt={typeof message.content === 'string' ? message.content : 'Media'}
                             className="max-w-full rounded-lg cursor-pointer"
                             loading="lazy"
@@ -2355,13 +2394,13 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       ) : (
                         <div>
                           <SignedMedia
-                            src={message.mediaUrl}
+                            src={mediaSourceOf(message)}
                             alt={typeof message.content === 'string' ? message.content : 'Image'}
                             className="max-w-full rounded-lg"
                             loading="lazy"
                           />
                           {message.caption && <p className="text-xs mt-1 opacity-80">{typeof message.caption === 'string' ? message.caption : 'Caption'}</p>}
-                          <button onClick={() => window.open(message.mediaUrl, '_blank')} className="mt-2 bg-primary-600 text-white px-3 py-1 rounded-full text-xs hover:bg-primary-700">
+                          <button onClick={() => window.open(mediaSourceOf(message), '_blank')} className="mt-2 bg-primary-600 text-white px-3 py-1 rounded-full text-xs hover:bg-primary-700">
                             Download
                           </button>
                         </div>
@@ -2461,7 +2500,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       const senderName = sender?.username || message.sender?.username || '';
                       return (
                         <AudioPlayer
-                          audioUrl={message.mediaUrl || message.content}
+                          audioUrl={mediaSourceOf(message)}
                           isOwn={isOwnMessage(message)}
                           duration={message.duration}
                           senderAvatar={senderAvatar}
@@ -2475,7 +2514,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                           onToggleLock={toggleMessageLock}
                           onDownload={() => {
                             const link = document.createElement('a');
-                            link.href = message.mediaUrl || message.content;
+                            link.href = mediaSourceOf(message);
                             link.download = `voice-note-${message.id || message._id}.webm`;
                             link.click();
                           }}
@@ -2526,10 +2565,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                     )}
                     {(!['image', 'video', 'location', 'sticker', 'audio', 'gif'].includes(message.messageType) ||
                       (plaintextOf(message) &&
-                        plaintextOf(message) !== message.mediaUrl &&
+                        plaintextOf(message) !== mediaSourceOf(message) &&
                         plaintextOf(message) !== `${message.messageType} message` &&
                         !plaintextOf(message).includes('firebasestorage.googleapis.com') &&
                         !plaintextOf(message).includes('res.cloudinary.com') &&
+                        !/https?:\/\/[^ ]+\/uploads\//i.test(plaintextOf(message)) &&
                         !plaintextOf(message).includes('maps.google.com') &&
                         !plaintextOf(message).includes('maps.apple.com') &&
                         plaintextOf(message).trim() !== '')) &&
@@ -2812,8 +2852,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                     </div>
 
                     {/* Download button for media types */}
-                    {(message.messageType === 'image' || message.messageType === 'video' || message.messageType === 'audio' || message.messageType === 'file') && (
-                      <a href={message.mediaUrl} download className="absolute top-0 left-0 hidden group-hover:flex bg-dark-surface px-2 py-1 rounded text-sm hover:bg-dark-hover -mt-8" title="Download">
+                    {(message.messageType === 'image' || message.messageType === 'video' || message.messageType === 'audio' || message.messageType === 'file') && mediaSourceOf(message) && (
+                      <a href={mediaSourceOf(message)} download className="absolute top-0 left-0 hidden group-hover:flex bg-dark-surface px-2 py-1 rounded text-sm hover:bg-dark-hover -mt-8" title="Download">
                         <Download size={14} />
                       </a>
                     )}
@@ -3026,7 +3066,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               <AttachmentIcon icon={<Contact className="text-blue-400" />} label="Contact" onClick={handleContactSimulation} disabled={!canSendMedia && !currentUserIsAdmin} />
               <AttachmentIcon icon={<Grid3x3 className="text-pink-400" />} label="GIF" onClick={() => setShowGIFPicker(true)} disabled={!canSendMedia && !currentUserIsAdmin} />
               <AttachmentIcon icon={<BarChart2 className="text-yellow-600" />} label="Poll" disabled={!canCreatePolls && !currentUserIsAdmin} onClick={() => setShowPollModal(true)} />
-              <AttachmentIcon icon={<Clock className="text-purple-600" />} label="Disappear" onClick={() => handleSetDisappearingMessages()} disabled={!canCreatePolls && !currentUserIsAdmin} />
+              <AttachmentIcon icon={<Clock className="text-purple-600" />} label="Disappear" onClick={() => handleSetDisappearingMessages()} disabled={!selectedConversation} />
               {/* GENZ Ultra Attachments */}
               {mods?.trendingStickers && (
                 <AttachmentIcon icon={<TrendingUp className="text-pink-500" />} label="Stickers" onClick={() => { setShowTrendingStickers(true); setShowAttachmentMenu(false); }} />
@@ -3142,10 +3182,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
             </div>
           )}
           {/* Hidden file inputs */}
-          <input type="file" ref={fileInputRef} onChange={(e) => handleFileUpload(e, 'image')} className="hidden" accept="image/*" />
+          <input type="file" ref={fileInputRef} onChange={(e) => handleFileUpload(e)} className="hidden" accept="image/*,video/*" />
           <input type="file" ref={docInputRef} onChange={(e) => handleFileUpload(e, 'file')} className="hidden" accept=".pdf,.doc,.docx,.txt" />
           <input type="file" ref={audioInputRef} onChange={(e) => handleFileUpload(e, 'audio')} className="hidden" accept="audio/*" />
-          <input type="file" ref={cameraInputRef} onChange={(e) => handleFileUpload(e, 'image')} className="hidden" accept="image/*,video/*" capture />
+          <input type="file" ref={cameraInputRef} onChange={(e) => handleFileUpload(e)} className="hidden" accept="image/*,video/*" capture />
 
           {/* ── Text input — hidden while VoiceRecorder is recording ── */}
           {!voiceRecorderActive && (
@@ -3430,7 +3470,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <ChunkedUploader
             onComplete={(fileUrl, fileName) => {
-              sendMessage(fileUrl, user?.username, {
+              sendMessage(fileName || 'Big File', user?.username, {
                 messageType: 'file',
                 mediaUrl: fileUrl,
                 fileName: fileName || 'Big File'

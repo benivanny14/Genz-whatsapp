@@ -2,10 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useUser } from '../context/UserContext';
 import { X, User, Mail, Camera, Save, Check } from 'lucide-react';
 import userService from '../services/userService';
-import { authFetch } from '../utils/authFetch';
 import toast from 'react-hot-toast';
-
-const API_URL = import.meta.env.VITE_API_URL || '';
 
 const ProfileEditor = ({ onClose }) => {
   const { user, updateUserProfile } = useUser();
@@ -45,23 +42,16 @@ const ProfileEditor = ({ onClose }) => {
     setUploading(true);
 
     try {
-      // Upload to server
-      const formDataUpload = new FormData();
-      formDataUpload.append('file', file);
-      formDataUpload.append('type', 'profile-picture');
-
-      const response = await authFetch(`${API_URL}/media/upload`, {
-        method: 'POST',
-        body: formDataUpload
-      });
-
-      const data = await response.json();
-
-      if (data.success && data.fileUrl) {
-        setFormData(prev => ({ ...prev, profilePicture: data.fileUrl }));
+      const data = await userService.uploadProfilePicture(file);
+      const uploadedUrl = data.user?.profilePicture || data.fileUrl || data.url;
+      if (data.success && uploadedUrl) {
+        setFormData(prev => ({ ...prev, profilePicture: uploadedUrl }));
+        if (updateUserProfile) {
+          updateUserProfile({ profilePicture: uploadedUrl, avatar: uploadedUrl });
+        }
         toast.success('Profile picture uploaded!');
       } else {
-        throw new Error(data.error || 'Upload failed');
+        throw new Error(data.error || data.message || 'Upload failed');
       }
     } catch (error) {
       console.error('Failed to upload profile picture:', error);
@@ -85,12 +75,16 @@ const ProfileEditor = ({ onClose }) => {
     }
     
     try {
+      const profilePictureForSave = formData.profilePicture?.startsWith('data:')
+        ? (user?.profilePicture || '')
+        : formData.profilePicture;
+
       // API call to backend
       await userService.updateProfile({
         username: formData.username,
         bio: formData.bio,
         email: formData.email,
-        profilePicture: formData.profilePicture
+        profilePicture: profilePictureForSave
       });
 
       // Update local context
@@ -99,8 +93,8 @@ const ProfileEditor = ({ onClose }) => {
           username: formData.username,
           bio: formData.bio,
           email: formData.email,
-          profilePicture: formData.profilePicture,
-          avatar: formData.profilePicture
+          profilePicture: profilePictureForSave,
+          avatar: profilePictureForSave
         });
       }
       

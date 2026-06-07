@@ -44,7 +44,8 @@ const normalizeUploadedFile = (req, file, uploadResult = null) => {
     };
   }
 
-  const isCloudinaryFile = Boolean(file.secure_url);
+  const pathUrl = typeof file.path === 'string' && /^https?:\/\//i.test(file.path) ? file.path : '';
+  const isCloudinaryFile = Boolean(file.secure_url || pathUrl || file.public_id);
   const localPath = file.filename ? `/uploads/${file.filename}` : '';
   const localUrl = localPath
     ? signLocalUrlIfNeeded(`${getPublicBaseUrl(req)}${localPath}`, getPublicBaseUrl(req))
@@ -52,7 +53,7 @@ const normalizeUploadedFile = (req, file, uploadResult = null) => {
 
   return {
     success: true,
-    fileUrl: file.secure_url || localUrl,
+    fileUrl: file.secure_url || pathUrl || localUrl,
     publicId: file.public_id || file.filename || file.originalname,
     fileName: file.originalname,
     fileSize: file.size,

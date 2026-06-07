@@ -3,6 +3,7 @@ const speakeasy = require('speakeasy');
 const User = require('../models/User');
 const { mergeWhatsAppSettings } = require('../utils/whatsappSettings');
 const { applyPrivacyFilter } = require('../utils/privacyHelper');
+const { resolvePublicBaseUrl } = require('../utils/publicBaseUrl');
 
 // CRITICAL: JWT secrets must be set in environment variables
 // System will fail to start if not configured in production
@@ -280,10 +281,16 @@ exports.updateProfile = async (req, res) => {
       { $set: updates },
       { new: true, runValidators: true }
     );
+    const safe = safeUser(user);
+
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('profile:updated', { user: safe });
+    }
 
     res.json({
       success: true,
-      user: safeUser(user)
+      user: safe
     });
   } catch (error) {
     console.error('Update profile error:', error);
@@ -297,16 +304,25 @@ exports.uploadProfilePicture = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No image file provided' });
     }
     
-    // uploadImage middleware usually sets req.file.path to Cloudinary URL or local path
-    const profilePictureUrl = req.file.path || `/api/media/upload/file/${req.file.filename}`;
+    const uploadPath = req.file.path || '';
+    const profilePictureUrl = /^https?:\/\//i.test(uploadPath)
+      ? uploadPath
+      : req.file.filename
+        ? `${resolvePublicBaseUrl(req)}/uploads/${req.file.filename}`
+        : uploadPath;
     
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { $set: { profilePicture: profilePictureUrl } },
       { new: true }
     );
+    const safe = safeUser(user);
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('profile:updated', { user: safe });
+    }
     
-    res.json({ success: true, user: safeUser(user) });
+    res.json({ success: true, user: safe });
   } catch (error) {
     console.error('Upload profile picture error:', error);
     res.status(500).json({ success: false, message: error.message });

@@ -20,6 +20,33 @@ const MESSAGE_DEDUP_TTL = 60000; // 1 minute TTL for deduplication
 const SOCKET_SETUP_FLAG = Symbol.for('genz.socket.setup');
 const includesId = (items = [], id) => items.some(item => item?.toString() === id?.toString());
 
+const normalizeDisappearingMessages = ({ enabled, duration, timer } = {}) => {
+  const raw = duration ?? timer ?? enabled;
+  const text = String(raw ?? '').trim();
+  if (!text || /^(false|off|none|0)$/i.test(text)) {
+    return { enabled: false, duration: 'Off', timer: 0 };
+  }
+
+  if (/^\d+$/.test(text)) {
+    const hours = Math.max(1, Number(text));
+    return { enabled: true, duration: `${hours}h`, timer: hours };
+  }
+
+  const match = text.match(/^(\d+)\s*([hd])$/i);
+  if (match) {
+    const amount = Math.max(1, Number(match[1]));
+    const unit = match[2].toLowerCase();
+    return {
+      enabled: true,
+      duration: `${amount}${unit}`,
+      timer: unit === 'd' ? amount * 24 : amount
+    };
+  }
+
+  const hours = Number(timer) || 24;
+  return { enabled: Boolean(enabled ?? true), duration: text || `${hours}h`, timer: hours };
+};
+
 const getConversationIfParticipant = async (conversationId, socket) => {
   if (!conversationId || !socket.userId) return null;
   const conversation = await Conversation.findById(conversationId);
@@ -189,7 +216,21 @@ const setupSocket = (io) => {
 
     socket.on('message:send', async (data) => {
       try {
-        const { conversationId, content, messageType, mediaUrl, fileName, fileSize, duration, replyTo, messageId, mentions } = data;
+        const {
+          conversationId,
+          content,
+          messageType,
+          mediaUrl,
+          fileName,
+          fileSize,
+          duration,
+          replyTo,
+          messageId,
+          mentions,
+          isViewOnce,
+          isSelfDestruct,
+          selfDestructTimer
+        } = data;
         const safeContent = content || fileName || (mediaUrl ? `${messageType || 'media'} message` : '');
         if (!safeContent) {
           return socket.emit('message:error', { error: 'Message content or media is required' });
@@ -230,6 +271,19 @@ const setupSocket = (io) => {
           safeContent.includes('ciphertext') &&
           safeContent.includes('senderPublicKey');
 
+        let disappearAt = null;
+        if (conversation.disappearingMessages?.enabled) {
+          const timerHours = Number(conversation.disappearingMessages.timer) || 24;
+          disappearAt = new Date(Date.now() + timerHours * 60 * 60 * 1000);
+        }
+        if (isSelfDestruct && !disappearAt) {
+          let timerSeconds = Number(process.env.SELF_DESTRUCT_TIMER) * 60 * 60 || 12 * 60 * 60;
+          if (selfDestructTimer && !Number.isNaN(Number(selfDestructTimer))) {
+            timerSeconds = Number(selfDestructTimer);
+          }
+          disappearAt = new Date(Date.now() + timerSeconds * 1000);
+        }
+
         const message = await Message.create({
           conversationId,
           sender: socket.userId,
@@ -241,6 +295,9 @@ const setupSocket = (io) => {
           fileSize: fileSize || 0,
           duration: duration || 0,
           replyTo: replyTo || null,
+          isViewOnce: Boolean(isViewOnce),
+          isSelfDestruct: Boolean(isSelfDestruct),
+          disappearAt,
           mentions: mentionData.mentions
         });
 
@@ -1009,23 +1066,24 @@ const setupSocket = (io) => {
     });
 
     // Disappearing messages handler
-    socket.on('disappearing_messages:set', async (data) => {
+    socket.on('disappearing_messages:set', async (data = {}) => {
       try {
-        const { chatId, duration } = data;
+        const { chatId } = data;
         const conversation = await getConversationIfParticipant(chatId, socket);
         if (!conversation) return;
 
-        conversation.disappearingMessages = {
-          enabled: Boolean(duration && duration !== 'Off' && duration !== 'off'),
-          duration: duration || '24h',
-          timer: duration === '7d' ? 168 : duration === '90d' ? 2160 : 24
-        };
+        conversation.disappearingMessages = normalizeDisappearingMessages(data);
         await conversation.save();
-        io.to(chatId).emit('disappearing_messages:set', { chatId, duration: conversation.disappearingMessages.duration });
+        io.to(chatId).emit('disappearing_messages:set', {
+          chatId,
+          disappearingMessages: conversation.disappearingMessages,
+          ...conversation.disappearingMessages
+        });
         io.to(chatId).emit('group_update_signal', {
           chatId,
           action: 'update_disappearing',
-          duration: conversation.disappearingMessages.duration
+          disappearingMessages: conversation.disappearingMessages,
+          ...conversation.disappearingMessages
         });
       } catch (error) {
         console.error('Error setting disappearing messages:', error);
@@ -1034,20 +1092,17 @@ const setupSocket = (io) => {
 
     socket.on('update_disappearing_messages', async (data = {}) => {
       try {
-        const { chatId, duration } = data;
+        const { chatId } = data;
         const conversation = await Conversation.findById(chatId);
         if (conversation && includesId(conversation.participants, socket.userId)) {
-          conversation.disappearingMessages = {
-            enabled: Boolean(duration && duration !== 'Off' && duration !== 'off'),
-            duration: duration || '24h',
-            timer: duration === '7d' ? 168 : duration === '90d' ? 2160 : 24
-          };
+          conversation.disappearingMessages = normalizeDisappearingMessages(data);
           await conversation.save();
         }
         io.to(chatId).emit('group_update_signal', {
           chatId,
           action: 'update_disappearing',
-          duration
+          disappearingMessages: conversation?.disappearingMessages || normalizeDisappearingMessages(data),
+          ...(conversation?.disappearingMessages || normalizeDisappearingMessages(data))
         });
       } catch (error) {
         console.error('Error updating disappearing messages:', error);

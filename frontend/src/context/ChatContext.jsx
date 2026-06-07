@@ -23,6 +23,35 @@ const UNAUTHENTICATED_FALLBACK_USER_ID = '60d5ecb8b392cb371c664c12';
 const REQUIRE_AUTH = import.meta.env.VITE_REQUIRE_AUTH !== 'false';
 const ENABLE_DEMO_DATA = import.meta.env.VITE_ENABLE_DEMO_DATA === 'true';
 
+const normalizeDisappearingSettings = (value) => {
+  const raw = typeof value === 'object' && value !== null
+    ? (value.duration ?? value.timer ?? value.enabled)
+    : value;
+  const text = String(raw ?? '').trim();
+  if (!text || /^(false|off|none|0)$/i.test(text)) {
+    return { enabled: false, duration: 'Off', timer: 0 };
+  }
+
+  if (/^\d+$/.test(text)) {
+    const hours = Math.max(1, Number(text));
+    return { enabled: true, duration: `${hours}h`, timer: hours };
+  }
+
+  const match = text.match(/^(\d+)\s*([hd])$/i);
+  if (match) {
+    const amount = Math.max(1, Number(match[1]));
+    const unit = match[2].toLowerCase();
+    return {
+      enabled: true,
+      duration: `${amount}${unit}`,
+      timer: unit === 'd' ? amount * 24 : amount
+    };
+  }
+
+  const timer = Number(typeof value === 'object' && value !== null ? value.timer : 24) || 24;
+  return { enabled: true, duration: text || `${timer}h`, timer };
+};
+
 // ─── Debounce Utility ─────────────────────────────────────────────────────
 const debounce = (func, wait) => {
   let timeout;
@@ -949,6 +978,55 @@ export const ChatProvider = ({ children }) => {
         setSelectedConversation(prev => (prev && prev._id === groupId) ? { ...prev, groupName: updates.groupName || prev.groupName, groupPhoto: updates.groupPhoto || prev.groupPhoto } : prev);
       });
 
+      socket.on('profile:updated', ({ user: updatedUser } = {}) => {
+        if (!updatedUser?._id) return;
+        const updatedUserId = String(updatedUser._id);
+        const mergeParticipant = (participant) => {
+          const participantId = String(participant?._id || participant?.id || participant || '');
+          return participantId === updatedUserId && typeof participant === 'object'
+            ? { ...participant, ...updatedUser }
+            : participant;
+        };
+
+        setConversations(prev => prev.map(conv => ({
+          ...conv,
+          participants: Array.isArray(conv.participants) ? conv.participants.map(mergeParticipant) : conv.participants,
+          admins: Array.isArray(conv.admins) ? conv.admins.map(mergeParticipant) : conv.admins
+        })));
+        setSelectedConversation(prev => prev ? {
+          ...prev,
+          participants: Array.isArray(prev.participants) ? prev.participants.map(mergeParticipant) : prev.participants,
+          admins: Array.isArray(prev.admins) ? prev.admins.map(mergeParticipant) : prev.admins
+        } : prev);
+        setMessages(prev => prev.map(message => {
+          const senderId = String(message.sender?._id || message.sender || '');
+          return senderId === updatedUserId && typeof message.sender === 'object'
+            ? { ...message, sender: { ...message.sender, ...updatedUser } }
+            : message;
+        }));
+      });
+
+      const applyDisappearingUpdate = ({ chatId, duration, disappearingMessages, enabled, timer } = {}) => {
+        if (!chatId) return;
+        const settings = disappearingMessages || normalizeDisappearingSettings({ duration, enabled, timer });
+        const updateConversation = (conv) => (
+          String(conv?._id) === String(chatId)
+            ? { ...conv, disappearingMessages: settings }
+            : conv
+        );
+        setConversations(prev => prev.map(updateConversation));
+        setSelectedConversation(prev => prev && String(prev._id) === String(chatId)
+          ? { ...prev, disappearingMessages: settings }
+          : prev);
+      };
+
+      socket.on('disappearing_messages:set', applyDisappearingUpdate);
+      socket.on('group_update_signal', (payload = {}) => {
+        if (payload.action === 'update_disappearing') {
+          applyDisappearingUpdate(payload);
+        }
+      });
+
       // ── Admin removed ──
       socket.on('admin:removed', ({ groupId, userId }) => {
         // Refresh group info
@@ -1258,6 +1336,37 @@ export const ChatProvider = ({ children }) => {
       }));
     }
   }, [messages, currentUserId]);
+
+  useEffect(() => {
+    const expiringMessages = (messages || []).filter(m => m.disappearAt);
+    if (!expiringMessages.length) return undefined;
+
+    const now = Date.now();
+    const expiredIds = expiringMessages
+      .filter(m => new Date(m.disappearAt).getTime() <= now)
+      .map(m => m._id || m.id)
+      .filter(Boolean);
+
+    if (expiredIds.length) {
+      const expiredSet = new Set(expiredIds.map(String));
+      setMessages(prev => prev.filter(m => !expiredSet.has(String(m._id || m.id))));
+      try { DB.deleteMessages(expiredIds); } catch (_) { /* cache cleanup is best-effort */ }
+    }
+
+    const timers = expiringMessages
+      .map((message) => {
+        const messageId = message._id || message.id;
+        const delay = new Date(message.disappearAt).getTime() - now;
+        if (!messageId || delay <= 0) return null;
+        return setTimeout(() => {
+          setMessages(prev => prev.filter(m => String(m._id || m.id) !== String(messageId)));
+          try { DB.deleteMessages([messageId]); } catch (_) { /* cache cleanup is best-effort */ }
+        }, Math.min(delay, 2147483647));
+      })
+      .filter(Boolean);
+
+    return () => timers.forEach(clearTimeout);
+  }, [messages]);
 
   // ── Core messaging ──
   const sendMessage = async (content, senderName, options = {}) => {
@@ -2771,7 +2880,40 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
-  const updateDisappearingMessages = (chatId, duration) => { if (chatId) emitSafe('disappearing_messages:set', { chatId, duration }); };
+  const updateDisappearingMessages = async (chatId, duration) => {
+    if (!chatId) return { success: false, message: 'No chat selected' };
+    const settings = normalizeDisappearingSettings(duration);
+
+    const applyLocalUpdate = (nextSettings) => {
+      setConversations(prev => prev.map(c => (
+        String(c._id) === String(chatId) ? { ...c, disappearingMessages: nextSettings } : c
+      )));
+      setSelectedConversation(prev => prev && String(prev._id) === String(chatId)
+        ? { ...prev, disappearingMessages: nextSettings }
+        : prev);
+    };
+
+    applyLocalUpdate(settings);
+
+    try {
+      const response = await authFetch(`${BACKEND_URL}/advanced/conversations/${encodeURIComponent(chatId)}/disappearing-messages`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.success === false) {
+        throw new Error(data.message || 'Failed to update disappearing messages');
+      }
+      const savedSettings = data.disappearingMessages || settings;
+      applyLocalUpdate(savedSettings);
+      emitSafe('disappearing_messages:set', { chatId, ...savedSettings });
+      return { success: true, disappearingMessages: savedSettings };
+    } catch (err) {
+      console.error('Update disappearing messages error:', err);
+      return { success: false, message: err.message || 'Failed to update disappearing messages' };
+    }
+  };
   const toggleAdminOnlyMessaging = () => { };
   const updateGroupPermission = () => { };
   const createCustomRole = (chatId, roleName, permissions) => { if (chatId) emitSafe('create_custom_role', { chatId, roleName, permissions }); };
