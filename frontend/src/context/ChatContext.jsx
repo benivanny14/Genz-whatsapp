@@ -16,7 +16,7 @@ import notificationService from '../services/notificationService';
 
 export const ChatContext = createContext();
 
-const BACKEND_URL = import.meta.env.VITE_API_URL || 'https://genz-whatsapp.onrender.com/api';
+const BACKEND_URL = import.meta.env.VITE_API_URL || 'https://genz-whatsapp-2.onrender.com/api';
 const SOCKET_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_SOCKET_URL || BACKEND_URL;
 /** Mongo-style demo fallback when no JWT user is present (dev / optional demo mode) */
 const UNAUTHENTICATED_FALLBACK_USER_ID = '60d5ecb8b392cb371c664c12';
@@ -2506,7 +2506,7 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
-  const getUserStatusWithGhostMode = async (userId) => {
+  const getUserStatusWithGhostMode = useCallback(async (userId) => {
     try {
       const response = await authFetch(`${BACKEND_URL}/genz-mods/user-status/${userId}`);
       const data = await response.json();
@@ -2515,7 +2515,7 @@ export const ChatProvider = ({ children }) => {
       console.error('Get user status error:', err);
       return { success: false };
     }
-  };
+  }, [BACKEND_URL]);
 
   useEffect(() => {
     if (!isAuthReady || (REQUIRE_AUTH && (authLoading || !isAuthenticated))) return;

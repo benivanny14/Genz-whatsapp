@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 
-const BACKEND_URL = (import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || 'https://genz-whatsapp.onrender.com').replace('/api', '');
+const BACKEND_URL = (import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || 'https://genz-whatsapp-2.onrender.com').replace('/api', '');
 const SOCKET_URL = BACKEND_URL;
 
 let socket = null;
