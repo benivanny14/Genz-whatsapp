@@ -803,11 +803,6 @@ export const ChatProvider = ({ children }) => {
             
             // Only append to active chat view if it's the open chat
             const currentSelectedId = localStorage.getItem('selectedConversationId');
-            
-            // Mark as delivered since we received it, if from another user
-            if (incoming.sender && incoming.sender !== currentUserId && incoming.sender._id !== currentUserId) {
-              emitSafe('message:mark_delivered', { messageId: serverId });
-            }
 
             if (String(incoming.conversationId) === String(currentSelectedId)) {
               // Auto mark as read if chat is open
