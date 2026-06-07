@@ -694,13 +694,13 @@ export const ChatProvider = ({ children }) => {
           freezeLastSeen: modsRef.current.freezeLastSeen
         },
         reconnection: true,
-        reconnectionAttempts: 3, // Limit reconnection attempts to prevent errors
-        reconnectionDelay: 2000,
-        reconnectionDelayMax: 5000,
+        reconnectionAttempts: 10, // Increased for better reliability
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 10000,
         randomizationFactor: 0.5,
-        timeout: 10000,
-        forceNew: true,
-        autoConnect: false // Don't auto-connect, connect manually
+        timeout: 20000,
+        forceNew: false, // Reuse existing connection
+        autoConnect: true // Enable auto-connect for better reliability
       });
       socketRef.current = socket;
 
@@ -714,7 +714,7 @@ export const ChatProvider = ({ children }) => {
       // Delay connection to prevent immediate 426 errors
       const connectionTimeout = setTimeout(() => {
         connectSocket();
-      }, 1000);
+      }, 500);
 
       socket.on('connect', () => {
         console.log('Socket connected successfully');
