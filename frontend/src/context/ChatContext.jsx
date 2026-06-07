@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
-// Socket.io is now handled by frontend/src/services/socket.js
-// This file only uses the socket through the centralized service
+// Socket.io is handled by frontend/src/services/socket.js - centralized service
+// This file uses socketRef to track the socket connection
 import { DB } from '../services/db';
 import { registerServiceWorker, notifyNewMessage, notifyIncomingCall, showLocalNotification } from '../services/notifications';
 import { isOffline } from '../services/api';
