@@ -419,7 +419,7 @@ app.use(compression());
 // Rate limiting for API endpoints
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Limit each IP to 1000 requests per windowMs
+  max: 2000, // Increased limit to handle recovery from overload
   message: {
     success: false,
     error: 'Too many requests from this IP, please try again later.'
@@ -430,7 +430,7 @@ const apiLimiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 10 : 20, // Strict in production
+  max: process.env.NODE_ENV === 'production' ? 30 : 50, // Increased limit for recovery
   message: {
     success: false,
     error: 'Too many authentication attempts, please try again later.'
