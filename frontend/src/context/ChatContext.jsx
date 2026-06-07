@@ -1424,6 +1424,8 @@ export const ChatProvider = ({ children }) => {
       content: outboundContent,
       ...(outboundContent !== content ? { isClientE2EE: true } : {}),
     };
+    
+    // 🔥 SASISHA UI YA MTUMAJI HAPO HAPO (Hii inafanya ionekane kwenye skrini)
     setMessages(prev => [...prev, newMessage]);
     try {
       await DB.saveMessage(newMessage);

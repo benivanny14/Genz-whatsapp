@@ -447,20 +447,13 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     const otherId = other?._id || other?.id || other;
     if (!otherId) return;
 
-    // Prevent duplicate requests for the same user
-    if (lastFetchedUserIdRef.current === otherId) return;
-    lastFetchedUserIdRef.current = otherId;
-
-    let cancelled = false;
-    (async () => {
-      const data = await getUserStatusWithGhostMode(otherId);
-      if (!cancelled && data?.success) {
-        setPeerPresence(data.userStatus || null);
-      }
-    })();
-
+    // Use socket-based presence instead of HTTP polling to prevent server overload
+    // The socket connection already handles real-time online/offline status
+    // No need to fetch via HTTP - this was causing ERR_INSUFFICIENT_RESOURCES
+    console.log(`[ChatArea] Using socket-based presence for user: ${otherId}`);
+    
     return () => {
-      cancelled = true;
+      // Cleanup if needed
     };
   }, [selectedConversation?._id]);
 
