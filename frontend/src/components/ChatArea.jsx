@@ -432,9 +432,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     }
   }, [selectedConversation, messages.length, mods?.hideReadReceipts, mods?.ghostMode, user]); // Check whenever new messages arrive
 
+  const lastFetchedUserIdRef = useRef(null);
+
   useEffect(() => {
     if (!selectedConversation || selectedConversation.isGroup) {
       setPeerPresence(null);
+      lastFetchedUserIdRef.current = null;
       return;
     }
     const me = String(user?.id || user?._id || '');
@@ -443,6 +446,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     );
     const otherId = other?._id || other?.id || other;
     if (!otherId) return;
+
+    // Prevent duplicate requests for the same user
+    if (lastFetchedUserIdRef.current === otherId) return;
+    lastFetchedUserIdRef.current = otherId;
 
     let cancelled = false;
     (async () => {
@@ -455,7 +462,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     return () => {
       cancelled = true;
     };
-  }, [selectedConversation?._id, user?.id, user?._id, getUserStatusWithGhostMode]);
+  }, [selectedConversation?._id]);
 
   // GENZ MOD: Chat Background Music Logic
   useEffect(() => {
