@@ -358,7 +358,10 @@ const corsOptions = {
     if (process.env.NODE_ENV === 'production') {
       const allowedOrigins = [
         process.env.FRONTEND_URL,
-        process.env.PUBLIC_API_URL
+        process.env.PUBLIC_API_URL,
+        // Allow both Render URLs (with and without -2)
+        'https://genz-whatsapp.onrender.com',
+        'https://genz-whatsapp-2.onrender.com'
       ].filter(Boolean);
       
       if (allowedOrigins.includes(origin)) {
@@ -708,7 +711,10 @@ const socketCorsOrigins = [
   'http://127.0.0.1:5173',
   'http://127.0.0.1:5174',
   'http://127.0.0.1:5175',
-  ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [])
+  ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
+  // Allow both Render URLs (with and without -2)
+  'https://genz-whatsapp.onrender.com',
+  'https://genz-whatsapp-2.onrender.com'
 ];
 
 const ioConfig = {
