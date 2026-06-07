@@ -11,12 +11,36 @@ const { sendMentionNotification } = require('../services/notificationService');
 
 let onlineUsers = new Map();
 const socketToUser = new Map();
-let messageDeduplication = new Map(); // Track processed messages to prevent duplicates
+const messageDeduplication = new Map(); // Track processed messages to prevent duplicates
 
 const isUserStillOnline = (userId) =>
   [...socketToUser.values()].some((id) => id?.toString() === userId?.toString());
 
 const MESSAGE_DEDUP_TTL = 60000; // 1 minute TTL for deduplication
+const MESSAGE_DEDUP_MAX_SIZE = 10000; // Maximum size to prevent memory leaks
+
+// Periodic cleanup to prevent memory leaks
+setInterval(() => {
+  const now = Date.now();
+  let deleted = 0;
+  messageDeduplication.forEach((timestamp, key) => {
+    if (now - timestamp > MESSAGE_DEDUP_TTL) {
+      messageDeduplication.delete(key);
+      deleted++;
+    }
+  });
+  // Also limit size if growing too large
+  if (messageDeduplication.size > MESSAGE_DEDUP_MAX_SIZE) {
+    const entries = Array.from(messageDeduplication.entries())
+      .sort((a, b) => a[1] - b[1]);
+    const toDelete = entries.slice(0, entries.length - MESSAGE_DEDUP_MAX_SIZE);
+    toDelete.forEach(([key]) => messageDeduplication.delete(key));
+    deleted += toDelete.length;
+  }
+  if (deleted > 0) {
+    console.log(`[Socket] Cleaned up ${deleted} old deduplication entries. Current size: ${messageDeduplication.size}`);
+  }
+}, 30000); // Run every 30 seconds
 const SOCKET_SETUP_FLAG = Symbol.for('genz.socket.setup');
 const includesId = (items = [], id) => items.some(item => item?.toString() === id?.toString());
 
