@@ -829,9 +829,19 @@ export const ChatProvider = ({ children }) => {
           }
           await DB.saveMessage(incoming);
         } catch (e) { }
-        setConversations(prev => prev.map(c =>
-          c._id === incoming.conversationId ? { ...c, lastMessage: incoming, updatedAt: new Date() } : c
-        ));
+        setConversations(prev => prev.map(c => {
+          if (c._id === incoming.conversationId) {
+            const currentSelectedId = localStorage.getItem('selectedConversationId');
+            const shouldMarkUnread = String(incoming.conversationId) !== String(currentSelectedId) && String(incoming.sender?._id || incoming.sender) !== String(currentUserId);
+            return {
+              ...c,
+              lastMessage: incoming,
+              updatedAt: new Date(),
+              unreadCount: shouldMarkUnread ? ((c.unreadCount || 0) + 1) : (c.unreadCount || 0)
+            };
+          }
+          return c;
+        }));
       });
 
       socket.on('notification:new_message', async (data) => {
@@ -1604,6 +1614,11 @@ export const ChatProvider = ({ children }) => {
   };
 
   const markAsRead = (chatId) => {
+    // Update local unreadCount to 0 when marking as read
+    setConversations(prev => prev.map(c => 
+      c._id === chatId ? { ...c, unreadCount: 0 } : c
+    ));
+    
     if (!modsRef.current.hideReadReceipts) {
       emitSafe('mark_as_read', { chatId, userId: currentUserId });
     }
