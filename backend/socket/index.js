@@ -1840,6 +1840,9 @@ const setupSocket = (io) => {
     socket.on('disconnect', async () => {
       console.log('User disconnected:', socket.id);
 
+      // 🔥 MUHIMU: Safisha kumbukumbu ili isijaze RAM (No Memory Leak)
+      socket.removeAllListeners();
+
       const disconnectedUserId = socketToUser.get(socket.id) || socket.userId;
       socketToUser.delete(socket.id);
 
