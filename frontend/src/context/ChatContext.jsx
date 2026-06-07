@@ -684,7 +684,7 @@ export const ChatProvider = ({ children }) => {
 
       socket = io(BACKEND_URL.replace(/\/api\/?$/, ''), {
         path: '/socket.io/',
-        transports: ['websocket', 'polling'],
+        transports: ['polling', 'websocket'],
         withCredentials: true,
         auth: {
           token: token || undefined,
