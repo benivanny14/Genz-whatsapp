@@ -354,26 +354,14 @@ const corsOptions = {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    // In production, only allow the configured frontend URL
-    if (process.env.NODE_ENV === 'production') {
-      const allowedOrigins = [
-        process.env.FRONTEND_URL,
-        process.env.PUBLIC_API_URL,
-        // Allow both Render URLs (with and without -2)
-        'https://genz-whatsapp.onrender.com',
-        'https://genz-whatsapp-2.onrender.com'
-      ].filter(Boolean);
-      
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      } else {
-        console.warn('[CORS] Blocked origin:', origin);
-        return callback(new Error('Not allowed by CORS'));
-      }
-    }
-    
-    // In development, allow all localhost origins
-    const devOrigins = [
+    // Always allow both Render URLs regardless of NODE_ENV
+    const allowedOrigins = [
+      process.env.FRONTEND_URL,
+      process.env.PUBLIC_API_URL,
+      // Allow both Render URLs (with and without -2)
+      'https://genz-whatsapp.onrender.com',
+      'https://genz-whatsapp-2.onrender.com',
+      // Development origins
       'http://localhost:3000',
       'http://localhost:5173',
       'http://localhost:5174',
@@ -381,12 +369,15 @@ const corsOptions = {
       'http://127.0.0.1:3000',
       'http://127.0.0.1:5173',
       'http://127.0.0.1:5174',
-      'http://127.0.0.1:5175',
-      process.env.FRONTEND_URL,
-      process.env.PUBLIC_API_URL
+      'http://127.0.0.1:5175'
     ].filter(Boolean);
     
-    if (devOrigins.includes(origin) || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+    // Allow any localhost origin in development
+    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+      return callback(null, true);
+    }
+    
+    if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     } else {
       console.warn('[CORS] Blocked origin:', origin);
@@ -712,6 +703,7 @@ const socketCorsOrigins = [
   'http://127.0.0.1:5174',
   'http://127.0.0.1:5175',
   ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
+  ...(process.env.PUBLIC_API_URL ? [process.env.PUBLIC_API_URL] : []),
   // Allow both Render URLs (with and without -2)
   'https://genz-whatsapp.onrender.com',
   'https://genz-whatsapp-2.onrender.com'
