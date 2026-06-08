@@ -1,10 +1,19 @@
 import { io } from 'socket.io-client';
 
-const BACKEND_URL = (import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || 'https://genz-whatsapp.onrender.com').replace('/api', '');
+const BACKEND_URL = (import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || 'https://genz-whatsapp-2.onrender.com').replace('/api', '');
 const SOCKET_URL = BACKEND_URL;
 
 let socket = null;
 let reconnectAttempts = 0;
+
+/** Called by ChatContext so getSocket() returns the live connection */
+export const setSocketInstance = (instance) => {
+  socket = instance || null;
+};
+
+export const clearSocketInstance = () => {
+  socket = null;
+};
 const MAX_RECONNECT_ATTEMPTS = 10;
 const RECONNECT_DELAY = 2000;
 const UNAUTHENTICATED_FALLBACK_USER_ID = '60d5ecb8b392cb371c664c12';
@@ -89,8 +98,7 @@ export const connectSocket = (userId) => {
     });
 
     socket.on('reconnect_failed', () => {
-      console.error('Failed to reconnect to socket server');
-      socket.disconnect();
+      console.error('Failed to reconnect to socket server — will retry on next connectSocket() call');
     });
 
     return socket;

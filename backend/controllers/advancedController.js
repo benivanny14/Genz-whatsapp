@@ -711,6 +711,12 @@ exports.createStatus = async (req, res) => {
       viewsCount: 0
     });
 
+    const io = req.app.get('io');
+    if (io) {
+      const statusObj = status.toObject ? status.toObject() : status;
+      io.emit('status:created', statusObj);
+    }
+
     res.status(201).json({ success: true, status });
   } catch (error) {
     console.error('Error creating status:', error);

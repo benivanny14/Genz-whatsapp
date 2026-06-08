@@ -6,6 +6,7 @@ const crypto = require("crypto");
 const { applyPrivacyFilter } = require("../utils/privacyHelper");
 const { resolveMessageMentions } = require("../utils/mentions");
 const { sendMentionNotification } = require("../services/notificationService");
+const { ensureUnreadMap, getUnreadCount, setUnreadCount } = require("../utils/unreadCount");
 
 const LOCAL_USER_ID = process.env.LOCAL_USER_ID || "60d5ecb8b392cb371c664c12";
 
@@ -760,9 +761,17 @@ exports.sendMessage = async (req, res) => {
         }
 
         if (conversation.participants && Array.isArray(conversation.participants)) {
+          const updatedConversation = await Conversation.findById(finalConversationId);
           conversation.participants.forEach((participantId) => {
             if (participantId.toString() !== localUserId.toString()) {
-              io.to(participantId.toString()).emit("message:received", plainMessage);
+              const recipientId = participantId.toString();
+              io.to(recipientId).emit("message:received", plainMessage);
+              if (updatedConversation) {
+                io.to(recipientId).emit("conversation:unread-update", {
+                  conversationId: finalConversationId,
+                  unreadCount: getUnreadCount(updatedConversation, recipientId)
+                });
+              }
             }
           });
         }
@@ -921,11 +930,18 @@ exports.markAsRead = async (req, res) => {
       await message.save();
     }
 
-    conversation.unreadCount.set(String(localUserId), 0);
+    const currentCount = getUnreadCount(conversation, localUserId);
+    if (currentCount > 0) {
+      setUnreadCount(conversation, localUserId, currentCount - 1);
+    }
     await conversation.save();
 
     const io = req.app.get("io");
     if (io) {
+      io.to(localUserId).emit("conversation:unread-update", {
+        conversationId: conversation._id,
+        unreadCount: getUnreadCount(conversation, localUserId)
+      });
       io.to(message.conversationId.toString()).emit("message:read_receipt", {
         messageId: message._id,
         readerId: localUserId,

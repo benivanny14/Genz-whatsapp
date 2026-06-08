@@ -8,8 +8,11 @@ const { persistCallFromSocket } = require('../controllers/callController');
 const activeCalls = require('../utils/activeCalls');
 const { resolveMessageMentions } = require('../utils/mentions');
 const { sendMentionNotification } = require('../services/notificationService');
+const { ensureUnreadMap, getUnreadCount, setUnreadCount } = require('../utils/unreadCount');
 
-let onlineUsers = new Map();
+// Use the shared onlineUsers map from server.js (global.onlineUsers)
+// This ensures socket handlers and HTTP controllers share the same online users state
+const onlineUsers = global.onlineUsers || new Map();
 const socketToUser = new Map();
 const messageDeduplication = new Map(); // Track processed messages to prevent duplicates
 
@@ -43,6 +46,15 @@ setInterval(() => {
 }, 30000); // Run every 30 seconds
 const SOCKET_SETUP_FLAG = Symbol.for('genz.socket.setup');
 const includesId = (items = [], id) => items.some(item => item?.toString() === id?.toString());
+
+const safeAsyncHandler = (socket, handler) => async (data) => {
+  try {
+    await handler(data);
+  } catch (error) {
+    console.error('[Socket] Handler error:', error);
+    socket.emit('error', { message: 'Internal server error' });
+  }
+};
 
 const normalizeDisappearingMessages = ({ enabled, duration, timer } = {}) => {
   const raw = duration ?? timer ?? enabled;
@@ -185,10 +197,11 @@ const setupSocket = (io) => {
         return socket.emit('error', { message: 'Cannot join as another user' });
       }
 
-      socketToUser.set(socket.id, userId);
-      onlineUsers.set(userId, socket.id);
-      socket.userId = userId;
-      socket.join(userId.toString());
+      const userKey = String(userId);
+      socketToUser.set(socket.id, userKey);
+      onlineUsers.set(userKey, socket.id);
+      socket.userId = userKey;
+      socket.join(userKey);
 
       try {
         const user = await User.findByIdAndUpdate(userId, { isOnline: true, lastSeen: new Date() }, { new: true }).select('settings contacts');
@@ -239,6 +252,7 @@ const setupSocket = (io) => {
     });
 
     socket.on('message:send', async (data) => {
+      let dedupKey = null;
       try {
         const {
           conversationId,
@@ -261,16 +275,13 @@ const setupSocket = (io) => {
         }
 
         // Generate deduplication key
-        const dedupKey = `${socket.userId}_${conversationId}_${messageId || Date.now()}_${safeContent}`;
+        dedupKey = `${socket.userId}_${conversationId}_${messageId || Date.now()}_${safeContent}`;
         
         // Check if message was already processed
         if (messageDeduplication.has(dedupKey)) {
           console.log('Duplicate message detected, ignoring:', dedupKey);
           return;
         }
-
-        // Mark message as processed
-        messageDeduplication.set(dedupKey, Date.now());
 
         if (!mongoose.Types.ObjectId.isValid(conversationId)) {
           console.warn('[Socket] Invalid conversationId provided:', conversationId);
@@ -325,6 +336,9 @@ const setupSocket = (io) => {
           mentions: mentionData.mentions
         });
 
+        // Mark as processed only after successful persistence
+        messageDeduplication.set(dedupKey, Date.now());
+
         const populatedMessage = await Message.findById(message._id)
           .populate('sender', 'username profilePicture')
           .populate('replyTo')
@@ -334,16 +348,12 @@ const setupSocket = (io) => {
         conversation.updatedAt = new Date();
         
         // Increment unread count for all participants except sender
-        if (!conversation.unreadCount) {
-          conversation.unreadCount = new Map();
-        }
-        
+        const unreadMap = ensureUnreadMap(conversation);
         if (conversation.participants && Array.isArray(conversation.participants)) {
           conversation.participants.forEach(participantId => {
             if (participantId.toString() !== socket.userId.toString()) {
-              const userId = participantId.toString();
-              const currentCount = conversation.unreadCount.get(userId) || 0;
-              conversation.unreadCount.set(userId, currentCount + 1);
+              const userId = String(participantId);
+              unreadMap.set(userId, (unreadMap.get(userId) || 0) + 1);
             }
           });
         }
@@ -355,20 +365,15 @@ const setupSocket = (io) => {
           outgoingMessage.clientMessageId = messageId;
         }
 
-        // Emit to everyone in the room except the sender
-        socket.to(conversationId).emit('message:received', outgoingMessage);
-        
-        // Emit directly to participants to ensure delivery and send unread counts
+        // Deliver once per recipient via their user room (avoids duplicate events)
         if (conversation.participants && Array.isArray(conversation.participants)) {
           conversation.participants.forEach(participantId => {
             if (participantId.toString() !== socket.userId.toString()) {
-              const userId = participantId.toString();
+              const userId = String(participantId);
               io.to(userId).emit('message:received', outgoingMessage);
-              
-              // Send updated unread count
               io.to(userId).emit('conversation:unread-update', {
                 conversationId: conversation._id,
-                unreadCount: conversation.unreadCount.get(userId) || 0
+                unreadCount: getUnreadCount(conversation, userId)
               });
             }
           });
@@ -389,24 +394,14 @@ const setupSocket = (io) => {
           mentionerId: socket.userId
         });
 
-        conversation.participants.forEach(participantId => {
-          if (participantId.toString() !== socket.userId) {
-            const recipientSocketId = onlineUsers.get(participantId.toString());
-            if (recipientSocketId) {
-              io.to(recipientSocketId).emit('notification:new_message', {
-                conversationId,
-                message: populatedMessage
-              });
-            }
-          }
-        });
       } catch (error) {
         console.error('Error sending message:', error);
-        socket.emit('message:error', { error: error.message });
+        if (dedupKey) messageDeduplication.delete(dedupKey);
+        socket.emit('message:error', { error: error.message, messageId: data?.messageId });
       }
     });
 
-    socket.on('message:typing', async (data) => {
+    socket.on('message:typing', safeAsyncHandler(socket, async (data) => {
       const { conversationId, isTyping } = data;
       const conversation = await getConversationIfParticipant(conversationId, socket);
       if (!conversation) return;
@@ -416,7 +411,7 @@ const setupSocket = (io) => {
         conversationId,
         isTyping
       });
-    });
+    }));
 
     socket.on('message:mark_delivered', async (data) => {
       try {
@@ -447,7 +442,8 @@ const setupSocket = (io) => {
         const { message } = result;
 
         if (message.sender.toString() !== socket.userId) {
-          const alreadyRead = message.readBy.some(r => r.user.toString() === socket.userId);
+          if (!Array.isArray(message.readBy)) message.readBy = [];
+          const alreadyRead = message.readBy.some(r => r.user?.toString() === socket.userId);
           if (!alreadyRead) {
             message.readBy.push({ user: socket.userId, readAt: new Date() });
             message.status = 'read';
@@ -455,17 +451,15 @@ const setupSocket = (io) => {
             
             // Update unread count in conversation
             const conversation = await Conversation.findById(conversationId || message.conversationId);
-            if (conversation && conversation.unreadCount) {
-              const userId = socket.userId.toString();
-              const currentCount = conversation.unreadCount.get(userId) || 0;
+            if (conversation) {
+              const userId = String(socket.userId);
+              const currentCount = getUnreadCount(conversation, userId);
               if (currentCount > 0) {
-                conversation.unreadCount.set(userId, currentCount - 1);
+                setUnreadCount(conversation, userId, currentCount - 1);
                 await conversation.save();
-                
-                // Notify about updated unread count
                 io.to(userId).emit('conversation:unread-update', {
                   conversationId: conversation._id,
-                  unreadCount: conversation.unreadCount.get(userId) || 0
+                  unreadCount: getUnreadCount(conversation, userId)
                 });
               }
             }
@@ -524,7 +518,8 @@ const setupSocket = (io) => {
           if (forEveryone) {
             message.deletedForEveryone = true;
           } else {
-            if (!message.deletedFor.includes(socket.userId)) {
+            if (!Array.isArray(message.deletedFor)) message.deletedFor = [];
+            if (!message.deletedFor.some((id) => id?.toString() === socket.userId)) {
               message.deletedFor.push(socket.userId);
             }
           }
@@ -1077,8 +1072,14 @@ const setupSocket = (io) => {
           message.poll.options.forEach(opt => {
             opt.votes = opt.votes.filter(v => v !== userId);
           });
-          // Add new vote
-          message.poll.options[optionIndex].votes.push(userId);
+          const idx = Number(optionIndex);
+          if (!Number.isInteger(idx) || idx < 0 || idx >= message.poll.options.length) {
+            return socket.emit('error', { message: 'Invalid poll option' });
+          }
+          if (!Array.isArray(message.poll.options[idx].votes)) {
+            message.poll.options[idx].votes = [];
+          }
+          message.poll.options[idx].votes.push(userId);
           await message.save();
           const updatedMessage = await Message.findById(message._id)
             .populate('sender', 'username profilePicture');
@@ -1376,38 +1377,49 @@ const setupSocket = (io) => {
     });
 
     // Mark as read handler (mismatch fix)
-    socket.on('mark_as_read', async (data) => {
-      try {
-        const { chatId } = data;
+    socket.on('mark_as_read', safeAsyncHandler(socket, async (data) => {
+      const { chatId, skipReadReceipts } = data;
 
-        if (!chatId || !/^[0-9a-fA-F]{24}$/.test(chatId)) {
-          console.warn('Invalid chatId format in mark_as_read:', chatId);
-          return;
-        }
+      if (!chatId || !/^[0-9a-fA-F]{24}$/.test(chatId)) {
+        console.warn('Invalid chatId format in mark_as_read:', chatId);
+        return;
+      }
 
-        const conversation = await getConversationIfParticipant(chatId, socket);
-        if (!conversation) return;
+      const conversation = await getConversationIfParticipant(chatId, socket);
+      if (!conversation) return;
 
-        const userId = socket.userId;
-        const messages = await Message.find({ conversationId: chatId, sender: { $ne: userId } });
-        for (const msg of messages) {
-          const alreadyRead = msg.readBy.some((r) => r.user.toString() === userId);
+      const userId = String(socket.userId);
+
+      if (!skipReadReceipts) {
+        const unreadMessages = await Message.find({
+          conversationId: chatId,
+          sender: { $ne: userId },
+          status: { $ne: 'read' }
+        }).limit(200);
+
+        for (const msg of unreadMessages) {
+          if (!Array.isArray(msg.readBy)) msg.readBy = [];
+          const alreadyRead = msg.readBy.some((r) => r.user?.toString() === userId);
           if (!alreadyRead) {
             msg.readBy.push({ user: userId, readAt: new Date() });
             msg.status = 'read';
             await msg.save();
           }
         }
-
-        // Reset unread count for this user
-        conversation.unreadCount.set(String(userId), 0);
-        await conversation.save();
-
-        io.to(chatId).emit('messages:read', { chatId, userId });
-      } catch (error) {
-        console.error('Error marking messages as read:', error);
       }
-    });
+
+      setUnreadCount(conversation, userId, 0);
+      await conversation.save();
+
+      io.to(userId).emit('conversation:unread-update', {
+        conversationId: conversation._id,
+        unreadCount: 0
+      });
+
+      if (!skipReadReceipts) {
+        io.to(chatId).emit('messages:read', { chatId, userId });
+      }
+    }));
 
     socket.on('user_online', async () => {
       try {

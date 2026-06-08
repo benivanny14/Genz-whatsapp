@@ -20,6 +20,17 @@ import {
 } from 'lucide-react';
 import { formatConversationTime } from '../utils/formatDate';
 
+const formatDisappearingLabel = (settings) => {
+  if (!settings?.enabled) return 'Off';
+  const duration = settings.duration;
+  if (duration === '24h') return 'On • 24 hours';
+  if (duration === '7d') return 'On • 7 days';
+  if (duration === '90d') return 'On • 90 days';
+  if (typeof duration === 'number') return `On • ${duration} hours`;
+  if (typeof duration === 'string' && duration.endsWith('h')) return `On • ${duration.replace('h', ' hours')}`;
+  return `On • ${duration || '24h'}`;
+};
+
 const GroupInfo = ({ group, onClose, currentUserId }) => {
   const { getGroupInfo, updateGroupInfo, removeAdmin, makeAdmin, removeParticipant, updateGroupPermission, regenerateGroupInvite } = useChat();
   const [info, setInfo] = useState(group);
@@ -221,7 +232,7 @@ const GroupInfo = ({ group, onClose, currentUserId }) => {
                   <div className="absolute right-1 top-0.5 w-4 h-4 bg-white rounded-full" />
                 </div>
               } />
-              <SectionRow icon={Clock} label="Disappearing messages" value={info?.disappearingMessages?.enabled ? `On • ${typeof info.disappearingMessages.duration === 'number' ? info.disappearingMessages.duration : info.disappearingMessages.duration}s` : 'Off'} />
+              <SectionRow icon={Clock} label="Disappearing messages" value={formatDisappearingLabel(info?.disappearingMessages)} />
 
               {isAdmin && info?.groupInviteCode && (
                 <>

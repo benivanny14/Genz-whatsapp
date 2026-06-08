@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
-// Socket.io is handled by frontend/src/services/socket.js - centralized service
-// This file uses socketRef to track the socket connection
+import { setSocketInstance, clearSocketInstance } from '../services/socket';
 import { DB } from '../services/db';
 import { registerServiceWorker, notifyNewMessage, notifyIncomingCall, showLocalNotification } from '../services/notifications';
 import { isOffline } from '../services/api';
@@ -18,7 +17,7 @@ import notificationService from '../services/notificationService';
 
 export const ChatContext = createContext();
 
-const BACKEND_URL = import.meta.env.VITE_API_URL || 'https://genz-whatsapp.onrender.com/api';
+const BACKEND_URL = import.meta.env.VITE_API_URL || 'https://genz-whatsapp-2.onrender.com/api';
 const SOCKET_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_SOCKET_URL || BACKEND_URL;
 /** Mongo-style demo fallback when no JWT user is present (dev / optional demo mode) */
 const UNAUTHENTICATED_FALLBACK_USER_ID = '60d5ecb8b392cb371c664c12';
@@ -69,6 +68,7 @@ const debounce = (func, wait) => {
 
 // ─── GENZ Settings Persistence ─────────────────────────────────────────────
 const GENZ_SETTINGS_KEY = 'genz_settings_comprehensive';
+const GENZ_SETTINGS_VERSION = 2;
 
 const DEFAULT_GENZ_SETTINGS = {
   mods: {
@@ -76,7 +76,7 @@ const DEFAULT_GENZ_SETTINGS = {
     ghostMode: false,
     hideLastSeen: true,
     freezeLastSeen: false,
-    antiViewOnce: true,
+    antiViewOnce: false,
     selfDestruct: false,
     hideReadReceipts: false,
     voiceEffect: 'none',
@@ -113,6 +113,15 @@ const DEFAULT_GENZ_SETTINGS = {
   isDNDMode: false
 };
 
+const buildGENZSettings = (parsed = {}) => ({
+  settingsVersion: GENZ_SETTINGS_VERSION,
+  mods: { ...DEFAULT_GENZ_SETTINGS.mods, ...(parsed.mods || {}) },
+  appTheme: parsed.appTheme || DEFAULT_GENZ_SETTINGS.appTheme,
+  statusPrivacy: parsed.statusPrivacy || DEFAULT_GENZ_SETTINGS.statusPrivacy,
+  notificationSound: parsed.notificationSound || DEFAULT_GENZ_SETTINGS.notificationSound,
+  isDNDMode: parsed.isDNDMode !== undefined ? parsed.isDNDMode : DEFAULT_GENZ_SETTINGS.isDNDMode
+});
+
 // Safe load GENZ settings from localStorage
 const loadGENZSettings = () => {
   try {
@@ -120,14 +129,15 @@ const loadGENZSettings = () => {
     const saved = localStorage.getItem(GENZ_SETTINGS_KEY);
     if (saved) {
       const parsed = sanitizeBlobUrls(JSON.parse(saved)).value;
-      // Merge with defaults to prevent undefined values
-      return {
-        mods: { ...DEFAULT_GENZ_SETTINGS.mods, ...(parsed.mods || {}) },
-        appTheme: parsed.appTheme || DEFAULT_GENZ_SETTINGS.appTheme,
-        statusPrivacy: parsed.statusPrivacy || DEFAULT_GENZ_SETTINGS.statusPrivacy,
-        notificationSound: parsed.notificationSound || DEFAULT_GENZ_SETTINGS.notificationSound,
-        isDNDMode: parsed.isDNDMode !== undefined ? parsed.isDNDMode : DEFAULT_GENZ_SETTINGS.isDNDMode
-      };
+      if (!parsed.settingsVersion || parsed.settingsVersion < GENZ_SETTINGS_VERSION) {
+        const migrated = buildGENZSettings({
+          ...parsed,
+          mods: { ...(parsed.mods || {}), antiViewOnce: false }
+        });
+        saveGENZSettings(migrated);
+        return migrated;
+      }
+      return buildGENZSettings(parsed);
     }
   } catch (e) {
     console.error('Failed to load GENZ settings:', e);
@@ -234,6 +244,7 @@ const exportBackup = async () => {
 // ─── Provider ─────────────────────────────────────────────────────────────────
 export const ChatProvider = ({ children }) => {
   const socketRef = useRef(null);
+  const markReadDebouncedRef = useRef(null);
   const modsRef = useRef({});  // keep mods accessible in socket callbacks
   const { isAuthenticated, loading: authLoading, user: authUser, isAuthReady } = useAuth();
 
@@ -703,6 +714,7 @@ export const ChatProvider = ({ children }) => {
         autoConnect: true // Enable auto-connect for better reliability
       });
       socketRef.current = socket;
+      setSocketInstance(socket);
 
       // Manual connection with error handling
       const connectSocket = () => {
@@ -744,7 +756,7 @@ export const ChatProvider = ({ children }) => {
         // Don't immediately retry on error to prevent 426 issues
       });
 
-      socket.on('reconnect', (attemptNumber) => {
+      socket.on('reconnect', async (attemptNumber) => {
         console.log('Socket reconnected after', attemptNumber, 'attempts');
         setIsSocketConnected(true);
         let uid = currentUserId;
@@ -753,6 +765,26 @@ export const ChatProvider = ({ children }) => {
           if (u?._id) uid = u._id;
         } catch (_) { /* */ }
         socket.emit('user:join', uid);
+        // Re-sync unread counts and conversation list after reconnect
+        try {
+          const data = await apiService.getConversations();
+          if (data?.success && Array.isArray(data.conversations)) {
+            const openChatId = localStorage.getItem('selectedConversationId');
+            setConversations(prev => {
+              const mergedMap = new Map();
+              prev.forEach(c => mergedMap.set(c._id, c));
+              data.conversations.forEach(c => {
+                const isOpen = openChatId && String(c._id) === String(openChatId);
+                mergedMap.set(c._id, isOpen ? { ...c, unreadCount: 0 } : c);
+              });
+              return Array.from(mergedMap.values()).sort(
+                (a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
+              );
+            });
+          }
+        } catch (e) {
+          console.warn('[ChatContext] Failed to refresh conversations on reconnect:', e?.message || e);
+        }
       });
 
       socket.on('reconnect_attempt', (attemptNumber) => {
@@ -766,6 +798,7 @@ export const ChatProvider = ({ children }) => {
 
       // ── Incoming message ──
       socket.on('message:received', async (msg) => {
+        try {
         console.log('Ujumbe mpya umeingia kutoka Socket (message:received):', msg);
         const incoming = await decryptMessageContent(msg);
         const senderId = String(incoming.sender?._id || incoming.sender || '');
@@ -805,8 +838,21 @@ export const ChatProvider = ({ children }) => {
             const currentSelectedId = localStorage.getItem('selectedConversationId');
 
             if (String(incoming.conversationId) === String(currentSelectedId)) {
-              // Auto mark as read if chat is open
-              emitSafe('mark_as_read', { chatId: incoming.conversationId, userId: currentUserId });
+              setConversations(prevConvs => prevConvs.map(c =>
+                String(c._id) === String(incoming.conversationId) ? { ...c, unreadCount: 0 } : c
+              ));
+              clearTimeout(markReadDebouncedRef.current);
+              markReadDebouncedRef.current = setTimeout(() => {
+                if (socketRef.current?.connected) {
+                  const skipReadReceipts = Boolean(
+                    modsRef.current.hideReadReceipts || modsRef.current.ghostMode
+                  );
+                  socketRef.current.emit('mark_as_read', {
+                    chatId: incoming.conversationId,
+                    skipReadReceipts
+                  });
+                }
+              }, 300);
               return [...prev, incoming];
             }
             return prev;
@@ -828,17 +874,17 @@ export const ChatProvider = ({ children }) => {
         } catch (e) { }
         setConversations(prev => prev.map(c => {
           if (c._id === incoming.conversationId) {
-            const currentSelectedId = localStorage.getItem('selectedConversationId');
-            const shouldMarkUnread = String(incoming.conversationId) !== String(currentSelectedId) && String(incoming.sender?._id || incoming.sender) !== String(currentUserId);
             return {
               ...c,
               lastMessage: incoming,
-              updatedAt: new Date(),
-              unreadCount: shouldMarkUnread ? ((c.unreadCount || 0) + 1) : (c.unreadCount || 0)
+              updatedAt: new Date()
             };
           }
           return c;
         }));
+        } catch (err) {
+          console.error('[ChatContext] message:received handler error:', err);
+        }
       });
 
       socket.on('notification:new_message', async (data) => {
@@ -913,18 +959,6 @@ export const ChatProvider = ({ children }) => {
         } else {
           setMessages(prev => prev.filter(m => m._id !== messageId));
         }
-      });
-
-      socket.on('message:consumed', ({ messageId, isViewOnce, isSelfDestruct }) => {
-        setMessages(prev => prev.filter(m => m._id !== messageId));
-        // Also update conversation last message if it was the consumed message
-        setConversations(prev => prev.map(c => {
-          if (c.lastMessage && c.lastMessage._id === messageId) {
-            const newLastMsg = isSelfDestruct ? '💥 Message self-destructed' : '👁️ View once message opened';
-            return { ...c, lastMessage: { ...c.lastMessage, content: newLastMsg, isConsumed: true, mediaUrl: '', fileName: '' } };
-          }
-          return c;
-        }));
       });
 
       // ── Message edited ──
@@ -1102,12 +1136,28 @@ export const ChatProvider = ({ children }) => {
       });
 
       // ── Delivered receipt ──
-      socket.on('message:delivered', async ({ messageId }) => {
-        setMessages(prev => prev.map(m => m._id === messageId ? { ...m, status: 'delivered' } : m));
-        setConversations(prev => prev.map(c => 
-          (c.lastMessage && c.lastMessage._id === messageId) ? { ...c, lastMessage: { ...c.lastMessage, status: 'delivered' } } : c
+      socket.on('message:delivered', async ({ messageId, serverMessageId }) => {
+        const clientId = messageId;
+        const serverId = serverMessageId || messageId;
+        setMessages(prev => prev.map(m =>
+          (m._id === clientId || m._id === serverId)
+            ? { ...m, _id: serverId, status: 'delivered' }
+            : m
         ));
-        try { await DB.saveMessage({ _id: messageId, status: 'delivered' }); } catch (e) { }
+        setConversations(prev => prev.map(c =>
+          (c.lastMessage && (c.lastMessage._id === clientId || c.lastMessage._id === serverId))
+            ? { ...c, lastMessage: { ...c.lastMessage, _id: serverId, status: 'delivered' } }
+            : c
+        ));
+        try { await DB.saveMessage({ _id: serverId, status: 'delivered' }); } catch (e) { }
+      });
+
+      socket.on('message:error', ({ error, messageId }) => {
+        console.error('[Socket] message:error', error);
+        if (!messageId) return;
+        setMessages(prev => prev.map(m =>
+          m._id === messageId ? { ...m, status: 'failed', errorMessage: error || 'Failed to send' } : m
+        ));
       });
 
       // ── Typing indicators ──
@@ -1149,11 +1199,16 @@ export const ChatProvider = ({ children }) => {
 
       // ── Presence ──
       socket.on('user:online', ({ userId, username }) => {
-        setOnlineUsers(prev => [...new Set([...prev, userId])]);
+        setOnlineUsers(prev => [...new Set([...prev, String(userId)])]);
         if (username) {
           setOnlineNotification(`${username} is now online`);
           setTimeout(() => setOnlineNotification(null), 3000);
         }
+      });
+
+      socket.on('user:offline', ({ userId }) => {
+        if (!userId) return;
+        setOnlineUsers(prev => prev.filter((id) => String(id) !== String(userId)));
       });
 
       // ── Reactions ──
@@ -1194,6 +1249,19 @@ export const ChatProvider = ({ children }) => {
         });
       });
 
+      // ── Unread count sync (server is source of truth) ──
+      socket.on('conversation:unread-update', ({ conversationId, unreadCount }) => {
+        if (!conversationId) return;
+        const openChatId = localStorage.getItem('selectedConversationId');
+        const isOpenChat = openChatId && String(conversationId) === String(openChatId);
+        const effectiveCount = isOpenChat ? 0 : (unreadCount ?? 0);
+        setConversations(prev => prev.map(c =>
+          String(c._id) === String(conversationId)
+            ? { ...c, unreadCount: effectiveCount }
+            : c
+        ));
+      });
+
       // ── Status ──
       socket.on('status:created', (status) => {
         setStatuses(prev => {
@@ -1226,8 +1294,8 @@ export const ChatProvider = ({ children }) => {
       });
 
       return () => {
-        // Safe cleanup - remove all listeners first
         clearTimeout(connectionTimeout);
+        clearTimeout(markReadDebouncedRef.current);
         if (socket) {
           socket.removeAllListeners();
           if (socket.connected) {
@@ -1235,17 +1303,29 @@ export const ChatProvider = ({ children }) => {
           }
         }
         socketRef.current = null;
+        clearSocketInstance();
         setIsSocketConnected(false);
       };
     } catch (err) {
       console.warn('Socket connection failed (offline mode active):', err);
-      // Ensure cleanup even on error
       if (socket) {
         socket.removeAllListeners();
         socketRef.current = null;
       }
+      clearSocketInstance();
     }
   }, [isAuthenticated, authLoading, authUser?._id]);
+
+  useEffect(() => {
+    const handleReconnectRequest = () => {
+      const sock = socketRef.current;
+      if (sock && !sock.connected && !isOffline()) {
+        sock.connect();
+      }
+    };
+    window.addEventListener('socket-reconnect-request', handleReconnectRequest);
+    return () => window.removeEventListener('socket-reconnect-request', handleReconnectRequest);
+  }, []);
 
 
   // ── Ghost Mode: block typing/presence emissions ──
@@ -1309,40 +1389,6 @@ export const ChatProvider = ({ children }) => {
 
   // ── Auto-Reply Bot (Item 3) ──
   // ── Auto-Reply removed as requested ──
-
-  // ── Self-Destruct Timer (Item 4) ──
-  // When a self-destruct message is received from others, delete it after 10 seconds once visible
-  const selfDestructTimers = useRef(new Set());
-  useEffect(() => {
-    const selfDestructMsgs = messages.filter(
-      m => m.isSelfDestruct && m.sender?._id !== currentUserId && !m._selfDestructScheduled
-    );
-
-    if (selfDestructMsgs.length > 0) {
-      setMessages(prev => prev.map(m => {
-        if (m.isSelfDestruct && m.sender?._id !== currentUserId && !m._selfDestructScheduled) {
-          const msgId = m._id;
-          if (!selfDestructTimers.current.has(msgId)) {
-            selfDestructTimers.current.add(msgId);
-            setTimeout(async () => {
-              try {
-                // Use authFetch to include authentication headers
-                await authFetch(`${BACKEND_URL}/chat/messages/${msgId}/view-once-viewed`, {
-                  method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' }
-                });
-              } catch (e) {
-                console.error("Failed to self-destruct message on server:", e);
-              }
-              selfDestructTimers.current.delete(msgId);
-            }, 10000);
-          }
-          return { ...m, _selfDestructScheduled: true };
-        }
-        return m;
-      }));
-    }
-  }, [messages, currentUserId]);
 
   useEffect(() => {
     const expiringMessages = (messages || []).filter(m => m.disappearAt);
@@ -1444,13 +1490,43 @@ export const ChatProvider = ({ children }) => {
       let messageSent = false;
       let savedMessage = newMessage;
 
-      // 1. Kipaumbele: Tumia Socket kwanza (real-time)
+      // 1. Kipaumbele: Tumia Socket kwanza (real-time) — wait for delivery ack
       if (socketRef.current?.connected) {
         console.log("Natumia Socket kutuma ujumbe...");
         try {
           emitSafe('message:send', payload);
-          messageSent = true;
-          console.log("Ujumbe umetumwa kupitia Socket");
+          messageSent = await new Promise((resolve) => {
+            const clientId = newMessage._id;
+            const timeoutId = setTimeout(() => {
+              cleanup();
+              resolve(false);
+            }, 4000);
+            const onDelivered = ({ messageId, serverMessageId }) => {
+              if (String(messageId) !== String(clientId)) return;
+              cleanup();
+              const serverId = serverMessageId || messageId;
+              setMessages((prev) => prev.map((m) =>
+                m._id === clientId ? { ...m, _id: serverId, status: 'delivered' } : m
+              ));
+              resolve(true);
+            };
+            const onError = ({ messageId, error }) => {
+              if (messageId && String(messageId) !== String(clientId)) return;
+              cleanup();
+              setMessages((prev) => prev.map((m) =>
+                m._id === clientId ? { ...m, status: 'failed', errorMessage: error } : m
+              ));
+              resolve(false);
+            };
+            const cleanup = () => {
+              clearTimeout(timeoutId);
+              socketRef.current?.off('message:delivered', onDelivered);
+              socketRef.current?.off('message:error', onError);
+            };
+            socketRef.current.on('message:delivered', onDelivered);
+            socketRef.current.on('message:error', onError);
+          });
+          if (messageSent) console.log("Ujumbe umetumwa kupitia Socket");
         } catch (e) {
           console.error("Socket emit imefeli:", e);
         }
@@ -1614,14 +1690,17 @@ export const ChatProvider = ({ children }) => {
   };
 
   const markAsRead = (chatId) => {
-    // Update local unreadCount to 0 when marking as read
-    setConversations(prev => prev.map(c => 
+    setConversations(prev => prev.map(c =>
       c._id === chatId ? { ...c, unreadCount: 0 } : c
     ));
-    
-    if (!modsRef.current.hideReadReceipts) {
-      emitSafe('mark_as_read', { chatId, userId: currentUserId });
-    }
+    setSelectedConversation(prev =>
+      prev && String(prev._id) === String(chatId) ? { ...prev, unreadCount: 0 } : prev
+    );
+
+    const skipReadReceipts = Boolean(
+      modsRef.current.hideReadReceipts || modsRef.current.ghostMode
+    );
+    emitSafe('mark_as_read', { chatId, userId: currentUserId, skipReadReceipts });
   };
 
   // ── Typing (Ghost Mode aware) ──
@@ -3344,7 +3423,15 @@ export const ChatProvider = ({ children }) => {
       // Update local state to mark as consumed
       setMessages(prev => prev.map(m => {
         if (m._id === messageId || m.id === messageId) {
-          return { ...m, isConsumed: true, viewedAt: new Date() };
+          const isSelfDestruct = m.isSelfDestruct;
+          return {
+            ...m,
+            isConsumed: true,
+            viewedAt: new Date(),
+            content: isSelfDestruct ? '💥 Message self-destructed' : 'View Once message opened',
+            mediaUrl: '',
+            fileName: ''
+          };
         }
         return m;
       }));

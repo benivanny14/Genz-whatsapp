@@ -35,6 +35,13 @@ import { compressImage } from '../utils/imageCompression';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
+const DISAPPEARING_OPTIONS = [
+  { label: 'Off', value: 'Off' },
+  { label: '24 hours', value: '24h' },
+  { label: '7 days', value: '7d' },
+  { label: '90 days', value: '90d' },
+];
+
 // ── URL detection helper ──
 const URL_REGEX = /(https?:\/\/[^\s]+)/g;
 const extractFirstUrl = (text) => {
@@ -241,6 +248,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [previewFile, setPreviewFile] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null); // {id, content}
   const [isViewOnceEnabled, setIsViewOnceEnabled] = useState(false);
+  const [showDisappearingPicker, setShowDisappearingPicker] = useState(false);
   const [peerPresence, setPeerPresence] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
@@ -425,12 +433,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     }
   }, [selectedConversation]);
 
-  // Mark messages as read when opening chat (Respects Ghost Mode/Hide Read Receipts)
+  // Mark chat as read when opened — unread badge always clears; read receipts respect privacy mods
   useEffect(() => {
-    if (selectedConversation && !mods?.hideReadReceipts && !mods?.ghostMode) {
+    if (selectedConversation?._id) {
       markAsRead(selectedConversation._id);
     }
-  }, [selectedConversation, messages.length, mods?.hideReadReceipts, mods?.ghostMode, user]); // Check whenever new messages arrive
+  }, [selectedConversation?._id, messages.length]);
 
   const lastFetchedUserIdRef = useRef(null);
 
@@ -597,7 +605,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         isGroup: selectedConversation.isGroup,
         ghostMode: mods.ghostMode,
         isSelfDestruct: Boolean(mods.selfDestruct),
-        selfDestructTimer: mods.selfDestruct ? 43200 : null,
+        selfDestructTimer: null,
         isViewOnce: isViewOnceEnabled,
         mentions
       });
@@ -1524,25 +1532,18 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     addReaction(messageId, '❤️');
   };
 
-  const handleSetDisappearingMessages = async () => {
-    const currentDuration = selectedConversation?.disappearingMessages?.enabled
-      ? selectedConversation.disappearingMessages.duration || '24h'
-      : '24';
-    const rawDuration = window.prompt('Set disappearing messages in hours, or type Off:', currentDuration);
-    if (rawDuration === null || !selectedConversation?._id) return;
+  const handleSetDisappearingMessages = () => {
+    if (!selectedConversation?._id) return;
+    setShowDisappearingPicker(true);
+    setShowAttachmentMenu(false);
+  };
 
-    const trimmed = String(rawDuration).trim();
-    const normalizedDuration = /^(off|0|none)$/i.test(trimmed)
-      ? 'Off'
-      : /^\d+$/.test(trimmed)
-        ? `${trimmed}h`
-        : trimmed;
-
+  const applyDisappearingMessages = async (duration) => {
+    if (!selectedConversation?._id) return;
     try {
-      const result = await updateDisappearingMessages(selectedConversation._id, normalizedDuration);
+      const result = await updateDisappearingMessages(selectedConversation._id, duration);
       if (result?.success === false) throw new Error(result.message || 'Failed to update disappearing messages');
-      toast.success(normalizedDuration === 'Off' ? 'Disappearing messages off' : `Disappearing messages set to ${normalizedDuration}`);
-      setShowAttachmentMenu(false);
+      toast.success(duration === 'Off' ? 'Disappearing messages off' : `Disappearing messages set to ${duration}`);
     } catch (err) {
       console.error('Disappearing messages update failed:', err);
       toast.error(err.message || 'Could not update disappearing messages');
@@ -1551,14 +1552,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
   const handlePollSubmit = (question, options) => {
     if (selectedConversation?._id) {
-      const socket = getSocket();
-      if (socket) {
-        socket.emit('poll:create', {
-          chatId: selectedConversation._id,
-          question,
-          options
-        });
-      }
+      createPoll(question, options);
       setShowPollModal(false);
     }
   };
@@ -2345,11 +2339,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
                     {/* 📽️ Video Message 📽️ */}
                     {message.messageType === 'video' && mediaSourceOf(message) && (
-                      message.isViewOnce && !mods.antiViewOnce && message.isConsumed ? (
+                      (message.isViewOnce || message.isSelfDestruct) && !mods.antiViewOnce && message.isConsumed ? (
                         <div className="flex items-center gap-2 text-dark-textSecondary py-2 italic text-sm">
-                          <Eye size={16} /> Opened
+                          <Eye size={16} /> {message.isSelfDestruct ? 'Self-destructed' : 'Opened'}
                         </div>
-                      ) : message.isViewOnce && !mods.antiViewOnce ? (
+                      ) : (message.isViewOnce || message.isSelfDestruct) && !mods.antiViewOnce ? (
                         <div className="relative mb-1">
                           <video
                             src={mediaSourceOf(message)}
@@ -2388,11 +2382,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
                     {/* ── Image Message ── */}
                     {message.messageType === 'image' && (
-                      message.isViewOnce && !mods.antiViewOnce && message.isConsumed ? (
+                      (message.isViewOnce || message.isSelfDestruct) && !mods.antiViewOnce && message.isConsumed ? (
                         <div className="flex items-center gap-2 text-dark-textSecondary py-2 italic text-sm">
-                          <Eye size={16} /> Opened
+                          <Eye size={16} /> {message.isSelfDestruct ? 'Self-destructed' : 'Opened'}
                         </div>
-                      ) : message.isViewOnce && !mods.antiViewOnce ? (
+                      ) : (message.isViewOnce || message.isSelfDestruct) && !mods.antiViewOnce ? (
                         <div className="relative">
                           <SignedMedia
                             src={mediaSourceOf(message)}
@@ -2444,17 +2438,13 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                             const totalVotes = message.poll.options.reduce((sum, opt) => sum + (opt.votes?.length || 0), 0);
                             const optionVotes = option.votes?.length || 0;
                             const percentage = totalVotes > 0 ? Math.round((optionVotes / totalVotes) * 100) : 0;
-                            const hasVoted = option.votes?.includes(user?.id);
+                            const userId = user?._id || user?.id;
+                            const hasVoted = option.votes?.some((v) => String(v) === String(userId));
 
                             return (
                               <button
                                 key={idx}
-                                onClick={() => {
-                                  const socket = getSocket();
-                                  if (socket) {
-                                    socket.emit('poll:vote', { messageId: message.id || message._id, optionIndex: idx });
-                                  }
-                                }}
+                                onClick={() => votePoll(message.id || message._id, idx)}
                                 className={`w-full p-3 rounded-lg text-left transition-all ${hasVoted ? 'bg-primary-600 text-white' : 'bg-dark-bg/50 hover:bg-dark-bg/80 text-dark-text'
                                   }`}
                               >
@@ -2546,13 +2536,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                         <span>🚫</span> Deleted (Anti-Delete Active)
                       </div>
                     )}
-                    {/* Self-destruct countdown badge */}
-                    {message.isSelfDestruct && message._selfDestructScheduled && (
-                      <div className="flex items-center gap-1 text-[9px] text-red-400 font-bold uppercase mb-1">
-                        <span>💣</span> Self-destructing in 10s
-                      </div>
-                    )}
-                    {message.isViewOnce &&
+                    {(message.isViewOnce || message.isSelfDestruct) &&
                       message.messageType === 'text' &&
                       !isOwnMessage(message) &&
                       !mods?.antiViewOnce &&
@@ -2562,7 +2546,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                           onClick={() => openViewOnceModal(message)}
                           className="flex items-center gap-2 text-sm italic text-dark-textSecondary py-2 px-3 rounded-lg bg-black/20 border border-white/10 hover:bg-black/30 transition-colors"
                         >
-                          <Eye size={16} /> Tap to view once
+                          <Eye size={16} /> {message.isSelfDestruct ? 'Tap to view (self-destruct)' : 'Tap to view once'}
                         </button>
                       )}
                     {message.isViewOnce &&
@@ -2588,7 +2572,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                         !plaintextOf(message).includes('maps.apple.com') &&
                         plaintextOf(message).trim() !== '')) &&
                       !(
-                        message.isViewOnce &&
+                        (message.isViewOnce || message.isSelfDestruct) &&
                         message.messageType === 'text' &&
                         !isOwnMessage(message) &&
                         !mods?.antiViewOnce &&
@@ -3792,6 +3776,54 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           />
         )}
       </AnimatePresence>
+
+      {showDisappearingPicker && (
+        <div
+          className="fixed inset-0 z-[180] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm"
+          onClick={() => setShowDisappearingPicker(false)}
+        >
+          <div
+            className="bg-[#202c33] w-full max-w-xs rounded-2xl shadow-2xl border border-white/10 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-white/10">
+              <h3 className="text-white font-bold text-base">Disappearing messages</h3>
+              <p className="text-white/50 text-xs mt-1">
+                Make new messages disappear after a set time.
+              </p>
+            </div>
+            <div className="py-2">
+              {DISAPPEARING_OPTIONS.map((opt) => {
+                const current = selectedConversation?.disappearingMessages?.enabled
+                  ? (selectedConversation.disappearingMessages.duration || '24h')
+                  : 'Off';
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      applyDisappearingMessages(opt.value);
+                      setShowDisappearingPicker(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-5 py-3 hover:bg-white/5 transition-colors ${
+                      current === opt.value ? 'text-[#00a884]' : 'text-white'
+                    }`}
+                  >
+                    <span className="text-sm">{opt.label}</span>
+                    {current === opt.value ? (
+                      <div className="w-5 h-5 rounded-full border-2 border-[#00a884] flex items-center justify-center">
+                        <div className="w-2.5 h-2.5 rounded-full bg-[#00a884]" />
+                      </div>
+                    ) : (
+                      <div className="w-5 h-5 rounded-full border-2 border-white/30" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div >
   );

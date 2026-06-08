@@ -3,6 +3,7 @@ import { useChat } from '../context/ChatContext';
 import Sidebar from '../components/Sidebar';
 import LockScreen, { useInactivityLock, saveSecurePin } from '../components/LockScreen';
 import OfflineIndicator from '../components/OfflineIndicator';
+import ErrorBoundary from '../components/ErrorBoundary';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Wifi, WifiOff } from 'lucide-react';
 
@@ -105,12 +106,14 @@ const Chat = () => {
         {/* Chat Area Container: Toggle visible/hidden based on whether conversation is active on mobile screens */}
         <div className={`${selectedConversation ? 'flex' : 'hidden md:flex'} flex-1 h-full min-w-0 w-full`}>
           <Suspense fallback={<PanelLoader />}>
-            <ChatArea
-              mods={mods}
-              onOpenGENZSettings={() => setShowGENZSettings(true)}
-              sidebarOpen={sidebarOpen}
-              onOpenSidebar={() => setSidebarOpen(true)}
-            />
+            <ErrorBoundary minimal>
+              <ChatArea
+                mods={mods}
+                onOpenGENZSettings={() => setShowGENZSettings(true)}
+                sidebarOpen={sidebarOpen}
+                onOpenSidebar={() => setSidebarOpen(true)}
+              />
+            </ErrorBoundary>
           </Suspense>
         </div>
 

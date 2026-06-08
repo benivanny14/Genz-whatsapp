@@ -26,9 +26,11 @@ const OfflineBanner = () => {
 
   const handleRetry = () => {
     setIsReconnecting(true);
-    // Simulate reconnection check
+    window.dispatchEvent(new Event('process-offline-queue'));
+    window.dispatchEvent(new Event('socket-reconnect-request'));
     setTimeout(() => {
       setIsReconnecting(false);
+      if (navigator.onLine) setIsOffline(false);
     }, 2000);
   };
 
