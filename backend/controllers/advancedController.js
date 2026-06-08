@@ -860,6 +860,14 @@ exports.deleteStatus = async (req, res) => {
 
     await Status.findByIdAndDelete(req.params.id);
 
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('status:deleted', {
+        statusId: String(req.params.id),
+        userId: String(currentUserId)
+      });
+    }
+
     res.status(200).json({ success: true, message: 'Status deleted successfully' });
   } catch (error) {
     console.error('Error deleting status:', error);

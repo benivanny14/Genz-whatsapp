@@ -171,6 +171,12 @@ const userSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     savedName: { type: String, required: true }
   }],
+  profileVisitors: [{
+    visitorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    visitorName: { type: String, default: 'Someone' },
+    visitorPicture: { type: String, default: null },
+    timestamp: { type: Date, default: Date.now }
+  }],
   blockedUsers: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'

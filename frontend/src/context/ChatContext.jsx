@@ -261,6 +261,7 @@ export const ChatProvider = ({ children }) => {
   }, [conversations]);
 
   const [selectedConversation, setSelectedConversation] = useState(null);
+  const selectedConversationIdRef = useRef(null);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeCall, setActiveCall] = useState(null);
@@ -271,7 +272,33 @@ export const ChatProvider = ({ children }) => {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [callLogs, setCallLogs] = useState([]);
   const [profileVisitors, setProfileVisitors] = useState([]);
+  const [allMessagesForStats, setAllMessagesForStats] = useState([]);
   const [showProfileEditor, setShowProfileEditor] = useState(false);
+
+  useEffect(() => {
+    selectedConversationIdRef.current = selectedConversation?._id || null;
+  }, [selectedConversation?._id]);
+
+  const refreshAllMessagesForStats = useCallback(async () => {
+    try {
+      const convs = conversationsRef.current?.length
+        ? conversationsRef.current
+        : await DB.getConversations();
+      const all = [];
+      for (const conv of convs || []) {
+        if (!conv?._id) continue;
+        const msgs = await DB.getMessages(conv._id);
+        if (msgs?.length) all.push(...msgs);
+      }
+      setAllMessagesForStats(all);
+    } catch (e) {
+      console.warn('[ChatContext] Stats refresh failed:', e?.message || e);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshAllMessagesForStats();
+  }, [conversations.length, messages.length, refreshAllMessagesForStats]);
   const [contacts, setContacts] = useState([]);
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [pinnedMessages, setPinnedMessages] = useState({});
@@ -739,6 +766,7 @@ export const ChatProvider = ({ children }) => {
         }
         
         window.dispatchEvent(new Event('process-offline-queue'));
+        socket.emit('get_profile_visitors');
       });
 
       socket.on('disconnect', (reason) => {
@@ -785,6 +813,13 @@ export const ChatProvider = ({ children }) => {
         } catch (e) {
           console.warn('[ChatContext] Failed to refresh conversations on reconnect:', e?.message || e);
         }
+        try {
+          const statusData = await apiService.getStatuses();
+          if (statusData?.success && Array.isArray(statusData.statuses)) {
+            setStatuses(statusData.statuses);
+          }
+        } catch (_) { /* best-effort */ }
+        socket.emit('get_profile_visitors');
       });
 
       socket.on('reconnect_attempt', (attemptNumber) => {
@@ -802,7 +837,11 @@ export const ChatProvider = ({ children }) => {
         console.log('Ujumbe mpya umeingia kutoka Socket (message:received):', msg);
         const incoming = await decryptMessageContent(msg);
         const senderId = String(incoming.sender?._id || incoming.sender || '');
-        if (senderId !== String(currentUserId) && modsRef.current.spamFilter && isLikelySpamMessage(incoming)) {
+        const serverId = String(incoming._id || '');
+        if (senderId === String(currentUserId)) {
+          return;
+        }
+        if (modsRef.current.spamFilter && isLikelySpamMessage(incoming)) {
           console.log('[ChatContext] Spam message filtered');
           return;
         }
@@ -1078,19 +1117,29 @@ export const ChatProvider = ({ children }) => {
 
       // ── View-once message viewed ──
       socket.on('message:consumed', ({ messageId, conversationId, isViewOnce, isSelfDestruct, consumedBy }) => {
-        setMessages(prev => prev.map(m => {
-          if (m._id === messageId || m.id === messageId) {
-            return { ...m, isConsumed: true, content: isSelfDestruct ? '💥 Message self-destructed' : '👁️ Opened', mediaUrl: '', fileName: '' };
+        const removeEntirely = Boolean(isSelfDestruct);
+        setMessages(prev => {
+          if (removeEntirely) {
+            return prev.filter(m => String(m._id || m.id) !== String(messageId));
           }
-          return m;
-        }));
-        
+          return prev.map(m => {
+            if (m._id === messageId || m.id === messageId) {
+              return { ...m, isConsumed: true, content: '👁️ Opened', mediaUrl: '', fileName: '' };
+            }
+            return m;
+          });
+        });
+
         setConversations(prev => prev.map(c => {
           if (c.lastMessage && (c.lastMessage._id === messageId || c.lastMessage.id === messageId)) {
-            return { ...c, lastMessage: { ...c.lastMessage, isConsumed: true, content: isSelfDestruct ? '💥 Message self-destructed' : '👁️ Opened', mediaUrl: '', fileName: '' } };
+            if (removeEntirely) {
+              return { ...c, lastMessage: { ...c.lastMessage, content: '💥 Message self-destructed', isConsumed: true } };
+            }
+            return { ...c, lastMessage: { ...c.lastMessage, isConsumed: true, content: '👁️ Opened', mediaUrl: '', fileName: '' } };
           }
           return c;
         }));
+        try { DB.deleteMessages([messageId]); } catch (_) { /* cache cleanup */ }
       });
 
       // ── Message viewed notification for sender ──
@@ -1262,7 +1311,32 @@ export const ChatProvider = ({ children }) => {
         ));
       });
 
+      socket.on('profile_visitors', (visitors = []) => {
+        setProfileVisitors(Array.isArray(visitors) ? visitors : []);
+      });
+
+      socket.on('profile:visited', (payload) => {
+        if (!payload?.visitedUserId || String(payload.visitedUserId) !== String(currentUserId)) return;
+        setProfileVisitors((prev) => {
+          const entry = {
+            visitorId: payload.visitorId,
+            visitorName: payload.visitorName || 'Someone',
+            visitorPicture: payload.visitorPicture || null,
+            timestamp: payload.timestamp || new Date()
+          };
+          const filtered = prev.filter((v) => String(v.visitorId) !== String(entry.visitorId));
+          return [entry, ...filtered].slice(0, 50);
+        });
+      });
+
       // ── Status ──
+      socket.on('status:deleted', ({ statusId }) => {
+        if (!statusId) return;
+        setStatuses((prev) => prev.filter((s) =>
+          String(s._id) !== String(statusId) && String(s.id) !== String(statusId)
+        ));
+      });
+
       socket.on('status:created', (status) => {
         setStatuses(prev => {
           const serverId = String(status._id || '');
@@ -1423,6 +1497,9 @@ export const ChatProvider = ({ children }) => {
 
   // ── Core messaging ──
   const sendMessage = async (content, senderName, options = {}) => {
+    if (options.isSelfDestruct) {
+      options = { ...options, isViewOnce: false };
+    }
     const messageType = options.messageType || 'text';
     let outboundContent = content;
 
@@ -1585,25 +1662,37 @@ export const ChatProvider = ({ children }) => {
         return;
       }
 
-      if (isMongoObjectId(conv._id)) {
-        try {
-          const remoteData = await apiService.getMessages(conv._id);
-          if (remoteData?.success) {
-            const decrypted = await decryptMessagesList(remoteData.messages || []);
-            setMessages(decrypted);
-            try {
-              await Promise.all(decrypted.map((message) => DB.saveMessage(message)));
-            } catch (_) { /* IndexedDB cache is best-effort */ }
-            if (socketRef.current) socketRef.current.emit('join:conversation', conv._id);
-            return;
-          }
-        } catch (apiError) {
-          console.warn('[ChatContext] Remote messages unavailable, using offline cache:', apiError.message);
+      const convId = conv._id;
+      let showedCache = false;
+
+      if (isMongoObjectId(convId)) {
+        const offlineMsgs = await DB.getMessages(convId);
+        if (offlineMsgs?.length) {
+          setMessages(await decryptMessagesList(offlineMsgs));
+          showedCache = true;
+        } else if (!showedCache) {
+          setMessages([]);
         }
+
+        if (socketRef.current) socketRef.current.emit('join:conversation', convId);
+
+        // Background sync — keeps chat active without clearing the UI
+        apiService.getMessages(convId).then(async (remoteData) => {
+          if (String(selectedConversationIdRef.current) !== String(convId)) return;
+          if (!remoteData?.success) return;
+          const decrypted = await decryptMessagesList(remoteData.messages || []);
+          setMessages(decrypted);
+          try {
+            await Promise.all(decrypted.map((message) => DB.saveMessage(message)));
+          } catch (_) { /* IndexedDB cache is best-effort */ }
+        }).catch((apiError) => {
+          console.warn('[ChatContext] Background message sync failed:', apiError?.message || apiError);
+        });
+        return;
       }
 
       const offlineMsgs = await DB.getMessages(conv._id);
-      if (offlineMsgs && offlineMsgs.length > 0) {
+      if (offlineMsgs?.length) {
         setMessages(await decryptMessagesList(offlineMsgs));
       } else {
         setMessages([]);
@@ -1808,17 +1897,18 @@ export const ChatProvider = ({ children }) => {
 
   // ── Message Statistics (Item 15) ──
   const getMessageStats = useCallback(() => {
-    const total = messages.length;
+    const statsMessages = allMessagesForStats.length ? allMessagesForStats : messages;
+    const total = statsMessages.length;
     const statsUserId = String(currentUserId || '');
     const statsUsername = authUser?.username || localStorage.getItem('username') || 'GENZ User';
     
-    const byType = messages.reduce((acc, m) => {
+    const byType = statsMessages.reduce((acc, m) => {
       const type = m.messageType || 'text';
       acc[type] = (acc[type] || 0) + 1;
       return acc;
     }, {});
     
-    const sentByMe = messages.filter(m =>
+    const sentByMe = statsMessages.filter(m =>
       String(m.sender?._id || m.sender || '') === statsUserId ||
       String(m.sender?.username || '') === String(statsUsername) ||
       String(m.senderId || '') === statsUserId
@@ -1828,21 +1918,21 @@ export const ChatProvider = ({ children }) => {
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayCount = messages.filter(m => {
+    const todayCount = statsMessages.filter(m => {
       const msgDate = new Date(m.createdAt || m.timestamp);
       return msgDate >= today;
     }).length;
     
     const thisWeek = new Date();
     thisWeek.setDate(thisWeek.getDate() - 7);
-    const weekCount = messages.filter(m => {
+    const weekCount = statsMessages.filter(m => {
       const msgDate = new Date(m.createdAt || m.timestamp);
       return msgDate >= thisWeek;
     }).length;
     
     const thisMonth = new Date();
     thisMonth.setDate(thisMonth.getDate() - 30);
-    const monthCount = messages.filter(m => {
+    const monthCount = statsMessages.filter(m => {
       const msgDate = new Date(m.createdAt || m.timestamp);
       return msgDate >= thisMonth;
     }).length;
@@ -1869,7 +1959,7 @@ export const ChatProvider = ({ children }) => {
       stickers: byType.sticker || 0,
       gifs: byType.gif || 0
     };
-  }, [messages, currentUserId, authUser?.username, statuses]);
+  }, [allMessagesForStats, messages, currentUserId, authUser?.username, statuses]);
 
   // ── Dark/Light Theme Toggle (Item 26) ──
   const toggleAppTheme = () => {
@@ -2719,6 +2809,7 @@ export const ChatProvider = ({ children }) => {
   const deleteStatus = useCallback(async (statusId) => {
     try {
       const sid = encodeURIComponent(statusId);
+      emitSafe('status:delete', { statusId });
       const response = await authFetch(`${BACKEND_URL}/advanced/status/${sid}`, {
         method: 'DELETE'
       });
@@ -3224,7 +3315,11 @@ export const ChatProvider = ({ children }) => {
       });
       const data = await response.json();
       if (data.success) {
-        emitSafe('visit_profile', { visitedUserId: userId, visitorId: currentUserId });
+        emitSafe('visit_profile', {
+          visitedUserId: userId,
+          visitorId: currentUserId,
+          visitorName: authUser?.username || localStorage.getItem('username') || 'Someone'
+        });
       }
       return data;
     } catch (err) {
@@ -3421,20 +3516,25 @@ export const ChatProvider = ({ children }) => {
       const data = await response.json();
       
       // Update local state to mark as consumed
-      setMessages(prev => prev.map(m => {
-        if (m._id === messageId || m.id === messageId) {
-          const isSelfDestruct = m.isSelfDestruct;
-          return {
-            ...m,
-            isConsumed: true,
-            viewedAt: new Date(),
-            content: isSelfDestruct ? '💥 Message self-destructed' : 'View Once message opened',
-            mediaUrl: '',
-            fileName: ''
-          };
+      setMessages(prev => {
+        const target = prev.find(m => m._id === messageId || m.id === messageId);
+        if (target?.isSelfDestruct) {
+          return prev.filter(m => m._id !== messageId && m.id !== messageId);
         }
-        return m;
-      }));
+        return prev.map(m => {
+          if (m._id === messageId || m.id === messageId) {
+            return {
+              ...m,
+              isConsumed: true,
+              viewedAt: new Date(),
+              content: 'View Once message opened',
+              mediaUrl: '',
+              fileName: ''
+            };
+          }
+          return m;
+        });
+      });
       
       return data;
     } catch (err) {

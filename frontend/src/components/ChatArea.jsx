@@ -606,7 +606,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         ghostMode: mods.ghostMode,
         isSelfDestruct: Boolean(mods.selfDestruct),
         selfDestructTimer: null,
-        isViewOnce: isViewOnceEnabled,
+        isViewOnce: mods.selfDestruct ? false : isViewOnceEnabled,
         mentions
       });
     }
@@ -1922,13 +1922,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       if (message.isConsumed) return false;
     }
     
-    // Self-destruct logic: Hide after expiration or consumption
+    // Self-destruct logic: text shows as plain until read; media uses tap-to-view
     if (message.isSelfDestruct && !isSender) {
-      // If anti-view-once is enabled, always show
       if (mods.antiViewOnce) return true;
-      // If consumed, hide
       if (message.isConsumed) return false;
-      // If expired, hide
       if (message.disappearAt && new Date(message.disappearAt) < new Date()) return false;
     }
 
@@ -2536,7 +2533,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                         <span>🚫</span> Deleted (Anti-Delete Active)
                       </div>
                     )}
-                    {(message.isViewOnce || message.isSelfDestruct) &&
+                    {message.isViewOnce &&
+                      !message.isSelfDestruct &&
                       message.messageType === 'text' &&
                       !isOwnMessage(message) &&
                       !mods?.antiViewOnce &&
@@ -2546,9 +2544,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                           onClick={() => openViewOnceModal(message)}
                           className="flex items-center gap-2 text-sm italic text-dark-textSecondary py-2 px-3 rounded-lg bg-black/20 border border-white/10 hover:bg-black/30 transition-colors"
                         >
-                          <Eye size={16} /> {message.isSelfDestruct ? 'Tap to view (self-destruct)' : 'Tap to view once'}
+                          <Eye size={16} /> Tap to view once
                         </button>
                       )}
+                    {message.isSelfDestruct && message.messageType === 'text' && !message.isConsumed && (
+                      <p className="text-[9px] text-orange-400/90 font-medium mb-1">Disappears after you read it</p>
+                    )}
                     {message.isViewOnce &&
                       (!isOwnMessage(message) && !mods?.antiViewOnce || message.isConsumed) &&
                       message.isConsumed && (
@@ -2556,11 +2557,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                           <Eye size={16} /> Opened
                         </div>
                       )}
-                    {message.isConsumed && message.isSelfDestruct && (
-                      <div className="flex items-center gap-2 text-dark-textSecondary py-2 italic text-sm">
-                        <span>💥</span> Message self-destructed
-                      </div>
-                    )}
                     {(!['image', 'video', 'location', 'sticker', 'audio', 'gif'].includes(message.messageType) ||
                       (plaintextOf(message) &&
                         plaintextOf(message) !== mediaSourceOf(message) &&
@@ -2572,7 +2568,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                         !plaintextOf(message).includes('maps.apple.com') &&
                         plaintextOf(message).trim() !== '')) &&
                       !(
-                        (message.isViewOnce || message.isSelfDestruct) &&
+                        message.isViewOnce &&
+                        !message.isSelfDestruct &&
                         message.messageType === 'text' &&
                         !isOwnMessage(message) &&
                         !mods?.antiViewOnce &&

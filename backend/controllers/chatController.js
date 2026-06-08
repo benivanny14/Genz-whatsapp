@@ -616,8 +616,9 @@ exports.sendMessage = async (req, res) => {
         disappearAt = new Date(Date.now() + timer * 60 * 60 * 1000);
       }
       
-      // If message is marked as self-destruct, set disappearAt time
-      if (isSelfDestruct && !disappearAt) {
+      // Text self-destruct stays plain until read; media self-destruct uses timer
+      const isTextSelfDestruct = Boolean(isSelfDestruct) && (messageType || 'text') === 'text';
+      if (isSelfDestruct && !disappearAt && !isTextSelfDestruct) {
         let timerSeconds = Number(process.env.SELF_DESTRUCT_TIMER) * 60 * 60 || 12 * 60 * 60; // default 12 hours
         if (selfDestructTimer && !isNaN(selfDestructTimer)) {
           timerSeconds = Number(selfDestructTimer);
@@ -752,12 +753,6 @@ exports.sendMessage = async (req, res) => {
         let senderSocketId = null;
         if (global.onlineUsers && global.onlineUsers.get(localUserId.toString())) {
           senderSocketId = global.onlineUsers.get(localUserId.toString());
-        }
-
-        if (senderSocketId) {
-          io.to(finalConversationId).except(senderSocketId).emit("message:received", plainMessage);
-        } else {
-          io.to(finalConversationId).emit("message:received", plainMessage);
         }
 
         if (conversation.participants && Array.isArray(conversation.participants)) {
@@ -928,6 +923,31 @@ exports.markAsRead = async (req, res) => {
       message.readBy.push({ user: localUserId, readAt: new Date() });
       message.status = "read";
       await message.save();
+    }
+
+    if (message.isSelfDestruct && (message.messageType || 'text') === 'text' && !message.isConsumed) {
+      message.isConsumed = true;
+      message.content = '';
+      message.disappearAt = new Date();
+      await message.save();
+      const io = req.app.get("io");
+      if (io) {
+        io.to(message.sender.toString()).emit("message:viewed", {
+          messageId: message._id,
+          conversationId: message.conversationId,
+          viewedBy: localUserId,
+          viewedAt: new Date(),
+          isViewOnce: false,
+          isSelfDestruct: true
+        });
+        io.to(message.conversationId.toString()).emit("message:consumed", {
+          messageId: message._id,
+          conversationId: message.conversationId,
+          isViewOnce: false,
+          isSelfDestruct: true,
+          consumedBy: localUserId
+        });
+      }
     }
 
     const currentCount = getUnreadCount(conversation, localUserId);

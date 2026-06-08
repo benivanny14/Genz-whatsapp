@@ -1,6 +1,5 @@
 import { authFetch } from '../utils/authFetch';
-
-const API_BASE = import.meta.env.VITE_API_URL || '';
+import apiUrl from '../utils/apiUrl';
 
 const jsonHeaders = () => ({
   'Content-Type': 'application/json'
@@ -18,7 +17,7 @@ async function parseJsonSafe(response) {
 
 const statusService = {
   getStatuses: async () => {
-    const response = await authFetch(`${API_BASE}/api/advanced/status`, {
+    const response = await authFetch(apiUrl('/advanced/status'), {
       headers: jsonHeaders()
     });
     const data = await parseJsonSafe(response);
@@ -34,7 +33,7 @@ const statusService = {
     if (statusData.file) {
       const formData = new FormData();
       formData.append('file', statusData.file);
-      const upRes = await authFetch(`${API_BASE}/api/advanced/status/upload`, {
+      const upRes = await authFetch(apiUrl('/advanced/status/upload'), {
         method: 'POST',
         headers: formHeaders(),
         body: formData
@@ -65,7 +64,7 @@ const statusService = {
       privacy
     };
 
-    const response = await authFetch(`${API_BASE}/api/advanced/status`, {
+    const response = await authFetch(apiUrl('/advanced/status'), {
       method: 'POST',
       headers: jsonHeaders(),
       body: JSON.stringify(payload)
@@ -77,7 +76,7 @@ const statusService = {
 
   deleteStatus: async (statusId) => {
     const id = encodeURIComponent(statusId);
-    const response = await authFetch(`${API_BASE}/api/advanced/status/${id}`, {
+    const response = await authFetch(apiUrl(`/advanced/status/${id}`), {
       method: 'DELETE',
       headers: jsonHeaders()
     });
@@ -88,7 +87,7 @@ const statusService = {
 
   viewStatus: async (statusId) => {
     const id = encodeURIComponent(statusId);
-    const response = await authFetch(`${API_BASE}/api/advanced/status/${id}/view`, {
+    const response = await authFetch(apiUrl(`/advanced/status/${id}/view`), {
       method: 'POST',
       headers: jsonHeaders(),
       body: JSON.stringify({})
@@ -101,7 +100,7 @@ const statusService = {
   replyToStatus: async (statusId, replyData) => {
     const id = encodeURIComponent(statusId);
     const body = typeof replyData === 'string' ? { content: replyData } : replyData;
-    const response = await authFetch(`${API_BASE}/api/advanced/status/${id}/reply`, {
+    const response = await authFetch(apiUrl(`/advanced/status/${id}/reply`), {
       method: 'POST',
       headers: jsonHeaders(),
       body: JSON.stringify(body)
@@ -114,7 +113,7 @@ const statusService = {
   getStatusViewers: async (statusId) => {
     try {
       const id = encodeURIComponent(statusId);
-      const response = await authFetch(`${API_BASE}/api/advanced/status/${id}/viewers`, {
+      const response = await authFetch(apiUrl(`/advanced/status/${id}/viewers`), {
         headers: jsonHeaders()
       });
       if (response.status === 404) return { success: true, viewers: [] };
@@ -129,7 +128,7 @@ const statusService = {
   getStatusReplies: async (statusId) => {
     try {
       const id = encodeURIComponent(statusId);
-      const response = await authFetch(`${API_BASE}/api/advanced/status/${id}/replies`, {
+      const response = await authFetch(apiUrl(`/advanced/status/${id}/replies`), {
         headers: jsonHeaders()
       });
       if (response.status === 404) return { success: true, replies: [] };
@@ -143,7 +142,7 @@ const statusService = {
 
   getStatusDetails: async (statusId) => {
     const id = encodeURIComponent(statusId);
-    const response = await authFetch(`${API_BASE}/api/advanced/status/${id}`, {
+    const response = await authFetch(apiUrl(`/advanced/status/${id}`), {
       headers: jsonHeaders()
     });
     const data = await parseJsonSafe(response);
@@ -153,7 +152,7 @@ const statusService = {
 
   updateStatusPrivacy: async (statusId, privacy) => {
     const id = encodeURIComponent(statusId);
-    const response = await authFetch(`${API_BASE}/api/advanced/status/${id}/privacy`, {
+    const response = await authFetch(apiUrl(`/advanced/status/${id}/privacy`), {
       method: 'PATCH',
       headers: jsonHeaders(),
       body: JSON.stringify({ privacy })
@@ -164,7 +163,7 @@ const statusService = {
   },
 
   muteStatusUpdates: async (userId, mute) => {
-    const response = await authFetch(`${API_BASE}/api/advanced/status/mute/${encodeURIComponent(userId)}`, {
+    const response = await authFetch(apiUrl(`/advanced/status/mute/${encodeURIComponent(userId)}`), {
       method: 'POST',
       headers: jsonHeaders(),
       body: JSON.stringify({ mute })
@@ -174,7 +173,7 @@ const statusService = {
 
   archiveStatus: async (statusId) => {
     const id = encodeURIComponent(statusId);
-    const response = await authFetch(`${API_BASE}/api/advanced/status/${id}/archive`, {
+    const response = await authFetch(apiUrl(`/advanced/status/${id}/archive`), {
       method: 'POST',
       headers: jsonHeaders()
     });
@@ -182,7 +181,7 @@ const statusService = {
   },
 
   getArchivedStatuses: async () => {
-    const response = await authFetch(`${API_BASE}/api/advanced/status/archived`, {
+    const response = await authFetch(apiUrl('/advanced/status/archived'), {
       headers: jsonHeaders()
     });
     return parseJsonSafe(response);
@@ -190,7 +189,7 @@ const statusService = {
 
   reportStatus: async (statusId, reason) => {
     const id = encodeURIComponent(statusId);
-    const response = await authFetch(`${API_BASE}/api/advanced/status/${id}/report`, {
+    const response = await authFetch(apiUrl(`/advanced/status/${id}/report`), {
       method: 'POST',
       headers: jsonHeaders(),
       body: JSON.stringify({ reason })
@@ -199,7 +198,7 @@ const statusService = {
   },
 
   getStatusStats: async () => {
-    const response = await authFetch(`${API_BASE}/api/advanced/status/stats`, {
+    const response = await authFetch(apiUrl('/advanced/status/stats'), {
       headers: jsonHeaders()
     });
     return parseJsonSafe(response);
@@ -208,7 +207,7 @@ const statusService = {
   uploadStatusMedia: async (file) => {
     const formData = new FormData();
     formData.append('file', file);
-    const response = await authFetch(`${API_BASE}/api/advanced/status/upload`, {
+    const response = await authFetch(apiUrl('/advanced/status/upload'), {
       method: 'POST',
       headers: formHeaders(),
       body: formData

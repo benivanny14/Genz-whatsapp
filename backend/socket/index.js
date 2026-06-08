@@ -9,6 +9,7 @@ const activeCalls = require('../utils/activeCalls');
 const { resolveMessageMentions } = require('../utils/mentions');
 const { sendMentionNotification } = require('../services/notificationService');
 const { ensureUnreadMap, getUnreadCount, setUnreadCount } = require('../utils/unreadCount');
+const { serializeOutgoingMessage } = require('../utils/messageSerializer');
 
 // Use the shared onlineUsers map from server.js (global.onlineUsers)
 // This ensures socket handlers and HTTP controllers share the same online users state
@@ -126,6 +127,42 @@ const deleteMapValue = (doc, field, key) => {
     delete doc[field][String(key)];
   }
   doc.markModified(field);
+};
+
+const consumeSelfDestructMessagesOnRead = async (io, chatId, readerId, messageIds = []) => {
+  if (!messageIds.length) return;
+  const messages = await Message.find({
+    _id: { $in: messageIds },
+    conversationId: chatId,
+    isSelfDestruct: true,
+    isConsumed: { $ne: true },
+    sender: { $ne: readerId }
+  });
+
+  for (const msg of messages) {
+    msg.isConsumed = true;
+    msg.content = '';
+    msg.mediaUrl = '';
+    msg.fileName = '';
+    msg.disappearAt = new Date();
+    await msg.save();
+
+    io.to(msg.sender.toString()).emit('message:viewed', {
+      messageId: msg._id,
+      conversationId: msg.conversationId,
+      viewedBy: readerId,
+      viewedAt: new Date(),
+      isViewOnce: false,
+      isSelfDestruct: true
+    });
+    io.to(chatId).emit('message:consumed', {
+      messageId: msg._id,
+      conversationId: msg.conversationId,
+      isViewOnce: false,
+      isSelfDestruct: true,
+      consumedBy: readerId
+    });
+  }
 };
 
 const notifyMentionedUsers = async ({ io, onlineUsers, mentionedUserIds = [], message, senderName, text, mentionerId }) => {
@@ -311,7 +348,9 @@ const setupSocket = (io) => {
           const timerHours = Number(conversation.disappearingMessages.timer) || 24;
           disappearAt = new Date(Date.now() + timerHours * 60 * 60 * 1000);
         }
-        if (isSelfDestruct && !disappearAt) {
+        // Text self-destruct: plain text until read — timer starts only after consumption
+        const isTextSelfDestruct = Boolean(isSelfDestruct) && (messageType || 'text') === 'text';
+        if (isSelfDestruct && !disappearAt && !isTextSelfDestruct) {
           let timerSeconds = Number(process.env.SELF_DESTRUCT_TIMER) * 60 * 60 || 12 * 60 * 60;
           if (selfDestructTimer && !Number.isNaN(Number(selfDestructTimer))) {
             timerSeconds = Number(selfDestructTimer);
@@ -341,40 +380,45 @@ const setupSocket = (io) => {
 
         const populatedMessage = await Message.findById(message._id)
           .populate('sender', 'username profilePicture')
-          .populate('replyTo')
+          .populate('replyTo', '_id content messageType sender')
           .populate('mentions.user', 'username profilePicture');
 
-        conversation.lastMessage = message._id;
-        conversation.updatedAt = new Date();
-        
-        // Increment unread count for all participants except sender
-        const unreadMap = ensureUnreadMap(conversation);
+        const incObject = {};
         if (conversation.participants && Array.isArray(conversation.participants)) {
-          conversation.participants.forEach(participantId => {
+          conversation.participants.forEach((participantId) => {
             if (participantId.toString() !== socket.userId.toString()) {
-              const userId = String(participantId);
-              unreadMap.set(userId, (unreadMap.get(userId) || 0) + 1);
+              incObject[`unreadCount.${participantId.toString()}`] = 1;
             }
           });
         }
-        
-        await conversation.save();
 
-        const outgoingMessage = populatedMessage.toObject ? populatedMessage.toObject() : populatedMessage;
-        if (messageId) {
-          outgoingMessage.clientMessageId = messageId;
+        const updateQuery = {
+          $set: {
+            lastMessage: message._id,
+            updatedAt: new Date(),
+            deletedFor: []
+          }
+        };
+        if (Object.keys(incObject).length > 0) {
+          updateQuery.$inc = incObject;
         }
+        await Conversation.findByIdAndUpdate(conversationId, updateQuery, { new: true, runValidators: false });
+
+        const outgoingMessage = serializeOutgoingMessage(populatedMessage, messageId ? { clientMessageId: messageId } : {});
 
         // Deliver once per recipient via their user room (avoids duplicate events)
+        const updatedConversation = await Conversation.findById(conversationId);
         if (conversation.participants && Array.isArray(conversation.participants)) {
-          conversation.participants.forEach(participantId => {
+          conversation.participants.forEach((participantId) => {
             if (participantId.toString() !== socket.userId.toString()) {
               const userId = String(participantId);
               io.to(userId).emit('message:received', outgoingMessage);
-              io.to(userId).emit('conversation:unread-update', {
-                conversationId: conversation._id,
-                unreadCount: getUnreadCount(conversation, userId)
-              });
+              if (updatedConversation) {
+                io.to(userId).emit('conversation:unread-update', {
+                  conversationId: conversation._id,
+                  unreadCount: getUnreadCount(updatedConversation, userId)
+                });
+              }
             }
           });
         }
@@ -1397,6 +1441,7 @@ const setupSocket = (io) => {
           status: { $ne: 'read' }
         }).limit(200);
 
+        const selfDestructTextIds = [];
         for (const msg of unreadMessages) {
           if (!Array.isArray(msg.readBy)) msg.readBy = [];
           const alreadyRead = msg.readBy.some((r) => r.user?.toString() === userId);
@@ -1405,7 +1450,11 @@ const setupSocket = (io) => {
             msg.status = 'read';
             await msg.save();
           }
+          if (msg.isSelfDestruct && (msg.messageType || 'text') === 'text') {
+            selfDestructTextIds.push(msg._id);
+          }
         }
+        await consumeSelfDestructMessagesOnRead(io, chatId, userId, selfDestructTextIds);
       }
 
       setUnreadCount(conversation, userId, 0);
@@ -1436,9 +1485,48 @@ const setupSocket = (io) => {
     socket.on('visit_profile', async (data) => {
       try {
         const { visitedUserId, visitorId, visitorName } = data;
-        io.emit('profile:visited', { visitedUserId, visitorId, visitorName, timestamp: new Date() });
+        if (!visitedUserId || !visitorId || String(visitedUserId) === String(visitorId)) return;
+
+        const visitor = await User.findById(visitorId).select('username profilePicture').lean();
+        const entry = {
+          visitorId,
+          visitorName: visitorName || visitor?.username || 'Someone',
+          visitorPicture: visitor?.profilePicture || null,
+          timestamp: new Date()
+        };
+
+        await User.findByIdAndUpdate(visitedUserId, {
+          $push: {
+            profileVisitors: {
+              $each: [entry],
+              $position: 0,
+              $slice: 50
+            }
+          }
+        });
+
+        io.to(String(visitedUserId)).emit('profile:visited', {
+          visitedUserId,
+          ...entry
+        });
       } catch (error) {
         console.error('Error visiting profile:', error);
+      }
+    });
+
+    socket.on('status:delete', async (data) => {
+      try {
+        const statusId = data?.statusId || data?.id;
+        if (!statusId) return;
+        const status = await Status.findById(statusId);
+        if (!status) return;
+        if (String(status.userId) !== String(socket.userId)) {
+          return socket.emit('error', { message: 'You can only delete your own status' });
+        }
+        await Status.findByIdAndDelete(statusId);
+        io.emit('status:deleted', { statusId: String(statusId), userId: String(socket.userId) });
+      } catch (error) {
+        console.error('Error deleting status via socket:', error);
       }
     });
 
