@@ -27,7 +27,14 @@ const serializeOutgoingMessage = (msgObj = {}, extras = {}) => {
     return null;
   };
 
-  const base = msgObj.toObject ? msgObj.toObject() : msgObj;
+  let base = msgObj;
+  if (msgObj && typeof msgObj.toObject === 'function') {
+    try {
+      base = msgObj.toObject({ depopulate: true, virtuals: false });
+    } catch {
+      base = msgObj;
+    }
+  }
 
   return {
     _id: base._id ? base._id.toString() : null,

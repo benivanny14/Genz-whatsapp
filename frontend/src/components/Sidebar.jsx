@@ -616,27 +616,35 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
             {(callLogs || []).length === 0 && (
               <p className="text-sm text-dark-textSecondary text-center py-6">Hakuna simu bado</p>
             )}
-            {(callLogs || []).map((log) => (
+            {(callLogs || []).map((log) => {
+              const isMissed = log.missed || log.status === 'missed';
+              const isIncoming = log.type === 'incoming' || log.direction === 'incoming';
+              const isOutgoing = log.type === 'outgoing' || log.direction === 'outgoing';
+              const displayName = log.callerName || log.calleeName || log.peerName || log.username || 'Unknown';
+              const when = log.timestamp || log.createdAt || log.startedAt;
+              return (
               <div key={log._id} onClick={() => navigate('/calls')} className="flex items-center gap-3 p-3 hover:bg-dark-hover rounded-lg transition-colors group cursor-pointer">
                 <div className="w-12 h-12 rounded-full bg-primary-600/20 flex items-center justify-center text-primary-600">
-                  <span className="font-bold">{(log.callerName || '?').charAt(0)}</span>
+                  <span className="font-bold">{displayName.charAt(0)}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-dark-text font-medium truncate">{log.callerName || 'Unknown'}</h3>
+                  <h3 className="text-dark-text font-medium truncate">{displayName}</h3>
                   <div className="flex items-center gap-1">
-                    {log.missed ? <PhoneMissed size={12} className="text-red-500" /> :
-                      log.type === 'incoming' ? <PhoneIncoming size={12} className="text-green-500" /> :
-                        <PhoneOutgoing size={12} className="text-primary-500" />}
+                    {isMissed ? <PhoneMissed size={12} className="text-red-500" /> :
+                      isIncoming ? <PhoneIncoming size={12} className="text-green-500" /> :
+                      isOutgoing ? <PhoneOutgoing size={12} className="text-primary-500" /> :
+                        <Phone size={12} className="text-dark-textSecondary" />}
                     <span className="text-xs text-dark-textSecondary">
-                      {new Date(log.timestamp).toLocaleDateString()} {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {isMissed ? 'Missed · ' : isIncoming ? 'Incoming · ' : isOutgoing ? 'Outgoing · ' : ''}
+                      {when ? `${new Date(when).toLocaleDateString()} ${new Date(when).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
                     </span>
                   </div>
                 </div>
                 <div className="text-primary-600">
-                  {log.callType === 'video' ? <Video size={18} /> : <Phone size={18} />}
+                  {(log.callType === 'video' || log.type === 'video') ? <Video size={18} /> : <Phone size={18} />}
                 </div>
               </div>
-            ))}
+            );})}
           </div>
         )}
         {isOpen && activeTab === 'visitors' && (

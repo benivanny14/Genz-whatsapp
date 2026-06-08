@@ -14,11 +14,12 @@ import encryptionService from '../services/encryptionService';
 import { decryptMessageContent, decryptMessagesList } from '../utils/e2eeMessage';
 import { isClientE2EEMessageContent } from '../utils/e2eeContent';
 import notificationService from '../services/notificationService';
+import { resolveApiBase, resolveSocketOrigin } from '../utils/resolveApiBase';
 
 export const ChatContext = createContext();
 
-const BACKEND_URL = import.meta.env.VITE_API_URL || 'https://genz-whatsapp-2.onrender.com/api';
-const SOCKET_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_SOCKET_URL || BACKEND_URL;
+const BACKEND_URL = resolveApiBase();
+const SOCKET_ORIGIN = resolveSocketOrigin();
 /** Mongo-style demo fallback when no JWT user is present (dev / optional demo mode) */
 const UNAUTHENTICATED_FALLBACK_USER_ID = '60d5ecb8b392cb371c664c12';
 const REQUIRE_AUTH = import.meta.env.VITE_REQUIRE_AUTH !== 'false';
@@ -301,6 +302,7 @@ export const ChatProvider = ({ children }) => {
   }, [conversations.length, messages.length, refreshAllMessagesForStats]);
   const [contacts, setContacts] = useState([]);
   const [blockedUsers, setBlockedUsers] = useState([]);
+  const blockedUsersRef = useRef([]);
   const [pinnedMessages, setPinnedMessages] = useState({});
   const [presenceHistory, setPresenceHistory] = useState({});
   // Load unlocked session chats from localStorage on mount
@@ -457,6 +459,7 @@ export const ChatProvider = ({ children }) => {
 
   // ── Persist mods ref for socket callbacks ──
   useEffect(() => { modsRef.current = mods; }, [mods]);
+  useEffect(() => { blockedUsersRef.current = blockedUsers || []; }, [blockedUsers]);
   useEffect(() => { isDNDModeRef.current = isDNDMode; }, [isDNDMode]);
 
   // ── Persist unlocked session chats to localStorage ──
@@ -722,7 +725,7 @@ export const ChatProvider = ({ children }) => {
         if (u?._id) userId = u._id;
       } catch (_) { /* keep default */ }
 
-      socket = io(BACKEND_URL.replace(/\/api\/?$/, ''), {
+      socket = io(SOCKET_ORIGIN, {
         path: '/socket.io/',
         transports: ['polling', 'websocket'],
         withCredentials: true,
@@ -837,8 +840,10 @@ export const ChatProvider = ({ children }) => {
         console.log('Ujumbe mpya umeingia kutoka Socket (message:received):', msg);
         const incoming = await decryptMessageContent(msg);
         const senderId = String(incoming.sender?._id || incoming.sender || '');
-        const serverId = String(incoming._id || '');
         if (senderId === String(currentUserId)) {
+          return;
+        }
+        if (blockedUsersRef.current.some((id) => String(id) === senderId)) {
           return;
         }
         if (modsRef.current.spamFilter && isLikelySpamMessage(incoming)) {
@@ -1554,12 +1559,20 @@ export const ChatProvider = ({ children }) => {
       }
       const payload = {
         conversationId: newMessage.conversationId,
-        chatId: options.chatId || newMessage.conversationId,
         content: newMessage.content,
         messageType: newMessage.messageType,
         messageId: newMessage._id,
         isClientE2EE: isClientE2EEMessageContent(newMessage.content),
-        ...options
+        isViewOnce: Boolean(options.isViewOnce),
+        isSelfDestruct: Boolean(options.isSelfDestruct),
+        selfDestructTimer: options.selfDestructTimer ?? null,
+        mediaUrl: options.mediaUrl || '',
+        fileName: options.fileName || '',
+        fileSize: options.fileSize || 0,
+        duration: options.duration || 0,
+        replyTo: options.replyTo?._id || options.replyTo?.id || options.replyTo || null,
+        mentions: options.mentions || [],
+        isForwarded: Boolean(options.isForwarded)
       };
 
       console.log("Inatuma ujumbe kwenda DB kwa chumba cha:", newMessage.conversationId);

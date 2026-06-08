@@ -605,7 +605,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         isGroup: selectedConversation.isGroup,
         ghostMode: mods.ghostMode,
         isSelfDestruct: Boolean(mods.selfDestruct),
-        selfDestructTimer: null,
+        selfDestructTimer: mods.selfDestruct ? 10 : null,
         isViewOnce: mods.selfDestruct ? false : isViewOnceEnabled,
         mentions
       });
@@ -1922,11 +1922,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       if (message.isConsumed) return false;
     }
     
-    // Self-destruct logic: text shows as plain until read; media uses tap-to-view
-    if (message.isSelfDestruct && !isSender) {
+    // Self-destruct: disappears for everyone after timer (default 10s)
+    if (message.isSelfDestruct) {
       if (mods.antiViewOnce) return true;
-      if (message.isConsumed) return false;
-      if (message.disappearAt && new Date(message.disappearAt) < new Date()) return false;
+      if (message.disappearAt && new Date(message.disappearAt) <= new Date()) return false;
+      if (!isSender && message.isConsumed) return false;
     }
 
     return true;
@@ -2547,8 +2547,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                           <Eye size={16} /> Tap to view once
                         </button>
                       )}
-                    {message.isSelfDestruct && message.messageType === 'text' && !message.isConsumed && (
-                      <p className="text-[9px] text-orange-400/90 font-medium mb-1">Disappears after you read it</p>
+                    {message.isSelfDestruct && !message.isConsumed && (
+                      <p className="text-[9px] text-orange-400/90 font-medium mb-1">Disappears in 10 seconds</p>
                     )}
                     {message.isViewOnce &&
                       (!isOwnMessage(message) && !mods?.antiViewOnce || message.isConsumed) &&
@@ -3711,20 +3711,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                 />
               </div>
             ) : (
-              <div className="bg-dark-surface p-8 rounded-2xl border border-dark-border text-center">
-                <Eye size={48} className="text-primary-500 mx-auto mb-4" />
-                <p className="text-white text-lg">View Once Message</p>
-                <p className="text-dark-textSecondary mt-2">This message can only be viewed once</p>
+              <div className="bg-[#0b141a] p-8 rounded-2xl border border-white/10 max-w-lg mx-4">
+                <p className="text-white text-xl whitespace-pre-wrap break-words text-left leading-relaxed">
+                  {plaintextOf(viewOnceMessageData)}
+                </p>
               </div>
             )}
-            
-            {/* Warning text */}
-            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-center">
-              <p className="text-white/60 text-sm flex items-center gap-2">
-                <Eye size={16} />
-                This message will be marked as opened when you close this view
-              </p>
-            </div>
           </div>
         </div>
       )}

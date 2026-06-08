@@ -5,6 +5,11 @@ const User = require("../models/User");
 const crypto = require("crypto");
 const { applyPrivacyFilter } = require("../utils/privacyHelper");
 const { resolveMessageMentions } = require("../utils/mentions");
+const {
+  normalizeReplyToId,
+  getSelfDestructExpiry,
+  isConversationBlocked
+} = require("../utils/messageSendHelpers");
 const { sendMentionNotification } = require("../services/notificationService");
 const { ensureUnreadMap, getUnreadCount, setUnreadCount } = require("../utils/unreadCount");
 
@@ -585,6 +590,13 @@ exports.sendMessage = async (req, res) => {
     const conversation = await Conversation.findById(finalConversationId);
 
     if (!ensureParticipant(conversation, localUserId, res)) return;
+
+    if (await isConversationBlocked(conversation, localUserId)) {
+      return res.status(403).json({ success: false, message: "Cannot message this user" });
+    }
+
+    const replyToId = normalizeReplyToId(replyTo);
+
     const safeContent =
       content ||
       fileName ||
@@ -616,14 +628,8 @@ exports.sendMessage = async (req, res) => {
         disappearAt = new Date(Date.now() + timer * 60 * 60 * 1000);
       }
       
-      // Text self-destruct stays plain until read; media self-destruct uses timer
-      const isTextSelfDestruct = Boolean(isSelfDestruct) && (messageType || 'text') === 'text';
-      if (isSelfDestruct && !disappearAt && !isTextSelfDestruct) {
-        let timerSeconds = Number(process.env.SELF_DESTRUCT_TIMER) * 60 * 60 || 12 * 60 * 60; // default 12 hours
-        if (selfDestructTimer && !isNaN(selfDestructTimer)) {
-          timerSeconds = Number(selfDestructTimer);
-        }
-        disappearAt = new Date(Date.now() + timerSeconds * 1000);
+      if (isSelfDestruct && !disappearAt) {
+        disappearAt = getSelfDestructExpiry({ isSelfDestruct, selfDestructTimer });
       }
     } catch (disappearErr) {
       console.warn('[ChatController] Disappearing timer skipped:', disappearErr?.message || disappearErr);
@@ -639,7 +645,7 @@ exports.sendMessage = async (req, res) => {
       fileName: fileName || "",
       fileSize: fileSize || 0,
       duration: duration || 0,
-      replyTo: replyTo || null,
+      replyTo: replyToId,
       isViewOnce: Boolean(isViewOnce),
       isSelfDestruct: Boolean(isSelfDestruct),
       mentions: mentionData.mentions || [],
@@ -923,31 +929,6 @@ exports.markAsRead = async (req, res) => {
       message.readBy.push({ user: localUserId, readAt: new Date() });
       message.status = "read";
       await message.save();
-    }
-
-    if (message.isSelfDestruct && (message.messageType || 'text') === 'text' && !message.isConsumed) {
-      message.isConsumed = true;
-      message.content = '';
-      message.disappearAt = new Date();
-      await message.save();
-      const io = req.app.get("io");
-      if (io) {
-        io.to(message.sender.toString()).emit("message:viewed", {
-          messageId: message._id,
-          conversationId: message.conversationId,
-          viewedBy: localUserId,
-          viewedAt: new Date(),
-          isViewOnce: false,
-          isSelfDestruct: true
-        });
-        io.to(message.conversationId.toString()).emit("message:consumed", {
-          messageId: message._id,
-          conversationId: message.conversationId,
-          isViewOnce: false,
-          isSelfDestruct: true,
-          consumedBy: localUserId
-        });
-      }
     }
 
     const currentCount = getUnreadCount(conversation, localUserId);
@@ -1296,6 +1277,11 @@ exports.blockUser = async (req, res) => {
     user.contacts = user.contacts.filter((c) => c.user && c.user.toString() !== targetId);
     await user.save();
 
+    const io = req.app.get("io");
+    if (io) {
+      io.emit("user:blocked", { blockerId: localUserId, userId: targetId });
+    }
+
     res.status(200).json({ success: true, message: "User blocked" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -1312,6 +1298,11 @@ exports.unblockUser = async (req, res) => {
       (id) => id.toString() !== targetId,
     );
     await user.save();
+
+    const io = req.app.get("io");
+    if (io) {
+      io.emit("user:unblocked", { blockerId: localUserId, userId: targetId });
+    }
 
     res.status(200).json({ success: true, message: "User unblocked" });
   } catch (error) {

@@ -124,7 +124,7 @@ const Chat = () => {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="absolute inset-0 z-[100] bg-white w-full h-full md:w-[400px] md:right-0 shadow-2xl border-l border-gray-200"
+              className="absolute inset-0 z-[100] bg-white w-full h-full min-h-0 md:w-[400px] md:right-0 shadow-2xl border-l border-gray-200 flex flex-col"
             >
               <Suspense fallback={<PanelLoader />}>
                 <GENZSettings

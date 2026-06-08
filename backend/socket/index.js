@@ -10,6 +10,11 @@ const { resolveMessageMentions } = require('../utils/mentions');
 const { sendMentionNotification } = require('../services/notificationService');
 const { ensureUnreadMap, getUnreadCount, setUnreadCount } = require('../utils/unreadCount');
 const { serializeOutgoingMessage } = require('../utils/messageSerializer');
+const {
+  normalizeReplyToId,
+  getSelfDestructExpiry,
+  isConversationBlocked
+} = require('../utils/messageSendHelpers');
 
 // Use the shared onlineUsers map from server.js (global.onlineUsers)
 // This ensures socket handlers and HTTP controllers share the same online users state
@@ -127,42 +132,6 @@ const deleteMapValue = (doc, field, key) => {
     delete doc[field][String(key)];
   }
   doc.markModified(field);
-};
-
-const consumeSelfDestructMessagesOnRead = async (io, chatId, readerId, messageIds = []) => {
-  if (!messageIds.length) return;
-  const messages = await Message.find({
-    _id: { $in: messageIds },
-    conversationId: chatId,
-    isSelfDestruct: true,
-    isConsumed: { $ne: true },
-    sender: { $ne: readerId }
-  });
-
-  for (const msg of messages) {
-    msg.isConsumed = true;
-    msg.content = '';
-    msg.mediaUrl = '';
-    msg.fileName = '';
-    msg.disappearAt = new Date();
-    await msg.save();
-
-    io.to(msg.sender.toString()).emit('message:viewed', {
-      messageId: msg._id,
-      conversationId: msg.conversationId,
-      viewedBy: readerId,
-      viewedAt: new Date(),
-      isViewOnce: false,
-      isSelfDestruct: true
-    });
-    io.to(chatId).emit('message:consumed', {
-      messageId: msg._id,
-      conversationId: msg.conversationId,
-      isViewOnce: false,
-      isSelfDestruct: true,
-      consumedBy: readerId
-    });
-  }
 };
 
 const notifyMentionedUsers = async ({ io, onlineUsers, mentionedUserIds = [], message, senderName, text, mentionerId }) => {
@@ -330,6 +299,12 @@ const setupSocket = (io) => {
           return socket.emit('message:error', { error: 'Not authorized for this conversation' });
         }
 
+        if (await isConversationBlocked(conversation, socket.userId)) {
+          return socket.emit('message:error', { error: 'Cannot message this user', messageId: data?.messageId });
+        }
+
+        const replyToId = normalizeReplyToId(replyTo);
+
         const mentionData = await resolveMessageMentions({
           conversation,
           senderId: socket.userId,
@@ -348,14 +323,8 @@ const setupSocket = (io) => {
           const timerHours = Number(conversation.disappearingMessages.timer) || 24;
           disappearAt = new Date(Date.now() + timerHours * 60 * 60 * 1000);
         }
-        // Text self-destruct: plain text until read — timer starts only after consumption
-        const isTextSelfDestruct = Boolean(isSelfDestruct) && (messageType || 'text') === 'text';
-        if (isSelfDestruct && !disappearAt && !isTextSelfDestruct) {
-          let timerSeconds = Number(process.env.SELF_DESTRUCT_TIMER) * 60 * 60 || 12 * 60 * 60;
-          if (selfDestructTimer && !Number.isNaN(Number(selfDestructTimer))) {
-            timerSeconds = Number(selfDestructTimer);
-          }
-          disappearAt = new Date(Date.now() + timerSeconds * 1000);
+        if (isSelfDestruct && !disappearAt) {
+          disappearAt = getSelfDestructExpiry({ isSelfDestruct, selfDestructTimer });
         }
 
         const message = await Message.create({
@@ -368,7 +337,7 @@ const setupSocket = (io) => {
           fileName: fileName || '',
           fileSize: fileSize || 0,
           duration: duration || 0,
-          replyTo: replyTo || null,
+          replyTo: replyToId,
           isViewOnce: Boolean(isViewOnce),
           isSelfDestruct: Boolean(isSelfDestruct),
           disappearAt,
@@ -380,8 +349,9 @@ const setupSocket = (io) => {
 
         const populatedMessage = await Message.findById(message._id)
           .populate('sender', 'username profilePicture')
-          .populate('replyTo', '_id content messageType sender')
-          .populate('mentions.user', 'username profilePicture');
+          .populate('replyTo', '_id content messageType')
+          .populate('mentions.user', 'username profilePicture')
+          .lean();
 
         const incObject = {};
         if (conversation.participants && Array.isArray(conversation.participants)) {
@@ -437,6 +407,33 @@ const setupSocket = (io) => {
           text: safeContent,
           mentionerId: socket.userId
         });
+
+        // Auto-reply from recipients who enabled it (WhatsApp-style away message)
+        if (conversation.participants?.length) {
+          for (const participantId of conversation.participants) {
+            if (String(participantId) === String(socket.userId)) continue;
+            try {
+              const recipient = await User.findById(participantId).select('autoReplyEnabled autoReplyMessage');
+              const replyText = recipient?.autoReplyMessage?.trim();
+              if (!recipient?.autoReplyEnabled || !replyText) continue;
+
+              const autoMsg = await Message.create({
+                conversationId,
+                sender: participantId,
+                content: replyText,
+                messageType: 'text'
+              });
+              const autoPopulated = await Message.findById(autoMsg._id)
+                .populate('sender', 'username profilePicture')
+                .lean();
+              const autoOutgoing = serializeOutgoingMessage(autoPopulated);
+              io.to(String(socket.userId)).emit('message:received', autoOutgoing);
+              io.to(String(participantId)).emit('message:received', autoOutgoing);
+            } catch (autoErr) {
+              console.warn('[Socket] Auto-reply skipped:', autoErr?.message || autoErr);
+            }
+          }
+        }
 
       } catch (error) {
         console.error('Error sending message:', error);
@@ -1441,7 +1438,6 @@ const setupSocket = (io) => {
           status: { $ne: 'read' }
         }).limit(200);
 
-        const selfDestructTextIds = [];
         for (const msg of unreadMessages) {
           if (!Array.isArray(msg.readBy)) msg.readBy = [];
           const alreadyRead = msg.readBy.some((r) => r.user?.toString() === userId);
@@ -1450,11 +1446,7 @@ const setupSocket = (io) => {
             msg.status = 'read';
             await msg.save();
           }
-          if (msg.isSelfDestruct && (msg.messageType || 'text') === 'text') {
-            selfDestructTextIds.push(msg._id);
-          }
         }
-        await consumeSelfDestructMessagesOnRead(io, chatId, userId, selfDestructTextIds);
       }
 
       setUnreadCount(conversation, userId, 0);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { X, Clock, Eye, ChevronUp, Users, MessageCircle, Trash2, Share2, MoreVertical, Download, Heart, Send } from 'lucide-react';
+import { X, Clock, Eye, ChevronUp, ChevronLeft, ChevronRight, Pause, Play, Users, MessageCircle, Trash2, Share2, MoreVertical, Download, Heart, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChat } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
@@ -32,8 +32,11 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
   const [replyText, setReplyText] = useState('');
   const [replySending, setReplySending] = useState(false);
   const [replySuccess, setReplySuccess] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [detailedViewers, setDetailedViewers] = useState([]);
   const previousStatusIdRef = useRef(null);
   const replyInputRef = useRef(null);
+  const timerRef = useRef(null);
 
   useEffect(() => {
     setCurrentIndex(initialIndex);
@@ -71,12 +74,30 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
   };
 
   const viewersList = useMemo(() => {
-    if (!currentStatus?.views) return [];
-    if (!Array.isArray(currentStatus.views)) return [];
+    if (detailedViewers.length) return detailedViewers;
+    if (!currentStatus?.views || !Array.isArray(currentStatus.views)) return [];
     return currentStatus.views.map((v) => ({
-      username: typeof v.user === 'string' ? v.user : v.user?.username || 'User'
+      username: v.user?.username || v.username || (typeof v.user === 'string' ? v.user : 'User'),
+      viewedAt: v.viewedAt || v.timestamp
     }));
-  }, [currentStatus]);
+  }, [currentStatus, detailedViewers]);
+
+  useEffect(() => {
+    if (!showViewers || !isOwnStatus || !currentId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await statusService.getStatusViewers(currentId);
+        if (!cancelled && data?.viewers?.length) {
+          setDetailedViewers(data.viewers.map((v) => ({
+            username: v.username || v.user?.username || 'User',
+            viewedAt: v.viewedAt
+          })));
+        }
+      } catch (_) { /* optional endpoint */ }
+    })();
+    return () => { cancelled = true; };
+  }, [showViewers, isOwnStatus, currentId]);
 
   const viewCount = currentStatus
     ? (typeof currentStatus.viewsCount === 'number' ? currentStatus.viewsCount : viewersList.length)
@@ -212,6 +233,8 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
 
     if (previousStatusIdRef.current !== currentId) {
       previousStatusIdRef.current = currentId;
+      setDetailedViewers([]);
+      setIsPaused(false);
 
       (async () => {
         try {
@@ -223,16 +246,21 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
       })();
     }
 
+    if (isPaused) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      return undefined;
+    }
+
     setProgress(0);
     const duration = getStatusDuration();
     const intervalMs = 50;
     const step = (intervalMs / duration) * 100;
     let acc = 0;
 
-    const timer = setInterval(() => {
+    timerRef.current = setInterval(() => {
       acc += step;
       if (acc >= 100) {
-        clearInterval(timer);
+        clearInterval(timerRef.current);
         setProgress(100);
         if (currentIndex < statuses.length - 1) {
           setCurrentIndex((i) => i + 1);
@@ -244,8 +272,21 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
       setProgress(acc);
     }, intervalMs);
 
-    return () => clearInterval(timer);
-  }, [currentIndex, currentId, currentStatus, getStatusDuration, onClose, statuses.length, viewStatus]);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [currentIndex, currentId, currentStatus, getStatusDuration, onClose, statuses.length, viewStatus, isPaused]);
+
+  const goNext = useCallback((e) => {
+    e?.stopPropagation?.();
+    if (currentIndex < statuses.length - 1) setCurrentIndex((i) => i + 1);
+    else onClose();
+  }, [currentIndex, statuses.length, onClose]);
+
+  const goPrev = useCallback((e) => {
+    e?.stopPropagation?.();
+    if (currentIndex > 0) setCurrentIndex((i) => i - 1);
+  }, [currentIndex]);
 
   const handleScroll = (e) => {
     if (e.deltaY > 0 && currentIndex < statuses.length - 1) setCurrentIndex((prev) => prev + 1);
@@ -294,6 +335,10 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button type="button" onClick={(e) => { e.stopPropagation(); setIsPaused((p) => !p); }}
+            className="p-2 hover:bg-white/10 rounded-full transition-colors" title={isPaused ? 'Play' : 'Pause'}>
+            {isPaused ? <Play size={20} /> : <Pause size={20} />}
+          </button>
           {isOwnStatus && (
             <button type="button" onClick={handleDeleteStatus} className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-full transition-colors">
               <Trash2 size={20} />
@@ -304,6 +349,13 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
           </button>
         </div>
       </div>
+
+      <button type="button" onClick={goPrev} className="absolute left-2 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-black/30 hover:bg-black/50 text-white disabled:opacity-30" disabled={currentIndex === 0}>
+        <ChevronLeft size={28} />
+      </button>
+      <button type="button" onClick={goNext} className="absolute right-2 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-black/30 hover:bg-black/50 text-white">
+        <ChevronRight size={28} />
+      </button>
 
       <AnimatePresence mode="wait">
         <motion.div

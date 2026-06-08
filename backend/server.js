@@ -300,14 +300,26 @@ const startExpiredMessageCleanup = (ioInstance) => {
 
       const now = new Date();
       
-      // Delete self-destruct messages that have expired
-      const result = await Message.deleteMany({
+      const expiredSelfDestruct = await Message.find({
         isSelfDestruct: true,
         disappearAt: { $lte: now }
-      });
+      }).select('_id conversationId').lean();
 
-      if (result.deletedCount > 0) {
-        console.log(`[ExpiredMessageCleanup] Deleted ${result.deletedCount} expired self-destruct messages`);
+      if (expiredSelfDestruct.length > 0) {
+        await Message.deleteMany({
+          _id: { $in: expiredSelfDestruct.map((m) => m._id) }
+        });
+        if (ioInstance) {
+          expiredSelfDestruct.forEach((msg) => {
+            ioInstance.to(String(msg.conversationId)).emit('message:consumed', {
+              messageId: msg._id,
+              conversationId: msg.conversationId,
+              isSelfDestruct: true,
+              isViewOnce: false
+            });
+          });
+        }
+        console.log(`[ExpiredMessageCleanup] Deleted ${expiredSelfDestruct.length} expired self-destruct messages`);
       }
 
       // Also handle view-once messages that should be permanently removed
