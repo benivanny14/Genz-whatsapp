@@ -742,7 +742,7 @@ export const ChatProvider = ({ children }) => {
 
       socket = io(SOCKET_ORIGIN, {
         path: '/socket.io/',
-        transports: ['polling', 'websocket'],
+        transports: ['websocket'], // Force websocket only, no polling fallback
         withCredentials: true,
         auth: {
           token: token || undefined,

@@ -592,6 +592,15 @@ exports.sendMessage = async (req, res) => {
 
     if (!ensureParticipant(conversation, localUserId, res)) return;
 
+    // ✅ Angalia kama mpokeaji amemzuia mtumaji
+    const receiverId = conversation.participants.find(p => String(p) !== String(localUserId));
+    if (receiverId) {
+      const receiver = await User.findById(receiverId).select('blockedUsers');
+      if (receiver && receiver.blockedUsers && receiver.blockedUsers.some(id => String(id) === String(localUserId))) {
+        return res.status(403).json({ success: false, message: "Cannot message this user" });
+      }
+    }
+
     if (await isConversationBlocked(conversation, localUserId)) {
       return res.status(403).json({ success: false, message: "Cannot message this user" });
     }
