@@ -3,6 +3,10 @@ import { io } from 'socket.io-client';
 const BACKEND_URL = (import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || 'https://genz-whatsapp-2.onrender.com').replace('/api', '');
 const SOCKET_URL = BACKEND_URL;
 
+// Ensure we always use the backend URL, not the frontend host
+// This prevents the frontend from falling back to genz-whatsapp-2.onrender.com
+const FORCED_BACKEND_URL = 'https://genz-whatsapp.onrender.com';
+
 let socket = null;
 let reconnectAttempts = 0;
 
@@ -49,7 +53,8 @@ export const connectSocket = (userId) => {
       reconnectionDelayMax: 5000,
       timeout: 10000,
       autoConnect: true,
-      transports: ['polling', 'websocket'],
+      transports: ['websocket'], // Force websocket only, no polling fallback
+      upgrade: false, // Prevent upgrade from polling to websocket
       forceNew: false // Prevent creating new connections
     };
     
@@ -58,10 +63,11 @@ export const connectSocket = (userId) => {
       socketConfig.auth = { token };
     }
     
-    socket = io(BACKEND_URL, socketConfig);
+    // Use forced backend URL to prevent falling back to frontend host
+    socket = io(FORCED_BACKEND_URL, socketConfig);
 
     socket.on('connect', () => {
-      console.log('Socket connected successfully to:', BACKEND_URL);
+      console.log('Socket connected successfully to:', FORCED_BACKEND_URL);
       reconnectAttempts = 0;
       socket.emit('user:join', resolveSocketUserId(userId));
     });
