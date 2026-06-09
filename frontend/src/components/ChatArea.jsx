@@ -491,6 +491,26 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     };
   }, [selectedConversation, mods?.chatMusic, mods?.chatMusicUrl]);
 
+  // Handle message:received from socket
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleReceiveMessage = (newMessage) => {
+      // 1. Hakikisha ujumbe huu ni wa conversation inayofunguliwa sasa
+      if (newMessage.conversationId === selectedConversation?._id) {
+        // 2. Update state ya meseji zako ili ionekane mbele ya mtumiaji
+        setMessages((prevMessages) => [...prevMessages, newMessage]);
+      }
+    };
+
+    socket.on("message:received", handleReceiveMessage);
+
+    return () => {
+      socket.off("message:received", handleReceiveMessage);
+    };
+  }, [socket, selectedConversation?._id]);
+
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);

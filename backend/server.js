@@ -761,7 +761,7 @@ const ioConfig = {
     credentials: true,
     allowedHeaders: ALLOWED_CORS_HEADERS
   },
-  transports: ['polling', 'websocket'],
+  transports: ['websocket', 'polling'],
   allowUpgrades: true,
   pingTimeout: 60000,
   pingInterval: 25000
