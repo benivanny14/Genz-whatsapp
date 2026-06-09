@@ -8,7 +8,8 @@ const { resolveMessageMentions } = require("../utils/mentions");
 const {
   normalizeReplyToId,
   getSelfDestructExpiry,
-  isConversationBlocked
+  isConversationBlocked,
+  isEitherUserBlocked
 } = require("../utils/messageSendHelpers");
 const { sendMentionNotification } = require("../services/notificationService");
 const { ensureUnreadMap, getUnreadCount, setUnreadCount } = require("../utils/unreadCount");
@@ -559,7 +560,7 @@ exports.getMessages = async (req, res) => {
   }
 };
 
-exports.sendMessage = async (req, res) => {
+ {
   try {
     const localUserId = getCurrentUserId(req);
     const {
@@ -575,7 +576,7 @@ exports.sendMessage = async (req, res) => {
       isViewOnce,
       isSelfDestruct,
       mentions,
-      messageId,
+      messageId,exports.sendMessage = async (req, res) =>
       selfDestructTimer,
     } = req.body;
     
@@ -763,18 +764,19 @@ exports.sendMessage = async (req, res) => {
 
         if (conversation.participants && Array.isArray(conversation.participants)) {
           const updatedConversation = await Conversation.findById(finalConversationId);
-          conversation.participants.forEach((participantId) => {
-            if (participantId.toString() !== localUserId.toString()) {
-              const recipientId = participantId.toString();
-              io.to(recipientId).emit("message:received", plainMessage);
-              if (updatedConversation) {
-                io.to(recipientId).emit("conversation:unread-update", {
-                  conversationId: finalConversationId,
-                  unreadCount: getUnreadCount(updatedConversation, recipientId)
-                });
-              }
+          for (const participantId of conversation.participants) {
+            if (String(participantId) === String(localUserId)) continue;
+            const blocked = await isEitherUserBlocked(localUserId, participantId);
+            if (blocked) continue;
+            const recipientId = String(participantId);
+            io.to(recipientId).emit("message:received", plainMessage);
+            if (updatedConversation) {
+              io.to(recipientId).emit("conversation:unread-update", {
+                conversationId: finalConversationId,
+                unreadCount: getUnreadCount(updatedConversation, recipientId)
+              });
             }
-          });
+          }
         }
       }
     } catch (emitErr) {

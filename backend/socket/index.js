@@ -386,18 +386,19 @@ const setupSocket = (io) => {
         // Deliver once per recipient via their user room (avoids duplicate events)
         const updatedConversation = await Conversation.findById(conversationId);
         if (conversation.participants && Array.isArray(conversation.participants)) {
-          conversation.participants.forEach((participantId) => {
-            if (participantId.toString() !== socket.userId.toString()) {
-              const userId = String(participantId);
-              io.to(userId).emit('message:received', outgoingMessage);
-              if (updatedConversation) {
-                io.to(userId).emit('conversation:unread-update', {
-                  conversationId: conversation._id,
-                  unreadCount: getUnreadCount(updatedConversation, userId)
-                });
-              }
+          for (const participantId of conversation.participants) {
+            if (participantId.toString() === socket.userId.toString()) continue;
+            const isBlocked = await isEitherUserBlocked(socket.userId, participantId);
+            if (isBlocked) continue;
+            const userId = String(participantId);
+            io.to(userId).emit('message:received', outgoingMessage);
+            if (updatedConversation) {
+              io.to(userId).emit('conversation:unread-update', {
+                conversationId: conversation._id,
+                unreadCount: getUnreadCount(updatedConversation, userId)
+              });
             }
-          });
+          }
         }
 
         socket.emit('message:delivered', {
@@ -1767,8 +1768,15 @@ const setupSocket = (io) => {
     socket.on('call:offer', async (data) => {
       try {
         const { targetUserId, offer, callType, conversationId } = data;
+
+        // ✅ Kagua block kabla ya simu
+        const isBlocked = await isEitherUserBlocked(socket.userId, targetUserId);
+        if (isBlocked) {
+          return socket.emit('call:error', { error: 'Cannot call this user' });
+        }
+
         const targetSocketId = onlineUsers.get(targetUserId);
-        
+
         if (targetSocketId) {
           io.to(targetSocketId).emit('call:incoming', {
             callerId: socket.userId,

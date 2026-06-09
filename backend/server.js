@@ -627,6 +627,7 @@ const webrtcRoutes = require('./routes/webrtcRoutes');
 const callRoutes = require('./routes/callRoutes');
 const productRoutes = require('./routes/productRoutes');
 const scheduledMessageRoutes = require('./routes/scheduledMessageRoutes');
+const statusRoutes = require('./routes/status');
 
 // Mount Routes
 app.use('/api/auth', safeMiddleware(authLimiter), authRoutes);
@@ -646,6 +647,7 @@ app.use('/api/webrtc', webrtcRoutes);
 app.use('/api/calls', callRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/scheduled-messages', scheduledMessageRoutes);
+app.use('/api/status', statusRoutes);
 
 // File upload route
 app.post('/api/upload', upload.single('file'), async (req, res) => {

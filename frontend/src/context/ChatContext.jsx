@@ -671,7 +671,22 @@ export const ChatProvider = ({ children }) => {
           if (storedId) {
             const matched = offlineConvs.find(c => c._id === storedId);
             if (matched) {
-              selectConversation(matched);
+              setSelectedConversation(matched);
+              // Pia hifadhi ili socket ijoin room hiyo
+              setTimeout(() => {
+                if (socketRef.current?.connected) {
+                  socketRef.current.emit('join:conversation', storedId);
+                }
+              }, 1000);
+            } else {
+              // Kama haikupatikana, chagua ya mwisho kuupdatiwa
+              const sorted = [...offlineConvs].sort(
+                (a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
+              );
+              if (sorted[0]) {
+                setSelectedConversation(sorted[0]);
+                localStorage.setItem('selectedConversationId', sorted[0]._id);
+              }
             }
           }
         } else if (ENABLE_DEMO_DATA) {
@@ -897,7 +912,7 @@ export const ChatProvider = ({ children }) => {
                   });
                 }
               }, 300);
-              return [...prev, incoming];
+              return [...prev, incoming].slice(-150); // weka messages 150 tu kwenye memory
             }
             return prev;
           }
@@ -909,6 +924,28 @@ export const ChatProvider = ({ children }) => {
             status: incoming.status || 'delivered'
           };
           return next;
+        });
+        // ✅ Kwenye socket.on('message:sent', ...) au API response callback - Badilisha temp message na ile ya kweli
+        socket.on('message:sent', (confirmedMsg) => {
+          setMessages(prev => {
+            // Badilisha temp message na ile ya kweli kutoka server
+            const clientId = confirmedMsg.clientMessageId;
+            const exists = prev.some(m => String(m._id) === String(confirmedMsg._id));
+
+            if (exists) return prev; // Tayari ipo, usiiongeze tena
+
+            if (clientId) {
+              // Badilisha temp message
+              return prev.map(m =>
+                String(m._id) === String(clientId) || String(m.clientMessageId) === String(clientId)
+                  ? { ...confirmedMsg, status: 'sent' }
+                  : m
+              );
+            }
+
+            // Kama hakuna clientId, ongeza tu kama haipo
+            return [...prev, { ...confirmedMsg, status: 'sent' }];
+          });
         });
         try {
           if (incoming.clientMessageId) {
@@ -1536,6 +1573,30 @@ export const ChatProvider = ({ children }) => {
       }
     }
 
+    // ✅ Ongeza optimistic update - onyesha ujumbe MARA MOJA kwenye UI (bila kusubiri server)
+    const tempId = `temp_${Date.now()}_${Math.random()}`;
+    const optimisticMsg = {
+      _id: tempId,
+      content: typeof outboundContent === 'string' ? outboundContent : '',
+      sender: { _id: currentUserId, username: senderName || authUser?.username },
+      messageType: messageType || 'text',
+      status: 'sending',
+      createdAt: new Date().toISOString(),
+      conversationId: selectedConversation?._id,
+      clientMessageId: tempId,
+      // Kama ni media, onyesha preview ya local
+      ...(options.mediaPreview ? { localPreview: options.mediaPreview } : {}),
+      ...options,
+      messageType,
+      content: outboundContent,
+      ...(outboundContent !== content ? { isClientE2EE: true } : {}),
+    };
+
+    setMessages(prev => [...prev, optimisticMsg]);
+
+    // Scroll chini mara moja
+    // (kama una scrollToBottom function, iite hapa)
+
     const newMessage = {
       _id: createClientMessageId(),
       conversationId: selectedConversation?._id || '1',
@@ -1547,9 +1608,7 @@ export const ChatProvider = ({ children }) => {
       content: outboundContent,
       ...(outboundContent !== content ? { isClientE2EE: true } : {}),
     };
-    
-    // 🔥 SASISHA UI YA MTUMAJI HAPO HAPO (Hii inafanya ionekane kwenye skrini)
-    setMessages(prev => [...prev, newMessage]);
+
     try {
       await DB.saveMessage(newMessage);
       if (selectedConversation) {
@@ -1632,12 +1691,12 @@ export const ChatProvider = ({ children }) => {
             newMessage.messageType,
             { ...options, messageId: newMessage._id }
           );
-          
+
           if (data?.success && data.message) {
             savedMessage = data.message;
             messageSent = true;
             try { await DB.deleteMessages([newMessage._id]); } catch (e) { }
-            
+
             // Iweke kwenye skrini (User A ataona)
             setMessages(prev => prev.map(m => m._id === newMessage._id ? savedMessage : m));
             await DB.saveMessage(savedMessage);
@@ -1650,12 +1709,24 @@ export const ChatProvider = ({ children }) => {
         }
       }
 
+      // 4. Kama imefail, onyesha error kwenye message
+      if (!messageSent) {
+        setMessages(prev => prev.map(m =>
+          m._id === tempId ? { ...m, status: 'failed' } : m
+        ));
+      }
+
       // 3. Kama zote zimefeli, weka foleni
       if (!messageSent) {
         console.error("Meseji imegoma kwenda, hakuna mtandao au server iko chini!");
         await DB.enqueueAction({ type: 'sendMessage', payload });
       }
-    } catch (err) { console.error('Error saving message:', err); }
+    } catch (err) {
+      console.error('Send message error:', err);
+      setMessages(prev => prev.map(m =>
+        m._id === tempId ? { ...m, status: 'failed' } : m
+      ));
+    }
   };
 
   const selectConversation = async (conv) => {
