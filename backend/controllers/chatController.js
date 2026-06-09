@@ -560,7 +560,7 @@ exports.getMessages = async (req, res) => {
   }
 };
 
- {
+exports.sendMessage = async (req, res) => {
   try {
     const localUserId = getCurrentUserId(req);
     const {
@@ -576,7 +576,7 @@ exports.getMessages = async (req, res) => {
       isViewOnce,
       isSelfDestruct,
       mentions,
-      messageId,exports.sendMessage = async (req, res) =>
+      messageId,
       selfDestructTimer,
     } = req.body;
     
