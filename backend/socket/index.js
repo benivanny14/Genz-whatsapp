@@ -896,7 +896,7 @@ const setupSocket = (io) => {
             status.viewsCount = status.views.length;
           }
           await status.save();
-          io.emit('status:viewed', status);
+          io.emit('status:viewed', status.toObject ? status.toObject() : JSON.parse(JSON.stringify(status)));
         }
       } catch (error) {
         console.error('Error viewing status:', error);
@@ -1009,7 +1009,7 @@ const setupSocket = (io) => {
           message: message || 'Broadcast message',
           timestamp: new Date()
         });
-        io.emit('broadcast:created', broadcast);
+        io.emit('broadcast:created', broadcast.toObject ? broadcast.toObject() : JSON.parse(JSON.stringify(broadcast)));
       } catch (error) {
         console.error('Error creating broadcast:', error);
       }
@@ -1211,7 +1211,7 @@ const setupSocket = (io) => {
 
         socket.emit('message:scheduled', {
           success: true,
-          message: scheduledMessage
+          message: scheduledMessage.toObject ? scheduledMessage.toObject() : JSON.parse(JSON.stringify(scheduledMessage))
         });
       } catch (error) {
         console.error('Error scheduling message:', error);
@@ -1227,7 +1227,7 @@ const setupSocket = (io) => {
         if (status) {
           Object.assign(status, updates);
           await status.save();
-          io.emit('status:updated', status);
+          io.emit('status:updated', status.toObject ? status.toObject() : JSON.parse(JSON.stringify(status)));
         }
       } catch (error) {
         console.error('Error updating status:', error);
@@ -1246,7 +1246,7 @@ const setupSocket = (io) => {
           message: 'Broadcast list created',
           timestamp: new Date()
         });
-        io.emit('broadcast_list:created', broadcastList);
+        io.emit('broadcast_list:created', broadcastList.toObject ? broadcastList.toObject() : JSON.parse(JSON.stringify(broadcastList)));
       } catch (error) {
         console.error('Error creating broadcast list:', error);
       }
