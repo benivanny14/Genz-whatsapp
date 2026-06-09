@@ -349,7 +349,14 @@ const setupSocket = (io) => {
 
         const populatedMessage = await Message.findById(message._id)
           .populate('sender', 'username profilePicture')
-          .populate('replyTo', '_id content messageType')
+          .populate({
+            path: 'replyTo',
+            select: '_id content messageType sender',
+            populate: {
+              path: 'sender',
+              select: 'username profilePicture'
+            }
+          })
           .populate('mentions.user', 'username profilePicture')
           .lean();
 

@@ -19,9 +19,12 @@ const serializeOutgoingMessage = (msgObj = {}, extras = {}) => {
     if (typeof replyTo === 'object' && replyTo._id) {
       return {
         _id: replyTo._id.toString(),
-        content: replyTo.content,
+        content: typeof replyTo.content === 'string'
+          ? replyTo.content.slice(0, 500)  // limit urefu
+          : '',
         messageType: replyTo.messageType,
         sender: serializeSender(replyTo.sender)
+        // ❌ Usiweke replyTo.replyTo hapa - hii inasababisha mzunguko
       };
     }
     return null;
