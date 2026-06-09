@@ -23,17 +23,11 @@ const getSelfDestructExpiry = ({ isSelfDestruct, selfDestructTimer } = {}) => {
 
 const isEitherUserBlocked = async (userIdA, userIdB) => {
   if (!userIdA || !userIdB) return false;
-  const users = await User.find({ _id: { $in: [userIdA, userIdB] } }).select('blockedUsers username').lean();
+  const users = await User.find({ _id: { $in: [userIdA, userIdB] } }).select('blockedUsers').lean();
   const a = users.find((u) => String(u._id) === String(userIdA));
   const b = users.find((u) => String(u._id) === String(userIdB));
   const aBlocked = (a?.blockedUsers || []).some((id) => String(id) === String(userIdB));
   const bBlocked = (b?.blockedUsers || []).some((id) => String(id) === String(userIdA));
-  
-  // ✅ ONGEZA MSTARI HUU WA DEBUG
-  console.log(`[BLOCK DEBUG] ${a?.username} blockedUsers:`, a?.blockedUsers);
-  console.log(`[BLOCK DEBUG] ${b?.username} blockedUsers:`, b?.blockedUsers);
-  console.log(`[BLOCK DEBUG] aBlocked=${aBlocked}, bBlocked=${bBlocked}`);
-  
   return aBlocked || bBlocked;
 };
 

@@ -1294,12 +1294,16 @@ exports.unblockUser = async (req, res) => {
   try {
     const localUserId = getCurrentUserId(req);
     const targetId = req.params.id;
-    const user = await User.findById(localUserId);
 
-    user.blockedUsers = user.blockedUsers.filter(
-      (id) => id.toString() !== targetId,
+    // ✅ Futa block kwa PANDE ZOTE MBILI kama WhatsApp
+    await User.updateOne(
+      { _id: localUserId },
+      { $pull: { blockedUsers: targetId } }
     );
-    await user.save();
+    await User.updateOne(
+      { _id: targetId },
+      { $pull: { blockedUsers: localUserId } }
+    );
 
     const io = req.app.get("io");
     if (io) {
