@@ -581,6 +581,15 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     e.preventDefault();
     if (!messageInput.trim() || !selectedConversation) return;
 
+    // Check if conversation is blocked before sending message
+    const otherUser = selectedConversation.participants?.find(
+      (p) => String(p?._id || p?.id || p) !== String(user?.id || user?._id)
+    );
+    if (otherUser?.blockedUsers?.includes(String(user?.id || user?._id))) {
+      toast.error('You cannot send messages to this user');
+      return;
+    }
+
     const rawMessage = messageInput.trim();
     const mentions = buildMentionPayload(
       rawMessage,
@@ -2342,13 +2351,16 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                         </div>
                       ) : (message.isViewOnce || message.isSelfDestruct) && !mods.antiViewOnce ? (
                         <div className="relative mb-1">
-                          <video
-                            src={mediaSourceOf(message)}
-                            className="max-w-full rounded-lg max-h-64 w-full cursor-pointer blur-md"
-                          onClick={() => openViewOnceModal(message)}
-                          />
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg pointer-events-none">
-                            <Eye size={24} className="text-white" />
+                          {/* Placeholder for View Once video - don't load actual video until clicked */}
+                          <div
+                            className="max-w-full rounded-lg max-h-64 w-full cursor-pointer bg-dark-bg/50 border-2 border-dashed border-dark-border/50 flex items-center justify-center min-h-[200px]"
+                            onClick={() => openViewOnceModal(message)}
+                          >
+                            <div className="flex flex-col items-center gap-2 text-dark-textSecondary">
+                              <Eye size={32} />
+                              <span className="text-sm font-medium">Tap to view</span>
+                              <span className="text-xs opacity-60">View once video</span>
+                            </div>
                           </div>
                         </div>
                       ) : (
@@ -2385,15 +2397,16 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                         </div>
                       ) : (message.isViewOnce || message.isSelfDestruct) && !mods.antiViewOnce ? (
                         <div className="relative">
-                          <SignedMedia
-                            src={mediaSourceOf(message)}
-                            alt={typeof message.content === 'string' ? message.content : 'Media'}
-                            className="max-w-full rounded-lg cursor-pointer"
-                            loading="lazy"
+                          {/* Placeholder for View Once media - don't load actual image until clicked */}
+                          <div
+                            className="max-w-full rounded-lg cursor-pointer bg-dark-bg/50 border-2 border-dashed border-dark-border/50 flex items-center justify-center min-h-[200px]"
                             onClick={() => openViewOnceModal(message)}
-                          />
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
-                            <Eye size={24} className="text-white" />
+                          >
+                            <div className="flex flex-col items-center gap-2 text-dark-textSecondary">
+                              <Eye size={32} />
+                              <span className="text-sm font-medium">Tap to view</span>
+                              <span className="text-xs opacity-60">View once message</span>
+                            </div>
                           </div>
                         </div>
                       ) : (

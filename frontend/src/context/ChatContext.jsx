@@ -1393,7 +1393,7 @@ export const ChatProvider = ({ children }) => {
       }
       clearSocketInstance();
     }
-  }, [isAuthenticated, authLoading, authUser?._id]);
+  }, [isAuthenticated, authLoading, authUser?._id, currentUserId]);
 
   useEffect(() => {
     const handleReconnectRequest = () => {
