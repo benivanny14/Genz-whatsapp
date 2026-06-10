@@ -160,7 +160,9 @@ const isMongoObjectId = (value) => /^[a-f\d]{24}$/i.test(String(value || ''));
 let clientMessageCounter = 0;
 const createClientMessageId = (prefix = 'client-message') => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return `${prefix}-${crypto.randomUUID()}`;
+    // Generate a MongoDB ObjectId-like string (24 hex chars)
+    const hex = crypto.randomUUID().replace(/-/g, '');
+    return hex.substring(0, 24);
   }
   clientMessageCounter = (clientMessageCounter + 1) % Number.MAX_SAFE_INTEGER;
   return `${prefix}-${Date.now()}-${clientMessageCounter}-${Math.random().toString(36).slice(2, 8)}`;
@@ -2270,7 +2272,7 @@ export const ChatProvider = ({ children }) => {
     }
     if (!statusData.content && !statusData.mediaUrl) return; // Don't create empty status
     const clientStatusId = createClientMessageId('status');
-    const newStatus = { _id: clientStatusId.replace('status-', ''), userId: currentUserId, ...statusData, createdAt: new Date() };
+    const newStatus = { _id: clientStatusId, userId: currentUserId, ...statusData, createdAt: new Date() };
     setStatuses(prev => [newStatus, ...prev]);
     emitSafe('status:create', { ...statusData, clientStatusId });
   };

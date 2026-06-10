@@ -759,7 +759,16 @@ exports.getStatuses = async (req, res) => {
 exports.viewStatus = async (req, res) => {
   try {
     const currentUserId = getCurrentUserId(req);
-    const status = await Status.findById(req.params.id);
+    const statusId = req.params.id;
+
+    // Try to find by _id first, if that fails try by a custom field if needed
+    let status;
+    try {
+      status = await Status.findById(statusId);
+    } catch (err) {
+      // If ObjectId cast fails, try finding by a different field if needed
+      status = await Status.findOne({ _id: statusId });
+    }
 
     if (!status) {
       return res.status(404).json({ message: 'Status not found or expired' });
