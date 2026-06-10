@@ -1,5 +1,6 @@
 const Status = require('../models/Status');
 const User = require('../models/User');
+const mongoose = require('mongoose');
 const { isEitherUserBlocked } = require('../utils/messageSendHelpers');
 
 // POST /api/status - weka status mpya
@@ -33,14 +34,9 @@ exports.createStatus = async (req, res) => {
 exports.getStatuses = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
-    const user = await User.findById(userId).select('contacts blockedUsers');
-    
-    // Pata statuses za mtumiaji mwenyewe + contacts wake
-    const contactIds = (user?.contacts || []).map(c => String(c.user || c));
-    const allIds = [String(userId), ...contactIds];
 
+    // Onyesha statuses za wote (kama WhatsApp)
     const statuses = await Status.find({
-      user: { $in: allIds },
       expiresAt: { $gt: new Date() }
     })
     .populate('user', 'username profilePicture')
@@ -69,8 +65,8 @@ exports.getStatuses = async (req, res) => {
       if (!viewed) grouped[uid].hasUnviewed = true;
     });
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       myStatuses,
       others: Object.values(grouped)
     });
@@ -82,6 +78,9 @@ exports.getStatuses = async (req, res) => {
 // POST /api/status/:id/view - rekodi view
 exports.viewStatus = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(200).json({ success: true, message: 'Invalid status ID format' });
+    }
     const userId = req.user._id || req.user.id;
     const status = await Status.findById(req.params.id);
     if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
@@ -101,6 +100,9 @@ exports.viewStatus = async (req, res) => {
 // POST /api/status/:id/react - react kwa status
 exports.reactToStatus = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(200).json({ success: true, message: 'Invalid status ID format' });
+    }
     const userId = req.user._id || req.user.id;
     const { emoji } = req.body;
     const status = await Status.findById(req.params.id);
@@ -139,18 +141,21 @@ exports.deleteStatus = async (req, res) => {
 // GET /api/status/:id/viewers - watu walioona status yako
 exports.getViewers = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(200).json({ success: true, message: 'Invalid status ID format' });
+    }
     const userId = req.user._id || req.user.id;
     const status = await Status.findById(req.params.id)
       .populate('views.user', 'username profilePicture')
       .populate('reactions.user', 'username profilePicture');
-    
+
     if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
     if (String(status.user) !== String(userId)) {
       return res.status(403).json({ success: false, message: 'Huna ruhusa' });
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       views: status.views,
       reactions: status.reactions,
       viewCount: status.views.length

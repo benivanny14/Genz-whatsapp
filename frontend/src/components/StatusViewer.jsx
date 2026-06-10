@@ -6,7 +6,7 @@ import { useUser } from '../context/UserContext';
 import { getSocket } from '../services/socket';
 import statusService from '../services/statusService';
 
-const sid = (s) => String(s?._id || s.id || '');
+const sid = (s) => String(s?._id || '');
 
 const LOCAL_OWNER_IDS = new Set(['local-user', '60d5ecb8b392cb371c664c12']);
 
