@@ -509,7 +509,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     return () => {
       socket.off("message:received", handleReceiveMessage);
     };
-  }, [socket, selectedConversation?._id]);
+  }, [selectedConversation?._id]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
