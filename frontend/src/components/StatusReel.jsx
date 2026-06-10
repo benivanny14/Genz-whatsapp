@@ -131,7 +131,8 @@ const StatusReel = ({ onClose, initialStatuses = [] }) => {
     setLiked(prev => ({ ...prev, [currentId]: newLiked }));
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${API_URL}/api/advanced/status/${currentId}/like`, {
+      const statusId = currentId.replace('status-', '');
+      await fetch(`${API_URL}/api/advanced/status/${statusId}/like`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }
       });
@@ -143,7 +144,8 @@ const StatusReel = ({ onClose, initialStatuses = [] }) => {
     setSaved(prev => ({ ...prev, [currentId]: newSaved }));
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${API_URL}/api/advanced/status/${currentId}/save`, {
+      const statusId = currentId.replace('status-', '');
+      await fetch(`${API_URL}/api/advanced/status/${statusId}/save`, {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
@@ -167,7 +169,8 @@ const StatusReel = ({ onClose, initialStatuses = [] }) => {
     if (!comment.trim()) return;
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${API_URL}/api/advanced/status/${currentId}/reply`, {
+      const statusId = currentId.replace('status-', '');
+      await fetch(`${API_URL}/api/advanced/status/${statusId}/reply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ content: comment.trim() })
@@ -498,7 +501,8 @@ const StatusReel = ({ onClose, initialStatuses = [] }) => {
                 if (!window.confirm('Futa status hii?')) return;
                 try {
                   const token = localStorage.getItem('token');
-                  await fetch(`${API_URL}/api/advanced/status/${currentId}`, {
+                  const statusId = currentId.replace('status-', '');
+                  await fetch(`${API_URL}/api/advanced/status/${statusId}`, {
                     method: 'DELETE',
                     headers: token ? { Authorization: `Bearer ${token}` } : {}
                   });

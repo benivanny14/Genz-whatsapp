@@ -65,7 +65,8 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
     if (!status) return;
 
     try {
-      const response = await authFetch(`${API_URL}/api/advanced/status/${status.id || status._id}/like`, {
+      const statusId = (status.id || status._id).replace('status-', '');
+      const response = await authFetch(`${API_URL}/api/advanced/status/${statusId}/like`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: likeUserId })
@@ -88,7 +89,8 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
     if (!status) return;
 
     try {
-      const response = await authFetch(`${API_URL}/api/advanced/status/${status.id || status._id}/save`, {
+      const statusId = (status.id || status._id).replace('status-', '');
+      const response = await authFetch(`${API_URL}/api/advanced/status/${statusId}/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: likeUserId })
@@ -110,7 +112,8 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
     if (!status) return;
 
     try {
-      const response = await authFetch(`${API_URL}/api/advanced/status/${status.id || status._id}/share`, {
+      const statusId = (status.id || status._id).replace('status-', '');
+      const response = await authFetch(`${API_URL}/api/advanced/status/${statusId}/share`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: likeUserId })
@@ -154,7 +157,8 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
     if (!status) return;
 
     try {
-      const response = await authFetch(`${API_URL}/api/advanced/status/${status.id || status._id}/reply`, {
+      const statusId = (status.id || status._id).replace('status-', '');
+      const response = await authFetch(`${API_URL}/api/advanced/status/${statusId}/reply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -500,7 +500,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       // 1. Hakikisha ujumbe huu ni wa conversation inayofunguliwa sasa
       if (newMessage.conversationId === selectedConversation?._id) {
         // 2. Update state ya meseji zako ili ionekane mbele ya mtumiaji
-        setMessages((prevMessages) => [...prevMessages, newMessage]);
+        setMessages((prevMessages) => {
+          // Zuia kuongeza duplicate (ndio sababu ya stack overflow)
+          const isDuplicate = prevMessages.some(msg => msg._id === newMessage._id);
+          if (isDuplicate) return prevMessages;
+          return [...prevMessages, newMessage];
+        });
       }
     };
 
