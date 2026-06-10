@@ -2270,7 +2270,7 @@ export const ChatProvider = ({ children }) => {
     }
     if (!statusData.content && !statusData.mediaUrl) return; // Don't create empty status
     const clientStatusId = createClientMessageId('status');
-    const newStatus = { _id: clientStatusId, userId: currentUserId, ...statusData, createdAt: new Date() };
+    const newStatus = { _id: clientStatusId.replace('status-', ''), userId: currentUserId, ...statusData, createdAt: new Date() };
     setStatuses(prev => [newStatus, ...prev]);
     emitSafe('status:create', { ...statusData, clientStatusId });
   };

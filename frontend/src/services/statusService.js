@@ -75,7 +75,7 @@ const statusService = {
   },
 
   deleteStatus: async (statusId) => {
-    const id = encodeURIComponent(statusId);
+    const id = encodeURIComponent(statusId.replace('status-', ''));
     const response = await authFetch(apiUrl(`/advanced/status/${id}`), {
       method: 'DELETE',
       headers: jsonHeaders()
@@ -86,7 +86,7 @@ const statusService = {
   },
 
   viewStatus: async (statusId) => {
-    const id = encodeURIComponent(statusId);
+    const id = encodeURIComponent(statusId.replace('status-', ''));
     const response = await authFetch(apiUrl(`/advanced/status/${id}/view`), {
       method: 'POST',
       headers: jsonHeaders(),
@@ -98,7 +98,7 @@ const statusService = {
   },
 
   replyToStatus: async (statusId, replyData) => {
-    const id = encodeURIComponent(statusId);
+    const id = encodeURIComponent(statusId.replace('status-', ''));
     const body = typeof replyData === 'string' ? { content: replyData } : replyData;
     const response = await authFetch(apiUrl(`/advanced/status/${id}/reply`), {
       method: 'POST',
@@ -112,7 +112,7 @@ const statusService = {
 
   getStatusViewers: async (statusId) => {
     try {
-      const id = encodeURIComponent(statusId);
+      const id = encodeURIComponent(statusId.replace('status-', ''));
       const response = await authFetch(apiUrl(`/advanced/status/${id}/viewers`), {
         headers: jsonHeaders()
       });
@@ -127,7 +127,7 @@ const statusService = {
 
   getStatusReplies: async (statusId) => {
     try {
-      const id = encodeURIComponent(statusId);
+      const id = encodeURIComponent(statusId.replace('status-', ''));
       const response = await authFetch(apiUrl(`/advanced/status/${id}/replies`), {
         headers: jsonHeaders()
       });
@@ -141,7 +141,7 @@ const statusService = {
   },
 
   getStatusDetails: async (statusId) => {
-    const id = encodeURIComponent(statusId);
+    const id = encodeURIComponent(statusId.replace('status-', ''));
     const response = await authFetch(apiUrl(`/advanced/status/${id}`), {
       headers: jsonHeaders()
     });
@@ -151,7 +151,7 @@ const statusService = {
   },
 
   updateStatusPrivacy: async (statusId, privacy) => {
-    const id = encodeURIComponent(statusId);
+    const id = encodeURIComponent(statusId.replace('status-', ''));
     const response = await authFetch(apiUrl(`/advanced/status/${id}/privacy`), {
       method: 'PATCH',
       headers: jsonHeaders(),
@@ -172,7 +172,7 @@ const statusService = {
   },
 
   archiveStatus: async (statusId) => {
-    const id = encodeURIComponent(statusId);
+    const id = encodeURIComponent(statusId.replace('status-', ''));
     const response = await authFetch(apiUrl(`/advanced/status/${id}/archive`), {
       method: 'POST',
       headers: jsonHeaders()
@@ -188,7 +188,7 @@ const statusService = {
   },
 
   reportStatus: async (statusId, reason) => {
-    const id = encodeURIComponent(statusId);
+    const id = encodeURIComponent(statusId.replace('status-', ''));
     const response = await authFetch(apiUrl(`/advanced/status/${id}/report`), {
       method: 'POST',
       headers: jsonHeaders(),
