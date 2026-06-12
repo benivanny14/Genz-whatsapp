@@ -12,24 +12,36 @@ const viewSchema = new mongoose.Schema({
 });
 
 const statusSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
+  userId: { type: String },
+  username: { type: String },
   type: {
     type: String,
-    enum: ['text', 'image', 'video', 'voice'],
+    enum: ['text', 'image', 'video', 'voice', 'audio'],
     required: true
   },
-  content: { type: String, default: '' },        // text content au caption
-  mediaUrl: { type: String, default: '' },        // image/video/voice URL
-  duration: { type: Number, default: 0 },         // video/voice duration
-  backgroundColor: { type: String, default: '#075E54' }, // kwa text status
+  content: { type: String, default: '' },
+  mediaUrl: { type: String, default: '' },
+  mediaType: { type: String, default: '' },
+  duration: { type: Number, default: 0 },
+  caption: { type: String, default: '' },
+  backgroundColor: { type: String, default: '#075E54' },
+  textColor: { type: String, default: '#ffffff' },
   fontStyle: { type: String, default: 'sans' },
+  font: { type: String, default: 'sans-serif' },
+  privacy: { type: String, default: 'everyone' },
+  collabUserId: { type: String, default: '' },
+  collabUsername: { type: String, default: '' },
+  viewsCount: { type: Number, default: 0 },
   views: [viewSchema],
   reactions: [reactionSchema],
+  clientStatusId: { type: String },
   expiresAt: {
     type: Date,
     default: () => new Date(Date.now() + 24 * 60 * 60 * 1000) // saa 24
   },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  timestamp: { type: Date, default: Date.now }
 });
 
 // Auto-delete baada ya saa 24

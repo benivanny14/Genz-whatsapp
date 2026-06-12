@@ -82,7 +82,7 @@ const getRuntimeWebRTCConfig = async () => {
   if (runtimeConfigCache) return runtimeConfigCache;
   if (runtimeConfigPromise) return runtimeConfigPromise;
 
-  runtimeConfigPromise = authFetch(`${API_URL}/api/webrtc/config`)
+  runtimeConfigPromise = authFetch(`${API_URL}/webrtc/config`)
     .then((response) => response.json())
     .then((data) => {
       if (!data.success || !data.config?.iceServers) {

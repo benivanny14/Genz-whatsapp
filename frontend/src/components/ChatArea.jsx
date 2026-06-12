@@ -410,18 +410,17 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     if (selectedConversation?._id !== prevConversationIdRef.current) {
       prevConversationIdRef.current = selectedConversation?._id;
       shouldAutoScrollRef.current = true;
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
       setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      }, 150);
       return;
     }
     
-    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-    shouldAutoScrollRef.current = isAtBottom;
-    
     if (shouldAutoScrollRef.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
     }
   }, [messages, selectedConversation?._id]);
   
