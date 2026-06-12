@@ -927,28 +927,6 @@ export const ChatProvider = ({ children }) => {
           };
           return next;
         });
-        // ✅ Kwenye socket.on('message:sent', ...) au API response callback - Badilisha temp message na ile ya kweli
-        socket.on('message:sent', (confirmedMsg) => {
-          setMessages(prev => {
-            // Badilisha temp message na ile ya kweli kutoka server
-            const clientId = confirmedMsg.clientMessageId;
-            const exists = prev.some(m => String(m._id) === String(confirmedMsg._id));
-
-            if (exists) return prev; // Tayari ipo, usiiongeze tena
-
-            if (clientId) {
-              // Badilisha temp message
-              return prev.map(m =>
-                String(m._id) === String(clientId) || String(m.clientMessageId) === String(clientId)
-                  ? { ...confirmedMsg, status: 'sent' }
-                  : m
-              );
-            }
-
-            // Kama hakuna clientId, ongeza tu kama haipo
-            return [...prev, { ...confirmedMsg, status: 'sent' }];
-          });
-        });
         try {
           if (incoming.clientMessageId) {
             await DB.deleteMessages([incoming.clientMessageId]);
@@ -968,6 +946,28 @@ export const ChatProvider = ({ children }) => {
         } catch (err) {
           console.error('[ChatContext] message:received handler error:', err);
         }
+      });
+
+      // ✅ Badilisha temp message na ile ya kweli kutoka server (TOP-LEVEL, si ndani ya message:received)
+      socket.on('message:sent', (confirmedMsg) => {
+        setMessages(prev => {
+          const clientId = confirmedMsg.clientMessageId;
+          const exists = prev.some(m => String(m._id) === String(confirmedMsg._id));
+
+          if (exists) return prev; // Tayari ipo, usiiongeze tena
+
+          if (clientId) {
+            // Badilisha temp message
+            return prev.map(m =>
+              String(m._id) === String(clientId) || String(m.clientMessageId) === String(clientId)
+                ? { ...confirmedMsg, status: 'sent' }
+                : m
+            );
+          }
+
+          // Kama hakuna clientId, ongeza tu kama haipo
+          return [...prev, { ...confirmedMsg, status: 'sent' }];
+        });
       });
 
       socket.on('notification:new_message', async (data) => {
