@@ -346,14 +346,13 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     return decryptMessage(m.content || m.message);
   }, [e2eePlain]);
 
-  // Glass mode classes
-  const glassMode = mods?.glassMode;
-  const headerClass = glassMode ? 'glass-header' : 'bg-dark-surface';
-  const inputAreaClass = glassMode ? 'glass-input' : 'bg-dark-surface';
-  const bubbleSentClass = glassMode ? 'glass-bubble-sent' : 'message-bubble-sent';
-  const bubbleReceivedClass = glassMode ? 'glass-bubble-received' : 'message-bubble-received';
-  const chatAreaClass = glassMode ? 'glass-chat-area' : 'bg-dark-bg';
-
+  // Standard WhatsApp Web styles
+  const glassMode = false; // Disabled to match WhatsApp perfectly
+  const headerClass = 'bg-[#202c33]'; // WhatsApp Web dark header
+  const inputAreaClass = 'bg-[#202c33]'; // WhatsApp Web dark input area
+  const bubbleSentClass = 'message-bubble-sent'; // Fallback to index.css or tailwind classes
+  const bubbleReceivedClass = 'message-bubble-received';
+  const chatAreaClass = 'bg-[#0b141a]'; // WhatsApp Web dark chat area background
   useEffect(() => {
     return () => {
       if (audioTimerRef.current) {
@@ -490,31 +489,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       }
     };
   }, [selectedConversation, mods?.chatMusic, mods?.chatMusicUrl]);
-
-  // Handle message:received from socket
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
-
-    const handleReceiveMessage = (newMessage) => {
-      // 1. Hakikisha ujumbe huu ni wa conversation inayofunguliwa sasa
-      if (newMessage.conversationId === selectedConversation?._id) {
-        // 2. Update state ya meseji zako ili ionekane mbele ya mtumiaji
-        setMessages((prevMessages) => {
-          // Zuia kuongeza duplicate (ndio sababu ya stack overflow)
-          const isDuplicate = prevMessages.some(msg => msg._id === newMessage._id);
-          if (isDuplicate) return prevMessages;
-          return [...prevMessages, newMessage];
-        });
-      }
-    };
-
-    socket.on("message:received", handleReceiveMessage);
-
-    return () => {
-      socket.off("message:received", handleReceiveMessage);
-    };
-  }, [selectedConversation?._id]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

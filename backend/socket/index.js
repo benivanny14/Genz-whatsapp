@@ -1182,7 +1182,227 @@ const setupSocket = (io) => {
         console.error('Error updating disappearing messages:', error);
       }
     });
+    socket.on('star_message', async (data) => {
+      try {
+        const messageId = typeof data === 'object' ? data?.messageId : data;
+        const hasExplicitStar = typeof data?.isStarred === 'boolean';
+        const message = await Message.findById(messageId);
+        if (message) {
+          const conversation = await Conversation.findById(message.conversationId);
+          if (!includesId(conversation?.participants, socket.userId)) return;
 
+          message.isStarred = hasExplicitStar ? data.isStarred : !message.isStarred;
+          await message.save();
+          const updatedMessage = await Message.findById(message._id)
+            .populate('sender', 'username profilePicture')
+            .populate('replyTo');
+          io.to(message.conversationId.toString()).emit('message:starred', updatedMessage);
+        }
+      } catch (error) {
+        console.error('Error starring message:', error);
+      }
+    });
+
+    // Pin message handler
+    socket.on('pin_message', async (data) => {
+      try {
+        const { chatId, messageId } = data;
+        const conversation = await getConversationIfParticipant(chatId, socket);
+        if (!conversation) return;
+
+        if (!conversation.pinnedMessages) {
+          conversation.pinnedMessages = [];
+        }
+        if (!conversation.pinnedMessages.includes(messageId)) {
+          conversation.pinnedMessages.push(messageId);
+          await conversation.save();
+          io.to(chatId).emit('conversation:pinned', { chatId, messageId });
+        }
+      } catch (error) {
+        console.error('Error pinning message:', error);
+      }
+    });
+
+    socket.on('unpin_message', async (data) => {
+      try {
+        const { chatId } = data;
+        const conversation = await getConversationIfParticipant(chatId, socket);
+        if (!conversation || !conversation.pinnedMessages) return;
+
+        conversation.pinnedMessages = [];
+        await conversation.save();
+        io.to(chatId).emit('conversation:unpinned', { chatId });
+      } catch (error) {
+        console.error('Error unpinning message:', error);
+      }
+    });
+
+    // Status create handler
+    socket.on('status:create', async (data) => {
+      try {
+        const { type, content, mediaUrl, caption, backgroundColor, textColor, font, privacy, collabUserId, collabUsername, clientStatusId } = data;
+        const status = await Status.create({
+          userId: socket.userId,
+          username: (await User.findById(socket.userId))?.username,
+          type,
+          content: content || caption || `${type || 'text'} status`,
+          mediaUrl,
+          caption,
+          backgroundColor,
+          textColor,
+          font,
+          privacy,
+          collabUserId: collabUserId || '',
+          collabUsername: collabUsername || '',
+          timestamp: new Date(),
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+        });
+        const statusObj = status.toObject ? status.toObject() : status;
+        if (clientStatusId) {
+          statusObj.clientStatusId = clientStatusId;
+        }
+        io.emit('status:created', statusObj);
+        // If collab, also emit to collab user so it appears on their profile too
+        if (collabUserId) {
+          io.to(collabUserId).emit('status:collab_invite', { statusId: status._id, fromUsername: status.username });
+        }
+      } catch (error) {
+        console.error('Error creating status:', error);
+      }
+    });
+
+    // Status view handler
+    socket.on('status:view', async (data) => {
+      try {
+        const { statusId } = data;
+        const status = await Status.findById(statusId);
+        if (status) {
+          const alreadyViewed = status.views.some(view => view.user?.toString() === socket.userId);
+          if (!alreadyViewed) {
+            status.views.push({ user: socket.userId, viewedAt: new Date() });
+            status.viewsCount = status.views.length;
+          }
+          await status.save();
+          io.emit('status:viewed', status.toObject ? status.toObject() : JSON.parse(JSON.stringify(status)));
+        }
+      } catch (error) {
+        console.error('Error viewing status:', error);
+      }
+    });
+
+    socket.on('view_status', async (data = {}) => {
+      try {
+        const { statusId } = data;
+        if (statusId) {
+          const status = await Status.findById(statusId);
+          if (status && !status.views.some(view => view.user?.toString() === socket.userId)) {
+            status.views.push({ user: socket.userId, viewedAt: new Date() });
+            status.viewsCount = status.views.length;
+            await status.save();
+          }
+        }
+        io.emit('status_view_signal', {
+          ...data,
+          userId: data.userId || socket.userId,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error('Error relaying status view:', error);
+      }
+    });
+
+    socket.on('status_like', async (data = {}) => {
+      try {
+        const { statusId } = data;
+        let liked = Boolean(data.liked);
+        let likesCount = data.likesCount || 0;
+        if (statusId) {
+          const status = await Status.findById(statusId);
+          if (status) {
+            const existingIndex = status.likes.findIndex(userId => userId.toString() === socket.userId);
+            liked = existingIndex === -1;
+            if (liked) {
+              status.likes.push(socket.userId);
+            } else {
+              status.likes.splice(existingIndex, 1);
+            }
+            status.likesCount = status.likes.length;
+            likesCount = status.likesCount;
+            await status.save();
+          }
+        }
+        io.emit('status_liked_signal', {
+          statusId,
+          liked,
+          likesCount,
+          userId: socket.userId
+        });
+      } catch (error) {
+        console.error('Error liking status in socket:', error);
+      }
+    });
+
+    socket.on('status_comment', async (data = {}) => {
+      try {
+        const { statusId, content, type = 'text', mediaUrl = '' } = data;
+        const reply = {
+          userId: socket.userId,
+          username: socket.user?.username || 'GENZ User',
+          content,
+          type,
+          mediaUrl,
+          createdAt: new Date()
+        };
+        if (statusId && content) {
+          const status = await Status.findById(statusId);
+          if (status) {
+            status.replies.push(reply);
+            await status.save();
+          }
+        }
+        io.emit('status_comment_signal', {
+          statusId,
+          ...reply,
+          timestamp: reply.createdAt.toISOString()
+        });
+      } catch (error) {
+        console.error('Error commenting on status in socket:', error);
+      }
+    });
+
+    socket.on('live_reaction', (data = {}) => {
+      const payload = {
+        chatId: data.chatId || data.conversationId,
+        emoji: data.emoji,
+        userId: socket.userId,
+        timestamp: new Date().toISOString()
+      };
+      if (payload.chatId) {
+        socket.to(payload.chatId).emit('live_reaction_signal', payload);
+      } else {
+        socket.broadcast.emit('live_reaction_signal', payload);
+      }
+    });
+
+    // Broadcast create handler
+    socket.on('broadcast:create', async (data) => {
+      try {
+        const { name, recipients, message, sender } = data;
+        const broadcast = await Broadcast.create({
+          name: name || `Broadcast ${new Date().toLocaleDateString()}`,
+          sender: sender || socket.userId,
+          createdBy: socket.userId,
+          recipients: recipients || [],
+          message: message || 'Broadcast message',
+          timestamp: new Date()
+        });
+        io.emit('broadcast:created', broadcast.toObject ? broadcast.toObject() : JSON.parse(JSON.stringify(broadcast)));
+      } catch (error) {
+        console.error('Error creating broadcast:', error);
+      }
+    });
+
+    
     // Schedule message handler
     socket.on('schedule_message', async (data) => {
       try {

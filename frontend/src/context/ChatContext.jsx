@@ -1589,8 +1589,6 @@ export const ChatProvider = ({ children }) => {
       // Kama ni media, onyesha preview ya local
       ...(options.mediaPreview ? { localPreview: options.mediaPreview } : {}),
       ...options,
-      messageType,
-      content: outboundContent,
       ...(outboundContent !== content ? { isClientE2EE: true } : {}),
     };
 
