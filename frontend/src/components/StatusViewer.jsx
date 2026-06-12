@@ -46,6 +46,12 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
   const currentStatus = statuses[currentIndex];
   const currentId = currentStatus ? sid(currentStatus) : '';
 
+  const getContactName = useCallback((viewerUserId, defaultName) => {
+    if (!contacts) return defaultName;
+    const contact = contacts.find(c => String(c.contactId?._id || c.contactId) === String(viewerUserId) || String(c._id) === String(viewerUserId));
+    return contact?.nickname || contact?.username || defaultName;
+  }, [contacts]);
+
   useEffect(() => {
     if (currentStatus) {
       const reactions = currentStatus.reactions || [];
@@ -72,12 +78,6 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
     (currentStatus.username && user?.username && currentStatus.username === user?.username) ||
     LOCAL_OWNER_IDS.has(String(statusUserId))
   );
-
-  const getContactName = useCallback((viewerUserId, defaultName) => {
-    if (!contacts) return defaultName;
-    const contact = contacts.find(c => String(c.contactId?._id || c.contactId) === String(viewerUserId) || String(c._id) === String(viewerUserId));
-    return contact?.nickname || contact?.username || defaultName;
-  }, [contacts]);
 
   const handleDeleteStatus = async (e) => {
     e.stopPropagation();
