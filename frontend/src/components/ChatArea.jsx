@@ -401,18 +401,29 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   // Smart scroll: only auto-scroll when user is at bottom or new messages arrive
   const userScrollPositionRef = useRef(null);
   const shouldAutoScrollRef = useRef(true);
+  const prevConversationIdRef = useRef(null);
   
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
+
+    if (selectedConversation?._id !== prevConversationIdRef.current) {
+      prevConversationIdRef.current = selectedConversation?._id;
+      shouldAutoScrollRef.current = true;
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      return;
+    }
     
     const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
     shouldAutoScrollRef.current = isAtBottom;
     
     if (shouldAutoScrollRef.current) {
-      scrollToBottom();
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+  }, [messages, selectedConversation?._id]);
   
   // Track user scroll position
   const handleMessagesScroll = (e) => {

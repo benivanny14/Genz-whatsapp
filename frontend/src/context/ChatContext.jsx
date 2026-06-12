@@ -2863,11 +2863,7 @@ export const ChatProvider = ({ children }) => {
       const response = await authFetch(`${BACKEND_URL}/advanced/status`);
       const data = await response.json();
       if (data.success) {
-        // ✅ Backend inarudisha myStatuses + others
-        const myStatuses = data.myStatuses || [];
-        const othersStatuses = (data.others || []).flatMap(o => o.statuses || []);
-        const allStatuses = [...myStatuses, ...othersStatuses];
-        setStatuses(allStatuses);
+        setStatuses(data.statuses || []);
       }
       return data;
     } catch (err) {
