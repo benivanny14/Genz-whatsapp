@@ -100,7 +100,14 @@ class WebRTCService {
 
     // Receive remote stream
     pc.ontrack = (event) => {
-      this.remoteStream = event.streams[0];
+      if (event.streams && event.streams[0]) {
+        this.remoteStream = event.streams[0];
+      } else {
+        if (!this.remoteStream) {
+          this.remoteStream = new MediaStream();
+        }
+        this.remoteStream.addTrack(event.track);
+      }
       if (this.onRemoteStream) this.onRemoteStream(this.remoteStream);
     };
 

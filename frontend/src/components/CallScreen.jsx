@@ -209,6 +209,9 @@ const CallScreen = ({ call, onEndCall, onAcceptCall, onRejectCall, onToggleMute,
   const handleAccept = async () => {
     setCallStatus('connecting');
     try {
+      if (socket && call?.callerId) {
+        socket.emit('call:accept', { to: call.callerId });
+      }
       const stream = await webRTCService.answerCall(
         call.offer,
         call.type || 'audio',

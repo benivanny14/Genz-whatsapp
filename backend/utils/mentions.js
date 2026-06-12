@@ -6,8 +6,9 @@ const escapeRegExp = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g
 const normalizeId = (value) => {
   if (!value) return null;
   if (typeof value === 'string') return value;
-  if (value._id) return normalizeId(value._id);
-  if (value.id) return normalizeId(value.id);
+  if (mongoose.Types.ObjectId.isValid(value)) return String(value);
+  if (value._id && value._id !== value) return normalizeId(value._id);
+  if (value.id && value.id !== value) return normalizeId(value.id);
   if (typeof value.toString === 'function') return value.toString();
   return null;
 };

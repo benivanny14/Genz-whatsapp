@@ -501,21 +501,23 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     : 'hover:bg-dark-hover'
                     }`}
                 >
-                  <div className="w-12 h-12 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
-                    {getConversationAvatar(conv) ? (
-                      <img
-                        src={getConversationAvatar(conv)}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-white font-semibold">
-                        {getConversationName(conv)?.charAt(0)?.toUpperCase() || '?'}
-                      </span>
-                    )}
+                  <div className="relative w-12 h-12 flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full bg-primary-600 flex items-center justify-center overflow-hidden">
+                      {getConversationAvatar(conv) ? (
+                        <img
+                          src={getConversationAvatar(conv)}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-white font-semibold">
+                          {getConversationName(conv)?.charAt(0)?.toUpperCase() || '?'}
+                        </span>
+                      )}
+                    </div>
                     {/* GENZ MOD: Online Indicator */}
                     {!conv.isGroup && onlineUsers.includes(conv.participants.find(p => p._id !== user?.id)?._id) && (
-                      <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-[2.5px] border-[#111b21] rounded-full z-10" />
+                      <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-[2.5px] border-[#111b21] rounded-full z-10 shadow-sm" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">

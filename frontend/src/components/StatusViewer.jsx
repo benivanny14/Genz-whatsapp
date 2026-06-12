@@ -120,21 +120,36 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
     (async () => {
       try {
         const data = await statusService.getStatusViewers(currentId);
-        if (!cancelled && data?.viewers?.length) {
-          setDetailedViewers(data.viewers.map((v) => {
-            const viewerId = v.user?._id || v.user || v._id;
-            const defaultName = v.username || v.user?.username || 'User';
-            return {
-              userId: viewerId,
-              username: getContactName(viewerId, defaultName),
-              viewedAt: v.viewedAt
-            };
-          }));
+        if (!cancelled && data) {
+          if (data.viewers) {
+            setDetailedViewers(data.viewers.map((v) => {
+              const viewerId = v.user?._id || v.user || v._id;
+              const defaultName = v.username || v.user?.username || 'User';
+              return {
+                userId: viewerId,
+                username: getContactName(viewerId, defaultName),
+                viewedAt: v.viewedAt
+              };
+            }));
+          }
+          if (data.reactions) {
+            const likes = data.reactions.filter(r => r.emoji === '❤️' || r.emoji === '\u2764\uFE0F' || r.emoji === 'like');
+            setLikeCount(likes.length);
+            setLiked(likes.some(r => String(r.user?._id || r.user) === String(user?._id)));
+            setLikesList(likes.map(r => {
+              const userId = r.user?._id || r.user;
+              const defaultName = r.user?.username || 'User';
+              return {
+                userId,
+                username: getContactName(userId, defaultName)
+              };
+            }));
+          }
         }
       } catch (_) { /* optional endpoint */ }
     })();
     return () => { cancelled = true; };
-  }, [showViewers, isOwnStatus, currentId]);
+  }, [showViewers, isOwnStatus, currentId, getContactName, user?._id]);
 
   const viewCount = currentStatus
     ? (typeof currentStatus.viewsCount === 'number' ? currentStatus.viewsCount : viewersList.length)

@@ -2037,7 +2037,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                 </div>
                 {/* GENZ MOD: Online Indicator */}
                 {!selectedConversation.isGroup && peerPresence?.isOnline && (
-                  <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-[2.5px] border-[#202c33] rounded-full z-10" />
+                  <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-[2.5px] border-[#202c33] rounded-full z-10 shadow-sm" />
                 )}
               </div>
               <div className="flex-1">
