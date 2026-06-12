@@ -798,6 +798,34 @@ exports.viewStatus = async (req, res) => {
   }
 };
 
+// @desc    Get status viewers
+// @route   GET /api/advanced/status/:id/viewers
+// @access  Private
+exports.getStatusViewers = async (req, res) => {
+  try {
+    const currentUserId = getCurrentUserId(req);
+    const statusId = req.params.id;
+
+    const status = await Status.findById(statusId)
+      .populate('views.user', 'username profilePicture')
+      .populate('reactions.user', 'username profilePicture');
+
+    if (!status) {
+      return res.status(404).json({ message: 'Status not found' });
+    }
+
+    res.json({
+      success: true,
+      viewers: status.views || [],
+      reactions: status.reactions || [],
+      viewCount: (status.views || []).length
+    });
+  } catch (error) {
+    console.error('Error fetching status viewers:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Upload media for status
 // @route   POST /api/advanced/status/upload
 // @access  Public (no auth)

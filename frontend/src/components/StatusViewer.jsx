@@ -11,7 +11,7 @@ const sid = (s) => String(s?._id || '');
 const LOCAL_OWNER_IDS = new Set(['local-user', '60d5ecb8b392cb371c664c12']);
 
 const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
-  const { statuses: contextStatuses, viewStatus, deleteStatus, replyToStatus } = useChat();
+  const { statuses: contextStatuses, viewStatus, deleteStatus, replyToStatus, contacts } = useChat();
   const { user } = useUser();
   const statuses = useMemo(() => (propStatuses?.length ? propStatuses : contextStatuses) || [], [propStatuses, contextStatuses]);
 
@@ -27,6 +27,7 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
   const [showActions, setShowActions] = useState(false);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  const [likesList, setLikesList] = useState([]);
   const [showHeart, setShowHeart] = useState(false);
   const [showReplyInput, setShowReplyInput] = useState(false);
   const [replyText, setReplyText] = useState('');
@@ -45,12 +46,38 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
   const currentStatus = statuses[currentIndex];
   const currentId = currentStatus ? sid(currentStatus) : '';
 
+  useEffect(() => {
+    if (currentStatus) {
+      const reactions = currentStatus.reactions || [];
+      const likes = reactions.filter(r => r.emoji === '❤️' || r.emoji === '\u2764\uFE0F' || r.emoji === 'like');
+      setLikeCount(likes.length);
+      setLiked(likes.some(r => String(r.user?._id || r.user) === String(user?._id)));
+      
+      const parsedLikesList = likes.map(r => {
+        const userId = r.user?._id || r.user;
+        const defaultName = r.user?.username || 'User';
+        return {
+          userId,
+          username: getContactName(userId, defaultName)
+        };
+      });
+      setLikesList(parsedLikesList);
+    }
+  }, [currentStatus, user, getContactName]);
+
+  const statusUserId = currentStatus?.user?._id || currentStatus?.user || currentStatus?.userId;
   const isOwnStatus = currentStatus && (
-    String(currentStatus.userId) === String(user?._id) || 
-    String(currentStatus.userId) === String(user?.id) || 
+    String(statusUserId) === String(user?._id) || 
+    String(statusUserId) === String(user?.id) || 
     (currentStatus.username && user?.username && currentStatus.username === user?.username) ||
-    LOCAL_OWNER_IDS.has(String(currentStatus.userId))
+    LOCAL_OWNER_IDS.has(String(statusUserId))
   );
+
+  const getContactName = useCallback((viewerUserId, defaultName) => {
+    if (!contacts) return defaultName;
+    const contact = contacts.find(c => String(c.contactId?._id || c.contactId) === String(viewerUserId) || String(c._id) === String(viewerUserId));
+    return contact?.nickname || contact?.username || defaultName;
+  }, [contacts]);
 
   const handleDeleteStatus = async (e) => {
     e.stopPropagation();
@@ -76,11 +103,16 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
   const viewersList = useMemo(() => {
     if (detailedViewers.length) return detailedViewers;
     if (!currentStatus?.views || !Array.isArray(currentStatus.views)) return [];
-    return currentStatus.views.map((v) => ({
-      username: v.user?.username || v.username || (typeof v.user === 'string' ? v.user : 'User'),
-      viewedAt: v.viewedAt || v.timestamp
-    }));
-  }, [currentStatus, detailedViewers]);
+    return currentStatus.views.map((v) => {
+      const viewerId = v.user?._id || v.user;
+      const defaultName = v.user?.username || v.username || (typeof v.user === 'string' ? v.user : 'User');
+      return {
+        userId: viewerId,
+        username: getContactName(viewerId, defaultName),
+        viewedAt: v.viewedAt || v.timestamp
+      };
+    });
+  }, [currentStatus, detailedViewers, getContactName]);
 
   useEffect(() => {
     if (!showViewers || !isOwnStatus || !currentId) return;
@@ -89,10 +121,15 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
       try {
         const data = await statusService.getStatusViewers(currentId);
         if (!cancelled && data?.viewers?.length) {
-          setDetailedViewers(data.viewers.map((v) => ({
-            username: v.username || v.user?.username || 'User',
-            viewedAt: v.viewedAt
-          })));
+          setDetailedViewers(data.viewers.map((v) => {
+            const viewerId = v.user?._id || v.user || v._id;
+            const defaultName = v.username || v.user?.username || 'User';
+            return {
+              userId: viewerId,
+              username: getContactName(viewerId, defaultName),
+              viewedAt: v.viewedAt
+            };
+          }));
         }
       } catch (_) { /* optional endpoint */ }
     })();
@@ -459,52 +496,48 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
         )}
       </AnimatePresence>
 
-      <div className="absolute bottom-10 left-0 right-0 flex flex-col items-center gap-2 z-50">
-        <div className="flex items-center gap-6">
-          {/* Reply */}
-          <button type="button" onClick={handleReply}
-            className="flex flex-col items-center text-white/80 hover:text-white transition-all active:scale-90">
-            <MessageCircle size={26} />
-            <span className="text-[10px] mt-1">Reply</span>
+      {/* ── Bottom Controls ── */}
+      {isOwnStatus ? (
+        <div className="absolute bottom-6 left-0 right-0 flex justify-center z-50">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setShowViewers(true); setIsPaused(true); }}
+            className="flex items-center gap-2 bg-[#1f2c34]/80 backdrop-blur-md px-6 py-2 rounded-full text-white/90 hover:bg-[#202c33] transition-all"
+          >
+            <Eye size={20} />
+            <span className="font-medium">{viewCount}</span>
+            <ChevronUp size={20} className="ml-1" />
           </button>
-          {/* Views */}
-          <button type="button" onClick={(e) => { e.stopPropagation(); setShowViewers(!showViewers); }}
-            className="flex flex-col items-center text-white/80 hover:text-white transition-all">
-            <Eye size={26} />
-            <span className="text-[10px] mt-1">{viewCount}</span>
-          </button>
-          {/* Like */}
-          <button type="button" onClick={(e) => { e.stopPropagation(); handleLike(); }}
-            className="flex flex-col items-center transition-all active:scale-90">
-            <Heart size={26}
-              className={`transition-all duration-200 ${liked ? 'fill-red-500 text-red-500 scale-125' : 'text-white/80 hover:text-white'}`}
-            />
-            <span className={`text-[10px] mt-1 ${liked ? 'text-red-400' : 'text-white/70'}`}>{likeCount > 0 ? likeCount : 'Like'}</span>
-          </button>
-          {/* Save */}
-          <button type="button" onClick={handleDownload}
-            className="flex flex-col items-center text-white/80 hover:text-white transition-all active:scale-90">
-            <Download size={26} />
-            <span className="text-[10px] mt-1">Save</span>
-          </button>
-          {/* Share */}
-          <button type="button" onClick={handleForward}
-            className="flex flex-col items-center text-white/80 hover:text-white transition-all active:scale-90">
-            <Share2 size={26} />
-            <span className="text-[10px] mt-1">Share</span>
-          </button>
-          {isOwnStatus && (
-            <button type="button" onClick={() => setShowActions(!showActions)}
-              className="flex flex-col items-center text-white/80 hover:text-white transition-all">
-              <MoreVertical size={26} />
-              <span className="text-[10px] mt-1">More</span>
+        </div>
+      ) : (
+        <div className="absolute bottom-10 left-0 right-0 flex flex-col items-center gap-2 z-50">
+          <div className="flex items-center gap-6 bg-black/40 backdrop-blur-md px-6 py-3 rounded-full">
+            <button type="button" onClick={handleReply}
+              className="flex flex-col items-center text-white/80 hover:text-white transition-all active:scale-90">
+              <MessageCircle size={24} />
+              <span className="text-[10px] mt-1">Reply</span>
             </button>
-          )}
+            <button type="button" onClick={handleLikeToggle}
+              className={`flex flex-col items-center transition-all active:scale-90 ${liked ? 'text-red-500' : 'text-white/80 hover:text-white'}`}>
+              <Heart size={24} className={liked ? 'fill-current' : ''} />
+              <span className="text-[10px] mt-1">{likeCount > 0 ? likeCount : 'Like'}</span>
+            </button>
+            <button type="button" onClick={handleDownload}
+              className="flex flex-col items-center text-white/80 hover:text-white transition-all active:scale-90">
+              <Download size={24} />
+              <span className="text-[10px] mt-1">Save</span>
+            </button>
+            <button type="button" onClick={handleForward}
+              className="flex flex-col items-center text-white/80 hover:text-white transition-all active:scale-90">
+              <Share2 size={24} />
+              <span className="text-[10px] mt-1">Share</span>
+            </button>
+          </div>
+          <div className="text-white/40 text-[10px] flex items-center gap-1">
+            <ChevronUp size={10} /> Double-tap ❤️ to like
+          </div>
         </div>
-        <div className="text-white/40 text-[10px] flex items-center gap-1">
-          <ChevronUp size={10} /> Double-tap ❤️ to like
-        </div>
-      </div>
+      )}
 
       {/* Floating heart animation on double-tap */}
       <AnimatePresence>
@@ -523,60 +556,55 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
       </AnimatePresence>
 
       <AnimatePresence>
-        {showActions && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="absolute bottom-24 right-4 bg-dark-surface rounded-lg shadow-2xl border border-white/10 z-[70] overflow-hidden"
-          >
-            <button
-              type="button"
-              onClick={handleDelete}
-              className="flex items-center gap-3 px-4 py-3 text-dark-text hover:bg-dark-hover w-full transition-colors"
-            >
-              <Trash2 size={18} className="text-red-500" />
-              <span>Delete Status</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleForward}
-              className="flex items-center gap-3 px-4 py-3 text-dark-text hover:bg-dark-hover w-full transition-colors"
-            >
-              <Share2 size={18} />
-              <span>Forward / Share</span>
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
         {showViewers && (
           <motion.div
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            className="absolute inset-x-0 bottom-0 h-1/2 bg-dark-surface rounded-t-3xl z-[60] p-6 shadow-2xl border-t border-white/10"
+            className="absolute inset-x-0 bottom-0 h-1/2 bg-[#1f2c34] rounded-t-3xl z-[60] p-4 shadow-2xl border-t border-white/10 flex flex-col"
           >
-            <button
-              type="button"
-              className="w-12 h-1.5 bg-gray-600 rounded-full mx-auto mb-6 block"
-              onClick={() => setShowViewers(false)}
-              aria-label="Close viewers"
-            />
-            <h3 className="text-white font-bold mb-4 flex items-center gap-2">
-              <Users size={18} /> Viewed by
-            </h3>
-            <div className="space-y-4 overflow-y-auto max-h-[80%]">
-              {viewersList.map((viewer, i) => (
-                <div key={`${viewer.username}-${i}`} className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs font-bold">
-                    {viewer.username?.charAt(0) || '?'}
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-white font-semibold flex items-center gap-2">
+                <Eye size={18} className="text-[#00a884]" /> {viewCount} Viewed
+              </h3>
+              <div className="flex gap-4">
+                <button type="button" onClick={handleForward} className="text-white/70 hover:text-white transition-all"><Share2 size={20} /></button>
+                <button type="button" onClick={handleDelete} className="text-red-400 hover:text-red-500 transition-all"><Trash2 size={20} /></button>
+                <button type="button" onClick={() => setShowViewers(false)} className="text-white/70 hover:text-white transition-all"><X size={24} /></button>
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+              {viewersList.length === 0 ? (
+                <div className="text-white/50 text-center mt-10 text-sm">Hakuna aliyeona bado</div>
+              ) : (
+                viewersList.map((viewer, i) => (
+                  <div key={`${viewer.username}-${i}`} className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white font-bold">
+                      {viewer.username.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="text-white font-medium text-sm">{viewer.username}</div>
+                      <div className="text-white/50 text-[10px]">
+                        {new Date(viewer.viewedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
                   </div>
-                  <span className="text-dark-text text-sm">{viewer.username || 'Unknown'}</span>
+                ))
+              )}
+              {likesList.length > 0 && (
+                <div className="mt-6 border-t border-white/10 pt-4">
+                  <h4 className="text-white/70 font-semibold mb-3 flex items-center gap-2 text-sm"><Heart size={14} className="text-red-500" /> Liked by</h4>
+                  {likesList.map((user, i) => (
+                    <div key={`like-${i}`} className="flex items-center gap-3 mb-2">
+                        <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center text-red-400 font-bold text-xs">
+                           {user.username.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-white text-sm">{user.username}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-              {!viewersList.length && <p className="text-dark-textSecondary text-center py-10">No views yet</p>}
+              )}
             </div>
           </motion.div>
         )}

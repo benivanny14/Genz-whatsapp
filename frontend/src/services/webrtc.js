@@ -148,6 +148,27 @@ class WebRTCService {
       console.log('[WebRTC] Signaling state:', pc.signalingState);
     };
 
+    pc.onnegotiationneeded = async () => {
+      try {
+        console.log('[WebRTC] Negotiation needed, creating new offer...');
+        const offerOptions = {
+          offerToReceiveAudio: true,
+          offerToReceiveVideo: this.callType === 'video'
+        };
+        const offer = await pc.createOffer(offerOptions);
+        await pc.setLocalDescription(offer);
+        if (this.socket && this.targetUserId) {
+          this.socket.emit('webrtc:offer', { 
+            to: this.targetUserId, 
+            offer, 
+            callType: this.callType 
+          });
+        }
+      } catch (err) {
+        console.error('[WebRTC] onnegotiationneeded error:', err);
+      }
+    };
+
     this.pc = pc;
     return pc;
   }
@@ -315,6 +336,25 @@ class WebRTCService {
     } catch (err) {
       console.error('[WebRTC] setRemoteDescription error:', err);
       this.onCallError?.(err);
+    }
+  }
+
+  // ── Handle Renegotiation (ICE Restart) ──────────────────────────────────
+  async handleRenegotiation(offer, callerId) {
+    if (!this.pc) return;
+    try {
+      await this.pc.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await this.pc.createAnswer();
+      await this.pc.setLocalDescription(answer);
+      
+      await this._flushIceQueue();
+      
+      if (this.socket) {
+        this.socket.emit('webrtc:answer', { to: callerId, answer });
+      }
+      console.log('[WebRTC] Renegotiation answer sent');
+    } catch (err) {
+      console.error('[WebRTC] handleRenegotiation error:', err);
     }
   }
 

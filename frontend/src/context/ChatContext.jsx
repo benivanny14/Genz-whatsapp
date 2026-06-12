@@ -1325,7 +1325,18 @@ export const ChatProvider = ({ children }) => {
       });
 
       // ── WebRTC signaling ──
-      socket.on('webrtc:offer', (data) => {
+      socket.on('webrtc:offer', async (data) => {
+        // Handle renegotiation if already connected
+        if (activeCallRef.current?.status === 'connected' && 
+            String(activeCallRef.current.callerId) === String(data.from || data.callerId)) {
+          try {
+            await webRTCService.handleRenegotiation(data.offer, data.from || data.callerId);
+          } catch (err) {
+            console.error('Renegotiation failed', err);
+          }
+          return;
+        }
+
         setActiveCall(prev => {
           if (prev) {
             return { ...prev, offer: data.offer };

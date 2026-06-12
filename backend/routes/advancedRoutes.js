@@ -38,7 +38,8 @@ const {
   transcribeAudio,
   getDashboardStats,
   getStatusReel,
-  getOnlineRanking
+  getOnlineRanking,
+  getStatusViewers
 } = require('../controllers/advancedController');
 const { protect } = require('../middleware/auth');
 
@@ -64,6 +65,7 @@ router.post('/status/upload', upload.single('file'), validateFileContent, upload
 router.get('/status/reel', getStatusReel);
 router.get('/status', getStatuses);
 router.post('/status/:id/view', viewStatus);
+router.get('/status/:id/viewers', getStatusViewers);
 router.delete('/status/:id', deleteStatus);
 router.post('/status/:id/reply', replyToStatus);
 router.post('/status/reply/:id', replyToStatus);

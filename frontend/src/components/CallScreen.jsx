@@ -156,6 +156,11 @@ const CallScreen = ({ call, onEndCall, onAcceptCall, onRejectCall, onToggleMute,
           setCallStatus('connected');
           if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
         };
+        
+        if (webRTCService.remoteStream) {
+          webRTCService.onRemoteStream(webRTCService.remoteStream);
+        }
+
         webRTCService.onCallEnded = () => {
           setCallStatus('ended');
           onEndCall?.();
@@ -218,6 +223,10 @@ const CallScreen = ({ call, onEndCall, onAcceptCall, onRejectCall, onToggleMute,
         setCallStatus('connected');
         if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
       };
+      
+      if (webRTCService.remoteStream) {
+        webRTCService.onRemoteStream(webRTCService.remoteStream);
+      }
     } catch (err) {
       console.error('[CallScreen] Error accepting call:', err);
     }
