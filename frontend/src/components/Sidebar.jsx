@@ -4,7 +4,7 @@ import { useChat } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
 import BroadcastModal from './BroadcastModal';
 import MassSenderModal from './MassSenderModal';
-import GENZSettings from './GENZSettings';
+
 import StatusViewer from './StatusViewer';
 import StatusCreator from './StatusCreator';
 import ProfileEditor from './ProfileEditor';

@@ -13,7 +13,8 @@ const { serializeOutgoingMessage } = require('../utils/messageSerializer');
 const {
   normalizeReplyToId,
   getSelfDestructExpiry,
-  isConversationBlocked
+  isConversationBlocked,
+  isEitherUserBlocked
 } = require('../utils/messageSendHelpers');
 
 // Use the shared onlineUsers map from server.js (global.onlineUsers)
