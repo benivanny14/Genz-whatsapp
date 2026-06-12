@@ -288,6 +288,9 @@ class WebRTCService {
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
+      // Flush any ICE candidates that arrived before the peer connection was fully initialized
+      await this._flushIceQueue();
+
       socket.emit('webrtc:answer', { to: callerId, answer });
       return this.localStream;
     } catch (err) {
@@ -315,6 +318,18 @@ class WebRTCService {
     }
   }
 
+  async _flushIceQueue() {
+    if (!this.pc) return;
+    while (this.iceCandidatesQueue.length > 0) {
+      const queued = this.iceCandidatesQueue.shift();
+      try {
+        await this.pc.addIceCandidate(new RTCIceCandidate(queued));
+      } catch (err) {
+        console.error('[WebRTC] Failed to add queued ICE candidate:', err);
+      }
+    }
+  }
+
   // ── Handle ICE candidate with queue for late arrivals ───────────────────
   async handleIceCandidate(candidate) {
     if (!this.pc) {
@@ -327,10 +342,7 @@ class WebRTCService {
       await this.pc.addIceCandidate(new RTCIceCandidate(candidate));
       
       // Process queued candidates
-      while (this.iceCandidatesQueue.length > 0) {
-        const queued = this.iceCandidatesQueue.shift();
-        await this.pc.addIceCandidate(new RTCIceCandidate(queued));
-      }
+      await this._flushIceQueue();
     } catch (err) {
       console.error('[WebRTC] addIceCandidate error:', err);
       // Queue for retry

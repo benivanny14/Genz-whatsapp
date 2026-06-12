@@ -1411,6 +1411,33 @@ export const ChatProvider = ({ children }) => {
         });
       });
 
+      socket.on('status_liked_signal', (data) => {
+        setStatuses(prev => prev.map(s => {
+          if (String(s._id) === String(data.statusId)) {
+            const currentLikes = s.reactions || [];
+            let newLikes = [...currentLikes];
+            if (data.liked) {
+              if (!newLikes.some(r => String(r.user) === String(data.userId))) {
+                newLikes.push({ user: data.userId, emoji: '❤️' });
+              }
+            } else {
+              newLikes = newLikes.filter(r => String(r.user) !== String(data.userId));
+            }
+            return { ...s, reactions: newLikes, likeCount: data.likeCount };
+          }
+          return s;
+        }));
+      });
+
+      socket.on('status:viewed', (data) => {
+        setStatuses(prev => prev.map(s => {
+          if (String(s._id) === String(data._id)) {
+            return { ...s, views: data.views, viewsCount: data.viewsCount };
+          }
+          return s;
+        }));
+      });
+
       return () => {
         clearTimeout(connectionTimeout);
         clearTimeout(markReadDebouncedRef.current);
@@ -1944,14 +1971,7 @@ export const ChatProvider = ({ children }) => {
       emitSafe('call:accept', { conversationId: activeCall.conversationId, callerId: activeCall.callerId });
       setActiveCall(prev => prev ? { ...prev, status: 'connected' } : prev);
       
-      // Also emit WebRTC answer if we have an offer
-      if (activeCall.offer && socketRef.current) {
-        socketRef.current.emit('webrtc:answer', {
-          to: activeCall.callerId,
-          answer: activeCall.answer,
-          callType: activeCall.type
-        });
-      }
+      // webrtc:answer is safely emitted by webRTCService.answerCall
     }
   };
   const rejectCall = () => {

@@ -515,7 +515,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     )}
                     {/* GENZ MOD: Online Indicator */}
                     {!conv.isGroup && onlineUsers.includes(conv.participants.find(p => p._id !== user?.id)?._id) && (
-                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-dark-surface rounded-full shadow-sm" />
+                      <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-[2.5px] border-[#111b21] rounded-full z-10" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">

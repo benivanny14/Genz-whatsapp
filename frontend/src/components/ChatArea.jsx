@@ -2025,13 +2025,19 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               {isLiveLocationActive && (
                 <span className="text-red-500 text-xs font-bold animate-pulse flex items-center gap-1 mr-2"><Radio size={14} /> LIVE</span>
               )}
-              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center overflow-hidden border border-white/10">
-                {getConversationAvatar() ? (
-                  <img src={getConversationAvatar()} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-white font-semibold">
-                    {getConversationName().charAt(0).toUpperCase()}
-                  </span>
+              <div className="relative">
+                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center overflow-hidden border border-white/10">
+                  {getConversationAvatar() ? (
+                    <img src={getConversationAvatar()} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-white font-semibold">
+                      {getConversationName().charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                {/* GENZ MOD: Online Indicator */}
+                {!selectedConversation.isGroup && peerPresence?.isOnline && (
+                  <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-[2.5px] border-[#202c33] rounded-full z-10" />
                 )}
               </div>
               <div className="flex-1">
