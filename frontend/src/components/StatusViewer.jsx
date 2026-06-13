@@ -593,19 +593,25 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
               {viewersList.length === 0 ? (
                 <div className="text-white/50 text-center mt-10 text-sm">Hakuna aliyeona bado</div>
               ) : (
-                viewersList.map((viewer, i) => (
-                  <div key={`${viewer.username}-${i}`} className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white font-bold">
-                      {viewer.username.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="text-white font-medium text-sm">{viewer.username}</div>
-                      <div className="text-white/50 text-[10px]">
-                        {new Date(viewer.viewedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                viewersList.map((viewer, i) => {
+                  const hasLiked = likesList.some(l => String(l.userId) === String(viewer.userId));
+                  return (
+                    <div key={`${viewer.username}-${i}`} className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white font-bold">
+                        {viewer.username.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="text-white font-medium text-sm flex items-center gap-1">
+                          {viewer.username}
+                          {hasLiked && <Heart size={14} className="text-red-500 fill-current" />}
+                        </div>
+                        <div className="text-white/50 text-[10px]">
+                          {new Date(viewer.viewedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
               {likesList.length > 0 && (
                 <div className="mt-6 border-t border-white/10 pt-4">
