@@ -532,7 +532,7 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
               <MessageCircle size={24} />
               <span className="text-[10px] mt-1">Reply</span>
             </button>
-            <button type="button" onClick={handleLikeToggle}
+            <button type="button" onClick={handleLike}
               className={`flex flex-col items-center transition-all active:scale-90 ${liked ? 'text-red-500' : 'text-white/80 hover:text-white'}`}>
               <Heart size={24} className={liked ? 'fill-current' : ''} />
               <span className="text-[10px] mt-1">{likeCount > 0 ? likeCount : 'Like'}</span>
