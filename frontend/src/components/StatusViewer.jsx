@@ -581,6 +581,11 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-white font-semibold flex items-center gap-2">
                 <Eye size={18} className="text-[#00a884]" /> {viewCount} Viewed
+                {likeCount > 0 && (
+                  <span className="flex items-center gap-1 ml-2 text-red-400 text-sm font-normal">
+                    <Heart size={14} className="fill-red-400" /> {likeCount}
+                  </span>
+                )}
               </h3>
               <div className="flex gap-4">
                 <button type="button" onClick={handleForward} className="text-white/70 hover:text-white transition-all"><Share2 size={20} /></button>
@@ -589,42 +594,38 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
               </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+            <div className="flex-1 overflow-y-auto space-y-1 pr-2">
               {viewersList.length === 0 ? (
                 <div className="text-white/50 text-center mt-10 text-sm">Hakuna aliyeona bado</div>
               ) : (
                 viewersList.map((viewer, i) => {
-                  const hasLiked = likesList.some(l => String(l.userId) === String(viewer.userId));
+                  const viewerHasLiked = likesList.some(
+                    (liker) => String(liker.userId) === String(viewer.userId)
+                  );
                   return (
-                    <div key={`${viewer.username}-${i}`} className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white font-bold">
-                        {viewer.username.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="text-white font-medium text-sm flex items-center gap-1">
-                          {viewer.username}
-                          {hasLiked && <Heart size={14} className="text-red-500 fill-current" />}
+                    <div key={`${viewer.username}-${i}`} className="flex items-center gap-3 py-2 px-1 rounded-xl hover:bg-white/5 transition-colors">
+                      <div className="relative flex-shrink-0">
+                        <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white font-bold">
+                          {viewer.username.charAt(0).toUpperCase()}
                         </div>
+                        {viewerHasLiked && (
+                          <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center border-2 border-[#1f2c34] shadow-lg">
+                            <Heart size={10} className="text-white fill-white" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-white font-medium text-sm truncate">{viewer.username}</div>
                         <div className="text-white/50 text-[10px]">
                           {new Date(viewer.viewedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </div>
+                      {viewerHasLiked && (
+                        <Heart size={16} className="text-red-500 fill-red-500 flex-shrink-0" />
+                      )}
                     </div>
                   );
                 })
-              )}
-              {likesList.length > 0 && (
-                <div className="mt-6 border-t border-white/10 pt-4">
-                  <h4 className="text-white/70 font-semibold mb-3 flex items-center gap-2 text-sm"><Heart size={14} className="text-red-500" /> Liked by</h4>
-                  {likesList.map((user, i) => (
-                    <div key={`like-${i}`} className="flex items-center gap-3 mb-2">
-                        <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center text-red-400 font-bold text-xs">
-                           {user.username.charAt(0).toUpperCase()}
-                        </div>
-                        <span className="text-white text-sm">{user.username}</span>
-                    </div>
-                  ))}
-                </div>
               )}
             </div>
           </motion.div>
