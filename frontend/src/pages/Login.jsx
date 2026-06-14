@@ -1,70 +1,166 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Lock, LogIn, Phone, Mail } from 'lucide-react';
+import { Eye, EyeOff, Lock, LogIn, Phone, Smartphone } from 'lucide-react';
 import toast from 'react-hot-toast';
-import authService from '../services/authService';
+import OTPVerification from '../components/OTPVerification';
 
 const Login = () => {
   const navigate = useNavigate();
-  const [identifier, setIdentifier] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
-  const [twoFactorToken, setTwoFactorToken] = useState('');
-  const [requiresTwoFactor, setRequiresTwoFactor] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showOTP, setShowOTP] = useState(false);
+  const [step, setStep] = useState('credentials'); // 'credentials', 'otp'
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    if (loading) return; // Prevent double submission
+  const validatePhoneNumber = (phone) => {
+    // Tanzanian phone number format
+    const phoneRegex = /^(\+255|255|0)?[67][5-9]\d{7}$/;
+    return phoneRegex.test(phone.replace(/\D/g, ''));
+  };
 
+  const handleRequestOTP = async (e) => {
+    e.preventDefault();
     setError('');
+
+    if (!phoneNumber) {
+      setError('Phone number is required');
+      return;
+    }
+
+    if (!validatePhoneNumber(phoneNumber)) {
+      setError('Invalid phone number format. Use format like: 07XX XXX XXX or +255 7XX XXX XXX');
+      return;
+    }
+
+    if (!password || password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const data = await authService.login({
-        identifier,
-        password,
-        ...(twoFactorToken ? { twoFactorToken } : {})
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      
+      // Store password temporarily for OTP verification
+      localStorage.setItem('tempPassword', password);
+
+      const response = await fetch(`${API_URL}/otp/request-login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phoneNumber }),
       });
 
-      if (data.requiresTwoFactor) {
-        setRequiresTwoFactor(true);
-        return;
-      }
+      const data = await response.json();
 
-      navigate('/chat', { replace: true });
-      window.location.reload();
-    } catch (err) {
-      // Handle specific error statuses with user-friendly messages
-      if (err.status === 401) {
-        setError('Invalid email, username, phone number, or password. Please try again.');
-        setPassword(''); // Clear password on failed login (security best practice)
-      } else if (err.status === 403) {
-        setError('This account has been blocked. Please contact support.');
-        setPassword(''); // Clear password on failed login
-      } else if (err.status === 429) {
-        setError('Too many login attempts. Please try again later.');
-      } else if (err.message) {
-        setError(err.message);
+      if (response.ok && data.success) {
+        setStep('otp');
+        setShowOTP(true);
+        toast.success('OTP sent successfully! Check your phone.');
       } else {
-        setError('An error occurred. Please try again.');
+        setError(data.message || 'Failed to send OTP');
+        localStorage.removeItem('tempPassword');
       }
+    } catch (err) {
+      setError('Network error. Please check your connection.');
+      console.error('Login error:', err);
+      localStorage.removeItem('tempPassword');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleEmailLoginClick = () => {
-    toast('Login with Email is Coming Soon!', {
-      icon: '🚀',
-      style: { background: '#333', color: '#fff' }
-    });
+  const handleCredentialsLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          identifier: phoneNumber,
+          password
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        navigate('/chat', { replace: true });
+        window.location.reload();
+      } else {
+        setError(data.message || 'Invalid credentials');
+        setPassword('');
+      }
+    } catch (err) {
+      setError('Network error. Please check your connection.');
+      console.error('Login error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleOTPOrLogin = (e) => {
+    // If user wants to use OTP method
+    handleRequestOTP(e);
+  };
+
+  const handleOTPComplete = (token, user) => {
+    if (token && user) {
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      navigate('/chat', { replace: true });
+      window.location.reload();
+    } else {
+      // Go back to credentials
+      setStep('credentials');
+      setShowOTP(false);
+    }
+  };
+
+  const handleBackToLogin = () => {
+    setStep('credentials');
+    setShowOTP(false);
+    localStorage.removeItem('tempPassword');
+  };
+
+  if (showOTP) {
+    return (
+      <div className="min-h-screen bg-[#0b141a] flex items-center justify-center px-4">
+        <div className="w-full max-w-md bg-[#111b21] border border-white/10 rounded-lg p-6 shadow-2xl">
+          <OTPVerification
+            phoneNumber={phoneNumber}
+            type="login"
+            onComplete={handleOTPComplete}
+          />
+          <div className="mt-4 text-center">
+            <button
+              onClick={handleBackToLogin}
+              className="text-sm text-gray-400 hover:text-white transition-colors"
+            >
+              ← Back to login
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0b141a] flex items-center justify-center px-4">
-      <form onSubmit={handleSubmit} className="w-full max-w-md bg-[#111b21] border border-white/10 rounded-lg p-6 shadow-2xl">
+      <form onSubmit={handleOTPOrLogin} className="w-full max-w-md bg-[#111b21] border border-white/10 rounded-lg p-6 shadow-2xl">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-white">GENZ Login</h1>
           <p className="text-sm text-slate-400 mt-1">Ingia kwenye akaunti yako kuendelea.</p>
@@ -76,12 +172,14 @@ const Login = () => {
           </div>
         )}
 
-        <label className="block text-sm text-slate-300 mb-2">Phone number (e.g. +255...)</label>
+        <label className="block text-sm text-slate-300 mb-2">
+          Namba ya simu (e.g. +255...)
+        </label>
         <div className="mb-4 flex items-center gap-2 rounded-md bg-[#202c33] border border-white/10 px-3">
           <Phone size={18} className="text-[#00a884]" />
           <input
-            value={identifier}
-            onChange={(event) => setIdentifier(event.target.value)}
+            value={phoneNumber}
+            onChange={(event) => setPhoneNumber(event.target.value)}
             className="w-full bg-transparent py-3 text-white outline-none"
             placeholder="+255712345678"
             autoComplete="tel"
@@ -89,8 +187,8 @@ const Login = () => {
           />
         </div>
 
-        <label className="block text-sm text-slate-300 mb-2">Password</label>
-        <div className="mb-4 flex items-center gap-2 rounded-md bg-[#202c33] border border-white/10 px-3">
+        <label className="block text-sm text-slate-300 mb-2">Nenosiri</label>
+        <div className="mb-6 flex items-center gap-2 rounded-md bg-[#202c33] border border-white/10 px-3">
           <Lock size={18} className="text-slate-400" />
           <input
             type={showPassword ? 'text' : 'password'}
@@ -105,27 +203,14 @@ const Login = () => {
           </button>
         </div>
 
-        {requiresTwoFactor && (
-          <>
-            <label className="block text-sm text-slate-300 mb-2">2FA code</label>
-            <input
-              value={twoFactorToken}
-              onChange={(event) => setTwoFactorToken(event.target.value)}
-              className="mb-4 w-full rounded-md bg-[#202c33] border border-white/10 px-3 py-3 text-white outline-none"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              required
-            />
-          </>
-        )}
-
+        {/* Login with OTP Button */}
         <button
           type="submit"
           disabled={loading}
           className="w-full flex items-center justify-center gap-2 rounded-md bg-[#00a884] hover:bg-[#008f6f] py-3 font-semibold text-[#0b141a] transition-colors disabled:opacity-60 mb-3"
         >
-          <LogIn size={18} />
-          {loading ? 'Inaingia...' : 'Login'}
+          <Smartphone size={18} />
+          {loading ? 'Inatuma OTP...' : 'Login with OTP'}
         </button>
 
         <div className="relative flex items-center justify-center mb-3">
@@ -135,13 +220,15 @@ const Login = () => {
           <span className="relative bg-[#111b21] px-3 text-xs text-slate-400 uppercase">Au</span>
         </div>
 
+        {/* Direct Login Button (without OTP) */}
         <button
           type="button"
-          onClick={handleEmailLoginClick}
-          className="w-full flex items-center justify-center gap-2 rounded-md bg-transparent border border-white/20 hover:bg-white/5 py-3 font-semibold text-white transition-colors"
+          onClick={handleCredentialsLogin}
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-2 rounded-md bg-transparent border border-white/20 hover:bg-white/5 py-3 font-semibold text-white transition-colors disabled:opacity-50"
         >
-          <Mail size={18} />
-          Login with Email
+          <LogIn size={18} />
+          {loading ? 'Inaingia...' : 'Login directly'}
         </button>
 
         <div className="mt-5 flex items-center justify-between text-sm">

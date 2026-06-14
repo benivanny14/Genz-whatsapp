@@ -619,10 +619,12 @@ const genzModsRoutes = require('./routes/genzModsRoutes');
 const backupRoutes = require('./routes/backupRoutes');
 const voiceRoutes = require('./routes/voiceRoutes');
 const authRoutes = require('./routes/authRoutes');
+const otpRoutes = require('./routes/otpRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const mediaRoutes = require('./routes/media');
 const encryptionRoutes = require('./routes/encryptionRoutes');
+const e2eeRoutes = require('./routes/e2eeRoutes');
 const webrtcRoutes = require('./routes/webrtcRoutes');
 const callRoutes = require('./routes/callRoutes');
 const productRoutes = require('./routes/productRoutes');
@@ -631,6 +633,7 @@ const statusRoutes = require('./routes/status');
 
 // Mount Routes
 app.use('/api/auth', safeMiddleware(authLimiter), authRoutes);
+app.use('/api/otp', otpRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/advanced', advancedRoutes);
@@ -643,6 +646,7 @@ app.use('/api/backup', backupRoutes);
 app.use('/api/voice', voiceRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/encryption', encryptionRoutes);
+app.use('/api/e2ee', e2eeRoutes);
 app.use('/api/webrtc', webrtcRoutes);
 app.use('/api/calls', callRoutes);
 app.use('/api/products', productRoutes);
