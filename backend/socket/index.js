@@ -941,15 +941,19 @@ const setupSocket = (io) => {
         if (statusId) {
           const status = await Status.findById(statusId);
           if (status) {
-            const existingIndex = status.likes.findIndex(userId => userId.toString() === socket.userId);
-            liked = existingIndex === -1;
-            if (liked) {
-              status.likes.push(socket.userId);
-            } else {
-              status.likes.splice(existingIndex, 1);
+            if (!status.reactions) status.reactions = [];
+            const existingIndex = status.reactions.findIndex(
+              r => r.user && r.user.toString() === socket.userId && (r.emoji === '❤️' || r.emoji === 'like' || r.emoji === '\u2764\uFE0F')
+            );
+            const isCurrentlyLiked = existingIndex !== -1;
+            
+            if (liked && !isCurrentlyLiked) {
+              status.reactions.push({ user: socket.userId, emoji: '❤️' });
+            } else if (!liked && isCurrentlyLiked) {
+              status.reactions.splice(existingIndex, 1);
             }
-            status.likesCount = status.likes.length;
-            likesCount = status.likesCount;
+            
+            likesCount = status.reactions.filter(r => r.emoji === '❤️' || r.emoji === 'like' || r.emoji === '\u2764\uFE0F').length;
             await status.save();
           }
         }
@@ -978,6 +982,7 @@ const setupSocket = (io) => {
         if (statusId && content) {
           const status = await Status.findById(statusId);
           if (status) {
+            if (!status.replies) status.replies = [];
             status.replies.push(reply);
             await status.save();
           }
@@ -1312,65 +1317,6 @@ const setupSocket = (io) => {
       }
     });
 
-    socket.on('status_like', async (data = {}) => {
-      try {
-        const { statusId } = data;
-        let liked = Boolean(data.liked);
-        let likesCount = data.likesCount || 0;
-        if (statusId) {
-          const status = await Status.findById(statusId);
-          if (status) {
-            const existingIndex = status.likes.findIndex(userId => userId.toString() === socket.userId);
-            liked = existingIndex === -1;
-            if (liked) {
-              status.likes.push(socket.userId);
-            } else {
-              status.likes.splice(existingIndex, 1);
-            }
-            status.likesCount = status.likes.length;
-            likesCount = status.likesCount;
-            await status.save();
-          }
-        }
-        io.emit('status_liked_signal', {
-          statusId,
-          liked,
-          likesCount,
-          userId: socket.userId
-        });
-      } catch (error) {
-        console.error('Error liking status in socket:', error);
-      }
-    });
-
-    socket.on('status_comment', async (data = {}) => {
-      try {
-        const { statusId, content, type = 'text', mediaUrl = '' } = data;
-        const reply = {
-          userId: socket.userId,
-          username: socket.user?.username || 'GENZ User',
-          content,
-          type,
-          mediaUrl,
-          createdAt: new Date()
-        };
-        if (statusId && content) {
-          const status = await Status.findById(statusId);
-          if (status) {
-            status.replies.push(reply);
-            await status.save();
-          }
-        }
-        io.emit('status_comment_signal', {
-          statusId,
-          ...reply,
-          timestamp: reply.createdAt.toISOString()
-        });
-      } catch (error) {
-        console.error('Error commenting on status in socket:', error);
-      }
-    });
-
     socket.on('live_reaction', (data = {}) => {
       const payload = {
         chatId: data.chatId || data.conversationId,
@@ -1650,13 +1596,15 @@ const setupSocket = (io) => {
     socket.on('mark_as_read', safeAsyncHandler(socket, async (data) => {
       const { chatId, skipReadReceipts } = data;
 
-      if (!chatId || !/^[0-9a-fA-F]{24}$/.test(chatId)) {
+      if (!chatId || (!/^[0-9a-fA-F]{24}$/.test(chatId) && !chatId.startsWith('conv-status-'))) {
         console.warn('Invalid chatId format in mark_as_read:', chatId);
         return;
       }
 
-      const conversation = await getConversationIfParticipant(chatId, socket);
-      if (!conversation) return;
+      if (!chatId.startsWith('conv-status-')) {
+        const conversation = await getConversationIfParticipant(chatId, socket);
+        if (!conversation) return;
+      }
 
       const userId = String(socket.userId);
 

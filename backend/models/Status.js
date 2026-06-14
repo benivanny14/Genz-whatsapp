@@ -11,6 +11,15 @@ const viewSchema = new mongoose.Schema({
   viewedAt: { type: Date, default: Date.now }
 });
 
+const replySchema = new mongoose.Schema({
+  userId: { type: String, required: true },
+  username: { type: String, required: true },
+  content: { type: String, required: true },
+  type: { type: String, default: 'text' },
+  mediaUrl: { type: String, default: '' },
+  createdAt: { type: Date, default: Date.now }
+});
+
 const statusSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
   userId: { type: String },
@@ -35,6 +44,7 @@ const statusSchema = new mongoose.Schema({
   viewsCount: { type: Number, default: 0 },
   views: [viewSchema],
   reactions: [reactionSchema],
+  replies: [replySchema],
   clientStatusId: { type: String },
   expiresAt: {
     type: Date,
