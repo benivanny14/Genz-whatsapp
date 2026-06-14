@@ -976,16 +976,34 @@ exports.replyToStatus = async (req, res) => {
     const message = await Message.create({
       conversationId: conversation._id,
       sender: currentUserId,
-      content: `[Reply to status]: ${content}`,
+      content: content,
       messageType: 'text',
       replyTo: null
     });
 
-    const populatedMessage = await Message.findById(message._id);
+    const populatedMessage = await Message.findById(message._id)
+      .populate('sender', 'username profilePicture');
 
     conversation.lastMessage = message._id;
     conversation.updatedAt = new Date();
     await conversation.save();
+
+    // Tuma socket event mara moja
+    const io = req.app.get('io');
+    if (io) {
+      // Tuma kwa owner wa status
+      if (status.userId) {
+        io.to(String(status.userId)).emit('message:received', {
+          ...populatedMessage.toObject(),
+          conversationId: conversation._id
+        });
+      }
+      // Tuma kwenye conversation room
+      io.to(String(conversation._id)).emit('message:received', {
+        ...populatedMessage.toObject(),
+        conversationId: conversation._id
+      });
+    }
 
     res.status(201).json({ 
       success: true, 
