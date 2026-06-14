@@ -12,8 +12,13 @@ const {
 const { assertSafeExternalUrl } = require('../utils/networkGuard');
 
 const LOCAL_USER_ID = process.env.LOCAL_USER_ID || '60d5ecb8b392cb371c664c12';
-const includesId = (items = [], id) => items.some(item => item?.toString() === id?.toString());
 const getCurrentUserId = (req) => req.user?._id?.toString() || LOCAL_USER_ID;
+
+const includesId = (items = [], id) => {
+  if (!Array.isArray(items)) return false;
+  const target = id?._id ? id._id.toString() : id?.toString();
+  return items.some(item => (item?._id ? item._id.toString() : item?.toString()) === target);
+};
 const getCurrentUsername = (req) => req.user?.username || req.user?.name || 'GENZ User';
 const getPublicBaseUrl = (req) => (
   process.env.PUBLIC_API_URL ||

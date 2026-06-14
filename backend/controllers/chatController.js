@@ -17,8 +17,12 @@ const { ensureUnreadMap, getUnreadCount, setUnreadCount } = require("../utils/un
 const LOCAL_USER_ID = process.env.LOCAL_USER_ID || "60d5ecb8b392cb371c664c12";
 
 const getCurrentUserId = (req) => req.user?._id?.toString() || LOCAL_USER_ID;
-const includesId = (items = [], id) =>
-  items.some((item) => item?.toString() === id?.toString());
+
+const includesId = (items = [], id) => {
+  if (!Array.isArray(items)) return false;
+  const target = id?._id ? id._id.toString() : id?.toString();
+  return items.some(item => (item?._id ? item._id.toString() : item?.toString()) === target);
+};
 
 const getCache = async (req, key) => {
   const redisClient = req.app.get("redisClient");

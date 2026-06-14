@@ -52,7 +52,11 @@ setInterval(() => {
   }
 }, 30000); // Run every 30 seconds
 const SOCKET_SETUP_FLAG = Symbol.for('genz.socket.setup');
-const includesId = (items = [], id) => items.some(item => item?.toString() === id?.toString());
+const includesId = (items = [], id) => {
+  if (!Array.isArray(items)) return false;
+  const target = id?._id ? id._id.toString() : id?.toString();
+  return items.some(item => (item?._id ? item._id.toString() : item?.toString()) === target);
+};
 
 const safeAsyncHandler = (socket, handler) => async (data) => {
   try {
