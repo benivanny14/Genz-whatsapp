@@ -249,6 +249,7 @@ export const ChatProvider = ({ children }) => {
   const socketRef = useRef(null);
   const markReadDebouncedRef = useRef(null);
   const modsRef = useRef({});  // keep mods accessible in socket callbacks
+  const activeCallRef = useRef(null);  // keep active call state accessible in socket callbacks
   const { isAuthenticated, loading: authLoading, user: authUser, isAuthReady } = useAuth();
 
   const currentUserId = React.useMemo(
