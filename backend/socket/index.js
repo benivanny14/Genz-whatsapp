@@ -905,11 +905,18 @@ const setupSocket = (io) => {
         if (status) {
           const alreadyViewed = status.views.some(view => view.user?.toString() === socket.userId);
           if (!alreadyViewed) {
-            status.views.push({ user: socket.userId, viewedAt: new Date() });
-            status.viewsCount = status.views.length;
+            // Use atomic update to avoid VersionError
+            await Status.findByIdAndUpdate(
+              statusId,
+              {
+                $push: { views: { user: socket.userId, viewedAt: new Date() } },
+                $set: { viewsCount: status.views.length + 1 }
+              },
+              { new: true }
+            );
           }
-          await status.save();
-          io.emit('status:viewed', status.toObject ? status.toObject() : JSON.parse(JSON.stringify(status)));
+          const updatedStatus = await Status.findById(statusId);
+          io.emit('status:viewed', updatedStatus.toObject ? updatedStatus.toObject() : JSON.parse(JSON.stringify(updatedStatus)));
         }
       } catch (error) {
         console.error('Error viewing status:', error);
@@ -1289,11 +1296,18 @@ const setupSocket = (io) => {
         if (status) {
           const alreadyViewed = status.views.some(view => view.user?.toString() === socket.userId);
           if (!alreadyViewed) {
-            status.views.push({ user: socket.userId, viewedAt: new Date() });
-            status.viewsCount = status.views.length;
+            // Use atomic update to avoid VersionError
+            await Status.findByIdAndUpdate(
+              statusId,
+              {
+                $push: { views: { user: socket.userId, viewedAt: new Date() } },
+                $set: { viewsCount: status.views.length + 1 }
+              },
+              { new: true }
+            );
           }
-          await status.save();
-          io.emit('status:viewed', status.toObject ? status.toObject() : JSON.parse(JSON.stringify(status)));
+          const updatedStatus = await Status.findById(statusId);
+          io.emit('status:viewed', updatedStatus.toObject ? updatedStatus.toObject() : JSON.parse(JSON.stringify(updatedStatus)));
         }
       } catch (error) {
         console.error('Error viewing status:', error);
@@ -1306,9 +1320,15 @@ const setupSocket = (io) => {
         if (statusId) {
           const status = await Status.findById(statusId);
           if (status && !status.views.some(view => view.user?.toString() === socket.userId)) {
-            status.views.push({ user: socket.userId, viewedAt: new Date() });
-            status.viewsCount = status.views.length;
-            await status.save();
+            // Use atomic update to avoid VersionError
+            await Status.findByIdAndUpdate(
+              statusId,
+              {
+                $push: { views: { user: socket.userId, viewedAt: new Date() } },
+                $set: { viewsCount: status.views.length + 1 }
+              },
+              { new: true }
+            );
           }
         }
         io.emit('status_view_signal', {
@@ -1605,27 +1625,37 @@ const setupSocket = (io) => {
         return;
       }
 
-      if (!chatId.startsWith('conv-status-')) {
-        const conversation = await getConversationIfParticipant(chatId, socket);
-        if (!conversation) return;
+      // Skip processing if this is a status conversation ID
+      if (chatId.startsWith('conv-status-')) {
+        console.log('Skipping status conv-id in mark_as_read:', chatId);
+        return;
+      }
+
+      const conversation = await getConversationIfParticipant(chatId, socket);
+      if (!conversation) {
+        console.log('Conversation not found or user not participant:', chatId);
+        return;
       }
 
       const userId = String(socket.userId);
 
       if (!skipReadReceipts) {
-        const unreadMessages = await Message.find({
-          conversationId: chatId,
-          sender: { $ne: userId },
-          status: { $ne: 'read' }
-        }).limit(200);
+        // Validate conversationId is a valid MongoDB ObjectId before querying
+        if (mongoose.Types.ObjectId.isValid(chatId) && !chatId.startsWith('conv-status-')) {
+          const unreadMessages = await Message.find({
+            conversationId: chatId,
+            sender: { $ne: userId },
+            status: { $ne: 'read' }
+          }).limit(200);
 
-        for (const msg of unreadMessages) {
-          if (!Array.isArray(msg.readBy)) msg.readBy = [];
-          const alreadyRead = msg.readBy.some((r) => r.user?.toString() === userId);
-          if (!alreadyRead) {
-            msg.readBy.push({ user: userId, readAt: new Date() });
-            msg.status = 'read';
-            await msg.save();
+          for (const msg of unreadMessages) {
+            if (!Array.isArray(msg.readBy)) msg.readBy = [];
+            const alreadyRead = msg.readBy.some((r) => r.user?.toString() === userId);
+            if (!alreadyRead) {
+              msg.readBy.push({ user: userId, readAt: new Date() });
+              msg.status = 'read';
+              await msg.save();
+            }
           }
         }
       }
