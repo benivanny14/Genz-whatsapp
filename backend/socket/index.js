@@ -991,12 +991,12 @@ const setupSocket = (io) => {
           createdAt: new Date()
         };
         if (statusId && content) {
-          const status = await Status.findById(statusId);
-          if (status) {
-            if (!status.replies) status.replies = [];
-            status.replies.push(reply);
-            await status.save();
-          }
+          // Use atomic update to avoid VersionError
+          await Status.findByIdAndUpdate(
+            statusId,
+            { $push: { replies: reply } },
+            { new: true }
+          );
         }
         io.emit('status_comment_signal', {
           statusId,
