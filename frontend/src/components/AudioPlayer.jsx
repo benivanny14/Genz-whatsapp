@@ -185,40 +185,40 @@ const AudioPlayer = ({
       }
     };
     
-    await createAudioElement();
-    
-    if (!audio) return;
+    createAudioElement().then(() => {
+      if (!audio) return;
 
-    audio.onloadedmetadata = () => {
-      const dur = audio.duration || initialDuration || 0;
-      setDuration(dur);
-      setLoaded(true);
-      setError(false);
+      audio.onloadedmetadata = () => {
+        const dur = audio.duration || initialDuration || 0;
+        setDuration(dur);
+        setLoaded(true);
+        setError(false);
 
-      if (autoPlay) {
-        audio.play().then(() => setIsPlaying(true)).catch(e => console.warn('Autoplay blocked:', e));
-      }
-    };
-    audio.ontimeupdate = () => setCurrentTime(audio.currentTime);
-    audio.onended = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-      if (isViewOnce && !isOwn) {
-        setViewOnceConsumed(true);
-        onViewOnceComplete?.();
-      }
-    };
-    audio.onerror = (e) => {
-      console.error('[AudioPlayer] Audio playback error:', e);
-      // Limit retries to prevent infinite loops
-      if (retryCount < 2) {
-        setRetryCount(prev => prev + 1);
-        console.log(`[AudioPlayer] Retry ${retryCount + 1}/2`);
-      } else {
-        setError(true);
-        console.log('[AudioPlayer] Max retries reached, showing error');
-      }
-    };
+        if (autoPlay) {
+          audio.play().then(() => setIsPlaying(true)).catch(e => console.warn('Autoplay blocked:', e));
+        }
+      };
+      audio.ontimeupdate = () => setCurrentTime(audio.currentTime);
+      audio.onended = () => {
+        setIsPlaying(false);
+        setCurrentTime(0);
+        if (isViewOnce && !isOwn) {
+          setViewOnceConsumed(true);
+          onViewOnceComplete?.();
+        }
+      };
+      audio.onerror = (e) => {
+        console.error('[AudioPlayer] Audio playback error:', e);
+        // Limit retries to prevent infinite loops
+        if (retryCount < 2) {
+          setRetryCount(prev => prev + 1);
+          console.log(`[AudioPlayer] Retry ${retryCount + 1}/2`);
+        } else {
+          setError(true);
+          console.log('[AudioPlayer] Max retries reached, showing error');
+        }
+      };
+    });
 
     return () => {
       if (audio) {
