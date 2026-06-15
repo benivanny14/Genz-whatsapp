@@ -126,6 +126,8 @@ const AudioPlayer = ({
     
     console.log('[AudioPlayer] Creating audio element with src:', playbackUrl);
     
+    let isCleanedUp = false;
+    
     // Create audio element directly without fetch
     const audio = new Audio();
     audio.crossOrigin = "anonymous"; // Allow CORS
@@ -138,6 +140,7 @@ const AudioPlayer = ({
     console.log('[AudioPlayer] Audio element created, readyState:', audio.readyState);
 
     audio.onloadedmetadata = () => {
+      if (isCleanedUp) return;
       const dur = audio.duration || initialDuration || 0;
       setDuration(dur);
       setLoaded(true);
@@ -148,8 +151,12 @@ const AudioPlayer = ({
         audio.play().then(() => setIsPlaying(true)).catch(e => console.warn('Autoplay blocked:', e));
       }
     };
-    audio.ontimeupdate = () => setCurrentTime(audio.currentTime);
+    audio.ontimeupdate = () => {
+      if (isCleanedUp) return;
+      setCurrentTime(audio.currentTime);
+    };
     audio.onended = () => {
+      if (isCleanedUp) return;
       setIsPlaying(false);
       setCurrentTime(0);
       if (isViewOnce && !isOwn) {
@@ -158,6 +165,7 @@ const AudioPlayer = ({
       }
     };
     audio.onerror = (e) => {
+      if (isCleanedUp) return;
       console.error('[AudioPlayer] Audio playback error:', e);
       console.error('[AudioPlayer] Current src:', audio.src);
       console.error('[AudioPlayer] Network state:', audio.networkState);
@@ -178,14 +186,20 @@ const AudioPlayer = ({
     };
 
     return () => {
+      isCleanedUp = true; // Set flag first
       if (audio) {
+        // Remove event handlers to prevent memory leaks
+        audio.onloadedmetadata = null;
+        audio.ontimeupdate = null;
+        audio.onended = null;
+        audio.onerror = null;
         audio.pause();
         audio.src = '';
-        audioRef.current = null;
       }
+      audioRef.current = null;
       cancelAnimationFrame(rafRef.current);
     };
-  }, [playbackUrl]);
+  }, [playbackUrl, autoPlay, initialDuration, parsedDefaultSpeed, isViewOnce, isOwn, onViewOnceComplete, retryCount]);
 
   const toggle = useCallback(() => {
     const audio = audioRef.current;
