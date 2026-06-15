@@ -148,7 +148,9 @@ const AudioPlayer = ({
   // Create / update audio element
   useEffect(() => {
     if (!playbackUrl) return;
-    const audio = new Audio(playbackUrl);
+    const audio = new Audio();
+    audio.crossOrigin = "anonymous"; // Fix CORS - allow loading from Cloudinary CDN
+    audio.src = playbackUrl;
     audio.preload = 'metadata';
     audio.playbackRate = parsedDefaultSpeed;
     audioRef.current = audio;
