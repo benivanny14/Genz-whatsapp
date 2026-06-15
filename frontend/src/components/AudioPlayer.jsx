@@ -59,6 +59,46 @@ const AudioPlayer = ({
   const [retryCount, setRetryCount] = useState(0);
   const { token } = useAuth();
 
+  // Fix Cloudinary audio URLs: convert video/upload to video/upload/v1 and ensure proper format
+  const fixCloudinaryAudioUrl = useCallback((url) => {
+    if (!url || !url.includes('cloudinary.com')) return url;
+    
+    try {
+      const urlObj = new URL(url);
+      const pathParts = urlObj.pathname.split('/');
+      
+      // Check if this is an audio file with wrong resource type
+      const audioExtensions = ['.wav', '.mp3', '.webm', '.ogg', '.m4a', '.aac'];
+      const hasAudioExt = audioExtensions.some(ext => url.toLowerCase().includes(ext));
+      
+      if (hasAudioExt && pathParts.includes('video')) {
+        // Audio files uploaded as video - need to fix the URL
+        // Replace /video/upload/ with /video/upload/v1/ if not present
+        const versionIndex = pathParts.indexOf('upload') + 1;
+        if (versionIndex < pathParts.length && !pathParts[versionIndex].startsWith('v')) {
+          pathParts.splice(versionIndex, 0, 'v1');
+        }
+        
+        urlObj.pathname = pathParts.join('/');
+        
+        // Add format parameter if missing
+        if (!url.includes('format=')) {
+          const ext = audioExtensions.find(ext => url.toLowerCase().includes(ext));
+          if (ext) {
+            const format = ext.replace('.', '');
+            urlObj.searchParams.set('format', format);
+          }
+        }
+      }
+      
+      console.log('[AudioPlayer] Fixed Cloudinary URL:', urlObj.toString().substring(0, 100));
+      return urlObj.toString();
+    } catch (e) {
+      console.warn('[AudioPlayer] Failed to fix Cloudinary URL:', e);
+      return url;
+    }
+  }, []);
+
   useEffect(() => {
     let active = true;
     const fetchPlaybackUrl = async () => {
@@ -68,7 +108,8 @@ const AudioPlayer = ({
         // First, try to get a signed URL for better security
         const signedUrl = await ensureSignedMediaUrl(audioUrl, token);
         if (active && signedUrl) {
-          const resolved = resolveMediaPlaybackUrl(signedUrl);
+          const fixedUrl = fixCloudinaryAudioUrl(signedUrl);
+          const resolved = resolveMediaPlaybackUrl(fixedUrl);
           setPlaybackUrl(resolved);
           console.log('[AudioPlayer] Using signed URL:', resolved?.substring(0, 100));
           return;
@@ -80,14 +121,15 @@ const AudioPlayer = ({
       // Fallback: use direct URL with proper resolution
       if (active) {
         try {
-          const resolved = resolveMediaPlaybackUrl(audioUrl);
+          const fixedUrl = fixCloudinaryAudioUrl(audioUrl);
+          const resolved = resolveMediaPlaybackUrl(fixedUrl);
           setPlaybackUrl(resolved);
           console.log('[AudioPlayer] Using direct URL:', resolved?.substring(0, 100));
         } catch (resolveError) {
           console.error('[AudioPlayer] Failed to resolve URL:', resolveError);
           if (active) {
-            // Last resort: use the raw URL
-            setPlaybackUrl(audioUrl);
+            // Last resort: use the raw URL (also fixed)
+            setPlaybackUrl(fixCloudinaryAudioUrl(audioUrl));
           }
         }
       }
@@ -95,7 +137,7 @@ const AudioPlayer = ({
     
     fetchPlaybackUrl();
     return () => { active = false; };
-  }, [audioUrl, token, retryCount]);
+  }, [audioUrl, token, retryCount, fixCloudinaryAudioUrl]);
 
   // Create / update audio element
   useEffect(() => {

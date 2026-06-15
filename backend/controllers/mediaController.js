@@ -156,6 +156,19 @@ exports.uploadFile = async (req, res) => {
       uploadResult = await uploadToMediaStorage(req.file.path, fileType, {
         folder: `genz-whatsapp/${fileType}`
       });
+      
+      // Fix audio URLs: ensure they have proper format parameter
+      if (uploadResult && uploadResult.url) {
+        const audioMimeTypes = ['audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg', 'audio/m4a', 'audio/aac'];
+        if (audioMimeTypes.includes(req.file.mimetype)) {
+          // Add format parameter to audio URL if missing
+          if (!uploadResult.url.includes('format=')) {
+            const format = req.file.originalname.split('.').pop() || 'wav';
+            uploadResult.url += (uploadResult.url.includes('?') ? '&' : '?') + `format=${format}`;
+          }
+        }
+      }
+      
       fs.promises.unlink(req.file.path).catch(() => {});
     }
 
