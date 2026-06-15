@@ -149,6 +149,9 @@ const AudioPlayer = ({
   useEffect(() => {
     if (!playbackUrl) return;
     
+    let audio;
+    let blobUrlToRevoke = null;
+    
     // For Cloudinary URLs, fetch as blob to avoid CORS issues
     const createAudioElement = async () => {
       try {
@@ -158,16 +161,14 @@ const AudioPlayer = ({
           if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
           const blob = await response.blob();
           const blobUrl = URL.createObjectURL(blob);
+          blobUrlToRevoke = blobUrl;
           
-          const audio = new Audio(blobUrl);
+          audio = new Audio(blobUrl);
           audio.preload = 'metadata';
           audio.playbackRate = parsedDefaultSpeed;
           audioRef.current = audio;
-          
-          // Store blob URL for cleanup
-          audio._blobUrl = blobUrl;
         } else {
-          const audio = new Audio(playbackUrl);
+          audio = new Audio(playbackUrl);
           audio.crossOrigin = "anonymous";
           audio.preload = 'metadata';
           audio.playbackRate = parsedDefaultSpeed;
@@ -176,7 +177,7 @@ const AudioPlayer = ({
       } catch (error) {
         console.error('[AudioPlayer] Failed to create audio element:', error);
         // Fallback to direct URL
-        const audio = new Audio(playbackUrl);
+        audio = new Audio(playbackUrl);
         audio.crossOrigin = "anonymous";
         audio.preload = 'metadata';
         audio.playbackRate = parsedDefaultSpeed;
@@ -184,7 +185,9 @@ const AudioPlayer = ({
       }
     };
     
-    createAudioElement();
+    await createAudioElement();
+    
+    if (!audio) return;
 
     audio.onloadedmetadata = () => {
       const dur = audio.duration || initialDuration || 0;
@@ -218,11 +221,13 @@ const AudioPlayer = ({
     };
 
     return () => {
-      audio.pause();
-      audio.src = '';
+      if (audio) {
+        audio.pause();
+        audio.src = '';
+      }
       // Clean up blob URL if exists
-      if (audio._blobUrl) {
-        URL.revokeObjectURL(audio._blobUrl);
+      if (blobUrlToRevoke) {
+        URL.revokeObjectURL(blobUrlToRevoke);
       }
       cancelAnimationFrame(rafRef.current);
     };
