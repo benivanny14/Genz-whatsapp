@@ -65,38 +65,47 @@ const AudioPlayer = ({
     
     try {
       // Key fix: Convert .wav to .mp3 for better browser support
-      // Cloudinary will auto-convert the format using f_mp3 transformation
-      let fixedUrl = url;
+      // Cloudinary will auto-convert the format using f_mp3,q_auto transformation
+      // This fixes the issue where browsers can't play .wav files directly from Cloudinary
       
       // Check if this is a .wav file that needs conversion
       if (url.toLowerCase().includes('.wav')) {
-        // Replace .wav with .mp3 and add f_mp3 format transformation
-        fixedUrl = url
-          .replace('/video/upload/', '/video/upload/f_mp3/')
-          .replace('/raw/upload/', '/raw/upload/f_mp3/')
-          .replace('.wav', '.mp3')
-          .replace('?format=wav', '')
-          .replace('&format=wav', '');
+        // Step 1: Add f_mp3,q_auto transformation after /upload/
+        let fixedUrl = url
+          .replace('/video/upload/', '/video/upload/f_mp3,q_auto/')
+          .replace('/raw/upload/', '/raw/upload/f_mp3,q_auto/')
+          .replace('/image/upload/', '/image/upload/f_mp3,q_auto/');
+        
+        // Step 2: Change .wav extension to .mp3 (handles query params too)
+        fixedUrl = fixedUrl.replace(/\.wav(\?.*)?$/, '.mp3$1');
+        
+        // Step 3: Remove any old format=wav query params
+        fixedUrl = fixedUrl
+          .replace(/[?&]format=wav/gi, '')
+          .replace(/[?&]format=mp3/gi, '&format=mp3');
+        
+        // Step 4: Clean up any double ?? from replacements
+        fixedUrl = fixedUrl.replace(/\?&/, '?');
         
         console.log('[AudioPlayer] Converted .wav to .mp3:', fixedUrl.substring(0, 120));
-      } else {
-        // For other formats, just ensure proper URL structure
-        const urlObj = new URL(fixedUrl);
-        
-        // Ensure version is present in path
-        const pathParts = urlObj.pathname.split('/');
-        const uploadIndex = pathParts.indexOf('upload');
-        if (uploadIndex !== -1) {
-          const versionIndex = uploadIndex + 1;
-          if (versionIndex < pathParts.length && !pathParts[versionIndex].startsWith('v')) {
-            pathParts.splice(versionIndex, 0, 'v1');
-            urlObj.pathname = pathParts.join('/');
-          }
-        }
-        
-        fixedUrl = urlObj.toString();
+        return fixedUrl;
       }
       
+      // For other formats (already .mp3, .webm, etc.), just ensure proper URL structure
+      const urlObj = new URL(url);
+      
+      // Ensure version is present in path
+      const pathParts = urlObj.pathname.split('/');
+      const uploadIndex = pathParts.indexOf('upload');
+      if (uploadIndex !== -1) {
+        const versionIndex = uploadIndex + 1;
+        if (versionIndex < pathParts.length && !pathParts[versionIndex].startsWith('v')) {
+          pathParts.splice(versionIndex, 0, 'v1');
+          urlObj.pathname = pathParts.join('/');
+        }
+      }
+      
+      const fixedUrl = urlObj.toString();
       console.log('[AudioPlayer] Fixed Cloudinary URL:', fixedUrl.substring(0, 120));
       return fixedUrl;
     } catch (e) {
