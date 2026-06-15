@@ -119,7 +119,12 @@ const AudioPlayer = ({
 
   // Create / update audio element
   useEffect(() => {
-    if (!playbackUrl) return;
+    if (!playbackUrl) {
+      console.warn('[AudioPlayer] No playback URL available');
+      return;
+    }
+    
+    console.log('[AudioPlayer] Creating audio element with src:', playbackUrl);
     
     // Create audio element directly without fetch
     const audio = new Audio();
@@ -129,11 +134,15 @@ const AudioPlayer = ({
     audio.src = playbackUrl;
     audioRef.current = audio;
 
+    console.log('[AudioPlayer] Audio src set immediately to:', audio.src);
+    console.log('[AudioPlayer] Audio element created, readyState:', audio.readyState);
+
     audio.onloadedmetadata = () => {
       const dur = audio.duration || initialDuration || 0;
       setDuration(dur);
       setLoaded(true);
       setError(false);
+      console.log('[AudioPlayer] Audio loaded, duration:', dur);
 
       if (autoPlay) {
         audio.play().then(() => setIsPlaying(true)).catch(e => console.warn('Autoplay blocked:', e));
@@ -150,6 +159,10 @@ const AudioPlayer = ({
     };
     audio.onerror = (e) => {
       console.error('[AudioPlayer] Audio playback error:', e);
+      console.error('[AudioPlayer] Current src:', audio.src);
+      console.error('[AudioPlayer] Network state:', audio.networkState);
+      console.error('[AudioPlayer] Ready state:', audio.readyState);
+      console.error('[AudioPlayer] Playback URL state:', playbackUrl);
       // Log more details about the error
       if (audio.error) {
         console.error('[AudioPlayer] Error code:', audio.error.code, 'Message:', audio.error.message);
@@ -165,11 +178,14 @@ const AudioPlayer = ({
     };
 
     return () => {
-      audio.pause();
-      audio.src = '';
+      if (audio) {
+        audio.pause();
+        audio.src = '';
+        audioRef.current = null;
+      }
       cancelAnimationFrame(rafRef.current);
     };
-  }, [playbackUrl, autoPlay, initialDuration, parsedDefaultSpeed, isViewOnce, isOwn, onViewOnceComplete, retryCount]);
+  }, [playbackUrl]);
 
   const toggle = useCallback(() => {
     const audio = audioRef.current;
