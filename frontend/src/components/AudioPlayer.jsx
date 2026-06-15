@@ -59,42 +59,44 @@ const AudioPlayer = ({
   const [retryCount, setRetryCount] = useState(0);
   const { token } = useAuth();
 
-  // Fix Cloudinary audio URLs: add format parameter and ensure proper resource type
+  // Fix Cloudinary audio URLs: convert .wav to .mp3 for better browser compatibility
   const fixCloudinaryAudioUrl = useCallback((url) => {
     if (!url || !url.includes('cloudinary.com')) return url;
     
     try {
-      // Check if this is an audio file
-      const audioExtensions = ['.wav', '.mp3', '.webm', '.ogg', '.m4a', '.aac'];
-      let format = 'wav'; // default
-      for (const ext of audioExtensions) {
-        if (url.toLowerCase().includes(ext)) {
-          format = ext.replace('.', '');
-          break;
+      // Key fix: Convert .wav to .mp3 for better browser support
+      // Cloudinary will auto-convert the format using f_mp3 transformation
+      let fixedUrl = url;
+      
+      // Check if this is a .wav file that needs conversion
+      if (url.toLowerCase().includes('.wav')) {
+        // Replace .wav with .mp3 and add f_mp3 format transformation
+        fixedUrl = url
+          .replace('/video/upload/', '/video/upload/f_mp3/')
+          .replace('/raw/upload/', '/raw/upload/f_mp3/')
+          .replace('.wav', '.mp3')
+          .replace('?format=wav', '')
+          .replace('&format=wav', '');
+        
+        console.log('[AudioPlayer] Converted .wav to .mp3:', fixedUrl.substring(0, 120));
+      } else {
+        // For other formats, just ensure proper URL structure
+        const urlObj = new URL(fixedUrl);
+        
+        // Ensure version is present in path
+        const pathParts = urlObj.pathname.split('/');
+        const uploadIndex = pathParts.indexOf('upload');
+        if (uploadIndex !== -1) {
+          const versionIndex = uploadIndex + 1;
+          if (versionIndex < pathParts.length && !pathParts[versionIndex].startsWith('v')) {
+            pathParts.splice(versionIndex, 0, 'v1');
+            urlObj.pathname = pathParts.join('/');
+          }
         }
+        
+        fixedUrl = urlObj.toString();
       }
       
-      // Parse URL and add format parameter if missing
-      const urlObj = new URL(url);
-      
-      // Always add format parameter for audio files
-      if (!urlObj.searchParams.has('format')) {
-        urlObj.searchParams.set('format', format);
-      }
-      
-      // Ensure version is present in path
-      const pathParts = urlObj.pathname.split('/');
-      const uploadIndex = pathParts.indexOf('upload');
-      if (uploadIndex !== -1) {
-        const versionIndex = uploadIndex + 1;
-        if (versionIndex < pathParts.length && !pathParts[versionIndex].startsWith('v')) {
-          // Insert v1 before the timestamp
-          pathParts.splice(versionIndex, 0, 'v1');
-          urlObj.pathname = pathParts.join('/');
-        }
-      }
-      
-      const fixedUrl = urlObj.toString();
       console.log('[AudioPlayer] Fixed Cloudinary URL:', fixedUrl.substring(0, 120));
       return fixedUrl;
     } catch (e) {
@@ -172,10 +174,13 @@ const AudioPlayer = ({
     };
     audio.onerror = (e) => {
       console.error('[AudioPlayer] Audio playback error:', e);
-      setError(true);
-      // Retry once if failed
-      if (retryCount < 1) {
+      // Limit retries to prevent infinite loops
+      if (retryCount < 2) {
         setRetryCount(prev => prev + 1);
+        console.log(`[AudioPlayer] Retry ${retryCount + 1}/2`);
+      } else {
+        setError(true);
+        console.log('[AudioPlayer] Max retries reached, showing error');
       }
     };
 
