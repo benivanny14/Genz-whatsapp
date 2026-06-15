@@ -59,31 +59,44 @@ const AudioPlayer = ({
   const [retryCount, setRetryCount] = useState(0);
   const { token } = useAuth();
 
-  // Fix Cloudinary audio URLs: convert .wav to .mp3 and remove signed URL params
+  // Fix Cloudinary audio URLs: convert .wav to .mp3 and ensure proper format
   const fixCloudinaryAudioUrl = useCallback((url) => {
     if (!url || !url.includes('cloudinary.com')) return url;
     
     try {
-      // Step 0: Remove ALL query parameters (signed URLs get truncated and break audio)
-      // This is the key fix - signed URLs have ?signature=... which gets cut off
-      const baseUrl = url.split('?')[0];
+      // Step 0: Remove query parameters but keep the full URL path
+      // Cloudinary signed URLs have ?__signature__=...&__expires__=... which we strip
+      // IMPORTANT: We must keep the full public_id and extension intact
+      const urlWithoutParams = url.split('?')[0];
       
-      // Step 1: Check if this is a .wav file that needs conversion
-      if (baseUrl.toLowerCase().includes('.wav')) {
-        // Add f_mp3,q_auto transformation and change extension
-        let fixedUrl = baseUrl
+      // Step 1: Ensure the URL has proper audio format transformation
+      // Add f_mp3,q_auto for audio files to ensure compatibility
+      let fixedUrl = urlWithoutParams;
+      
+      if (urlWithoutParams.toLowerCase().includes('.wav') || 
+          urlWithoutParams.toLowerCase().includes('.webm') ||
+          urlWithoutParams.toLowerCase().includes('.ogg') ||
+          urlWithoutParams.toLowerCase().includes('.m4a')) {
+        // Add audio transformation and convert to mp3
+        fixedUrl = urlWithoutParams
           .replace('/video/upload/', '/video/upload/f_mp3,q_auto/')
           .replace('/raw/upload/', '/raw/upload/f_mp3,q_auto/')
           .replace('/image/upload/', '/image/upload/f_mp3,q_auto/')
-          .replace(/\.wav$/, '.mp3');
-        
-        console.log('[AudioPlayer] Converted .wav to .mp3:', fixedUrl);
-        return fixedUrl;
+          .replace(/\.wav$/i, '.mp3')
+          .replace(/\.webm$/i, '.mp3')
+          .replace(/\.ogg$/i, '.mp3')
+          .replace(/\.m4a$/i, '.mp3');
+      } else if (urlWithoutParams.toLowerCase().includes('.mp3')) {
+        // For .mp3 files, ensure proper transformation
+        if (!urlWithoutParams.includes('f_mp3') && !urlWithoutParams.includes('q_auto')) {
+          fixedUrl = urlWithoutParams
+            .replace('/video/upload/', '/video/upload/f_mp3,q_auto/')
+            .replace('/raw/upload/', '/raw/upload/f_mp3,q_auto/');
+        }
       }
       
-      // For other formats, just return the clean URL without query params
-      console.log('[AudioPlayer] Cleaned URL:', baseUrl);
-      return baseUrl;
+      console.log('[AudioPlayer] Fixed Cloudinary URL:', fixedUrl);
+      return fixedUrl;
     } catch (e) {
       console.warn('[AudioPlayer] Failed to fix Cloudinary URL:', e);
       return url;
@@ -102,7 +115,8 @@ const AudioPlayer = ({
           const fixedUrl = fixCloudinaryAudioUrl(signedUrl);
           const resolved = resolveMediaPlaybackUrl(fixedUrl);
           setPlaybackUrl(resolved);
-          console.log('[AudioPlayer] Using signed URL:', resolved?.substring(0, 100));
+          console.log('[AudioPlayer] Using signed URL (full):', resolved);
+          console.log('[AudioPlayer] URL length:', resolved?.length || 0);
           return;
         }
       } catch (e) {
@@ -115,7 +129,8 @@ const AudioPlayer = ({
           const fixedUrl = fixCloudinaryAudioUrl(audioUrl);
           const resolved = resolveMediaPlaybackUrl(fixedUrl);
           setPlaybackUrl(resolved);
-          console.log('[AudioPlayer] Using direct URL:', resolved?.substring(0, 100));
+          console.log('[AudioPlayer] Using direct URL (full):', resolved);
+          console.log('[AudioPlayer] URL length:', resolved?.length || 0);
         } catch (resolveError) {
           console.error('[AudioPlayer] Failed to resolve URL:', resolveError);
           if (active) {
