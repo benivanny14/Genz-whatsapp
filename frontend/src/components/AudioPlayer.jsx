@@ -59,44 +59,18 @@ const AudioPlayer = ({
   const [retryCount, setRetryCount] = useState(0);
   const { token } = useAuth();
 
-  // Fix Cloudinary audio URLs: convert .wav to .mp3 and ensure proper format
+  // Fix Cloudinary audio URLs: ensure proper format and full public_id
   const fixCloudinaryAudioUrl = useCallback((url) => {
     if (!url || !url.includes('cloudinary.com')) return url;
     
     try {
-      // Step 0: Remove query parameters but keep the full URL path
-      // Cloudinary signed URLs have ?__signature__=...&__expires__=... which we strip
-      // IMPORTANT: We must keep the full public_id and extension intact
+      // Remove query parameters but keep the full URL path
       const urlWithoutParams = url.split('?')[0];
       
-      // Step 1: Ensure the URL has proper audio format transformation
-      // Add f_mp3,q_auto for audio files to ensure compatibility
-      let fixedUrl = urlWithoutParams;
+      console.log('[AudioPlayer] Original URL:', urlWithoutParams);
+      console.log('[AudioPlayer] URL length:', urlWithoutParams.length);
       
-      if (urlWithoutParams.toLowerCase().includes('.wav') || 
-          urlWithoutParams.toLowerCase().includes('.webm') ||
-          urlWithoutParams.toLowerCase().includes('.ogg') ||
-          urlWithoutParams.toLowerCase().includes('.m4a')) {
-        // Add audio transformation and convert to mp3
-        fixedUrl = urlWithoutParams
-          .replace('/video/upload/', '/video/upload/f_mp3,q_auto/')
-          .replace('/raw/upload/', '/raw/upload/f_mp3,q_auto/')
-          .replace('/image/upload/', '/image/upload/f_mp3,q_auto/')
-          .replace(/\.wav$/i, '.mp3')
-          .replace(/\.webm$/i, '.mp3')
-          .replace(/\.ogg$/i, '.mp3')
-          .replace(/\.m4a$/i, '.mp3');
-      } else if (urlWithoutParams.toLowerCase().includes('.mp3')) {
-        // For .mp3 files, ensure proper transformation
-        if (!urlWithoutParams.includes('f_mp3') && !urlWithoutParams.includes('q_auto')) {
-          fixedUrl = urlWithoutParams
-            .replace('/video/upload/', '/video/upload/f_mp3,q_auto/')
-            .replace('/raw/upload/', '/raw/upload/f_mp3,q_auto/');
-        }
-      }
-      
-      console.log('[AudioPlayer] Fixed Cloudinary URL:', fixedUrl);
-      return fixedUrl;
+      return urlWithoutParams;
     } catch (e) {
       console.warn('[AudioPlayer] Failed to fix Cloudinary URL:', e);
       return url;
@@ -116,7 +90,6 @@ const AudioPlayer = ({
           const resolved = resolveMediaPlaybackUrl(fixedUrl);
           setPlaybackUrl(resolved);
           console.log('[AudioPlayer] Using signed URL (full):', resolved);
-          console.log('[AudioPlayer] URL length:', resolved?.length || 0);
           return;
         }
       } catch (e) {
@@ -130,7 +103,6 @@ const AudioPlayer = ({
           const resolved = resolveMediaPlaybackUrl(fixedUrl);
           setPlaybackUrl(resolved);
           console.log('[AudioPlayer] Using direct URL (full):', resolved);
-          console.log('[AudioPlayer] URL length:', resolved?.length || 0);
         } catch (resolveError) {
           console.error('[AudioPlayer] Failed to resolve URL:', resolveError);
           if (active) {
@@ -149,89 +121,55 @@ const AudioPlayer = ({
   useEffect(() => {
     if (!playbackUrl) return;
     
-    let audio;
-    let blobUrlToRevoke = null;
-    
-    // For Cloudinary URLs, fetch as blob to avoid CORS issues
-    const createAudioElement = async () => {
-      try {
-        if (playbackUrl.includes('cloudinary.com')) {
-          // Fetch audio as blob to bypass CORS
-          const response = await fetch(playbackUrl);
-          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-          const blob = await response.blob();
-          const blobUrl = URL.createObjectURL(blob);
-          blobUrlToRevoke = blobUrl;
-          
-          audio = new Audio(blobUrl);
-          audio.preload = 'metadata';
-          audio.playbackRate = parsedDefaultSpeed;
-          audioRef.current = audio;
-        } else {
-          audio = new Audio(playbackUrl);
-          audio.crossOrigin = "anonymous";
-          audio.preload = 'metadata';
-          audio.playbackRate = parsedDefaultSpeed;
-          audioRef.current = audio;
-        }
-      } catch (error) {
-        console.error('[AudioPlayer] Failed to create audio element:', error);
-        // Fallback to direct URL
-        audio = new Audio(playbackUrl);
-        audio.crossOrigin = "anonymous";
-        audio.preload = 'metadata';
-        audio.playbackRate = parsedDefaultSpeed;
-        audioRef.current = audio;
+    // Create audio element directly without fetch
+    const audio = new Audio();
+    audio.crossOrigin = "anonymous"; // Allow CORS
+    audio.preload = "metadata";
+    audio.playbackRate = parsedDefaultSpeed;
+    audio.src = playbackUrl;
+    audioRef.current = audio;
+
+    audio.onloadedmetadata = () => {
+      const dur = audio.duration || initialDuration || 0;
+      setDuration(dur);
+      setLoaded(true);
+      setError(false);
+
+      if (autoPlay) {
+        audio.play().then(() => setIsPlaying(true)).catch(e => console.warn('Autoplay blocked:', e));
       }
     };
-    
-    createAudioElement().then(() => {
-      if (!audio) return;
-
-      audio.onloadedmetadata = () => {
-        const dur = audio.duration || initialDuration || 0;
-        setDuration(dur);
-        setLoaded(true);
-        setError(false);
-
-        if (autoPlay) {
-          audio.play().then(() => setIsPlaying(true)).catch(e => console.warn('Autoplay blocked:', e));
-        }
-      };
-      audio.ontimeupdate = () => setCurrentTime(audio.currentTime);
-      audio.onended = () => {
-        setIsPlaying(false);
-        setCurrentTime(0);
-        if (isViewOnce && !isOwn) {
-          setViewOnceConsumed(true);
-          onViewOnceComplete?.();
-        }
-      };
-      audio.onerror = (e) => {
-        console.error('[AudioPlayer] Audio playback error:', e);
-        // Limit retries to prevent infinite loops
-        if (retryCount < 2) {
-          setRetryCount(prev => prev + 1);
-          console.log(`[AudioPlayer] Retry ${retryCount + 1}/2`);
-        } else {
-          setError(true);
-          console.log('[AudioPlayer] Max retries reached, showing error');
-        }
-      };
-    });
+    audio.ontimeupdate = () => setCurrentTime(audio.currentTime);
+    audio.onended = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+      if (isViewOnce && !isOwn) {
+        setViewOnceConsumed(true);
+        onViewOnceComplete?.();
+      }
+    };
+    audio.onerror = (e) => {
+      console.error('[AudioPlayer] Audio playback error:', e);
+      // Log more details about the error
+      if (audio.error) {
+        console.error('[AudioPlayer] Error code:', audio.error.code, 'Message:', audio.error.message);
+      }
+      // Limit retries to prevent infinite loops
+      if (retryCount < 2) {
+        setRetryCount(prev => prev + 1);
+        console.log(`[AudioPlayer] Retry ${retryCount + 1}/2`);
+      } else {
+        setError(true);
+        console.log('[AudioPlayer] Max retries reached, showing error');
+      }
+    };
 
     return () => {
-      if (audio) {
-        audio.pause();
-        audio.src = '';
-      }
-      // Clean up blob URL if exists
-      if (blobUrlToRevoke) {
-        URL.revokeObjectURL(blobUrlToRevoke);
-      }
+      audio.pause();
+      audio.src = '';
       cancelAnimationFrame(rafRef.current);
     };
-  }, [playbackUrl, autoPlay, initialDuration, parsedDefaultSpeed, isViewOnce, isOwn, onViewOnceComplete]);
+  }, [playbackUrl, autoPlay, initialDuration, parsedDefaultSpeed, isViewOnce, isOwn, onViewOnceComplete, retryCount]);
 
   const toggle = useCallback(() => {
     const audio = audioRef.current;
