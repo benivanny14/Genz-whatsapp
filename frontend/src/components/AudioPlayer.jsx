@@ -148,12 +148,43 @@ const AudioPlayer = ({
   // Create / update audio element
   useEffect(() => {
     if (!playbackUrl) return;
-    const audio = new Audio();
-    audio.crossOrigin = "anonymous"; // Fix CORS - allow loading from Cloudinary CDN
-    audio.src = playbackUrl;
-    audio.preload = 'metadata';
-    audio.playbackRate = parsedDefaultSpeed;
-    audioRef.current = audio;
+    
+    // For Cloudinary URLs, fetch as blob to avoid CORS issues
+    const createAudioElement = async () => {
+      try {
+        if (playbackUrl.includes('cloudinary.com')) {
+          // Fetch audio as blob to bypass CORS
+          const response = await fetch(playbackUrl);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          
+          const audio = new Audio(blobUrl);
+          audio.preload = 'metadata';
+          audio.playbackRate = parsedDefaultSpeed;
+          audioRef.current = audio;
+          
+          // Store blob URL for cleanup
+          audio._blobUrl = blobUrl;
+        } else {
+          const audio = new Audio(playbackUrl);
+          audio.crossOrigin = "anonymous";
+          audio.preload = 'metadata';
+          audio.playbackRate = parsedDefaultSpeed;
+          audioRef.current = audio;
+        }
+      } catch (error) {
+        console.error('[AudioPlayer] Failed to create audio element:', error);
+        // Fallback to direct URL
+        const audio = new Audio(playbackUrl);
+        audio.crossOrigin = "anonymous";
+        audio.preload = 'metadata';
+        audio.playbackRate = parsedDefaultSpeed;
+        audioRef.current = audio;
+      }
+    };
+    
+    createAudioElement();
 
     audio.onloadedmetadata = () => {
       const dur = audio.duration || initialDuration || 0;
@@ -189,6 +220,10 @@ const AudioPlayer = ({
     return () => {
       audio.pause();
       audio.src = '';
+      // Clean up blob URL if exists
+      if (audio._blobUrl) {
+        URL.revokeObjectURL(audio._blobUrl);
+      }
       cancelAnimationFrame(rafRef.current);
     };
   }, [playbackUrl, autoPlay, initialDuration, parsedDefaultSpeed, isViewOnce, isOwn, onViewOnceComplete]);
