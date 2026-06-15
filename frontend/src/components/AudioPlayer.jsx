@@ -14,7 +14,7 @@ const WaveformBar = ({ height, filled, isPlaying, index }) => (
     className={`rounded-full transition-colors duration-150 ${filled ? 'bg-white' : 'bg-white/35'}`}
     style={{
       width: 2.5,
-      height: height,
+      height: Math.max(4, height),
       transform: isPlaying && filled ? `scaleY(${1 + Math.sin(Date.now() / 200 + index) * 0.15})` : 'scaleY(1)',
     }}
   />
@@ -56,34 +56,46 @@ const AudioPlayer = ({
   };
 
   const [playbackUrl, setPlaybackUrl] = useState('');
-  const { token } = useAuth(); // We need token from AuthContext
+  const [retryCount, setRetryCount] = useState(0);
+  const { token } = useAuth();
 
   useEffect(() => {
     let active = true;
-    const fetchSignedUrl = async () => {
+    const fetchPlaybackUrl = async () => {
+      if (!audioUrl) return;
+      
       try {
-        // Try signed URL first
+        // First, try to get a signed URL for better security
         const signedUrl = await ensureSignedMediaUrl(audioUrl, token);
-        if (active) {
+        if (active && signedUrl) {
           const resolved = resolveMediaPlaybackUrl(signedUrl);
           setPlaybackUrl(resolved);
           console.log('[AudioPlayer] Using signed URL:', resolved?.substring(0, 100));
+          return;
         }
       } catch (e) {
-        console.warn('[AudioPlayer] Signed URL failed, trying direct:', e);
-        if (active) {
-          // Fallback to direct URL
+        console.warn('[AudioPlayer] Signed URL attempt failed:', e?.message || e);
+      }
+      
+      // Fallback: use direct URL with proper resolution
+      if (active) {
+        try {
           const resolved = resolveMediaPlaybackUrl(audioUrl);
           setPlaybackUrl(resolved);
           console.log('[AudioPlayer] Using direct URL:', resolved?.substring(0, 100));
+        } catch (resolveError) {
+          console.error('[AudioPlayer] Failed to resolve URL:', resolveError);
+          if (active) {
+            // Last resort: use the raw URL
+            setPlaybackUrl(audioUrl);
+          }
         }
       }
     };
-    if (audioUrl) {
-      fetchSignedUrl();
-    }
+    
+    fetchPlaybackUrl();
     return () => { active = false; };
-  }, [audioUrl, token]);
+  }, [audioUrl, token, retryCount]);
 
   // Create / update audio element
   useEffect(() => {
@@ -94,7 +106,8 @@ const AudioPlayer = ({
     audioRef.current = audio;
 
     audio.onloadedmetadata = () => {
-      setDuration(audio.duration || initialDuration || 0);
+      const dur = audio.duration || initialDuration || 0;
+      setDuration(dur);
       setLoaded(true);
       setError(false);
 
@@ -111,7 +124,14 @@ const AudioPlayer = ({
         onViewOnceComplete?.();
       }
     };
-    audio.onerror = () => setError(true);
+    audio.onerror = (e) => {
+      console.error('[AudioPlayer] Audio playback error:', e);
+      setError(true);
+      // Retry once if failed
+      if (retryCount < 1) {
+        setRetryCount(prev => prev + 1);
+      }
+    };
 
     return () => {
       audio.pause();

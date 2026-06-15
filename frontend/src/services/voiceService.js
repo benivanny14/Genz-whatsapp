@@ -2,7 +2,10 @@ import { authFetch } from '../utils/authFetch';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
-// Upload voice note to backend
+/**
+ * Upload voice note to backend using the unified media upload endpoint
+ * This replaces the old /api/voice/upload endpoint
+ */
 export const uploadVoiceNote = async (audioBlob, metadata = {}) => {
   try {
     if (!audioBlob) {
@@ -16,12 +19,19 @@ export const uploadVoiceNote = async (audioBlob, metadata = {}) => {
     const formData = new FormData();
     formData.append('file', audioBlob, `voice-${Date.now()}.webm`);
     
-    // Add metadata
-    Object.keys(metadata).forEach(key => {
-      formData.append(key, metadata[key]);
-    });
+    // Add metadata as form fields
+    if (metadata.duration !== undefined) {
+      formData.append('duration', String(metadata.duration));
+    }
+    if (metadata.voiceEffect) {
+      formData.append('voiceEffect', metadata.voiceEffect);
+    }
+    if (metadata.fileName) {
+      formData.append('fileName', metadata.fileName);
+    }
 
-    const response = await authFetch(`${API_URL}/voice/upload`, {
+    // Use the unified media upload endpoint instead of /api/voice/upload
+    const response = await authFetch(`${API_URL}/media/upload`, {
       method: 'POST',
       body: formData,
       credentials: 'include'
@@ -34,72 +44,22 @@ export const uploadVoiceNote = async (audioBlob, metadata = {}) => {
 
     const data = await response.json();
     
-    if (!data.success) {
+    if (!data.success && !data.fileUrl) {
       throw new Error(data.message || 'Upload failed');
     }
     
-    return data;
+    return {
+      success: true,
+      fileUrl: data.fileUrl || data.url,
+      publicId: data.publicId,
+      fileName: data.fileName,
+      fileSize: data.fileSize,
+      mimeType: data.mimeType,
+      storageProvider: data.storageProvider,
+      duration: metadata.duration || 0
+    };
   } catch (error) {
     console.error('Voice note upload error:', error);
-    throw error;
-  }
-};
-
-// Get voice note by ID
-export const getVoiceNote = async (voiceNoteId) => {
-  try {
-    if (!voiceNoteId) {
-      throw new Error('Voice note ID is required');
-    }
-
-    const response = await authFetch(`${API_URL}/voice/${voiceNoteId}`, {
-      credentials: 'include'
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Failed to fetch voice note: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    
-    if (!data.success) {
-      throw new Error(data.message || 'Failed to fetch voice note');
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Get voice note error:', error);
-    throw error;
-  }
-};
-
-// Delete voice note
-export const deleteVoiceNote = async (voiceNoteId) => {
-  try {
-    if (!voiceNoteId) {
-      throw new Error('Voice note ID is required');
-    }
-
-    const response = await authFetch(`${API_URL}/voice/${voiceNoteId}`, {
-      method: 'DELETE',
-      credentials: 'include'
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Failed to delete voice note: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    
-    if (!data.success) {
-      throw new Error(data.message || 'Failed to delete voice note');
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Delete voice note error:', error);
     throw error;
   }
 };

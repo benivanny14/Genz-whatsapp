@@ -1,18 +1,47 @@
-import React, { useState, useRef, useEffect, memo } from 'react';
+import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
 import { Mic, Play, Pause, Trash2, Forward, Download, MoreVertical } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { resolveMediaPlaybackUrl } from '../utils/sanitizeMediaUrl';
+
+// Generate deterministic waveform bars based on message ID for consistency
+const generateWaveformBars = (messageId, count = 50) => {
+  const bars = [];
+  let seed = 0;
+  if (messageId) {
+    for (let i = 0; i < messageId.length; i++) {
+      seed += messageId.charCodeAt(i) * (i + 1);
+    }
+  }
+  
+  const seededRandom = () => {
+    seed = (seed * 9301 + 49297) % 233280;
+    return seed / 233280;
+  };
+  
+  for (let i = 0; i < count; i++) {
+    bars.push(Math.random() * 0.6 + 0.2);
+  }
+  
+  return bars;
+};
 
 const VoiceMessageBubble = memo(({ message, isOwn, onForward, onDelete, onDownload, onEnded }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [duration, setDuration] = useState(message.duration || 0);
   const [showMenu, setShowMenu] = useState(false);
   const audioRef = useRef(null);
   const canvasRef = useRef(null);
   const [hasPlayedOnce, setHasPlayedOnce] = useState(false);
+  const [waveformBars, setWaveformBars] = useState([]);
   const { mods } = useChat();
+  
+  // Generate waveform bars based on message ID for consistency
+  useEffect(() => {
+    const bars = generateWaveformBars(message._id || message.id);
+    setWaveformBars(bars);
+  }, [message._id, message.id]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -43,46 +72,44 @@ const VoiceMessageBubble = memo(({ message, isOwn, onForward, onDelete, onDownlo
   }, [mods?.voiceAutoPlay, onEnded]);
 
   // Draw waveform visualization
+  const drawWaveform = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    const barCount = waveformBars.length || 50;
+    const barWidth = width / barCount;
+    const progress = duration > 0 ? currentTime / duration : 0;
+
+    ctx.clearRect(0, 0, width, height);
+
+    waveformBars.forEach((barHeightFactor, index) => {
+      const x = index * barWidth;
+      const barHeight = barHeightFactor * height * 0.8;
+      const y = (height - barHeight) / 2;
+
+      // Check if this bar should be highlighted based on progress
+      const barProgress = index / barCount;
+      const isPlayed = barProgress <= progress;
+
+      ctx.fillStyle = isPlayed
+        ? (isOwn ? 'rgba(255, 255, 255, 0.9)' : 'rgba(37, 211, 102, 0.9)')
+        : (isOwn ? 'rgba(255, 255, 255, 0.3)' : 'rgba(37, 211, 102, 0.3)');
+
+      ctx.beginPath();
+      ctx.roundRect(x + 1, y, barWidth - 2, barHeight, 2);
+      ctx.fill();
+    });
+  }, [waveformBars, currentTime, duration, isOwn]);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     const audio = audioRef.current;
     if (!canvas || !audio) return;
 
-    const ctx = canvas.getContext('2d');
-    const width = canvas.width;
-    const height = canvas.height;
-
-    // Generate random waveform data (in production, this would be from actual audio analysis)
-    const barCount = 50;
-    const bars = [];
-    for (let i = 0; i < barCount; i++) {
-      bars.push(Math.random() * 0.6 + 0.2);
-    }
-
-    const drawWaveform = () => {
-      ctx.clearRect(0, 0, width, height);
-      const barWidth = width / barCount;
-      const progress = duration > 0 ? currentTime / duration : 0;
-
-      bars.forEach((height, index) => {
-        const x = index * barWidth;
-        const barHeight = height * height * 0.8;
-        const y = (height - barHeight) / 2;
-
-        // Check if this bar should be highlighted based on progress
-        const barProgress = index / barCount;
-        const isPlayed = barProgress <= progress;
-
-        ctx.fillStyle = isPlayed
-          ? (isOwn ? 'rgba(255, 255, 255, 0.9)' : 'rgba(37, 211, 102, 0.9)')
-          : (isOwn ? 'rgba(255, 255, 255, 0.3)' : 'rgba(37, 211, 102, 0.3)');
-
-        ctx.beginPath();
-        ctx.roundRect(x + 1, y, barWidth - 2, barHeight, 2);
-        ctx.fill();
-      });
-    };
-
+    // Initial draw
     drawWaveform();
 
     // Redraw on time update
@@ -95,7 +122,7 @@ const VoiceMessageBubble = memo(({ message, isOwn, onForward, onDelete, onDownlo
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
     };
-  }, [currentTime, duration, isOwn]);
+  }, [drawWaveform]);
 
   const togglePlay = () => {
     const audio = audioRef.current;
