@@ -76,6 +76,7 @@ frontend/.env
 frontend/.env.production
 node_modules
 uploads
+scripts/render-env-export.txt
 
 Microsoft/
 window_dump.xml
