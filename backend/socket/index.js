@@ -705,21 +705,13 @@ const setupSocket = (io) => {
           calleeId: calleeId || targetUserId
         });
       }
-      socket.to(conversationId).emit('call:incoming', {
-        callerId: socket.userId,
-        conversationId,
-        callType
-      });
     });
 
     socket.on('call_user', (data = {}) => {
       const conversationId = data.conversationId || data.chatId;
       if (conversationId) {
-        socket.to(conversationId).emit('call:incoming', {
-          ...data,
-          callerId: socket.userId,
-          conversationId
-        });
+        // Only logging, rely on webrtc:offer for actual incoming call signal
+        console.log(`[Call] User ${socket.userId} initiating call in conversation ${conversationId}`);
       }
       socket.broadcast.emit('incoming_call_signal', {
         ...data,

@@ -117,6 +117,11 @@ const AudioPlayer = ({
     return () => { active = false; };
   }, [audioUrl, token, retryCount, fixCloudinaryAudioUrl]);
 
+  const onViewOnceCompleteRef = useRef(onViewOnceComplete);
+  useEffect(() => {
+    onViewOnceCompleteRef.current = onViewOnceComplete;
+  }, [onViewOnceComplete]);
+
   // Create / update audio element
   useEffect(() => {
     if (!playbackUrl) {
@@ -161,7 +166,7 @@ const AudioPlayer = ({
       setCurrentTime(0);
       if (isViewOnce && !isOwn) {
         setViewOnceConsumed(true);
-        onViewOnceComplete?.();
+        onViewOnceCompleteRef.current?.();
       }
     };
     audio.onerror = (e) => {
@@ -199,7 +204,7 @@ const AudioPlayer = ({
       audioRef.current = null;
       cancelAnimationFrame(rafRef.current);
     };
-  }, [playbackUrl, autoPlay, initialDuration, parsedDefaultSpeed, isViewOnce, isOwn, onViewOnceComplete, retryCount]);
+  }, [playbackUrl, autoPlay, initialDuration, parsedDefaultSpeed, isViewOnce, isOwn, retryCount]);
 
   const toggle = useCallback(() => {
     const audio = audioRef.current;
