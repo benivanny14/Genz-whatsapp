@@ -171,16 +171,7 @@ const setupSocket = (io) => {
   }
   io[SOCKET_SETUP_FLAG] = true;
 
-  // Clean up expired deduplication entries every minute
-  const deduplicationCleanupInterval = setInterval(() => {
-    const now = Date.now();
-    for (const [key, timestamp] of messageDeduplication.entries()) {
-      if (now - timestamp > MESSAGE_DEDUP_TTL) {
-        messageDeduplication.delete(key);
-      }
-    }
-  }, 60000);
-  deduplicationCleanupInterval.unref?.();
+
 
   io.on('connection', (socket) => {
     console.log('User connected:', socket.id);

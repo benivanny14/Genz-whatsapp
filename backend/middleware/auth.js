@@ -92,24 +92,8 @@ const protect = async (req, res, next) => {
       }
     }
 
-    const allowDeviceFallback = process.env.NODE_ENV !== 'production' && process.env.ALLOW_ANONYMOUS_DEVICE_AUTH !== 'false';
-    const deviceId = req.headers['x-device-id'] || req.body.deviceId || req.query.deviceId || DEFAULT_DEVICE_ID;
-
-    if (!allowDeviceFallback || !deviceId) {
-      console.error('[Auth] No authentication provided and device fallback disabled:', {
-        path: req.path,
-        allowDeviceFallback,
-        hasDeviceId: !!deviceId
-      });
-      return res.status(401).json({ success: false, message: 'Authentication required' });
-    }
-
-    console.warn('[Auth] ⚠️ Device fallback auth used (dev only):', { deviceId, path: req.path });
-    const user = await createOrFindDeviceUser(String(deviceId));
-    req.user = user;
-    req.deviceId = deviceId;
-    req.authMode = 'device';
-    return next();
+    console.error('[Auth] No token provided:', { path: req.path });
+    return res.status(401).json({ success: false, message: 'Authentication required' });
   } catch (error) {
     console.error('[Auth] Middleware error:', {
       error: error.message,

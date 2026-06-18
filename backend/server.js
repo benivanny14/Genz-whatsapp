@@ -1,4 +1,13 @@
 require('dotenv').config();
+
+// Global error handlers to prevent server crashes
+process.on('uncaughtException', (err) => {
+  console.error('FATAL UNCAUGHT EXCEPTION:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('UNHANDLED REJECTION:', reason);
+});
+
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -876,6 +885,7 @@ const gracefulShutdown = async (signal) => {
 
   if (scheduledMessageInterval) clearInterval(scheduledMessageInterval);
   if (paymentTimeoutInterval) clearInterval(paymentTimeoutInterval);
+  if (expiredMessageCleanupInterval) clearInterval(expiredMessageCleanupInterval);
   stopExpiryChecker();
 
   await new Promise((resolve) => {
@@ -963,6 +973,10 @@ const stopBackgroundServices = () => {
   if (paymentTimeoutInterval) {
     clearInterval(paymentTimeoutInterval);
     paymentTimeoutInterval = null;
+  }
+  if (expiredMessageCleanupInterval) {
+    clearInterval(expiredMessageCleanupInterval);
+    expiredMessageCleanupInterval = null;
   }
   stopExpiryChecker();
 };

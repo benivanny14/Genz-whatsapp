@@ -355,10 +355,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const chatAreaClass = 'bg-[#0b141a]'; // WhatsApp Web dark chat area background
   useEffect(() => {
     return () => {
-      if (audioTimerRef.current) {
-        clearInterval(audioTimerRef.current);
-        audioTimerRef.current = null;
-      }
+      if (audioTimerRef.current) clearInterval(audioTimerRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (videoTimerRef.current) clearInterval(videoTimerRef.current);
+      if (liveLocationIntervalRef.current) clearInterval(liveLocationIntervalRef.current);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     };
   }, []);
 
