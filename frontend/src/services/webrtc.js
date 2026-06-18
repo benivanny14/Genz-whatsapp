@@ -150,19 +150,23 @@ class WebRTCService {
       }
     };
 
+    let isNegotiating = false;
+
     // Handle signaling state
     pc.onsignalingstatechange = () => {
       console.log('[WebRTC] Signaling state:', pc.signalingState);
+      if (pc.signalingState === 'stable') {
+        isNegotiating = false;
+      }
     };
 
     pc.onnegotiationneeded = async () => {
+      if (isNegotiating || pc.signalingState !== 'stable') return;
+      isNegotiating = true;
       try {
         console.log('[WebRTC] Negotiation needed, creating new offer...');
-        const offerOptions = {
-          offerToReceiveAudio: true,
-          offerToReceiveVideo: this.callType === 'video'
-        };
-        const offer = await pc.createOffer(offerOptions);
+        // Do not force offerOptions here; it causes m-line order mismatch during renegotiation
+        const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         if (this.socket && this.targetUserId) {
           this.socket.emit('webrtc:offer', { 
@@ -173,6 +177,12 @@ class WebRTCService {
         }
       } catch (err) {
         console.error('[WebRTC] onnegotiationneeded error:', err);
+      } finally {
+        if (pc.signalingState !== 'stable') {
+          // Will be cleared by onsignalingstatechange when stable
+        } else {
+          isNegotiating = false;
+        }
       }
     };
 
