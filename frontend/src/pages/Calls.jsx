@@ -34,7 +34,7 @@ const Calls = () => {
     const matchFilter =
       filter === 'all' ||
       (filter === 'missed' && c.missed) ||
-      (filter === 'voice' && c.callType === 'voice') ||
+      (filter === 'voice' && (c.callType === 'voice' || c.callType === 'audio')) ||
       (filter === 'video' && c.callType === 'video');
     return matchSearch && matchFilter;
   });

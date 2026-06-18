@@ -15,6 +15,7 @@ exports.createStatus = async (req, res) => {
 
     const status = await Status.create({
       user: userId,
+      userId: String(userId),
       type,
       content: content || '',
       mediaUrl: mediaUrl || '',

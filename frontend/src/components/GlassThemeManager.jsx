@@ -4,6 +4,8 @@ import {
   Play, Pause, RefreshCw, Sparkles, Monitor
 } from 'lucide-react';
 
+import { resolveApiBase } from '../utils/resolveApiBase';
+
 const GlassThemeManager = ({ mods, setMods, onClose }) => {
   const [videoPreviewUrl, setVideoPreviewUrl] = useState(mods?.videoBg || '');
   const [isPlaying, setIsPlaying] = useState(true);
@@ -11,7 +13,7 @@ const GlassThemeManager = ({ mods, setMods, onClose }) => {
   const [previewActive, setPreviewActive] = useState(false);
   const videoRef = useRef(null);
   const fileInputRef = useRef(null);
-  const API_URL = import.meta.env.VITE_API_URL || '';
+  const API_URL = resolveApiBase();
 
   // Apply/remove glass mode on body
   useEffect(() => {
@@ -54,7 +56,7 @@ const GlassThemeManager = ({ mods, setMods, onClose }) => {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await fetch(`${API_URL}/api/upload`, {
+      const res = await fetch(`${API_URL}/upload`, {
         method: 'POST',
         body: formData
       });

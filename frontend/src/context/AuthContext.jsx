@@ -103,6 +103,14 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
   };
 
+  const completeSession = (data) => {
+    authService.saveTokens(data);
+    setToken(data.token);
+    setUser(data.user);
+    setIsAuthenticated(true);
+    setError(null);
+  };
+
   const login = async (credentials) => {
     try {
       console.log('[AuthContext] Logging in...');
@@ -174,6 +182,7 @@ export const AuthProvider = ({ children }) => {
         login,
         register,
         logout,
+        completeSession,
         updateUser,
         clearSession
       }}

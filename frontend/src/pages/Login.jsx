@@ -3,9 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Lock, LogIn, Phone, Smartphone } from 'lucide-react';
 import toast from 'react-hot-toast';
 import OTPVerification from '../components/OTPVerification';
+import { useAuth } from '../context/AuthContext';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login, completeSession } = useAuth();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -42,7 +45,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const API_URL = resolveApiBase();
       
       // Store password temporarily for OTP verification
       localStorage.setItem('tempPassword', password);
@@ -80,28 +83,20 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const API_URL = resolveApiBase();
       
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          identifier: phoneNumber,
-          password
-        }),
-      });
+      const data = await login({ identifier: phoneNumber, password });
 
-      const data = await response.json();
+      if (data?.requiresTwoFactor) {
+        setError('Two-factor authentication required. Use OTP login or verify 2FA.');
+        return;
+      }
 
-      if (response.ok && data.success) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+      if (data?.success !== false && data?.token) {
+        toast.success('Login successful!');
         navigate('/chat', { replace: true });
-        window.location.reload();
       } else {
-        setError(data.message || 'Invalid credentials');
+        setError(data?.message || 'Invalid credentials');
         setPassword('');
       }
     } catch (err) {
@@ -119,10 +114,8 @@ const Login = () => {
 
   const handleOTPComplete = (token, user) => {
     if (token && user) {
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      completeSession({ token, user });
       navigate('/chat', { replace: true });
-      window.location.reload();
     } else {
       // Go back to credentials
       setStep('credentials');

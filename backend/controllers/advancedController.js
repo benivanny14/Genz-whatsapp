@@ -700,7 +700,8 @@ exports.createStatus = async (req, res) => {
     expiresAt.setHours(expiresAt.getHours() + 24);
 
     const status = await Status.create({
-      userId: currentUserId,
+      user: currentUserId,
+      userId: String(currentUserId),
       username: getCurrentUsername(req),
       type,
       content: content || caption || `${type} status`,
@@ -1137,7 +1138,8 @@ exports.reshareStatus = async (req, res) => {
 
     // Create new status as reshare
     const resharedStatus = await Status.create({
-      userId: currentUserId,
+      user: currentUserId,
+      userId: String(currentUserId),
       username,
       type: originalStatus.type,
       content: originalStatus.content || originalStatus.caption || 'Reshared status',

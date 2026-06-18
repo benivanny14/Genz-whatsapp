@@ -617,8 +617,7 @@ const deviceRoutes = require('./routes/deviceRoutes');
 const securityRoutes = require('./routes/securityRoutes');
 const genzModsRoutes = require('./routes/genzModsRoutes');
 const backupRoutes = require('./routes/backupRoutes');
-// Voice routes removed - using media routes instead for unified file handling
-// const voiceRoutes = require('./routes/voiceRoutes');
+const voiceRoutes = require('./routes/voiceRoutes');
 const authRoutes = require('./routes/authRoutes');
 const otpRoutes = require('./routes/otpRoutes');
 const adminRoutes = require('./routes/adminRoutes');
@@ -644,8 +643,7 @@ app.use('/api/device', deviceRoutes);
 app.use('/api/security', securityRoutes);
 app.use('/api/genz-mods', genzModsRoutes);
 app.use('/api/backup', backupRoutes);
-// Voice routes removed - all media uploads go through /api/media/upload
-// app.use('/api/voice', voiceRoutes);
+app.use('/api/voice', voiceRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/encryption', encryptionRoutes);
 app.use('/api/e2ee', e2eeRoutes);

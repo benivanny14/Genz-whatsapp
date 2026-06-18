@@ -8,6 +8,7 @@
     "dev": "nodemon server.js",
     "check": "node scripts/check-syntax.js",
     "test": "jest --runInBand",
+    "test:integration": "node scripts/integration-test.js",
     "prod": "NODE_ENV=production node server.js",
     "build": "echo 'Backend is ready for production - no build step required'"
   },

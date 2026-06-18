@@ -195,6 +195,24 @@ const messageSchema = new mongoose.Schema({
     type: { type: String, default: 'text' },
     mediaUrl: { type: String, default: null }
   },
+  isForwarded: {
+    type: Boolean,
+    default: false
+  },
+  forwardedFrom: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Message',
+    default: null
+  },
+  originalMessageId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Message',
+    default: null
+  },
+  clientMessageId: {
+    type: String,
+    default: ''
+  },
   // Anti-screenshot tracking
   allowScreenshot: {
     type: Boolean,

@@ -2,9 +2,12 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Lock, Mail, Phone, UserPlus, Smartphone } from 'lucide-react';
 import OTPVerification from '../components/OTPVerification';
+import { useAuth } from '../context/AuthContext';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
 const Register = () => {
   const navigate = useNavigate();
+  const { register, completeSession } = useAuth();
   const [form, setForm] = useState({
     phoneNumber: '',
     username: '',
@@ -60,7 +63,7 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const API_URL = resolveApiBase();
       
       // Store data temporarily for OTP verification
       localStorage.setItem('tempUsername', form.username);
@@ -101,25 +104,14 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const API_URL = resolveApiBase();
       
-      const response = await fetch(`${API_URL}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(form),
-      });
+      const data = await register(form);
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+      if (data?.success !== false && data?.token) {
         navigate('/chat', { replace: true });
-        window.location.reload();
       } else {
-        setError(data.message || 'Registration failed');
+        setError(data?.message || 'Registration failed');
       }
     } catch (err) {
       setError('Network error. Please check your connection.');
@@ -131,10 +123,8 @@ const Register = () => {
 
   const handleOTPComplete = (token, user) => {
     if (token && user) {
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      completeSession({ token, user });
       navigate('/chat', { replace: true });
-      window.location.reload();
     } else {
       // Go back to register
       setStep('register');

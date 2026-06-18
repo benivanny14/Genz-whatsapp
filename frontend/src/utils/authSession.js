@@ -1,6 +1,7 @@
 import { getDeviceHeaders } from './deviceIdentity';
+import { resolveApiBase } from './resolveApiBase';
 
-export const API_URL = import.meta.env.VITE_API_URL || '';
+export const API_URL = resolveApiBase();
 
 export const persistTokens = (data) => {
   if (data?.token) localStorage.setItem('token', data.token);
@@ -50,7 +51,7 @@ export const tryRefreshAccessToken = async () => {
     return null;
   }
   try {
-    const res = await fetch(`${API_URL}/api/auth/refresh`, {
+    const res = await fetch(`${API_URL}/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...getDeviceHeaders() },
       credentials: 'include',

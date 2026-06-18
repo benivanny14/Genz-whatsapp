@@ -6,7 +6,9 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+import { resolveApiBase } from '../utils/resolveApiBase';
+
+const API_URL = resolveApiBase();
 
 const StatusReel = ({ onClose, initialStatuses = [] }) => {
   const [reelGroups, setReelGroups] = useState([]);
@@ -36,7 +38,7 @@ const StatusReel = ({ onClose, initialStatuses = [] }) => {
       setLoading(true);
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`${API_URL}/api/advanced/status/reel`, {
+        const res = await fetch(`${API_URL}/advanced/status/reel`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {}
         });
         if (res.ok) {
@@ -132,7 +134,7 @@ const StatusReel = ({ onClose, initialStatuses = [] }) => {
     try {
       const token = localStorage.getItem('token');
       const statusId = currentId.replace('status-', '');
-      await fetch(`${API_URL}/api/advanced/status/${statusId}/like`, {
+      await fetch(`${API_URL}/advanced/status/${statusId}/like`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }
       });
@@ -145,7 +147,7 @@ const StatusReel = ({ onClose, initialStatuses = [] }) => {
     try {
       const token = localStorage.getItem('token');
       const statusId = currentId.replace('status-', '');
-      await fetch(`${API_URL}/api/advanced/status/${statusId}/save`, {
+      await fetch(`${API_URL}/advanced/status/${statusId}/save`, {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
@@ -170,7 +172,7 @@ const StatusReel = ({ onClose, initialStatuses = [] }) => {
     try {
       const token = localStorage.getItem('token');
       const statusId = currentId.replace('status-', '');
-      await fetch(`${API_URL}/api/advanced/status/${statusId}/reply`, {
+      await fetch(`${API_URL}/advanced/status/${statusId}/reply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ content: comment.trim() })
@@ -502,7 +504,7 @@ const StatusReel = ({ onClose, initialStatuses = [] }) => {
                 try {
                   const token = localStorage.getItem('token');
                   const statusId = currentId.replace('status-', '');
-                  await fetch(`${API_URL}/api/advanced/status/${statusId}`, {
+                  await fetch(`${API_URL}/advanced/status/${statusId}`, {
                     method: 'DELETE',
                     headers: token ? { Authorization: `Bearer ${token}` } : {}
                   });

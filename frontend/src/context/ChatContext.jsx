@@ -252,10 +252,11 @@ export const ChatProvider = ({ children }) => {
   const activeCallRef = useRef(null);  // keep active call state accessible in socket callbacks
   const { isAuthenticated, loading: authLoading, user: authUser, isAuthReady } = useAuth();
 
-  const currentUserId = React.useMemo(
-    () => (authUser?._id ? String(authUser._id) : UNAUTHENTICATED_FALLBACK_USER_ID),
-    [authUser?._id]
-  );
+  const currentUserId = React.useMemo(() => {
+    if (authUser?._id) return String(authUser._id);
+    if (ENABLE_DEMO_DATA) return UNAUTHENTICATED_FALLBACK_USER_ID;
+    return null;
+  }, [authUser?._id]);
 
   // Core state
   const [conversations, setConversations] = useState([]);
@@ -1614,18 +1615,17 @@ export const ChatProvider = ({ children }) => {
       }
     }
 
-    // ✅ Ongeza optimistic update - onyesha ujumbe MARA MOJA kwenye UI (bila kusubiri server)
-    const tempId = `temp_${Date.now()}_${Math.random()}`;
+    // Optimistic update — one client ID for UI, socket, and HTTP
+    const clientMessageId = createClientMessageId();
     const optimisticMsg = {
-      _id: tempId,
+      _id: clientMessageId,
       content: typeof outboundContent === 'string' ? outboundContent : '',
       sender: { _id: currentUserId, username: senderName || authUser?.username },
       messageType: messageType || 'text',
       status: 'sending',
       createdAt: new Date().toISOString(),
       conversationId: selectedConversation?._id,
-      clientMessageId: tempId,
-      // Kama ni media, onyesha preview ya local
+      clientMessageId,
       ...(options.mediaPreview ? { localPreview: options.mediaPreview } : {}),
       ...options,
       ...(outboundContent !== content ? { isClientE2EE: true } : {}),
@@ -1633,15 +1633,13 @@ export const ChatProvider = ({ children }) => {
 
     setMessages(prev => [...prev, optimisticMsg]);
 
-    // Scroll chini mara moja
-    // (kama una scrollToBottom function, iite hapa)
-
     const newMessage = {
-      _id: createClientMessageId(),
+      _id: clientMessageId,
       conversationId: selectedConversation?._id || '1',
       sender: { _id: currentUserId, username: senderName || 'Me' },
       createdAt: new Date(),
       status: 'sent',
+      clientMessageId,
       ...options,
       messageType,
       content: outboundContent,
@@ -1684,25 +1682,24 @@ export const ChatProvider = ({ children }) => {
         try {
           emitSafe('message:send', payload);
           messageSent = await new Promise((resolve) => {
-            const clientId = newMessage._id;
             const timeoutId = setTimeout(() => {
               cleanup();
               resolve(false);
             }, 4000);
             const onDelivered = ({ messageId, serverMessageId }) => {
-              if (String(messageId) !== String(clientId)) return;
+              if (String(messageId) !== String(clientMessageId)) return;
               cleanup();
               const serverId = serverMessageId || messageId;
               setMessages((prev) => prev.map((m) =>
-                m._id === clientId ? { ...m, _id: serverId, status: 'delivered' } : m
+                m._id === clientMessageId ? { ...m, _id: serverId, status: 'delivered' } : m
               ));
               resolve(true);
             };
             const onError = ({ messageId, error }) => {
-              if (messageId && String(messageId) !== String(clientId)) return;
+              if (messageId && String(messageId) !== String(clientMessageId)) return;
               cleanup();
               setMessages((prev) => prev.map((m) =>
-                m._id === clientId ? { ...m, status: 'failed', errorMessage: error } : m
+                m._id === clientMessageId ? { ...m, status: 'failed', errorMessage: error } : m
               ));
               resolve(false);
             };
@@ -1737,7 +1734,7 @@ export const ChatProvider = ({ children }) => {
             try { await DB.deleteMessages([newMessage._id]); } catch (e) { }
 
             // Iweke kwenye skrini (User A ataona)
-            setMessages(prev => prev.map(m => m._id === newMessage._id ? savedMessage : m));
+            setMessages(prev => prev.map(m => m._id === clientMessageId ? savedMessage : m));
             await DB.saveMessage(savedMessage);
             console.log("Meseji imehifadhiwa kikamilifu kwenye Database:", savedMessage._id);
           } else {
@@ -1751,7 +1748,7 @@ export const ChatProvider = ({ children }) => {
       // 4. Kama imefail, onyesha error kwenye message
       if (!messageSent) {
         setMessages(prev => prev.map(m =>
-          m._id === tempId ? { ...m, status: 'failed' } : m
+          m._id === clientMessageId ? { ...m, status: 'failed' } : m
         ));
       }
 
@@ -2802,11 +2799,6 @@ export const ChatProvider = ({ children }) => {
     }
   }, [BACKEND_URL]);
 
-  useEffect(() => {
-    if (!isAuthReady || (REQUIRE_AUTH && (authLoading || !isAuthenticated))) return;
-    fetchGENZModsSettings();
-  }, [isAuthReady, authLoading, isAuthenticated]);
-
   // ── Broadcast Functions ──
   const fetchBroadcasts = async () => {
     try {
@@ -2939,6 +2931,14 @@ export const ChatProvider = ({ children }) => {
       return { success: false };
     }
   }, []);
+
+  useEffect(() => {
+    if (!isAuthReady || (REQUIRE_AUTH && (authLoading || !isAuthenticated))) return;
+    fetchGENZModsSettings();
+    fetchBroadcasts();
+    fetchCallLogs();
+    fetchStatuses();
+  }, [isAuthReady, authLoading, isAuthenticated, fetchCallLogs, fetchStatuses]);
 
   const replyToStatus = useCallback(async (statusId, replyData, statusOwner = null) => {
     try {
@@ -3788,6 +3788,62 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
+  const makeAdmin = async (groupId, userId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BACKEND_URL}/chat/groups/${groupId}/admins/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setConversations(prev => prev.map(conv => {
+          if (conv._id !== groupId) return conv;
+          const admins = [...(conv.admins || [])];
+          if (!admins.some(a => String(a) === String(userId))) admins.push(userId);
+          return { ...conv, admins };
+        }));
+        emitSafe('admin:added', { groupId, userId });
+      }
+      return data;
+    } catch (err) {
+      console.error('Make admin error:', err);
+      return { success: false, message: 'Failed to promote member' };
+    }
+  };
+
+  const removeParticipant = async (groupId, userId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BACKEND_URL}/chat/groups/${groupId}/participants/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setConversations(prev => prev.map(conv => {
+          if (conv._id !== groupId) return conv;
+          return {
+            ...conv,
+            participants: (conv.participants || []).filter(p => String(p?._id || p) !== String(userId)),
+            admins: (conv.admins || []).filter(a => String(a?._id || a) !== String(userId))
+          };
+        }));
+        emitSafe('participant:removed', { groupId, userId });
+      }
+      return data;
+    } catch (err) {
+      console.error('Remove participant error:', err);
+      return { success: false, message: 'Failed to remove member' };
+    }
+  };
+
   // ── User object (prefer logged-in user from AuthContext) ──
   const user = React.useMemo(() => ({
     ...(authUser && typeof authUser === 'object' ? authUser : {}),
@@ -3825,7 +3881,7 @@ export const ChatProvider = ({ children }) => {
     toggleStarMessage, toggleMessageLock, transcribeAudio, viewProfile,
     // New WhatsApp features
     searchMessages, getMediaGallery, getMessageInfo, markViewOnceViewed,
-    reportMessage, getGroupInfo, regenerateGroupInvite, updateGroupInfo, removeAdmin,
+    reportMessage, getGroupInfo, regenerateGroupInvite, updateGroupInfo, removeAdmin, makeAdmin, removeParticipant,
     connectedDevices, sessions, notifications, statusPrivacy, setStatusPrivacy,
     backupProgress, setBackupProgress, notificationSound, setNotificationSound,
     startCloudBackup, listCloudBackups, restoreCloudBackup, deleteCloudBackup, logoutDevice, logoutAllDevices, generateQRCode, pairDevice, getDevices, updateDeviceCapabilities, updateAutoReply,

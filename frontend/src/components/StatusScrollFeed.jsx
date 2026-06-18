@@ -2,8 +2,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Heart, MessageCircle, Bookmark, Share2, Send, X, MoreVertical, Eye, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = resolveApiBase();
 
 const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -66,7 +67,7 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
 
     try {
       const statusId = (status.id || status._id).replace('status-', '');
-      const response = await authFetch(`${API_URL}/api/advanced/status/${statusId}/like`, {
+      const response = await authFetch(`${API_URL}/advanced/status/${statusId}/like`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: likeUserId })
@@ -90,7 +91,7 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
 
     try {
       const statusId = (status.id || status._id).replace('status-', '');
-      const response = await authFetch(`${API_URL}/api/advanced/status/${statusId}/save`, {
+      const response = await authFetch(`${API_URL}/advanced/status/${statusId}/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: likeUserId })
@@ -113,7 +114,7 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
 
     try {
       const statusId = (status.id || status._id).replace('status-', '');
-      const response = await authFetch(`${API_URL}/api/advanced/status/${statusId}/share`, {
+      const response = await authFetch(`${API_URL}/advanced/status/${statusId}/share`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: likeUserId })
@@ -158,7 +159,7 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
 
     try {
       const statusId = (status.id || status._id).replace('status-', '');
-      const response = await authFetch(`${API_URL}/api/advanced/status/${statusId}/reply`, {
+      const response = await authFetch(`${API_URL}/advanced/status/${statusId}/reply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

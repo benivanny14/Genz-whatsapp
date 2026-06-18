@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, X, QrCode, CheckCircle, AlertCircle, Lock, Copy } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
+import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
+
+const API_URL = resolveApiBase();
 
 const TwoFactorAuth = ({ onClose }) => {
   const { generate2FASecret, verify2FASetup, disable2FA } = useChat();
@@ -18,9 +22,17 @@ const TwoFactorAuth = ({ onClose }) => {
   }, []);
 
   const check2FAStatus = async () => {
-    // Check if 2FA is enabled (you might need to add this API call)
-    // For now, we'll assume it's disabled
-    setStep('check');
+    try {
+      const response = await authFetch(`${API_URL}/security/2fa/status`);
+      const data = await response.json();
+      if (data?.success) {
+        setIsEnabled(Boolean(data.twoFactorEnabled));
+      }
+    } catch (_) {
+      setIsEnabled(false);
+    } finally {
+      setStep('check');
+    }
   };
 
   const handleEnable2FA = async () => {

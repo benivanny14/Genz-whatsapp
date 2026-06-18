@@ -609,6 +609,20 @@ exports.sendMessage = async (req, res) => {
       return res.status(403).json({ success: false, message: "Cannot message this user" });
     }
 
+    if (conversation.isGroup) {
+      const isAdmin = conversation.admins?.some((a) => String(a) === String(localUserId));
+      const mediaTypes = ['image', 'video', 'audio', 'voice', 'file', 'document', 'gif', 'sticker'];
+      if (conversation.adminOnlyMessaging && !isAdmin) {
+        return res.status(403).json({ success: false, message: 'Only admins can send messages in this group' });
+      }
+      if (conversation.canSendMedia === false && mediaTypes.includes(messageType || 'text')) {
+        return res.status(403).json({ success: false, message: 'Media is disabled in this group' });
+      }
+      if (conversation.canCreatePolls === false && messageType === 'poll') {
+        return res.status(403).json({ success: false, message: 'Polls are disabled in this group' });
+      }
+    }
+
     const replyToId = normalizeReplyToId(replyTo);
 
     const safeContent =
@@ -664,6 +678,7 @@ exports.sendMessage = async (req, res) => {
       isSelfDestruct: Boolean(isSelfDestruct),
       mentions: mentionData.mentions || [],
       disappearAt,
+      clientMessageId: messageId ? String(messageId) : '',
     });
 
     let populatedMessage = null;
@@ -940,9 +955,14 @@ exports.markAsRead = async (req, res) => {
     const conversation = await Conversation.findById(message.conversationId);
     if (!ensureParticipant(conversation, localUserId, res)) return;
 
+    const reader = await User.findById(localUserId).select('settings.privacy.readReceipts');
+    const readReceiptsEnabled = reader?.settings?.privacy?.readReceipts !== false;
+
     if (!message.readBy.some((r) => r.user.toString() === localUserId)) {
       message.readBy.push({ user: localUserId, readAt: new Date() });
-      message.status = "read";
+      if (readReceiptsEnabled) {
+        message.status = "read";
+      }
       await message.save();
     }
 
@@ -958,10 +978,12 @@ exports.markAsRead = async (req, res) => {
         conversationId: conversation._id,
         unreadCount: getUnreadCount(conversation, localUserId)
       });
-      io.to(message.conversationId.toString()).emit("message:read_receipt", {
-        messageId: message._id,
-        readerId: localUserId,
-      });
+      if (readReceiptsEnabled) {
+        io.to(message.conversationId.toString()).emit("message:read_receipt", {
+          messageId: message._id,
+          readerId: localUserId,
+        });
+      }
     }
 
     res.status(200).json({ success: true, message: "Message marked as read" });
@@ -1758,7 +1780,9 @@ exports.forwardMessage = async (req, res) => {
         fileName: originalMessage.fileName,
         fileSize: originalMessage.fileSize,
         duration: originalMessage.duration,
+        isForwarded: true,
         forwardedFrom: messageId,
+        originalMessageId: messageId,
       });
 
       const populated = await Message.findById(forwardedMessage._id)

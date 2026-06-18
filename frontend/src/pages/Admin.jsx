@@ -26,8 +26,9 @@ import {
   XCircle
 } from 'lucide-react';
 import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = resolveApiBase();
 
 const formatNumber = (value) => Number(value || 0).toLocaleString('en-US');
 const formatMoney = (value) => `Tsh ${formatNumber(value)}`;
@@ -138,12 +139,12 @@ const Admin = () => {
       if (userStatus !== 'all') userQuery.set('status', userStatus);
 
       const [overviewRes, usersRes, paymentsRes, securityRes, logsRes, healthRes] = await Promise.allSettled([
-        authFetch(`${API_URL}/api/admin/overview`),
-        authFetch(`${API_URL}/api/admin/users?${userQuery.toString()}`),
-        authFetch(`${API_URL}/api/payment/admin/all-payments`),
-        authFetch(`${API_URL}/api/admin/security`),
-        authFetch(`${API_URL}/api/admin/audit-logs?limit=50`),
-        authFetch(`${API_URL}/api/admin/health`)
+        authFetch(`${API_URL}/admin/overview`),
+        authFetch(`${API_URL}/admin/users?${userQuery.toString()}`),
+        authFetch(`${API_URL}/payment/admin/all-payments`),
+        authFetch(`${API_URL}/admin/security`),
+        authFetch(`${API_URL}/admin/audit-logs?limit=50`),
+        authFetch(`${API_URL}/admin/health`)
       ]);
 
       if (overviewRes.status === 'fulfilled' && overviewRes.value.ok) {
@@ -196,7 +197,7 @@ const Admin = () => {
   };
 
   const activatePremium = (userId) => runAction(
-    `${API_URL}/api/payment/admin/activate`,
+    `${API_URL}/payment/admin/activate`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -206,7 +207,7 @@ const Admin = () => {
   ).catch((error) => showAction(error.message));
 
   const deactivatePremium = (userId) => runAction(
-    `${API_URL}/api/payment/admin/deactivate`,
+    `${API_URL}/payment/admin/deactivate`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -216,13 +217,13 @@ const Admin = () => {
   ).catch((error) => showAction(error.message));
 
   const setBlocked = (user, blocked) => runAction(
-    `${API_URL}/api/admin/users/${user._id}/${blocked ? 'block' : 'unblock'}`,
+    `${API_URL}/admin/users/${user._id}/${blocked ? 'block' : 'unblock'}`,
     { method: 'POST' },
     blocked ? 'Mtumiaji amezuiwa' : 'Mtumiaji ameruhusiwa'
   ).catch((error) => showAction(error.message));
 
   const setRole = (user, admin) => runAction(
-    `${API_URL}/api/admin/users/${user._id}/${admin ? 'promote' : 'demote'}`,
+    `${API_URL}/admin/users/${user._id}/${admin ? 'promote' : 'demote'}`,
     { method: 'POST' },
     admin ? 'Mtumiaji amekuwa admin' : 'Admin amerudishwa user'
   ).catch((error) => showAction(error.message));

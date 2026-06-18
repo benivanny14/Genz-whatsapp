@@ -1,7 +1,8 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Upload, X, CheckCircle, AlertCircle, File, FileVideo, FileAudio, Image, Loader } from 'lucide-react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = resolveApiBase();
 const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB per chunk
 
 const authHeaders = () => ({
@@ -73,7 +74,7 @@ const ChunkedUploader = ({ onComplete, onClose, onUploadComplete, onCancel, acce
       if (file.size <= CHUNK_SIZE) {
         const formData = new FormData();
         formData.append('file', file);
-        const res = await fetch(`${API_URL}/api/upload`, { method: 'POST', body: formData });
+        const res = await fetch(`${API_URL}/upload`, { method: 'POST', body: formData });
         if (!res.ok) throw new Error('Upload failed');
         const data = await res.json();
         setStatus('done');
@@ -83,7 +84,7 @@ const ChunkedUploader = ({ onComplete, onClose, onUploadComplete, onCancel, acce
       }
 
       // Initialize chunked upload
-      const initRes = await fetch(`${API_URL}/api/advanced/upload/init`, {
+      const initRes = await fetch(`${API_URL}/advanced/upload/init`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
@@ -107,7 +108,7 @@ const ChunkedUploader = ({ onComplete, onClose, onUploadComplete, onCancel, acce
         formData.append('uploadId', uploadId);
         formData.append('chunkIndex', String(i));
 
-        const chunkRes = await fetch(`${API_URL}/api/advanced/upload/chunk`, { method: 'POST', headers: authHeaders(), body: formData });
+        const chunkRes = await fetch(`${API_URL}/advanced/upload/chunk`, { method: 'POST', headers: authHeaders(), body: formData });
         if (!chunkRes.ok) throw new Error(`Chunk ${i} failed`);
 
         const uploaded = end;
@@ -125,7 +126,7 @@ const ChunkedUploader = ({ onComplete, onClose, onUploadComplete, onCancel, acce
       }
 
       // Merge chunks
-      const completeRes = await fetch(`${API_URL}/api/advanced/upload/complete`, {
+      const completeRes = await fetch(`${API_URL}/advanced/upload/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ uploadId, fileName: file.name, totalChunks })

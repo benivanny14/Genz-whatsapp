@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Shield, Users, MessageSquare, BarChart2, Trash2, UserX, RefreshCw, X, AlertCircle } from 'lucide-react';
 import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = resolveApiBase();
 
 const Admin = ({ onClose }) => {
   const [stats, setStats] = useState({ users: 0, messages: 0, conversations: 0, activeNow: 0 });
@@ -18,7 +19,7 @@ const Admin = ({ onClose }) => {
   const loadStats = async () => {
     setLoading(true);
     try {
-      const res = await authFetch(`${API_URL}/api/advanced/dashboard-stats`);
+      const res = await authFetch(`${API_URL}/advanced/dashboard-stats`);
       if (res.ok) {
         const data = await res.json();
         if (data.success) setStats(data.stats || {});

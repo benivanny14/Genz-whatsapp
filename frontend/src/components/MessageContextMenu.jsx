@@ -20,6 +20,7 @@ const MessageContextMenu = ({
   onClose,
   onDelete,
   onEdit,
+  onReply,
   onToggleStar,
   currentUserId,
 }) => {
@@ -63,7 +64,10 @@ const MessageContextMenu = ({
     {
       icon: <FiMessageCircle size={18} />,
       label: 'Reply',
-      onClick: () => onClose?.(),
+      onClick: () => {
+        onReply?.(message);
+        onClose?.();
+      },
       color: 'text-cyan-400',
     },
 

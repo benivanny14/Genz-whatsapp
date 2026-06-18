@@ -1,5 +1,7 @@
 import React, { useState, useCallback, lazy, Suspense } from 'react';
 import { useChat } from '../context/ChatContext';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import LockScreen, { useInactivityLock, saveSecurePin } from '../components/LockScreen';
 import OfflineIndicator from '../components/OfflineIndicator';
@@ -19,6 +21,8 @@ const PanelLoader = () => (
 
 const Chat = () => {
   const { activeCall, endCall, acceptCall, rejectCall, onlineNotification, isSocketConnected, mods, setMods, selectedConversation } = useChat();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showGENZSettings, setShowGENZSettings] = useState(false);
 
@@ -93,10 +97,9 @@ const Chat = () => {
           <Sidebar
             isOpen={sidebarOpen}
             onToggle={() => setSidebarOpen(!sidebarOpen)}
-            onLogout={() => {
-              localStorage.removeItem('token');
-              localStorage.removeItem('user');
-              window.location.href = '/login';
+            onLogout={async () => {
+              await logout();
+              navigate('/login', { replace: true });
             }}
             openGENZ={() => setShowGENZSettings(true)}
             mods={mods}

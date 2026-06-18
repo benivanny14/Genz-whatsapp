@@ -3308,9 +3308,16 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           message={messageContextMenu.message}
           position={messageContextMenu.position}
           conversationId={selectedConversation?._id}
-          currentUserId={user?.id}
+          currentUserId={user?.id || user?._id}
           onDelete={() => handleContextMenuDelete(messageContextMenu.message)}
-          onEdit={() => { handleEditClick(messageContextMenu.message); }}
+          onEdit={() => {
+            handleEditClick(messageContextMenu.message);
+            setMessageContextMenu(null);
+          }}
+          onReply={(msg) => {
+            setReplyingTo(msg);
+            setMessageContextMenu(null);
+          }}
           onToggleStar={() => handleContextMenuStar(messageContextMenu.message)}
           onClose={() => setMessageContextMenu(null)}
         />
@@ -3349,37 +3356,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           fileUrl={previewFile.fileUrl}
           fileName={previewFile.fileName}
           onClose={() => setShowFilePreview(false)}
-        />
-      )}
-      {showSearchMessages && selectedConversation?._id && (
-        <SearchMessages
-          conversationId={selectedConversation?._id}
-          onSelectMessage={(message) => {
-            setChatSearchQuery(plaintextOf(message) || message.content || '');
-            setIsSearching(true);
-          }}
-          onClose={() => setShowSearchMessages(false)}
-        />
-      )}
-      {showMediaGallery && selectedConversation?._id && (
-        <MediaGallery
-          conversationId={selectedConversation?._id}
-          onClose={() => setShowMediaGallery(false)}
-        />
-      )}
-      {messageContextMenu && (
-        <MessageContextMenu
-          message={messageContextMenu.message}
-          position={messageContextMenu.position}
-          conversationId={selectedConversation?._id}
-          currentUserId={user?.id || user?._id}
-          onClose={() => setMessageContextMenu(null)}
-          onDelete={() => handleContextMenuDelete(messageContextMenu.message)}
-          onEdit={() => {
-            handleEditClick(messageContextMenu.message);
-            setMessageContextMenu(null);
-          }}
-          onToggleStar={() => handleContextMenuStar(messageContextMenu.message)}
         />
       )}
       {/* \u2500\u2500 Schedule Message Modal (Item 28) \u2500\u2500 */}

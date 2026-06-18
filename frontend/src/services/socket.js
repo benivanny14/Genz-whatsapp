@@ -1,11 +1,7 @@
 import { io } from 'socket.io-client';
+import { resolveSocketOrigin } from '../utils/resolveApiBase';
 
-const BACKEND_URL = (import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || 'https://genz-whatsapp-2.onrender.com').replace('/api', '');
-const SOCKET_URL = BACKEND_URL;
-
-// Ensure we always use the backend URL, not the frontend host
-// This prevents the frontend from falling back to genz-whatsapp-2.onrender.com
-const FORCED_BACKEND_URL = 'https://genz-whatsapp.onrender.com';
+const SOCKET_ORIGIN = resolveSocketOrigin();
 
 let socket = null;
 let reconnectAttempts = 0;
@@ -18,9 +14,8 @@ export const setSocketInstance = (instance) => {
 export const clearSocketInstance = () => {
   socket = null;
 };
+
 const MAX_RECONNECT_ATTEMPTS = 10;
-const RECONNECT_DELAY = 2000;
-const UNAUTHENTICATED_FALLBACK_USER_ID = '60d5ecb8b392cb371c664c12';
 
 function resolveSocketUserId(explicitId) {
   if (explicitId) return String(explicitId);
@@ -28,12 +23,17 @@ function resolveSocketUserId(explicitId) {
     const u = JSON.parse(localStorage.getItem('user') || 'null');
     if (u?._id) return String(u._id);
   } catch (_) { /* ignore */ }
-  return UNAUTHENTICATED_FALLBACK_USER_ID;
+  return null;
 }
 
 export const connectSocket = (userId) => {
+  const resolvedUserId = resolveSocketUserId(userId);
+  if (!resolvedUserId) {
+    console.warn('[Socket] Cannot connect without authenticated user');
+    return null;
+  }
+
   if (socket && socket.connected) {
-    console.log('Socket already connected');
     return socket;
   }
 
@@ -43,48 +43,37 @@ export const connectSocket = (userId) => {
   }
 
   try {
-    // Get token from localStorage if available (for future auth)
     const token = localStorage.getItem('token');
-    
+
     const socketConfig = {
       reconnection: true,
-      reconnectionAttempts: 5, // Reduced to prevent infinite retries
+      reconnectionAttempts: 5,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       timeout: 10000,
       autoConnect: true,
-      transports: ['websocket'], // Force websocket only, no polling fallback
-      upgrade: false, // Prevent upgrade from polling to websocket
-      forceNew: false // Prevent creating new connections
+      transports: ['websocket'],
+      upgrade: false,
+      forceNew: false,
+      auth: { token, userId: resolvedUserId }
     };
-    
-    // Add token if available
-    if (token) {
-      socketConfig.auth = { token };
-    }
-    
-    // Use forced backend URL to prevent falling back to frontend host
-    socket = io(FORCED_BACKEND_URL, socketConfig);
+
+    socket = io(SOCKET_ORIGIN, socketConfig);
 
     socket.on('connect', () => {
-      console.log('Socket connected successfully to:', FORCED_BACKEND_URL);
+      console.log('[Socket] Connected to:', SOCKET_ORIGIN);
       reconnectAttempts = 0;
-      socket.emit('user:join', resolveSocketUserId(userId));
+      socket.emit('user:join', resolvedUserId);
     });
 
     socket.on('connect_error', (error) => {
       console.error('[Socket] Connection error:', error?.message || error);
-      console.warn('[Socket] Attempting reconnect...');
       reconnectAttempts++;
-      if (reconnectAttempts >= socketConfig.reconnectionAttempts) {
-        console.error('[Socket] Max reconnection attempts reached');
-      }
     });
 
     socket.on('disconnect', (reason) => {
       console.log('[Socket] Disconnected:', reason);
       if (reason === 'io server disconnect') {
-        console.log('[Socket] Server initiated disconnect, attempting reconnect');
         setTimeout(() => socket?.connect?.(), 1000);
       }
     });
@@ -93,23 +82,14 @@ export const connectSocket = (userId) => {
       console.error('[Socket] Error event:', error);
     });
 
-    socket.on('reconnect', (attemptNumber) => {
-      console.log('[Socket] Reconnected after', attemptNumber, 'attempts');
+    socket.on('reconnect', () => {
       reconnectAttempts = 0;
-      socket.emit('user:join', resolveSocketUserId(userId));
-    });
-
-    socket.on('reconnect_attempt', (attemptNumber) => {
-      console.log('Reconnection attempt:', attemptNumber);
-    });
-
-    socket.on('reconnect_failed', () => {
-      console.error('Failed to reconnect to socket server — will retry on next connectSocket() call');
+      socket.emit('user:join', resolvedUserId);
     });
 
     return socket;
   } catch (error) {
-    console.error('Error creating socket connection:', error);
+    console.error('[Socket] Error creating connection:', error);
     return null;
   }
 };
@@ -121,84 +101,56 @@ export const disconnectSocket = () => {
   }
 };
 
-export const getSocket = () => {
-  return socket;
-};
+export const getSocket = () => socket;
 
 export const joinConversation = (conversationId) => {
-  if (socket) {
-    socket.emit('join:conversation', conversationId);
-  }
+  socket?.emit('join:conversation', conversationId);
 };
 
 export const leaveConversation = (conversationId) => {
-  if (socket) {
-    socket.emit('leave:conversation', conversationId);
-  }
+  socket?.emit('leave:conversation', conversationId);
 };
 
 export const sendMessage = (data) => {
-  if (socket) {
-    socket.emit('message:send', data);
-  }
+  socket?.emit('message:send', data);
 };
 
 export const sendTyping = (conversationId, isTyping) => {
-  if (socket) {
-    socket.emit('message:typing', { conversationId, isTyping });
-  }
+  socket?.emit('message:typing', { conversationId, isTyping });
 };
 
 export const markMessageAsRead = (messageId) => {
-  if (socket) {
-    socket.emit('message:read', { messageId });
-  }
+  socket?.emit('message:read', { messageId });
 };
 
 export const editMessage = (messageId, content) => {
-  if (socket) {
-    socket.emit('message:edit', { messageId, content });
-  }
+  socket?.emit('message:edit', { messageId, content });
 };
 
 export const deleteMessage = (messageId, forEveryone) => {
-  if (socket) {
-    socket.emit('message:delete', { messageId, forEveryone });
-  }
+  socket?.emit('message:delete', { messageId, forEveryone });
 };
 
 export const addReaction = (messageId, emoji) => {
-  if (socket) {
-    socket.emit('reaction:add', { messageId, emoji });
-  }
+  socket?.emit('reaction:add', { messageId, emoji });
 };
 
 export const removeReaction = (messageId) => {
-  if (socket) {
-    socket.emit('reaction:remove', { messageId });
-  }
+  socket?.emit('reaction:remove', { messageId });
 };
 
 export const startCall = (conversationId, callType) => {
-  if (socket) {
-    socket.emit('call:start', { conversationId, callType });
-  }
+  socket?.emit('call:start', { conversationId, callType });
 };
 
 export const acceptCall = (conversationId, callerId) => {
-  if (socket) {
-    socket.emit('call:accept', { conversationId, callerId });
-  }
+  socket?.emit('call:accept', { conversationId, callerId });
 };
 
 export const rejectCall = (conversationId, callerId) => {
-  if (socket) {
-    socket.emit('call:reject', { conversationId, callerId });
-  }
+  socket?.emit('call:reject', { conversationId, callerId });
 };
 
 export const endCall = (conversationId) => {
-  if (socket) {
-    socket.emit('call:end', { conversationId });
-  }
+  socket?.emit('call:end', { conversationId });
 };

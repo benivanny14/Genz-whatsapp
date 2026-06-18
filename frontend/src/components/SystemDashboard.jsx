@@ -5,7 +5,9 @@ import {
   Eye, Star
 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+import { resolveApiBase } from '../utils/resolveApiBase';
+
+const API_URL = resolveApiBase();
 
 const StatCard = ({ icon, label, value, sub, color = 'blue', trend }) => {
   const colors = {
@@ -58,8 +60,8 @@ const SystemDashboard = ({ onClose }) => {
       const token = localStorage.getItem('token');
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const [statsRes, rankRes] = await Promise.all([
-        fetch(`${API_URL}/api/advanced/dashboard/stats`, { headers }),
-        fetch(`${API_URL}/api/advanced/dashboard/online-ranking`, { headers })
+        fetch(`${API_URL}/advanced/dashboard/stats`, { headers }),
+        fetch(`${API_URL}/advanced/dashboard/online-ranking`, { headers })
       ]);
       if (statsRes.ok) { const d = await statsRes.json(); setStats(d.stats); }
       if (rankRes.ok) { const d = await rankRes.json(); setRanking(d.ranking || []); }
