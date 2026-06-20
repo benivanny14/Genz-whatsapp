@@ -32,6 +32,15 @@ import { uploadVoiceNote, getAudioDuration, analyzeAudioForWaveform } from '../s
 import toast from 'react-hot-toast';
 import { authFetch } from '../utils/authFetch';
 import { compressImage } from '../utils/imageCompression';
+// New components for enhanced features
+import MediaViewer from './MediaViewer';
+import ProfileEnlarger from './ProfileEnlarger';
+import TypingIndicator from './TypingIndicator';
+import TypingStatus from './TypingStatus';
+import ReplyMessage from './ReplyMessage';
+import TextMenu from './TextMenu';
+import AutoRefreshIndicator from './AutoRefreshIndicator';
+import { getNotificationSettings, vibrateTyping } from '../services/notificationService';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
