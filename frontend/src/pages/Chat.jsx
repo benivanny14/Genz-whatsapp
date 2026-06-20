@@ -6,6 +6,7 @@ import Sidebar from '../components/Sidebar';
 import LockScreen, { useInactivityLock, saveSecurePin } from '../components/LockScreen';
 import OfflineIndicator from '../components/OfflineIndicator';
 import ErrorBoundary from '../components/ErrorBoundary';
+import IncomingCallPopup from '../components/IncomingCallPopup';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Wifi, WifiOff } from 'lucide-react';
 
@@ -57,7 +58,7 @@ const Chat = () => {
       <OfflineIndicator />
 
       {/* Active call overlay */}
-      {activeCall && (
+      {activeCall && activeCall.status === 'connected' && (
         <Suspense fallback={<PanelLoader />}>
           <CallScreen
             call={activeCall}
@@ -68,6 +69,15 @@ const Chat = () => {
             onToggleCamera={() => { }}
           />
         </Suspense>
+      )}
+
+      {/* Incoming call pop-up notification */}
+      {activeCall && activeCall.status === 'incoming' && (
+        <IncomingCallPopup
+          call={activeCall}
+          onAccept={acceptCall}
+          onReject={rejectCall}
+        />
       )}
 
       {/* Online notification toast */}
