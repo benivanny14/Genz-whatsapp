@@ -124,8 +124,17 @@ export const requestNotificationPermission = async () => {
     return 'unsupported';
   }
 
-  if (Notification.permission === 'granted') return 'granted';
-  if (Notification.permission === 'denied') return 'denied';
+  // Check if Notification has the permission property
+  if (typeof Notification.permission === 'string') {
+    if (Notification.permission === 'granted') return 'granted';
+    if (Notification.permission === 'denied') return 'denied';
+  }
+
+  // Check if requestPermission is a function
+  if (typeof Notification.requestPermission !== 'function') {
+    console.warn('[NotificationService] requestPermission is not a function');
+    return 'unsupported';
+  }
 
   try {
     const result = await Notification.requestPermission();
