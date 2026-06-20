@@ -30,10 +30,26 @@ export const registerServiceWorker = async () => {
 // ── Request notification permission ──────────────────────────────────────
 export const requestNotificationPermission = async () => {
   if (!('Notification' in window)) return 'unsupported';
-  if (Notification.permission === 'granted') return 'granted';
-  if (Notification.permission === 'denied') return 'denied';
-  const result = await Notification.requestPermission();
-  return result;
+  
+  // Check if Notification has the permission property
+  if (typeof Notification.permission === 'string') {
+    if (Notification.permission === 'granted') return 'granted';
+    if (Notification.permission === 'denied') return 'denied';
+  }
+  
+  // Check if requestPermission is a function
+  if (typeof Notification.requestPermission !== 'function') {
+    console.warn('[Notifications] requestPermission is not a function');
+    return 'unsupported';
+  }
+  
+  try {
+    const result = await Notification.requestPermission();
+    return result;
+  } catch (e) {
+    console.warn('[Notifications] Permission request failed:', e);
+    return 'denied';
+  }
 };
 
 // ── Show local notification ───────────────────────────────────────────────

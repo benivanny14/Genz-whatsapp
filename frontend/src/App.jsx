@@ -112,14 +112,10 @@ function App() {
 
   // --- Notifications ---
   useEffect(() => {
-    notificationService.requestPermission();
-    notificationService.onInAppNotification((notif) => {
-      setNotification(notif);
+    notificationService.requestNotificationPermission();
+    notificationService.registerServiceWorker().then(() => {
+      notificationService.setupBackgroundNotificationHandler();
     });
-    notificationService.subscribeToPush();
-    return () => {
-      notificationService.clearNotifications();
-    };
   }, []);
 
   return (
