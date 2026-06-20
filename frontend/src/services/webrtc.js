@@ -172,7 +172,8 @@ class WebRTCService {
           this.socket.emit('webrtc:offer', { 
             to: this.targetUserId, 
             offer, 
-            callType: this.callType 
+            callType: this.callType,
+            conversationId: this.conversationId
           });
         }
       } catch (err) {
@@ -283,10 +284,11 @@ class WebRTCService {
   }
 
   // ── Outgoing call: Create offer ─────────────────────────────────────────
-  async createCall(targetUserId, callType = 'audio', socket) {
+  async createCall(targetUserId, callType = 'audio', socket, conversationId = null) {
     this.socket = socket;
     this.targetUserId = targetUserId;
     this.callType = callType;
+    this.conversationId = conversationId;
     this.reconnectAttempts = 0;
 
     await this.initLocalStream(callType);
@@ -302,7 +304,7 @@ class WebRTCService {
     const offer = await pc.createOffer(offerOptions);
     await pc.setLocalDescription(offer);
 
-    socket.emit('webrtc:offer', { to: targetUserId, offer, callType });
+    socket.emit('webrtc:offer', { to: targetUserId, offer, callType, conversationId });
     return this.localStream;
   }
 

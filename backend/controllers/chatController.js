@@ -11,7 +11,8 @@ const {
   isConversationBlocked,
   isEitherUserBlocked
 } = require("../utils/messageSendHelpers");
-const { sendMentionNotification } = require("../services/notificationService");
+const { serializeOutgoingMessage } = require("../utils/messageSerializer");
+const { sendMentionNotification, sendNewMessageNotification } = require("../services/notificationService");
 const { ensureUnreadMap, getUnreadCount, setUnreadCount } = require("../utils/unreadCount");
 
 const LOCAL_USER_ID = process.env.LOCAL_USER_ID || "60d5ecb8b392cb371c664c12";
@@ -502,7 +503,14 @@ exports.getStarredMessages = async (req, res) => {
 
     const messages = await Message.find(filter)
       .populate("sender", "username profilePicture")
-      .populate("replyTo")
+      .populate({
+        path: "replyTo",
+        select: "_id content messageType sender",
+        populate: {
+          path: "sender",
+          select: "username profilePicture"
+        }
+      })
       .populate("mentions.user", "username profilePicture")
       .sort({ createdAt: -1 });
 
@@ -685,7 +693,14 @@ exports.sendMessage = async (req, res) => {
     try {
       populatedMessage = await Message.findById(message._id)
         .populate("sender", "username profilePicture")
-        .populate("replyTo", "_id content messageType sender")
+        .populate({
+          path: "replyTo",
+          select: "_id content messageType sender",
+          populate: {
+            path: "sender",
+            select: "username profilePicture"
+          }
+        })
         .populate("mentions.user", "username profilePicture")
         .lean();
     } catch (popErr) {
@@ -729,52 +744,10 @@ exports.sendMessage = async (req, res) => {
     );
 
     const io = req.app.get("io");
-    let plainMessage;
-    const baseMsg = populatedMessage || message;
-    const msgObj = baseMsg.toObject ? baseMsg.toObject() : baseMsg;
-    
-    const serializeSender = (sender) => {
-      if (!sender || typeof sender !== 'object') return localUserId.toString();
-      return {
-        _id: sender._id?.toString?.() || String(sender._id || ''),
-        username: sender.username,
-        profilePicture: sender.profilePicture || null
-      };
-    };
-    const serializeReplyTo = (replyTo) => {
-      if (!replyTo) return null;
-      if (typeof replyTo === 'string') return replyTo;
-      if (typeof replyTo === 'object' && replyTo._id) return replyTo._id.toString();
-      return null;
-    };
-
-    plainMessage = {
-      _id: msgObj._id ? msgObj._id.toString() : null,
-      conversationId: finalConversationId.toString(),
-      sender: serializeSender(msgObj.sender),
-      content: msgObj.content,
-      messageType: msgObj.messageType,
-      mediaUrl: msgObj.mediaUrl,
-      fileName: msgObj.fileName,
-      fileSize: msgObj.fileSize,
-      duration: msgObj.duration,
-      replyTo: serializeReplyTo(msgObj.replyTo),
-      isViewOnce: msgObj.isViewOnce,
-      isSelfDestruct: msgObj.isSelfDestruct,
-      isConsumed: msgObj.isConsumed,
-      disappearAt: msgObj.disappearAt,
-      mentions: Array.isArray(msgObj.mentions) ? msgObj.mentions.map(m => ({
-        user: typeof m.user === 'object' && m.user ? m.user : (m.user ? m.user.toString() : null),
-        username: m.username,
-        displayName: m.displayName
-      })) : [],
-      status: msgObj.status,
-      createdAt: msgObj.createdAt
-    };
-    
-    if (messageId) {
-      plainMessage.clientMessageId = messageId;
-    }
+    const plainMessage = serializeOutgoingMessage(
+      populatedMessage || message,
+      messageId ? { clientMessageId: messageId } : {}
+    );
     
     // 4. Rudisha ujumbe uliosavewa kwenda Frontend (respond before socket/cache side effects)
     res.status(201).json({ success: true, message: plainMessage });
@@ -792,6 +765,14 @@ exports.sendMessage = async (req, res) => {
 
         if (conversation.participants && Array.isArray(conversation.participants)) {
           const updatedConversation = await Conversation.findById(finalConversationId);
+          const notificationTasks = [];
+          const notificationText =
+            messageType === 'image' ? 'Photo' :
+            messageType === 'video' ? 'Video' :
+            messageType === 'audio' || messageType === 'voice' ? 'Voice note' :
+            messageType === 'sticker' ? 'Sticker' :
+            messageType === 'gif' ? 'GIF' :
+            String(safeContent || 'New message').slice(0, 120);
           for (const participantId of conversation.participants) {
             if (String(participantId) === String(localUserId)) continue;
             const blocked = await isEitherUserBlocked(localUserId, participantId);
@@ -804,6 +785,18 @@ exports.sendMessage = async (req, res) => {
                 unreadCount: getUnreadCount(updatedConversation, recipientId)
               });
             }
+            notificationTasks.push(sendNewMessageNotification(recipientId, {
+              senderName: populatedMessage?.sender?.username || 'GENZ',
+              text: notificationText,
+              conversationId: finalConversationId.toString(),
+              senderId: localUserId.toString(),
+              type: messageType || 'text'
+            }));
+          }
+          if (notificationTasks.length) {
+            Promise.allSettled(notificationTasks).catch((notifyErr) => {
+              console.warn("[ChatController] Push notification failed:", notifyErr?.message || notifyErr);
+            });
           }
         }
       }

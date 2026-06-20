@@ -284,6 +284,40 @@ export const ChatProvider = ({ children }) => {
     selectedConversationIdRef.current = selectedConversation?._id || null;
   }, [selectedConversation?._id]);
 
+  const selectedConversationStorageKey = React.useMemo(
+    () => currentUserId ? `selectedConversationId:${currentUserId}` : 'selectedConversationId',
+    [currentUserId]
+  );
+
+  const getStoredSelectedConversationId = useCallback(() => {
+    try {
+      const scoped = localStorage.getItem(selectedConversationStorageKey);
+      if (scoped) return scoped;
+      return currentUserId ? null : localStorage.getItem('selectedConversationId');
+    } catch (e) {
+      return null;
+    }
+  }, [currentUserId, selectedConversationStorageKey]);
+
+  const setStoredSelectedConversationId = useCallback((conversationId) => {
+    try {
+      if (conversationId) {
+        localStorage.setItem(selectedConversationStorageKey, conversationId);
+      } else {
+        localStorage.removeItem(selectedConversationStorageKey);
+      }
+      if (currentUserId) {
+        localStorage.removeItem('selectedConversationId');
+      }
+    } catch (e) {
+      console.warn('[ChatContext] Failed to persist selected conversation:', e);
+    }
+  }, [currentUserId, selectedConversationStorageKey]);
+
+  const clearStoredSelectedConversationId = useCallback(() => {
+    setStoredSelectedConversationId(null);
+  }, [setStoredSelectedConversationId]);
+
   const refreshAllMessagesForStats = useCallback(async () => {
     try {
       const convs = conversationsRef.current?.length
@@ -309,15 +343,29 @@ export const ChatProvider = ({ children }) => {
   const blockedUsersRef = useRef([]);
   const [pinnedMessages, setPinnedMessages] = useState({});
   const [presenceHistory, setPresenceHistory] = useState({});
+  const unlockedSessionChatsKey = React.useMemo(
+    () => currentUserId ? `unlockedSessionChats:${currentUserId}` : 'unlockedSessionChats',
+    [currentUserId]
+  );
+
   // Load unlocked session chats from localStorage on mount
   const [unlockedSessionChats, setUnlockedSessionChats] = useState(() => {
     try {
-      const stored = localStorage.getItem('unlockedSessionChats');
+      const stored = localStorage.getItem(unlockedSessionChatsKey);
       return stored ? new Set(JSON.parse(stored)) : new Set();
     } catch (e) {
       return new Set();
     }
   });
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(unlockedSessionChatsKey);
+      setUnlockedSessionChats(stored ? new Set(JSON.parse(stored)) : new Set());
+    } catch (e) {
+      setUnlockedSessionChats(new Set());
+    }
+  }, [unlockedSessionChatsKey]);
   const [stickerPacks, setStickerPacks] = useState([]);
   const [downloadedStickers, setDownloadedStickers] = useState([]);
   const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
@@ -470,11 +518,14 @@ export const ChatProvider = ({ children }) => {
   // ── Persist unlocked session chats to localStorage ──
   useEffect(() => {
     try {
-      localStorage.setItem('unlockedSessionChats', JSON.stringify(Array.from(unlockedSessionChats)));
+      localStorage.setItem(unlockedSessionChatsKey, JSON.stringify(Array.from(unlockedSessionChats)));
+      if (currentUserId) {
+        localStorage.removeItem('unlockedSessionChats');
+      }
     } catch (e) {
       console.error('Failed to save unlocked session chats:', e);
     }
-  }, [unlockedSessionChats]);
+  }, [currentUserId, unlockedSessionChats, unlockedSessionChatsKey]);
 
   // ✨ Comprehensive GENZ Settings Auto-Save with Debounce ✨
   useEffect(() => {
@@ -672,7 +723,7 @@ export const ChatProvider = ({ children }) => {
         const offlineConvs = await DB.getConversations();
         if (offlineConvs && offlineConvs.length > 0) {
           setConversations(offlineConvs);
-          const storedId = localStorage.getItem('selectedConversationId');
+          const storedId = getStoredSelectedConversationId();
           if (storedId) {
             const matched = offlineConvs.find(c => c._id === storedId);
             if (matched) {
@@ -690,7 +741,7 @@ export const ChatProvider = ({ children }) => {
               );
               if (sorted[0]) {
                 setSelectedConversation(sorted[0]);
-                localStorage.setItem('selectedConversationId', sorted[0]._id);
+                setStoredSelectedConversationId(sorted[0]._id);
               }
             }
           }
@@ -783,7 +834,7 @@ export const ChatProvider = ({ children }) => {
         setIsSocketConnected(true);
         socket.emit('user:join', userId);
         
-        const currentConvId = localStorage.getItem('selectedConversationId');
+        const currentConvId = getStoredSelectedConversationId();
         if (currentConvId) {
           socket.emit('join:conversation', currentConvId);
         }
@@ -820,7 +871,7 @@ export const ChatProvider = ({ children }) => {
         try {
           const data = await apiService.getConversations();
           if (data?.success && Array.isArray(data.conversations)) {
-            const openChatId = localStorage.getItem('selectedConversationId');
+            const openChatId = getStoredSelectedConversationId();
             setConversations(prev => {
               const mergedMap = new Map();
               prev.forEach(c => mergedMap.set(c._id, c));
@@ -899,7 +950,7 @@ export const ChatProvider = ({ children }) => {
             }
             
             // Only append to active chat view if it's the open chat
-            const currentSelectedId = localStorage.getItem('selectedConversationId');
+            const currentSelectedId = getStoredSelectedConversationId();
 
             if (String(incoming.conversationId) === String(currentSelectedId)) {
               setConversations(prevConvs => prevConvs.map(c =>
@@ -983,7 +1034,7 @@ export const ChatProvider = ({ children }) => {
           const existingIndex = prev.findIndex(m => String(m._id) === serverId);
 
           if (existingIndex === -1) {
-            const currentSelectedId = localStorage.getItem('selectedConversationId');
+            const currentSelectedId = getStoredSelectedConversationId();
             if (String(incoming.conversationId) === String(currentSelectedId)) {
               return [...prev, incoming];
             }
@@ -1387,7 +1438,7 @@ export const ChatProvider = ({ children }) => {
       // ── Unread count sync (server is source of truth) ──
       socket.on('conversation:unread-update', ({ conversationId, unreadCount }) => {
         if (!conversationId) return;
-        const openChatId = localStorage.getItem('selectedConversationId');
+        const openChatId = getStoredSelectedConversationId();
         const isOpenChat = openChatId && String(conversationId) === String(openChatId);
         const effectiveCount = isOpenChat ? 0 : (unreadCount ?? 0);
         setConversations(prev => prev.map(c =>
@@ -1797,12 +1848,12 @@ export const ChatProvider = ({ children }) => {
   const selectConversation = async (conv) => {
     setSelectedConversation(conv);
     if (!conv) {
-      localStorage.removeItem('selectedConversationId');
+      clearStoredSelectedConversationId();
       setMessages([]);
       return;
     }
     if (conv._id) {
-      localStorage.setItem('selectedConversationId', conv._id);
+      setStoredSelectedConversationId(conv._id);
     }
     try {
       // Check for demo messages first
@@ -1852,6 +1903,22 @@ export const ChatProvider = ({ children }) => {
       setMessages([]);
     }
   };
+
+  useEffect(() => {
+    if (!conversations.length) return;
+    const params = new URLSearchParams(window.location.search);
+    const targetConversationId = params.get('conversationId') || params.get('chatId');
+    if (!targetConversationId) return;
+    if (String(selectedConversation?._id) === String(targetConversationId)) return;
+
+    const targetConversation = conversations.find(
+      (conversation) => String(conversation._id) === String(targetConversationId)
+    );
+    if (!targetConversation) return;
+
+    selectConversation(targetConversation);
+    window.history.replaceState({}, '', window.location.pathname);
+  }, [conversations, selectedConversation?._id]);
 
   const editMessage = async (id, newContent) => {
     setMessages(prev => prev.map(m => m._id === id ? { ...m, content: newContent, editedAt: new Date(), isEdited: true } : m));
@@ -1955,24 +2022,33 @@ export const ChatProvider = ({ children }) => {
   };
 
   // ── Calls (Phase 8) ──
-  const getOtherParticipantId = useCallback((conversation) => {
+  const getOtherParticipant = useCallback((conversation) => {
     if (!conversation?.participants?.length) return null;
     const me = currentUserId;
-    const other = conversation.participants.find((p) => {
+    return conversation.participants.find((p) => {
       const id = p?._id || p;
       return id?.toString() !== me?.toString();
-    });
-    return other?._id || other || null;
+    }) || null;
   }, [currentUserId]);
+
+  const getOtherParticipantId = useCallback((conversation) => {
+    const other = getOtherParticipant(conversation);
+    return other?._id || other || null;
+  }, [getOtherParticipant]);
 
   const initiateCall = (type, conversationOrUser) => {
     const conversation = conversationOrUser?.participants
       ? conversationOrUser
       : selectedConversation;
+    const callee = getOtherParticipant(conversation) || conversationOrUser;
     const calleeId = getOtherParticipantId(conversation);
+    if (!conversation?._id || !calleeId) {
+      console.warn('[ChatContext] Cannot start call without conversation and callee');
+      return;
+    }
     const callData = {
       type,
-      user: conversationOrUser,
+      user: callee,
       status: 'calling',
       conversationId: conversation?._id,
       calleeId
@@ -1981,7 +2057,8 @@ export const ChatProvider = ({ children }) => {
     emitSafe('call:start', {
       conversationId: conversation?._id,
       callType: type,
-      calleeId
+      calleeId,
+      targetUserId: calleeId
     });
   };
 
@@ -2457,7 +2534,7 @@ export const ChatProvider = ({ children }) => {
             try {
               await Promise.all(remoteConversations.map((conversation) => DB.saveConversation(conversation)));
             } catch (_) { /* IndexedDB cache is best-effort */ }
-            const storedId = localStorage.getItem('selectedConversationId');
+            const storedId = getStoredSelectedConversationId();
             if (storedId) {
               const matched = remoteConversations.find(c => c._id === storedId);
               if (matched) {
@@ -3117,7 +3194,7 @@ export const ChatProvider = ({ children }) => {
           });
 
           // Check if user has switched chats to prevent leakage
-          const currentSelectedId = localStorage.getItem('selectedConversationId');
+          const currentSelectedId = getStoredSelectedConversationId();
           const isStillActive = currentSelectedId === oldConvId || currentSelectedId === realConvId;
 
           if (isStillActive) {
@@ -3137,7 +3214,7 @@ export const ChatProvider = ({ children }) => {
             });
 
             // Persist the selected conversation ID
-            localStorage.setItem('selectedConversationId', realConvId);
+            setStoredSelectedConversationId(realConvId);
           }
         }
       } catch (err) {

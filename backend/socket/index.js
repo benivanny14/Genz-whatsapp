@@ -7,7 +7,11 @@ const Broadcast = require('../models/Broadcast');
 const { persistCallFromSocket } = require('../controllers/callController');
 const activeCalls = require('../utils/activeCalls');
 const { resolveMessageMentions } = require('../utils/mentions');
-const { sendMentionNotification } = require('../services/notificationService');
+const {
+  sendMentionNotification,
+  sendNewMessageNotification,
+  sendIncomingCallNotification
+} = require('../services/notificationService');
 const { ensureUnreadMap, getUnreadCount, setUnreadCount } = require('../utils/unreadCount');
 const { serializeOutgoingMessage } = require('../utils/messageSerializer');
 const {
@@ -406,6 +410,14 @@ const setupSocket = (io) => {
         // Deliver once per recipient via their user room (avoids duplicate events)
         const updatedConversation = await Conversation.findById(conversationId);
         if (conversation.participants && Array.isArray(conversation.participants)) {
+          const notificationTasks = [];
+          const notificationText =
+            messageType === 'image' ? 'Photo' :
+            messageType === 'video' ? 'Video' :
+            messageType === 'audio' || messageType === 'voice' ? 'Voice note' :
+            messageType === 'sticker' ? 'Sticker' :
+            messageType === 'gif' ? 'GIF' :
+            String(safeContent || 'New message').slice(0, 120);
           for (const participantId of conversation.participants) {
             if (participantId.toString() === socket.userId.toString()) continue;
             const isBlocked = await isEitherUserBlocked(socket.userId, participantId);
@@ -418,6 +430,18 @@ const setupSocket = (io) => {
                 unreadCount: getUnreadCount(updatedConversation, userId)
               });
             }
+            notificationTasks.push(sendNewMessageNotification(userId, {
+              senderName: populatedMessage.sender?.username || 'GENZ',
+              text: notificationText,
+              conversationId: String(conversationId),
+              senderId: String(socket.userId),
+              type: messageType || 'text'
+            }));
+          }
+          if (notificationTasks.length) {
+            Promise.allSettled(notificationTasks).catch((notifyErr) => {
+              console.warn('[Socket] Message push notification failed:', notifyErr?.message || notifyErr);
+            });
           }
         }
 
@@ -1899,6 +1923,7 @@ const setupSocket = (io) => {
         }
 
         console.log('[WebRTC] Sending offer', { from: socket.userId, to: targetId, callType });
+        const caller = await User.findById(socket.userId).select('username profilePicture').lean();
 
         io.to(targetSocketId).emit('webrtc:offer', {
           from: socket.userId,
@@ -1914,6 +1939,16 @@ const setupSocket = (io) => {
           offer,
           callType,
           conversationId
+        });
+        sendIncomingCallNotification(targetId, {
+          callerName: caller?.username || 'GENZ',
+          callerId: socket.userId,
+          callType: callType || 'audio',
+          conversationId,
+          callId: conversationId || `${socket.userId}-${Date.now()}`,
+          offer
+        }).catch((notifyErr) => {
+          console.warn('[Socket] Incoming call push notification failed:', notifyErr?.message || notifyErr);
         });
       } catch (error) {
         console.error('Error relaying WebRTC offer:', error);

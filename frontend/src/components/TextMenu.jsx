@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Smile, Paperclip, Mic, Camera, Image, FileText, MapPin, Contact, DollarSign, Calendar, Clock, Heart, ThumbsUp, Star, Laugh, Angry, Sad, Surprised } from 'lucide-react';
+import { Smile, Paperclip, Mic, Camera, Image, FileText, MapPin, Contact } from 'lucide-react';
 
 const QUICK_REACTIONS = [
   { emoji: '❤️', name: 'love' },

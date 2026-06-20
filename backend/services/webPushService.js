@@ -27,8 +27,8 @@ const configure = () => {
 const buildPayload = (notification = {}, data = {}) => JSON.stringify({
   title: notification.title || 'GENZ WhatsApp',
   body: notification.body || '',
-  icon: notification.icon || '/icon-192x192.png',
-  badge: notification.badge || '/badge-72x72.png',
+  icon: notification.icon || '/icons/icon-192x192.png',
+  badge: notification.badge || '/icons/icon-192x192.png',
   tag: notification.tag || 'genz-notification',
   data: {
     type: notification.type || data.type || 'notification',

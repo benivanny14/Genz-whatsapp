@@ -4,6 +4,10 @@
  */
 
 // ── Notification Settings ────────────────────────────────────────────────
+import { authFetch } from '../utils/authFetch';
+import { API_URL } from '../utils/authSession';
+import { getDeviceId } from '../utils/deviceIdentity';
+
 const NOTIFICATION_SETTINGS_KEY = 'genz_notification_settings';
 
 const defaultSettings = {
@@ -273,6 +277,76 @@ export const registerServiceWorker = async () => {
   }
 };
 
+const urlBase64ToUint8Array = (base64String) => {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; i += 1) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+
+  return outputArray;
+};
+
+export const subscribeToWebPush = async (registration) => {
+  if (!registration?.pushManager) {
+    return { success: false, reason: 'push-unsupported' };
+  }
+
+  try {
+    const keyResponse = await authFetch(`${API_URL}/notifications/vapid-public-key`);
+    const keyData = await keyResponse.json().catch(() => ({}));
+    const publicKey = keyData.publicKey || keyData.vapidPublicKey;
+
+    if (!keyResponse.ok || !publicKey) {
+      console.warn('[NotificationService] VAPID public key unavailable');
+      return { success: false, reason: 'missing-vapid-key' };
+    }
+
+    let subscription = await registration.pushManager.getSubscription();
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey)
+      });
+    }
+
+    const response = await authFetch(`${API_URL}/notifications/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subscription: subscription.toJSON ? subscription.toJSON() : subscription,
+        deviceId: getDeviceId(),
+        userAgent: navigator.userAgent
+      })
+    });
+    const data = await response.json().catch(() => ({}));
+    return {
+      ...data,
+      success: response.ok && data?.success !== false,
+      subscription
+    };
+  } catch (e) {
+    console.warn('[NotificationService] Push subscription failed:', e);
+    return { success: false, reason: e?.message || 'subscription-failed' };
+  }
+};
+
+export const initialize = async () => {
+  const permission = await requestNotificationPermission();
+  const registration = await registerServiceWorker();
+  setupBackgroundNotificationHandler();
+
+  let push = null;
+  if (permission === 'granted' && registration?.pushManager) {
+    push = await subscribeToWebPush(registration);
+  }
+
+  return { permission, registration, push };
+};
+
 // ── Background Notification Handler ────────────────────────────────────────
 /**
  * Set up background notification handling
@@ -304,5 +378,7 @@ export default {
   showCallNotification,
   showTypingNotification,
   registerServiceWorker,
+  subscribeToWebPush,
+  initialize,
   setupBackgroundNotificationHandler
 };

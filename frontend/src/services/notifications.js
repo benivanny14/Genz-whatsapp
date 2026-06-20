@@ -7,9 +7,13 @@ const SW_URL = '/service-worker.js';
 
 // ── Register Service Worker ───────────────────────────────────────────────
 export const registerServiceWorker = async () => {
-  // Only register in production mode
-  if (!import.meta.env.PROD) {
-    console.log('[Notifications] Skipping SW registration in development');
+  const canRegister =
+    import.meta.env.PROD ||
+    window.location.protocol === 'https:' ||
+    ['localhost', '127.0.0.1'].includes(window.location.hostname);
+
+  if (!canRegister) {
+    console.log('[Notifications] Skipping SW registration on insecure origin');
     return null;
   }
   
@@ -61,12 +65,15 @@ export const showLocalNotification = async (title, body, options = {}) => {
 
   const notifOptions = {
     body,
-    icon: '/icon.png',
-    badge: '/icon.png',
+    icon: '/icons/icon-192x192.png',
+    badge: '/icons/icon-192x192.png',
     vibrate: [200, 100, 200],
     tag: options.conversationId || 'genz-msg',
     renotify: true,
-    data: { conversationId: options.conversationId, url: '/' },
+    data: {
+      conversationId: options.conversationId,
+      url: options.conversationId ? `/chat?conversationId=${options.conversationId}` : '/'
+    },
     ...options
   };
 
@@ -88,9 +95,10 @@ export const showLocalNotification = async (title, body, options = {}) => {
 export const notifyNewMessage = (senderName, messagePreview, conversationId) => {
   // Only notify if tab is not focused
   if (document.visibilityState === 'visible') return;
+  const preview = typeof messagePreview === 'string' ? messagePreview : 'New message';
   showLocalNotification(
     `💬 ${senderName}`,
-    messagePreview.substring(0, 100),
+    preview.substring(0, 100),
     { conversationId }
   );
 };

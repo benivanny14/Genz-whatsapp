@@ -142,10 +142,15 @@ const CallScreen = ({ call, onEndCall, onAcceptCall, onRejectCall, onToggleMute,
       }
 
       try {
+        const targetUserId = call.calleeId || call.user?._id || call.callerId;
+        if (!targetUserId) {
+          throw new Error('Missing call target user');
+        }
         const stream = await webRTCService.createCall(
-          call.user?._id || call.callerId,
+          targetUserId,
           call.type || 'audio',
-          socket
+          socket,
+          call.conversationId
         );
         if (cancelled) return;
         setHasLocalStream(true);
@@ -210,7 +215,10 @@ const CallScreen = ({ call, onEndCall, onAcceptCall, onRejectCall, onToggleMute,
     setCallStatus('connecting');
     try {
       if (socket && call?.callerId) {
-        socket.emit('call:accept', { to: call.callerId });
+        socket.emit('call:accept', {
+          conversationId: call.conversationId,
+          callerId: call.callerId
+        });
       }
       const stream = await webRTCService.answerCall(
         call.offer,

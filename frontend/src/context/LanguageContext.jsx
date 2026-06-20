@@ -3,6 +3,21 @@ import { translations } from '../components/LanguageSelector';
 
 const LanguageContext = createContext();
 
+const readStoredLanguage = () => {
+  try {
+    const userSettings = JSON.parse(localStorage.getItem('genz_user_settings') || '{}');
+    const legacySettings = JSON.parse(localStorage.getItem('genz_settings') || '{}');
+    const saved =
+      userSettings.app?.language ||
+      legacySettings.app?.language ||
+      localStorage.getItem('genz_language');
+
+    return saved && saved !== 'system' ? saved : 'en';
+  } catch (e) {
+    return 'en';
+  }
+};
+
 export const LanguageProvider = ({ children }) => {
   const [currentLanguage, setCurrentLanguage] = useState('en');
 
@@ -39,9 +54,9 @@ export const LanguageProvider = ({ children }) => {
         
         // Apply initial language after init
         setTimeout(() => {
-          const settings = JSON.parse(localStorage.getItem('genz_settings') || '{}');
-          if (settings.app?.language && settings.app.language !== 'system' && settings.app.language !== 'en') {
-             updateGoogleTranslate(settings.app.language);
+          const savedLanguage = readStoredLanguage();
+          if (savedLanguage !== 'en') {
+             updateGoogleTranslate(savedLanguage);
           }
         }, 1000);
       };
@@ -54,12 +69,9 @@ export const LanguageProvider = ({ children }) => {
 
     const handleStorageChange = () => {
       try {
-        const settings = JSON.parse(localStorage.getItem('genz_settings') || '{}');
-        const newLang = (settings.app && settings.app.language && settings.app.language !== 'system') 
-            ? settings.app.language 
-            : 'en';
-        
+        const newLang = readStoredLanguage();
         setCurrentLanguage(newLang);
+        document.documentElement.lang = newLang;
         updateGoogleTranslate(newLang);
       } catch (e) {
         // ignore

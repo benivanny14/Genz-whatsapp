@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChat } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
@@ -53,7 +53,12 @@ import { getAvatarUrl } from '../utils/avatar';
 const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added mods prop
   const { user } = useUser();
   const navigate = useNavigate();
-  const { conversations, selectConversation, selectedConversation, onlineUsers, togglePinChat, toggleMuteChat, toggleArchiveChat, clearChat, deleteChat, callLogs, statuses, addStatus, uploadStatusMedia, profileVisitors, showProfileEditor, setShowProfileEditor, typingByConversation } = useChat();
+  const { conversations, selectConversation, selectedConversation, onlineUsers, togglePinChat, toggleMuteChat, toggleArchiveChat, clearChat, deleteChat, callLogs, statuses, addStatus, deleteStatus, uploadStatusMedia, profileVisitors, showProfileEditor, setShowProfileEditor, typingByConversation } = useChat();
+  const currentUserId = String(user?._id || user?.id || 'anonymous');
+  const defaultChatTabs = ['All', 'Personal', 'Work', 'Groups'];
+  const chatTabsStorageKey = useMemo(() => `genz_chat_tabs:${currentUserId}`, [currentUserId]);
+  const chatTabMapStorageKey = useMemo(() => `genz_chat_tab_map:${currentUserId}`, [currentUserId]);
+  const chatListWallpaperKey = useMemo(() => `genz_chatlist_wallpaper:${currentUserId}`, [currentUserId]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showMenu, setShowMenu] = useState(false);
   const [activeTab, setActiveTab] = useState('chats'); // 'chats' or 'calls'
@@ -68,17 +73,28 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   // GENZ MOD: Custom Chat Tabs
   const [chatTabs, setChatTabs] = useState(() => {
     try {
-      const stored = localStorage.getItem('genz_chat_tabs');
-      if (stored) return JSON.parse(stored);
+      const stored = localStorage.getItem(chatTabsStorageKey) || localStorage.getItem('genz_chat_tabs');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return Array.isArray(parsed) && parsed.length ? parsed : defaultChatTabs;
+      }
     } catch(e) {}
-    return ['All', 'Personal', 'Work', 'Groups'];
+    return defaultChatTabs;
   });
   const [chatTabMap, setChatTabMap] = useState(() => {
     try {
-      const stored = localStorage.getItem('genz_chat_tab_map');
+      const stored = localStorage.getItem(chatTabMapStorageKey) || localStorage.getItem('genz_chat_tab_map');
       if (stored) return JSON.parse(stored);
     } catch(e) {}
     return {};
+  });
+  const chatListWallpaperInputRef = useRef(null);
+  const [chatListWallpaper, setChatListWallpaper] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(chatListWallpaperKey) || 'null');
+    } catch (e) {
+      return null;
+    }
   });
   const [showAddTabModal, setShowAddTabModal] = useState(false);
   const [newTabName, setNewTabName] = useState('');
@@ -86,6 +102,30 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   const [showStatusCreator, setShowStatusCreator] = useState(false);
   const [statusCreatorMode, setStatusCreatorMode] = useState('text'); // 'text' or 'media'
   // Removed unnecessary forceUpdate logic that was causing re-render loops
+
+  useEffect(() => {
+    try {
+      const storedTabs = localStorage.getItem(chatTabsStorageKey) || localStorage.getItem('genz_chat_tabs');
+      const parsedTabs = storedTabs ? JSON.parse(storedTabs) : null;
+      setChatTabs(Array.isArray(parsedTabs) && parsedTabs.length ? parsedTabs : defaultChatTabs);
+
+      const storedMap = localStorage.getItem(chatTabMapStorageKey) || localStorage.getItem('genz_chat_tab_map');
+      setChatTabMap(storedMap ? JSON.parse(storedMap) : {});
+      setActiveFolder('All');
+    } catch (e) {
+      setChatTabs(defaultChatTabs);
+      setChatTabMap({});
+      setActiveFolder('All');
+    }
+  }, [chatTabMapStorageKey, chatTabsStorageKey, currentUserId]);
+
+  useEffect(() => {
+    try {
+      setChatListWallpaper(JSON.parse(localStorage.getItem(chatListWallpaperKey) || 'null'));
+    } catch (e) {
+      setChatListWallpaper(null);
+    }
+  }, [chatListWallpaperKey]);
 
   // Handler for when StatusCreator finishes
   const handleStatusSend = async (statusData) => {
@@ -204,7 +244,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     if (newTabName.trim() && !chatTabs.includes(newTabName.trim())) {
       const updated = [...chatTabs, newTabName.trim()];
       setChatTabs(updated);
-      localStorage.setItem('genz_chat_tabs', JSON.stringify(updated));
+      localStorage.setItem(chatTabsStorageKey, JSON.stringify(updated));
       setNewTabName('');
       setShowAddTabModal(false);
       setActiveFolder(newTabName.trim());
@@ -221,7 +261,60 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     }
     const newMap = { ...chatTabMap, [chatId]: updatedTabs };
     setChatTabMap(newMap);
-    localStorage.setItem('genz_chat_tab_map', JSON.stringify(newMap));
+    localStorage.setItem(chatTabMapStorageKey, JSON.stringify(newMap));
+  };
+
+  const handleDeleteTab = (tabName) => {
+    if (defaultChatTabs.includes(tabName)) return;
+    const updatedTabs = chatTabs.filter((tab) => tab !== tabName);
+    const updatedMap = Object.fromEntries(
+      Object.entries(chatTabMap).map(([chatId, tabs]) => [
+        chatId,
+        (tabs || []).filter((tab) => tab !== tabName)
+      ])
+    );
+    setChatTabs(updatedTabs);
+    setChatTabMap(updatedMap);
+    localStorage.setItem(chatTabsStorageKey, JSON.stringify(updatedTabs));
+    localStorage.setItem(chatTabMapStorageKey, JSON.stringify(updatedMap));
+    if (activeFolder === tabName) setActiveFolder('All');
+  };
+
+  const handleChatListWallpaperUpload = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+      alert('Please choose an image or video wallpaper');
+      event.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const nextWallpaper = {
+        type: file.type.startsWith('video/') ? 'video' : 'image',
+        url: reader.result,
+        name: file.name
+      };
+      try {
+        localStorage.setItem(chatListWallpaperKey, JSON.stringify(nextWallpaper));
+      } catch (e) {
+        alert('Wallpaper file is too large for this browser storage');
+        event.target.value = '';
+        return;
+      }
+      setChatListWallpaper(nextWallpaper);
+      setShowMenu(false);
+      event.target.value = '';
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const clearChatListWallpaper = () => {
+    localStorage.removeItem(chatListWallpaperKey);
+    setChatListWallpaper(null);
+    setShowMenu(false);
   };
 
   const getConversationName = (conv) => {
@@ -302,9 +395,26 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
 
   return (
     <aside
-      className={`bg-dark-surface border-r border-dark-border flex flex-col transition-all duration-300 ${isOpen ? 'w-full md:w-80' : 'w-full md:w-16'}`}
+      className={`relative overflow-hidden bg-dark-surface border-r border-dark-border flex flex-col transition-all duration-300 ${isOpen ? 'w-full md:w-80' : 'w-full md:w-16'}`}
     >
-      <div className="p-4 border-b border-dark-border">
+      {chatListWallpaper?.url && (
+        chatListWallpaper.type === 'video' ? (
+          <video
+            src={chatListWallpaper.url}
+            className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover opacity-20"
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
+        ) : (
+          <div
+            className="pointer-events-none absolute inset-0 z-0 bg-cover bg-center opacity-20"
+            style={{ backgroundImage: `url(${chatListWallpaper.url})` }}
+          />
+        )
+      )}
+      <div className="relative z-10 p-4 border-b border-dark-border bg-dark-surface/85 backdrop-blur-sm">
         <div className="flex items-center justify-between mb-4">
           {isOpen && (
             <div className="flex items-center gap-3 cursor-pointer hover:bg-dark-hover p-1 rounded-lg transition-colors" onClick={() => setShowProfileEditor(true)}>
@@ -438,6 +548,29 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     <CheckCheck className="w-4 h-4" />
                     <span>Starred Messages</span>
                   </button>
+                  <input
+                    ref={chatListWallpaperInputRef}
+                    type="file"
+                    accept="image/*,video/*"
+                    className="hidden"
+                    onChange={handleChatListWallpaperUpload}
+                  />
+                  <button
+                    onClick={() => chatListWallpaperInputRef.current?.click()}
+                    className="w-full flex items-center gap-3 px-4 py-2 hover:bg-dark-hover text-dark-text"
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span>Chatlist wallpaper</span>
+                  </button>
+                  {chatListWallpaper?.url && (
+                    <button
+                      onClick={clearChatListWallpaper}
+                      className="w-full flex items-center gap-3 px-4 py-2 hover:bg-dark-hover text-red-400"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>Remove wallpaper</span>
+                    </button>
+                  )}
                   <div className="border-t border-dark-border my-1" />
                   <button
                     onClick={() => {
@@ -495,13 +628,23 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
         {isOpen && activeTab === 'chats' && (
           <div className="flex gap-2 mb-3 overflow-x-auto scrollbar-none py-1">
             {chatTabs.map(folder => (
-              <button
-                key={folder}
-                onClick={() => setActiveFolder(folder)}
-                className={`px-3 py-1 text-[10px] font-bold rounded-full border transition-all whitespace-nowrap ${activeFolder === folder ? 'bg-primary-600 border-primary-600 text-white' : 'border-dark-border text-dark-textSecondary hover:bg-dark-hover'}`}
-              >
-                {folder}
-              </button>
+              <div key={folder} className="flex items-center">
+                <button
+                  onClick={() => setActiveFolder(folder)}
+                  className={`px-3 py-1 text-[10px] font-bold rounded-full border transition-all whitespace-nowrap ${activeFolder === folder ? 'bg-primary-600 border-primary-600 text-white' : 'border-dark-border text-dark-textSecondary hover:bg-dark-hover'}`}
+                >
+                  {folder}
+                </button>
+                {!defaultChatTabs.includes(folder) && (
+                  <button
+                    onClick={() => handleDeleteTab(folder)}
+                    className="-ml-2 flex h-5 w-5 items-center justify-center rounded-full border border-dark-border bg-dark-surface text-[10px] text-dark-textSecondary hover:text-red-400"
+                    title={`Remove ${folder}`}
+                  >
+                    x
+                  </button>
+                )}
+              </div>
             ))}
             <button
               onClick={() => setShowAddTabModal(true)}
@@ -527,7 +670,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-thin">
+      <div className="relative z-10 flex-1 overflow-y-auto scrollbar-thin bg-dark-surface/70 backdrop-blur-[1px]">
         {isOpen && activeTab === 'chats' && archivedCount > 0 && (
           <button
             onClick={() => setShowArchivedOnly(!showArchivedOnly)}
@@ -904,7 +1047,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
         )}
       </div>
 
-      <div className="p-4 border-t border-dark-border">
+      <div className="relative z-10 p-4 border-t border-dark-border bg-dark-surface/85 backdrop-blur-sm">
         <button
           onClick={() => navigate('/new-group')}
           className={`flex items-center gap-2 w-full p-2 hover:bg-dark-hover rounded-lg transition-colors ${!isOpen ? 'justify-center' : ''

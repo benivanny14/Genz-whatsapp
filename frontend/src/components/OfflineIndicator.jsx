@@ -1,14 +1,11 @@
 import React from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { isOffline } from '../services/api';
-import { useChat } from '../context/ChatContext';
 
 const OfflineIndicator = () => {
-  const { isSocketConnected } = useChat();
   const browserOffline = isOffline();
-  const serverOffline = navigator.onLine && !isSocketConnected;
 
-  if (!browserOffline && !serverOffline) return null;
+  if (!browserOffline) return null;
 
   const handleRetry = () => {
     window.dispatchEvent(new Event('process-offline-queue'));
@@ -20,14 +17,8 @@ const OfflineIndicator = () => {
     <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-yellow-100 border border-yellow-300 text-yellow-800 px-4 py-3 rounded-lg shadow-lg flex items-center space-x-3 max-w-md">
       <AlertCircle className="w-5 h-5 text-yellow-600 shrink-0" />
       <div className="flex-1">
-        <h3 className="font-semibold text-sm mb-1">
-          {browserOffline ? 'Huna mtandao' : 'Server haipatikani'}
-        </h3>
-        <p className="text-xs text-yellow-700">
-          {browserOffline
-            ? 'Ujumbe utatumwa utakaporudi mtandaoni.'
-            : 'Inajaribu kuunganisha tena na server...'}
-        </p>
+        <h3 className="font-semibold text-sm mb-1">Huna mtandao</h3>
+        <p className="text-xs text-yellow-700">Ujumbe utatumwa utakaporudi mtandaoni.</p>
       </div>
       <button
         onClick={handleRetry}

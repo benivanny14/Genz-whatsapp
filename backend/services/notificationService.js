@@ -135,7 +135,7 @@ const sendNewMessageNotification = async (userId, messageData) => {
     title: messageData.senderName || 'New Message',
     body: messageData.text || 'New message received',
     type: 'message',
-    clickAction: `/chat/${messageData.conversationId}`,
+    clickAction: `/chat?conversationId=${messageData.conversationId}`,
     tag: `message-${messageData.conversationId}`,
     priority: 'high'
   };
@@ -185,7 +185,7 @@ const sendIncomingCallNotification = async (userId, callData) => {
     title: `${callData.callerName || 'Incoming Call'}`,
     body: callData.callType === 'video' ? 'Video call' : 'Audio call',
     type: 'incoming_call',
-    clickAction: '/calls',
+    clickAction: callData.conversationId ? `/chat?conversationId=${callData.conversationId}` : '/calls',
     tag: `call-${callData.callId}`,
     priority: 'high',
     sound: 'ringtone'
@@ -194,6 +194,7 @@ const sendIncomingCallNotification = async (userId, callData) => {
   const data = {
     callId: callData.callId,
     callerId: callData.callerId,
+    conversationId: callData.conversationId,
     callType: callData.callType || 'audio',
     offer: callData.offer
   };
@@ -237,7 +238,7 @@ const sendMentionNotification = async (userId, mentionData) => {
     title: `${mentionData.mentionerName} mentioned you`,
     body: mentionData.text || 'You were mentioned in a message',
     type: 'mention',
-    clickAction: `/chat/${mentionData.conversationId}`,
+    clickAction: `/chat?conversationId=${mentionData.conversationId}`,
     tag: `mention-${mentionData.messageId}`,
     priority: 'high'
   };
@@ -263,7 +264,7 @@ const sendGroupNotification = async (groupId, userIds, groupData) => {
     title: groupData.groupName || 'Group Message',
     body: `${groupData.senderName}: ${groupData.text || 'New message'}`,
     type: 'group_message',
-    clickAction: `/chat/${groupId}`,
+    clickAction: `/chat?conversationId=${groupId}`,
     tag: `group-${groupId}`,
     priority: 'normal'
   };

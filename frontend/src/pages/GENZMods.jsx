@@ -129,7 +129,7 @@ const GENZMods = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center overflow-hidden">
         <div className="text-center">
           <RefreshCw className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-4" />
           <p className="text-gray-600 dark:text-gray-400">Loading GENZ Mods...</p>
@@ -139,7 +139,7 @@ const GENZMods = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex h-screen min-h-0 flex-col overflow-hidden bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4">
@@ -193,7 +193,8 @@ const GENZMods = () => {
         </div>
       </div>
 
-      <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-6 pb-20 space-y-6">
+      <div className="min-h-0 flex-1 w-full overflow-y-auto px-4 py-6 pb-20">
+        <div className="mx-auto max-w-4xl space-y-6">
         {/* Success/Error Messages */}
         <AnimatePresence>
           {success && (
@@ -469,6 +470,7 @@ const GENZMods = () => {
               </label>
             </div>
           </div>
+        </div>
         </div>
       </div>
 

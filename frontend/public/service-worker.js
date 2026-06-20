@@ -136,33 +136,61 @@ self.addEventListener('fetch', (event) => {
 
 // Handle push events
 self.addEventListener('push', (event) => {
-  const data = event.data ? event.data.json() : {};
-  const { title, body, chatId, messageId, sender, type = 'message' } = data;
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (error) {
+    data = { body: event.data?.text?.() || 'New notification' };
+  }
+
+  const notificationData = data.data || {};
+  const title = data.title || notificationData.title || 'GENZ WhatsApp';
+  const body = data.body || notificationData.body || 'New message';
+  const type = data.type || notificationData.type || 'message';
+  const chatId = data.chatId || data.conversationId || notificationData.conversationId;
+  const messageId = data.messageId || notificationData.messageId;
+  const clickUrl =
+    notificationData.clickAction ||
+    data.clickAction ||
+    data.url ||
+    (chatId ? `/chat?conversationId=${chatId}` : '/');
+  const isIncomingCall = type === 'incoming_call' || type === 'call';
 
   const options = {
     body: body || 'New message',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-72x72.png',
-    tag: messageId || chatId,
-    requireInteraction: false,
+    icon: data.icon || '/icons/icon-192x192.png',
+    badge: data.badge || '/icons/icon-192x192.png',
+    tag: data.tag || messageId || chatId || 'genz-notification',
+    requireInteraction: Boolean(isIncomingCall || data.requireInteraction),
     silent: false,
     data: {
+      ...notificationData,
       chatId,
       messageId,
-      sender,
+      sender: data.sender || notificationData.sender,
       type,
-      url: chatId ? `/chat/${chatId}` : '/'
-    }
+      url: clickUrl
+    },
+    actions: isIncomingCall
+      ? [
+          { action: 'open', title: 'Open' },
+          { action: 'dismiss', title: 'Dismiss' }
+        ]
+      : [
+          { action: 'open', title: 'Open' },
+          { action: 'dismiss', title: 'Dismiss' }
+        ]
   };
 
   event.waitUntil(
-    self.registration.showNotification(title || 'GENZ WhatsApp', options)
+    self.registration.showNotification(title, options)
   );
 });
 
 // Handle notification click
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  if (event.action === 'dismiss') return;
 
   const url = event.notification.data?.url || '/';
 
@@ -170,7 +198,7 @@ self.addEventListener('notificationclick', (event) => {
     clients.matchAll({ type: 'window' }).then((clientList) => {
       // If a window is already open, focus it
       for (const client of clientList) {
-        if (client.url === url && 'focus' in client) {
+        if (client.url.includes(url) && 'focus' in client) {
           return client.focus();
         }
       }

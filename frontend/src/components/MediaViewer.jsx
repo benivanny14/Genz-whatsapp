@@ -4,6 +4,7 @@ import { X, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 const MediaViewer = ({ src, type, onClose, alt = '' }) => {
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
+  const safeSrc = String(src || '');
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -21,11 +22,17 @@ const MediaViewer = ({ src, type, onClose, alt = '' }) => {
   const handleZoomOut = () => setZoom(z => Math.max(z - 0.25, 0.5));
   const handleRotate = () => setRotation(r => (r + 90) % 360);
   const handleReset = () => { setZoom(1); setRotation(0); };
+  const handleWheel = (e) => {
+    e.preventDefault();
+    setZoom(z => Math.min(3, Math.max(0.5, z + (e.deltaY < 0 ? 0.1 : -0.1))));
+  };
+
+  if (!safeSrc) return null;
 
   return (
-    <div className="media-fullscreen" onClick={onClose}>
+    <div className="media-fullscreen" onClick={onClose} onWheel={handleWheel}>
       {/* Controls */}
-      <div className="absolute top-4 right-4 z-10 flex gap-2">
+      <div className="absolute top-4 right-4 z-10 flex gap-2" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={handleZoomOut}
           className="p-2 bg-black/50 hover:bg-black/70 text-white rounded-lg transition-colors"
@@ -71,9 +78,9 @@ const MediaViewer = ({ src, type, onClose, alt = '' }) => {
         onClick={(e) => e.stopPropagation()}
         className="relative flex items-center justify-center"
       >
-        {type === 'video' || src.endsWith('.mp4') || src.endsWith('.webm') ? (
+        {type === 'video' || safeSrc.endsWith('.mp4') || safeSrc.endsWith('.webm') ? (
           <video
-            src={src}
+            src={safeSrc}
             controls
             autoPlay
             className="max-w-[90%] max-h-[90%] object-contain rounded-lg"
@@ -84,7 +91,7 @@ const MediaViewer = ({ src, type, onClose, alt = '' }) => {
           />
         ) : (
           <img
-            src={src}
+            src={safeSrc}
             alt={alt}
             className="max-w-[90%] max-h-[90%] object-contain rounded-lg"
             style={{

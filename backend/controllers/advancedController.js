@@ -10,6 +10,7 @@ const {
   isConfigured: isCloudinaryConfigured
 } = require('../config/cloudinary');
 const { assertSafeExternalUrl } = require('../utils/networkGuard');
+const { serializeOutgoingMessage } = require('../utils/messageSerializer');
 
 const LOCAL_USER_ID = process.env.LOCAL_USER_ID || '60d5ecb8b392cb371c664c12';
 const getCurrentUserId = (req) => req.user?._id?.toString() || LOCAL_USER_ID;
@@ -985,6 +986,18 @@ exports.replyToStatus = async (req, res) => {
     const populatedMessage = await Message.findById(message._id)
       .populate('sender', 'username profilePicture');
 
+    const quotedStatus = {
+      statusId: status._id.toString(),
+      ownerName: status.username || 'Status',
+      preview: status.content || status.caption || 'Status',
+      type: status.type || 'text',
+      mediaUrl: status.mediaUrl || null
+    };
+    const outgoingMessage = {
+      ...serializeOutgoingMessage(populatedMessage),
+      quotedStatus
+    };
+
     conversation.lastMessage = message._id;
     conversation.updatedAt = new Date();
     await conversation.save();
@@ -994,21 +1007,15 @@ exports.replyToStatus = async (req, res) => {
     if (io) {
       // Tuma kwa owner wa status
       if (status.userId) {
-        io.to(String(status.userId)).emit('message:received', {
-          ...populatedMessage.toObject(),
-          conversationId: conversation._id
-        });
+        io.to(String(status.userId)).emit('message:received', outgoingMessage);
       }
       // Tuma kwenye conversation room
-      io.to(String(conversation._id)).emit('message:received', {
-        ...populatedMessage.toObject(),
-        conversationId: conversation._id
-      });
+      io.to(String(conversation._id)).emit('message:received', outgoingMessage);
     }
 
     res.status(201).json({ 
       success: true, 
-      message: populatedMessage,
+      message: outgoingMessage,
       reply: status.replies[status.replies.length - 1]
     });
   } catch (error) {

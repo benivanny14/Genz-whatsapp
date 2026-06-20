@@ -403,8 +403,6 @@ const translations = {
     'im_shy': 'I\'m shy',
     'im_curious': 'I\'m curious',
     'im_interested': 'I\'m interested',
-    'im_bored': 'I\'m bored',
-    'im_excited': 'I\'m excited',
     'im_motivated': 'I\'m motivated',
     'im_inspired': 'I\'m inspired',
     'im_creative': 'I\'m creative',
@@ -522,7 +520,6 @@ const translations = {
     'im_responding': 'I\'m responding',
     'im_replying': 'I\'m replying',
     'im_questioning': 'I\'m questioning',
-    'im_wondering': 'I\'m wondering',
   },
   sw: {
     'chat': 'Mazungumzo',
@@ -966,7 +963,6 @@ const translations = {
     'im_responding': 'Ninajibu',
     'im_replying': 'Ninajibu',
     'im_questioning': 'Ninauliza',
-    'im_wondering': 'Ninashangaa',
   },
 };
 
@@ -1016,5 +1012,5 @@ const LanguageSelector = ({ currentLanguage, onLanguageChange }) => {
   );
 };
 
-export { LanguageSelector, translations, t };
+export { LanguageSelector, translations };
 export default LanguageSelector;

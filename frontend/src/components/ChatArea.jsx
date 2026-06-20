@@ -2100,14 +2100,14 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         {!isSearching && (
           <div className="flex items-center gap-1 ml-auto relative">
             {/* Voice call */}
-            <button onClick={() => !isDNDMode && initiateCall('audio', selectedConversation.participants[0])}
+            <button onClick={() => !isDNDMode && initiateCall('audio', selectedConversation)}
               title="Voice Call"
               disabled={isDNDMode}
               className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-40">
               <Phone size={18} className="text-white/80" />
             </button>
             {/* Video call */}
-            <button onClick={() => !isDNDMode && initiateCall('video', selectedConversation.participants[0])}
+            <button onClick={() => !isDNDMode && initiateCall('video', selectedConversation)}
               title="Video Call"
               disabled={isDNDMode}
               className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-40">
@@ -2308,6 +2308,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                         ? 'bg-primary-600 text-white rounded-tr-none ml-12'
                         : 'bg-dark-surface text-dark-text rounded-tl-none mr-12'}`
                       }`}
+                    onClick={() => {
+                      const messageKey = message.id || message._id;
+                      if (activeMessageMenu === messageKey) {
+                        setActiveMessageMenu(null);
+                      }
+                    }}
                     style={
                       (message.messageType !== 'audio' && message.messageType !== 'voice')
                         ? {
@@ -2365,7 +2371,14 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                           alt={typeof message.gif?.title === 'string' ? message.gif.title : 'GIF'}
                           className="max-w-full rounded-lg max-h-48 object-cover cursor-pointer"
                           loading="lazy"
-                          onClick={() => window.open(message.gif?.url || message.mediaUrl || message.content, '_blank')}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedMedia({
+                              ...message,
+                              mediaUrl: message.gif?.url || message.mediaUrl || message.content,
+                              messageType: 'gif'
+                            });
+                          }}
                         />
                         <p className="text-[10px] text-white/40 mt-0.5">GIF</p>
                       </div>
@@ -2392,7 +2405,13 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                           </div>
                         </div>
                       ) : (
-                        <div className="mb-1">
+                        <div
+                          className="mb-1 cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedMedia(message);
+                          }}
+                        >
                           <SignedMedia
                             as="video"
                             src={mediaSourceOf(message)}
@@ -2411,8 +2430,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                         <img
                           src={message.content || message.mediaUrl}
                           alt={typeof message.content === 'string' ? message.content : 'Sticker'}
-                          className="w-24 h-24 object-contain"
+                          className="w-24 h-24 object-contain cursor-pointer"
                           loading="lazy"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedMedia(message);
+                          }}
                         />
                       </div>
                     )}
@@ -2438,7 +2461,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                           </div>
                         </div>
                       ) : (
-                        <div className="cursor-pointer" onClick={() => setSelectedMedia(message)}>
+                        <div className="cursor-pointer" onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedMedia(message);
+                        }}>
                           <SignedMedia
                             src={mediaSourceOf(message)}
                             alt={typeof message.content === 'string' ? message.content : 'Image'}
@@ -2446,7 +2472,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                             loading="lazy"
                           />
                           {message.caption && <p className="text-xs mt-1 opacity-80">{typeof message.caption === 'string' ? message.caption : 'Caption'}</p>}
-                          <button onClick={() => window.open(mediaSourceOf(message), '_blank')} className="mt-2 bg-primary-600 text-white px-3 py-1 rounded-full text-xs hover:bg-primary-700">
+                          <button onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(mediaSourceOf(message), '_blank');
+                          }} className="mt-2 bg-primary-600 text-white px-3 py-1 rounded-full text-xs hover:bg-primary-700">
                             Download
                           </button>
                         </div>
@@ -3339,8 +3368,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       {/* Media Viewer */}
       {selectedMedia && (
         <MediaViewer
-          src={selectedMedia.mediaUrl || selectedMedia.content}
-          type={selectedMedia.messageType}
+          src={selectedMedia.mediaUrl || selectedMedia.gif?.url || selectedMedia.content}
+          type={selectedMedia.messageType === 'gif' || selectedMedia.messageType === 'sticker' ? 'image' : selectedMedia.messageType}
           alt={typeof selectedMedia.content === 'string' ? selectedMedia.content : 'Media'}
           onClose={() => setSelectedMedia(null)}
         />
