@@ -126,9 +126,9 @@ const SecuritySettings = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center space-x-3">
             <button
@@ -142,7 +142,7 @@ const SecuritySettings = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-6 pb-20 space-y-6">
         {/* Two-Factor Authentication */}
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
           <div className="flex items-start justify-between">

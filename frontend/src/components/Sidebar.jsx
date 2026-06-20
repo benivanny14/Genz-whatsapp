@@ -46,13 +46,14 @@ import {
   MonitorSmartphone,
   Circle
 } from 'lucide-react';
+import ProfileEnlarger from './ProfileEnlarger';
 import { formatConversationTime } from '../utils/formatDate';
 import { getAvatarUrl } from '../utils/avatar';
 
 const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added mods prop
   const { user } = useUser();
   const navigate = useNavigate();
-  const { conversations, selectConversation, selectedConversation, onlineUsers, togglePinChat, toggleMuteChat, toggleArchiveChat, clearChat, deleteChat, callLogs, statuses, addStatus, uploadStatusMedia, profileVisitors, showProfileEditor, setShowProfileEditor } = useChat();
+  const { conversations, selectConversation, selectedConversation, onlineUsers, togglePinChat, toggleMuteChat, toggleArchiveChat, clearChat, deleteChat, callLogs, statuses, addStatus, uploadStatusMedia, profileVisitors, showProfileEditor, setShowProfileEditor, typingByConversation } = useChat();
   const [searchQuery, setSearchQuery] = useState('');
   const [showMenu, setShowMenu] = useState(false);
   const [activeTab, setActiveTab] = useState('chats'); // 'chats' or 'calls'
@@ -62,6 +63,25 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
   const [showArchivedOnly, setShowArchivedOnly] = useState(false);
+  const [enlargedProfile, setEnlargedProfile] = useState(null);
+
+  // GENZ MOD: Custom Chat Tabs
+  const [chatTabs, setChatTabs] = useState(() => {
+    try {
+      const stored = localStorage.getItem('genz_chat_tabs');
+      if (stored) return JSON.parse(stored);
+    } catch(e) {}
+    return ['All', 'Personal', 'Work', 'Groups'];
+  });
+  const [chatTabMap, setChatTabMap] = useState(() => {
+    try {
+      const stored = localStorage.getItem('genz_chat_tab_map');
+      if (stored) return JSON.parse(stored);
+    } catch(e) {}
+    return {};
+  });
+  const [showAddTabModal, setShowAddTabModal] = useState(false);
+  const [newTabName, setNewTabName] = useState('');
   const [statusUploading, setStatusUploading] = useState(false);
   const [showStatusCreator, setShowStatusCreator] = useState(false);
   const [statusCreatorMode, setStatusCreatorMode] = useState('text'); // 'text' or 'media'
@@ -159,7 +179,14 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     if (!showArchivedOnly && conv.isArchived) return false;
 
     // Folder filtering
-    if (activeFolder !== 'All' && conv.folder !== activeFolder) return false;
+    if (activeFolder !== 'All') {
+      if (activeFolder === 'Groups') {
+        if (!conv.isGroup) return false;
+      } else {
+        const tabsForChat = chatTabMap[conv._id] || [];
+        if (!tabsForChat.includes(activeFolder)) return false;
+      }
+    }
 
     if (conv.isGroup) {
       return conv.groupName?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -171,6 +198,30 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
 
   const handleNewChat = () => {
     navigate('/new-chat');
+  };
+
+  const handleAddTab = () => {
+    if (newTabName.trim() && !chatTabs.includes(newTabName.trim())) {
+      const updated = [...chatTabs, newTabName.trim()];
+      setChatTabs(updated);
+      localStorage.setItem('genz_chat_tabs', JSON.stringify(updated));
+      setNewTabName('');
+      setShowAddTabModal(false);
+      setActiveFolder(newTabName.trim());
+    }
+  };
+
+  const handleAssignTab = (chatId, tabName) => {
+    const currentTabs = chatTabMap[chatId] || [];
+    let updatedTabs;
+    if (currentTabs.includes(tabName)) {
+      updatedTabs = currentTabs.filter(t => t !== tabName);
+    } else {
+      updatedTabs = [...currentTabs, tabName];
+    }
+    const newMap = { ...chatTabMap, [chatId]: updatedTabs };
+    setChatTabMap(newMap);
+    localStorage.setItem('genz_chat_tab_map', JSON.stringify(newMap));
   };
 
   const getConversationName = (conv) => {
@@ -443,15 +494,22 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
 
         {isOpen && activeTab === 'chats' && (
           <div className="flex gap-2 mb-3 overflow-x-auto scrollbar-none py-1">
-            {['All', 'Personal', 'Work', 'Groups'].map(folder => (
+            {chatTabs.map(folder => (
               <button
                 key={folder}
                 onClick={() => setActiveFolder(folder)}
-                className={`px-3 py-1 text-[10px] font-bold rounded-full border transition-all whitespace-nowrap ${activeFolder === folder ? 'bg-primary-600 border-primary-600 text-white' : 'border-dark-border text-dark-textSecondary'}`}
+                className={`px-3 py-1 text-[10px] font-bold rounded-full border transition-all whitespace-nowrap ${activeFolder === folder ? 'bg-primary-600 border-primary-600 text-white' : 'border-dark-border text-dark-textSecondary hover:bg-dark-hover'}`}
               >
                 {folder}
               </button>
             ))}
+            <button
+              onClick={() => setShowAddTabModal(true)}
+              className="px-2 py-1 text-[10px] font-bold rounded-full border border-dark-border text-dark-textSecondary hover:bg-dark-hover transition-all"
+              title="Add Custom Tab"
+            >
+              <Plus size={14} />
+            </button>
           </div>
         )}
 
@@ -501,8 +559,8 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     : 'hover:bg-dark-hover'
                     }`}
                 >
-                  <div className="relative w-12 h-12 flex-shrink-0">
-                    <div className="w-12 h-12 rounded-full bg-primary-600 flex items-center justify-center overflow-hidden">
+                  <div className="relative w-12 h-12 flex-shrink-0 cursor-pointer" onClick={(e) => { e.stopPropagation(); setEnlargedProfile(conv); }}>
+                    <div className="w-12 h-12 rounded-full bg-primary-600 flex items-center justify-center overflow-hidden hover:opacity-80 transition-opacity">
                       {getConversationAvatar(conv) ? (
                         <img
                           src={getConversationAvatar(conv)}
@@ -541,11 +599,22 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                       </div>
                     </div>
                     <div className="flex items-center justify-between mt-1">
+                      {typingByConversation[conv._id] ? (
+                        <p className="text-sm truncate flex-1 text-left text-[#00a884] font-medium italic flex items-center gap-1">
+                          <span className="flex gap-0.5 items-center">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#00a884] animate-bounce [animation-delay:-0.3s]"></span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#00a884] animate-bounce [animation-delay:-0.15s]"></span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#00a884] animate-bounce"></span>
+                          </span>
+                          {typingByConversation[conv._id].type === 'recording' ? 'recording...' : 'typing...'}
+                        </p>
+                      ) : (
                       <p className={`text-sm truncate flex-1 text-left ${
                         conv.unreadCount > 0 ? 'text-dark-text font-medium' : 'text-dark-textSecondary'
                       }`}>
                         {getLastMessage(conv)}
                       </p>
+                      )}
                       {conv.lastMessage && (conv.lastMessage.sender?._id || conv.lastMessage.sender) === (user?._id || user?.id) && (
                         <div className="flex items-center gap-1 ml-2">
                           {conv.lastMessage.status === 'sent' && (
@@ -596,6 +665,25 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
               <Archive size={16} />
               <span>{contextMenu.isArchived ? 'Unarchive Chat' : 'Archive Chat'}</span>
             </button>
+            <div className="border-t border-dark-border my-1" />
+            <div className="px-4 py-1 text-xs font-semibold text-dark-textSecondary uppercase tracking-wider">Assign to Tab</div>
+            {chatTabs.filter(t => t !== 'All' && t !== 'Groups').map(tab => {
+              const currentTabs = chatTabMap[contextMenu.chatId] || [];
+              const isAssigned = currentTabs.includes(tab);
+              return (
+                <button
+                  key={tab}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAssignTab(contextMenu.chatId, tab);
+                  }}
+                  className="w-full flex items-center justify-between px-4 py-2 hover:bg-dark-hover text-dark-text transition-colors text-sm"
+                >
+                  <span>{tab}</span>
+                  {isAssigned && <Check size={14} className="text-primary-500" />}
+                </button>
+              );
+            })}
             <div className="border-t border-dark-border my-1" />
             <button
               onClick={() => { handleClearChat(contextMenu.chatId); setContextMenu(null); }}
@@ -837,6 +925,36 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
         <ProfileEditor onClose={() => setShowProfileEditor(false)} />
       )}
 
+      {showAddTabModal && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-dark-surface border border-dark-border rounded-xl w-full max-w-sm overflow-hidden shadow-2xl p-4">
+            <h3 className="text-lg font-bold text-dark-text mb-4">Add Custom Tab</h3>
+            <input
+              type="text"
+              value={newTabName}
+              onChange={(e) => setNewTabName(e.target.value)}
+              placeholder="e.g. Family, Projects, Travel..."
+              className="w-full bg-dark-bg border border-dark-border text-dark-text px-4 py-2 rounded-lg mb-4 focus:outline-none focus:border-primary-500"
+              autoFocus
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => { setShowAddTabModal(false); setNewTabName(''); }}
+                className="px-4 py-2 text-dark-textSecondary hover:text-dark-text transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddTab}
+                className="px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-lg transition-colors"
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <AnimatePresence>
         {showStatusCreator && (
           <StatusCreator
@@ -865,6 +983,14 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
           )
         )}
       </AnimatePresence>
+
+      {enlargedProfile && getConversationAvatar(enlargedProfile) && (
+        <ProfileEnlarger
+          src={getConversationAvatar(enlargedProfile)}
+          alt={getConversationName(enlargedProfile)}
+          onClose={() => setEnlargedProfile(null)}
+        />
+      )}
     </aside>
   );
 };

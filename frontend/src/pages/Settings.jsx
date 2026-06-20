@@ -243,6 +243,7 @@ const applyRuntimeSettings = (settings) => {
     settings.chats?.fontSize === 'large' ? '17px' : settings.chats?.fontSize === 'small' ? '13px' : '15px'
   );
   document.documentElement.lang = settings.app?.language === 'system' ? navigator.language : settings.app?.language || 'en';
+  window.dispatchEvent(new Event('language-changed'));
 };
 
 const SettingSection = ({ title, description, children }) => (

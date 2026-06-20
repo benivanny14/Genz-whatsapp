@@ -100,6 +100,6 @@ export const notifyIncomingCall = (callerName, callType = 'audio') => {
   showLocalNotification(
     `📞 Incoming ${callType} call`,
     `${callerName} is calling you on GENZ WhatsApp`,
-    { tag: 'genz-call' }
+    { tag: 'genz-call', requireInteraction: true }
   );
 };

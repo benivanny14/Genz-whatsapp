@@ -7,6 +7,7 @@ import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { UserProvider } from './context/UserContext'
 import { ChatProvider } from './context/ChatContext'
 import { AuthProvider } from './context/AuthContext'
+import { LanguageProvider } from './context/LanguageContext'
 import { cleanupLocalBlobUrls } from './utils/sanitizeStorage'
 
 cleanupLocalBlobUrls();
@@ -40,11 +41,13 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       }}
     >
       <AuthProvider>
-        <UserProvider>
-          <ChatProvider>
-            <App />
-          </ChatProvider>
-        </UserProvider>
+        <LanguageProvider>
+          <UserProvider>
+            <ChatProvider>
+              <App />
+            </ChatProvider>
+          </UserProvider>
+        </LanguageProvider>
       </AuthProvider>
     </BrowserRouter>
   </ErrorBoundary>

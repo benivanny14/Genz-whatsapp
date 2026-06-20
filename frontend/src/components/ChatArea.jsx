@@ -260,6 +260,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [showDisappearingPicker, setShowDisappearingPicker] = useState(false);
   const [peerPresence, setPeerPresence] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
+  const [selectedMedia, setSelectedMedia] = useState(null);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
   const [showSearchMessages, setShowSearchMessages] = useState(false);
   const [showMediaGallery, setShowMediaGallery] = useState(false);
@@ -635,9 +636,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         isSelfDestruct: Boolean(mods.selfDestruct),
         selfDestructTimer: mods.selfDestruct ? 10 : null,
         isViewOnce: mods.selfDestruct ? false : isViewOnceEnabled,
-        mentions
+        mentions,
+        replyTo: replyingTo
       });
     }
+
     setMessageInput('');
     setIsViewOnceEnabled(false);
     setMentionState({ open: false, query: '', start: -1, cursor: 0, activeIndex: 0 });
@@ -2324,7 +2327,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                     {message.replyTo && (
                       <div className="mb-2 bg-black/20 border-l-4 border-[#25d366] rounded-lg p-2 text-xs">
                         <p className="text-[#25d366] font-bold mb-0.5 text-[11px]">
-                          {typeof message.replyTo.senderName === 'string' ? message.replyTo.senderName : 'Mtumiaji'}
+                          {message.replyTo.sender?.username || message.replyTo.sender?.name || message.replyTo.senderName || 'User'}
                         </p>
                         <p className="text-white/70 truncate">
                           {typeof message.replyTo.content === 'string' ? (message.replyTo.content?.substring(0, 60) + (message.replyTo.content?.length > 60 ? '...' : '')) : 'Reply'}
@@ -2435,7 +2438,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                           </div>
                         </div>
                       ) : (
-                        <div>
+                        <div className="cursor-pointer" onClick={() => setSelectedMedia(message)}>
                           <SignedMedia
                             src={mediaSourceOf(message)}
                             alt={typeof message.content === 'string' ? message.content : 'Image'}
@@ -3330,6 +3333,16 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           }}
           onToggleStar={() => handleContextMenuStar(messageContextMenu.message)}
           onClose={() => setMessageContextMenu(null)}
+        />
+      )}
+
+      {/* Media Viewer */}
+      {selectedMedia && (
+        <MediaViewer
+          src={selectedMedia.mediaUrl || selectedMedia.content}
+          type={selectedMedia.messageType}
+          alt={typeof selectedMedia.content === 'string' ? selectedMedia.content : 'Media'}
+          onClose={() => setSelectedMedia(null)}
         />
       )}
 

@@ -1937,7 +1937,7 @@ const setupSocket = (io) => {
           responderId: socket.userId,
           answer
         });
-        io.to(targetSocketId).emit('call:answered', {
+        io.to(targetSocketId).emit('call:accepted', {
           responderId: socket.userId,
           answer
         });

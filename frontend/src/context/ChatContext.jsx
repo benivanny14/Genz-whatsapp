@@ -322,6 +322,7 @@ export const ChatProvider = ({ children }) => {
   const [downloadedStickers, setDownloadedStickers] = useState([]);
   const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
   const [isOtherUserRecording, setIsOtherUserRecording] = useState(false);
+  const [typingByConversation, setTypingByConversation] = useState({});
   const [isSocketConnected, setIsSocketConnected] = useState(false);
 
   // Auth-removed safe states
@@ -1256,12 +1257,40 @@ export const ChatProvider = ({ children }) => {
       });
 
       // ── Typing indicators ──
-      socket.on('user:typing', ({ userId, isTyping }) => {
-        if (userId !== currentUserId) setIsOtherUserTyping(isTyping);
+      socket.on('user:typing', ({ userId, isTyping, conversationId }) => {
+        if (userId !== currentUserId) {
+          setIsOtherUserTyping(isTyping);
+          if (conversationId) {
+            setTypingByConversation(prev => {
+              const next = { ...prev };
+              if (isTyping) {
+                next[conversationId] = { userId, type: 'typing' };
+              } else {
+                delete next[conversationId];
+              }
+              return next;
+            });
+          }
+        }
       });
 
-      socket.on('user:recording', ({ userId }) => {
-        if (userId !== currentUserId) setIsOtherUserRecording(true);
+      socket.on('user:recording', ({ userId, conversationId }) => {
+        if (userId !== currentUserId) {
+          setIsOtherUserRecording(true);
+          if (conversationId) {
+            setTypingByConversation(prev => ({
+              ...prev,
+              [conversationId]: { userId, type: 'recording' }
+            }));
+            setTimeout(() => {
+              setTypingByConversation(prev => {
+                const next = { ...prev };
+                if (next[conversationId]?.type === 'recording') delete next[conversationId];
+                return next;
+              });
+            }, 3000);
+          }
+        }
         setTimeout(() => setIsOtherUserRecording(false), 3000);
       });
 
@@ -3862,7 +3891,7 @@ export const ChatProvider = ({ children }) => {
     loading, setLoading,
     sendMessage, editMessage, deleteMessage, clearChat, deleteChat,
     addReaction, forwardMessage, markAsRead,
-    isOtherUserTyping, sendTypingStatus,
+    isOtherUserTyping, sendTypingStatus, typingByConversation,
     isOtherUserRecording, sendRecordingStatus,
     activeCall, initiateCall, endCall, acceptCall, rejectCall,
     onlineNotification, broadcasts, sendMassMessage, createBroadcastList,
@@ -3911,7 +3940,7 @@ export const ChatProvider = ({ children }) => {
     exportBackup
   }), [
     user, conversations, selectedConversation, messages, loading,
-    isOtherUserTyping, isOtherUserRecording, activeCall,
+    isOtherUserTyping, isOtherUserRecording, typingByConversation, activeCall,
     onlineNotification, broadcasts, statuses, statusViewers,
     onlineUsers, callLogs, fetchCallLogs, profileVisitors, showProfileEditor,
     contacts, blockedUsers, scheduledMessages, pinnedMessages,
