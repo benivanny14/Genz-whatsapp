@@ -2313,6 +2313,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       if (activeMessageMenu === messageKey) {
                         setActiveMessageMenu(null);
                       }
+                      if (messageContextMenu?.message?.id === messageKey || messageContextMenu?.message?._id === messageKey) {
+                        setMessageContextMenu(null);
+                      }
                     }}
                     style={
                       (message.messageType !== 'audio' && message.messageType !== 'voice')

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { LogIn, Plus, RefreshCw, Trash2, UserRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { persistTokens } from '../utils/authSession';
+import { persistTokens, clearAllUserData } from '../utils/authSession';
 
 const ACCOUNTS_KEY = 'genz_saved_accounts';
 
@@ -53,7 +53,8 @@ const AccountSwitcher = () => {
     setMessage('Current account saved.');
   };
 
-  const switchAccount = (account) => {
+  const switchAccount = async (account) => {
+    await clearAllUserData();
     persistTokens({
       token: account.token,
       refreshToken: account.refreshToken,
