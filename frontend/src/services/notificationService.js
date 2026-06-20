@@ -1,361 +1,299 @@
-import { getDeviceId } from '../utils/deviceIdentity';
-import { authFetch } from '../utils/authFetch';
+/**
+ * Notification Service
+ * Handles push notifications, vibration, and notification settings
+ */
 
-const API_ORIGIN = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
-const API_BASE_URL = API_ORIGIN.endsWith('/api') ? API_ORIGIN : `${API_ORIGIN}/api`;
+// ── Notification Settings ────────────────────────────────────────────────
+const NOTIFICATION_SETTINGS_KEY = 'genz_notification_settings';
 
-const urlBase64ToUint8Array = (base64String) => {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = window.atob(base64);
-  return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+const defaultSettings = {
+  enabled: true,
+  vibration: true,
+  sound: true,
+  showPreview: true,
+  vibrationPattern: [50, 30, 50], // Short vibration for typing
+  messageVibrationPattern: [100, 50, 100, 50, 100], // Longer for messages
+  callVibrationPattern: [200, 100, 200, 100, 200], // Longest for calls
 };
 
-const apiHeaders = () => ({
-  'Content-Type': 'application/json',
-  'x-device-id': getDeviceId()
-});
-
-class NotificationService {
-  constructor() {
-    this.permission = 'default';
-    this.subscribed = false;
-    this.registration = null;
-    this.inAppNotificationCallback = null;
-    this.fcmToken = null;
-    this.firebaseInitialized = false;
-  }
-
-  // Request notification permission
-  async requestPermission() {
-    if (!('Notification' in window)) {
-      console.warn('This browser does not support desktop notification');
-      return false;
+/**
+ * Get notification settings
+ */
+export const getNotificationSettings = () => {
+  try {
+    const saved = localStorage.getItem(NOTIFICATION_SETTINGS_KEY);
+    if (saved) {
+      return { ...defaultSettings, ...JSON.parse(saved) };
     }
-
-    if (Notification.permission === 'granted') {
-      this.permission = 'granted';
-      return true;
-    }
-
-    if (Notification.permission !== 'denied') {
-      const permission = await Notification.requestPermission();
-      this.permission = permission;
-      return permission === 'granted';
-    }
-
-    return false;
+  } catch (e) {
+    console.warn('[NotificationService] Failed to load settings:', e);
   }
+  return defaultSettings;
+};
 
-  // Check if permission is granted
-  hasPermission() {
-    return Notification.permission === 'granted';
+/**
+ * Save notification settings
+ */
+export const saveNotificationSettings = (settings) => {
+  try {
+    localStorage.setItem(NOTIFICATION_SETTINGS_KEY, JSON.stringify(settings));
+  } catch (e) {
+    console.warn('[NotificationService] Failed to save settings:', e);
   }
+};
 
-  // Show in-app notification
-  showInAppNotification({ title, body, chatId, messageId, sender, type = 'message' }) {
-    if (this.inAppNotificationCallback) {
-      this.inAppNotificationCallback({
-        title,
-        body,
-        chatId,
-        messageId,
-        sender,
-        type,
-        timestamp: new Date().toISOString()
-      });
+/**
+ * Update a single setting
+ */
+export const updateNotificationSetting = (key, value) => {
+  const settings = getNotificationSettings();
+  settings[key] = value;
+  saveNotificationSettings(settings);
+  return settings;
+};
+
+// ── Vibration ──────────────────────────────────────────────────────────────
+/**
+ * Trigger vibration (if supported and enabled)
+ * @param {number|number[]} pattern - Vibration pattern
+ */
+export const vibrate = (pattern = [50]) => {
+  const settings = getNotificationSettings();
+  if (!settings.vibration) return;
+
+  if ('vibrate' in navigator) {
+    try {
+      navigator.vibrate(pattern);
+    } catch (e) {
+      console.warn('[NotificationService] Vibration failed:', e);
     }
   }
+};
 
-  // Show system notification
-  async showSystemNotification({ title, body, chatId, messageId, sender, type = 'message' }) {
-    if (!this.hasPermission()) {
-      return false;
-    }
+/**
+ * Short vibration for typing feedback
+ */
+export const vibrateTyping = () => {
+  const settings = getNotificationSettings();
+  if (settings.vibration) {
+    vibrate([20]); // Very short vibration for each keystroke
+  }
+};
 
-    const notification = new Notification(title, {
-      body,
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-72x72.png',
-      tag: messageId || chatId, // Prevent duplicates
-      requireInteraction: false,
-      silent: false,
-      data: {
-        chatId,
-        messageId,
-        sender,
-        type
-      }
-    });
+/**
+ * Medium vibration for message received
+ */
+export const vibrateMessage = () => {
+  const settings = getNotificationSettings();
+  if (settings.vibration) {
+    vibrate(settings.messageVibrationPattern);
+  }
+};
 
-    // Handle notification click
-    notification.onclick = (event) => {
-      event.preventDefault();
-      notification.close();
-      
-      // Navigate to the chat
-      if (chatId && window.location.pathname !== `/chat/${chatId}`) {
-        window.location.href = `/chat/${chatId}`;
-      }
-    };
-
-    // Auto-close after 5 seconds
+/**
+ * Long vibration for incoming call
+ */
+export const vibrateCall = () => {
+  const settings = getNotificationSettings();
+  if (settings.vibration) {
+    // Continuous vibration for calls (repeat pattern)
+    const callPattern = settings.callVibrationPattern;
+    vibrate(callPattern);
+    // Repeat after pattern ends
     setTimeout(() => {
-      notification.close();
-    }, 5000);
+      vibrate(callPattern);
+    }, callPattern.reduce((a, b) => a + b, 0));
+  }
+};
 
-    return true;
+/**
+ * Stop all vibrations
+ */
+export const stopVibration = () => {
+  if ('vibrate' in navigator) {
+    navigator.vibrate(0);
+  }
+};
+
+// ── Push Notifications ─────────────────────────────────────────────────────
+/**
+ * Request notification permission
+ */
+export const requestNotificationPermission = async () => {
+  if (!('Notification' in window)) {
+    return 'unsupported';
   }
 
-  // Show notification (in-app or system based on app state)
-  async showNotification({ title, body, chatId, messageId, sender, type = 'message' }) {
-    const isAppOpen = document.visibilityState === 'visible';
-    
-    // Show in-app notification if app is open
-    if (isAppOpen) {
-      this.showInAppNotification({ title, body, chatId, messageId, sender, type });
+  if (Notification.permission === 'granted') return 'granted';
+  if (Notification.permission === 'denied') return 'denied';
+
+  try {
+    const result = await Notification.requestPermission();
+    return result;
+  } catch (e) {
+    console.warn('[NotificationService] Permission request failed:', e);
+    return 'denied';
+  }
+};
+
+/**
+ * Show a notification (works even when app is closed if service worker is registered)
+ * @param {string} title - Notification title
+ * @param {string} body - Notification body
+ * @param {Object} options - Notification options
+ */
+export const showNotification = async (title, body, options = {}) => {
+  const settings = getNotificationSettings();
+  if (!settings.enabled) return;
+
+  const permission = await requestNotificationPermission();
+  if (permission !== 'granted') return;
+
+  // Check if document is visible (app is open)
+  const isAppOpen = document.visibilityState === 'visible';
+
+  // If app is open, we might not need to show notification
+  // But we still show it for important messages
+  if (isAppOpen && !options.force) return;
+
+  const notifOptions = {
+    body,
+    icon: '/icon.png',
+    badge: '/icon.png',
+    vibrate: options.vibratePattern || settings.messageVibrationPattern,
+    tag: options.tag || 'genz-message',
+    renotify: true,
+    requireInteraction: options.requireInteraction || false,
+    ...options
+  };
+
+  try {
+    // Try to use service worker for better notification handling
+    const registration = await navigator.serviceWorker?.ready;
+    if (registration?.showNotification) {
+      await registration.showNotification(title, notifOptions);
     } else {
-      // Show system notification if app is closed/minimized
-      await this.showSystemNotification({ title, body, chatId, messageId, sender, type });
+      new Notification(title, notifOptions);
     }
-  }
-
-  // Set callback for in-app notifications
-  onInAppNotification(callback) {
-    this.inAppNotificationCallback = callback;
-  }
-
-  // Initialize Firebase Cloud Messaging
-  async initializeFirebase() {
-    if (this.firebaseInitialized) {
-      return true;
-    }
-
-    // Check if Firebase is configured
-    const firebaseConfig = {
-      apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-      authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
-      projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-      storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
-      messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-      appId: import.meta.env.VITE_FIREBASE_APP_ID
-    };
-
-    if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-      console.warn('[NotificationService] Firebase not configured, skipping FCM');
-      return false;
-    }
-
+  } catch (e) {
+    console.warn('[NotificationService] Show notification failed:', e);
+    // Fallback
     try {
-      // Dynamically import Firebase SDK
-      const { initializeApp } = await import('firebase/app');
-      const { getMessaging, getToken, onMessage } = await import('firebase/messaging');
+      new Notification(title, notifOptions);
+    } catch (e2) {
+      console.warn('[NotificationService] Fallback notification failed:', e2);
+    }
+  }
+};
 
-      const app = initializeApp(firebaseConfig);
-      const messaging = getMessaging(app);
+/**
+ * Show message notification
+ */
+export const showMessageNotification = async (senderName, messagePreview, conversationId) => {
+  const settings = getNotificationSettings();
 
-      // Get FCM token
-      const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
-      const token = await getToken(messaging, { vapidKey });
+  // Don't show if preview is disabled
+  const body = settings.showPreview ? messagePreview : 'New message';
 
-      if (token) {
-        this.fcmToken = token;
-        await this.registerFCMToken(token);
-        console.log('[NotificationService] FCM token registered:', token);
+  await showNotification(
+    `💬 ${senderName}`,
+    body,
+    {
+      tag: `msg-${conversationId}`,
+      data: { conversationId, type: 'message' },
+      vibratePattern: settings.messageVibrationPattern,
+      requireInteraction: false
+    }
+  );
+
+  vibrateMessage();
+};
+
+/**
+ * Show call notification
+ */
+export const showCallNotification = async (callerName, callType = 'audio') => {
+  const icon = callType === 'video' ? '📹' : '📞';
+
+  await showNotification(
+    `${icon} Incoming ${callType} call`,
+    `${callerName} is calling you`,
+    {
+      tag: 'incoming-call',
+      data: { type: 'call', callerName, callType },
+      requireInteraction: true, // Keep notification visible until user acts
+      vibratePattern: [200, 100, 200, 100, 200]
+    }
+  );
+
+  // Continuous vibration for calls
+  vibrateCall();
+};
+
+/**
+ * Show typing notification (only when app is in background)
+ */
+export const showTypingNotification = (userName) => {
+  // Only vibrate, don't show actual notification for typing
+  // as it would be too spammy
+  const settings = getNotificationSettings();
+  if (settings.vibration && document.visibilityState !== 'visible') {
+    vibrate([10]); // Very subtle vibration
+  }
+};
+
+// ── Service Worker Registration ────────────────────────────────────────────
+/**
+ * Register service worker for background notifications
+ */
+export const registerServiceWorker = async () => {
+  if (!('serviceWorker' in navigator)) {
+    console.log('[NotificationService] Service Workers not supported');
+    return null;
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.register('/service-worker.js', {
+      scope: '/'
+    });
+    console.log('[NotificationService] Service Worker registered:', registration.scope);
+    return registration;
+  } catch (e) {
+    console.warn('[NotificationService] Service Worker registration failed:', e);
+    return null;
+  }
+};
+
+// ── Background Notification Handler ────────────────────────────────────────
+/**
+ * Set up background notification handling
+ * This will be called by the service worker
+ */
+export const setupBackgroundNotificationHandler = () => {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data?.type === 'notification') {
+        const { title, body, options } = event.data;
+        showNotification(title, body, { ...options, force: true });
       }
-
-      // Handle foreground messages
-      onMessage(messaging, (payload) => {
-        console.log('[NotificationService] Foreground message received:', payload);
-        this.showNotification({
-          title: payload.notification?.title || 'New Message',
-          body: payload.notification?.body || '',
-          chatId: payload.data?.conversationId,
-          messageId: payload.data?.messageId,
-          sender: payload.data?.senderId,
-          type: payload.data?.type || 'message'
-        });
-      });
-
-      this.firebaseInitialized = true;
-      return true;
-    } catch (error) {
-      console.error('[NotificationService] Firebase initialization failed:', error);
-      return false;
-    }
-  }
-
-  // Register FCM token with backend
-  async registerFCMToken(token) {
-    try {
-      const response = await authFetch(`${API_BASE_URL}/notifications/fcm/register`, {
-        method: 'POST',
-        headers: apiHeaders(),
-        body: JSON.stringify({ token })
-      });
-
-      const data = await response.json();
-      return data.success;
-    } catch (error) {
-      console.error('[NotificationService] Failed to register FCM token:', error);
-      return false;
-    }
-  }
-
-  // Unregister FCM token from backend
-  async unregisterFCMToken(token) {
-    try {
-      const response = await authFetch(`${API_BASE_URL}/notifications/fcm/unregister`, {
-        method: 'POST',
-        headers: apiHeaders(),
-        body: JSON.stringify({ token })
-      });
-
-      const data = await response.json();
-      return data.success;
-    } catch (error) {
-      console.error('[NotificationService] Failed to unregister FCM token:', error);
-      return false;
-    }
-  }
-
-  // Subscribe to FCM topic
-  async subscribeToTopic(topic) {
-    try {
-      const response = await authFetch(`${API_BASE_URL}/notifications/fcm/subscribe-topic`, {
-        method: 'POST',
-        headers: apiHeaders(),
-        body: JSON.stringify({ topic })
-      });
-
-      const data = await response.json();
-      return data.success;
-    } catch (error) {
-      console.error('[NotificationService] Failed to subscribe to topic:', error);
-      return false;
-    }
-  }
-
-  // Unsubscribe from FCM topic
-  async unsubscribeFromTopic(topic) {
-    try {
-      const response = await authFetch(`${API_BASE_URL}/notifications/fcm/unsubscribe-topic`, {
-        method: 'POST',
-        headers: apiHeaders(),
-        body: JSON.stringify({ topic })
-      });
-
-      const data = await response.json();
-      return data.success;
-    } catch (error) {
-      console.error('[NotificationService] Failed to unsubscribe from topic:', error);
-      return false;
-    }
-  }
-
-  // Subscribe to push notifications (requires service worker)
-  async subscribeToPush() {
-    if (!('serviceWorker' in navigator)) {
-      console.warn('Service Worker not supported');
-      return null;
-    }
-
-    try {
-      if (!import.meta.env.PROD) {
-        console.log('Push subscription skipped in development');
-        return null;
-      }
-
-      this.registration = await navigator.serviceWorker.ready;
-      let vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-
-      if (!vapidPublicKey) {
-        const keyResponse = await authFetch(`${API_BASE_URL}/notifications/vapid-public-key`, {
-          headers: apiHeaders()
-        });
-        const keyData = await keyResponse.json();
-        vapidPublicKey = keyData.publicKey;
-      }
-
-      if (!vapidPublicKey) {
-        console.warn('VAPID public key is not configured; push storage skipped');
-        return this.registration;
-      }
-
-      const existingSubscription = await this.registration.pushManager.getSubscription();
-      const pushSubscription = existingSubscription || await this.registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
-      });
-
-      await authFetch(`${API_BASE_URL}/notifications/subscribe`, {
-        method: 'POST',
-        headers: apiHeaders(),
-        body: JSON.stringify({
-          subscription: pushSubscription.toJSON(),
-          deviceId: getDeviceId()
-        })
-      });
-
-      this.subscribed = true;
-      return pushSubscription;
-    } catch (error) {
-      if (error.name === 'InvalidAccessError') {
-        console.warn('Push notifications disabled: VAPID key not configured properly.');
-      } else {
-        console.warn('Push subscription skipped:', error.message);
-      }
-      return null;
-    }
-  }
-
-  // Handle incoming push message
-  async handlePushMessage(payload) {
-    const { title, body, chatId, messageId, sender, type } = payload.data || payload;
-    
-    await this.showNotification({
-      title: title || 'GENZ WhatsApp',
-      body: body || 'New message',
-      chatId,
-      messageId,
-      sender,
-      type
     });
   }
+};
 
-  // Clear all notifications
-  clearNotifications() {
-    if ('Notification' in window && 'getNotifications' in Notification) {
-      // Close all system notifications (only supported in some browsers)
-      try {
-        Notification.getNotifications().forEach(notification => {
-          notification.close();
-        });
-      } catch (error) {
-        console.warn('Failed to clear notifications:', error);
-      }
-    }
-  }
-
-  // Initialize all notification services (FCM + Web Push)
-  async initialize() {
-    const hasPermission = await this.requestPermission();
-    
-    if (hasPermission) {
-      // Try Firebase FCM first
-      await this.initializeFirebase();
-      
-      // Fallback to Web Push if FCM not available
-      if (!this.firebaseInitialized) {
-        await this.subscribeToPush();
-      }
-    }
-
-    return hasPermission;
-  }
-}
-
-// Create singleton instance
-const notificationService = new NotificationService();
-
-export default notificationService;
+export default {
+  getNotificationSettings,
+  saveNotificationSettings,
+  updateNotificationSetting,
+  vibrate,
+  vibrateTyping,
+  vibrateMessage,
+  vibrateCall,
+  stopVibration,
+  requestNotificationPermission,
+  showNotification,
+  showMessageNotification,
+  showCallNotification,
+  showTypingNotification,
+  registerServiceWorker,
+  setupBackgroundNotificationHandler
+};
