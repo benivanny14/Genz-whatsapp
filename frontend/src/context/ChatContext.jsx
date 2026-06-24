@@ -18,6 +18,17 @@ import { resolveApiBase, resolveSocketOrigin } from '../utils/resolveApiBase';
 
 export const ChatContext = createContext();
 
+// Wrap socket event handlers to prevent crashes from propagating
+const safeSocketOn = (socket, event, handler) => {
+  socket.on(event, async (...args) => {
+    try {
+      await handler(...args);
+    } catch (err) {
+      console.error(`[ChatContext] Error in socket event "${event}":`, err?.message || err);
+    }
+  });
+};
+
 const BACKEND_URL = resolveApiBase();
 const SOCKET_ORIGIN = resolveSocketOrigin();
 /** Mongo-style demo fallback when no JWT user is present (dev / optional demo mode) */
@@ -270,6 +281,7 @@ export const ChatProvider = ({ children }) => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeCall, setActiveCall] = useState(null);
+  const [activeGroupCall, setActiveGroupCall] = useState(null);
   const [onlineNotification, setOnlineNotification] = useState(null);
   const [broadcasts, setBroadcasts] = useState([]);
   const [statuses, setStatuses] = useState([]);
@@ -867,6 +879,31 @@ export const ChatProvider = ({ children }) => {
           if (u?._id) uid = u._id;
         } catch (_) { /* */ }
         socket.emit('user:join', uid);
+
+        // Auto-subscribe to push notifications
+        try {
+          if ('serviceWorker' in navigator && 'PushManager' in window && Notification.permission === 'granted') {
+            const reg = await navigator.serviceWorker.ready;
+            const VAPID_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+            if (VAPID_KEY) {
+              const existing = await reg.pushManager.getSubscription();
+              const sub = existing || await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: VAPID_KEY
+              });
+              const token = localStorage.getItem('token');
+              if (sub && token) {
+                await fetch(`${import.meta.env.VITE_API_URL || ''}/notifications/subscribe`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                  body: JSON.stringify({ subscription: sub })
+                });
+              }
+            }
+          }
+        } catch (pushErr) {
+          console.warn('[Push] Auto-subscribe failed:', pushErr?.message);
+        }
         // Re-sync unread counts and conversation list after reconnect
         try {
           const data = await apiService.getConversations();
@@ -907,8 +944,14 @@ export const ChatProvider = ({ children }) => {
 
       // ── Incoming message ──
       socket.on('message:received', async (msg) => {
+        // Play notification sound for incoming messages (if not muted)
         try {
-        console.log('Ujumbe mpya umeingia kutoka Socket (message:received):', msg);
+          const muteList = JSON.parse(localStorage.getItem('genz_muted_chats') || '[]');
+          const isMuted = muteList.includes(String(msg.conversationId));
+          const isDND = JSON.parse(localStorage.getItem('genz_mods') || '{}').dndMode;
+          if (!isMuted && !isDND) playMessageSound();
+        } catch (_) {}
+        try {
         const incoming = await decryptMessageContent(msg);
         const senderId = String(incoming.sender?._id || incoming.sender || '');
         if (senderId === String(currentUserId)) {
@@ -1004,6 +1047,7 @@ export const ChatProvider = ({ children }) => {
 
       // ✅ Badilisha temp message na ile ya kweli kutoka server (TOP-LEVEL, si ndani ya message:received)
       socket.on('message:sent', (confirmedMsg) => {
+        try { playSentSound(); } catch (_) {}
         setMessages(prev => {
           const clientId = confirmedMsg.clientMessageId;
           const exists = prev.some(m => String(m._id) === String(confirmedMsg._id));
@@ -1308,14 +1352,21 @@ export const ChatProvider = ({ children }) => {
       });
 
       // ── Typing indicators ──
-      socket.on('user:typing', ({ userId, isTyping, conversationId }) => {
+      socket.on('user:typing', ({ userId, isTyping, conversationId, username }) => {
         if (userId !== currentUserId) {
           setIsOtherUserTyping(isTyping);
           if (conversationId) {
             setTypingByConversation(prev => {
               const next = { ...prev };
               if (isTyping) {
-                next[conversationId] = { userId, type: 'typing' };
+                // Resolve username from conversations if not provided
+                let name = username;
+                if (!name) {
+                  const conv = conversationsRef.current?.find(c => String(c._id) === String(conversationId));
+                  const participant = conv?.participants?.find(p => String(p._id || p) === String(userId));
+                  name = participant?.username || participant?.name || 'Someone';
+                }
+                next[conversationId] = { userId, type: 'typing', username: name };
               } else {
                 delete next[conversationId];
               }
@@ -1346,29 +1397,36 @@ export const ChatProvider = ({ children }) => {
       });
 
       // ── Calls (Phase 8 WebRTC signaling) ──
-      socket.on('call:incoming', ({ callerId, callType, conversationId, offer }) => {
-        // Resolve caller name from conversations list
-        let callerName = 'Unknown';
-        let callerPicture = '';
-        const matchingConv = conversationsRef.current?.find(c =>
-          c.participants?.some(p => (p?._id || p)?.toString() === callerId?.toString())
-        );
-        if (matchingConv) {
-          const callerParticipant = matchingConv.participants.find(p => (p?._id || p)?.toString() === callerId?.toString());
-          callerName = callerParticipant?.username || 'Unknown';
-          callerPicture = callerParticipant?.profilePicture || '';
+      socket.on('group_call:incoming', (data) => {
+        setActiveGroupCall({ ...data, status: 'incoming' });
+        notifyIncomingCall(data.callerName, data.callType);
+      });
+
+      socket.on('call:incoming', ({ callerId, callType, conversationId, offer, callerName: socketCallerName, callerPicture: socketCallerPicture, callerSocketId }) => {
+        // Use server-provided name first, fallback to conversations list
+        let callerName = socketCallerName || 'Unknown';
+        let callerPicture = socketCallerPicture || '';
+        if (!socketCallerName) {
+          const matchingConv = conversationsRef.current?.find(c =>
+            c.participants?.some(p => (p?._id || p)?.toString() === callerId?.toString())
+          );
+          if (matchingConv) {
+            const p = matchingConv.participants.find(p => (p?._id || p)?.toString() === callerId?.toString());
+            callerName = p?.username || 'Unknown';
+            callerPicture = p?.profilePicture || '';
+          }
         }
         setActiveCall({
           type: callType,
           callerId,
           callerName,
           callerPicture,
+          callerSocketId,
           conversationId,
           status: 'incoming',
           offer,
           user: { _id: callerId, username: callerName, profilePicture: callerPicture }
         });
-        // Push notification for incoming call
         notifyIncomingCall(callerName, callType);
       });
 
@@ -1844,6 +1902,18 @@ export const ChatProvider = ({ children }) => {
       ));
     }
   };
+
+  // Listen for SW notification clicks to open a conversation
+  useEffect(() => {
+    const handler = (e) => {
+      const { conversationId } = e.detail || {};
+      if (!conversationId) return;
+      const conv = conversationsRef.current?.find(c => String(c._id) === String(conversationId));
+      if (conv) selectConversation(conv);
+    };
+    window.addEventListener('open-chat', handler);
+    return () => window.removeEventListener('open-chat', handler);
+  }, []);
 
   const selectConversation = async (conv) => {
     setSelectedConversation(conv);

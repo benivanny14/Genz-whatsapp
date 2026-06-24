@@ -139,6 +139,11 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  onlineHistory: [{
+    connectedAt: { type: Date },
+    disconnectedAt: { type: Date },
+    duration: { type: Number, default: 0 } // seconds
+  }],
   lastSeen: {
     type: Date,
     default: Date.now

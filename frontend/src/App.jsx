@@ -28,6 +28,7 @@ const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 const LinkedDevices = lazy(() => import('./pages/LinkedDevices'));
 const Broadcasts = lazy(() => import('./pages/Broadcasts'));
 const SecuritySettings = lazy(() => import('./pages/SecuritySettings'));
+const Channels = lazy(() => import('./pages/Channels'));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -141,6 +142,7 @@ function App() {
           <Route path="/calls" element={<ProtectedRoute><Calls /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
           <Route path="/genz-mods" element={<ProtectedRoute><GENZMods /></ProtectedRoute>} />
+          <Route path="/channels" element={<ProtectedRoute><Channels /></ProtectedRoute>} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />

@@ -12,6 +12,7 @@ import { Bell, Wifi, WifiOff } from 'lucide-react';
 const ChatArea = lazy(() => import('../components/ChatArea'));
 const GENZSettings = lazy(() => import('../components/GENZSettings'));
 const CallScreen = lazy(() => import('../components/CallScreen'));
+const GroupCallScreen = lazy(() => import('../components/GroupCallScreen'));
 
 const PanelLoader = () => (
   <div className="flex-1 flex items-center justify-center bg-[#0b141a]">
@@ -20,7 +21,7 @@ const PanelLoader = () => (
 );
 
 const Chat = () => {
-  const { activeCall, endCall, acceptCall, rejectCall, onlineNotification, isSocketConnected, mods, setMods, selectedConversation } = useChat();
+  const { activeCall, endCall, acceptCall, rejectCall, activeGroupCall, setActiveGroupCall, onlineNotification, isSocketConnected, mods, setMods, selectedConversation } = useChat();
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -57,6 +58,15 @@ const Chat = () => {
       <OfflineIndicator />
 
       {/* Active call overlay */}
+      {activeGroupCall && (
+          <Suspense fallback={null}>
+            <GroupCallScreen
+              call={activeGroupCall}
+              currentUser={user}
+              onEnd={() => setActiveGroupCall(null)}
+            />
+          </Suspense>
+        )}
       {activeCall && ['calling', 'incoming', 'connected'].includes(activeCall.status) && (
         <Suspense fallback={<PanelLoader />}>
           <CallScreen
@@ -85,11 +95,13 @@ const Chat = () => {
         )}
       </AnimatePresence>
 
-      {/* Socket connection indicator */}
-      <div className={`fixed bottom-2 left-2 z-[999] flex items-center gap-1 text-[10px] px-2 py-1 rounded-full ${isSocketConnected ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-        {isSocketConnected ? <Wifi size={10} /> : <WifiOff size={10} />}
-        {isSocketConnected ? 'Live' : 'Offline'}
-      </div>
+      {/* Socket connection indicator - hidden from users, only shown in dev */}
+      {import.meta.env.DEV && (
+        <div className={`fixed bottom-2 left-2 z-[999] flex items-center gap-1 text-[10px] px-2 py-1 rounded-full opacity-30 hover:opacity-100 transition-opacity ${isSocketConnected ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+          {isSocketConnected ? <Wifi size={10} /> : <WifiOff size={10} />}
+          {isSocketConnected ? 'Live' : 'Offline'}
+        </div>
+      )}
 
       <div className="w-full h-full md:w-[98%] md:h-[96%] bg-[#f0f2f5] shadow-2xl flex relative overflow-hidden">
         {/* Sidebar Container: Toggle visible/hidden based on whether conversation is active on mobile screens */}

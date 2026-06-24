@@ -119,11 +119,17 @@ exports.register = async (req, res) => {
       user: safeUser(user)
     });
   } catch (error) {
-    console.error('[Auth] Registration error:', {
-      error: error.message,
-      stack: error.stack
-    });
-    res.status(500).json({ success: false, message: 'An internal error occurred', error: error.message, stack: error.stack });
+    console.error('[Auth] Registration error:', error.message);
+    if (error.code === 11000 || error.name === 'MongoServerError') {
+      const field = Object.keys(error.keyPattern || {})[0] || 'field';
+      const label = field === 'phoneNumber' ? 'Phone number' : field === 'email' ? 'Email' : field === 'username' ? 'Username' : 'This value';
+      return res.status(409).json({ success: false, message: `${label} is already registered. Please login instead.` });
+    }
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(e => e.message).join(', ');
+      return res.status(400).json({ success: false, message: messages });
+    }
+    res.status(500).json({ success: false, message: 'Registration failed. Please try again.' });
   }
 };
 
@@ -732,5 +738,70 @@ exports.getBusinessAnalytics = async (req, res) => {
   } catch (error) {
     console.error('Get business analytics error:', error);
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Check if phone/username is available (called before OTP to prevent wasted SMS)
+// @route   POST /api/auth/check-availability
+// @access  Public
+exports.checkAvailability = async (req, res) => {
+  try {
+    const { phoneNumber, username } = req.body;
+    const checks = [];
+
+    if (phoneNumber) {
+      const phoneExists = await User.findOne({ phoneNumber: phoneNumber.trim() });
+      if (phoneExists) {
+        return res.status(409).json({
+          success: false,
+          available: false,
+          message: 'Phone number is already registered. Please login instead.'
+        });
+      }
+      checks.push('phone');
+    }
+
+    if (username) {
+      const usernameExists = await User.findOne({ username: username.trim() });
+      if (usernameExists) {
+        return res.status(409).json({
+          success: false,
+          available: false,
+          message: 'Username is already taken. Please choose a different one.'
+        });
+      }
+      checks.push('username');
+    }
+
+    res.json({ success: true, available: true, checked: checks });
+  } catch (error) {
+    // Non-critical — client will handle at registration stage
+    res.json({ success: true, available: true });
+  }
+};
+
+// @desc    Get own online history
+// @route   GET /api/users/me/online-history
+// @access  Private
+exports.getMyOnlineHistory = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('onlineHistory lastSeen');
+    res.json({ success: true, onlineHistory: user?.onlineHistory || [], lastSeen: user?.lastSeen });
+  } catch (e) {
+    res.json({ success: true, onlineHistory: [] });
+  }
+};
+
+// @desc    Get target user online history (for TM ghost mode tracker)
+// @route   GET /api/users/:id/online-history
+// @access  Private
+exports.getUserOnlineHistory = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('onlineHistory lastSeen username');
+    // Only return last 50 sessions for privacy
+    const history = (user?.onlineHistory || []).slice(-50);
+    res.json({ success: true, onlineHistory: history, lastSeen: user?.lastSeen, username: user?.username });
+  } catch (e) {
+    res.json({ success: true, onlineHistory: [] });
   }
 };

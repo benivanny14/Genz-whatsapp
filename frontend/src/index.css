@@ -2040,3 +2040,11 @@ body {
 /* Medium z-index: 1000-9997 */
 /* High z-index: 9998-9999 */
 /* Critical z-index: 10000+ */
+/* Reply highlight animation (WhatsApp style) */
+.highlight-reply {
+  animation: replyHighlight 1.5s ease-out forwards;
+}
+@keyframes replyHighlight {
+  0% { background-color: rgba(37, 211, 102, 0.25); }
+  100% { background-color: transparent; }
+}

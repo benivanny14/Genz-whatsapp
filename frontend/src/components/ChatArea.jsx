@@ -38,6 +38,8 @@ import ProfileEnlarger from './ProfileEnlarger';
 import TypingIndicator from './TypingIndicator';
 import TypingStatus from './TypingStatus';
 import ReplyMessage from './ReplyMessage';
+import ContactPickerModal from './ContactPickerModal';
+import ProductCatalogue from './ProductCatalogue';
 import TextMenu from './TextMenu';
 import AutoRefreshIndicator from './AutoRefreshIndicator';
 import { getNotificationSettings, vibrateTyping } from '../services/notificationService';
@@ -249,6 +251,17 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [showContactInfo, setShowContactInfo] = useState(false);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const [activeMessageMenu, setActiveMessageMenu] = useState(null);
+
+  // Close message menu + quick reactions on outside click
+  useEffect(() => {
+    if (!activeMessageMenu && !quickReactionMsg) return;
+    const handler = () => {
+      setActiveMessageMenu(null);
+      setQuickReactionMsg(null);
+    };
+    document.addEventListener('click', handler, true);
+    return () => document.removeEventListener('click', handler, true);
+  }, [activeMessageMenu, quickReactionMsg]);
   const [lockPinInput, setLockPinInput] = useState('');
   const [showPollModal, setShowPollModal] = useState(false);
   const [showForwardModal, setShowForwardModal] = useState(false);
@@ -270,6 +283,15 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [isRecordingLocked, setIsRecordingLocked] = useState(false);
   const [audioData, setAudioData] = useState(null);
   const [swipeDirection, setSwipeDirection] = useState(null);
+  const [quickReactionMsg, setQuickReactionMsg] = useState(null);
+  const [showContactPicker, setShowContactPicker] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showProductCatalogue, setShowProductCatalogue] = useState(false); // msgId showing quick reactions
+  // Swipe-to-reply touch tracking
+  const swipeTouchStartRef = useRef({});
+  const swipeActiveRef = useRef(null); // message id being swiped
+  const swipeOffsetRef = useRef(0);
+  const [swipeReplyAnim, setSwipeReplyAnim] = useState({}); // {msgId: offsetX}
   const [showRecordingUI, setShowRecordingUI] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [stickerSearchQuery, setStickerSearchQuery] = useState('');
@@ -435,6 +457,41 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     }
   }, [messages, selectedConversation?._id]);
   
+  // ── Swipe-to-Reply handlers ─────────────────────────────────────────
+  const handleMsgTouchStart = useCallback((e, message) => {
+    const t = e.touches[0];
+    swipeTouchStartRef.current = { x: t.clientX, y: t.clientY, time: Date.now() };
+    swipeActiveRef.current = message._id || message.id;
+    swipeOffsetRef.current = 0;
+  }, []);
+
+  const handleMsgTouchMove = useCallback((e, message) => {
+    if (!swipeTouchStartRef.current.x) return;
+    const t = e.touches[0];
+    const dx = t.clientX - swipeTouchStartRef.current.x;
+    const dy = Math.abs(t.clientY - swipeTouchStartRef.current.y);
+    const msgId = message._id || message.id;
+    // Only horizontal swipe right, ignore vertical scroll
+    if (dy > 30) { swipeTouchStartRef.current = {}; return; }
+    if (dx > 5 && dx < 80) {
+      swipeOffsetRef.current = dx;
+      setSwipeReplyAnim(prev => ({ ...prev, [msgId]: dx }));
+    }
+  }, []);
+
+  const handleMsgTouchEnd = useCallback((e, message) => {
+    const offset = swipeOffsetRef.current;
+    const msgId = message._id || message.id;
+    if (offset > 50) {
+      setReplyingTo(message);
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+    // Reset animation
+    setSwipeReplyAnim(prev => ({ ...prev, [msgId]: 0 }));
+    swipeTouchStartRef.current = {};
+    swipeOffsetRef.current = 0;
+  }, [setReplyingTo]);
+
   // Track user scroll position
   const handleMessagesScroll = (e) => {
     const container = e.target;
@@ -1636,105 +1693,49 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
   // ── Chat Export (Item 17) ──
   const handleExportChat = (format = 'txt') => {
-    if (!selectedConversation || !messages.length) return;
-    const chatName = getConversationName();
-    const date = new Date().toLocaleDateString();
-
-    if (format === 'txt') {
-      const lines = [
-        `GENZ WhatsApp Export`,
-        `Chat: ${chatName}`,
-        `Exported: ${date}`,
-        `Total Messages: ${messages.length}`,
-        `${'='.repeat(50)}`,
-        '',
-        ...(messages).map(m => {
-          const sender = typeof m.sender === 'object' ? m.sender.username : m.sender;
-          const time = new Date(m.createdAt).toLocaleString();
-          const content = plaintextOf(m) || '[media]';
-          return `[${time}] ${sender}: ${content}`;
-        })
-      ];
-      const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `GENZ_${chatName}_${date}.txt`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-    } else if (format === 'json') {
-      const data = {
-        chatName,
-        exportedAt: new Date().toISOString(),
-        totalMessages: messages.length,
-        messages: messages.map(m => ({
-          sender: typeof m.sender === 'object' ? m.sender.username : m.sender,
-          content: plaintextOf(m),
-          type: m.messageType || 'text',
-          time: m.createdAt,
-          status: m.status
-        }))
-      };
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `GENZ_${chatName}_${date}.json`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-    }
+    const convName = typeof getConversationName === 'function' ? getConversationName() : (selectedConversation?.groupName || 'Chat');
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    exportChatAsTxt(messages, convName, currentUser._id);
   };
 
   const handleTranslate = async (messageId, text) => {
     if (translatedMessages[messageId]) {
-      // Toggle back to original
       const newTranslations = { ...translatedMessages };
       delete newTranslations[messageId];
       setTranslatedMessages(newTranslations);
       return;
     }
+    const targetLang = localStorage.getItem('genz_language') || 'en';
+    setTranslatedMessages(prev => ({ ...prev, [messageId]: '⏳ Translating...' }));
 
-    // Detect target language: if text looks Swahili -> translate to English, else to Swahili
-    const textLower = text.toLowerCase();
-    const looksSwahili = /\b(habari|mambo|poa|asante|karibu|ndio|hapana|nzuri|sawa|rafiki|wewe|mimi|tena|kweli)\b/.test(textLower);
-    const targetLang = looksSwahili ? 'en' : 'sw';
-    const targetLabel = looksSwahili ? 'English' : 'Kiswahili';
+    const tryTranslate = async () => {
+      // 1. MyMemory API (free, no key needed, 10k chars/day)
+      try {
+        const r = await fetch(
+          `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=auto|${targetLang}`,
+          { signal: AbortSignal.timeout(6000) }
+        );
+        const d = await r.json();
+        if (d.responseData?.translatedText && d.responseStatus === 200) return d.responseData.translatedText;
+      } catch (_) {}
 
-    // Show loading state
-    setTranslatedMessages(prev => ({ ...prev, [messageId]: '🔄 Translating...' }));
+      // 2. LibreTranslate public instance
+      try {
+        const r = await fetch('https://libretranslate.de/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ q: text, source: 'auto', target: targetLang }),
+          signal: AbortSignal.timeout(6000)
+        });
+        const d = await r.json();
+        if (d.translatedText) return d.translatedText;
+      } catch (_) {}
 
-    try {
-      // Try backend translation endpoint first
-      const res = await authFetch(`${API_URL}/advanced/translate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, target: targetLang })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const translated = data.translatedText || data.translatedContent || text;
-        setTranslatedMessages(prev => ({ ...prev, [messageId]: `🌐 ${targetLabel}: ${translated}` }));
-        return;
-      }
-    } catch (e) { }
+      return '❌ Translation unavailable. Check internet connection.';
+    };
 
-    // Fallback: Try LibreTranslate public API
-    try {
-      const libre = await fetch('https://libretranslate.de/translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ q: text, source: 'auto', target: targetLang, format: 'text' })
-      });
-      if (libre.ok) {
-        const data = await libre.json();
-        setTranslatedMessages(prev => ({ ...prev, [messageId]: `🌐 ${targetLabel}: ${data.translatedText}` }));
-        return;
-      }
-    } catch (e) { }
-
-    // Final fallback: basic keyword translation
-    const simulated = looksSwahili
-      ? `🌐 English: ${text} [offline translation]`
-      : `🌐 Kiswahili: ${text} [offline tafsiri]`;
-    setTranslatedMessages(prev => ({ ...prev, [messageId]: simulated }));
+    const translated = await tryTranslate();
+    setTranslatedMessages(prev => ({ ...prev, [messageId]: translated }));
   };
 
   const handleReaction = (messageId, emoji) => {
@@ -2076,11 +2077,16 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                 )}
                 {isOtherUserTyping && (
                   <div className="flex items-center gap-1">
-                    <p className="text-sm text-white/70">typing</p>
-                    <div className="flex gap-0.5 mt-1">
-                      <div className="w-1 h-1 bg-white/70 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                      <div className="w-1 h-1 bg-white/70 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                      <div className="w-1 h-1 bg-white/70 rounded-full animate-bounce"></div>
+                    <p className="text-[11px] text-[#00a884] font-medium">
+                      {selectedConversation?.isGroup
+                        ? `${typingByConversation[selectedConversation._id]?.username || 'Someone'} is typing`
+                        : 'typing'}
+                    </p>
+                    <div className="flex gap-0.5 mt-0.5">
+                      {[0,1,2].map(i => (
+                        <span key={i} className="w-1 h-1 bg-[#00a884] rounded-full inline-block"
+                          style={{animation:'typingBounce 1.2s infinite ease-in-out', animationDelay:`${i*0.2}s`}} />
+                      ))}
                     </div>
                   </div>
                 )}
@@ -2113,6 +2119,33 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-40">
               <Video size={18} className="text-white/80" />
             </button>
+            {/* Group call - only shown for group conversations */}
+            {selectedConversation?.isGroup && (
+              <button
+                onClick={() => {
+                  if (isDNDMode) return;
+                  const { getSocket } = require('../services/socket');
+                  const socket = getSocket?.();
+                  if (socket) {
+                    socket.emit('group_call:start', {
+                      conversationId: selectedConversation._id,
+                      callType: 'audio'
+                    });
+                  }
+                  window.dispatchEvent(new CustomEvent('group-call-started', {
+                    detail: {
+                      conversationId: selectedConversation._id,
+                      callType: 'audio',
+                      groupName: selectedConversation.groupName || selectedConversation.name
+                    }
+                  }));
+                }}
+                title="Group Voice Call"
+                disabled={isDNDMode}
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-40">
+                <Users size={18} className="text-white/80" />
+              </button>
+            )}
             {/* AI Assistant (Coming Soon) */}
             <button onClick={() => {
               import('react-hot-toast').then(({ default: toast }) => {
@@ -2296,6 +2329,32 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                   }}
                   onDoubleClick={() => handleDoubleClick(message._id || message.id)}
                 >
+                  {/* WhatsApp-style Quick Reaction Bar */}
+                  {quickReactionMsg === (message._id || message.id) && (
+                    <div
+                      className={`absolute z-50 -top-12 ${isOwnMessage(message) ? 'right-0' : 'left-0'} flex items-center gap-1 bg-[#233138] rounded-full px-3 py-2 shadow-2xl border border-[#37404a]`}
+                      onClick={e => e.stopPropagation()}
+                    >
+                      {['❤️','👍','😂','😮','😢','🙏'].map(emoji => (
+                        <button
+                          key={emoji}
+                          className="text-xl hover:scale-125 active:scale-110 transition-transform"
+                          onClick={() => {
+                            handleReaction(message._id || message.id, emoji);
+                            setQuickReactionMsg(null);
+                          }}
+                        >{emoji}</button>
+                      ))}
+                      <button
+                        className="text-[#8696a0] hover:text-white ml-1 text-sm"
+                        onClick={() => {
+                          setQuickReactionMsg(null);
+                          setActiveMessageMenu(message._id || message.id);
+                        }}
+                        title="More reactions"
+                      >+</button>
+                    </div>
+                  )}
                   <div
                     className={`max-w-[75%] relative group shadow-sm transition-all duration-300 ${(message.messageType === 'audio' || message.messageType === 'voice')
                       ? 'bg-transparent p-0'
@@ -2332,15 +2391,47 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                         <ShieldCheck size={10} className="text-primary-600" /> GENZ ADMIN
                       </div>
                     )}
-                    {/* ── Quoted Reply ── */}
+                    {/* ── Forwarded label (WhatsApp style) ── */}
+                    {message.isForwarded && (
+                      <p className="text-[10px] text-[#8696a0] italic flex items-center gap-1 mb-1">
+                        <Forward size={10} /> Forwarded
+                      </p>
+                    )}
+
+                    {/* ── Quoted Reply (click to scroll to original) ── */}
                     {message.replyTo && (
-                      <div className="mb-2 bg-black/20 border-l-4 border-[#25d366] rounded-lg p-2 text-xs">
+                      <div
+                        className="mb-2 bg-black/20 border-l-4 border-[#25d366] rounded-lg p-2 text-xs cursor-pointer hover:bg-black/30 transition-colors"
+                        onClick={() => {
+                          const replyId = message.replyTo?._id || message.replyTo?.id;
+                          if (replyId) {
+                            const el = document.getElementById(`msg-${replyId}`);
+                            if (el) {
+                              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              el.classList.add('highlight-reply');
+                              setTimeout(() => el.classList.remove('highlight-reply'), 1500);
+                            }
+                          }
+                        }}
+                      >
                         <p className="text-[#25d366] font-bold mb-0.5 text-[11px]">
                           {message.replyTo.sender?.username || message.replyTo.sender?.name || message.replyTo.senderName || 'User'}
                         </p>
-                        <p className="text-white/70 truncate">
-                          {typeof message.replyTo.content === 'string' ? (message.replyTo.content?.substring(0, 60) + (message.replyTo.content?.length > 60 ? '...' : '')) : 'Reply'}
-                        </p>
+                        {(message.replyTo.messageType === 'image' || message.replyTo.mediaUrl?.match(/\.(jpg|jpeg|png|webp)/i)) && (
+                          <div className="flex items-center gap-2 mb-1">
+                            <img src={message.replyTo.mediaUrl} alt="reply" className="w-10 h-10 rounded object-cover" onError={e=>{e.target.style.display='none'}} />
+                            <p className="text-white/70 truncate">📷 Photo</p>
+                          </div>
+                        )}
+                        {message.replyTo.messageType !== 'image' && (
+                          <p className="text-white/70 truncate">
+                            {message.replyTo.messageType === 'voice' || message.replyTo.messageType === 'audio' ? '🎤 Voice message'
+                              : message.replyTo.messageType === 'video' ? '🎥 Video'
+                              : message.replyTo.messageType === 'file' ? '📎 File'
+                              : typeof message.replyTo.content === 'string' ? (message.replyTo.content?.substring(0, 60) + (message.replyTo.content?.length > 60 ? '...' : ''))
+                              : 'Reply'}
+                          </p>
+                        )}
                       </div>
                     )}
                     {/* ── Quoted Status Reply (WhatsApp style) ── */}
@@ -2970,6 +3061,34 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                   </div>
                 ))}
 
+              {/* WhatsApp-style typing bubble at bottom of messages */}
+              {isOtherUserTyping && (
+                <div className="flex justify-start mb-2">
+                  <div className="bg-dark-surface rounded-2xl rounded-tl-none px-4 py-3 shadow-sm max-w-[80px]">
+                    <div className="flex items-center gap-1">
+                      {[0,1,2].map(i => (
+                        <span key={i} className="w-2 h-2 rounded-full bg-dark-textSecondary inline-block"
+                          style={{animation:'typingBounce 1.2s infinite ease-in-out', animationDelay:`${i*0.2}s`}} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+              {isOtherUserRecording && (
+                <div className="flex justify-start mb-2">
+                  <div className="bg-dark-surface rounded-2xl rounded-tl-none px-4 py-3 shadow-sm">
+                    <div className="flex items-center gap-1.5 text-[#00a884]">
+                      <span className="text-xs font-medium">🎤 recording...</span>
+                      <div className="flex gap-0.5 items-end">
+                        {[0,1,2,3].map((b,i) => (
+                          <span key={i} className="w-0.5 rounded-sm bg-[#00a884]"
+                            style={{height:`${5+(i%3)*3}px`, animation:'recordWave 1s infinite ease-in-out', animationDelay:`${i*0.1}s`}}/>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div ref={messagesEndRef} /> {/* Fixed messagesEndRef */}
             </div>
           )}
@@ -3369,6 +3488,28 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       )}
 
       {/* Media Viewer */}
+      {showProductCatalogue && (
+        <ProductCatalogue
+          onClose={() => setShowProductCatalogue(false)}
+          onSendProduct={(product) => {
+            sendMessage({
+              messageType: 'product',
+              content: product.name,
+              product: { id: product._id, name: product.name, price: product.price, image: product.image, description: product.description },
+            });
+            setShowProductCatalogue(false);
+          }}
+        />
+      )}
+      {showContactPicker && (
+        <ContactPickerModal
+          onClose={() => setShowContactPicker(false)}
+          onSelect={(contact) => {
+            handleShareContact(contact);
+            setShowContactPicker(false);
+          }}
+        />
+      )}
       {selectedMedia && (
         <MediaViewer
           src={selectedMedia.mediaUrl || selectedMedia.gif?.url || selectedMedia.content}

@@ -139,7 +139,7 @@ const GENZMods = () => {
   }
 
   return (
-    <div className="flex h-screen min-h-0 flex-col overflow-hidden bg-gray-50 dark:bg-gray-900">
+    <div style={{display:"grid",gridTemplateRows:"auto 1fr",height:"100vh",overflow:"hidden",background:"#0b141a"}}>
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4">
@@ -193,7 +193,7 @@ const GENZMods = () => {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 w-full overflow-y-auto px-4 py-6 pb-20">
+      <div style={{overflowY:"auto",WebkitOverflowScrolling:"touch",overscrollBehavior:"contain",padding:"1.5rem 1rem 6rem"}}>
         <div className="mx-auto max-w-4xl space-y-6">
         {/* Success/Error Messages */}
         <AnimatePresence>
@@ -475,6 +475,46 @@ const GENZMods = () => {
       </div>
 
       {/* Deleted Messages Modal */}
+
+      {/* ── Custom Fonts Section ── */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 mb-4">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center">
+            <span className="text-purple-400 text-lg font-bold">Aa</span>
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Custom Fonts</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Change the app font style</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { id: 'default', label: 'Default', preview: 'Hello there!', cssFont: '' },
+            { id: 'serif', label: 'Serif', preview: 'Hello there!', cssFont: "Georgia, serif" },
+            { id: 'mono', label: 'Monospace', preview: 'Hello there!', cssFont: "'Courier New', monospace" },
+            { id: 'rounded', label: 'Rounded', preview: 'Hello there!', cssFont: "'Trebuchet MS', sans-serif" },
+            { id: 'elegant', label: 'Elegant', preview: 'Hello there!', cssFont: "Palatino, serif" },
+            { id: 'bold', label: 'Bold', preview: 'Hello there!', cssFont: "'Arial Black', sans-serif" },
+          ].map(font => {
+            const isActive = (currentMods?.customFont || 'default') === font.id;
+            return (
+              <button
+                key={font.id}
+                onClick={() => {
+                  const newMods = { ...currentMods, customFont: font.id };
+                  handleSave(newMods);
+                  document.body.style.fontFamily = font.cssFont || '';
+                }}
+                className={`p-3 rounded-xl border-2 text-center transition-all ${isActive ? 'border-purple-500 bg-purple-500/10' : 'border-gray-200 dark:border-gray-600 hover:border-purple-300'}`}
+              >
+                <p className="text-sm font-semibold text-gray-900 dark:text-white" style={{ fontFamily: font.cssFont || 'inherit' }}>{font.label}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5" style={{ fontFamily: font.cssFont || 'inherit' }}>{font.preview}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <AnimatePresence>
         {showDeletedMessages && (
           <motion.div

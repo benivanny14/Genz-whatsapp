@@ -7,6 +7,13 @@
 import { getWebRTCConfig, getWebRTCConfigAsync, detectNetworkProfile, getMediaConstraints, getWebRTCError } from '../config/webrtc';
 
 class WebRTCService {
+  // Safe accessor - prevents null reference crashes
+  get _pc() { return this.pc || null; }
+  _requirePc(method) {
+    if (!this.pc) { console.warn(`[WebRTC] ${method} called but no peer connection exists`); return false; }
+    return true;
+  }
+
   constructor() {
     this.pc = null;           // RTCPeerConnection
     this.localStream = null;
@@ -213,7 +220,7 @@ class WebRTCService {
     try {
       // Restart ICE to force renegotiation
       if (this.pc) {
-        this.pc.restartIce();
+        if (this.pc) this.pc.restartIce();
       }
     } catch (err) {
       console.error('[WebRTC] Reconnection failed:', err);
@@ -263,10 +270,10 @@ class WebRTCService {
     this.connectionHealthCheck = setInterval(() => {
       if (this.pc) {
         const stats = {
-          connectionState: this.pc.connectionState,
-          iceConnectionState: this.pc.iceConnectionState,
-          iceGatheringState: this.pc.iceGatheringState,
-          signalingState: this.pc.signalingState
+          connectionState: this.pc?.connectionState,
+          iceConnectionState: this.pc?.iceConnectionState,
+          iceGatheringState: this.pc?.iceGatheringState,
+          signalingState: this.pc?.signalingState
         };
         
         if (this.onConnectionHealth) {
@@ -351,6 +358,7 @@ class WebRTCService {
       if (!answer || !answer.type || !answer.sdp) {
         throw new Error('Invalid answer: missing type or SDP');
       }
+      if (!this.pc) throw new Error('No peer connection');
       await this.pc.setRemoteDescription(new RTCSessionDescription(answer));
     } catch (err) {
       console.error('[WebRTC] setRemoteDescription error:', err);
@@ -362,6 +370,7 @@ class WebRTCService {
   async handleRenegotiation(offer, callerId) {
     if (!this.pc) return;
     try {
+      if (!this.pc) throw new Error('No peer connection for answer');
       await this.pc.setRemoteDescription(new RTCSessionDescription(offer));
       const answer = await this.pc.createAnswer();
       await this.pc.setLocalDescription(answer);
@@ -382,7 +391,7 @@ class WebRTCService {
     while (this.iceCandidatesQueue.length > 0) {
       const queued = this.iceCandidatesQueue.shift();
       try {
-        await this.pc.addIceCandidate(new RTCIceCandidate(queued));
+        if (this.pc) await this.pc.addIceCandidate(new RTCIceCandidate(queued));
       } catch (err) {
         console.error('[WebRTC] Failed to add queued ICE candidate:', err);
       }
@@ -398,6 +407,7 @@ class WebRTCService {
     }
 
     try {
+      if (!this.pc) return;
       await this.pc.addIceCandidate(new RTCIceCandidate(candidate));
       
       // Process queued candidates
@@ -422,6 +432,60 @@ class WebRTCService {
     }
   }
 
+
+  // ── Screen Share ────────────────────────────────────────────────────────
+  async startScreenShare() {
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: { cursor: 'always', displaySurface: 'monitor' },
+        audio: true
+      });
+
+      if (!this.pc) throw new Error('No active call');
+
+      const videoTrack = screenStream.getVideoTracks()[0];
+      const sender = this.pc?.getSenders().find(s => s.track?.kind === 'video');
+
+      if (sender) {
+        await sender.replaceTrack(videoTrack);
+      } else {
+        if (this.pc) this.pc.addTrack(videoTrack, screenStream);
+      }
+
+      // Restore camera when screen share ends
+      videoTrack.onended = () => this.stopScreenShare();
+
+      this._screenStream = screenStream;
+      return screenStream;
+    } catch (err) {
+      console.error('[WebRTC] Screen share error:', err);
+      throw err;
+    }
+  }
+
+  async stopScreenShare() {
+    try {
+      if (this._screenStream) {
+        this._screenStream.getTracks().forEach(t => t.stop());
+        this._screenStream = null;
+      }
+      // Restore camera track
+      if (this.localStream && this.pc) {
+        const cameraTrack = this.localStream.getVideoTracks()[0];
+        if (cameraTrack) {
+          const sender = this.pc?.getSenders().find(s => s.track?.kind === 'video');
+          if (sender) await sender.replaceTrack(cameraTrack);
+        }
+      }
+    } catch (err) {
+      console.error('[WebRTC] Stop screen share error:', err);
+    }
+  }
+
+  isScreenSharing() {
+    return !!this._screenStream;
+  }
+
   // ── Get peer connection for external access (screen sharing) ───────────
   get peerConnection() {
     return this.pc;
@@ -432,7 +496,7 @@ class WebRTCService {
     this.stopHealthMonitoring();
     
     if (this.pc) {
-      this.pc.close();
+      if (this.pc) this.pc.close();
       this.pc = null;
     }
     if (this.localStream) {
@@ -451,9 +515,9 @@ class WebRTCService {
   isVideoCall() { return this.callType === 'video'; }
   getConnectionState() {
     return this.pc ? {
-      connectionState: this.pc.connectionState,
-      iceConnectionState: this.pc.iceConnectionState,
-      signalingState: this.pc.signalingState
+      connectionState: this.pc?.connectionState ?? 'closed',
+      iceConnectionState: this.pc?.iceConnectionState ?? 'closed',
+      signalingState: this.pc?.signalingState ?? 'closed'
     } : null;
   }
 }

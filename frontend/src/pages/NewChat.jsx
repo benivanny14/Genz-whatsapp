@@ -5,7 +5,7 @@ import { useChat } from '../context/ChatContext';
 import { authFetch } from '../utils/authFetch';
 import AddContactModal from '../components/AddContactModal';
 
-const BACKEND_URL = import.meta.env.VITE_API_URL || 'https://genz-whatsapp.onrender.com/api';
+const BACKEND_URL = import.meta.env.VITE_API_URL || '';
 
 const NewChat = () => {
   const navigate = useNavigate();

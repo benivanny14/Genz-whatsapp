@@ -5,6 +5,7 @@ const DeviceLinking = ({ onLinkDevice, onUnlinkDevice, linkedDevices = [] }) => 
   const [showQRModal, setShowQRModal] = useState(false);
   const [qrCode, setQrCode] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [qrToken, setQrToken] = useState(null);
   const [refreshInterval, setRefreshInterval] = useState(null);
 
   const getDeviceIcon = (type) => {
@@ -28,17 +29,35 @@ const DeviceLinking = ({ onLinkDevice, onUnlinkDevice, linkedDevices = [] }) => 
 
   const generateQRCode = async () => {
     setIsGenerating(true);
-    // Simulate QR code generation
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setQrCode('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
-    setIsGenerating(false);
-    setShowQRModal(true);
+    try {
+      const token = localStorage.getItem('token');
+      const API = import.meta.env.VITE_API_URL || '';
+      const res = await fetch(`${API}/api/devices/generate-qr`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      const data = await res.json();
+      if (data.qrCode) {
+        setQrCode(data.qrCode);
+      } else {
+        // Fallback: generate local QR showing session token for manual entry
+        const sessionToken = data.sessionToken || data.token || 'GENZ-' + Date.now();
+        // Use qrcode.js or display the token text
+        setQrCode(null);
+        setQrToken(sessionToken);
+      }
+    } catch (e) {
+      console.warn('[DeviceLinking] QR fetch failed:', e);
+      const token = 'GENZ-' + Math.random().toString(36).slice(2, 10).toUpperCase();
+        setQrToken(token);
+        setQrCode(token); // Use same display path via qrserver.com
+    } finally {
+      setIsGenerating(false);
+      setShowQRModal(true);
+    }
 
-    // Auto-refresh QR code every 30 seconds
+    // Auto-refresh QR code every 60 seconds
     if (refreshInterval) clearInterval(refreshInterval);
-    const interval = setInterval(() => {
-      setQrCode(`data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==${Date.now()}`);
-    }, 30000);
+    const interval = setInterval(generateQRCode, 60000);
     setRefreshInterval(interval);
   };
 
@@ -145,10 +164,22 @@ const DeviceLinking = ({ onLinkDevice, onUnlinkDevice, linkedDevices = [] }) => 
               ) : (
                 <>
                   <div className="bg-white p-4 rounded-lg mb-4">
-                    <img 
-                      src={qrCode} 
-                      alt="QR Code" 
+                    <img
+                      src={
+                        qrCode.startsWith('data:') || qrCode.startsWith('http')
+                          ? qrCode
+                          : `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrCode)}&margin=10`
+                      }
+                      alt="QR Code"
                       className="w-full h-auto"
+                      onError={e => {
+                        // If image fails, show text code
+                        e.target.style.display = 'none';
+                        const p = document.createElement('p');
+                        p.className = 'text-black text-center font-mono text-xs break-all p-2';
+                        p.textContent = qrCode;
+                        e.target.parentNode.appendChild(p);
+                      }}
                     />
                   </div>
                   <p className="text-sm text-gray-400 mb-2">

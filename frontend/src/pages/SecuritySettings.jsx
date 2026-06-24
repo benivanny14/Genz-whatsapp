@@ -126,7 +126,7 @@ const SecuritySettings = () => {
   }
 
   return (
-    <div className="flex h-screen min-h-0 flex-col overflow-hidden bg-gray-50 dark:bg-gray-900">
+    <div style={{display:"grid",gridTemplateRows:"auto 1fr",height:"100vh",overflow:"hidden",background:"#0b141a"}}>
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4">
@@ -142,7 +142,7 @@ const SecuritySettings = () => {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 w-full overflow-y-auto px-4 py-6 pb-20">
+      <div style={{overflowY:"auto",WebkitOverflowScrolling:"touch",overscrollBehavior:"contain",padding:"1.5rem 1rem 6rem"}}>
         <div className="mx-auto max-w-4xl space-y-6">
         {/* Two-Factor Authentication */}
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">

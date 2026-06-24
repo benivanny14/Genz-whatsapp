@@ -47,4 +47,8 @@ router.delete('/quick-replies/:id', protect, removeQuickReply);
 router.put('/away-message', protect, updateAwayMessage);
 router.get('/business-analytics', protect, getBusinessAnalytics);
 
+router.post('/check-availability', checkAvailability);
+router.get('/users/me/online-history', protect, getMyOnlineHistory);
+router.get('/users/:id/online-history', protect, getUserOnlineHistory);
+
 module.exports = router;

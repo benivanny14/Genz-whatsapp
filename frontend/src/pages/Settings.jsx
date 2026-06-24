@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../context/LanguageContext';
 import {
   ArrowLeft, Save, User, Lock, Bell, Palette, Shield, Users, Package,
   Smartphone, ChevronRight, Database, UserRound, KeyRound, Languages,
@@ -244,6 +245,10 @@ const applyRuntimeSettings = (settings) => {
   );
   document.documentElement.lang = settings.app?.language === 'system' ? navigator.language : settings.app?.language || 'en';
   window.dispatchEvent(new Event('language-changed'));
+    // Also apply via LanguageContext for instant update
+    if (settings.app?.language && settings.app.language !== 'system') {
+      changeLanguage(settings.app.language);
+    }
 };
 
 const SettingSection = ({ title, description, children }) => (
@@ -369,6 +374,7 @@ const ActionButton = ({ children, onClick, tone = 'primary', disabled = false })
 const Settings = () => {
   const { user, updateUserProfile } = useUser();
   const navigate = useNavigate();
+  const { changeLanguage } = useLanguage();
   const [activeTab, setActiveTab] = useState('profile');
   const [settingsData, setSettingsData] = useState(readStoredSettings);
   const [profileData, setProfileData] = useState({
@@ -779,6 +785,36 @@ const Settings = () => {
     </div>
   );
 
+  const [backupLoading, setBackupLoading] = React.useState(false);
+  const [backupMsg, setBackupMsg] = React.useState('');
+
+  const handleBackupNow = async () => {
+    setBackupLoading(true);
+    setBackupMsg('');
+    try {
+      const token = localStorage.getItem('token');
+      const API = import.meta.env.VITE_API_URL || '';
+      const res = await fetch(`${API}/api/backup/create`, {
+        method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setBackupMsg('✅ Backup created: ' + new Date().toLocaleString());
+        localStorage.setItem('genz_last_backup', new Date().toISOString());
+      } else setBackupMsg('❌ ' + (data.message || 'Backup failed'));
+    } catch (e) {
+      // Local backup fallback
+      try {
+        const bd = { at: new Date().toISOString(), settings: localStorage.getItem('genz_user_settings'), mods: localStorage.getItem('genz_mods') };
+        const blob = new Blob([JSON.stringify(bd, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `genz-backup-${Date.now()}.json`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        setBackupMsg('✅ Local backup downloaded');
+      } catch (_) { setBackupMsg('❌ Backup failed'); }
+    } finally { setBackupLoading(false); }
+  };
+
   const renderChats = () => (
     <div className="space-y-4">
       <SettingSection title="Display" description="Theme, wallpaper, font size, color, and chat behavior.">
@@ -802,7 +838,10 @@ const Settings = () => {
       <SettingSection title="Archived chats and backups" description="Keep archive behavior and backup preferences in one place.">
         <SettingRow icon={Archive} title="Keep chats archived" control={<Toggle checked={settingsData.chats.keepChatsArchived} onChange={() => toggleSetting('chats.keepChatsArchived')} />} />
         <SettingRow icon={Archive} title="Archive muted chats" control={<Toggle checked={settingsData.chats.archiveMutedChats} onChange={() => toggleSetting('chats.archiveMutedChats')} />} />
+        {backupMsg && <div className={`mb-2 px-3 py-2 rounded-lg text-sm ${backupMsg.startsWith('✅') ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>{backupMsg}</div>}
         <SettingRow icon={HardDrive} title="Chat backup" control={<Toggle checked={settingsData.chats.backup.enabled} onChange={() => toggleSetting('chats.backup.enabled')} />} />
+        <SettingRow icon={Save} title="Back Up Now" description={localStorage.getItem('genz_last_backup') ? 'Last: ' + new Date(localStorage.getItem('genz_last_backup')).toLocaleDateString() : 'Never backed up'}
+          control={<ActionButton onClick={handleBackupNow} disabled={backupLoading}><Save size={14} />{backupLoading ? 'Backing up...' : 'Back Up'}</ActionButton>} />
         <SettingRow icon={Clock} title="Backup frequency" control={<Select value={settingsData.chats.backup.frequency} onChange={(value) => updateSetting('chats.backup.frequency', value)} options={[['manual', 'Only when I tap backup'], ['daily', 'Daily'], ['weekly', 'Weekly'], ['monthly', 'Monthly']]} />} />
         <SettingRow icon={Mail} title="Backup account" control={
           <div className="w-56">

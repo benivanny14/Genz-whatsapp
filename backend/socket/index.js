@@ -23,7 +23,9 @@ const {
 
 // Use the shared onlineUsers map from server.js (global.onlineUsers)
 // This ensures socket handlers and HTTP controllers share the same online users state
-const onlineUsers = global.onlineUsers || new Map();
+// Use shared map from server.js — always reference via global to catch late init
+const getOnlineUsers = () => global.onlineUsers || new Map();
+const onlineUsers = { get: (k) => getOnlineUsers().get(k), set: (k,v) => getOnlineUsers().set(k,v), delete: (k) => getOnlineUsers().delete(k), has: (k) => getOnlineUsers().has(k) };
 const socketToUser = new Map();
 const messageDeduplication = new Map(); // Track processed messages to prevent duplicates
 
@@ -34,7 +36,7 @@ const MESSAGE_DEDUP_TTL = 60000; // 1 minute TTL for deduplication
 const MESSAGE_DEDUP_MAX_SIZE = 10000; // Maximum size to prevent memory leaks
 
 // Periodic cleanup to prevent memory leaks
-setInterval(() => {
+const _dedupCleanupInterval = setInterval(() => {
   const now = Date.now();
   let deleted = 0;
   messageDeduplication.forEach((timestamp, key) => {
@@ -179,6 +181,22 @@ const setupSocket = (io) => {
 
   io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
+
+    // ── Global socket error protection ────────────────────────────────────
+    // Override socket.on to automatically wrap handlers with try-catch
+    const _originalOn = socket.on.bind(socket);
+    socket.on = function(event, handler) {
+      if (typeof handler !== 'function') return _originalOn(event, handler);
+      const safeHandler = async (...args) => {
+        try {
+          await handler(...args);
+        } catch (err) {
+          console.error(`[Socket] Unhandled error in "${event}" handler:`, err?.message || err);
+          socket.emit('error', { message: 'Server error processing your request', event });
+        }
+      };
+      return _originalOn(event, safeHandler);
+    };
 
     // Handle reconnection
     socket.on('reconnect_attempt', () => {
@@ -919,7 +937,16 @@ const setupSocket = (io) => {
         if (clientStatusId) {
           statusObj.clientStatusId = clientStatusId;
         }
-        io.emit('status:created', statusObj);
+        // Only broadcast to contacts for privacy
+try {
+          const creator = await User.findById(socket.userId).select('contacts');
+          const contacts = creator?.contacts || [];
+          contacts.forEach(cId => {
+            const sid = getOnlineUsers().get(String(cId));
+            if (sid) io.to(sid).emit('status:created', statusObj);
+          });
+          socket.emit('status:created', statusObj);
+        } catch(_e) { socket.emit('status:created', statusObj); }
         // If collab, also emit to collab user so it appears on their profile too
         if (collabUserId) {
           io.to(collabUserId).emit('status:collab_invite', { statusId: status._id, fromUsername: status.username });
@@ -1057,18 +1084,76 @@ const setupSocket = (io) => {
     // Broadcast create handler
     socket.on('broadcast:create', async (data) => {
       try {
-        const { name, recipients, message, sender } = data;
+        const { name, recipients = [], message, mediaUrl, mediaType } = data;
+        if (!recipients.length) return socket.emit('error', { message: 'No recipients specified' });
+
         const broadcast = await Broadcast.create({
           name: name || `Broadcast ${new Date().toLocaleDateString()}`,
-          sender: sender || socket.userId,
+          sender: socket.userId,
           createdBy: socket.userId,
-          recipients: recipients || [],
-          message: message || 'Broadcast message',
+          recipients,
+          message: message || '',
           timestamp: new Date()
         });
-        io.emit('broadcast:created', broadcast.toObject ? broadcast.toObject() : JSON.parse(JSON.stringify(broadcast)));
+
+        // Send individual messages to each recipient (WhatsApp broadcast behavior)
+        // Each recipient sees it as a private message, not a group
+        const sender = await User.findById(socket.userId).select('username profilePicture phoneNumber');
+        let sentCount = 0;
+
+        for (const recipientId of recipients) {
+          try {
+            const recipStr = String(recipientId);
+            // Get or create 1-to-1 conversation
+            let conv = await Conversation.findOne({
+              isGroup: false,
+              participants: { $all: [socket.userId, recipientId], $size: 2 }
+            });
+            if (!conv) {
+              conv = await Conversation.create({
+                participants: [socket.userId, recipientId],
+                isGroup: false,
+                isBroadcast: true
+              });
+            }
+
+            // Save message to DB
+            const msg = await Message.create({
+              conversationId: conv._id,
+              sender: socket.userId,
+              content: message || '',
+              messageType: mediaUrl ? mediaType || 'image' : 'text',
+              mediaUrl: mediaUrl || undefined,
+              isBroadcast: true,
+              broadcastId: broadcast._id,
+              status: 'sent'
+            });
+
+            // Deliver to recipient if online
+            const recipSocketId = getOnlineUsers().get(recipStr);
+            if (recipSocketId) {
+              io.to(recipSocketId).emit('message:received', {
+                ...msg.toObject(),
+                sender: { _id: socket.userId, username: sender?.username, profilePicture: sender?.profilePicture },
+                conversationId: conv._id
+              });
+              sentCount++;
+            }
+          } catch (recipErr) {
+            console.error('[broadcast:create] Error sending to recipient:', recipErr?.message);
+          }
+        }
+
+        // Notify sender of delivery summary
+        socket.emit('broadcast:created', {
+          broadcastId: broadcast._id,
+          name: broadcast.name,
+          recipientCount: recipients.length,
+          deliveredCount: sentCount
+        });
       } catch (error) {
         console.error('Error creating broadcast:', error);
+        socket.emit('error', { message: 'Broadcast failed' });
       }
     });
 
@@ -1315,7 +1400,19 @@ const setupSocket = (io) => {
       try {
         if (!socket.userId) return;
         const { autoReplyEnabled, message } = data;
+        // Record online session in history
+      if (socket._connectedAt) {
+        const duration = Math.round((Date.now() - socket._connectedAt.getTime()) / 1000);
         await User.findByIdAndUpdate(socket.userId, {
+          $push: {
+            onlineHistory: {
+              $each: [{ connectedAt: socket._connectedAt, disconnectedAt: new Date(), duration }],
+              $slice: -168 // keep last 7 days (24h * 7)
+            }
+          }
+        });
+      }
+      await User.findByIdAndUpdate(socket.userId, {
           autoReplyEnabled,
           autoReplyMessage: message
         });
@@ -1501,21 +1598,19 @@ const setupSocket = (io) => {
       if (!skipReadReceipts) {
         // Validate conversationId is a valid MongoDB ObjectId before querying
         if (mongoose.Types.ObjectId.isValid(chatId) && !chatId.startsWith('conv-status-')) {
-          const unreadMessages = await Message.find({
-            conversationId: chatId,
-            sender: { $ne: userId },
-            status: { $ne: 'read' }
-          }).limit(200);
-
-          for (const msg of unreadMessages) {
-            if (!Array.isArray(msg.readBy)) msg.readBy = [];
-            const alreadyRead = msg.readBy.some((r) => r.user?.toString() === userId);
-            if (!alreadyRead) {
-              msg.readBy.push({ user: userId, readAt: new Date() });
-              msg.status = 'read';
-              await msg.save();
+          // Batch update for performance (avoid N+1 DB calls)
+          await Message.updateMany(
+            {
+              conversationId: chatId,
+              sender: { $ne: userId },
+              status: { $ne: 'read' },
+              'readBy.user': { $ne: userId }
+            },
+            {
+              $push: { readBy: { user: userId, readAt: new Date() } },
+              $set: { status: 'read' }
             }
-          }
+          );
         }
       }
 
@@ -1536,7 +1631,19 @@ const setupSocket = (io) => {
       try {
         if (!socket.userId) return;
         const user = await User.findById(socket.userId).select('username');
-        await User.findByIdAndUpdate(socket.userId, { isOnline: true, lastSeen: new Date() });
+        // Record online session in history
+      if (socket._connectedAt) {
+        const duration = Math.round((Date.now() - socket._connectedAt.getTime()) / 1000);
+        await User.findByIdAndUpdate(socket.userId, {
+          $push: {
+            onlineHistory: {
+              $each: [{ connectedAt: socket._connectedAt, disconnectedAt: new Date(), duration }],
+              $slice: -168 // keep last 7 days (24h * 7)
+            }
+          }
+        });
+      }
+      await User.findByIdAndUpdate(socket.userId, { isOnline: true, lastSeen: new Date() });
         io.emit('user:online', { userId: socket.userId, username: user?.username });
       } catch (error) {
         console.error('Error setting user online:', error);
@@ -1746,14 +1853,27 @@ const setupSocket = (io) => {
 
     // Update group setting handler
     socket.on('update_group_setting', async (data) => {
+      // SECURITY: verify caller is admin before updating group settings
       try {
         const { chatId, setting, value } = data;
         const conversation = await Conversation.findById(chatId);
-        if (conversation) {
-          conversation[setting] = value;
-          await conversation.save();
-          io.to(chatId).emit('group_setting:updated', { chatId, setting, value });
+        if (!conversation) return;
+        if (!includesId(conversation.participants, socket.userId)) {
+          return socket.emit('error', { message: 'Not a participant of this group' });
         }
+        const allowedByAdmin = ['adminOnlyMessaging', 'canSendMedia', 'canCreatePolls', 'groupDescription', 'disappearingMessages'];
+        const allowedByAll = ['disappearingMessages'];
+        const isAdmin = conversation.admins?.some(a => String(a) === String(socket.userId));
+        if (allowedByAdmin.includes(setting) && !isAdmin && !allowedByAll.includes(setting)) {
+          return socket.emit('error', { message: 'Only group admins can change this setting' });
+        }
+        const SAFE_SETTINGS = ['adminOnlyMessaging', 'canSendMedia', 'canCreatePolls', 'groupDescription', 'disappearingMessages', 'groupName', 'groupPicture', 'isBroadcast'];
+        if (!SAFE_SETTINGS.includes(setting)) {
+          return socket.emit('error', { message: 'Setting not allowed' });
+        }
+        conversation[setting] = value;
+        await conversation.save();
+        io.to(chatId).emit('group_setting:updated', { chatId, setting, value });
       } catch (error) {
         console.error('Error updating group setting:', error);
       }
@@ -1936,6 +2056,8 @@ const setupSocket = (io) => {
         io.to(targetSocketId).emit('call:incoming', {
           callerId: socket.userId,
           callerSocketId: socket.id,
+          callerName: caller?.username || 'Unknown',
+          callerPicture: caller?.profilePicture || '',
           offer,
           callType,
           conversationId
@@ -2041,6 +2163,85 @@ const setupSocket = (io) => {
       }
     });
 
+
+    // ── Group Call (Conference) ────────────────────────────────────────────
+    socket.on('group_call:start', async (data = {}) => {
+      try {
+        const { conversationId, callType = 'audio' } = data;
+        if (!conversationId) return;
+        const conversation = await Conversation.findById(conversationId)
+          .populate('participants', '_id username profilePicture');
+        if (!conversation) return;
+
+        const caller = await User.findById(socket.userId).select('username profilePicture');
+
+        // Notify all participants except caller
+        for (const participant of conversation.participants) {
+          const pid = String(participant._id);
+          if (pid === String(socket.userId)) continue;
+          const pSocketId = getOnlineUsers().get(pid);
+          if (pSocketId) {
+            io.to(pSocketId).emit('group_call:incoming', {
+              conversationId,
+              callType,
+              callerId: socket.userId,
+              callerName: caller?.username || 'Unknown',
+              callerPicture: caller?.profilePicture || '',
+              callerSocketId: socket.id,
+              groupName: conversation.groupName || 'Group Call',
+            });
+          }
+        }
+
+        // Join caller to call room
+        socket.join(`call:${conversationId}`);
+        socket.emit('group_call:started', { conversationId, callType });
+      } catch (err) {
+        console.error('group_call:start error:', err);
+      }
+    });
+
+    socket.on('group_call:join', async (data = {}) => {
+      try {
+        const { conversationId } = data;
+        if (!conversationId) return;
+        socket.join(`call:${conversationId}`);
+        // Notify others in the call room
+        socket.to(`call:${conversationId}`).emit('group_call:participant_joined', {
+          userId: socket.userId,
+          socketId: socket.id,
+        });
+        socket.emit('group_call:joined', { conversationId });
+      } catch (err) {
+        console.error('group_call:join error:', err);
+      }
+    });
+
+    socket.on('group_call:leave', async (data = {}) => {
+      try {
+        const { conversationId } = data;
+        if (!conversationId) return;
+        socket.leave(`call:${conversationId}`);
+        socket.to(`call:${conversationId}`).emit('group_call:participant_left', {
+          userId: socket.userId,
+          socketId: socket.id,
+        });
+      } catch (err) {
+        console.error('group_call:leave error:', err);
+      }
+    });
+
+    // WebRTC signaling for group calls
+    socket.on('group_call:offer', ({ to, offer, conversationId }) => {
+      io.to(to).emit('group_call:offer', { from: socket.id, offer, conversationId });
+    });
+    socket.on('group_call:answer', ({ to, answer }) => {
+      io.to(to).emit('group_call:answer', { from: socket.id, answer });
+    });
+    socket.on('group_call:ice', ({ to, candidate }) => {
+      io.to(to).emit('group_call:ice', { from: socket.id, candidate });
+    });
+
     socket.on('disconnect', async () => {
       console.log('User disconnected:', socket.id);
 
@@ -2086,3 +2287,7 @@ const setupSocket = (io) => {
 };
 
 module.exports = setupSocket;
+
+// Cleanup intervals on process exit
+process.on('SIGTERM', () => { clearInterval(_dedupCleanupInterval); });
+process.on('SIGINT', () => { clearInterval(_dedupCleanupInterval); });

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Copy, Search, Star, Trash2 } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
-import apiService from '../services/apiService';
+import { chatAPI, api } from '../services/api';
 
 const Starred = () => {
   const { conversations, messages, user, toggleStarMessage } = useChat();
@@ -15,7 +15,8 @@ const Starred = () => {
     const fetchStarred = async () => {
       setLoading(true);
       try {
-        const data = await apiService.getStarredMessages();
+        const res = await api.get('/chat/messages/starred');
+        const data = res.data;
         setAllStarred(Array.isArray(data) ? data : data?.messages || []);
       } catch (err) {
         console.error('Failed to fetch starred messages', err);

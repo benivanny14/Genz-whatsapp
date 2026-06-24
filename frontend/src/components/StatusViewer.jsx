@@ -31,6 +31,7 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
   const [showHeart, setShowHeart] = useState(false);
   const [showReplyInput, setShowReplyInput] = useState(false);
   const [replyText, setReplyText] = useState('');
+  const [sending, setSending] = useState(false);
   const [replySending, setReplySending] = useState(false);
   const [replySuccess, setReplySuccess] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -175,6 +176,19 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
       });
       setReplyText('');
       setReplySuccess(true);
+      // Navigate to the conversation so user can see their reply
+      try {
+        const statusOwnerId = statuses[currentIndex]?.userId || statuses[currentIndex]?.user?._id;
+        if (statusOwnerId) {
+          const { chatAPI } = await import('../services/api');
+          const res = await chatAPI.getOrCreateConversation(statusOwnerId);
+          const convId = res?.data?.conversation?._id || res?.data?._id;
+          if (convId) {
+            window.dispatchEvent(new CustomEvent('open-chat', { detail: { conversationId: convId } }));
+            setTimeout(() => { onClose?.(); }, 200);
+          }
+        }
+      } catch (_) {}
       setTimeout(() => { setReplySuccess(false); setShowReplyInput(false); }, 1500);
     } catch (error) {
       console.error('Error replying to status:', error);

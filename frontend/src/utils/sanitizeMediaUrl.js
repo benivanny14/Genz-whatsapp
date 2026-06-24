@@ -6,7 +6,6 @@
 const signedUrlCache = new Map();
 
 const STALE_MEDIA_HOSTS = [
-  'genz-whatsapp-backend.onrender.com',
   '0.0.0.0',
 ];
 

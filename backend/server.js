@@ -623,6 +623,7 @@ const chatRoutes = require('./routes/chatRoutes');
 const advancedRoutes = require('./routes/advancedRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const deviceRoutes = require('./routes/deviceRoutes');
+const channelRoutes = require('./routes/channelRoutes');
 const securityRoutes = require('./routes/securityRoutes');
 const genzModsRoutes = require('./routes/genzModsRoutes');
 const backupRoutes = require('./routes/backupRoutes');

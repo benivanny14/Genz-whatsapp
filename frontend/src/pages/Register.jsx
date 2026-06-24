@@ -64,16 +64,36 @@ const Register = () => {
 
     try {
       const API_URL = resolveApiBase();
-      
-      // Store data temporarily for OTP verification
+
+      // ── Step 1: Check for duplicates BEFORE sending OTP ──────────────
+      const checkRes = await fetch(`${API_URL}/auth/check-availability`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber: form.phoneNumber, username: form.username }),
+      });
+
+      if (checkRes.ok) {
+        const checkData = await checkRes.json();
+        if (!checkData.available) {
+          setError(checkData.message || 'Phone number or username already registered. Please login instead.');
+          setLoading(false);
+          return;
+        }
+      } else if (checkRes.status === 409) {
+        const checkData = await checkRes.json();
+        setError(checkData.message || 'Phone number already registered. Please login.');
+        setLoading(false);
+        return;
+      }
+      // If endpoint doesn't exist (404), continue — server will catch it at OTP stage
+
+      // ── Step 2: Store temp data and request OTP ───────────────────────
       localStorage.setItem('tempUsername', form.username);
       localStorage.setItem('tempPassword', form.password);
 
       const response = await fetch(`${API_URL}/otp/request-register`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phoneNumber: form.phoneNumber }),
       });
 
@@ -82,15 +102,17 @@ const Register = () => {
       if (response.ok && data.success) {
         setStep('otp');
         setShowOTP(true);
-        // Don't show toast here, OTP component will handle feedback
+      } else if (response.status === 409) {
+        setError(data.message || 'Phone number already registered. Please login instead.');
+        localStorage.removeItem('tempUsername');
+        localStorage.removeItem('tempPassword');
       } else {
-        setError(data.message || 'Failed to send OTP');
+        setError(data.message || 'Failed to send OTP. Please try again.');
         localStorage.removeItem('tempUsername');
         localStorage.removeItem('tempPassword');
       }
     } catch (err) {
-      setError('Network error. Please check your connection.');
-      console.error('Registration error:', err);
+      setError('Network error. Please check your connection and try again.');
       localStorage.removeItem('tempUsername');
       localStorage.removeItem('tempPassword');
     } finally {

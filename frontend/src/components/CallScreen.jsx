@@ -1,13 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Phone, Video, Mic, MicOff, Camera, CameraOff, PhoneOff, Volume2, VolumeX } from 'lucide-react';
+import { Phone, Video, Mic, MicOff, Camera, CameraOff, PhoneOff, Volume2, VolumeX, RotateCcw, Wifi, WifiOff, Monitor, MonitorOff } from 'lucide-react';
 import webRTCService from '../services/webrtc';
+import { playCallRingtone } from '../utils/soundPlayer';
 import { getSocket } from '../services/socket';
 
-const stopStream = (stream) => {
-  stream?.getTracks?.().forEach((track) => track.stop());
-};
+const stopStream = (stream) => stream?.getTracks?.().forEach((t) => t.stop());
 
-const CallScreen = ({ call, onEndCall, onAcceptCall, onRejectCall, onToggleMute, onToggleCamera }) => {
+const CallScreen = ({ call, onEndCall, onAcceptCall, onRejectCall }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(true);
@@ -15,394 +14,404 @@ const CallScreen = ({ call, onEndCall, onAcceptCall, onRejectCall, onToggleMute,
   const [callStatus, setCallStatus] = useState(call?.status || 'calling');
   const [hasLocalStream, setHasLocalStream] = useState(false);
   const [hasRemoteStream, setHasRemoteStream] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [connectionQuality, setConnectionQuality] = useState('good');
+  const [connectionQuality, setConnectionQuality] = useState('connecting');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
 
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const timerRef = useRef(null);
-  const socket = getSocket();
+  const cancelledRef = useRef(false);
+  const socketRef = useRef(null);
 
-  const isVideoCall = call?.type === 'video';
+  const isVideoCall = call?.type === 'video' || call?.callType === 'video';
   const isIncoming = call?.status === 'incoming';
-  const callerName = call?.user?.username || call?.callerName || 'Unknown'; 
-  const profilePic = call?.user?.profilePicture || call?.callerProfilePic || null;
+  const callerName = call?.user?.username || call?.callerName || call?.user?.name || 'Unknown';
+  const profilePic = call?.user?.profilePicture || call?.callerPicture || null;
 
+  // ── Get socket ──────────────────────────────────────────────────────────
   useEffect(() => {
-    return () => {
-      stopRingtone();
-    };
+    socketRef.current = getSocket();
   }, []);
- 
-  // ── Ringtone using Web Audio API ──
+
+  // ── Ringtone ─────────────────────────────────────────────────────────────
   const audioCtxRef = useRef(null);
-  const ringerIntervalRef = useRef(null);
+  const ringerRef = useRef(null);
 
   const startRingtone = useCallback(() => {
     try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-      if (!audioCtxRef.current) {
-        audioCtxRef.current = new AudioContext();
-      }
+      // Play ringtone via soundPlayer
+      try { playCallRingtone(); } catch (_) {}
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      audioCtxRef.current = new Ctx();
       const ctx = audioCtxRef.current;
-      
-      const playRing = () => {
+
+      const ring = () => {
         if (ctx.state === 'suspended') ctx.resume();
-        const osc1 = ctx.createOscillator();
-        const osc2 = ctx.createOscillator();
-        const gainNode = ctx.createGain();
-
-        // Standard UK/Europe ring frequencies
-        osc1.frequency.value = 400;
-        osc2.frequency.value = 450;
-        osc1.type = 'sine';
-        osc2.type = 'sine';
-
-        osc1.connect(gainNode);
-        osc2.connect(gainNode);
-        gainNode.connect(ctx.destination);
-
-        // Ring cadence: 0.4s on, 0.2s off, 0.4s on, 2s off
-        gainNode.gain.setValueAtTime(0, ctx.currentTime);
-        gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.05);
-        gainNode.gain.setValueAtTime(0.5, ctx.currentTime + 0.4);
-        gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.45);
-        
-        gainNode.gain.setValueAtTime(0, ctx.currentTime + 0.6);
-        gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.65);
-        gainNode.gain.setValueAtTime(0.5, ctx.currentTime + 1.0);
-        gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + 1.05);
-
-        osc1.start(ctx.currentTime);
-        osc2.start(ctx.currentTime);
-        osc1.stop(ctx.currentTime + 1.1);
-        osc2.stop(ctx.currentTime + 1.1);
+        [400, 450].forEach(freq => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.frequency.value = freq;
+          osc.type = 'sine';
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          gain.gain.setValueAtTime(0, ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.05);
+          gain.gain.setValueAtTime(0.4, ctx.currentTime + 0.4);
+          gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.45);
+          gain.gain.setValueAtTime(0, ctx.currentTime + 0.65);
+          gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.7);
+          gain.gain.setValueAtTime(0.4, ctx.currentTime + 1.05);
+          gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 1.1);
+          osc.start(ctx.currentTime);
+          osc.stop(ctx.currentTime + 1.15);
+        });
       };
-
-      playRing();
-      ringerIntervalRef.current = setInterval(playRing, 3000);
-    } catch (e) {
-      console.warn('Audio ringtone failed:', e);
-    }
+      ring();
+      ringerRef.current = setInterval(ring, 3200);
+    } catch (e) { /* silent */ }
   }, []);
 
   const stopRingtone = useCallback(() => {
-    if (ringerIntervalRef.current) {
-      clearInterval(ringerIntervalRef.current);
-      ringerIntervalRef.current = null;
-    }
-    if (audioCtxRef.current) {
-      audioCtxRef.current.close().catch(() => {});
-      audioCtxRef.current = null;
-    }
+    if (ringerRef.current) { clearInterval(ringerRef.current); ringerRef.current = null; }
+    if (audioCtxRef.current) { audioCtxRef.current.close().catch(() => {}); audioCtxRef.current = null; }
   }, []);
 
   useEffect(() => {
-    if (callStatus === 'incoming' || callStatus === 'calling') {
-      startRingtone();
-    } else {
-      stopRingtone();
-    }
-    return () => stopRingtone();
+    if (callStatus === 'incoming' || callStatus === 'calling') startRingtone();
+    else stopRingtone();
+    return stopRingtone;
   }, [callStatus, startRingtone, stopRingtone]);
 
-
-  // ── Start call timer when connected ──
+  // ── Call timer ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (callStatus === 'connected') {
-      timerRef.current = setInterval(() => setDuration(p => p + 1), 1000);
+      timerRef.current = setInterval(() => setDuration(d => d + 1), 1000);
     }
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    return () => clearInterval(timerRef.current);
   }, [callStatus]);
 
-  // ── Initialize outgoing call ──
-  const socketRetryRef = useRef(0);
-
+  // ── Outgoing call setup ────────────────────────────────────────────────
   useEffect(() => {
     if (!call || isIncoming) return;
-    socketRetryRef.current = 0;
+    cancelledRef.current = false;
+    let retryCount = 0;
     let retryTimer = null;
-    let cancelled = false;
 
     const startCall = async () => {
-      if (cancelled) return;
+      if (cancelledRef.current) return;
+      const socket = socketRef.current || getSocket();
 
-      if (!socket) {
-        socketRetryRef.current += 1;
-        if (socketRetryRef.current > 5) {
-          console.error('[CallScreen] Socket unavailable after 5 retries, aborting call.');
-          setCallStatus('ended');
-          onEndCall?.();
-          return;
-        }
-        console.warn(`[CallScreen] Socket not available yet, retry ${socketRetryRef.current}/5...`);
-        retryTimer = setTimeout(startCall, 2000);
+      if (!socket?.connected) {
+        if (++retryCount > 6) { setCallStatus('ended'); onEndCall?.(); return; }
+        retryTimer = setTimeout(startCall, 1500);
         return;
       }
 
       try {
-        const targetUserId = call.calleeId || call.user?._id || call.callerId;
-        if (!targetUserId) {
-          throw new Error('Missing call target user');
-        }
-        const stream = await webRTCService.createCall(
-          targetUserId,
-          call.type || 'audio',
-          socket,
-          call.conversationId
-        );
-        if (cancelled) return;
+        const targetUserId = call.calleeId || call.user?._id || call.targetUserId;
+        if (!targetUserId) throw new Error('No target user');
+
+        const stream = await webRTCService.createCall(targetUserId, call.type || 'audio', socket, call.conversationId);
+        if (cancelledRef.current) return;
+
         setHasLocalStream(true);
-        if (localVideoRef.current && stream) localVideoRef.current.srcObject = stream;
+        if (localVideoRef.current) localVideoRef.current.srcObject = stream;
 
         webRTCService.onRemoteStream = (remoteStream) => {
+          if (cancelledRef.current) return;
           setHasRemoteStream(true);
           setCallStatus('connected');
+          setConnectionQuality('good');
           if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
         };
-        
-        if (webRTCService.remoteStream) {
-          webRTCService.onRemoteStream(webRTCService.remoteStream);
-        }
 
-        webRTCService.onCallEnded = () => {
-          setCallStatus('ended');
-          onEndCall?.();
+        webRTCService.onCallEnded = () => { setCallStatus('ended'); onEndCall?.(); };
+        webRTCService.onReconnecting = () => setIsReconnecting(true);
+        webRTCService.onConnectionHealth = (state) => {
+          setIsReconnecting(false);
+          if (state === 'connected' || state === 'completed') setConnectionQuality('good');
+          else if (state === 'disconnected') setConnectionQuality('poor');
         };
+
+        // Check if remote stream already arrived
+        if (webRTCService.remoteStream) webRTCService.onRemoteStream(webRTCService.remoteStream);
+
       } catch (err) {
-        console.error('[CallScreen] Error starting call:', err);
+        if (cancelledRef.current) return;
+        console.error('[CallScreen] startCall error:', err);
+        if (err.name === 'NotAllowedError') {
+          setErrorMsg('Camera/microphone access denied. Please allow access and try again.');
+        } else if (err.name === 'NotFoundError') {
+          setErrorMsg('Camera or microphone not found.');
+        } else {
+          setErrorMsg('Could not start call. Please try again.');
+        }
       }
     };
 
-    if (call.status !== 'incoming') startCall();
+    startCall();
+    return () => { cancelledRef.current = true; clearTimeout(retryTimer); };
+  }, [call?.conversationId, call?.calleeId]);
 
-    return () => {
-      cancelled = true;
-      if (retryTimer) clearTimeout(retryTimer);
-    };
-  }, [call?.conversationId, socket]);
-
-  // ── Socket: receive WebRTC answer + ICE candidates ──
+  // ── Socket listeners ───────────────────────────────────────────────────
   useEffect(() => {
+    const socket = socketRef.current || getSocket();
     if (!socket) return;
 
-    const handleAnswer = async ({ answer }) => {
-      await webRTCService.handleAnswer(answer);
-      setCallStatus('connected');
+    const onAnswer = async ({ answer }) => {
+      try { await webRTCService.handleAnswer(answer); setCallStatus('connected'); }
+      catch (e) { console.error('[CallScreen] handleAnswer error:', e); }
     };
-    const handleIce = async ({ candidate }) => {
-      await webRTCService.handleIceCandidate(candidate);
+    const onIce = async ({ candidate }) => {
+      if (candidate) await webRTCService.handleIceCandidate(candidate);
     };
+    const onAccepted = () => setCallStatus('connected');
+    const onEnded = () => { setCallStatus('ended'); onEndCall?.(); };
+    const onRejected = () => { setCallStatus('ended'); onEndCall?.(); };
 
-    socket.on('webrtc:answer', handleAnswer);
-    socket.on('webrtc:ice_candidate', handleIce);
-    socket.on('call:accepted', () => { setCallStatus('connected'); });
-    socket.on('call:ended', () => { setCallStatus('ended'); onEndCall?.(); });
-    socket.on('call:rejected', () => { setCallStatus('ended'); onEndCall?.(); });
+    socket.on('webrtc:answer', onAnswer);
+    socket.on('call:answered', onAnswer);
+    socket.on('webrtc:ice_candidate', onIce);
+    socket.on('call:ice-candidate', onIce);
+    socket.on('call:accepted', onAccepted);
+    socket.on('call:ended', onEnded);
+    socket.on('call:ended_all', onEnded);
+    socket.on('call:rejected', onRejected);
 
     return () => {
-      socket.off('webrtc:answer', handleAnswer);
-      socket.off('webrtc:ice_candidate', handleIce);
-      socket.off('call:accepted');
-      socket.off('call:ended');
-      socket.off('call:rejected');
+      socket.off('webrtc:answer', onAnswer);
+      socket.off('call:answered', onAnswer);
+      socket.off('webrtc:ice_candidate', onIce);
+      socket.off('call:ice-candidate', onIce);
+      socket.off('call:accepted', onAccepted);
+      socket.off('call:ended', onEnded);
+      socket.off('call:ended_all', onEnded);
+      socket.off('call:rejected', onRejected);
     };
-  }, [socket]);
+  }, []);
 
-  // ── Accept incoming call ──
+  // ── Accept incoming call ────────────────────────────────────────────────
   const handleAccept = async () => {
     setCallStatus('connecting');
+    stopRingtone();
     try {
+      const socket = socketRef.current || getSocket();
       if (socket && call?.callerId) {
-        socket.emit('call:accept', {
-          conversationId: call.conversationId,
-          callerId: call.callerId
-        });
+        socket.emit('call:accept', { conversationId: call.conversationId, callerId: call.callerId });
+        socket.emit('webrtc:answer', { to: call.callerId, callerSocketId: call.callerSocketId });
       }
+
       const stream = await webRTCService.answerCall(
-        call.offer,
-        call.type || 'audio',
-        socket,
-        call.callerId
+        call.offer, call.type || 'audio', socket, call.callerId || call.callerSocketId
       );
+      if (!stream) throw new Error('No local stream');
+
       setHasLocalStream(true);
-      if (localVideoRef.current && stream) localVideoRef.current.srcObject = stream;
+      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
 
       webRTCService.onRemoteStream = (remoteStream) => {
         setHasRemoteStream(true);
         setCallStatus('connected');
+        setConnectionQuality('good');
         if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
       };
-      
-      if (webRTCService.remoteStream) {
-        webRTCService.onRemoteStream(webRTCService.remoteStream);
-      }
+      webRTCService.onCallEnded = () => { setCallStatus('ended'); onEndCall?.(); };
+
+      if (webRTCService.remoteStream) webRTCService.onRemoteStream(webRTCService.remoteStream);
+
     } catch (err) {
-      console.error('[CallScreen] Error accepting call:', err);
+      console.error('[CallScreen] Accept error:', err);
+      if (err.name === 'NotAllowedError') setErrorMsg('Please allow camera/microphone access');
+      else setErrorMsg('Could not connect call');
     }
     onAcceptCall?.();
   };
 
   const handleReject = () => {
+    stopRingtone();
+    const socket = socketRef.current || getSocket();
+    if (socket && call?.callerId) {
+      socket.emit('call:reject', {
+        conversationId: call.conversationId,
+        callerId: call.callerId,
+        callerSocketId: call.callerSocketId,
+        callType: call.type || 'audio'
+      });
+    }
     webRTCService.endCall();
     onRejectCall?.();
   };
 
   const handleEndCall = () => {
-    webRTCService.endCall();
-    if (socket && call?.conversationId) {
-      socket.emit('call:end', { conversationId: call.conversationId });
+    stopRingtone();
+    const socket = socketRef.current || getSocket();
+    if (socket) {
+      socket.emit('call:end', {
+        conversationId: call?.conversationId,
+        targetUserId: call?.calleeId || call?.callerId,
+        callType: call?.type || 'audio'
+      });
     }
+    webRTCService.endCall();
     onEndCall?.();
   };
 
-  // ── Connection quality monitoring ──
-  useEffect(() => {
-    if (callStatus === 'connected') {
-      const qualityInterval = setInterval(() => {
-        const connState = webRTCService.getConnectionState();
-        if (connState) {
-          if (connState.iceConnectionState === 'connected' || connState.iceConnectionState === 'completed') {
-            setConnectionQuality('good');
-          } else if (connState.iceConnectionState === 'checking') {
-            setConnectionQuality('checking');
-          } else if (connState.iceConnectionState === 'disconnected') {
-            setConnectionQuality('poor');
-          } else {
-            setConnectionQuality('unknown');
-          }
-        }
-      }, 3000);
-      return () => clearInterval(qualityInterval);
+  const handleScreenShare = async () => {
+    try {
+      if (isScreenSharing) {
+        await webRTCService.stopScreenShare();
+        setIsScreenSharing(false);
+      } else {
+        await webRTCService.startScreenShare();
+        setIsScreenSharing(true);
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') console.error('[CallScreen] Screen share error:', err);
     }
-  }, [callStatus]);
+  };
 
   const handleMute = () => {
     const next = !isMuted;
     setIsMuted(next);
     webRTCService.toggleAudio(!next);
-    onToggleMute?.(next);
+    const socket = socketRef.current || getSocket();
+    socket?.emit('call:toggle-audio', { targetUserId: call?.calleeId || call?.callerId, enabled: !next });
   };
 
   const handleCamera = () => {
     const next = !isCameraOff;
     setIsCameraOff(next);
     webRTCService.toggleVideo(!next);
-    onToggleCamera?.(next);
+    const socket = socketRef.current || getSocket();
+    socket?.emit('call:toggle-video', { targetUserId: call?.calleeId || call?.callerId, enabled: !next });
   };
 
-  const formatDuration = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
+  const fmt = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
   if (!call) return null;
 
-  // ── Incoming call UI ──
+  // ── Incoming call UI ────────────────────────────────────────────────────
   if (isIncoming && callStatus === 'incoming') {
     return (
-      <div className="fixed inset-0 z-[1000] flex flex-col items-center justify-between bg-[#0b141a] pt-16 pb-12">
+      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-between bg-[#0b141a] pt-20 pb-14"
+        style={{ backgroundImage: 'radial-gradient(ellipse at top, #1a2631 0%, #0b141a 70%)' }}>
         <div className="text-center text-white flex flex-col items-center">
-          <p className="text-[#8696a0] mb-4 flex items-center justify-center gap-2">
-            {isVideoCall ? <Video size={16} /> : <Phone size={16} />}
-            WhatsApp {isVideoCall ? 'Video' : 'Audio'} Call
+          <p className="text-[#8696a0] mb-6 flex items-center gap-2 text-sm">
+            {isVideoCall ? <Video size={14} /> : <Phone size={14} />}
+            GENZ {isVideoCall ? 'Video' : 'Voice'} Call
           </p>
-          {profilePic ? (
-            <img src={profilePic} alt={callerName} className="w-24 h-24 rounded-full object-cover mb-4" />
-          ) : (
-            <div className="w-24 h-24 bg-[#6b7c85] rounded-full flex items-center justify-center text-4xl text-white mb-4">
-              {callerName.charAt(0).toUpperCase()}
-            </div>
-          )}
-          <h2 className="text-3xl font-normal mb-2">{callerName}</h2>
-          <p className="text-lg text-[#8696a0]">Incoming...</p>
+          {profilePic
+            ? <img src={profilePic} alt={callerName} className="w-28 h-28 rounded-full object-cover mb-4 border-4 border-[#00a884]" />
+            : <div className="w-28 h-28 bg-[#2a3942] rounded-full flex items-center justify-center text-5xl text-white mb-4 border-4 border-[#00a884]">
+                {callerName.charAt(0).toUpperCase()}
+              </div>
+          }
+          <h2 className="text-3xl font-light mb-2 tracking-wide">{callerName}</h2>
+          <p className="text-[#8696a0] text-base animate-pulse">Incoming {isVideoCall ? 'video' : 'voice'} call...</p>
         </div>
-        
-        <div className="flex w-full px-12 justify-between items-end pb-8">
-          <div className="flex flex-col items-center">
+
+        <div className="flex w-full px-16 justify-between items-end">
+          <div className="flex flex-col items-center gap-2">
             <button onClick={handleReject}
-              className="w-16 h-16 rounded-full bg-[#f15c6d] flex items-center justify-center mb-2">
+              className="w-16 h-16 rounded-full bg-[#f15c6d] hover:bg-[#d94f5e] flex items-center justify-center shadow-lg transition-all active:scale-95">
               <PhoneOff size={28} className="text-white" />
             </button>
-            <span className="text-[#8696a0] text-sm">Decline</span>
+            <span className="text-[#8696a0] text-xs">Decline</span>
           </div>
-          
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center gap-2">
             <button onClick={handleAccept}
-              className="w-16 h-16 rounded-full bg-[#00a884] flex items-center justify-center mb-2">
+              className="w-16 h-16 rounded-full bg-[#00a884] hover:bg-[#008f6f] flex items-center justify-center shadow-lg transition-all active:scale-95 animate-bounce">
               {isVideoCall ? <Video size={28} className="text-white" /> : <Phone size={28} className="text-white" />}
             </button>
-            <span className="text-[#8696a0] text-sm">Accept</span>
+            <span className="text-[#8696a0] text-xs">Accept</span>
           </div>
         </div>
       </div>
     );
   }
 
-  // ── Active call UI ──
+  // ── Active / Connecting call UI ────────────────────────────────────────
   return (
-    <div className="fixed inset-0 z-[1000] flex flex-col bg-[#0b141a]">
-      {/* Remote video (full screen for video calls) */}
+    <div className="fixed inset-0 z-[9999] flex flex-col bg-[#0b141a]"
+      style={{ backgroundImage: 'radial-gradient(ellipse at top, #1a2631 0%, #0b141a 70%)' }}>
+
+      {/* Remote video */}
       {isVideoCall && hasRemoteStream && (
         <video ref={remoteVideoRef} autoPlay playsInline
           className="absolute inset-0 w-full h-full object-cover" />
       )}
 
-      {/* Caller info overlay */}
-      <div className={`absolute top-0 left-0 w-full pt-12 pb-8 flex flex-col items-center justify-start text-white z-10 transition-opacity duration-300 ${isVideoCall && hasRemoteStream ? 'bg-gradient-to-b from-black/60 to-transparent' : ''}`}>
+      {/* Top overlay: caller info */}
+      <div className={`absolute top-0 left-0 w-full pt-12 pb-8 flex flex-col items-center z-10 ${isVideoCall && hasRemoteStream ? 'bg-gradient-to-b from-black/70 to-transparent' : ''}`}>
+        {/* Connection quality */}
+        <div className="flex items-center gap-1 mb-3">
+          {connectionQuality === 'good'
+            ? <Wifi size={12} className="text-[#00a884]" />
+            : <WifiOff size={12} className="text-yellow-400" />}
+          {isReconnecting && <RotateCcw size={12} className="text-yellow-400 animate-spin" />}
+        </div>
+
         {(!isVideoCall || !hasRemoteStream) && (
-          <div className="flex flex-col items-center mt-8 mb-4">
-             {profilePic ? (
-              <img src={profilePic} alt={callerName} className="w-24 h-24 rounded-full object-cover mb-4" />
-            ) : (
-              <div className="w-24 h-24 bg-[#6b7c85] rounded-full flex items-center justify-center text-4xl text-white mb-4">
+          profilePic
+            ? <img src={profilePic} alt={callerName} className="w-24 h-24 rounded-full object-cover mb-4 border-2 border-[#00a884]" />
+            : <div className="w-24 h-24 bg-[#2a3942] rounded-full flex items-center justify-center text-4xl text-white mb-4 border-2 border-[#00a884]">
                 {callerName.charAt(0).toUpperCase()}
               </div>
-            )}
-          </div>
         )}
-        <h2 className="text-2xl font-normal drop-shadow-md">{callerName}</h2>
-        <p className="text-[#8696a0] mt-1 text-sm font-medium drop-shadow-md">
-          {callStatus === 'calling' ? 'Calling...' :
-            callStatus === 'connecting' ? 'Connecting...' :
-              callStatus === 'connected' ? formatDuration(duration) :
-                'Call ended'}
+        <h2 className="text-2xl text-white font-light drop-shadow">{callerName}</h2>
+        <p className="text-[#8696a0] text-sm mt-1">
+          {callStatus === 'calling' ? 'Ringing...'
+            : callStatus === 'connecting' ? 'Connecting...'
+            : callStatus === 'connected' ? fmt(duration)
+            : 'Call ended'}
         </p>
+        {errorMsg && (
+          <p className="mt-2 text-red-400 text-xs px-4 text-center bg-black/40 py-1 rounded-full">{errorMsg}</p>
+        )}
       </div>
 
-      {/* Local video (PiP) */}
+      {/* Local video PiP */}
       {isVideoCall && hasLocalStream && (
-        <div className="absolute bottom-32 right-4 w-28 h-40 bg-gray-900 rounded-lg overflow-hidden border border-[#202c33] z-20 shadow-lg">
+        <div className="absolute bottom-32 right-4 w-28 h-40 rounded-xl overflow-hidden border-2 border-[#2a3942] z-20 shadow-2xl">
           <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
         </div>
       )}
 
       {/* Controls */}
-      <div className={`absolute bottom-0 left-0 w-full pb-10 pt-6 px-6 flex justify-around items-center z-10 ${isVideoCall ? 'bg-gradient-to-t from-black/80 to-transparent' : 'bg-[#111b21]'}`}>
-        
-        <button onClick={handleCamera}
-          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isCameraOff ? 'bg-white/20 text-white' : 'text-[#8696a0] hover:bg-white/10'}`}
-          title={isCameraOff ? 'Turn on camera' : 'Turn off camera'}>
-          {isCameraOff ? <CameraOff size={24} /> : <Camera size={24} />}
-        </button>
-
-        <button onClick={() => setIsSpeakerOn(p => !p)}
-          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isSpeakerOn ? 'text-[#8696a0] hover:bg-white/10' : 'bg-white/20 text-white'}`}
-          title={isSpeakerOn ? 'Speaker on' : 'Speaker off'}>
-          {isSpeakerOn ? <Volume2 size={24} /> : <VolumeX size={24} />}
-        </button>
-
-        <button onClick={handleMute}
-          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isMuted ? 'bg-white/20 text-white' : 'text-[#8696a0] hover:bg-white/10'}`}
-          title={isMuted ? 'Unmute' : 'Mute'}>
-          {isMuted ? <MicOff size={24} /> : <Mic size={24} />}
-        </button>
-
+      <div className={`absolute bottom-0 left-0 w-full pb-12 pt-6 px-8 flex justify-around items-center z-10 ${isVideoCall ? 'bg-gradient-to-t from-black/80 to-transparent' : 'bg-[#111b21]'}`}>
+        {isVideoCall && (
+          <ControlBtn onClick={handleCamera} active={isCameraOff} title={isCameraOff ? 'Camera off' : 'Camera on'}>
+            {isCameraOff ? <CameraOff size={22} /> : <Camera size={22} />}
+          </ControlBtn>
+        )}
+        {isVideoCall && (
+          <ControlBtn onClick={handleScreenShare} active={isScreenSharing} title={isScreenSharing ? 'Stop sharing' : 'Share screen'}>
+            {isScreenSharing ? <MonitorOff size={22} /> : <Monitor size={22} />}
+          </ControlBtn>
+        )}
+        <ControlBtn onClick={() => setIsSpeakerOn(p => !p)} active={!isSpeakerOn} title="Speaker">
+          {isSpeakerOn ? <Volume2 size={22} /> : <VolumeX size={22} />}
+        </ControlBtn>
+        <ControlBtn onClick={handleMute} active={isMuted} title={isMuted ? 'Unmute' : 'Mute'}>
+          {isMuted ? <MicOff size={22} /> : <Mic size={22} />}
+        </ControlBtn>
         <button onClick={handleEndCall}
-          className="w-14 h-14 rounded-full bg-[#f15c6d] hover:bg-[#d65161] text-white flex items-center justify-center transition-transform">
-          <PhoneOff size={26} />
+          className="w-14 h-14 rounded-full bg-[#f15c6d] hover:bg-[#d94f5e] text-white flex items-center justify-center shadow-lg transition-all active:scale-95">
+          <PhoneOff size={24} />
         </button>
       </div>
     </div>
   );
 };
+
+const ControlBtn = ({ onClick, active, title, children }) => (
+  <button onClick={onClick} title={title}
+    className={`w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-95 ${active ? 'bg-white/20 text-white' : 'text-[#8696a0] hover:bg-white/10'}`}>
+    {children}
+  </button>
+);
 
 export default CallScreen;

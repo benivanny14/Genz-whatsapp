@@ -47,15 +47,21 @@ import {
   Circle
 } from 'lucide-react';
 import ProfileEnlarger from './ProfileEnlarger';
+import AccountSwitcher from './AccountSwitcher';
 import { formatConversationTime } from '../utils/formatDate';
 import { getAvatarUrl } from '../utils/avatar';
 
 const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added mods prop
   const { user } = useUser();
   const navigate = useNavigate();
+  // Compute total unread count across all conversations
   const { conversations, selectConversation, selectedConversation, onlineUsers, togglePinChat, toggleMuteChat, toggleArchiveChat, clearChat, deleteChat, callLogs, statuses, addStatus, deleteStatus, uploadStatusMedia, profileVisitors, showProfileEditor, setShowProfileEditor, typingByConversation } = useChat();
   const currentUserId = String(user?._id || user?.id || 'anonymous');
   const defaultChatTabs = ['All', 'Personal', 'Work', 'Groups'];
+  const totalUnread = useMemo(() =>
+    conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0),
+    [conversations]
+  );
   const chatTabsStorageKey = useMemo(() => `genz_chat_tabs:${currentUserId}`, [currentUserId]);
   const chatTabMapStorageKey = useMemo(() => `genz_chat_tab_map:${currentUserId}`, [currentUserId]);
   const chatListWallpaperKey = useMemo(() => `genz_chatlist_wallpaper:${currentUserId}`, [currentUserId]);
@@ -69,6 +75,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   const [contextMenu, setContextMenu] = useState(null);
   const [showArchivedOnly, setShowArchivedOnly] = useState(false);
   const [enlargedProfile, setEnlargedProfile] = useState(null);
+  const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
 
   // GENZ MOD: Custom Chat Tabs
   const [chatTabs, setChatTabs] = useState(() => {
@@ -183,6 +190,10 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
 
   const handleViewCalls = () => {
     navigate('/calls');
+  };
+
+  const handleViewChannels = () => {
+    navigate('/channels');
   };
 
   const handleViewBroadcast = () => {
@@ -415,6 +426,9 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
         )
       )}
       <div className="relative z-10 p-4 border-b border-dark-border bg-dark-surface/85 backdrop-blur-sm">
+        {/* Hidden wallpaper file input */}
+        <input ref={chatListWallpaperInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleChatListWallpaperUpload} />
+
         <div className="flex items-center justify-between mb-4">
           {isOpen && (
             <div className="flex items-center gap-3 cursor-pointer hover:bg-dark-hover p-1 rounded-lg transition-colors" onClick={() => setShowProfileEditor(true)}>
@@ -427,7 +441,10 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                   </span>
                 )}
               </div>
-              <span className="text-white font-medium truncate">{user?.username}</span>
+              <span className="text-white font-medium truncate flex items-center gap-1">
+                {user?.username}
+                {user?.emojiStatus && <span className="text-base" title="Emoji status">{user.emojiStatus}</span>}
+              </span>
             </div>
           )}
           <div className="flex items-center gap-2">
@@ -440,11 +457,18 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
               <Plus className="w-5 h-5 text-dark-text" />
             </button>
             <button
-              onClick={handleViewStatus} // Status button
+              onClick={handleViewStatus}
               className="p-2 hover:bg-dark-hover rounded-lg transition-colors"
               title="Status"
             >
               <CircleUserRound className="w-5 h-5 text-dark-text" />
+            </button>
+            <button
+              onClick={handleViewChannels}
+              className="p-2 hover:bg-dark-hover rounded-lg transition-colors"
+              title="Channels"
+            >
+              <Megaphone className="w-5 h-5 text-dark-text" />
             </button>
             <div className="relative">
               <button
@@ -548,13 +572,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     <CheckCheck className="w-4 h-4" />
                     <span>Starred Messages</span>
                   </button>
-                  <input
-                    ref={chatListWallpaperInputRef}
-                    type="file"
-                    accept="image/*,video/*"
-                    className="hidden"
-                    onChange={handleChatListWallpaperUpload}
-                  />
                   <button
                     onClick={() => chatListWallpaperInputRef.current?.click()}
                     className="w-full flex items-center gap-3 px-4 py-2 hover:bg-dark-hover text-dark-text"
@@ -626,32 +643,39 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
         )}
 
         {isOpen && activeTab === 'chats' && (
-          <div className="flex gap-2 mb-3 overflow-x-auto scrollbar-none py-1">
-            {chatTabs.map(folder => (
-              <div key={folder} className="flex items-center">
-                <button
-                  onClick={() => setActiveFolder(folder)}
-                  className={`px-3 py-1 text-[10px] font-bold rounded-full border transition-all whitespace-nowrap ${activeFolder === folder ? 'bg-primary-600 border-primary-600 text-white' : 'border-dark-border text-dark-textSecondary hover:bg-dark-hover'}`}
-                >
-                  {folder}
-                </button>
-                {!defaultChatTabs.includes(folder) && (
+          <div className="flex gap-1.5 mb-3 overflow-x-auto scrollbar-none py-1">
+            {chatTabs.map(folder => {
+              const tabIcons = { 'All': '💬', 'Personal': '👤', 'Work': '💼', 'Groups': '👥' };
+              const icon = tabIcons[folder] || '📁';
+              const isActive = activeFolder === folder;
+              return (
+                <div key={folder} className="relative flex items-center flex-shrink-0">
                   <button
-                    onClick={() => handleDeleteTab(folder)}
-                    className="-ml-2 flex h-5 w-5 items-center justify-center rounded-full border border-dark-border bg-dark-surface text-[10px] text-dark-textSecondary hover:text-red-400"
-                    title={`Remove ${folder}`}
+                    onClick={() => setActiveFolder(folder)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all whitespace-nowrap
+                      ${isActive ? 'bg-[#00a884] border-[#00a884] text-white shadow-sm' : 'border-dark-border text-dark-textSecondary hover:bg-dark-hover hover:text-dark-text'}`}
                   >
-                    x
+                    <span className="text-[10px]">{icon}</span>
+                    {folder}
                   </button>
-                )}
-              </div>
-            ))}
+                  {!defaultChatTabs.includes(folder) && (
+                    <button
+                      onClick={() => handleDeleteTab(folder)}
+                      className="absolute -top-1 -right-0.5 w-4 h-4 rounded-full bg-dark-surface border border-dark-border text-dark-textSecondary hover:text-red-400 flex items-center justify-center transition-colors"
+                      title={`Remove ${folder}`}
+                    >
+                      <X size={9} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
             <button
               onClick={() => setShowAddTabModal(true)}
-              className="px-2 py-1 text-[10px] font-bold rounded-full border border-dark-border text-dark-textSecondary hover:bg-dark-hover transition-all"
-              title="Add Custom Tab"
+              className="flex-shrink-0 w-7 h-7 rounded-full border border-dark-border text-dark-textSecondary hover:bg-dark-hover hover:text-dark-text flex items-center justify-center transition-all"
+              title="Add new tab"
             >
-              <Plus size={14} />
+              <Plus size={13} />
             </button>
           </div>
         )}
@@ -743,13 +767,29 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     </div>
                     <div className="flex items-center justify-between mt-1">
                       {typingByConversation[conv._id] ? (
-                        <p className="text-sm truncate flex-1 text-left text-[#00a884] font-medium italic flex items-center gap-1">
-                          <span className="flex gap-0.5 items-center">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#00a884] animate-bounce [animation-delay:-0.3s]"></span>
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#00a884] animate-bounce [animation-delay:-0.15s]"></span>
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#00a884] animate-bounce"></span>
-                          </span>
-                          {typingByConversation[conv._id].type === 'recording' ? 'recording...' : 'typing...'}
+                        <p className="text-sm truncate flex-1 text-left text-[#00a884] font-semibold flex items-center gap-1.5">
+                          {typingByConversation[conv._id].type === 'recording' ? (
+                            <>
+                              <span className="flex gap-0.5 items-end">
+                                {[0,1,2,3,4].map((b,i) => (
+                                  <span key={i} className="w-0.5 rounded-sm bg-[#00a884]"
+                                    style={{height: `${6 + (i%3)*3}px`, animation:'recordWave 1s infinite ease-in-out', animationDelay:`${i*0.1}s`}}/>
+                                ))}
+                              </span>
+                              <span>recording...</span>
+                              <style>{`@keyframes recordWave{0%,100%{transform:scaleY(0.5)}50%{transform:scaleY(1.2)}}`}</style>
+                            </>
+                          ) : (
+                            <>
+                              <span className="flex gap-0.5 items-end">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#00a884]" style={{animation:'typingBounce 1.2s infinite ease-in-out',animationDelay:'0s'}}/>
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#00a884]" style={{animation:'typingBounce 1.2s infinite ease-in-out',animationDelay:'0.2s'}}/>
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#00a884]" style={{animation:'typingBounce 1.2s infinite ease-in-out',animationDelay:'0.4s'}}/>
+                              </span>
+                              <span>typing...</span>
+                              <style>{`@keyframes typingBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}`}</style>
+                            </>
+                          )}
                         </p>
                       ) : (
                       <p className={`text-sm truncate flex-1 text-left ${
@@ -1127,6 +1167,9 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
         )}
       </AnimatePresence>
 
+      {showAccountSwitcher && (
+        <AccountSwitcher onClose={() => setShowAccountSwitcher(false)} />
+      )}
       {enlargedProfile && getConversationAvatar(enlargedProfile) && (
         <ProfileEnlarger
           src={getConversationAvatar(enlargedProfile)}

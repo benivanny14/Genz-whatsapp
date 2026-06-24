@@ -12,34 +12,57 @@ import { cleanupLocalBlobUrls } from './utils/sanitizeStorage'
 
 cleanupLocalBlobUrls();
 
-// Register service worker for PWA (only in production)
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+// Apply saved custom font on startup
+try {
+  const mods = JSON.parse(localStorage.getItem('genz_mods') || '{}');
+  const fontMap = {
+    serif: "'Georgia', serif",
+    mono: "'Courier New', monospace",
+    rounded: "'Trebuchet MS', sans-serif",
+    elegant: "'Palatino', serif",
+    bold: "'Arial Black', sans-serif",
+  };
+  if (mods.customFont && fontMap[mods.customFont]) {
+    document.body.style.fontFamily = fontMap[mods.customFont];
+  }
+} catch (_) {}
+
+// ── Service Worker + Push Notification Registration ───────────────────────
+if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
-      // Clean up old service workers first
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      for (const registration of registrations) {
-        await registration.unregister();
-        console.log('Unregistered old service worker:', registration.scope);
+      const registration = await navigator.serviceWorker.register('/service-worker.js', { scope: '/' });
+      console.log('[SW] Registered:', registration.scope);
+
+      // Handle SW messages (open chat from notification click)
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        const { type, conversationId } = event.data || {};
+        if (type === 'OPEN_CHAT' && conversationId) {
+          window.dispatchEvent(new CustomEvent('open-chat', { detail: { conversationId } }));
+        }
+        if (type === 'CALL_DECLINE') {
+          window.dispatchEvent(new CustomEvent('call-decline', { detail: event.data }));
+        }
+        if (type === 'SYNC_MESSAGES') {
+          window.dispatchEvent(new CustomEvent('sync-messages'));
+        }
+      });
+
+      // Request push notification permission
+      if ('Notification' in window && Notification.permission === 'default') {
+        const permission = await Notification.requestPermission();
+        console.log('[Notifications] Permission:', permission);
       }
 
-      // Register new service worker
-      const registration = await navigator.serviceWorker.register('/service-worker.js');
-      console.log('Service Worker registered:', registration.scope);
     } catch (error) {
-      console.error('Service Worker registration failed:', error);
+      console.warn('[SW] Registration failed:', error);
     }
   });
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <ErrorBoundary>
-    <BrowserRouter
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true,
-      }}
-    >
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
         <LanguageProvider>
           <UserProvider>

@@ -34,10 +34,16 @@ const InAppNotification = ({ notification, onClose }) => {
   };
 
   const handleNotificationClick = () => {
-    if (notification.chatId) {
-      navigate(`/chat/${notification.chatId}`);
-    }
     setIsVisible(false);
+    if (notification.chatId || notification.conversationId) {
+      const convId = notification.conversationId || notification.chatId;
+      // Dispatch event so ChatContext opens the correct conversation
+      window.dispatchEvent(new CustomEvent('open-chat', { detail: { conversationId: convId } }));
+      // Navigate to chat page if not already there
+      if (!window.location.pathname.includes('/chat')) {
+        navigate('/chat');
+      }
+    }
     setTimeout(onClose, 300);
   };
 

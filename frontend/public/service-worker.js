@@ -1,282 +1,108 @@
-const CACHE_NAME = 'genz-whatsapp-v1';
-const STATIC_CACHE = 'genz-static-v1';
-const DYNAMIC_CACHE = 'genz-dynamic-v1';
-const API_CACHE = 'genz-api-v1';
+// GENZ WhatsApp Service Worker v2
+// Handles: Push notifications (foreground+background), offline cache, background sync
 
-// Static assets to cache on install
-const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/offline.html',
-  '/manifest.json',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png'
-];
+const CACHE_NAME = 'genz-wa-v2';
+const STATIC_CACHE = ['/', '/index.html', '/manifest.json'];
 
-// Install event - cache static assets
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(STATIC_CACHE)
-      .then((cache) => {
-        console.log('Caching static assets');
-        return cache.addAll(STATIC_ASSETS);
-      })
-      .then(() => self.skipWaiting())
+// ── Install ──────────────────────────────────────────────────────────────
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(STATIC_CACHE)).then(() => self.skipWaiting()));
+});
+
+// ── Activate ─────────────────────────────────────────────────────────────
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys().then(keys => Promise.all(
+      keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+    )).then(() => clients.claim())
   );
 });
 
-// Activate event - clean old caches
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys()
-      .then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE && cacheName !== API_CACHE) {
-              console.log('Deleting old cache:', cacheName);
-              return caches.delete(cacheName);
-            }
-          })
-        );
-      })
-      .then(() => self.clients.claim())
+// ── Fetch: cache-first for static, network-first for API ─────────────────
+self.addEventListener('fetch', (e) => {
+  if (e.request.url.includes('/api/')) return; // Skip API calls
+  e.respondWith(
+    caches.match(e.request).then(cached => cached || fetch(e.request).catch(() => caches.match('/offline.html')))
   );
 });
 
-// Fetch event - implement caching strategies
-self.addEventListener('fetch', (event) => {
-  const { url } = event.request;
-  
-  // Skip non-GET requests
-  if (event.request.method !== 'GET') {
-    return;
-  }
+// ── Push: Show notification even when app is closed ──────────────────────
+self.addEventListener('push', (e) => {
+  let payload = {};
+  try { payload = e.data?.json() || {}; } catch { payload = { title: 'GENZ', body: e.data?.text() || 'New notification' }; }
 
-  // Skip chrome extensions and other protocols
-  if (!url.startsWith('http')) {
-    return;
-  }
-
-  // Skip cross-origin requests (e.g., backend API on port 5000 when frontend is 5173)
-  // This prevents the SW from throwing 503s on opaque responses
-  if (!url.startsWith(self.location.origin)) {
-    return;
-  }
-
-  // Strategy 1: Cache First for static assets
-  if (url.includes('/assets/') || url.includes('/icons/') || url.match(/\.(png|jpg|jpeg|svg|webp|woff|woff2)$/)) {
-    event.respondWith(
-      caches.match(event.request)
-        .then((cached) => {
-          if (cached) {
-            return cached;
-          }
-          return fetch(event.request).then((response) => {
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-            const responseToCache = response.clone();
-            caches.open(STATIC_CACHE).then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-            return response;
-          });
-        })
-    );
-    return;
-  }
-
-  // Strategy 2: Network First for API calls
-  if (url.includes('/api/')) {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          if (!response || response.status !== 200) {
-            throw new Error('API request failed');
-          }
-          const responseToCache = response.clone();
-          caches.open(API_CACHE).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-          return response;
-        })
-        .catch(() => {
-          return caches.match(event.request);
-        })
-    );
-    return;
-  }
-
-  // Strategy 3: Stale While Revalidate for HTML and JS
-  event.respondWith(
-    caches.match(event.request)
-      .then((cached) => {
-        const fetchPromise = fetch(event.request)
-          .then((response) => {
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-            const responseToCache = response.clone();
-            caches.open(DYNAMIC_CACHE).then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-            return response;
-          })
-          .catch(() => {
-            // Return offline page for HTML requests
-            if (event.request.headers.get('accept').includes('text/html')) {
-              return caches.match('/offline.html');
-            }
-          });
-        
-        return cached || fetchPromise;
-      })
-  );
-});
-
-// Handle push events
-self.addEventListener('push', (event) => {
-  let data = {};
-  try {
-    data = event.data ? event.data.json() : {};
-  } catch (error) {
-    data = { body: event.data?.text?.() || 'New notification' };
-  }
-
-  const notificationData = data.data || {};
-  const title = data.title || notificationData.title || 'GENZ WhatsApp';
-  const body = data.body || notificationData.body || 'New message';
-  const type = data.type || notificationData.type || 'message';
-  const chatId = data.chatId || data.conversationId || notificationData.conversationId;
-  const messageId = data.messageId || notificationData.messageId;
-  const clickUrl =
-    notificationData.clickAction ||
-    data.clickAction ||
-    data.url ||
-    (chatId ? `/chat?conversationId=${chatId}` : '/');
-  const isIncomingCall = type === 'incoming_call' || type === 'call';
+  const title = payload.title || payload.senderName || 'GENZ WhatsApp';
+  const body = payload.body || payload.text || payload.message || 'You have a new message';
+  const isCall = payload.type === 'call' || payload.callType;
+  const isMessage = payload.type === 'message' || !payload.type;
 
   const options = {
-    body: body || 'New message',
-    icon: data.icon || '/icons/icon-192x192.png',
-    badge: data.badge || '/icons/icon-192x192.png',
-    tag: data.tag || messageId || chatId || 'genz-notification',
-    requireInteraction: Boolean(isIncomingCall || data.requireInteraction),
+    body,
+    icon: payload.senderAvatar || '/icons/icon-192x192.png',
+    badge: '/icons/favicon-32x32.png',
+    tag: payload.conversationId || payload.tag || 'genz-msg',
+    renotify: true,
+    requireInteraction: isCall,
     silent: false,
+    vibrate: isCall ? [300, 100, 300, 100, 300] : isMessage ? [100, 50, 100] : [50],
     data: {
-      ...notificationData,
-      chatId,
-      messageId,
-      sender: data.sender || notificationData.sender,
-      type,
-      url: clickUrl
+      url: payload.url || '/',
+      conversationId: payload.conversationId,
+      senderId: payload.senderId,
+      type: payload.type || 'message',
+      callType: payload.callType,
     },
-    actions: isIncomingCall
-      ? [
-          { action: 'open', title: 'Open' },
-          { action: 'dismiss', title: 'Dismiss' }
-        ]
-      : [
-          { action: 'open', title: 'Open' },
-          { action: 'dismiss', title: 'Dismiss' }
-        ]
+    actions: isCall
+      ? [{ action: 'accept', title: '✅ Answer' }, { action: 'decline', title: '❌ Decline' }]
+      : [{ action: 'open', title: '💬 Open' }],
+    timestamp: Date.now(),
   };
 
-  event.waitUntil(
-    self.registration.showNotification(title, options)
-  );
+  e.waitUntil(self.registration.showNotification(title, options));
 });
 
-// Handle notification click
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  if (event.action === 'dismiss') return;
+// ── Notification click ────────────────────────────────────────────────────
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const data = e.notification.data || {};
 
-  const url = event.notification.data?.url || '/';
+  if (e.action === 'decline') {
+    // Post to app to reject call
+    clients.matchAll({ type: 'window' }).then(wcs => {
+      wcs.forEach(c => c.postMessage({ type: 'CALL_DECLINE', conversationId: data.conversationId }));
+    });
+    return;
+  }
 
-  event.waitUntil(
-    clients.matchAll({ type: 'window' }).then((clientList) => {
-      // If a window is already open, focus it
-      for (const client of clientList) {
-        if (client.url.includes(url) && 'focus' in client) {
-          return client.focus();
+  const targetUrl = data.conversationId ? `/?chat=${data.conversationId}` : (data.url || '/');
+
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(wcs => {
+      // Focus existing window if open
+      for (const wc of wcs) {
+        if (wc.url.startsWith(self.location.origin)) {
+          wc.postMessage({ type: 'OPEN_CHAT', conversationId: data.conversationId });
+          return wc.focus();
         }
       }
-      // Otherwise, open a new window
-      if (clients.openWindow) {
-        return clients.openWindow(url);
-      }
+      return clients.openWindow(targetUrl);
     })
   );
 });
 
-// Handle background sync for offline messages
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-messages') {
-    event.waitUntil(syncMessages());
+// ── Background sync for offline messages ─────────────────────────────────
+self.addEventListener('sync', (e) => {
+  if (e.tag === 'sync-messages') {
+    e.waitUntil(syncPendingMessages());
   }
 });
 
-async function syncMessages() {
-  try {
-    const offlineMessages = await getOfflineMessages();
-    for (const message of offlineMessages) {
-      try {
-        await fetch('/api/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(message),
-        });
-        await removeOfflineMessage(message.id);
-      } catch (error) {
-        console.error('Failed to sync message:', error);
-      }
-    }
-  } catch (error) {
-    console.error('Background sync failed:', error);
-  }
+async function syncPendingMessages() {
+  const allClients = await clients.matchAll({ type: 'window' });
+  allClients.forEach(c => c.postMessage({ type: 'SYNC_MESSAGES' }));
 }
 
-// IndexedDB helpers for offline messages
-async function getOfflineMessages() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open('genz-whatsapp', 1);
-    
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
-      const db = request.result;
-      const transaction = db.transaction(['offlineMessages'], 'readonly');
-      const store = transaction.objectStore('offlineMessages');
-      const getAllRequest = store.getAll();
-      
-      getAllRequest.onerror = () => reject(getAllRequest.error);
-      getAllRequest.onsuccess = () => resolve(getAllRequest.result);
-    };
-    
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains('offlineMessages')) {
-        db.createObjectStore('offlineMessages', { keyPath: 'id' });
-      }
-    };
-  });
-}
-
-async function removeOfflineMessage(id) {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open('genz-whatsapp', 1);
-    
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
-      const db = request.result;
-      const transaction = db.transaction(['offlineMessages'], 'readwrite');
-      const store = transaction.objectStore('offlineMessages');
-      const deleteRequest = store.delete(id);
-      
-      deleteRequest.onerror = () => reject(deleteRequest.error);
-      deleteRequest.onsuccess = () => resolve();
-    };
-  });
-}
+// ── Message from app ──────────────────────────────────────────────────────
+self.addEventListener('message', (e) => {
+  if (e.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});

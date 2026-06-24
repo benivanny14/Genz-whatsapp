@@ -14,8 +14,8 @@ const GroupCreation = ({ isOpen, onClose, contacts = [], onCreateGroup }) => {
   if (!isOpen) return null;
 
   const filteredContacts = contacts.filter(contact =>
-    contact.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    contact.phone?.includes(searchQuery)
+    (contact.username || contact.name)?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (contact.phoneNumber || contact.phone)?.includes(searchQuery)
   );
 
   const toggleContact = (contactId) => {

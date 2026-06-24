@@ -8,6 +8,7 @@ import {
   Info as FiInfo,
   AlertTriangle as FiAlertTriangle,
   Edit2 as FiEdit2,
+  Pin as FiPin,
 } from 'lucide-react';
 import MessageInfo from './MessageInfo';
 import ForwardDialog from './ForwardDialog';
@@ -22,6 +23,7 @@ const MessageContextMenu = ({
   onEdit,
   onReply,
   onToggleStar,
+  onPin,
   currentUserId,
 }) => {
   const [showMessageInfo, setShowMessageInfo] = useState(false);
@@ -86,6 +88,14 @@ const MessageContextMenu = ({
       color: 'text-red-400',
     },
 
+    // Pin message (for admins or own messages)
+    {
+      icon: <FiPin size={18} />,
+      label: message.isPinned ? 'Unpin' : 'Pin',
+      onClick: () => { onPin?.(message); onClose?.(); },
+      color: 'text-orange-400',
+    },
+
     // Report (for other's messages)
     !isOwnMessage && {
       icon: <FiAlertTriangle size={18} />,
@@ -101,8 +111,8 @@ const MessageContextMenu = ({
       <div
         className="fixed bg-[#1a2332] border border-gray-600 rounded-lg shadow-xl z-50 py-2 min-w-max"
         style={{
-          top: `${position?.y || 0}px`,
-          left: `${position?.x || 0}px`,
+          top: Math.min(position?.y || 0, window.innerHeight - 350) + 'px',
+          left: Math.min(position?.x || 0, window.innerWidth - 200) + 'px',
         }}
       >
         {menuItems.map((item, index) => (

@@ -547,7 +547,7 @@ exports.getMessages = async (req, res) => {
 
     const messages = await Message.find(filter)
       .populate("sender", "username profilePicture")
-      .populate("replyTo")
+      .populate({ path: "replyTo", populate: { path: "sender", select: "username profilePicture" } })
       .populate("mentions.user", "username profilePicture")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
@@ -857,7 +857,7 @@ exports.editMessage = async (req, res) => {
 
     const updatedMessage = await Message.findById(message._id)
       .populate("sender", "username profilePicture")
-      .populate("replyTo")
+      .populate({ path: "replyTo", populate: { path: "sender", select: "username profilePicture" } })
       .populate("mentions.user", "username profilePicture");
 
     const io = req.app.get("io");
@@ -1012,7 +1012,7 @@ exports.addReaction = async (req, res) => {
 
     const updatedMessage = await Message.findById(message._id)
       .populate("sender", "username profilePicture")
-      .populate("replyTo")
+      .populate({ path: "replyTo", populate: { path: "sender", select: "username profilePicture" } })
       .populate("mentions.user", "username profilePicture")
       .populate("reactions.user", "username profilePicture");
 
@@ -1051,7 +1051,7 @@ exports.removeReaction = async (req, res) => {
 
     const updatedMessage = await Message.findById(message._id)
       .populate("sender", "username profilePicture")
-      .populate("replyTo")
+      .populate({ path: "replyTo", populate: { path: "sender", select: "username profilePicture" } })
       .populate("mentions.user", "username profilePicture")
       .populate("reactions.user", "username profilePicture");
 
@@ -1370,7 +1370,7 @@ exports.toggleStarMessage = async (req, res) => {
 
     const updated = await Message.findById(message._id)
       .populate("sender", "username profilePicture")
-      .populate("replyTo")
+      .populate({ path: "replyTo", populate: { path: "sender", select: "username profilePicture" } })
       .populate("mentions.user", "username profilePicture");
 
     const io = req.app.get("io");
@@ -1410,7 +1410,7 @@ exports.toggleMessageLock = async (req, res) => {
 
     const updated = await Message.findById(message._id)
       .populate("sender", "username profilePicture")
-      .populate("replyTo")
+      .populate({ path: "replyTo", populate: { path: "sender", select: "username profilePicture" } })
       .populate("mentions.user", "username profilePicture");
 
     const io = req.app.get("io");
@@ -1518,7 +1518,7 @@ exports.searchMessages = async (req, res) => {
       deletedForEveryone: false,
     })
       .populate("sender", "username profilePicture")
-      .populate("replyTo")
+      .populate({ path: "replyTo", populate: { path: "sender", select: "username profilePicture" } })
       .populate("mentions.user", "username profilePicture")
       .sort({ createdAt: -1 })
       .limit(50);
@@ -1780,7 +1780,7 @@ exports.forwardMessage = async (req, res) => {
 
       const populated = await Message.findById(forwardedMessage._id)
         .populate("sender", "username profilePicture")
-        .populate("replyTo");
+        .populate({ path: "replyTo", populate: { path: "sender", select: "username profilePicture" } });
 
       forwardedMessages.push(populated);
 

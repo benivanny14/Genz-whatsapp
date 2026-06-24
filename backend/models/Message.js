@@ -13,8 +13,9 @@ const messageSchema = new mongoose.Schema({
   },
   content: {
     type: String,
-    required: true,
-    trim: true
+    required: false,
+    trim: true,
+    default: ''
   },
   isClientE2EE: {
     type: Boolean,

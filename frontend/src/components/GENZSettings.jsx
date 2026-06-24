@@ -580,7 +580,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
   ];
 
   return (
-    <div className="flex flex-col h-full min-h-0 w-full max-w-full overflow-x-hidden" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0f2440 50%, #0a1628 100%)' }}>
+    <div style={{display:"grid",gridTemplateRows:"auto auto 1fr",height:"100%",overflow:"hidden",maxWidth:"100%"}} style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0f2440 50%, #0a1628 100%)' }}>
 
       {/* ── Header ── */}
       <div className="bg-blue-900/50 backdrop-blur-xl px-4 pt-4 pb-0 flex items-center gap-4 text-white shadow-lg border-b border-white/10">
@@ -623,7 +623,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
       {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
            TAB CONTENT
          â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 space-y-3">
+      <div style={{overflowY:"auto",WebkitOverflowScrolling:"touch",overscrollBehavior:"contain",padding:"0.75rem"}} className="space-y-3">
 
       {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ TAB: PROFILE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {activeTab === 'profile' && (
@@ -1431,7 +1431,33 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               <option value="none">Silent</option>
             </select>
             <button
-              onClick={() => alert(`Simulating playback of: ${notificationSound}`)}
+              onClick={() => {
+                try {
+                  const Ctx = window.AudioContext || window.webkitAudioContext;
+                  const ctx = new Ctx();
+                  const patterns = {
+                    default: [[880, 0, 0.3]],
+                    chime:   [[523, 0, 0.15], [659, 0.15, 0.15], [784, 0.3, 0.2]],
+                    pop:     [[1200, 0, 0.08]],
+                    ping:    [[1400, 0, 0.05], [1000, 0.08, 0.15]],
+                    bell:    [[880, 0, 0.2], [880, 0.25, 0.15], [880, 0.45, 0.1]],
+                    soft:    [[440, 0, 0.4]],
+                  };
+                  const notes = patterns[notificationSound] || patterns.default;
+                  notes.forEach(([freq, delay, dur]) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain); gain.connect(ctx.destination);
+                    osc.type = 'sine'; osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0, ctx.currentTime + delay);
+                    gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + delay + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + dur);
+                    osc.start(ctx.currentTime + delay);
+                    osc.stop(ctx.currentTime + delay + dur + 0.05);
+                  });
+                  setTimeout(() => ctx.close(), 2000);
+                } catch(e) { console.warn('Audio preview failed:', e); }
+              }}
               className="text-[10px] text-yellow-500 font-bold flex items-center gap-1 hover:underline"
             >
               <Play size={10} /> Test Selected Sound
