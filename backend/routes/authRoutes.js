@@ -21,7 +21,8 @@ const {
   updateAwayMessage,
   getBusinessAnalytics,
   checkAvailability,
-  getMyOnlineHistory
+  getMyOnlineHistory,
+  getUserOnlineHistory
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 const { uploadImage } = require('../middleware/upload');
