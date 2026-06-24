@@ -52,8 +52,8 @@ export const connectSocket = (userId) => {
       reconnectionDelayMax: 5000,
       timeout: 10000,
       autoConnect: true,
-      transports: ['websocket'],
-      upgrade: false,
+      transports: ['polling', 'websocket'],
+      upgrade: true,
       forceNew: false,
       auth: { token, userId: resolvedUserId }
     };
