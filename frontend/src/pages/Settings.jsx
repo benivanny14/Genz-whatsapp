@@ -453,6 +453,10 @@ const Settings = () => {
     setSettingsData((current) => {
       const next = setPath(current, path, value);
       persistSettings(next);
+      // Trigger language change event if language is updated
+      if (path === 'app.language' || path === 'chats.theme') {
+        window.dispatchEvent(new CustomEvent('language-changed', { detail: { language: value } }));
+      }
       return next;
     });
   };

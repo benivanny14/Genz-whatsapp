@@ -580,7 +580,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
   ];
 
   return (
-    <div style={{display:"grid",gridTemplateRows:"auto auto 1fr",height:"100%",overflow:"hidden",maxWidth:"100%"}} style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0f2440 50%, #0a1628 100%)' }}>
+    <div className="absolute inset-0 flex flex-col overflow-x-hidden" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0f2440 50%, #0a1628 100%)' }}>
 
       {/* ── Header ── */}
       <div className="bg-blue-900/50 backdrop-blur-xl px-4 pt-4 pb-0 flex items-center gap-4 text-white shadow-lg border-b border-white/10">
@@ -623,7 +623,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
       {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
            TAB CONTENT
          â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
-      <div style={{overflowY:"auto",WebkitOverflowScrolling:"touch",overscrollBehavior:"contain",padding:"0.75rem"}} className="space-y-3">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 space-y-3 pb-24">
 
       {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ TAB: PROFILE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {activeTab === 'profile' && (

@@ -7,6 +7,19 @@ import ProtectedRoute from './components/ProtectedRoute';
 import notificationService from './services/notificationService';
 import { cleanupLocalBlobUrls, sanitizeBlobUrls } from './utils/sanitizeStorage';
 import { applyAntiScreenshot, initAntiScreenshotListeners } from './utils/antiScreenshot';
+import toast from 'react-hot-toast';
+
+const originalToastError = toast.error;
+toast.error = (msg, options) => {
+  if (typeof msg === 'string' && (
+    msg.includes('Backend server is not running') || 
+    msg.includes('Network error') || 
+    msg.includes('mtandao au server')
+  )) {
+    return; // Suppress these specific error popups
+  }
+  return originalToastError(msg, options);
+};
 
 // Lazy load pages for performance optimization
 const Chat = lazy(() => import('./pages/Chat'));

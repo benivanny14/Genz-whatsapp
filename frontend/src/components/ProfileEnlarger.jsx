@@ -1,14 +1,32 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 const ProfileEnlarger = ({ src, alt, onClose, size = 300 }) => {
+  useEffect(() => {
+    // Push state so Android back button can be intercepted
+    window.history.pushState({ profileEnlarged: true }, '');
+
+    const handlePopState = (e) => {
+      onClose();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      // If component unmounts for other reasons, ensure we don't trap the user
+      if (window.history.state?.profileEnlarged) {
+        window.history.back();
+      }
+    };
+  }, [onClose]);
+
   return (
     <div
-      className="fixed inset-0 z-[9997] flex items-center justify-center bg-black/60"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80"
       onClick={onClose}
     >
       <div
-        className="profile-pic-enlarged"
-        onClick={(e) => e.stopPropagation()}
+        className="profile-pic-enlarged cursor-pointer transform transition-transform"
+        onClick={onClose}
         style={{
           width: size,
           height: size,

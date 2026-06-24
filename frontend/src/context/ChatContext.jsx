@@ -384,6 +384,7 @@ export const ChatProvider = ({ children }) => {
   const [isOtherUserRecording, setIsOtherUserRecording] = useState(false);
   const [typingByConversation, setTypingByConversation] = useState({});
   const [isSocketConnected, setIsSocketConnected] = useState(false);
+  const [isAutoRefreshing, setIsAutoRefreshing] = useState(false);
 
   // Auth-removed safe states
   const [connectedDevices, setConnectedDevices] = useState([]);
@@ -3116,6 +3117,61 @@ export const ChatProvider = ({ children }) => {
     fetchStatuses();
   }, [isAuthReady, authLoading, isAuthenticated, fetchCallLogs, fetchStatuses]);
 
+  // ── Auto-refresh system like WhatsApp ─────────────────────────────────────
+  useEffect(() => {
+    if (!isAuthReady || (REQUIRE_AUTH && (authLoading || !isAuthenticated)) || isOffline()) return;
+
+    const refreshData = async () => {
+      setIsAutoRefreshing(true);
+      try {
+        const [conversationsData, statusesData] = await Promise.allSettled([
+          apiService.getConversations(),
+          apiService.getStatuses()
+        ]);
+
+        if (conversationsData.status === 'fulfilled' && conversationsData.value?.success) {
+          const remoteConversations = conversationsData.value.conversations || [];
+          const openChatId = getStoredSelectedConversationId();
+          setConversations(prev => {
+            const localOnlyConvs = prev.filter(c => c._id && (c._id.startsWith('conv-') || c._id.startsWith('temp-')));
+            const mergedMap = new Map();
+            localOnlyConvs.forEach(c => mergedMap.set(c._id, c));
+            remoteConversations.forEach(c => {
+              const isOpen = openChatId && String(c._id) === String(openChatId);
+              mergedMap.set(c._id, isOpen ? { ...c, unreadCount: 0 } : c);
+            });
+            return Array.from(mergedMap.values()).sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+          });
+        }
+
+        if (statusesData.status === 'fulfilled' && statusesData.value?.success) {
+          setStatuses(statusesData.value.statuses || []);
+        }
+      } catch (err) {
+        console.warn('[ChatContext] Auto-refresh error:', err);
+      } finally {
+        setIsAutoRefreshing(false);
+      }
+    };
+
+    // Refresh every 5 minutes like WhatsApp
+    const refreshInterval = setInterval(refreshData, 5 * 60 * 1000);
+
+    // Refresh when app becomes visible again
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !isOffline()) {
+        refreshData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(refreshInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isAuthReady, authLoading, isAuthenticated]);
+
   const replyToStatus = useCallback(async (statusId, replyData, statusOwner = null) => {
     try {
       const body = typeof replyData === 'string' ? { content: replyData } : (replyData || {});
@@ -4040,6 +4096,7 @@ export const ChatProvider = ({ children }) => {
     addReaction, forwardMessage, markAsRead,
     isOtherUserTyping, sendTypingStatus, typingByConversation,
     isOtherUserRecording, sendRecordingStatus,
+    isAutoRefreshing,
     activeCall, initiateCall, endCall, acceptCall, rejectCall,
     onlineNotification, broadcasts, sendMassMessage, createBroadcastList,
     statuses, addStatus, uploadStatusMedia, statusViewers, viewStatus,

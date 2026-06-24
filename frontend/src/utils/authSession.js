@@ -1,5 +1,6 @@
 import { getDeviceHeaders } from './deviceIdentity';
 import { resolveApiBase } from './resolveApiBase';
+import db from './indexedDB';
 
 export const API_URL = resolveApiBase();
 
@@ -24,10 +25,38 @@ export const persistTokens = (data) => {
   }
 };
 
-export const clearSessionAndRedirect = () => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('refreshToken');
-  localStorage.removeItem('user');
+export const clearAllUserData = async () => {
+  const keysToKeep = [
+    'genz_saved_accounts',
+    'genz_device_id',
+    'genz_device_info',
+    'device-id',
+    'genz_theme',
+    'tempUsername',
+    'tempPassword'
+  ];
+
+  const preserved = {};
+  keysToKeep.forEach(k => {
+    const val = localStorage.getItem(k);
+    if (val !== null) preserved[k] = val;
+  });
+
+  localStorage.clear();
+
+  Object.keys(preserved).forEach(k => {
+    localStorage.setItem(k, preserved[k]);
+  });
+
+  try {
+    await db.clearAll();
+  } catch (err) {
+    console.error('Failed to clear IndexedDB:', err);
+  }
+};
+
+export const clearSessionAndRedirect = async () => {
+  await clearAllUserData();
   const path = window.location.pathname;
   if (path !== '/login' && path !== '/register') {
     window.location.href = '/login';

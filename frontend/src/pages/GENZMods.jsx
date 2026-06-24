@@ -139,9 +139,9 @@ const GENZMods = () => {
   }
 
   return (
-    <div style={{display:"grid",gridTemplateRows:"auto 1fr",height:"100vh",overflow:"hidden",background:"#0b141a"}}>
+    <div className="flex h-screen flex-col bg-gray-50 dark:bg-gray-900 overflow-hidden">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 sticky top-0 z-10">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -193,7 +193,7 @@ const GENZMods = () => {
         </div>
       </div>
 
-      <div style={{overflowY:"auto",WebkitOverflowScrolling:"touch",overscrollBehavior:"contain",padding:"1.5rem 1rem 6rem"}}>
+      <div className="flex-1 w-full overflow-y-auto px-4 py-6 pb-20">
         <div className="mx-auto max-w-4xl space-y-6">
         {/* Success/Error Messages */}
         <AnimatePresence>

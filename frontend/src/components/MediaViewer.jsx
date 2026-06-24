@@ -7,6 +7,13 @@ const MediaViewer = ({ src, type, onClose, alt = '' }) => {
   const safeSrc = String(src || '');
 
   useEffect(() => {
+    // Push state so Android back button can be intercepted
+    window.history.pushState({ mediaViewerOpen: true }, '');
+
+    const handlePopState = (e) => {
+      onClose();
+    };
+
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') onClose();
       if (e.key === '+' || e.key === '=') setZoom(z => Math.min(z + 0.25, 3));
@@ -14,8 +21,15 @@ const MediaViewer = ({ src, type, onClose, alt = '' }) => {
       if (e.key === 'r') setRotation(r => (r + 90) % 360);
     };
 
+    window.addEventListener('popstate', handlePopState);
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('keydown', handleKeyDown);
+      if (window.history.state?.mediaViewerOpen) {
+        window.history.back();
+      }
+    };
   }, [onClose]);
 
   const handleZoomIn = () => setZoom(z => Math.min(z + 0.25, 3));

@@ -1,4 +1,5 @@
 import api from '../utils/axios';
+import { clearAllUserData } from '../utils/authSession';
 
 const authService = {
   // Save tokens to localStorage with consistent key names
@@ -12,9 +13,7 @@ const authService = {
 
   // Clear all auth data from localStorage
   clearTokens: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
+    clearAllUserData();
   },
 
   login: async (payload) => {
@@ -23,7 +22,8 @@ const authService = {
       const data = response.data;
 
       if (!data.requiresTwoFactor) {
-        // Save tokens to localStorage after successful login
+        // Clear previous session data before saving new tokens
+        await clearAllUserData();
         authService.saveTokens(data);
       }
 
@@ -41,7 +41,8 @@ const authService = {
     try {
       const response = await api.post('/auth/register', payload);
       const data = response.data;
-      // Save tokens to localStorage after successful registration
+      // Clear previous session data before saving new tokens
+      await clearAllUserData();
       authService.saveTokens(data);
       return data;
     } catch (error) {

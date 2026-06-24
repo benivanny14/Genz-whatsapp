@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import authService from '../services/authService';
-import { tryRefreshAccessToken } from '../utils/authSession';
+import { tryRefreshAccessToken, clearAllUserData } from '../utils/authSession';
 
 const AuthContext = createContext();
 
@@ -103,7 +103,8 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
   };
 
-  const completeSession = (data) => {
+  const completeSession = async (data) => {
+    await clearAllUserData();
     authService.saveTokens(data);
     setToken(data.token);
     setUser(data.user);

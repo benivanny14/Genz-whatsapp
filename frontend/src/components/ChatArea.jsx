@@ -2367,13 +2367,19 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                         ? 'bg-primary-600 text-white rounded-tr-none ml-12'
                         : 'bg-dark-surface text-dark-text rounded-tl-none mr-12'}`
                       }`}
-                    onClick={() => {
+                    onClick={(e) => {
                       const messageKey = message.id || message._id;
-                      if (activeMessageMenu === messageKey) {
-                        setActiveMessageMenu(null);
-                      }
-                      if (messageContextMenu?.message?.id === messageKey || messageContextMenu?.message?._id === messageKey) {
+                      const currentKey = messageContextMenu?.message?.id || messageContextMenu?.message?._id;
+                      
+                      if (currentKey === messageKey || activeMessageMenu === messageKey) {
                         setMessageContextMenu(null);
+                        setActiveMessageMenu(null);
+                      } else {
+                        setMessageContextMenu({
+                          message,
+                          position: { x: e.clientX, y: e.clientY }
+                        });
+                        setActiveMessageMenu(messageKey);
                       }
                     }}
                     style={
@@ -2400,16 +2406,17 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
                     {/* ── Quoted Reply (click to scroll to original) ── */}
                     {message.replyTo && (
-                      <div
+                      <div 
                         className="mb-2 bg-black/20 border-l-4 border-[#25d366] rounded-lg p-2 text-xs cursor-pointer hover:bg-black/30 transition-colors"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           const replyId = message.replyTo?._id || message.replyTo?.id;
                           if (replyId) {
                             const el = document.getElementById(`msg-${replyId}`);
                             if (el) {
                               el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                              el.classList.add('highlight-reply');
-                              setTimeout(() => el.classList.remove('highlight-reply'), 1500);
+                              el.classList.add('bg-white/10', 'transition-colors', 'duration-500');
+                              setTimeout(() => el.classList.remove('bg-white/10'), 2000);
                             }
                           }
                         }}

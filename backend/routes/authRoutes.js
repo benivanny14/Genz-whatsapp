@@ -19,7 +19,8 @@ const {
   addQuickReply,
   removeQuickReply,
   updateAwayMessage,
-  getBusinessAnalytics
+  getBusinessAnalytics,
+  checkAvailability
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 const { uploadImage } = require('../middleware/upload');
