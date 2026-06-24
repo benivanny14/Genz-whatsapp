@@ -478,7 +478,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                 <MoreVertical className="w-5 h-5 text-dark-text" />
               </button>
               {showMenu && (
-                <div className="absolute right-0 top-10 bg-dark-surface border border-dark-border rounded-lg shadow-xl py-2 w-48 z-50">
+                <div className="absolute right-0 top-10 bg-dark-surface border border-dark-border rounded-lg shadow-xl py-2 w-56 z-50 max-h-[70vh] overflow-y-auto custom-scrollbar">
                   {/* Header Actions (Moved to Menu) */}
                   <button
                     onClick={() => {
