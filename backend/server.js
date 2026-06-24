@@ -932,8 +932,8 @@ const startServerOnPort = (port, attemptsLeft = MAX_PORT_ATTEMPTS) => {
 
   server.on('error', (err) => {
     if (err && err.code === 'EADDRINUSE' && attemptsLeft > 0) {
-      logger.warn('Port in use, trying next port', { port, attemptsLeft });
-      setTimeout(() => startServerOnPort(port + 1, attemptsLeft - 1), 200);
+      logger.warn('Port in use, retrying same port', { port, attemptsLeft });
+      setTimeout(() => startServerOnPort(port, attemptsLeft - 1), 1000);
       return;
     }
 
@@ -942,7 +942,7 @@ const startServerOnPort = (port, attemptsLeft = MAX_PORT_ATTEMPTS) => {
     process.exit(1);
   });
 
-  server.listen(port, () => {
+  server.listen(port, '0.0.0.0', () => {
     // Ensure env reflects the actual chosen port
     process.env.PORT = String(port);
     logger.info('TM Backend started', {
