@@ -425,7 +425,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
           />
         )
       )}
-      <div className="relative z-10 p-4 border-b border-dark-border bg-dark-surface/85 backdrop-blur-sm">
+      <div className="relative z-50 p-4 border-b border-dark-border bg-dark-surface/85 backdrop-blur-sm">
         {/* Hidden wallpaper file input */}
         <input ref={chatListWallpaperInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleChatListWallpaperUpload} />
 
