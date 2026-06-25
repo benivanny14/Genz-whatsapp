@@ -2,7 +2,7 @@ import { getDeviceHeaders } from './deviceIdentity';
 import { resolveApiBase } from './resolveApiBase';
 import db from './indexedDB';
 
-export const API_URL = resolveApiBase();
+export const API_URL = resolveApiBase() || '/api';
 
 export const persistTokens = (data) => {
   if (data?.token) localStorage.setItem('token', data.token);
