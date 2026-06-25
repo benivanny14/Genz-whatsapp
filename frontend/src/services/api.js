@@ -1,7 +1,11 @@
 import axios from 'axios';
 import { getDeviceHeaders } from '../utils/deviceIdentity';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+let API_URL = resolveApiBase() || '/api';
+if (API_URL !== '/api' && !API_URL.endsWith('/api')) {
+  API_URL = `${API_URL}/api`;
+}
 
 export const api = axios.create({
   baseURL: API_URL,

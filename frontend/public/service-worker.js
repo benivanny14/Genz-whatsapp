@@ -20,9 +20,19 @@ self.addEventListener('activate', (e) => {
 
 // ── Fetch: cache-first for static, network-first for API ─────────────────
 self.addEventListener('fetch', (e) => {
-  if (e.request.url.includes('/api/')) return; // Skip API calls
+  // Skip API calls, Socket.IO polling, and any non-GET requests
+  if (
+    e.request.method !== 'GET' ||
+    e.request.url.includes('/api/') || 
+    e.request.url.includes('/socket.io/')
+  ) {
+    return;
+  }
+
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request).catch(() => caches.match('/offline.html')))
+    caches.match(e.request).then(cached => {
+      return cached || fetch(e.request).catch(() => caches.match('/offline.html').then(offline => offline || new Response('Offline', { status: 503 })));
+    })
   );
 });
 
