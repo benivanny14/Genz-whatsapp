@@ -103,6 +103,8 @@ const getEmojiStickerSuggestions = (text = '') => {
   }));
 };
 
+export function hasStaleBlobUrl(value) { return typeof value === 'string' && value.startsWith('blob:'); }
+
 const escapeRegExp = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const getEntityId = (entity) => String(entity?._id || entity?.id || entity || '');
 const getMentionName = (participant = {}) => participant.username || participant.name || participant.phoneNumber || '';
