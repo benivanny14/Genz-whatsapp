@@ -922,33 +922,13 @@ if (!isTestEnvironment) {
   });
 }
 
-// Robust server start: if the chosen port is busy, try the next ones.
-const DEFAULT_PORT = Number(process.env.PORT || PORT);
-const MAX_PORT_ATTEMPTS = Number(process.env.PORT_ATTEMPTS) || 10;
-
-const startServerOnPort = (port, attemptsLeft = MAX_PORT_ATTEMPTS) => {
-  // Remove previous error listeners to avoid duplicate handling
-  server.removeAllListeners('error');
-
-  server.on('error', (err) => {
-    if (err && err.code === 'EADDRINUSE' && attemptsLeft > 0) {
-      logger.warn('Port in use, retrying same port', { port, attemptsLeft });
-      setTimeout(() => startServerOnPort(port, attemptsLeft - 1), 1000);
-      return;
-    }
-
-    logger.error('Server failed to start', { error: err && err.message });
-    // If we can't recover, exit so orchestrators can restart with correct config
-    process.exit(1);
-  });
-
-  server.listen(port, '0.0.0.0', () => {
-    // Ensure env reflects the actual chosen port
-    process.env.PORT = String(port);
+if (require.main === module) {
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT}`);
     logger.info('TM Backend started', {
-      port,
+      port: PORT,
       environment: process.env.NODE_ENV || 'development',
-      publicApiUrl: process.env.PUBLIC_API_URL || process.env.BACKEND_URL || `http://localhost:${port}`,
+      publicApiUrl: process.env.PUBLIC_API_URL || process.env.BACKEND_URL || `http://localhost:${PORT}`,
       frontendUrl: process.env.FRONTEND_URL || null,
       mediaStorage: isCloudinaryConfigured() ? 'cloudinary' : 'local',
       redisConfigured: Boolean(process.env.REDIS_URL || process.env.REDIS_HOST)
@@ -960,10 +940,6 @@ const startServerOnPort = (port, attemptsLeft = MAX_PORT_ATTEMPTS) => {
       }
     });
   });
-};
-
-if (require.main === module) {
-  startServerOnPort(DEFAULT_PORT);
 }
 
 const stopBackgroundServices = () => {
