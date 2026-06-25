@@ -16,6 +16,15 @@ import { isClientE2EEMessageContent } from '../utils/e2eeContent';
 import notificationService from '../services/notificationService';
 import { resolveApiBase, resolveSocketOrigin } from '../utils/resolveApiBase';
 
+import { applyVoiceEffect } from '../utils/voiceEffects';
+import {
+  flattenModsFromServer,
+  normalizeModsForServer,
+  isLikelySpamMessage,
+  autoSaveMediaFromMessage
+} from '../utils/genzModsNormalize';
+import { applyAntiScreenshot, initAntiScreenshotListeners, setScreenshotAttemptCallback } from '../utils/antiScreenshot';
+
 export const ChatContext = createContext();
 
 // Wrap socket event handlers to prevent crashes from propagating
@@ -179,14 +188,6 @@ const createClientMessageId = (prefix = 'client-message') => {
   return `${prefix}-${Date.now()}-${clientMessageCounter}-${Math.random().toString(36).slice(2, 8)}`;
 };
 
-import { applyVoiceEffect } from '../utils/voiceEffects';
-import {
-  flattenModsFromServer,
-  normalizeModsForServer,
-  isLikelySpamMessage,
-  autoSaveMediaFromMessage
-} from '../utils/genzModsNormalize';
-import { applyAntiScreenshot, initAntiScreenshotListeners, setScreenshotAttemptCallback } from '../utils/antiScreenshot';
 export { applyVoiceEffect };
 
 // ─── Audio Processing Utilities ─────────────────────────────────────────────

@@ -93,12 +93,13 @@ const EMOJI_STICKER_SUGGESTIONS = {
 };
 
 const getEmojiStickerSuggestions = (text = '') => {
-  const found = Object.keys(EMOJI_STICKER_SUGGESTIONS).find((emoji) => text.includes(emoji));
+  if (!text || typeof text !== 'string') return [];
+  const found = Object.keys(EMOJI_STICKER_SUGGESTIONS).find(k => k === text.trim() || k === text.trim().toLowerCase());
   if (!found) return [];
   return EMOJI_STICKER_SUGGESTIONS[found].map((url, index) => ({
-    id: `${found}-${index}`,
-    emoji: found,
-    url
+    type: 'sticker',
+    url,
+    id: `suggest-${index}-${Date.now()}`
   }));
 };
 
@@ -251,6 +252,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [showContactInfo, setShowContactInfo] = useState(false);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const [activeMessageMenu, setActiveMessageMenu] = useState(null);
+  const [lockPinInput, setLockPinInput] = useState('');
+  const [quickReactionMsg, setQuickReactionMsg] = useState(null);
 
   // Close message menu + quick reactions on outside click
   useEffect(() => {
@@ -262,7 +265,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     document.addEventListener('click', handler, true);
     return () => document.removeEventListener('click', handler, true);
   }, [activeMessageMenu, quickReactionMsg]);
-  const [lockPinInput, setLockPinInput] = useState('');
   const [showPollModal, setShowPollModal] = useState(false);
   const [showForwardModal, setShowForwardModal] = useState(false);
   const [forwardingMessage, setForwardingMessage] = useState(null);
@@ -283,7 +285,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [isRecordingLocked, setIsRecordingLocked] = useState(false);
   const [audioData, setAudioData] = useState(null);
   const [swipeDirection, setSwipeDirection] = useState(null);
-  const [quickReactionMsg, setQuickReactionMsg] = useState(null);
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showProductCatalogue, setShowProductCatalogue] = useState(false); // msgId showing quick reactions
@@ -596,16 +597,16 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     }
   };
 
-  const getConversationName = () => {
+  function getConversationName() {
     if (!selectedConversation) return '';
     if (selectedConversation.isGroup) {
       return selectedConversation.groupName;
     }
     const otherUser = selectedConversation.participants.find((p) => p._id !== user?.id);
     return otherUser?.username || 'Unknown';
-  };
+  }
 
-  const getConversationAvatar = () => {
+  function getConversationAvatar() {
     if (!selectedConversation) return '';
     if (selectedConversation.isGroup) {
       if (!hasStaleBlobUrl(selectedConversation.groupPhoto) && selectedConversation.groupPhoto) {
@@ -624,7 +625,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     }
     // Fallback: generic avatar from ui-avatars
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(otherUser?.username || 'User')}&background=random&color=fff`;
-  };
+  }
 
   const handleGIFSelect = (gif) => {
     if (!selectedConversation) return;
@@ -1926,7 +1927,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const pinnedMessageId = selectedConversation ? pinnedMessages[selectedConversation._id] : null; // Added null check
   const pinnedMessage = pinnedMessageId ? messages.find(m => (m._id || m.id) === pinnedMessageId) : null; // Added null check
 
-  const hasStaleBlobUrl = (value) => typeof value === 'string' && value.startsWith('blob:');
+
   const isHttpUrl = (value) => typeof value === 'string' && /^https?:\/\//i.test(value);
   const mediaSourceOf = (message = {}) => (
     message.mediaUrl ||
@@ -1944,25 +1945,25 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     if (isStaleBlobMessage(message)) return false;
     if (message.disappearAt && new Date(message.disappearAt).getTime() <= Date.now()) return false;
 
-    const isSender = String(message.sender?._id || message.sender) === String(user?.id || user?._id);
-    
-    // View once logic: Hide from recipient after consumed, always show to sender
-    if (message.isViewOnce && !isSender) {
-      // If anti-view-once is enabled, always show
+    // View Once logic
+    const isSender = message.sender === user?.id || message.sender?._id === user?.id;
+    if (message.isViewOnce) {
       if (mods.antiViewOnce) return true;
-      // If consumed, hide from recipient
       if (message.isConsumed) return false;
     }
-    
-    // Self-destruct: disappears for everyone after timer (default 10s)
-    if (message.isSelfDestruct) {
+    if (message.messageType === 'viewOnce') {
       if (mods.antiViewOnce) return true;
       if (message.disappearAt && new Date(message.disappearAt) <= new Date()) return false;
       if (!isSender && message.isConsumed) return false;
     }
-
     return true;
   });
+
+  const filteredMessages = chatSearchQuery
+    ? visibleMessages.filter(m => plaintextOf(m).toLowerCase().includes(chatSearchQuery.toLowerCase()))
+    : visibleMessages;
+
+
   const safeChatWallpaper = hasStaleBlobUrl(mods.chatWallpaper) ? null : mods.chatWallpaper;
 
   // Custom per-chat wallpaper logic (TM Style)
@@ -1992,9 +1993,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   };
 
   // Filter messages for search
-  const filteredMessages = chatSearchQuery
-    ? visibleMessages.filter(m => plaintextOf(m).toLowerCase().includes(chatSearchQuery.toLowerCase()))
-    : visibleMessages;
 
   return (
     <div className="flex-1 flex flex-col bg-dark-bg min-w-0 w-full overflow-hidden relative">
