@@ -812,7 +812,8 @@ export const ChatProvider = ({ children }) => {
 
       socket = io(SOCKET_ORIGIN, {
         path: '/socket.io/',
-        transports: ['polling', 'websocket'], // Allow polling fallback for Render
+        transports: ['websocket'], // Force websocket to prevent Render polling blocks
+        upgrade: false,
         withCredentials: true,
         auth: {
           token: token || undefined,
@@ -820,8 +821,8 @@ export const ChatProvider = ({ children }) => {
           freezeLastSeen: modsRef.current.freezeLastSeen
         },
         reconnection: true,
-        reconnectionAttempts: 10, // Increased for better reliability
-        reconnectionDelay: 1000,
+        reconnectionAttempts: 10,
+        reconnectionDelay: 5000,
         reconnectionDelayMax: 10000,
         randomizationFactor: 0.5,
         timeout: 20000,

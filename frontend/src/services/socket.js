@@ -47,13 +47,13 @@ export const connectSocket = (userId) => {
 
     const socketConfig = {
       reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      timeout: 10000,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 5000,
+      reconnectionDelayMax: 10000,
+      timeout: 20000,
       autoConnect: true,
-      transports: ['polling', 'websocket'],
-      upgrade: true,
+      transports: ['websocket'],
+      upgrade: false,
       forceNew: false,
       auth: { token, userId: resolvedUserId }
     };

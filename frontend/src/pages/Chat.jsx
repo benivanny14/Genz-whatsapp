@@ -22,7 +22,7 @@ const PanelLoader = () => (
 
 const Chat = () => {
   const { activeCall, endCall, acceptCall, rejectCall, activeGroupCall, setActiveGroupCall, onlineNotification, isSocketConnected, mods, setMods, selectedConversation } = useChat();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showGENZSettings, setShowGENZSettings] = useState(false);
