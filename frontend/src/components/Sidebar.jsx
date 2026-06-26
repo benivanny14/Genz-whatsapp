@@ -44,7 +44,8 @@ import {
   Zap,
   Shield,
   MonitorSmartphone,
-  Circle
+  Circle,
+  X
 } from 'lucide-react';
 import ProfileEnlarger from './ProfileEnlarger';
 import AccountSwitcher from './AccountSwitcher';
@@ -412,7 +413,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
         chatListWallpaper.type === 'video' ? (
           <video
             src={chatListWallpaper.url}
-            className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover opacity-20"
+            className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover opacity-60"
             autoPlay
             muted
             loop
@@ -420,7 +421,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
           />
         ) : (
           <div
-            className="pointer-events-none absolute inset-0 z-0 bg-cover bg-center opacity-20"
+            className="pointer-events-none absolute inset-0 z-0 bg-cover bg-center opacity-60"
             style={{ backgroundImage: `url(${chatListWallpaper.url})` }}
           />
         )
