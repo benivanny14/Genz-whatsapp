@@ -7,6 +7,7 @@ import SignedMedia from './SignedMedia';
 import encryptionService from '../services/encryptionService';
 import { getE2EEEnvelope } from '../utils/e2eeContent';
 import { getSocket } from '../services/socket';
+import { hasStaleBlobUrl } from '../utils/blobUtils';
 import { AnimatePresence } from 'framer-motion';
 const EmojiPicker = React.lazy(() => import('emoji-picker-react'));
 import PollModal from './PollModal';
@@ -102,8 +103,6 @@ const getEmojiStickerSuggestions = (text = '') => {
     id: `suggest-${index}-${Date.now()}`
   }));
 };
-
-export function hasStaleBlobUrl(value) { return typeof value === 'string' && value.startsWith('blob:'); }
 
 const escapeRegExp = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const getEntityId = (entity) => String(entity?._id || entity?.id || entity || '');

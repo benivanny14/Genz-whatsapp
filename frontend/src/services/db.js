@@ -1,20 +1,9 @@
 // Native IndexedDB Wrapper for GENZ WhatsApp
+import { hasStaleBlobUrl, messageHasStaleBlobUrl } from '../utils/blobUtils';
 const DB_NAME = 'genz_whatsapp_db';
 const DB_VERSION = 2;
 
 let dbInstance = null;
-
-const BLOB_URL_PREFIX = 'blob:';
-const MEDIA_URL_FIELDS = ['content', 'mediaUrl', 'fileUrl', 'thumbnailUrl'];
-
-const isStaleBlobUrl = (value) => (
-  typeof value === 'string' && value.startsWith(BLOB_URL_PREFIX)
-);
-
-const messageHasStaleBlobUrl = (message = {}) => (
-  MEDIA_URL_FIELDS.some((field) => isStaleBlobUrl(message[field])) ||
-  isStaleBlobUrl(message.quotedStatus?.mediaUrl)
-);
 
 export const initDB = () => {
   return new Promise((resolve, reject) => {
