@@ -77,7 +77,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   const [showArchivedOnly, setShowArchivedOnly] = useState(false);
   const [enlargedProfile, setEnlargedProfile] = useState(null);
   const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
-  const menuRef = useRef(null);
 
   // GENZ MOD: Custom Chat Tabs
   const [chatTabs, setChatTabs] = useState(() => {
@@ -480,11 +479,12 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                 <MoreVertical className="w-5 h-5 text-dark-text" />
               </button>
               {showMenu && (
-                <div ref={menuRef} className="absolute right-0 top-10 bg-dark-surface border border-dark-border rounded-lg shadow-xl py-2 w-56 z-50 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                <div className="absolute right-0 top-10 bg-dark-surface border border-dark-border rounded-lg shadow-xl py-2 w-56 z-50 max-h-[70vh] overflow-y-auto custom-scrollbar">
                   {/* Header Actions (Moved to Menu) */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      console.log('GENZ Settings button clicked');
                       openGENZ();
                       setShowMenu(false);
                     }}
@@ -496,6 +496,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      console.log('Mass Sender button clicked');
                       setShowMassSenderModal(true);
                       setShowMenu(false);
                     }}
@@ -507,6 +508,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      console.log('New Broadcast button clicked');
                       setShowBroadcastModal(true);
                       setShowMenu(false);
                     }}
@@ -520,6 +522,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      console.log('Settings button clicked, navigating to /settings');
                       navigate('/settings');
                       setShowMenu(false);
                     }}
@@ -531,6 +534,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      console.log('Linked Devices button clicked, navigating to /linked-devices');
                       navigate('/linked-devices');
                       setShowMenu(false);
                     }}
@@ -553,6 +557,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      console.log('GENZ Mods button clicked, navigating to /genz-mods');
                       navigate('/genz-mods');
                       setShowMenu(false);
                     }}
@@ -564,6 +569,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      console.log('Broadcast button clicked, navigating to /broadcast');
                       navigate('/broadcast');
                       setShowMenu(false);
                     }}
@@ -575,6 +581,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      console.log('Starred Messages button clicked, navigating to /starred');
                       navigate('/starred');
                       setShowMenu(false);
                     }}
@@ -609,6 +616,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      console.log('Logout button clicked');
                       onLogout();
                       setShowMenu(false);
                     }}
