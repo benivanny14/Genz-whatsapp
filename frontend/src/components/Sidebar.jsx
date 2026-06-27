@@ -106,6 +106,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     return {};
   });
   const chatListWallpaperInputRef = useRef(null);
+  const menuRef = useRef(null);
   const [chatListWallpaper, setChatListWallpaper] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem(chatListWallpaperKey) || 'null');
@@ -143,6 +144,16 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
       setChatListWallpaper(null);
     }
   }, [chatListWallpaperKey]);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    const handleOutsideClick = (event) => {
+      if (menuRef.current?.contains(event.target)) return;
+      setShowMenu(false);
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [showMenu]);
 
   // Handler for when StatusCreator finishes
   const handleStatusSend = async (statusData) => {
@@ -480,10 +491,11 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
             >
               <Megaphone className="w-5 h-5 text-dark-text" />
             </button>
-            <div className="relative">
+            <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setShowMenu(!showMenu)}
                 className="p-2 hover:bg-dark-hover rounded-lg transition-colors relative"
+                type="button"
               >
                 <MoreVertical className="w-5 h-5 text-dark-text" />
               </button>

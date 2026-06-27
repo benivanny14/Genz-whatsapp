@@ -274,6 +274,16 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     document.addEventListener('click', handler, true);
     return () => document.removeEventListener('click', handler, true);
   }, [activeMessageMenu, quickReactionMsg]);
+
+  useEffect(() => {
+    if (!showHeaderMenu) return;
+    const outsideClick = (event) => {
+      if (headerMenuRef.current?.contains(event.target)) return;
+      setShowHeaderMenu(false);
+    };
+    document.addEventListener('mousedown', outsideClick);
+    return () => document.removeEventListener('mousedown', outsideClick);
+  }, [showHeaderMenu]);
   const [showPollModal, setShowPollModal] = useState(false);
   const [showForwardModal, setShowForwardModal] = useState(false);
   const [forwardingMessage, setForwardingMessage] = useState(null);
@@ -321,6 +331,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const audioRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const messageMenuRef = useRef(null);
+  const headerMenuRef = useRef(null);
   const [translatedMessages, setTranslatedMessages] = useState({});
   const liveLocationWatchIdRef = useRef(null);
   const liveLocationIntervalRef = useRef(null);
@@ -2174,114 +2185,118 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
             </button>
 
             {/* Actions Dropdown Toggle (Three Dots) */}
-            <button
-              onClick={() => setShowHeaderMenu(!showHeaderMenu)}
-              className="block p-2 hover:bg-white/10 rounded-lg transition-colors"
-              title="More Options"
-            >
-              <MoreVertical size={18} className="text-white/80" />
-            </button>
+            <div className="relative" ref={headerMenuRef}>
+              <button
+                type="button"
+                onClick={() => setShowHeaderMenu((prev) => !prev)}
+                className="block p-2 hover:bg-white/10 rounded-lg transition-colors"
+                title="More Options"
+              >
+                <MoreVertical size={18} className="text-white/80" />
+              </button>
 
-            {/* Actions Dropdown List */}
-            {showHeaderMenu && (
-              <div className="absolute right-0 top-11 bg-dark-surface/95 backdrop-blur-md border border-dark-border rounded-xl shadow-2xl py-2 w-48 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                {/* Mobile DND toggle */}
-                <button
-                  onClick={() => {
-                    toggleDNDMode();
-                    setShowHeaderMenu(false);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
-                >
-                  <span className="text-sm font-bold w-4 text-center text-orange-500">{isDNDMode ? '🌙' : '🔔'}</span>
-                  <span>{isDNDMode ? 'Disable DND' : 'Do Not Disturb'}</span>
-                </button>
-
-                {/* Search messages */}
-                <button
-                  onClick={() => {
-                    setShowSearchMessages(true);
-                    setShowHeaderMenu(false);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
-                >
-                  <Search size={16} className="text-white/60" />
-                  <span>Search Messages</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setShowMediaGallery(true);
-                    setShowHeaderMenu(false);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
-                >
-                  <ImageIcon size={16} className="text-white/60" />
-                  <span>Media Gallery</span>
-                </button>
-
-                <button
-                  onClick={handleClearCurrentChat}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white border-t border-white/5 mt-1 pt-3"
-                >
-                  <Trash2 size={16} className="text-white/60" />
-                  <span>Clear Chat</span>
-                </button>
-
-                <button
-                  onClick={handleDeleteCurrentChat}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-red-400"
-                >
-                  <Trash2 size={16} />
-                  <span>Delete Chat</span>
-                </button>
-
-                {/* Export chat */}
-                <button
-                  onClick={() => {
-                    handleExportChat('txt');
-                    setShowHeaderMenu(false);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white border-t border-white/5 mt-1 pt-3"
-                >
-                  <Download size={16} className="text-white/60" />
-                  <span>Export Chat (.txt)</span>
-                </button>
-
-                {/* Edit Wallpaper */}
-                <button
-                  onClick={() => {
-                    setShowHeaderMenu(false);
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.accept = 'image/*';
-                    input.onchange = (e) => {
-                      const file = e.target.files[0];
-                      if (file) handleUploadWallpaper(file);
-                    };
-                    input.click();
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
-                >
-                  <ImageIcon size={16} className="text-white/60" />
-                  <span>Edit Wallpaper</span>
-                </button>
-
-                {/* Mobile Group Info */}
-                {selectedConversation?.isGroup && (
+              {showHeaderMenu && (
+                <div className="absolute right-0 top-11 bg-dark-surface/95 backdrop-blur-md border border-dark-border rounded-xl shadow-2xl py-2 w-48 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  {/* Mobile DND toggle */}
                   <button
                     onClick={() => {
-                      setShowGroupInfo(true);
+                      toggleDNDMode();
                       setShowHeaderMenu(false);
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white border-t border-white/5"
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
                   >
-                    <Users size={16} className="text-white/60" />
-                    <span>Group Info</span>
+                    <span className="text-sm font-bold w-4 text-center text-orange-500">
+                      {isDNDMode ? '🌙' : '🔔'}
+                    </span>
+                    <span>{isDNDMode ? 'Disable DND' : 'Do Not Disturb'}</span>
                   </button>
-                )}
-              </div>
-            )}
+
+                  {/* Search messages */}
+                  <button
+                    onClick={() => {
+                      setShowSearchMessages(true);
+                      setShowHeaderMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
+                  >
+                    <Search size={16} className="text-white/60" />
+                    <span>Search Messages</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowMediaGallery(true);
+                      setShowHeaderMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
+                  >
+                    <ImageIcon size={16} className="text-white/60" />
+                    <span>Media Gallery</span>
+                  </button>
+
+                  <button
+                    onClick={handleClearCurrentChat}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white border-t border-white/5 mt-1 pt-3"
+                  >
+                    <Trash2 size={16} className="text-white/60" />
+                    <span>Clear Chat</span>
+                  </button>
+
+                  <button
+                    onClick={handleDeleteCurrentChat}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-red-400"
+                  >
+                    <Trash2 size={16} />
+                    <span>Delete Chat</span>
+                  </button>
+
+                  {/* Export chat */}
+                  <button
+                    onClick={() => {
+                      handleExportChat('txt');
+                      setShowHeaderMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white border-t border-white/5 mt-1 pt-3"
+                  >
+                    <Download size={16} className="text-white/60" />
+                    <span>Export Chat (.txt)</span>
+                  </button>
+
+                  {/* Edit Wallpaper */}
+                  <button
+                    onClick={() => {
+                      setShowHeaderMenu(false);
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = 'image/*';
+                      input.onchange = (e) => {
+                        const file = e.target.files[0];
+                        if (file) handleUploadWallpaper(file);
+                      };
+                      input.click();
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
+                  >
+                    <ImageIcon size={16} className="text-white/60" />
+                    <span>Edit Wallpaper</span>
+                  </button>
+
+                  {/* Mobile Group Info */}
+                  {selectedConversation?.isGroup && (
+                    <button
+                      onClick={() => {
+                        setShowGroupInfo(true);
+                        setShowHeaderMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white border-t border-white/5"
+                    >
+                      <Users size={16} className="text-white/60" />
+                      <span>Group Info</span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </header>
