@@ -259,7 +259,15 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   // Close message menu + quick reactions on outside click
   useEffect(() => {
     if (!activeMessageMenu && !quickReactionMsg) return;
-    const handler = () => {
+    const handler = (event) => {
+      const target = event.target;
+      if (!target) return;
+      if (
+        target.closest('[data-message-menu-button]') ||
+        target.closest('[data-quick-reaction-menu]')
+      ) {
+        return;
+      }
       setActiveMessageMenu(null);
       setQuickReactionMsg(null);
     };
@@ -2331,6 +2339,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                   {/* WhatsApp-style Quick Reaction Bar */}
                   {quickReactionMsg === (message._id || message.id) && (
                     <div
+                      data-quick-reaction-menu
                       className={`absolute z-50 -top-12 ${isOwnMessage(message) ? 'right-0' : 'left-0'} flex items-center gap-1 bg-[#233138] rounded-full px-3 py-2 shadow-2xl border border-[#37404a]`}
                       onClick={e => e.stopPropagation()}
                     >
@@ -2844,8 +2853,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       </div>
                     )}
                     {/* GENZ MOD: Three-dot Menu for Messages */}
-                    <div className="relative">
+                    <div className="relative" ref={messageMenuRef}>
                       <button
+                        data-message-menu-button
                         onClick={(e) => {
                           e.stopPropagation();
                           setActiveMessageMenu(activeMessageMenu === (message.id || message._id) ? null : (message.id || message._id));
@@ -2857,7 +2867,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       </button>
 
                       {activeMessageMenu === (message.id || message._id) && (
-                        <div className="absolute top-0 right-0 -mt-8 -mr-2 bg-dark-surface border border-dark-border rounded-lg shadow-xl z-50 min-w-[180px] overflow-hidden">
+                        <div data-message-menu-button className="absolute top-0 right-0 -mt-8 -mr-2 bg-dark-surface border border-dark-border rounded-lg shadow-xl z-50 min-w-[180px] overflow-hidden">
                           <div className="py-1">
                             <button
                               onClick={(e) => {
