@@ -502,7 +502,8 @@ const GENZMods = () => {
                 key={font.id}
                 onClick={() => {
                   const newMods = { ...modsSettings, customFont: font.id };
-                  handleSave(newMods);
+                  setModsSettings(newMods);
+                  saveModsSettings();
                   document.body.style.fontFamily = font.cssFont || '';
                 }}
                 className={`p-3 rounded-xl border-2 text-center transition-all ${isActive ? 'border-purple-500 bg-purple-500/10' : 'border-gray-200 dark:border-gray-600 hover:border-purple-300'}`}
