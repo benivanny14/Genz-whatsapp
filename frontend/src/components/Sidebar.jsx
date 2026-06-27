@@ -87,21 +87,12 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
       }
     };
 
-    const handleMenuClick = (event) => {
-      // Don't close menu when clicking on menu items
-      if (event.target.closest('[data-menu-item]')) {
-        event.stopPropagation();
-      }
-    };
-
     if (showMenu) {
       document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('click', handleMenuClick, true);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('click', handleMenuClick, true);
     };
   }, [showMenu]);
 
@@ -509,7 +500,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                 <div ref={menuRef} className="absolute right-0 top-10 bg-dark-surface border border-dark-border rounded-lg shadow-xl py-2 w-56 z-50 max-h-[70vh] overflow-y-auto custom-scrollbar">
                   {/* Header Actions (Moved to Menu) */}
                   <button
-                    data-menu-item
                     onClick={() => {
                       openGENZ();
                       setShowMenu(false);
@@ -520,7 +510,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     <span>GENZ Settings</span>
                   </button>
                   <button
-                    data-menu-item
                     onClick={() => {
                       setShowMassSenderModal(true);
                       setShowMenu(false);
@@ -531,7 +520,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     <span>Mass Sender</span>
                   </button>
                   <button
-                    data-menu-item
                     onClick={() => {
                       setShowBroadcastModal(true);
                       setShowMenu(false);
@@ -544,7 +532,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                   <div className="border-t border-dark-border my-1" />
 
                   <button
-                    data-menu-item
                     onClick={() => {
                       navigate('/settings');
                       setShowMenu(false);
@@ -555,7 +542,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     <span>Settings</span>
                   </button>
                   <button
-                    data-menu-item
                     onClick={() => {
                       navigate('/linked-devices');
                       setShowMenu(false);
@@ -566,7 +552,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     <span>Linked Devices</span>
                   </button>
                   <button
-                    data-menu-item
                     onClick={() => {
                       navigate('/settings/security');
                       setShowMenu(false);
@@ -577,7 +562,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     <span>Security</span>
                   </button>
                   <button
-                    data-menu-item
                     onClick={() => {
                       navigate('/genz-mods');
                       setShowMenu(false);
@@ -588,7 +572,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     <span>GENZ Mods</span>
                   </button>
                   <button
-                    data-menu-item
                     onClick={() => {
                       navigate('/broadcast');
                       setShowMenu(false);
@@ -599,7 +582,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     <span>Broadcast</span>
                   </button>
                   <button
-                    data-menu-item
                     onClick={() => {
                       navigate('/starred');
                       setShowMenu(false);
@@ -610,7 +592,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     <span>Starred Messages</span>
                   </button>
                   <button
-                    data-menu-item
                     onClick={() => chatListWallpaperInputRef.current?.click()}
                     className="w-full flex items-center gap-3 px-4 py-2 hover:bg-dark-hover text-dark-text"
                   >
@@ -619,7 +600,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                   </button>
                   {chatListWallpaper?.url && (
                     <button
-                      data-menu-item
                       onClick={clearChatListWallpaper}
                       className="w-full flex items-center gap-3 px-4 py-2 hover:bg-dark-hover text-red-400"
                     >
@@ -629,7 +609,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                   )}
                   <div className="border-t border-dark-border my-1" />
                   <button
-                    data-menu-item
                     onClick={() => {
                       onLogout();
                       setShowMenu(false);
