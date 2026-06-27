@@ -55,6 +55,15 @@ import { getAvatarUrl } from '../utils/avatar';
 const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added mods prop
   const { user } = useUser();
   const navigate = useNavigate();
+  
+  // Debug: Wrap navigate to log all calls
+  const debugNavigate = (path, options) => {
+    console.log('[Sidebar] navigate called with:', path, options);
+    console.log('[Sidebar] Current location:', window.location.pathname);
+    navigate(path, options);
+    console.log('[Sidebar] navigate() returned');
+  };
+  
   // Compute total unread count across all conversations
   const { conversations, selectConversation, selectedConversation, onlineUsers, togglePinChat, toggleMuteChat, toggleArchiveChat, clearChat, deleteChat, callLogs, statuses, addStatus, deleteStatus, uploadStatusMedia, profileVisitors, showProfileEditor, setShowProfileEditor, typingByConversation } = useChat();
   const currentUserId = String(user?._id || user?.id || 'anonymous');
@@ -485,6 +494,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     onClick={(e) => {
                       e.stopPropagation();
                       console.log('GENZ Settings button clicked');
+                      console.log('[Sidebar] openGENZ function:', typeof openGENZ);
                       openGENZ();
                       setShowMenu(false);
                     }}
@@ -497,6 +507,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     onClick={(e) => {
                       e.stopPropagation();
                       console.log('Mass Sender button clicked');
+                      console.log('[Sidebar] setShowMassSenderModal called with: true');
                       setShowMassSenderModal(true);
                       setShowMenu(false);
                     }}
@@ -509,6 +520,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     onClick={(e) => {
                       e.stopPropagation();
                       console.log('New Broadcast button clicked');
+                      console.log('[Sidebar] setShowBroadcastModal called with: true');
                       setShowBroadcastModal(true);
                       setShowMenu(false);
                     }}
@@ -523,7 +535,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     onClick={(e) => {
                       e.stopPropagation();
                       console.log('Settings button clicked, navigating to /settings');
-                      navigate('/settings');
+                      debugNavigate('/settings');
                       setShowMenu(false);
                     }}
                     className="w-full flex items-center gap-3 px-4 py-2 hover:bg-dark-hover text-dark-text"
@@ -535,7 +547,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     onClick={(e) => {
                       e.stopPropagation();
                       console.log('Linked Devices button clicked, navigating to /linked-devices');
-                      navigate('/linked-devices');
+                      debugNavigate('/linked-devices');
                       setShowMenu(false);
                     }}
                     className="w-full flex items-center gap-3 px-4 py-2 hover:bg-dark-hover text-dark-text"
@@ -558,7 +570,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     onClick={(e) => {
                       e.stopPropagation();
                       console.log('GENZ Mods button clicked, navigating to /genz-mods');
-                      navigate('/genz-mods');
+                      debugNavigate('/genz-mods');
                       setShowMenu(false);
                     }}
                     className="w-full flex items-center gap-3 px-4 py-2 hover:bg-dark-hover text-dark-text"
@@ -570,7 +582,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     onClick={(e) => {
                       e.stopPropagation();
                       console.log('Broadcast button clicked, navigating to /broadcast');
-                      navigate('/broadcast');
+                      debugNavigate('/broadcast');
                       setShowMenu(false);
                     }}
                     className="w-full flex items-center gap-3 px-4 py-2 hover:bg-dark-hover text-dark-text"
@@ -582,7 +594,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     onClick={(e) => {
                       e.stopPropagation();
                       console.log('Starred Messages button clicked, navigating to /starred');
-                      navigate('/starred');
+                      debugNavigate('/starred');
                       setShowMenu(false);
                     }}
                     className="w-full flex items-center gap-3 px-4 py-2 hover:bg-dark-hover text-dark-text"
@@ -617,6 +629,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     onClick={(e) => {
                       e.stopPropagation();
                       console.log('Logout button clicked');
+                      console.log('[Sidebar] onLogout function:', typeof onLogout);
                       onLogout();
                       setShowMenu(false);
                     }}
