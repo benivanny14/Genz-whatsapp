@@ -496,12 +496,12 @@ const GENZMods = () => {
             { id: 'elegant', label: 'Elegant', preview: 'Hello there!', cssFont: "Palatino, serif" },
             { id: 'bold', label: 'Bold', preview: 'Hello there!', cssFont: "'Arial Black', sans-serif" },
           ].map(font => {
-            const isActive = (currentMods?.customFont || 'default') === font.id;
+            const isActive = (modsSettings?.customFont || 'default') === font.id;
             return (
               <button
                 key={font.id}
                 onClick={() => {
-                  const newMods = { ...currentMods, customFont: font.id };
+                  const newMods = { ...modsSettings, customFont: font.id };
                   handleSave(newMods);
                   document.body.style.fontFamily = font.cssFont || '';
                 }}
