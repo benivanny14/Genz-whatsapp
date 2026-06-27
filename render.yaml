@@ -7,7 +7,7 @@ services:
     name: genz-whatsapp
     runtime: node
     rootDir: backend
-    buildCommand: npm install
+    buildCommand: npm install --legacy-peer-deps
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
@@ -71,3 +71,7 @@ services:
         value: https://genz-whatsapp.onrender.com
       - key: VITE_REQUIRE_AUTH
         value: "true"
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

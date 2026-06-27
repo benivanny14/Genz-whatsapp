@@ -19,6 +19,7 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { formatConversationTime } from '../utils/formatDate';
+import ContactPickerModal from './ContactPickerModal';
 
 const formatDisappearingLabel = (settings) => {
   if (!settings?.enabled) return 'Off';
@@ -32,9 +33,13 @@ const formatDisappearingLabel = (settings) => {
 };
 
 const GroupInfo = ({ group, onClose, currentUserId }) => {
-  const { getGroupInfo, updateGroupInfo, removeAdmin, makeAdmin, removeParticipant, updateGroupPermission, regenerateGroupInvite } = useChat();
+  const { getGroupInfo, updateGroupInfo, removeAdmin, makeAdmin, addParticipant, removeParticipant, leaveGroup, updateGroupPermission, regenerateGroupInvite } = useChat();
   const [info, setInfo] = useState(group);
   const [loading, setLoading] = useState(true);
+  const [showAddMembers, setShowAddMembers] = useState(false);
+  const [addMemberBusy, setAddMemberBusy] = useState(false);
+  const [showMemberSearch, setShowMemberSearch] = useState(false);
+  const [memberSearch, setMemberSearch] = useState('');
   const [editMode, setEditMode] = useState(false);
   const [editName, setEditName] = useState(group?.groupName || '');
   const [editDesc, setEditDesc] = useState(group?.groupDescription || '');
@@ -90,6 +95,29 @@ const GroupInfo = ({ group, onClose, currentUserId }) => {
       setInfo(prev => ({ ...prev, participants: prev.participants.filter(p => !sameId(p._id, memberId)) }));
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const handleAddMember = async (contact) => {
+    if (!contact?._id) return;
+    const alreadyMember = info?.participants?.some(p => sameId(p._id, contact._id));
+    if (alreadyMember) {
+      alert(`${contact.username || contact.name} is already in this group`);
+      return;
+    }
+    setAddMemberBusy(true);
+    try {
+      const result = await addParticipant(group._id, contact._id);
+      if (result?.success === false) {
+        alert(result.message || 'Could not add member');
+        return;
+      }
+      setInfo(prev => ({ ...prev, participants: [...(prev.participants || []), contact] }));
+    } catch (e) {
+      console.error(e);
+      alert('Could not add member');
+    } finally {
+      setAddMemberBusy(false);
     }
   };
 
@@ -238,19 +266,20 @@ const GroupInfo = ({ group, onClose, currentUserId }) => {
                 <>
                   <SectionRow
                     icon={LinkIcon}
-                    label="Invite code"
+                    label="Invite link"
                     value={info.groupInviteCode}
                     onClick={async () => {
+                      const link = `${window.location.origin}/join/${group._id}/${info.groupInviteCode}`;
                       try {
-                        await navigator.clipboard.writeText(info.groupInviteCode);
+                        await navigator.clipboard.writeText(link);
                         setInviteCopied(true);
                         setTimeout(() => setInviteCopied(false), 2000);
                       } catch {
-                        alert('Could not copy invite code');
+                        alert('Could not copy invite link');
                       }
                     }}
                     rightElement={
-                      <span className="text-xs text-[#00a884]">{inviteCopied ? 'Copied!' : 'Copy'}</span>
+                      <span className="text-xs text-[#00a884]">{inviteCopied ? 'Copied!' : 'Copy link'}</span>
                     }
                   />
                   <SectionRow
@@ -302,24 +331,70 @@ const GroupInfo = ({ group, onClose, currentUserId }) => {
             <div className="bg-[#111b21] border-b-[8px] border-[#0b141a] pb-2">
               <div className="flex items-center justify-between px-5 py-3 text-[#00a884]">
                 <span className="text-sm">{info?.participants?.length || 0} participants</span>
-                <Search size={18} className="text-white/50 cursor-pointer hover:text-white" />
+                <Search
+                  size={18}
+                  className="text-white/50 cursor-pointer hover:text-white"
+                  onClick={() => {
+                    setShowMemberSearch((prev) => !prev);
+                    setMemberSearch('');
+                  }}
+                />
               </div>
+
+              {showMemberSearch && (
+                <div className="px-5 pb-2">
+                  <input
+                    autoFocus
+                    type="text"
+                    value={memberSearch}
+                    onChange={(e) => setMemberSearch(e.target.value)}
+                    placeholder="Search members..."
+                    className="w-full bg-[#202c33] text-white text-sm rounded-lg px-3 py-2 outline-none placeholder-white/40"
+                  />
+                </div>
+              )}
 
               {isAdmin && (
                 <SectionRow
                   icon={UserPlus}
                   label={<span className="text-white">Add members</span>}
-                  onClick={() => alert('Search and add contacts (To be implemented)')}
+                  onClick={() => setShowAddMembers(true)}
                 />
               )}
               {isAdmin && (
                 <SectionRow
                   icon={LinkIcon}
                   label={<span className="text-white">Invite to group via link</span>}
+                  onClick={async () => {
+                    if (!info?.groupInviteCode) {
+                      alert('Open "Invite link" above first to generate a code.');
+                      return;
+                    }
+                    const link = `${window.location.origin}/join/${group._id}/${info.groupInviteCode}`;
+                    if (navigator.share) {
+                      try {
+                        await navigator.share({ title: info?.groupName || 'Join my group', url: link });
+                        return;
+                      } catch {
+                        // user cancelled share sheet — fall through to clipboard copy
+                      }
+                    }
+                    try {
+                      await navigator.clipboard.writeText(link);
+                      alert('Invite link copied to clipboard');
+                    } catch {
+                      alert(link);
+                    }
+                  }}
                 />
               )}
 
-              {info?.participants?.map(member => {
+              {info?.participants
+                ?.filter(member =>
+                  !memberSearch.trim() ||
+                  (member.username || '').toLowerCase().includes(memberSearch.trim().toLowerCase())
+                )
+                ?.map(member => {
                 const isMemberAdmin = info?.admins?.some(admin => sameId(admin, member._id));
                 const isMe = sameId(member._id, currentUserId);
 
@@ -365,16 +440,28 @@ const GroupInfo = ({ group, onClose, currentUserId }) => {
                 icon={Trash2}
                 iconColor="text-red-500"
                 label={<span className="text-red-500">Exit group</span>}
-                onClick={() => {
-                  if (window.confirm('Exit this group?')) {
-                    // Logic to exit group
+                onClick={async () => {
+                  if (!window.confirm('Exit this group?')) return;
+                  const result = await leaveGroup(group._id);
+                  if (result?.success === false) {
+                    alert(result.message || 'Could not exit group');
+                    return;
                   }
+                  onClose?.();
                 }}
               />
             </div>
           </>
         )}
       </div>
+
+      {showAddMembers && (
+        <ContactPickerModal
+          title="Add to group"
+          onClose={() => setShowAddMembers(false)}
+          onSelect={handleAddMember}
+        />
+      )}
     </motion.div>
   );
 };

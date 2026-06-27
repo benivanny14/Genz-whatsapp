@@ -4,8 +4,8 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-COPY package*.json ./
-RUN npm ci --omit=dev
+COPY package*.json .npmrc ./
+RUN npm ci --omit=dev --legacy-peer-deps
 
 COPY . .
 

@@ -42,6 +42,7 @@ const LinkedDevices = lazy(() => import('./pages/LinkedDevices'));
 const Broadcasts = lazy(() => import('./pages/Broadcasts'));
 const SecuritySettings = lazy(() => import('./pages/SecuritySettings'));
 const Channels = lazy(() => import('./pages/Channels'));
+const JoinGroup = lazy(() => import('./pages/JoinGroup'));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -156,12 +157,14 @@ function App() {
           <Route path="/admin" element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
           <Route path="/genz-mods" element={<ProtectedRoute><GENZMods /></ProtectedRoute>} />
           <Route path="/channels" element={<ProtectedRoute><Channels /></ProtectedRoute>} />
+          <Route path="/join/:groupId/:code" element={<ProtectedRoute><JoinGroup /></ProtectedRoute>} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/" element={<Navigate to="/chat" replace />} />
+          <Route path="*" element={<Navigate to="/chat" replace />} />
         </Routes>
       </Suspense>
     </ErrorBoundary>

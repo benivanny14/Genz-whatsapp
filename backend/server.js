@@ -662,6 +662,7 @@ app.use('/api/calls', callRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/scheduled-messages', scheduledMessageRoutes);
 app.use('/api/status', statusRoutes);
+app.use('/api/channels', channelRoutes);
 
 // File upload route
 app.post('/api/upload', upload.single('file'), async (req, res) => {
