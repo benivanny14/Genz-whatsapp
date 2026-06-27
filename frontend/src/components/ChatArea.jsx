@@ -2868,7 +2868,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
                       {activeMessageMenu === (message.id || message._id) && (
                         <div data-message-menu-button className="absolute top-0 right-0 -mt-8 -mr-2 bg-dark-surface border border-dark-border rounded-lg shadow-xl z-50 min-w-[180px] overflow-hidden">
-                          <div className="py-1">
+                          <div className="py-1" data-message-menu-button>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
