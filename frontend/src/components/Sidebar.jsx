@@ -77,6 +77,24 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   const [showArchivedOnly, setShowArchivedOnly] = useState(false);
   const [enlargedProfile, setEnlargedProfile] = useState(null);
   const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
+  const menuRef = useRef(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMenu]);
 
   // GENZ MOD: Custom Chat Tabs
   const [chatTabs, setChatTabs] = useState(() => {
@@ -479,7 +497,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                 <MoreVertical className="w-5 h-5 text-dark-text" />
               </button>
               {showMenu && (
-                <div className="absolute right-0 top-10 bg-dark-surface border border-dark-border rounded-lg shadow-xl py-2 w-56 z-50 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                <div ref={menuRef} className="absolute right-0 top-10 bg-dark-surface border border-dark-border rounded-lg shadow-xl py-2 w-56 z-50 max-h-[70vh] overflow-y-auto custom-scrollbar">
                   {/* Header Actions (Moved to Menu) */}
                   <button
                     onClick={() => {
