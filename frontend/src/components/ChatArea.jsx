@@ -320,6 +320,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const timerRef = useRef(null);
   const audioRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  const messageMenuRef = useRef(null);
   const [translatedMessages, setTranslatedMessages] = useState({});
   const liveLocationWatchIdRef = useRef(null);
   const liveLocationIntervalRef = useRef(null);
