@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useLanguage } from '../context/LanguageContext';
 import {
   ArrowLeft, Save, User, Lock, Bell, Palette, Shield, Users, Package,
   Smartphone, ChevronRight, Database, UserRound, KeyRound, Languages,
@@ -245,10 +244,6 @@ const applyRuntimeSettings = (settings) => {
   );
   document.documentElement.lang = settings.app?.language === 'system' ? navigator.language : settings.app?.language || 'en';
   window.dispatchEvent(new Event('language-changed'));
-    // Also apply via LanguageContext for instant update
-    if (settings.app?.language && settings.app.language !== 'system') {
-      changeLanguage(settings.app.language);
-    }
 };
 
 const SettingSection = ({ title, description, children }) => (
@@ -374,7 +369,6 @@ const ActionButton = ({ children, onClick, tone = 'primary', disabled = false })
 const Settings = () => {
   const { user, updateUserProfile } = useUser();
   const navigate = useNavigate();
-  const { changeLanguage } = useLanguage();
   const [activeTab, setActiveTab] = useState('profile');
   const [settingsData, setSettingsData] = useState(readStoredSettings);
   const [profileData, setProfileData] = useState({
