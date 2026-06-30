@@ -2091,7 +2091,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           ) : (
             <div
               className="flex items-center gap-3 flex-1 cursor-pointer hover:bg-white/5 p-1 -ml-1 rounded-lg transition-colors"
-              onClick={() => setShowContactInfo(true)}
+              onClick={() => selectedConversation.isGroup ? setShowGroupInfo(true) : setShowContactInfo(true)}
             >
               {isLiveLocationActive && (
                 <span className="text-red-500 text-xs font-bold animate-pulse flex items-center gap-1 mr-2"><Radio size={14} /> LIVE</span>
@@ -4041,6 +4041,17 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           </div>
         </div>
       )}
+
+      {/* ── Group Info Panel ── */}
+      <AnimatePresence>
+        {showGroupInfo && selectedConversation?.isGroup && (
+          <GroupInfo
+            group={selectedConversation}
+            onClose={() => setShowGroupInfo(false)}
+            currentUserId={user?.id || user?._id}
+          />
+        )}
+      </AnimatePresence>
 
       {/* ── Contact Info Panel ── */}
       <AnimatePresence>
