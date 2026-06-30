@@ -7,7 +7,7 @@ import {
   UserMinus, MessageSquare, ChevronRight, Loader2, QrCode, Ban,
   Crown, UserCheck, UserX, Zap, Calendar, ChevronDown, AlertTriangle,
   Copy, RefreshCw, Settings, Eye, EyeOff, Volume2, VolumeX, Star,
-  Info, Grid, Share2, Plus
+  Info, Grid, Share2, Plus, AtSign, Video, FileText
 } from 'lucide-react';
 import { formatConversationTime } from '../utils/formatDate';
 import ContactPickerModal from './ContactPickerModal';
@@ -761,6 +761,54 @@ const GroupInfo = ({ group, onClose, currentUserId }) => {
                     </div>
                     <Toggle checked={!!info?.requireJoinApproval} onChange={handleJoinApprovalToggle} />
                   </div>
+                  <SectionRow
+                    icon={Shield}
+                    label="Send messages"
+                    value={info?.permissions?.sendMessages === 'admins' ? 'Admins only' : info?.permissions?.sendMessages === 'everyone' ? 'Everyone' : 'All participants'}
+                  />
+                  <SectionRow
+                    icon={Edit2}
+                    label="Edit group info"
+                    value={info?.permissions?.editGroupInfo === 'admins' ? 'Admins only' : 'All participants'}
+                  />
+                  <SectionRow
+                    icon={UserPlus}
+                    label="Add participants"
+                    value={info?.permissions?.addParticipants === 'admins' ? 'Admins only' : 'All participants'}
+                  />
+                </div>
+
+                <p className="text-[#8696a0] text-xs px-5 pt-4 pb-2 uppercase tracking-wide">Mentions</p>
+                <div className="bg-[#111b21] py-1">
+                  <SectionRow
+                    icon={AtSign}
+                    label="Allow @everyone mentions"
+                    value={info?.allowEveryoneMention ? 'Enabled' : 'Disabled'}
+                  />
+                  <SectionRow
+                    icon={Users}
+                    label="Who can mention"
+                    value={info?.mentionPermission === 'admins' ? 'Admins only' : 'Everyone'}
+                  />
+                </div>
+
+                <p className="text-[#8696a0] text-xs px-5 pt-4 pb-2 uppercase tracking-wide">Media Auto-download</p>
+                <div className="bg-[#111b21] py-1">
+                  <SectionRow
+                    icon={ImageIcon}
+                    label="Photos"
+                    value={info?.autoDownload?.photos ? 'Enabled' : 'Disabled'}
+                  />
+                  <SectionRow
+                    icon={Video}
+                    label="Videos"
+                    value={info?.autoDownload?.videos ? 'Enabled' : 'Disabled'}
+                  />
+                  <SectionRow
+                    icon={FileText}
+                    label="Documents"
+                    value={info?.autoDownload?.documents ? 'Enabled' : 'Disabled'}
+                  />
                 </div>
 
                 <p className="text-[#8696a0] text-xs px-5 pt-4 pb-2 uppercase tracking-wide">Anti-Spam</p>

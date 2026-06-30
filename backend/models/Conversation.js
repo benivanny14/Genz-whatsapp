@@ -171,6 +171,49 @@ const conversationSchema = new mongoose.Schema({
     of: [Date],
     default: {},
   },
+  // Group permissions (WhatsApp-style)
+  permissions: {
+    sendMessages: {
+      type: String,
+      enum: ['everyone', 'admins', 'all'],
+      default: 'everyone'
+    },
+    editGroupInfo: {
+      type: String,
+      enum: ['everyone', 'admins', 'all'],
+      default: 'all'
+    },
+    addParticipants: {
+      type: String,
+      enum: ['everyone', 'admins', 'all'],
+      default: 'all'
+    }
+  },
+  // Mention settings
+  allowEveryoneMention: {
+    type: Boolean,
+    default: true
+  },
+  mentionPermission: {
+    type: String,
+    enum: ['everyone', 'admins'],
+    default: 'everyone'
+  },
+  // Media auto-download settings
+  autoDownload: {
+    photos: {
+      type: Boolean,
+      default: true
+    },
+    videos: {
+      type: Boolean,
+      default: true
+    },
+    documents: {
+      type: Boolean,
+      default: false
+    }
+  },
   createdAt: {
     type: Date,
     default: Date.now

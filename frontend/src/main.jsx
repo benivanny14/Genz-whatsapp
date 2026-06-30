@@ -27,7 +27,9 @@ try {
   }
 } catch (_) {}
 
-// ── Service Worker + Push Notification Registration ───────────────────────
+// ── Service Worker + Push Notification Registration + PWA Install Prompt ───────────────────────
+let deferredPrompt;
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
@@ -69,6 +71,22 @@ if ('serviceWorker' in navigator) {
     }
   });
 }
+
+// ── PWA Install Prompt Handler ───────────────────────────────────────────────
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  console.log('[PWA] Install prompt available');
+
+  // Show install button or banner here
+  // You can dispatch a custom event to notify your app
+  window.dispatchEvent(new CustomEvent('pwa-install-available', { detail: { deferredPrompt } }));
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  console.log('[PWA] App installed');
+});
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <ErrorBoundary>
