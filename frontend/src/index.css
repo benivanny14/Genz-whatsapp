@@ -224,20 +224,20 @@ body {
 
 /* GENZ Mods Scrollable */
 .genz-mods-container {
-  max-height: calc(100vh - 140px);
+  max-height: calc(var(--app-height, 100dvh) - 140px);
   overflow-y: auto;
   padding-right: 8px;
 }
 
 /* Settings Scrollable */
 .settings-scrollable {
-  max-height: calc(100vh - 140px);
+  max-height: calc(var(--app-height, 100dvh) - 140px);
   overflow-y: auto;
 }
 
 /* Security Settings Scrollable */
 .security-settings-scrollable {
-  max-height: calc(100vh - 140px);
+  max-height: calc(var(--app-height, 100dvh) - 140px);
   overflow-y: auto;
 }
 
@@ -696,7 +696,7 @@ body {
 
 /* Reel mode for status */
 .reel-mode-chat .status-viewer {
-  height: 100vh;
+  height: var(--app-height, 100dvh);
   background: #000;
 }
 

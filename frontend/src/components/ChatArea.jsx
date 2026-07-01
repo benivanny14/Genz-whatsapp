@@ -219,6 +219,7 @@ const LinkPreviewCard = ({ url }) => {
 };
 
 const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => { // Added mods and onOpenGENZSettings
+  mods = mods || {};
   const { user: localUser } = useUser();
   const {
     user: chatUser,
@@ -421,6 +422,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (videoTimerRef.current) clearInterval(videoTimerRef.current);
       if (liveLocationIntervalRef.current) clearInterval(liveLocationIntervalRef.current);
+      if (liveLocationWatchIdRef.current) navigator.geolocation.clearWatch(liveLocationWatchIdRef.current);
+      if (cameraStreamRef.current) cameraStreamRef.current.getTracks().forEach(t => t.stop());
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     };
   }, []);
@@ -539,7 +542,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     if (selectedConversation) {
       document.title = getConversationName();
     }
-  }, [selectedConversation]);
+  }, [selectedConversation, localUser?.id]);
 
   // Mark chat as read when opened — unread badge always clears; read receipts respect privacy mods
   useEffect(() => {
@@ -632,7 +635,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     if (selectedConversation.isGroup) {
       return selectedConversation.groupName;
     }
-    const otherUser = selectedConversation.participants.find((p) => p._id !== user?.id);
+    const otherUser = selectedConversation.participants?.find((p) => p._id !== user?.id);
     return otherUser?.username || 'Unknown';
   }
 
@@ -853,7 +856,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
 
       const updateWaveform = () => {
-        if (!isRecording) return;
+        if (mediaRecorderRef.current?.state !== 'recording') return;
         analyser.getByteFrequencyData(dataArray);
         setAudioData(new Uint8Array(dataArray));
         requestAnimationFrame(updateWaveform);
@@ -867,6 +870,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       };
 
       mediaRecorder.onstop = async () => {
+        if (audioChunksRef.current.length === 0) {
+          audioContext.close();
+          return;
+        }
         const rawBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
 
         // Clean up audio context
@@ -998,7 +1005,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       setSwipeDirection('left');
     }
     // Swipe up to lock
-    else if (deltaY < -50) {
+    else if (deltaY > 50) {
       setSwipeDirection('up');
     }
     else {
@@ -1017,7 +1024,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       handleCancelRecording();
     }
     // Swipe up to lock
-    else if (deltaY < -50) {
+    else if (deltaY > 50) {
       handleLockRecording();
     }
     // Normal release - send
@@ -1623,9 +1630,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     const content = plaintextOf(forwardingMessage);
     // GENZ MOD: If noForwardLabel is on, send as new message without 'Forwarded' tag
     if (mods?.noForwardLabel) {
-      sendMessage(content, user?.username, { chatId: selectedConversation?._id });
+      sendMessage(content, user?.username, { chatId: targetConv });
     } else {
-      forwardMessage(content, user?.username);
+      forwardMessage(content, user?.username, targetConv);
     }
     setForwardingMessage(null);
   };
@@ -1773,10 +1780,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     if (!contact) return;
     const name = contact.username || contact.name || contact.savedName || 'Contact';
     const phone = contact.phoneNumber || contact.phone || '';
-    sendMessage({
-      messageType: 'text',
-      content: phone ? `📇 *${name}*\n${phone}` : `📇 *${name}*`,
-    });
+    sendMessage(
+      phone ? `📇 *${name}*\n${phone}` : `📇 *${name}*`,
+      user?.username,
+      { messageType: 'text' }
+    );
   };
 
   const handleAskAIAssistant = async () => {
@@ -1851,7 +1859,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
   const isOwnMessage = (message) => {
     if (!message || !message.sender || !user) return false;
-    // Compare by username string since server sends it as a string
+    const senderId = typeof message.sender === 'object' ? (message.sender._id || message.sender.id) : null;
+    if (senderId) {
+      return String(senderId) === String(user.id || user._id);
+    }
     const senderName = typeof message.sender === 'object' ? message.sender.username : message.sender;
     const currentName = user?.username || 'Me';
     return senderName === currentName;

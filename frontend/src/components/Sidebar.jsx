@@ -263,7 +263,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     if (conv.isGroup) {
       return conv.groupName?.toLowerCase().includes(searchQuery.toLowerCase());
     } else {
-      const otherUser = conv.participants.find((p) => p._id !== user?.id);
+      const otherUser = conv.participants?.find((p) => p._id !== user?.id);
       return otherUser?.username?.toLowerCase().includes(searchQuery.toLowerCase());
     }
   });
@@ -353,7 +353,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     if (conv.isGroup) {
       return conv.groupName;
     }
-    const otherUser = conv.participants.find((p) => p._id !== user?.id);
+    const otherUser = conv.participants?.find((p) => p._id !== user?.id);
     return otherUser?.username || 'Unknown';
   };
 
@@ -792,7 +792,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                       )}
                     </div>
                     {/* GENZ MOD: Online Indicator */}
-                    {!conv.isGroup && onlineUsers.includes(conv.participants.find(p => p._id !== user?.id)?._id) && (
+                    {!conv.isGroup && onlineUsers.includes(conv.participants?.find(p => p._id !== user?.id)?._id) && (
                       <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-[2.5px] border-[#111b21] rounded-full z-10 shadow-sm" />
                     )}
                   </div>
@@ -1073,7 +1073,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                   </div>
                   <div className="flex-1">
                     <h3 className="text-dark-text font-medium">{status.username}</h3>
-                    <p className="text-xs text-dark-textSecondary">{status.content?.substring(0, 30)}...</p>
+                    <p className="text-xs text-dark-textSecondary">{status?.content ? status.content.substring(0, 30) + '...' : ''}</p>
                   </div>
                   <span className="text-xs text-dark-textSecondary">{formatConversationTime(status.timestamp)}</span>
                 </div>
