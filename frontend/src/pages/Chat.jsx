@@ -130,7 +130,7 @@ const Chat = () => {
         {/* Chat Area Container: Toggle visible/hidden based on whether conversation is active on mobile screens */}
         <div className={`${selectedConversation ? 'flex' : 'hidden md:flex'} flex-1 h-full min-w-0 w-full`}>
           <Suspense fallback={<PanelLoader />}>
-            <ErrorBoundary minimal>
+            <ErrorBoundary>
               <ChatArea
                 mods={mods}
                 onOpenGENZSettings={() => setShowGENZSettings(true)}
