@@ -223,6 +223,7 @@ const LinkPreviewCard = ({ url }) => {
 
 const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => { // Added mods and onOpenGENZSettings
   mods = mods || {};
+  const safeMods = mods;
   const { user: localUser } = useUser();
   const {
     user: chatUser,
