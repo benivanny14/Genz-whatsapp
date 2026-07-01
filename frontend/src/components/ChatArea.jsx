@@ -726,10 +726,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       await sendMessage(sanitizedMessage, user?.username || 'Me', {
         chatId: selectedConversation._id,
         isGroup: selectedConversation.isGroup,
-        ghostMode: mods.ghostMode,
-        isSelfDestruct: Boolean(mods.selfDestruct),
-        selfDestructTimer: mods.selfDestruct ? 10 : null,
-        isViewOnce: mods.selfDestruct ? false : isViewOnceEnabled,
+        ghostMode: safeMods.ghostMode,
+        isSelfDestruct: Boolean(safeMods.selfDestruct),
+        selfDestructTimer: safeMods.selfDestruct ? 10 : null,
+        isViewOnce: safeMods.selfDestruct ? false : isViewOnceEnabled,
         mentions,
         replyTo: replyingTo
       });
@@ -756,7 +756,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     } else {
       setMentionState((prev) => ({ ...prev, open: false, query: '', start: -1, cursor }));
     }
-    if (!mods.ghostMode) { // Assuming mods is passed to ChatArea, or retrieved from context
+    if (!safeMods.ghostMode) { // Assuming mods is passed to ChatArea, or retrieved from context
       sendTypingStatus(true);
       // Reset timeout on every key stroke
       if (typingTimeoutRef.current) {
@@ -884,9 +884,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
         // ── VOICE CHANGER: Apply pitch effect before upload ──
         let audioBlob = rawBlob;
-        if (mods?.voiceEffect && mods.voiceEffect !== 'none') {
+        if (safeMods?.voiceEffect && safeMods.voiceEffect !== 'none') {
           try {
-            audioBlob = await applyVoiceEffect(rawBlob, mods.voiceEffect);
+            audioBlob = await applyVoiceEffect(rawBlob, safeMods.voiceEffect);
           } catch (e) {
             console.warn('Voice effect failed, using original audio:', e);
             audioBlob = rawBlob;
@@ -915,7 +915,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               messageType: 'audio',
               mediaUrl: uploadedUrl,
               fileName: audioFile.name,
-              voiceEffect: mods?.voiceEffect || 'none',
+              voiceEffect: safeMods?.voiceEffect || 'none',
               duration: recordingDuration,
               size: audioFile.size,
               chatId: selectedConversation._id,
@@ -940,7 +940,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       setShowRecordingUI(true);
       setSwipeDirection(null);
       startTimer();
-      if (!mods.ghostMode) sendRecordingStatus(true);
+      if (!safeMods.ghostMode) sendRecordingStatus(true);
 
       // Haptic feedback for mobile
       if (navigator.vibrate) {
@@ -973,7 +973,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       stopTimer();
       setSwipeDirection(null);
       setAudioData(null);
-      if (!mods.ghostMode) sendRecordingStatus(false);
+      if (!safeMods.ghostMode) sendRecordingStatus(false);
     }
   };
 
@@ -1108,7 +1108,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       if (response.ok && (data.success || data.fileUrl || data.url)) {
         const uploadedUrl = data.fileUrl || data.url;
         if (!uploadedUrl) throw new Error('Upload succeeded without a media URL');
-        const voiceFxLabel = appliedVoiceEffect ?? mods?.voiceEffect ?? 'none';
+        const voiceFxLabel = appliedVoiceEffect ?? safeMods?.voiceEffect ?? 'none';
         const useViewOnce = Boolean(viewOnceFlag || isViewOnceEnabled);
         await sendMessage('Voice note', user?.username, {
           messageType: 'audio',
@@ -1304,9 +1304,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const maxSize = (mods?.highResMedia ? 50 : 10) * 1024 * 1024;
+    const maxSize = (safeMods?.highResMedia ? 50 : 10) * 1024 * 1024;
     if (file.size > maxSize) {
-      toast.error(`GENZ WhatsApp: File too large (max ${mods?.highResMedia ? 50 : 10}MB)`);
+      toast.error(`GENZ WhatsApp: File too large (max ${safeMods?.highResMedia ? 50 : 10}MB)`);
       return;
     }
 
@@ -1632,7 +1632,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     if (!forwardingMessage) return;
     const content = plaintextOf(forwardingMessage);
     // GENZ MOD: If noForwardLabel is on, send as new message without 'Forwarded' tag
-    if (mods?.noForwardLabel) {
+    if (safeMods?.noForwardLabel) {
       sendMessage(content, user?.username, { chatId: targetConv });
     } else {
       forwardMessage(content, user?.username, targetConv);
@@ -2026,11 +2026,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     // View Once logic
     const isSender = message.sender === user?.id || message.sender?._id === user?.id;
     if (message.isViewOnce) {
-      if (mods.antiViewOnce) return true;
+      if (safeMods.antiViewOnce) return true;
       if (message.isConsumed) return false;
     }
     if (message.messageType === 'viewOnce') {
-      if (mods.antiViewOnce) return true;
+      if (safeMods.antiViewOnce) return true;
       if (message.disappearAt && new Date(message.disappearAt) <= new Date()) return false;
       if (!isSender && message.isConsumed) return false;
     }
@@ -2042,15 +2042,15 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     : visibleMessages;
 
 
-  const safeChatWallpaper = mods && hasStaleBlobUrl(mods.chatWallpaper) ? null : mods?.chatWallpaper;
+  const safeChatWallpaper = safeMods && hasStaleBlobUrl(safeMods.chatWallpaper) ? null : safeMods?.chatWallpaper;
 
   // Custom per-chat wallpaper logic (TM Style)
-  const chatConfig = (mods?.customWallpapers && selectedConversation?._id) ? (mods.customWallpapers[selectedConversation._id] || {}) : {};
+  const chatConfig = (safeMods?.customWallpapers && selectedConversation?._id) ? (safeMods.customWallpapers[selectedConversation._id] || {}) : {};
   const activeWallpaper = chatConfig.wallpaper || safeChatWallpaper;
-  const activeDim = chatConfig.dim !== undefined ? chatConfig.dim : (mods?.chatWallpaperDim || 0);
-  const activeDoodle = chatConfig.doodle !== undefined ? chatConfig.doodle : (mods?.chatWallpaperDoodle !== false);
+  const activeDim = chatConfig.dim !== undefined ? chatConfig.dim : (safeMods?.chatWallpaperDim || 0);
+  const activeDoodle = chatConfig.doodle !== undefined ? chatConfig.doodle : (safeMods?.chatWallpaperDoodle !== false);
 
-  const activeZoom = chatConfig.zoom !== undefined ? chatConfig.zoom : (mods?.chatWallpaperZoom || 1);
+  const activeZoom = chatConfig.zoom !== undefined ? chatConfig.zoom : (safeMods?.chatWallpaperZoom || 1);
 
   const wallpaperStyle = activeWallpaper ? {
     backgroundColor: activeWallpaper.startsWith('#') ? activeWallpaper : '#0b141a',
@@ -2080,7 +2080,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       />
 
       <header
-        style={{ backgroundColor: mods.customTheme }}
+        style={{ backgroundColor: safeMods.customTheme }}
         className="border-b border-white/10 px-4 py-3 flex items-center gap-4 shadow-lg transition-all duration-500 z-[100]"
       >
         {/* Mobile back arrow to close chat and show list */}
@@ -2452,10 +2452,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                   <div
                     className={`max-w-[75%] relative group shadow-sm transition-all duration-300 ${(message.messageType === 'audio' || message.messageType === 'voice')
                       ? 'bg-transparent p-0'
-                      : `px-4 py-2 ${mods?.bubbleStyle === 'sharp' ? 'rounded-none' :
-                        mods?.bubbleStyle === 'bubble' ? 'rounded-3xl' :
-                          mods?.bubbleStyle === 'rounded' ? 'rounded-2xl' :
-                            mods?.bubbleStyle === 'ios' ? 'rounded-[20px]' :
+                      : `px-4 py-2 ${safeMods?.bubbleStyle === 'sharp' ? 'rounded-none' :
+                        safeMods?.bubbleStyle === 'bubble' ? 'rounded-3xl' :
+                          safeMods?.bubbleStyle === 'rounded' ? 'rounded-2xl' :
+                            safeMods?.bubbleStyle === 'ios' ? 'rounded-[20px]' :
                               'rounded-2xl'
                       } ${isOwnMessage(message)
                         ? 'bg-primary-600 text-white rounded-tr-none ml-12'
@@ -2464,7 +2464,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                     onClick={(e) => {
                       const messageKey = message.id || message._id;
                       const currentKey = messageContextMenu?.message?.id || messageContextMenu?.message?._id;
-                      
+
                       if (currentKey === messageKey || activeMessageMenu === messageKey) {
                         setMessageContextMenu(null);
                         setActiveMessageMenu(null);
@@ -2480,8 +2480,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       (message.messageType !== 'audio' && message.messageType !== 'voice')
                         ? {
                           backgroundColor: isOwnMessage(message)
-                            ? (mods?.bubbleSentColor || undefined)
-                            : (mods?.bubbleReceivedColor || undefined)
+                            ? (safeMods?.bubbleSentColor || undefined)
+                            : (safeMods?.bubbleReceivedColor || undefined)
                         }
                         : {}
                     }
@@ -2553,7 +2553,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       </div>
                     )}
                     {/* ── Forwarded Label ── */}
-                    {message.isForwarded && !mods?.noForwardLabel && (
+                    {message.isForwarded && !safeMods?.noForwardLabel && (
                       <div className="flex items-center gap-1 text-[10px] opacity-60 italic mb-1">
                         <Forward size={10} /> Forwarded
                       </div>
@@ -2676,7 +2676,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                         </div>
                       )
                     )}
-                    {message.isViewOnce && mods.antiViewOnce && (
+                    {message.isViewOnce && safeMods.antiViewOnce && (
                       <div className="flex items-center gap-1 text-[9px] text-purple-500 font-bold uppercase mb-1">
                         <EyeOff size={10} /> View Once (Anti-Delete)
                       </div>
@@ -2771,11 +2771,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                           duration={message.duration}
                           senderAvatar={senderAvatar}
                           senderName={senderName}
-                          autoPlay={mods?.voiceAutoPlay && index === messages.length - 1 && !isOwnMessage(message) && !message.isViewOnce}
-                          defaultSpeed={mods?.voiceDefaultSpeed || 1}
+                          autoPlay={safeMods?.voiceAutoPlay && index === messages.length - 1 && !isOwnMessage(message) && !message.isViewOnce}
+                          defaultSpeed={safeMods?.voiceDefaultSpeed || 1}
                           messageId={message.id || message._id}
                           isLocked={message.isLocked || false}
-                          isViewOnce={Boolean(message.isViewOnce) && !mods?.antiViewOnce}
+                          isViewOnce={Boolean(message.isViewOnce) && !safeMods?.antiViewOnce}
                           onViewOnceComplete={() => markViewOnceViewed(message.id || message._id)}
                           onToggleLock={toggleMessageLock}
                           onDownload={() => {
@@ -2816,7 +2816,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       <p className="text-[9px] text-orange-400/90 font-medium mb-1">Disappears in 10 seconds</p>
                     )}
                     {message.isViewOnce &&
-                      (!isOwnMessage(message) && !mods?.antiViewOnce || message.isConsumed) &&
+                      (!isOwnMessage(message) && !safeMods?.antiViewOnce || message.isConsumed) &&
                       message.isConsumed && (
                         <div className="flex items-center gap-2 text-dark-textSecondary py-2 italic text-sm">
                           <Eye size={16} /> Opened
@@ -2837,11 +2837,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                         !message.isSelfDestruct &&
                         message.messageType === 'text' &&
                         !isOwnMessage(message) &&
-                        !mods?.antiViewOnce &&
+                        !safeMods?.antiViewOnce &&
                         !message.isConsumed
                       ) && !message.isConsumed && (
                         <p className="break-words whitespace-pre-wrap">
-                          {mods?.debugEncryption
+                          {safeMods?.debugEncryption
                             ? (() => {
                               const txt = plaintextOf(message) || '';
                               try { return btoa(unescape(encodeURIComponent(txt))).substring(0, 40) + '... [E2E Encrypted]'; }
@@ -2855,7 +2855,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                         </p>
                       )}
                     {/* Link Preview - respect mods.linkPreview toggle */}
-                    {message.messageType === 'text' && mods?.linkPreview !== false && (() => {
+                    {message.messageType === 'text' && safeMods?.linkPreview !== false && (() => {
                       const text = plaintextOf(message) || '';
                       const url = extractFirstUrl(text);
                       return url ? <LinkPreviewCard key={url} url={url} /> : null;
@@ -3521,14 +3521,14 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
             <VoiceRecorder
               onSend={handleVoiceNoteSend}
               canSend={canSendMedia || currentUserIsAdmin}
-              ghostMode={mods?.ghostMode}
+              ghostMode={safeMods?.ghostMode}
               sendRecordingStatus={sendRecordingStatus}
               onActiveChange={setVoiceRecorderActive}
-              voiceEffectMod={mods?.voiceEffect ?? 'none'}
+              voiceEffectMod={safeMods?.voiceEffect ?? 'none'}
               onFallback={() => audioInputRef.current?.click()}
               voiceConstraints={{
-                echoCancellation: mods?.voiceEchoCancellation !== false,
-                noiseSuppression: mods?.voiceNoiseSuppression !== false,
+                echoCancellation: safeMods?.voiceEchoCancellation !== false,
+                noiseSuppression: safeMods?.voiceNoiseSuppression !== false,
                 autoGainControl: true
               }}
             />
@@ -3547,7 +3547,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         </form>
 
         {/* Live Reactions — floating emoji layer */}
-        {mods?.liveReactions && (
+        {safeMods?.liveReactions && (
           <LiveReactions
             chatId={selectedConversation?._id}
             socket={getSocket()}
@@ -4123,7 +4123,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
             onToggleDisappearing={updateDisappearingMessages}
             onToggleChatLock={(chatId) => toggleChatLock(chatId, !selectedConversation?.isLocked, '')}
             onWallpaperChange={(chatId, color) => {
-              const customWallpapers = { ...(mods.customWallpapers || {}) };
+              const customWallpapers = { ...(safeMods.customWallpapers || {}) };
               if (color === 'default') {
                 delete customWallpapers[chatId];
               } else {
