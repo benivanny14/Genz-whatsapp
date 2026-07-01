@@ -317,6 +317,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [stickerSearchQuery, setStickerSearchQuery] = useState('');
   const [voiceRecorderActive, setVoiceRecorderActive] = useState(false);
   const messagesEndRef = useRef(null);
+
+  // Note: --app-height / --app-offset-top (mobile keyboard handling) is
+  // already managed globally by initViewportHeightFix() in App.jsx, using
+  // utils/useViewportHeight.js as the single source of truth.
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
   const docInputRef = useRef(null);
@@ -497,9 +501,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     const dx = t.clientX - swipeTouchStartRef.current.x;
     const dy = Math.abs(t.clientY - swipeTouchStartRef.current.y);
     const msgId = message._id || message.id;
-    // Only horizontal swipe right, ignore vertical scroll
-    if (dy > 30) { swipeTouchStartRef.current = {}; return; }
-    if (dx > 5 && dx < 80) {
+    // Only horizontal swipe right, ignore vertical scroll (improved threshold)
+    if (dy > 20) { swipeTouchStartRef.current = {}; return; }
+    if (dx > 5 && dx < 100) {
       swipeOffsetRef.current = dx;
       setSwipeReplyAnim(prev => ({ ...prev, [msgId]: dx }));
     }
@@ -508,7 +512,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const handleMsgTouchEnd = useCallback((e, message) => {
     const offset = swipeOffsetRef.current;
     const msgId = message._id || message.id;
-    if (offset > 50) {
+    // Improved threshold for better mobile experience
+    if (offset > 60) {
       setReplyingTo(message);
       setTimeout(() => inputRef.current?.focus(), 100);
     }
@@ -1191,7 +1196,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
             console.warn('Geolocation error code:', error.code, error.message);
             handleFallback(error.message || 'GPS failed');
           },
-          { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
         );
       } catch (err) {
         console.error('Geolocation exception:', err);
@@ -2054,7 +2059,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   // Filter messages for search
 
   return (
-    <div className="flex-1 flex flex-col bg-dark-bg min-w-0 w-full overflow-hidden relative">
+    <div className="flex-1 flex flex-col bg-dark-bg min-w-0 w-full overflow-hidden relative h-full" style={{ height: 'var(--app-height)' }}>
       <div
         className="absolute inset-0 pointer-events-none z-0"
         style={wallpaperStyle}
@@ -2091,7 +2096,13 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           ) : (
             <div
               className="flex items-center gap-3 flex-1 cursor-pointer hover:bg-white/5 p-1 -ml-1 rounded-lg transition-colors"
-              onClick={() => selectedConversation.isGroup ? setShowGroupInfo(true) : setShowContactInfo(true)}
+              onClick={() => {
+                if (selectedConversation?.isGroup) {
+                  setShowGroupInfo(true);
+                } else {
+                  setShowContactInfo(true);
+                }
+              }}
             >
               {isLiveLocationActive && (
                 <span className="text-red-500 text-xs font-bold animate-pulse flex items-center gap-1 mr-2"><Radio size={14} /> LIVE</span>
@@ -2181,7 +2192,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               <button
                 onClick={() => {
                   if (isDNDMode) return;
-                  const { getSocket } = require('../services/socket');
                   const socket = getSocket?.();
                   if (socket) {
                     socket.emit('group_call:start', {
@@ -2342,10 +2352,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       <div
         ref={messagesContainerRef}
         onScroll={handleMessagesScroll}
-        className={`flex-1 overflow-y-auto p-4 scrollbar-thin transition-all relative z-10 ${mods?.fontSize === 'small' ? 'text-xs' :
+        className={`flex-1 overflow-y-auto p-4 scrollbar-thin transition-all relative z-10 min-h-0 -webkit-overflow-scrolling-touch overscroll-behavior-contain ${mods?.fontSize === 'small' ? 'text-xs' :
           mods?.fontSize === 'large' ? 'text-base' :
             mods?.fontSize === 'xlarge' ? 'text-lg' : 'text-sm'
           }`}
+        style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}
       >
         {activeDoodle && (
           <div
@@ -2377,6 +2388,13 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                 </div>
               )}
               {(filteredMessages || []).slice(-visibleCount).map((message, index) => (
+                message.messageType === 'system' ? (
+                  <div key={message.id || message._id} className="flex justify-center my-2">
+                    <span className="bg-[#182229] text-[#8696a0] text-xs px-3 py-1.5 rounded-lg shadow-sm text-center max-w-[85%]">
+                      {message.content}
+                    </span>
+                  </div>
+                ) : (
                 <div
                   id={`msg-${message.id || message._id}`}
                   key={message.id || message._id}
@@ -2942,11 +2960,31 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                                 e.stopPropagation();
                                 try {
                                   const text = plaintextOf(message);
-                                  navigator.clipboard.writeText(text || '');
-                                  alert("Text Copied!");
+                                  // Fallback for mobile devices
+                                  if (navigator.clipboard && navigator.clipboard.writeText) {
+                                    navigator.clipboard.writeText(text || '');
+                                    alert("Text Copied!");
+                                  } else {
+                                    // Fallback for older browsers and non-HTTPS contexts
+                                    const textArea = document.createElement('textarea');
+                                    textArea.value = text || '';
+                                    textArea.style.position = 'fixed';
+                                    textArea.style.left = '-999999px';
+                                    document.body.appendChild(textArea);
+                                    textArea.select();
+                                    try {
+                                      document.execCommand('copy');
+                                      alert("Text Copied!");
+                                    } catch (err) {
+                                      console.error('Copy fallback error:', err);
+                                      alert('Failed to copy text');
+                                    }
+                                    document.body.removeChild(textArea);
+                                  }
                                   setActiveMessageMenu(null);
                                 } catch (err) {
                                   console.error('Copy error:', err);
+                                  alert('Failed to copy text');
                                 }
                               }}
                               className="w-full px-4 py-2 text-left text-sm hover:bg-dark-hover flex items-center gap-3"
@@ -3088,6 +3126,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                     )}
                   </div>
                 </div>
+                )
               ))}
 
               {/* Render pending scheduled messages for this conversation */}
@@ -3186,7 +3225,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
       <div className="bg-dark-surface border-t border-dark-border p-4 relative z-10">
         {showEmojiPicker && (
-          <div className="absolute bottom-20 left-2 right-2 md:left-4 md:right-auto md:w-[350px] max-w-[calc(100vw-1rem)] z-50 overflow-hidden rounded-lg shadow-2xl border border-dark-border bg-dark-surface min-h-[350px] flex items-center justify-center">
+          <div className="absolute bottom-20 left-2 right-2 md:left-4 md:right-auto md:w-[350px] max-w-[calc(100vw-1rem)] z-50 overflow-hidden rounded-lg shadow-2xl border border-dark-border bg-dark-surface min-h-[350px] flex items-center justify-center" style={{ maxHeight: 'calc(100vh - 200px)' }}>
             <React.Suspense fallback={<div className="animate-pulse text-dark-textSecondary">Loading emojis...</div>}>
               <EmojiPicker onEmojiClick={handleEmojiClick} theme="dark" width="100%" />
             </React.Suspense>
@@ -3195,7 +3234,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
         {/* STICKER STORE SIMULATION */}
         {showStickerStore && (
-          <div className="absolute bottom-20 left-2 right-2 md:left-4 md:right-auto md:w-72 max-w-[calc(100vw-1rem)] bg-dark-surface border border-dark-border rounded-2xl shadow-2xl overflow-hidden z-50 animate-in slide-in-from-bottom duration-200">
+          <div className="absolute bottom-20 left-2 right-2 md:left-4 md:right-auto md:w-72 max-w-[calc(100vw-1rem)] bg-dark-surface border border-dark-border rounded-2xl shadow-2xl overflow-hidden z-50 animate-in slide-in-from-bottom duration-200" style={{ maxHeight: 'calc(100vh - 200px)' }}>
             <div className="p-3 bg-primary-600 text-white font-bold flex justify-between items-center text-xs">
               <span>GENZ Sticker Store</span>
               <button onClick={() => setShowStickerStore(false)}>✕</button>
@@ -3243,13 +3282,13 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           </div>
         )}
 
-        <form onSubmit={handleSendMessage} className="relative flex items-center gap-2 p-3 bg-dark-bg border-t border-dark-border" role="form" aria-label="Send message">
+        <form onSubmit={handleSendMessage} className="relative flex items-center gap-2 p-3 bg-dark-bg border-t border-dark-border flex-shrink-0 sticky bottom-0 z-50" role="form" aria-label="Send message">
           {!voiceRecorderActive && (
             <div className="flex items-center gap-1 md:gap-2 overflow-x-auto no-scrollbar max-w-[140px] md:max-w-none flex-shrink-0 snap-x">
               <button
                 type="button"
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className="p-2 hover:bg-dark-hover rounded-full transition-colors text-primary-500 snap-center shrink-0"
+                className="p-3 hover:bg-dark-hover rounded-full transition-colors text-primary-500 snap-center shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
                 title="Emoji"
                 aria-label="Toggle emoji picker"
                 aria-expanded={showEmojiPicker}
@@ -3259,14 +3298,14 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               <button
                 type="button"
                 onClick={() => setShowStickerStore(!showStickerStore)}
-                className={`p-2 rounded-lg transition-colors snap-center shrink-0 ${showStickerStore ? 'bg-primary-600 text-white' : 'hover:bg-dark-hover text-dark-text'}`}
+                className={`p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center ${showStickerStore ? 'bg-primary-600 text-white' : 'hover:bg-dark-hover text-dark-text'}`}
               >
                 <Sticker className="w-5 h-5" />
               </button>
               <button
                 type="button"
                 onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
-                className={`p-2 rounded-lg transition-colors snap-center shrink-0 ${showAttachmentMenu ? 'bg-primary-600 text-white' : 'hover:bg-dark-hover text-dark-text'}`}
+                className={`p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center ${showAttachmentMenu ? 'bg-primary-600 text-white' : 'hover:bg-dark-hover text-dark-text'}`}
                 title="Attachments"
               >
                 <Paperclip className="w-5 h-5" />
@@ -3274,7 +3313,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               <button
                 type="button"
                 onClick={() => setIsViewOnceEnabled(!isViewOnceEnabled)}
-                className={`p-2 rounded-lg transition-colors snap-center shrink-0 ${isViewOnceEnabled ? 'bg-purple-600 text-white' : 'hover:bg-dark-hover text-dark-text'}`}
+                className={`p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center ${isViewOnceEnabled ? 'bg-purple-600 text-white' : 'hover:bg-dark-hover text-dark-text'}`}
                 title="Send as View Once"
               >
                 <Eye size={20} />
@@ -3288,7 +3327,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                   handleSchedule();
                   console.log('handleSchedule called, showScheduleModal should be true');
                 }}
-                className="p-2 hover:bg-dark-hover rounded-lg transition-colors snap-center shrink-0"
+                className="p-3 hover:bg-dark-hover rounded-lg transition-colors snap-center shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
                 title="Schedule Message"
               >
                 <CalendarClock className="w-5 h-5 text-dark-text" />
@@ -3297,7 +3336,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                 disabled={adminOnlyMessagingEnabled && !currentUserIsAdmin}
                 type="button"
                 onClick={handleAIWritingHelp}
-                className={`p-2 rounded-lg transition-colors snap-center shrink-0 ${showAIWritingHelp ? 'bg-yellow-500/20 text-yellow-300' : 'hover:bg-dark-hover text-dark-text'}`}
+                className={`p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center ${showAIWritingHelp ? 'bg-yellow-500/20 text-yellow-300' : 'hover:bg-dark-hover text-dark-text'}`}
                 title="AI Writing Help"
               >
                 <Sparkles className="w-5 h-5" />
@@ -3335,7 +3374,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
             </div>
           )}
           {showAIWritingHelp && (
-            <div className="absolute bottom-16 left-2 right-2 md:left-40 md:right-16 bg-dark-surface border border-yellow-500/30 rounded-xl shadow-2xl p-3 z-50">
+            <div className="absolute bottom-16 left-2 right-2 md:left-40 md:right-16 bg-dark-surface border border-yellow-500/30 rounded-xl shadow-2xl p-3 z-50" style={{ maxHeight: 'calc(100vh - 250px)' }}>
               <div className="flex items-center justify-between gap-3 mb-2">
                 <div className="flex items-center gap-2 text-yellow-300 text-xs font-bold">
                   <Sparkles size={14} />
@@ -3383,7 +3422,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
             </div>
           )}
           {stickerSuggestions.length > 0 && !mentionState.open && !showAttachmentMenu && !showAIWritingHelp && (
-            <div className="absolute bottom-16 left-2 right-2 md:left-40 md:right-auto md:w-80 bg-dark-surface border border-dark-border rounded-xl shadow-xl p-2 z-40">
+            <div className="absolute bottom-16 left-2 right-2 md:left-40 md:right-auto md:w-80 bg-dark-surface border border-dark-border rounded-xl shadow-xl p-2 z-40" style={{ maxHeight: 'calc(100vh - 250px)' }}>
               <div className="flex items-center gap-2 overflow-x-auto">
                 <span className="text-[10px] uppercase tracking-wide text-dark-textSecondary whitespace-nowrap">Sticker suggestions</span>
                 {stickerSuggestions.map((sticker) => (
@@ -3404,7 +3443,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
             </div>
           )}
           {mentionState.open && mentionSuggestions.length > 0 && !showAttachmentMenu && !showAIWritingHelp && (
-            <div className="absolute bottom-16 left-2 right-2 md:left-40 md:right-auto md:w-80 bg-dark-surface border border-dark-border rounded-xl shadow-xl p-2 z-50">
+            <div className="absolute bottom-16 left-2 right-2 md:left-40 md:right-auto md:w-80 bg-dark-surface border border-dark-border rounded-xl shadow-xl p-2 z-50" style={{ maxHeight: 'calc(100vh - 250px)' }}>
               <div className="flex items-center gap-2 px-2 pb-2 text-[10px] uppercase tracking-wide text-dark-textSecondary">
                 <AtSign size={12} />
                 Mention
@@ -3449,6 +3488,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
             <input
               ref={inputRef}
               type="text"
+              inputMode="text"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck="false"
               disabled={adminOnlyMessagingEnabled && !currentUserIsAdmin}
               value={messageInput}
               onChange={(e) => handleTyping(e.target.value, e.target.selectionStart)}
@@ -3456,6 +3499,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               onBlur={() => window.setTimeout(closeMentionPicker, 120)}
               placeholder="Type a message..."
               className="flex-1 min-w-[100px] px-4 py-2.5 bg-dark-bg border border-dark-border rounded-2xl text-dark-text placeholder-dark-textSecondary focus:outline-none focus:border-primary-500 transition-colors text-base md:text-sm"
+              style={{ fontSize: '16px' }}
             />
           )}
 
@@ -3482,7 +3526,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
             <button
               type="submit"
               disabled={adminOnlyMessagingEnabled && !currentUserIsAdmin}
-              className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-primary-600 hover:bg-primary-500 rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-90 shadow-md shadow-primary-600/30"
+              className="w-11 h-11 flex-shrink-0 flex items-center justify-center bg-primary-600 hover:bg-primary-500 rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-90 shadow-md shadow-primary-600/30 min-w-[44px] min-h-[44px]"
             >
               <Send className="w-5 h-5 text-white" />
             </button>
@@ -4041,17 +4085,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           </div>
         </div>
       )}
-
-      {/* ── Group Info Panel ── */}
-      <AnimatePresence>
-        {showGroupInfo && selectedConversation?.isGroup && (
-          <GroupInfo
-            group={selectedConversation}
-            onClose={() => setShowGroupInfo(false)}
-            currentUserId={user?.id || user?._id}
-          />
-        )}
-      </AnimatePresence>
 
       {/* ── Contact Info Panel ── */}
       <AnimatePresence>

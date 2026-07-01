@@ -739,26 +739,24 @@ export const ChatProvider = ({ children }) => {
         const offlineConvs = await DB.getConversations();
         if (offlineConvs && offlineConvs.length > 0) {
           setConversations(offlineConvs);
+          // FIX: Usifungue chat yoyote kiotomatiki hapa. Awali mfumo ulikuwa
+          // unachukua "storedId" (chat ya mwisho kufunguliwa) na kuiweka kama
+          // selectedConversation mara moja app inapoanza - hii ndiyo iliyokuwa
+          // ikisababisha mfumo "kujifungua wenyewe" ndani ya chat bila mtumiaji
+          // kubonyeza chochote (hasa kwenye simu, ambapo skrini moja hubadilika
+          // kuonyesha ChatArea badala ya orodha ya chat mara selectedConversation
+          // inapokuwa si null). Sasa tunaruhusu tu socket ijiunge na room ya chat
+          // iliyokuwa imefunguliwa mwisho (kwa ajili ya notifications/real-time
+          // sync) bila kulazimisha UI kuingia ndani ya chat hiyo moja kwa moja.
           const storedId = getStoredSelectedConversationId();
           if (storedId) {
             const matched = offlineConvs.find(c => c._id === storedId);
             if (matched) {
-              setSelectedConversation(matched);
-              // Pia hifadhi ili socket ijoin room hiyo
               setTimeout(() => {
                 if (socketRef.current?.connected) {
                   socketRef.current.emit('join:conversation', storedId);
                 }
               }, 1000);
-            } else {
-              // Kama haikupatikana, chagua ya mwisho kuupdatiwa
-              const sorted = [...offlineConvs].sort(
-                (a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
-              );
-              if (sorted[0]) {
-                setSelectedConversation(sorted[0]);
-                setStoredSelectedConversationId(sorted[0]._id);
-              }
             }
           }
         } else if (ENABLE_DEMO_DATA) {
@@ -1104,7 +1102,7 @@ export const ChatProvider = ({ children }) => {
         ));
       });
 
-      socket.on('notification:mention', async ({ conversationId, message }) => {
+      socket.on('notification:mention', async ({ conversationId, message } = {}) => {
         const senderName = message?.sender?.username || 'Someone';
         let preview = typeof message?.content === 'string'
           ? message.content
@@ -1137,7 +1135,7 @@ export const ChatProvider = ({ children }) => {
       });
 
       // ── Anti-Delete (Phase 3): intercept deletion, keep visible ──
-      socket.on('message:deleted', ({ messageId, forEveryone, reason }) => {
+      socket.on('message:deleted', ({ messageId, forEveryone, reason } = {}) => {
         if (forEveryone && modsRef.current.antiDelete) {
           setMessages(prev => prev.map(m =>
             m._id === messageId ? { ...m, deletedForEveryone: true, _antiDeletePreserved: true } : m
@@ -1160,11 +1158,11 @@ export const ChatProvider = ({ children }) => {
       });
 
       // ── Conversation pinned/unpinned ──
-      socket.on('conversation:pinned', ({ chatId, messageId }) => {
+      socket.on('conversation:pinned', ({ chatId, messageId } = {}) => {
         setConversations(prev => prev.map(c => c._id === chatId ? { ...c, pinnedMessages: [...(c.pinnedMessages || []), messageId] } : c));
         setSelectedConversation(prev => (prev && prev._id === chatId) ? { ...prev, pinnedMessages: [...(prev.pinnedMessages || []), messageId] } : prev);
       });
-      socket.on('conversation:unpinned', ({ chatId }) => {
+      socket.on('conversation:unpinned', ({ chatId } = {}) => {
         setConversations(prev => prev.map(c => c._id === chatId ? { ...c, pinnedMessages: [] } : c));
         setSelectedConversation(prev => (prev && prev._id === chatId) ? { ...prev, pinnedMessages: [] } : prev);
       });
@@ -1208,35 +1206,35 @@ export const ChatProvider = ({ children }) => {
       });
 
       // ── Chat pinned/unpinned (conversation-level) ──
-      socket.on('chat:pinned', ({ chatId, isPinned }) => {
+      socket.on('chat:pinned', ({ chatId, isPinned } = {}) => {
         setConversations(prev => prev.map(c => c._id === chatId ? { ...c, isPinned } : c));
         setSelectedConversation(prev => (prev && prev._id === chatId) ? { ...prev, isPinned } : prev);
       });
 
-      socket.on('chat_pinned_signal', ({ chatId, isPinned }) => {
+      socket.on('chat_pinned_signal', ({ chatId, isPinned } = {}) => {
         setConversations(prev => prev.map(c => c._id === chatId ? { ...c, isPinned } : c));
         setSelectedConversation(prev => (prev && prev._id === chatId) ? { ...prev, isPinned } : prev);
       });
 
       // ── Chat archived/unarchived ──
-      socket.on('chat:archived', ({ chatId, isArchived }) => {
+      socket.on('chat:archived', ({ chatId, isArchived } = {}) => {
         setConversations(prev => prev.map(c => c._id === chatId ? { ...c, isArchived } : c));
         setSelectedConversation(prev => (prev && prev._id === chatId) ? { ...prev, isArchived } : prev);
       });
 
-      socket.on('chat_archived_signal', ({ chatId, isArchived }) => {
+      socket.on('chat_archived_signal', ({ chatId, isArchived } = {}) => {
         setConversations(prev => prev.map(c => c._id === chatId ? { ...c, isArchived } : c));
         setSelectedConversation(prev => (prev && prev._id === chatId) ? { ...prev, isArchived } : prev);
       });
 
       // ── Message forwarded ──
-      socket.on('message:forwarded', ({ messageId, targetConversationIds }) => {
+      socket.on('message:forwarded', ({ messageId, targetConversationIds } = {}) => {
         // Update message forward count
         setMessages(prev => prev.map(m => m._id === messageId ? { ...m, forwardCount: (m.forwardCount || 0) + 1 } : m));
       });
 
       // ── Group updated ──
-      socket.on('group:updated', ({ groupId, updates }) => {
+      socket.on('group:updated', ({ groupId, updates } = {}) => {
         setConversations(prev => prev.map(conv =>
           conv._id === groupId ? { ...conv, groupName: updates.groupName || conv.groupName, groupPhoto: updates.groupPhoto || conv.groupPhoto } : conv
         ));
@@ -1460,7 +1458,7 @@ export const ChatProvider = ({ children }) => {
       });
 
       // ── Admin removed ──
-      socket.on('admin:removed', ({ groupId, userId }) => {
+      socket.on('admin:removed', ({ groupId, userId } = {}) => {
         // Refresh group info
         if (selectedConversation?._id === groupId) {
           setSelectedConversation(prev => prev ? { ...prev, admins: prev.admins?.filter(a => a !== userId) } : prev);
@@ -1468,7 +1466,7 @@ export const ChatProvider = ({ children }) => {
       });
 
       // ── View-once message viewed ──
-      socket.on('message:consumed', ({ messageId, conversationId, isViewOnce, isSelfDestruct, consumedBy }) => {
+      socket.on('message:consumed', ({ messageId, conversationId, isViewOnce, isSelfDestruct, consumedBy } = {}) => {
         const removeEntirely = Boolean(isSelfDestruct);
         setMessages(prev => {
           if (removeEntirely) {
@@ -1495,7 +1493,7 @@ export const ChatProvider = ({ children }) => {
       });
 
       // ── Message viewed notification for sender ──
-      socket.on('message:viewed', ({ messageId, conversationId, viewedBy, viewedAt, isViewOnce, isSelfDestruct }) => {
+      socket.on('message:viewed', ({ messageId, conversationId, viewedBy, viewedAt, isViewOnce, isSelfDestruct } = {}) => {
         // Notification is mostly redundant if UI updates instantly, but we can keep a toast for self destruct.
         if (isSelfDestruct) {
           setOnlineNotification('💥 Your self-destruct message was read and destroyed');
@@ -1512,7 +1510,7 @@ export const ChatProvider = ({ children }) => {
       });
 
       // Read receipts — update state AND IndexedDB ──
-      socket.on('message:read_receipt', async ({ messageId }) => {
+      socket.on('message:read_receipt', async ({ messageId } = {}) => {
         setMessages(prev => prev.map(m => m._id === messageId ? { ...m, status: 'read' } : m));
         setConversations(prev => prev.map(c => 
           (c.lastMessage && c.lastMessage._id === messageId) ? { ...c, lastMessage: { ...c.lastMessage, status: 'read' } } : c
@@ -1521,7 +1519,7 @@ export const ChatProvider = ({ children }) => {
       });
 
       // Bulk Read receipt ──
-      socket.on('messages:read', async ({ chatId, userId }) => {
+      socket.on('messages:read', async ({ chatId, userId } = {}) => {
         if (userId !== currentUserId) {
           setMessages(prev => prev.map(m => 
             (String(m.conversationId) === String(chatId) && (String(m.sender?._id || m.sender) === String(currentUserId))) 
@@ -1537,7 +1535,7 @@ export const ChatProvider = ({ children }) => {
       });
 
       // ── Delivered receipt ──
-      socket.on('message:delivered', async ({ messageId, serverMessageId }) => {
+      socket.on('message:delivered', async ({ messageId, serverMessageId } = {}) => {
         const clientId = messageId;
         const serverId = serverMessageId || messageId;
         setMessages(prev => prev.map(m =>
@@ -1553,7 +1551,7 @@ export const ChatProvider = ({ children }) => {
         try { await DB.saveMessage({ _id: serverId, status: 'delivered' }); } catch (e) { }
       });
 
-      socket.on('message:error', ({ error, messageId }) => {
+      socket.on('message:error', ({ error, messageId } = {}) => {
         console.error('[Socket] message:error', error);
         if (!messageId) return;
         setMessages(prev => prev.map(m =>
@@ -1562,7 +1560,7 @@ export const ChatProvider = ({ children }) => {
       });
 
       // ── Typing indicators ──
-      socket.on('user:typing', ({ userId, isTyping, conversationId, username }) => {
+      socket.on('user:typing', ({ userId, isTyping, conversationId, username } = {}) => {
         if (userId !== currentUserId) {
           setIsOtherUserTyping(isTyping);
           if (conversationId) {
@@ -1586,7 +1584,7 @@ export const ChatProvider = ({ children }) => {
         }
       });
 
-      socket.on('user:recording', ({ userId, conversationId }) => {
+      socket.on('user:recording', ({ userId, conversationId } = {}) => {
         if (userId !== currentUserId) {
           setIsOtherUserRecording(true);
           if (conversationId) {
@@ -1612,7 +1610,7 @@ export const ChatProvider = ({ children }) => {
         notifyIncomingCall(data.callerName, data.callType);
       });
 
-      socket.on('call:incoming', ({ callerId, callType, conversationId, offer, callerName: socketCallerName, callerPicture: socketCallerPicture, callerSocketId }) => {
+      socket.on('call:incoming', ({ callerId, callType, conversationId, offer, callerName: socketCallerName, callerPicture: socketCallerPicture, callerSocketId } = {}) => {
         // Use server-provided name first, fallback to conversations list
         let callerName = socketCallerName || 'Unknown';
         let callerPicture = socketCallerPicture || '';
@@ -1641,7 +1639,7 @@ export const ChatProvider = ({ children }) => {
       });
 
       // ── Presence ──
-      socket.on('user:online', ({ userId, username }) => {
+      socket.on('user:online', ({ userId, username } = {}) => {
         setOnlineUsers(prev => [...new Set([...prev, String(userId)])]);
         if (username) {
           setOnlineNotification(`${username} is now online`);
@@ -1649,7 +1647,7 @@ export const ChatProvider = ({ children }) => {
         }
       });
 
-      socket.on('user:offline', ({ userId }) => {
+      socket.on('user:offline', ({ userId } = {}) => {
         if (!userId) return;
         setOnlineUsers(prev => prev.filter((id) => String(id) !== String(userId)));
       });
@@ -1760,7 +1758,7 @@ export const ChatProvider = ({ children }) => {
       });
 
       // ── Status ──
-      socket.on('status:deleted', ({ statusId }) => {
+      socket.on('status:deleted', ({ statusId } = {}) => {
         if (!statusId) return;
         setStatuses((prev) => prev.filter((s) =>
           String(s._id) !== String(statusId) && String(s.id) !== String(statusId)

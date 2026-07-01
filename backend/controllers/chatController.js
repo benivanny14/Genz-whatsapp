@@ -55,6 +55,48 @@ const invalidateCachePattern = async (req, pattern) => {
   } catch (e) {}
 };
 
+// Persist a group "system" notice (e.g. "Juma was added", "Asha left the
+// group", "Group name changed") as a real Message document — exactly like
+// WhatsApp does — so it survives refresh and shows up in chat history,
+// instead of only firing an ephemeral socket event that disappears if
+// nobody currently has the chat open.
+const createSystemMessage = async (req, conversation, actorId, text) => {
+  try {
+    const message = await Message.create({
+      conversationId: conversation._id,
+      sender: actorId,
+      content: text,
+      messageType: "system",
+      status: "sent",
+    });
+
+    conversation.lastMessage = message._id;
+    conversation.updatedAt = new Date();
+    await conversation.save();
+
+    const io = req.app.get("io");
+    if (io) {
+      const populated = await Message.findById(message._id).populate(
+        "sender",
+        "username profilePicture",
+      );
+      const serialized = serializeOutgoingMessage(populated);
+      io.to(String(conversation._id)).emit("message:received", serialized);
+      // Kept for any UI still listening to the legacy live-only event.
+      io.to(String(conversation._id)).emit("group:system_message", {
+        groupId: String(conversation._id),
+        text,
+        createdAt: message.createdAt,
+      });
+    }
+
+    return message;
+  } catch (error) {
+    console.error("[Group] Failed to create system message:", error);
+    return null;
+  }
+};
+
 const notifyMentionedUsers = async ({ mentionedUserIds = [], message, senderName, text, mentionerId }) => {
   if (!mentionedUserIds.length || !message?._id) return;
   await Promise.allSettled(
@@ -321,8 +363,14 @@ exports.createGroup = async (req, res) => {
       groupDescription: description || "",
       admins: [localUserId],
       createdBy: localUserId,
+      owner: localUserId,
       groupInviteCode: crypto.randomBytes(16).toString("hex"),
     });
+
+    try {
+      const creator = await User.findById(localUserId).select("username");
+      await createSystemMessage(req, group, localUserId, `${creator?.username || "Someone"} created the group "${group.groupName}"`);
+    } catch (sysErr) { console.error('[Group] system message error:', sysErr); }
 
     const populatedGroup = await populateConversation(
       Conversation.findById(group._id),
@@ -343,7 +391,7 @@ exports.addParticipant = async (req, res) => {
     if (!conversation.isGroup) {
       return res.status(400).json({ success: false, message: "Not a group conversation" });
     }
-    if (!includesId(conversation.admins, localUserId)) {
+    if (!includesId(conversation.admins, localUserId) && !conversation.canAddMembers) {
       return res.status(403).json({ success: false, message: "Only admins can add participants" });
     }
     if (includesId(conversation.participants, userId)) {
@@ -385,12 +433,8 @@ exports.addParticipant = async (req, res) => {
         groupId: String(conversation._id),
         addedBy: localUserId,
       });
-      io.to(String(conversation._id)).emit("group:system_message", {
-        groupId: String(conversation._id),
-        text: `${targetUser.username} was added`,
-        createdAt: new Date().toISOString(),
-      });
     }
+    await createSystemMessage(req, conversation, localUserId, `${targetUser.username} was added`);
 
     res.status(200).json({ success: true, conversation: updatedConversation });
   } catch (error) {
@@ -436,12 +480,8 @@ exports.removeParticipant = async (req, res) => {
         groupId: String(conversation._id),
         removedBy: localUserId,
       });
-      io.to(String(conversation._id)).emit("group:system_message", {
-        groupId: String(conversation._id),
-        text: `${removedUser?.username || "A member"} was removed`,
-        createdAt: new Date().toISOString(),
-      });
     }
+    await createSystemMessage(req, conversation, localUserId, `${removedUser?.username || "A member"} was removed`);
 
     res.status(200).json({ success: true, conversation: updatedConversation });
   } catch (error) {
@@ -484,12 +524,8 @@ exports.makeAdmin = async (req, res) => {
         groupId: String(conversation._id),
         promotedBy: localUserId,
       });
-      io.to(String(conversation._id)).emit("group:system_message", {
-        groupId: String(conversation._id),
-        text: `${promotedUser?.username || "A member"} is now an admin`,
-        createdAt: new Date().toISOString(),
-      });
     }
+    await createSystemMessage(req, conversation, localUserId, `${promotedUser?.username || "A member"} is now an admin`);
 
     res.status(200).json({ success: true, conversation: updatedConversation });
   } catch (error) {
@@ -531,11 +567,6 @@ exports.leaveGroup = async (req, res) => {
         userId: String(localUserId),
         username: leavingUser?.username,
       });
-      io.to(String(conversation._id)).emit("group:system_message", {
-        groupId: String(conversation._id),
-        text: `${leavingUser?.username || "A member"} left the group`,
-        createdAt: new Date().toISOString(),
-      });
       // Notify if a new admin was auto-assigned
       if (wasAdmin && conversation.admins.length > 0) {
         io.to(String(conversation._id)).emit("group:admin_added", {
@@ -546,6 +577,13 @@ exports.leaveGroup = async (req, res) => {
         });
       }
     }
+    try {
+      await createSystemMessage(req, conversation, localUserId, `${leavingUser?.username || "A member"} left the group`);
+      if (wasAdmin && conversation.admins.length > 0) {
+        const autoPromotedUser = await User.findById(conversation.admins[0]).select("username");
+        await createSystemMessage(req, conversation, conversation.admins[0], `${autoPromotedUser?.username || "A member"} is now an admin`);
+      }
+    } catch (sysErr) { console.error('[Group] system message error:', sysErr); }
 
     res.status(200).json({ success: true, message: "Left group successfully" });
   } catch (error) {
@@ -1766,6 +1804,7 @@ exports.updateGroupInfo = async (req, res) => {
       canSendMedia,
       canCreatePolls,
       canChangeGroupInfo,
+      canAddMembers,
     } = req.body;
 
     const conversation = await Conversation.findById(groupId);
@@ -1780,13 +1819,14 @@ exports.updateGroupInfo = async (req, res) => {
     const isAdmin = includesId(conversation.admins, userId);
 
     // Permission toggles (adminOnlyMessaging, canSendMedia, canCreatePolls,
-    // canChangeGroupInfo) can only ever be changed by an admin — these are
-    // the group-wide rules, not the content itself.
+    // canChangeGroupInfo, canAddMembers) can only ever be changed by an
+    // admin — these are the group-wide rules, not the content itself.
     const wantsPermissionChange =
       adminOnlyMessaging !== undefined ||
       canSendMedia !== undefined ||
       canCreatePolls !== undefined ||
-      canChangeGroupInfo !== undefined;
+      canChangeGroupInfo !== undefined ||
+      canAddMembers !== undefined;
 
     if (wantsPermissionChange && !isAdmin) {
       return res.status(403).json({
@@ -1810,6 +1850,10 @@ exports.updateGroupInfo = async (req, res) => {
       });
     }
 
+    const oldGroupName = conversation.groupName;
+    const oldGroupPhoto = conversation.groupPhoto;
+    const oldGroupDescription = conversation.groupDescription;
+
     if (groupName) conversation.groupName = groupName.trim();
     if (groupDescription !== undefined)
       conversation.groupDescription = groupDescription;
@@ -1822,9 +1866,25 @@ exports.updateGroupInfo = async (req, res) => {
       conversation.canCreatePolls = Boolean(canCreatePolls);
     if (canChangeGroupInfo !== undefined)
       conversation.canChangeGroupInfo = Boolean(canChangeGroupInfo);
+    if (canAddMembers !== undefined)
+      conversation.canAddMembers = Boolean(canAddMembers);
 
     conversation.updatedAt = new Date();
     await conversation.save();
+
+    try {
+      const actor = await User.findById(userId).select("username");
+      const actorName = actor?.username || "Someone";
+      if (groupName && conversation.groupName !== oldGroupName) {
+        await createSystemMessage(req, conversation, userId, `${actorName} changed the group name to "${conversation.groupName}"`);
+      }
+      if (groupPhoto && conversation.groupPhoto !== oldGroupPhoto) {
+        await createSystemMessage(req, conversation, userId, `${actorName} changed the group icon`);
+      }
+      if (groupDescription !== undefined && conversation.groupDescription !== oldGroupDescription) {
+        await createSystemMessage(req, conversation, userId, `${actorName} changed the group description`);
+      }
+    } catch (sysErr) { console.error('[Group] system message error:', sysErr); }
 
     const updated = await populateConversation(Conversation.findById(groupId));
     const transformed = transformConversationForUser(updated, userId);
@@ -1844,6 +1904,7 @@ exports.updateGroupInfo = async (req, res) => {
         canSendMedia: conversation.canSendMedia,
         canCreatePolls: conversation.canCreatePolls,
         canChangeGroupInfo: conversation.canChangeGroupInfo,
+        canAddMembers: conversation.canAddMembers,
         updatedBy: userId,
       };
       io.to(String(groupId)).emit("group:settings:updated", payload);
@@ -2021,6 +2082,10 @@ exports.removeAdmin = async (req, res) => {
         removedBy: userId,
       });
     }
+    try {
+      const demotedUser = await User.findById(memberId).select("username");
+      await createSystemMessage(req, conversation, userId, `${demotedUser?.username || "A member"} is no longer an admin`);
+    } catch (sysErr) { console.error('[Group] system message error:', sysErr); }
 
     res.json({ success: true, conversation: updated });
   } catch (error) {
@@ -2077,6 +2142,7 @@ exports.getGroupInfo = async (req, res) => {
       canSendMedia: conversation.canSendMedia,
       canCreatePolls: conversation.canCreatePolls,
       canChangeGroupInfo: conversation.canChangeGroupInfo,
+      canAddMembers: conversation.canAddMembers,
       adminOnlyMessaging: conversation.adminOnlyMessaging,
       disappearingMessages: conversation.disappearingMessages,
       isAdmin,
@@ -2263,12 +2329,8 @@ exports.joinGroup = async (req, res) => {
         user: { _id: userId, username: joiningUser?.username, profilePicture: joiningUser?.profilePicture },
         viaLink: true,
       });
-      io.to(String(groupId)).emit("group:system_message", {
-        groupId: String(groupId),
-        text: `${joiningUser?.username || "A user"} joined via invite link`,
-        createdAt: new Date().toISOString(),
-      });
     }
+    await createSystemMessage(req, conversation, userId, `${joiningUser?.username || "A user"} joined via invite link`);
 
     res.status(200).json({ success: true, message: 'Joined group successfully', conversation: populated });
   } catch (error) {
@@ -2315,6 +2377,10 @@ exports.banMember = async (req, res) => {
       io.to(String(groupId)).emit('group:member_banned', { groupId, userId: targetUserId, bannedBy: requesterId, reason });
       io.to(String(targetUserId)).emit('group:you_were_banned', { groupId, reason });
     }
+    try {
+      const bannedUser = await User.findById(targetUserId).select('username');
+      await createSystemMessage(req, conversation, requesterId, `${bannedUser?.username || 'A member'} was removed and banned`);
+    } catch (sysErr) { console.error('[Group] system message error:', sysErr); }
 
     res.json({ success: true, message: 'Member banned successfully' });
   } catch (err) {
@@ -2397,6 +2463,10 @@ exports.transferOwnership = async (req, res) => {
         previousOwnerId: requesterId,
       });
     }
+    try {
+      const newOwnerUser = await User.findById(newOwnerId).select('username');
+      await createSystemMessage(req, conversation, requesterId, `${newOwnerUser?.username || 'A member'} is now the group owner`);
+    } catch (sysErr) { console.error('[Group] system message error:', sysErr); }
 
     res.json({ success: true, message: 'Ownership transferred successfully' });
   } catch (err) {
@@ -2452,6 +2522,10 @@ exports.approveJoinRequest = async (req, res) => {
       io.to(String(groupId)).emit('group:participant_added', { groupId, userId: targetUserId, approvedBy: requesterId });
       io.to(String(targetUserId)).emit('group:join_approved', { groupId, groupName: conversation.groupName });
     }
+    try {
+      const approvedUser = await User.findById(targetUserId).select('username');
+      await createSystemMessage(req, conversation, requesterId, `${approvedUser?.username || 'A member'} was added`);
+    } catch (sysErr) { console.error('[Group] system message error:', sysErr); }
 
     res.json({ success: true, message: 'Join request approved' });
   } catch (err) {

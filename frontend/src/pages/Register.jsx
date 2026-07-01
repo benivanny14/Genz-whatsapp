@@ -277,29 +277,6 @@ const Register = () => {
           {loading ? 'Inatengeneza...' : 'Register directly'}
         </button>
 
-        <div className="relative flex items-center justify-center mb-3 mt-3">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-white/10"></div>
-          </div>
-          <span className="relative bg-[#111b21] px-3 text-xs text-slate-400 uppercase">Au</span>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            import('react-hot-toast').then(({ default: toast }) => {
-              toast('Sign up with Email is Coming Soon!', {
-                icon: '🚀',
-                style: { background: '#333', color: '#fff' }
-              });
-            });
-          }}
-          className="w-full flex items-center justify-center gap-2 rounded-md bg-transparent border border-white/20 hover:bg-white/5 py-3 font-semibold text-white transition-colors"
-        >
-          <Mail size={18} />
-          Sign up with Email
-        </button>
-
         <p className="mt-5 text-center text-sm text-slate-300">
           Already have an account?{' '}
           <Link to="/login" className="text-[#00a884] hover:text-white transition-colors">

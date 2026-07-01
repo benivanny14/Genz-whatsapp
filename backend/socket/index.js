@@ -788,14 +788,16 @@ const setupSocket = (io) => {
     });
 
     socket.on('call:start', (data) => {
-      const { conversationId, callType, calleeId, targetUserId } = data;
-      if (socket.userId) {
-        activeCalls.startCall(socket.userId, {
-          conversationId,
-          callType,
-          calleeId: calleeId || targetUserId
-        });
-      }
+      try {
+        const { conversationId, callType, calleeId, targetUserId } = data || {};
+        if (socket.userId) {
+          activeCalls.startCall(socket.userId, {
+            conversationId,
+            callType,
+            calleeId: calleeId || targetUserId
+          });
+        }
+      } catch (err) { console.error('call:start error:', err); }
     });
 
     socket.on('call_user', (data = {}) => {
@@ -2461,19 +2463,22 @@ try {
     });
 
     // WebRTC signaling for group calls
-    socket.on('group_call:offer', ({ to, offer, conversationId }) => {
+    socket.on('group_call:offer', ({ to, offer, conversationId } = {}) => {
+      if (!to) return;
       io.to(to).emit('group_call:offer', { from: socket.id, offer, conversationId });
     });
-    socket.on('group_call:answer', ({ to, answer }) => {
+    socket.on('group_call:answer', ({ to, answer } = {}) => {
+      if (!to) return;
       io.to(to).emit('group_call:answer', { from: socket.id, answer });
     });
-    socket.on('group_call:ice', ({ to, candidate }) => {
+    socket.on('group_call:ice', ({ to, candidate } = {}) => {
+      if (!to) return;
       io.to(to).emit('group_call:ice', { from: socket.id, candidate });
     });
 
     // ─── Group management socket events ────────────────────────────────────
     // When admin bans a member, forward to the group room
-    socket.on('group:ban_member', async ({ groupId, userId, reason }) => {
+    socket.on('group:ban_member', async ({ groupId, userId, reason } = {}) => {
       try {
         if (!groupId || !userId) return;
         const conversation = await Conversation.findById(groupId);
@@ -2486,28 +2491,36 @@ try {
     });
 
     // Transfer ownership notification
-    socket.on('group:transfer_ownership', ({ groupId, newOwnerId }) => {
-      if (!groupId || !newOwnerId) return;
-      io.to(String(groupId)).emit('group:ownership_transferred', {
-        groupId, newOwnerId, previousOwnerId: socket.userId
-      });
+    socket.on('group:transfer_ownership', ({ groupId, newOwnerId } = {}) => {
+      try {
+        if (!groupId || !newOwnerId) return;
+        io.to(String(groupId)).emit('group:ownership_transferred', {
+          groupId, newOwnerId, previousOwnerId: socket.userId
+        });
+      } catch (err) { console.error('group:transfer_ownership error:', err); }
     });
 
     // Approve/Reject join request notification
-    socket.on('group:approve_request', ({ groupId, userId }) => {
-      if (!groupId || !userId) return;
-      io.to(String(userId)).emit('group:join_approved', { groupId });
+    socket.on('group:approve_request', ({ groupId, userId } = {}) => {
+      try {
+        if (!groupId || !userId) return;
+        io.to(String(userId)).emit('group:join_approved', { groupId });
+      } catch (err) { console.error('group:approve_request error:', err); }
     });
 
-    socket.on('group:reject_request', ({ groupId, userId, groupName }) => {
-      if (!groupId || !userId) return;
-      io.to(String(userId)).emit('group:join_rejected', { groupId, groupName });
+    socket.on('group:reject_request', ({ groupId, userId, groupName } = {}) => {
+      try {
+        if (!groupId || !userId) return;
+        io.to(String(userId)).emit('group:join_rejected', { groupId, groupName });
+      } catch (err) { console.error('group:reject_request error:', err); }
     });
 
     // New group event created notification
-    socket.on('group:event_created', ({ groupId, event }) => {
-      if (!groupId) return;
-      io.to(String(groupId)).emit('group:event_created', { groupId, event, createdBy: socket.userId });
+    socket.on('group:event_created', ({ groupId, event } = {}) => {
+      try {
+        if (!groupId) return;
+        io.to(String(groupId)).emit('group:event_created', { groupId, event, createdBy: socket.userId });
+      } catch (err) { console.error('group:event_created error:', err); }
     });
 
     socket.on('disconnect', async () => {
@@ -2536,20 +2549,24 @@ try {
     });
 
     socket.on('disconnecting', (reason) => {
-      console.log('User disconnecting:', socket.id, 'reason:', reason);
-      // Leave all rooms before disconnect
-      const rooms = socket.rooms;
-      for (const room of rooms) {
-        if (room !== socket.id) {
-          socket.leave(room);
+      try {
+        console.log('User disconnecting:', socket.id, 'reason:', reason);
+        // Leave all rooms before disconnect
+        const rooms = socket.rooms;
+        for (const room of rooms) {
+          if (room !== socket.id) {
+            socket.leave(room);
+          }
         }
-      }
+      } catch (err) { console.error('disconnecting handler error:', err); }
     });
 
     // Handle connection errors gracefully
     socket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
-      socket.emit('error', { message: 'Connection error occurred' });
+      try {
+        console.error('Socket connection error:', error);
+        socket.emit('error', { message: 'Connection error occurred' });
+      } catch (err) { console.error('connect_error handler error:', err); }
     });
   });
 };

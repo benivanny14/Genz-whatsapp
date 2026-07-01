@@ -92,6 +92,13 @@ const conversationSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  // "Add members" permission — mirrors real WhatsApp's group setting that
+  // lets admins choose whether ALL participants or only admins can add
+  // new members. Defaults to admin-only (matches previous hardcoded behavior).
+  canAddMembers: {
+    type: Boolean,
+    default: false
+  },
   customRoles: [{
     name: String,
     permissions: {
@@ -170,49 +177,6 @@ const conversationSchema = new mongoose.Schema({
     type: Map,
     of: [Date],
     default: {},
-  },
-  // Group permissions (WhatsApp-style)
-  permissions: {
-    sendMessages: {
-      type: String,
-      enum: ['everyone', 'admins', 'all'],
-      default: 'everyone'
-    },
-    editGroupInfo: {
-      type: String,
-      enum: ['everyone', 'admins', 'all'],
-      default: 'all'
-    },
-    addParticipants: {
-      type: String,
-      enum: ['everyone', 'admins', 'all'],
-      default: 'all'
-    }
-  },
-  // Mention settings
-  allowEveryoneMention: {
-    type: Boolean,
-    default: true
-  },
-  mentionPermission: {
-    type: String,
-    enum: ['everyone', 'admins'],
-    default: 'everyone'
-  },
-  // Media auto-download settings
-  autoDownload: {
-    photos: {
-      type: Boolean,
-      default: true
-    },
-    videos: {
-      type: Boolean,
-      default: true
-    },
-    documents: {
-      type: Boolean,
-      default: false
-    }
   },
   createdAt: {
     type: Date,

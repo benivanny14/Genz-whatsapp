@@ -7,7 +7,7 @@ import {
   UserMinus, MessageSquare, ChevronRight, Loader2, QrCode, Ban,
   Crown, UserCheck, UserX, Zap, Calendar, ChevronDown, AlertTriangle,
   Copy, RefreshCw, Settings, Eye, EyeOff, Volume2, VolumeX, Star,
-  Info, Grid, Share2, Plus, AtSign, Video, FileText
+  Info, Grid, Share2, Plus
 } from 'lucide-react';
 import { formatConversationTime } from '../utils/formatDate';
 import ContactPickerModal from './ContactPickerModal';
@@ -328,6 +328,14 @@ const GroupInfo = ({ group, onClose, currentUserId }) => {
     const next = !info?.adminOnlyMessaging;
     await updateGroupPermission(group._id, 'adminOnlyMessaging', next);
     setInfo(prev => ({ ...prev, adminOnlyMessaging: next }));
+  };
+
+  // Generic toggle for the other group permission switches — mirrors
+  // handleAdminOnlyToggle above but works for any boolean permission field.
+  const handlePermissionToggle = async (field) => {
+    const next = !info?.[field];
+    await updateGroupPermission(group._id, field, next);
+    setInfo(prev => ({ ...prev, [field]: next }));
   };
 
   const handleLoadEvents = async () => {
@@ -753,6 +761,46 @@ const GroupInfo = ({ group, onClose, currentUserId }) => {
                   </div>
                   <div className="flex items-center justify-between px-5 py-3.5">
                     <div className="flex items-center gap-3">
+                      <UserPlus size={20} className="text-[#00a884]" />
+                      <div>
+                        <p className="text-white text-sm">Add members</p>
+                        <p className="text-[#8696a0] text-xs">Let all participants add new members, not just admins</p>
+                      </div>
+                    </div>
+                    <Toggle checked={!!info?.canAddMembers} onChange={() => handlePermissionToggle('canAddMembers')} />
+                  </div>
+                  <div className="flex items-center justify-between px-5 py-3.5">
+                    <div className="flex items-center gap-3">
+                      <ImageIcon size={20} className="text-[#00a884]" />
+                      <div>
+                        <p className="text-white text-sm">Send media</p>
+                        <p className="text-[#8696a0] text-xs">Allow all participants to send photos, videos & files</p>
+                      </div>
+                    </div>
+                    <Toggle checked={info?.canSendMedia !== false} onChange={() => handlePermissionToggle('canSendMedia')} />
+                  </div>
+                  <div className="flex items-center justify-between px-5 py-3.5">
+                    <div className="flex items-center gap-3">
+                      <Grid size={20} className="text-[#00a884]" />
+                      <div>
+                        <p className="text-white text-sm">Create polls</p>
+                        <p className="text-[#8696a0] text-xs">Allow all participants to create polls</p>
+                      </div>
+                    </div>
+                    <Toggle checked={info?.canCreatePolls !== false} onChange={() => handlePermissionToggle('canCreatePolls')} />
+                  </div>
+                  <div className="flex items-center justify-between px-5 py-3.5">
+                    <div className="flex items-center gap-3">
+                      <Edit2 size={20} className="text-[#00a884]" />
+                      <div>
+                        <p className="text-white text-sm">Edit group info</p>
+                        <p className="text-[#8696a0] text-xs">Allow all participants to edit group name, icon & description</p>
+                      </div>
+                    </div>
+                    <Toggle checked={info?.canChangeGroupInfo !== false} onChange={() => handlePermissionToggle('canChangeGroupInfo')} />
+                  </div>
+                  <div className="flex items-center justify-between px-5 py-3.5">
+                    <div className="flex items-center gap-3">
                       <UserCheck size={20} className="text-[#00a884]" />
                       <div>
                         <p className="text-white text-sm">Require join approval</p>
@@ -761,54 +809,6 @@ const GroupInfo = ({ group, onClose, currentUserId }) => {
                     </div>
                     <Toggle checked={!!info?.requireJoinApproval} onChange={handleJoinApprovalToggle} />
                   </div>
-                  <SectionRow
-                    icon={Shield}
-                    label="Send messages"
-                    value={info?.permissions?.sendMessages === 'admins' ? 'Admins only' : info?.permissions?.sendMessages === 'everyone' ? 'Everyone' : 'All participants'}
-                  />
-                  <SectionRow
-                    icon={Edit2}
-                    label="Edit group info"
-                    value={info?.permissions?.editGroupInfo === 'admins' ? 'Admins only' : 'All participants'}
-                  />
-                  <SectionRow
-                    icon={UserPlus}
-                    label="Add participants"
-                    value={info?.permissions?.addParticipants === 'admins' ? 'Admins only' : 'All participants'}
-                  />
-                </div>
-
-                <p className="text-[#8696a0] text-xs px-5 pt-4 pb-2 uppercase tracking-wide">Mentions</p>
-                <div className="bg-[#111b21] py-1">
-                  <SectionRow
-                    icon={AtSign}
-                    label="Allow @everyone mentions"
-                    value={info?.allowEveryoneMention ? 'Enabled' : 'Disabled'}
-                  />
-                  <SectionRow
-                    icon={Users}
-                    label="Who can mention"
-                    value={info?.mentionPermission === 'admins' ? 'Admins only' : 'Everyone'}
-                  />
-                </div>
-
-                <p className="text-[#8696a0] text-xs px-5 pt-4 pb-2 uppercase tracking-wide">Media Auto-download</p>
-                <div className="bg-[#111b21] py-1">
-                  <SectionRow
-                    icon={ImageIcon}
-                    label="Photos"
-                    value={info?.autoDownload?.photos ? 'Enabled' : 'Disabled'}
-                  />
-                  <SectionRow
-                    icon={Video}
-                    label="Videos"
-                    value={info?.autoDownload?.videos ? 'Enabled' : 'Disabled'}
-                  />
-                  <SectionRow
-                    icon={FileText}
-                    label="Documents"
-                    value={info?.autoDownload?.documents ? 'Enabled' : 'Disabled'}
-                  />
                 </div>
 
                 <p className="text-[#8696a0] text-xs px-5 pt-4 pb-2 uppercase tracking-wide">Anti-Spam</p>

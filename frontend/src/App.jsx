@@ -3,10 +3,12 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import ErrorBoundary from './components/ErrorBoundary';
 import InAppNotification from './components/InAppNotification';
 import OfflineBanner from './components/OfflineBanner';
+import InstallAppPrompt from './components/InstallAppPrompt';
 import ProtectedRoute from './components/ProtectedRoute';
 import notificationService from './services/notificationService';
 import { cleanupLocalBlobUrls, sanitizeBlobUrls } from './utils/sanitizeStorage';
 import { applyAntiScreenshot, initAntiScreenshotListeners } from './utils/antiScreenshot';
+import { initViewportHeightFix } from './utils/useViewportHeight';
 import toast from 'react-hot-toast';
 
 const originalToastError = toast.error;
@@ -75,6 +77,12 @@ const readStoredMods = () => {
 function App() {
   const [notification, setNotification] = useState(null);
 
+  // --- Real viewport height tracking (fixes the mobile keyboard black-bar bug) ---
+  useEffect(() => {
+    const cleanup = initViewportHeightFix();
+    return cleanup;
+  }, []);
+
   // --- Glass Mode & Video Background Sync ---
   useEffect(() => {
     const syncGlassMode = () => {
@@ -136,6 +144,7 @@ function App() {
   return (
     <ErrorBoundary>
       <OfflineBanner />
+      <InstallAppPrompt />
       <InAppNotification
         notification={notification}
         onClose={() => setNotification(null)}

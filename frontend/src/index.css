@@ -13,6 +13,16 @@
   --bubble-received-color: #202c33;
   --chat-font: 'Inter', sans-serif;
   --chat-font-size: 15px;
+  /* Real, keyboard-aware viewport height. Overwritten in JS (see
+     utils/useViewportHeight.js) via visualViewport so it always matches
+     what is actually visible on screen, even when the mobile keyboard is
+     open. 100dvh is only a fallback for the very first paint before JS runs. */
+  --app-height: 100dvh;
+  /* How far the visual viewport is scrolled from the layout viewport's
+     top edge (non-zero mainly on Android while the keyboard is open).
+     Overwritten in JS - see utils/useViewportHeight.js. Used to keep
+     `position: fixed` bars aligned with what is actually visible. */
+  --app-offset-top: 0px;
 }
 
 * {
@@ -27,12 +37,30 @@ html, body, #root {
   overflow: hidden;
 }
 
+#root {
+  height: var(--app-height);
+}
+
 body {
   font-family: var(--chat-font);
   font-size: var(--chat-font-size);
   background-color: #111b21;
   color: #e9edef;
   line-height: 1.5;
+}
+
+/* FIX 3: page "jumping"/zooming in on phones whenever a text field is
+   tapped.
+   ---------------------------------------------------------------------
+   iOS Safari auto-zooms the whole page in when a focused input/textarea/
+   select has a computed font-size below 16px. The app's base font-size
+   is 15px, and many modals (search, polls, add-contact, report, etc.)
+   don't set their own size, so every one of them triggered this zoom.
+   Fixing it here once covers all of them instead of patching each file. */
+@media screen and (max-width: 767px) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
 }
 
 /* Custom Scrollbar */
@@ -609,6 +637,30 @@ body {
   .message-bubble-sent,
   .message-bubble-received {
     max-width: 85%;
+  }
+
+  /* Mobile keyboard handling */
+  .emoji-picker-container,
+  .sticker-picker-container,
+  .gif-picker-container {
+    max-height: calc(100vh - 250px) !important;
+    bottom: 80px !important;
+  }
+
+  /* Improve touch targets on mobile */
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Smooth scrolling for iOS */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Prevent bounce scroll on mobile */
+  body {
+    overscroll-behavior-y: contain;
   }
 }
 

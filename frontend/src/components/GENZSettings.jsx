@@ -270,16 +270,44 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
 
       const data = await response.json();
 
-      if (response.ok) {
-        setPaymentMessage('Malipo yameanza. Tafadhali maliza kwenye simu yako.');
-        // Check payment status after 5 seconds
+      if (!response.ok || !data.success) {
+        setPaymentMessage(data.message || data.error || 'Malipo yameshindwa. Tafadhali jaribu tena.');
+        setPaymentLoading(false);
+        return;
+      }
+
+      // Mock/dev mode completes instantly — no need to poll at all.
+      if (data.paymentStatus === 'completed') {
+        setPaymentMessage('Malipo yamekamilika!');
+        try {
+          const subResponse = await authFetch(`${API_URL}/payment/subscription`);
+          if (subResponse.ok) {
+            const subData = await subResponse.json();
+            setSubscriptionStatus(subData);
+            setIsPrivacyLocked(!(subData.userPremium || subData.isActive));
+          }
+        } catch (e) { /* handled by the background 30s poller as a fallback */ }
+        setPaymentLoading(false);
+        setTimeout(() => setShowPaymentModal(false), 1200);
+        return;
+      }
+
+      // Real provider flow (M-Pesa/Airtel/Yas/HaloPesa STK push): the user
+      // needs to confirm on their phone, which can take anywhere from a few
+      // seconds to about a minute. Poll the transaction-specific status
+      // endpoint instead of checking exactly once and giving up.
+      setPaymentMessage('Malipo yameanza. Tafadhali maliza kwenye simu yako (weka PIN yako).');
+      const transactionId = data.transactionId;
+
+      if (!transactionId) {
+        // No transaction id to poll — fall back to a single subscription re-check.
         setTimeout(async () => {
           try {
             const subResponse = await authFetch(`${API_URL}/payment/subscription`);
             if (subResponse.ok) {
               const subData = await subResponse.json();
               setSubscriptionStatus(subData);
-              setIsPrivacyLocked(!subData.isActive);
+              setIsPrivacyLocked(!(subData.userPremium || subData.isActive));
               if (subData.isActive) {
                 setShowPaymentModal(false);
                 setPaymentMessage('Malipo yamekamilika!');
@@ -287,15 +315,63 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
             }
           } catch (error) {
             console.error('Error checking payment status:', error);
+          } finally {
+            setPaymentLoading(false);
           }
         }, 6000);
-      } else {
-        setPaymentMessage(data.message || 'Malipo yameshindwa. Tafadhali jaribu tena.');
+        return;
       }
+
+      const maxAttempts = 20; // ~20 x 4s ≈ 80 seconds, enough for real STK confirmation
+      let attempt = 0;
+
+      const pollStatus = async () => {
+        attempt += 1;
+        try {
+          const statusResponse = await authFetch(`${API_URL}/payment/status/${transactionId}`);
+          const statusData = await statusResponse.json();
+
+          if (statusData.status === 'completed') {
+            const subResponse = await authFetch(`${API_URL}/payment/subscription`);
+            if (subResponse.ok) {
+              const subData = await subResponse.json();
+              setSubscriptionStatus(subData);
+              setIsPrivacyLocked(!(subData.userPremium || subData.isActive));
+            }
+            setPaymentMessage('Malipo yamekamilika!');
+            setPaymentLoading(false);
+            setTimeout(() => setShowPaymentModal(false), 1200);
+            return;
+          }
+
+          if (statusData.status === 'expired' || statusData.status === 'failed') {
+            setPaymentMessage('Malipo hayakukamilika au muda umeisha. Tafadhali jaribu tena.');
+            setPaymentLoading(false);
+            return;
+          }
+
+          if (attempt >= maxAttempts) {
+            setPaymentMessage('Malipo yanachukua muda mrefu kuliko kawaida. Kama umeshalipa, subiri kidogo kisha fungua ukurasa huu upya. Kama hujalipa bado, jaribu tena.');
+            setPaymentLoading(false);
+            return;
+          }
+
+          setTimeout(pollStatus, 4000);
+        } catch (error) {
+          console.error('Error polling payment status:', error);
+          if (attempt >= maxAttempts) {
+            setPaymentMessage('Kuna tatizo la mtandao. Tafadhali angalia hali ya malipo baadaye au jaribu tena.');
+            setPaymentLoading(false);
+            return;
+          }
+          setTimeout(pollStatus, 4000);
+        }
+      };
+
+      setTimeout(pollStatus, 4000);
     } catch (error) {
       console.error('Payment initiation error:', error);
       setPaymentMessage('Kuna tatizo la mtandao. Tafadhali jaribu tena.');
-    } finally {
       setPaymentLoading(false);
     }
   };
@@ -326,8 +402,77 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
 
       const data = await response.json();
 
-      if (response.ok) {
-        setPaymentMessage('Udhibiti wa malipo umekamilika. Tafadhali maliza kwenye simu yako.');
+      if (!response.ok || !data.success) {
+        setPaymentMessage(data.message || data.error || 'Udhibiti umeshindwa.');
+        setPaymentLoading(false);
+        return;
+      }
+
+      if (data.paymentStatus === 'completed') {
+        setPaymentMessage('Udhibiti umekamilika!');
+        try {
+          const subResponse = await authFetch(`${API_URL}/payment/subscription`);
+          if (subResponse.ok) {
+            const subData = await subResponse.json();
+            setSubscriptionStatus(subData);
+            setIsPrivacyLocked(!(subData.userPremium || subData.isActive));
+          }
+        } catch (e) { /* handled by the background 30s poller as a fallback */ }
+        setPaymentLoading(false);
+        setTimeout(() => setShowPaymentModal(false), 1200);
+        return;
+      }
+
+      setPaymentMessage('Udhibiti wa malipo umeanza. Tafadhali maliza kwenye simu yako (weka PIN yako).');
+      const transactionId = data.transactionId;
+      const maxAttempts = 20;
+      let attempt = 0;
+
+      const pollRenewStatus = async () => {
+        attempt += 1;
+        try {
+          const statusResponse = await authFetch(`${API_URL}/payment/status/${transactionId}`);
+          const statusData = await statusResponse.json();
+
+          if (statusData.status === 'completed') {
+            const subResponse = await authFetch(`${API_URL}/payment/subscription`);
+            if (subResponse.ok) {
+              const subData = await subResponse.json();
+              setSubscriptionStatus(subData);
+              setIsPrivacyLocked(!(subData.userPremium || subData.isActive));
+            }
+            setPaymentMessage('Udhibiti umekamilika!');
+            setPaymentLoading(false);
+            setTimeout(() => setShowPaymentModal(false), 1200);
+            return;
+          }
+
+          if (statusData.status === 'expired' || statusData.status === 'failed') {
+            setPaymentMessage('Udhibiti haukukamilika au muda umeisha. Tafadhali jaribu tena.');
+            setPaymentLoading(false);
+            return;
+          }
+
+          if (attempt >= maxAttempts) {
+            setPaymentMessage('Udhibiti unachukua muda mrefu kuliko kawaida. Kama umeshalipa, subiri kidogo kisha fungua ukurasa huu upya.');
+            setPaymentLoading(false);
+            return;
+          }
+
+          setTimeout(pollRenewStatus, 4000);
+        } catch (error) {
+          if (attempt >= maxAttempts) {
+            setPaymentMessage('Kuna tatizo la mtandao. Tafadhali angalia hali ya malipo baadaye.');
+            setPaymentLoading(false);
+            return;
+          }
+          setTimeout(pollRenewStatus, 4000);
+        }
+      };
+
+      if (transactionId) {
+        setTimeout(pollRenewStatus, 4000);
+      } else {
         setTimeout(async () => {
           const subResponse = await authFetch(`${API_URL}/payment/subscription`);
           if (subResponse.ok) {
@@ -339,13 +484,11 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               setPaymentMessage('Udhibiti umekamilika!');
             }
           }
+          setPaymentLoading(false);
         }, 6000);
-      } else {
-        setPaymentMessage(data.message || 'Udhibiti umeshindwa.');
       }
     } catch (error) {
       setPaymentMessage('Kuna tatizo la mtandao. Tafadhali jaribu tena.');
-    } finally {
       setPaymentLoading(false);
     }
   };
@@ -593,12 +736,12 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
         </div>
         {subscriptionStatus.isActive && (
           <span className="text-[10px] bg-green-500/30 text-green-300 border border-green-500/40 px-2 py-0.5 rounded-full font-bold flex-shrink-0">
-            PREMIUM âœ“
+            PREMIUM ✓
           </span>
         )}
       </div>
 
-      {/* â”€â”€ Tab Navigation â”€â”€ */}
+      {/* ── Tab Navigation ── */}
       <div className="flex overflow-x-auto bg-black/20 border-b border-white/10 px-1 pt-1 gap-1 scrollbar-none flex-shrink-0">
         {TABS.map(tab => (
           <button
@@ -615,7 +758,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
         ))}
       </div>
 
-      {/* â”€â”€ Status Message â”€â”€ */}
+      {/* ── Status Message ── */}
       {statusMsg && (
         <div className="bg-green-500/90 backdrop-blur-md text-white text-xs font-bold text-center py-2 px-4 flex-shrink-0">
           {statusMsg}
@@ -627,7 +770,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
          â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 space-y-3 pb-24">
 
-      {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ TAB: PROFILE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ────────────── TAB: PROFILE ────────────── */}
       {activeTab === 'profile' && (
         <>
           {/* My Profile */}
@@ -702,7 +845,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
         </> /* end profile tab */
       )}
 
-      {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ TAB: APPEARANCE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ────────────── TAB: APPEARANCE ────────────── */}
       {activeTab === 'appearance' && (
         <>
         {/* Theme Store / Presets */}
@@ -1256,7 +1399,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
         </> /* end appearance tab */
       )}
 
-      {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ TAB: PRIVACY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ──────────── TAB: PRIVACY ──────────── */}
       {activeTab === 'privacy' && (
         <>
         {/* Privacy & Protection */}
@@ -1645,7 +1788,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
         </> /* end privacy tab */
       )}
 
-      {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ TAB: MODS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ──────────── TAB: MODS ──────────── */}
       {activeTab === 'mods' && (
         <>
         {/* Advanced Tools */}
@@ -1687,7 +1830,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
           </div>
         </section>
 
-        {/* â”€â”€â”€ Glass Theme + Video Background â”€â”€â”€ */}
+        {/* ─── Glass Theme + Video Background ─── */}
         <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
           <div className="p-4 bg-gradient-to-r from-blue-900/40 to-purple-900/40 border-b border-white/10 flex items-center gap-2 text-blue-400 font-bold">
             <Layers size={18} /> Glass Theme &amp; Video Background
@@ -1723,7 +1866,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
           </div>
         </section>
 
-        {/* â”€â”€â”€ System Dashboard â”€â”€â”€ */}
+        {/* ─── System Dashboard ─── */}
         <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
           <div className="p-4 bg-gradient-to-r from-green-900/40 to-teal-900/40 border-b border-white/10 flex items-center gap-2 text-green-400 font-bold">
             <BarChart size={18} /> System Dashboard
@@ -1739,10 +1882,10 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
           </div>
         </section>
 
-        {/* â”€â”€â”€ TikTok / Instagram Exclusive Features â”€â”€â”€ */}
+        {/* ─── TikTok / Instagram Exclusive Features ─── */}
         <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
           <div className="p-4 bg-gradient-to-r from-pink-900/40 to-purple-900/40 border-b border-white/10 flex items-center gap-2 font-bold" style={{ color: '#ff6b9d' }}>
-            <Sparkles size={18} /> GENZ Exclusive â€” TikTok/Instagram Features
+            <Sparkles size={18} /> GENZ Exclusive — TikTok/Instagram Features
           </div>
           <div className="p-2">
             <ModItem
@@ -1799,7 +1942,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
         </> /* end mods tab */
       )}
 
-      {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ TAB: SOCIAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ──────────── TAB: SOCIAL ──────────── */}
       {activeTab === 'social' && (
         <>
         {/* TikTok / Instagram Exclusive Features */}
@@ -1909,7 +2052,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
         </> /* end social tab */
       )}
 
-      {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ TAB: ADVANCED â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ──────────── TAB: ADVANCED ──────────── */}
       {activeTab === 'advanced' && (
         <>
         {/* Online History */}
@@ -1959,7 +2102,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
                     <BellOff size={18} className={isDNDMode ? 'text-orange-400' : 'text-white/40'} />
                     <div>
                       <p className="text-sm font-bold text-white">DND Mode</p>
-                      <p className="text-xs text-white/50">Disconnects socket â€” no messages or calls</p>
+                      <p className="text-xs text-white/50">Disconnects socket — no messages or calls</p>
                     </div>
                   </div>
                   <button

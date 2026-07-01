@@ -53,7 +53,16 @@ const Chat = () => {
   }
 
   return (
-    <div className="fixed inset-0 md:relative md:h-screen md:w-screen bg-[#dadbd3] flex items-center justify-center overflow-hidden font-sans">
+    <div
+      className="fixed inset-0 md:relative md:w-screen bg-[#dadbd3] flex items-center justify-center overflow-hidden font-sans"
+      style={{
+        height: 'var(--app-height, 100dvh)',
+        // Keeps the header/input bar from sliding off the top of the
+        // screen when the on-screen keyboard opens (see
+        // utils/useViewportHeight.js for the full explanation).
+        transform: 'translateY(var(--app-offset-top, 0px))'
+      }}
+    >
       {/* Offline indicator */}
       <OfflineIndicator />
 
