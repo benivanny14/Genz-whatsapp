@@ -55,7 +55,7 @@ const getActivationWindow = (existingSubscription) => {
 
 const getMissingProviderConfig = (paymentMethod) => {
   const requiredEnvVars = {
-    mpesa: ['MPESA_CONSUMER_KEY', 'MPESA_CONSUMER_SECRET', 'MPESA_PASSKEY', 'MPESA_SHORTCODE'],
+    mpesa: ['MPESA_API_KEY', 'MPESA_PUBLIC_KEY', 'MPESA_SERVICE_PROVIDER_CODE'],
     'airtel-money': ['AIRTEL_CLIENT_ID', 'AIRTEL_CLIENT_SECRET'],
     yas: ['YAS_API_KEY', 'YAS_MERCHANT_ID', 'YAS_SECRET_KEY'],
     halopesa: ['HALOPESA_API_KEY', 'HALOPESA_MERCHANT_ID', 'HALOPESA_SECRET_KEY'],

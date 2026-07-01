@@ -2,249 +2,192 @@ const crypto = require('crypto');
 const axios = require('axios');
 
 /**
- * M-Pesa Daraja API Configuration
- * Handles M-Pesa STK Push, C2B, and B2C operations
+ * M-Pesa Vodacom Tanzania OpenAPI Configuration
+ * Handles C2B Single Stage (USSD Push) mapping to the Daraja abstraction used by the app.
  */
 
 /**
- * Generate M-Pesa authentication token
- * @returns {Promise<string>} Access token
+ * Encrypt API Key with RSA Public Key
  */
-const generateAuthToken = async () => {
-  const consumerKey = process.env.MPESA_CONSUMER_KEY;
-  const consumerSecret = process.env.MPESA_CONSUMER_SECRET;
+const encryptAPIKey = (apiKey, publicKey) => {
+    let formattedKey = publicKey;
+    // Add PEM headers if missing
+    if (!formattedKey.includes('BEGIN PUBLIC KEY')) {
+        formattedKey = `-----BEGIN PUBLIC KEY-----\n${publicKey.match(/.{1,64}/g).join('\n')}\n-----END PUBLIC KEY-----`;
+    }
+    const buffer = Buffer.from(apiKey);
+    const encrypted = crypto.publicEncrypt({
+        key: formattedKey,
+        padding: crypto.constants.RSA_PKCS1_PADDING
+    }, buffer);
+    return encrypted.toString('base64');
+};
 
-  if (!consumerKey || !consumerSecret) {
-    throw new Error('M-Pesa credentials not configured');
-  }
-
-  const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');
-
-  try {
+const getBaseUrl = () => {
     const environment = process.env.MPESA_ENVIRONMENT || 'sandbox';
-    const baseUrl = environment === 'live' 
-      ? 'https://api.safaricom.co.ke' 
-      : 'https://sandbox.safaricom.co.ke';
+    return environment === 'live' 
+      ? 'https://openapi.m-pesa.com/openapi/ipg/v2/vodacomTZN' 
+      : 'https://openapi.m-pesa.com/sandbox/ipg/v2/vodacomTZN';
+};
 
-    const response = await axios.get(
-      `${baseUrl}/oauth/v1/generate?grant_type=client_credentials`,
-      {
+/**
+ * Generate Session ID from OpenAPI
+ */
+const getSessionId = async () => {
+    const apiKey = process.env.MPESA_API_KEY;
+    const publicKey = process.env.MPESA_PUBLIC_KEY;
+    
+    if (!apiKey || !publicKey) {
+        throw new Error('Vodacom OpenAPI credentials not configured. Set MPESA_API_KEY and MPESA_PUBLIC_KEY.');
+    }
+
+    const encryptedKey = encryptAPIKey(apiKey, publicKey);
+    
+    const response = await axios.get(`${getBaseUrl()}/getSession/`, {
         headers: {
-          Authorization: `Basic ${auth}`
+            'Authorization': `Bearer ${encryptedKey}`,
+            'Origin': process.env.PUBLIC_API_URL || '*'
         }
-      }
-    );
+    });
 
-    return response.data.access_token;
-  } catch (error) {
-    console.error('[M-Pesa] Failed to generate auth token:', error);
-    throw new Error('Failed to generate M-Pesa auth token');
-  }
+    if (response.data.output_ResponseCode !== 'INS-0') {
+        throw new Error(response.data.output_ResponseDesc || 'Failed to get session ID');
+    }
+
+    return response.data.output_SessionID;
 };
 
 /**
- * Generate password for STK Push
- * @returns {string} Base64 encoded password
- */
-const generatePassword = () => {
-  const shortcode = process.env.MPESA_SHORTCODE;
-  const passkey = process.env.MPESA_PASSKEY;
-  const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14);
-
-  if (!shortcode || !passkey) {
-    throw new Error('M-Pesa shortcode or passkey not configured');
-  }
-
-  const password = Buffer.from(`${shortcode}${passkey}${timestamp}`).toString('base64');
-  return { password, timestamp };
-};
-
-/**
- * Initiate STK Push (Lipa na M-Pesa Online)
- * @param {string} phoneNumber - Customer phone number (format: 254XXXXXXXXX)
- * @param {number} amount - Amount to charge
- * @param {string} accountReference - Account reference
- * @param {string} transactionDesc - Transaction description
- * @returns {Promise<Object>} STK Push response
- */
-const initiateSTKPush = async (phoneNumber, amount, accountReference, transactionDesc) => {
-  try {
-    const token = await generateAuthToken();
-    const { password, timestamp } = generatePassword();
-
-    const environment = process.env.MPESA_ENVIRONMENT || 'sandbox';
-    const baseUrl = environment === 'live' 
-      ? 'https://api.safaricom.co.ke' 
-      : 'https://sandbox.safaricom.co.ke';
-
-    const callbackUrl = process.env.MPESA_CALLBACK_URL || `${process.env.PUBLIC_API_URL}/api/payment/webhook/mpesa`;
-
-    const payload = {
-      BusinessShortCode: process.env.MPESA_SHORTCODE,
-      Password: password,
-      Timestamp: timestamp,
-      TransactionType: 'CustomerPayBillOnline',
-      Amount: amount,
-      PartyA: phoneNumber,
-      PartyB: process.env.MPESA_SHORTCODE,
-      PhoneNumber: phoneNumber,
-      CallBackURL: callbackUrl,
-      AccountReference: accountReference,
-      TransactionDesc: transactionDesc
-    };
-
-    const response = await axios.post(
-      `${baseUrl}/mpesa/stkpush/v1/processrequest`,
-      payload,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    return {
-      success: true,
-      data: response.data
-    };
-  } catch (error) {
-    console.error('[M-Pesa] STK Push failed:', error);
-    throw new Error(error.response?.data?.errorMessage || 'STK Push failed');
-  }
-};
-
-/**
- * Query STK Push status
- * @param {string} checkoutRequestID - Checkout request ID from STK Push
- * @returns {Promise<Object>} Query response
- */
-const querySTKPushStatus = async (checkoutRequestID) => {
-  try {
-    const token = await generateAuthToken();
-    const { password, timestamp } = generatePassword();
-
-    const environment = process.env.MPESA_ENVIRONMENT || 'sandbox';
-    const baseUrl = environment === 'live' 
-      ? 'https://api.safaricom.co.ke' 
-      : 'https://sandbox.safaricom.co.ke';
-
-    const payload = {
-      BusinessShortCode: process.env.MPESA_SHORTCODE,
-      Password: password,
-      Timestamp: timestamp,
-      CheckoutRequestID: checkoutRequestID
-    };
-
-    const response = await axios.post(
-      `${baseUrl}/mpesa/stkpushquery/v1/query`,
-      payload,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    return {
-      success: true,
-      data: response.data
-    };
-  } catch (error) {
-    console.error('[M-Pesa] Query STK Push status failed:', error);
-    throw new Error(error.response?.data?.errorMessage || 'Query failed');
-  }
-};
-
-/**
- * Validate M-Pesa callback signature
- * @param {string} signature - Signature from callback
- * @param {string} payload - Callback payload
- * @returns {boolean} True if signature is valid
- */
-const validateCallbackSignature = (signature, payload) => {
-  const callbackUrl = process.env.MPESA_CALLBACK_URL;
-  if (!callbackUrl || !signature) {
-    return false;
-  }
-
-  try {
-    const secret = process.env.MPESA_CONSUMER_SECRET;
-    const computedSignature = crypto
-      .createHmac('sha256', secret)
-      .update(callbackUrl + payload)
-      .digest('base64');
-
-    return computedSignature === signature;
-  } catch (error) {
-    console.error('[M-Pesa] Signature validation failed:', error);
-    return false;
-  }
-};
-
-/**
- * Format phone number to M-Pesa format
- * @param {string} phone - Phone number
- * @returns {string} Formatted phone number
+ * Format phone number to Tanzania 255 format
  */
 const formatPhoneNumber = (phone) => {
-  // Remove all non-digit characters
-  let formatted = phone.replace(/\D/g, '');
-
-  // If starts with 0, replace with 254
-  if (formatted.startsWith('0')) {
-    formatted = '254' + formatted.slice(1);
-  }
-  // If starts with +, remove it and add 254 if not already present
-  else if (formatted.startsWith('+')) {
-    formatted = formatted.slice(1);
-    if (!formatted.startsWith('254')) {
-      formatted = '254' + formatted;
+    if (!phone) return '';
+    let formatted = String(phone).replace(/\D/g, '');
+    
+    if (formatted.startsWith('0')) {
+        formatted = '255' + formatted.substring(1);
+    } else if (formatted.startsWith('254')) {
+        // Fallback incase old code passed Daraja format
+        formatted = '255' + formatted.substring(3);
     }
-  }
-  // If starts with 7 or 1 (Kenya codes), add 254
-  else if (formatted.startsWith('7') || formatted.startsWith('1')) {
-    formatted = '254' + formatted;
-  }
-
-  return formatted;
+    if (!formatted.startsWith('255')) {
+        formatted = '255' + formatted;
+    }
+    
+    return formatted;
 };
 
 /**
- * Parse M-Pesa callback response
- * @param {Object} callbackData - Callback data from M-Pesa
- * @returns {Object} Parsed transaction data
+ * Initiate C2B Single Stage (Equivalent to STK Push)
  */
-const parseCallback = (callbackData) => {
-  const { Body } = callbackData;
-  const { stkCallback } = Body;
-  const { CallbackMetadata } = stkCallback;
-  const Item = CallbackMetadata?.Item || [];
+const initiateSTKPush = async (phoneNumber, amount, accountReference, transactionDesc) => {
+    try {
+        const sessionId = await getSessionId();
+        const formattedPhone = formatPhoneNumber(phoneNumber);
+        const thirdPartyId = crypto.randomUUID ? crypto.randomUUID().replace(/-/g, '') : Date.now().toString();
 
-  const metadata = {};
-  Item.forEach(item => {
-    metadata[item.Name] = item.Value;
-  });
+        const payload = {
+            input_Amount: amount.toString(),
+            input_Country: 'TZN',
+            input_Currency: 'TZS',
+            input_CustomerMSISDN: formattedPhone, 
+            input_ServiceProviderCode: process.env.MPESA_SERVICE_PROVIDER_CODE || '000000',
+            input_ThirdPartyConversationID: thirdPartyId,
+            input_TransactionReference: accountReference.substring(0, 20),
+            input_PurchasedItemsDesc: transactionDesc.substring(0, 50)
+        };
 
-  return {
-    merchantRequestID: stkCallback.MerchantRequestID,
-    checkoutRequestID: stkCallback.CheckoutRequestID,
-    resultCode: String(stkCallback.ResultCode),
-    resultDesc: stkCallback.ResultDesc,
-    amount: parseFloat(metadata.Amount),
-    mpesaReceiptNumber: metadata.MpesaReceiptNumber,
-    transactionDate: metadata.TransactionDate,
-    phoneNumber: metadata.PhoneNumber
-  };
+        const response = await axios.post(`${getBaseUrl()}/c2bPayment/singleStage/`, payload, {
+            headers: {
+                'Authorization': `Bearer ${sessionId}`,
+                'Content-Type': 'application/json',
+                'Origin': process.env.PUBLIC_API_URL || '*'
+            }
+        });
+
+        if (response.data.output_ResponseCode !== 'INS-0') {
+            throw new Error(response.data.output_ResponseDesc);
+        }
+
+        // Map OpenAPI response back to Daraja style so paymentService.js doesn't break
+        return {
+            success: true,
+            data: {
+                CheckoutRequestID: response.data.output_TransactionID || thirdPartyId,
+                MerchantRequestID: response.data.output_ConversationID || thirdPartyId,
+                ResponseCode: response.data.output_ResponseCode,
+                ResponseDescription: response.data.output_ResponseDesc
+            }
+        };
+    } catch (error) {
+        console.error('[M-Pesa] Payment Push failed:', error.response?.data || error);
+        throw new Error(error.response?.data?.output_ResponseDesc || error.message || 'M-Pesa payment failed');
+    }
+};
+
+/**
+ * Query Transaction Status
+ */
+const querySTKPushStatus = async (checkoutRequestID) => {
+    try {
+        const sessionId = await getSessionId();
+        
+        const payload = {
+            input_QueryReference: checkoutRequestID,
+            input_ServiceProviderCode: process.env.MPESA_SERVICE_PROVIDER_CODE || '000000',
+            input_ThirdPartyConversationID: crypto.randomUUID ? crypto.randomUUID().replace(/-/g, '') : Date.now().toString(),
+            input_Country: 'TZN'
+        };
+
+        const response = await axios.post(`${getBaseUrl()}/queryTransactionStatus/`, payload, {
+            headers: {
+                'Authorization': `Bearer ${sessionId}`,
+                'Content-Type': 'application/json',
+                'Origin': process.env.PUBLIC_API_URL || '*'
+            }
+        });
+
+        const isSuccess = response.data.output_ResponseTransactionStatus === 'Completed';
+        
+        return {
+            success: isSuccess,
+            data: {
+                ResultCode: isSuccess ? '0' : '1',
+                ResultDesc: response.data.output_ResponseDesc || response.data.output_ResponseTransactionStatus
+            }
+        };
+    } catch (error) {
+        return {
+            success: false,
+            data: { ResultCode: '1', ResultDesc: error.message }
+        };
+    }
+};
+
+/**
+ * Parse Webhook Callback
+ */
+const parseCallback = (req) => {
+    const body = req.body || {};
+    
+    const transactionId = body.input_TransactionID || body.TransactionID || '';
+    const amount = body.input_Amount || body.Amount || 0;
+    const resultCode = body.output_ResponseCode === 'INS-0' ? 0 : 1;
+    
+    return {
+        isSuccess: resultCode === 0,
+        resultCode,
+        resultDesc: body.output_ResponseDesc || 'Success',
+        amount: Number(amount),
+        mpesaReceiptNumber: transactionId,
+        checkoutRequestID: body.input_ThirdPartyConversationID || body.ConversationID || '',
+        phoneNumber: body.input_CustomerMSISDN || body.MSISDN || ''
+    };
 };
 
 module.exports = {
-  generateAuthToken,
-  generatePassword,
-  initiateSTKPush,
-  querySTKPushStatus,
-  validateCallbackSignature,
-  formatPhoneNumber,
-  parseCallback
+    initiateSTKPush,
+    querySTKPushStatus,
+    formatPhoneNumber,
+    parseCallback
 };
