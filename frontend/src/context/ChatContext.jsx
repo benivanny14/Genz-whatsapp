@@ -17,7 +17,6 @@ import { decryptMessageContent, decryptMessagesList } from '../utils/e2eeMessage
 import { isClientE2EEMessageContent } from '../utils/e2eeContent';
 import notificationService from '../services/notificationService';
 import { resolveApiBase, resolveSocketOrigin } from '../utils/resolveApiBase';
-import chatAPI from '../services/chatAPI';
 
 import { applyVoiceEffect } from '../utils/voiceEffects';
 import {
@@ -4339,7 +4338,16 @@ export const ChatProvider = ({ children }) => {
   // ─── BAN/UNBAN MEMBER ──────────────────────────────────────────────────────
   const banGroupMember = async (groupId, userId, reason = '') => {
     try {
-      const { data } = await chatAPI.banMember(groupId, userId, reason);
+      const token = localStorage.getItem('token');
+      const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/ban`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ userId, reason })
+      });
+      const data = await response.json();
       return data;
     } catch (err) {
       return { success: false, message: err.message };
@@ -4348,7 +4356,16 @@ export const ChatProvider = ({ children }) => {
 
   const unbanGroupMember = async (groupId, userId) => {
     try {
-      const { data } = await chatAPI.unbanMember(groupId, userId);
+      const token = localStorage.getItem('token');
+      const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/ban`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ userId })
+      });
+      const data = await response.json();
       return data;
     } catch (err) {
       return { success: false, message: err.message };
@@ -4357,7 +4374,13 @@ export const ChatProvider = ({ children }) => {
 
   const getGroupBannedMembers = async (groupId) => {
     try {
-      const { data } = await chatAPI.getBannedMembers(groupId);
+      const token = localStorage.getItem('token');
+      const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/banned`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
       return data;
     } catch (err) {
       return { success: false, bannedMembers: [] };
@@ -4367,7 +4390,16 @@ export const ChatProvider = ({ children }) => {
   // ─── TRANSFER OWNERSHIP ────────────────────────────────────────────────────
   const transferGroupOwnership = async (groupId, newOwnerId) => {
     try {
-      const { data } = await chatAPI.transferOwnership(groupId, newOwnerId);
+      const token = localStorage.getItem('token');
+      const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/transfer-ownership`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ newOwnerId })
+      });
+      const data = await response.json();
       return data;
     } catch (err) {
       return { success: false, message: err.message };
@@ -4377,7 +4409,13 @@ export const ChatProvider = ({ children }) => {
   // ─── PENDING JOIN REQUESTS ─────────────────────────────────────────────────
   const getGroupPendingRequests = async (groupId) => {
     try {
-      const { data } = await chatAPI.getPendingJoinRequests(groupId);
+      const token = localStorage.getItem('token');
+      const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/pending-requests`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
       return data;
     } catch (err) {
       return { success: false, requests: [] };
@@ -4386,7 +4424,15 @@ export const ChatProvider = ({ children }) => {
 
   const approveGroupJoinRequest = async (groupId, userId) => {
     try {
-      const { data } = await chatAPI.approveJoinRequest(groupId, userId);
+      const token = localStorage.getItem('token');
+      const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/pending-requests/${userId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
       return data;
     } catch (err) {
       return { success: false, message: err.message };
@@ -4395,7 +4441,15 @@ export const ChatProvider = ({ children }) => {
 
   const rejectGroupJoinRequest = async (groupId, userId) => {
     try {
-      const { data } = await chatAPI.rejectJoinRequest(groupId, userId);
+      const token = localStorage.getItem('token');
+      const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/pending-requests/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
       return data;
     } catch (err) {
       return { success: false, message: err.message };
@@ -4405,7 +4459,16 @@ export const ChatProvider = ({ children }) => {
   // ─── ANTI-SPAM ─────────────────────────────────────────────────────────────
   const updateGroupAntiSpam = async (groupId, settings) => {
     try {
-      const { data } = await chatAPI.updateAntiSpam(groupId, settings);
+      const token = localStorage.getItem('token');
+      const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/anti-spam`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(settings)
+      });
+      const data = await response.json();
       return data;
     } catch (err) {
       return { success: false, message: err.message };
@@ -4414,7 +4477,16 @@ export const ChatProvider = ({ children }) => {
 
   const updateGroupJoinApproval = async (groupId, requireApproval) => {
     try {
-      const { data } = await chatAPI.updateJoinApproval(groupId, requireApproval);
+      const token = localStorage.getItem('token');
+      const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/join-approval`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ requireApproval })
+      });
+      const data = await response.json();
       return data;
     } catch (err) {
       return { success: false, message: err.message };
@@ -4424,7 +4496,13 @@ export const ChatProvider = ({ children }) => {
   // ─── GROUP QR CODE ─────────────────────────────────────────────────────────
   const getGroupQRCode = async (groupId) => {
     try {
-      const { data } = await chatAPI.getGroupQR(groupId);
+      const token = localStorage.getItem('token');
+      const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/qr`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
       return data;
     } catch (err) {
       return { success: false, message: err.message };
@@ -4434,7 +4512,13 @@ export const ChatProvider = ({ children }) => {
   // ─── GROUP EVENTS ──────────────────────────────────────────────────────────
   const fetchGroupEvents = async (groupId) => {
     try {
-      const { data } = await chatAPI.getGroupEvents(groupId);
+      const token = localStorage.getItem('token');
+      const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/events`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
       return data;
     } catch (err) {
       return { success: false, events: [] };
@@ -4443,7 +4527,16 @@ export const ChatProvider = ({ children }) => {
 
   const createGroupEventFn = async (groupId, eventData) => {
     try {
-      const { data } = await chatAPI.createGroupEvent(groupId, eventData);
+      const token = localStorage.getItem('token');
+      const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/events`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(eventData)
+      });
+      const data = await response.json();
       return data;
     } catch (err) {
       return { success: false, message: err.message };
@@ -4452,7 +4545,16 @@ export const ChatProvider = ({ children }) => {
 
   const rsvpGroupEventFn = async (groupId, eventId, status) => {
     try {
-      const { data } = await chatAPI.rsvpGroupEvent(groupId, eventId, status);
+      const token = localStorage.getItem('token');
+      const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/events/${eventId}/rsvp`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status })
+      });
+      const data = await response.json();
       return data;
     } catch (err) {
       return { success: false, message: err.message };
