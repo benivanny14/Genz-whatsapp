@@ -57,6 +57,7 @@ const _dedupCleanupInterval = setInterval(() => {
     console.log(`[Socket] Cleaned up ${deleted} old deduplication entries. Current size: ${messageDeduplication.size}`);
   }
 }, 30000); // Run every 30 seconds
+_dedupCleanupInterval.unref?.();
 const SOCKET_SETUP_FLAG = Symbol.for('genz.socket.setup');
 const includesId = (items = [], id) => {
   if (!Array.isArray(items)) return false;

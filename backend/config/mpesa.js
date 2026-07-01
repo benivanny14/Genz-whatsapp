@@ -164,24 +164,52 @@ const querySTKPushStatus = async (checkoutRequestID) => {
     }
 };
 
+const metadataItemValue = (items = [], name) => {
+    const item = items.find((entry) => entry?.Name === name);
+    return item?.Value ?? '';
+};
+
 /**
  * Parse Webhook Callback
  */
-const parseCallback = (req) => {
-    const body = req.body || {};
-    
-    const transactionId = body.input_TransactionID || body.TransactionID || '';
+const parseCallback = (payload = {}) => {
+    const body = payload.body || payload;
+    const stkCallback = body.Body?.stkCallback || body.stkCallback;
+
+    if (stkCallback) {
+        const metadataItems = stkCallback.CallbackMetadata?.Item || [];
+        const resultCode = String(stkCallback.ResultCode ?? '');
+
+        return {
+            isSuccess: resultCode === '0',
+            resultCode,
+            resultDesc: stkCallback.ResultDesc || '',
+            amount: Number(metadataItemValue(metadataItems, 'Amount') || 0),
+            mpesaReceiptNumber: metadataItemValue(metadataItems, 'MpesaReceiptNumber'),
+            merchantRequestID: stkCallback.MerchantRequestID || '',
+            checkoutRequestID: stkCallback.CheckoutRequestID || '',
+            transactionDate: metadataItemValue(metadataItems, 'TransactionDate'),
+            phoneNumber: String(metadataItemValue(metadataItems, 'PhoneNumber') || '')
+        };
+    }
+
+    const transactionId = body.output_TransactionID || body.input_TransactionID || body.TransactionID || '';
+    const conversationId = body.output_ConversationID || body.ConversationID || '';
+    const thirdPartyId = body.input_ThirdPartyConversationID || '';
     const amount = body.input_Amount || body.Amount || 0;
-    const resultCode = body.output_ResponseCode === 'INS-0' ? 0 : 1;
-    
+    const responseCode = body.output_ResponseCode || body.ResultCode || '';
+    const resultCode = responseCode === 'INS-0' || responseCode === '0' ? '0' : String(responseCode || '1');
+
     return {
-        isSuccess: resultCode === 0,
+        isSuccess: resultCode === '0',
         resultCode,
-        resultDesc: body.output_ResponseDesc || 'Success',
+        resultDesc: body.output_ResponseDesc || body.ResultDesc || 'Success',
         amount: Number(amount),
         mpesaReceiptNumber: transactionId,
-        checkoutRequestID: body.input_ThirdPartyConversationID || body.ConversationID || '',
-        phoneNumber: body.input_CustomerMSISDN || body.MSISDN || ''
+        merchantRequestID: conversationId || thirdPartyId || '',
+        checkoutRequestID: transactionId || thirdPartyId || conversationId || '',
+        transactionDate: body.TransactionDate || body.input_TransactionDate || '',
+        phoneNumber: String(body.input_CustomerMSISDN || body.MSISDN || body.PhoneNumber || '')
     };
 };
 

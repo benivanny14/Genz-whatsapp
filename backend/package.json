@@ -20,6 +20,13 @@
   ],
   "author": "TM",
   "license": "MIT",
+  "config": {
+    "mongodbMemoryServer": {
+      "disablePostinstall": true,
+      "downloadDir": "./node_modules/.cache/mongodb-memory-server",
+      "preferGlobalPath": false
+    }
+  },
   "dependencies": {
     "@google-cloud/speech": "^6.1.0",
     "@google-cloud/translate": "^8.0.2",

@@ -13,12 +13,27 @@ process.env.MONGOMS_DOWNLOAD_DIR = process.env.MONGOMS_DOWNLOAD_DIR || path.join
 process.env.MONGOMS_PREFER_GLOBAL_PATH = process.env.MONGOMS_PREFER_GLOBAL_PATH || 'false';
 
 const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
 
 let mongoServer;
 const testMongoUri = process.env.TEST_MONGODB_URI || 'mongodb://127.0.0.1:27017/genz-jest';
 
+const getCurrentTestPath = () => (expect?.getState?.().testPath || '').replace(/\\/g, '/');
+
+const shouldSkipDatabaseSetup = () => {
+  if (process.env.SKIP_TEST_DB === 'true') return true;
+
+  const testPath = getCurrentTestPath();
+  return (
+    testPath.endsWith('.unit.test.js') ||
+    testPath.endsWith('/mediaAccess.test.js')
+  );
+};
+
 beforeAll(async () => {
+  if (shouldSkipDatabaseSetup()) {
+    return;
+  }
+
   if (process.env.USE_LOCAL_MONGO_FOR_TESTS === 'true') {
     process.env.MONGODB_URI = testMongoUri;
     await mongoose.connect(testMongoUri, {
@@ -28,6 +43,7 @@ beforeAll(async () => {
     return;
   }
 
+  const { MongoMemoryServer } = require('mongodb-memory-server');
   mongoServer = await MongoMemoryServer.create();
   const mongoUri = mongoServer.getUri();
   process.env.MONGODB_URI = mongoUri;

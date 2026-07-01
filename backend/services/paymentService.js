@@ -88,6 +88,22 @@ const parseMpesaTransactionDate = (value) => {
   );
 };
 
+const buildMpesaCallbackLookup = (parsed = {}) => {
+  const candidateFields = [
+    ['checkoutRequestID', parsed.checkoutRequestID],
+    ['merchantRequestID', parsed.merchantRequestID],
+    ['transactionId', parsed.checkoutRequestID],
+    ['providerTransactionId', parsed.mpesaReceiptNumber],
+    ['receiptNumber', parsed.mpesaReceiptNumber]
+  ];
+
+  const identifiers = candidateFields
+    .filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== '')
+    .map(([field, value]) => ({ [field]: String(value) }));
+
+  return identifiers.length ? { provider: 'mpesa', $or: identifiers } : null;
+};
+
 /**
  * Initiate M-Pesa STK Push payment
  * @param {string} userId - User ID
@@ -320,13 +336,16 @@ const handleMpesaCallback = async (callbackData) => {
   try {
     const parsed = parseMpesaCallback(callbackData);
     
-    // Find transaction by checkout request ID
-    const transaction = await Transaction.findOne({
-      checkoutRequestID: parsed.checkoutRequestID
-    });
+    // Find transaction by any stable identifier the provider supplied.
+    const lookup = buildMpesaCallbackLookup(parsed);
+    const transaction = lookup ? await Transaction.findOne(lookup) : null;
     
     if (!transaction) {
-      console.warn('[PaymentService] Transaction not found for callback:', parsed.checkoutRequestID);
+      console.warn('[PaymentService] Transaction not found for callback:', {
+        checkoutRequestID: parsed.checkoutRequestID,
+        merchantRequestID: parsed.merchantRequestID,
+        receiptNumber: parsed.mpesaReceiptNumber
+      });
       return { success: false, message: 'Transaction not found' };
     }
 

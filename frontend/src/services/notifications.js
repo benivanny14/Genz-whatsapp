@@ -4,16 +4,14 @@
  */
 
 const SW_URL = '/service-worker.js';
+const ENABLE_DEV_SERVICE_WORKER = import.meta.env.VITE_ENABLE_DEV_SERVICE_WORKER === 'true';
 
 // ── Register Service Worker ───────────────────────────────────────────────
 export const registerServiceWorker = async () => {
-  const canRegister =
-    import.meta.env.PROD ||
-    window.location.protocol === 'https:' ||
-    ['localhost', '127.0.0.1'].includes(window.location.hostname);
+  const canRegister = import.meta.env.PROD || ENABLE_DEV_SERVICE_WORKER;
 
   if (!canRegister) {
-    console.log('[Notifications] Skipping SW registration on insecure origin');
+    console.log('[Notifications] Skipping SW registration in development');
     return null;
   }
   

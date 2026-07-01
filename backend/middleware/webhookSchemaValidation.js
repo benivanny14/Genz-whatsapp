@@ -1,13 +1,41 @@
 // Webhook schema validation middleware
 const { body, validationResult } = require('express-validator');
 
+const hasValue = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+
+const getMpesaStkCallback = (payload = {}) => payload.Body?.stkCallback || payload.stkCallback;
+
 // M-Pesa webhook schema validation
 const validateMpesaWebhook = [
-  body('Body').exists().withMessage('Body is required'),
-  body('Body.stkCallback').exists().withMessage('stkCallback is required'),
-  body('Body.stkCallback.ResultCode').exists().isInt().withMessage('ResultCode must be an integer'),
-  body('Body.stkCallback.MerchantRequestID').exists().withMessage('MerchantRequestID is required'),
-  body('Body.stkCallback.CheckoutRequestID').exists().withMessage('CheckoutRequestID is required'),
+  body().custom((payload = {}) => {
+    const stkCallback = getMpesaStkCallback(payload);
+    if (stkCallback) {
+      if (!hasValue(stkCallback.ResultCode)) {
+        throw new Error('ResultCode is required');
+      }
+      if (!hasValue(stkCallback.MerchantRequestID)) {
+        throw new Error('MerchantRequestID is required');
+      }
+      if (!hasValue(stkCallback.CheckoutRequestID)) {
+        throw new Error('CheckoutRequestID is required');
+      }
+      return true;
+    }
+
+    const responseCode = payload.output_ResponseCode || payload.ResultCode;
+    const transactionRef = payload.output_TransactionID ||
+      payload.input_TransactionID ||
+      payload.TransactionID ||
+      payload.input_ThirdPartyConversationID ||
+      payload.output_ConversationID ||
+      payload.ConversationID;
+
+    if (hasValue(responseCode) && hasValue(transactionRef)) {
+      return true;
+    }
+
+    throw new Error('M-Pesa webhook must include Daraja stkCallback or Vodacom OpenAPI transaction identifiers');
+  }),
   
   (req, res, next) => {
     const errors = validationResult(req);

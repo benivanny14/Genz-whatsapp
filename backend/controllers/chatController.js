@@ -62,6 +62,10 @@ const invalidateCachePattern = async (req, pattern) => {
 // nobody currently has the chat open.
 const createSystemMessage = async (req, conversation, actorId, text) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(conversation?._id) || !mongoose.Types.ObjectId.isValid(actorId)) {
+      return null;
+    }
+
     const message = await Message.create({
       conversationId: conversation._id,
       sender: actorId,
@@ -94,6 +98,18 @@ const createSystemMessage = async (req, conversation, actorId, text) => {
   } catch (error) {
     console.error("[Group] Failed to create system message:", error);
     return null;
+  }
+};
+
+const getUserDisplayName = async (userId, fallback = "A member") => {
+  try {
+    const query = User.findById(userId);
+    const user = typeof query?.select === "function"
+      ? await query.select("username")
+      : await query;
+    return user?.username || fallback;
+  } catch (error) {
+    return fallback;
   }
 };
 
@@ -2378,8 +2394,8 @@ exports.banMember = async (req, res) => {
       io.to(String(targetUserId)).emit('group:you_were_banned', { groupId, reason });
     }
     try {
-      const bannedUser = await User.findById(targetUserId).select('username');
-      await createSystemMessage(req, conversation, requesterId, `${bannedUser?.username || 'A member'} was removed and banned`);
+      const bannedUserName = await getUserDisplayName(targetUserId);
+      await createSystemMessage(req, conversation, requesterId, `${bannedUserName} was removed and banned`);
     } catch (sysErr) { console.error('[Group] system message error:', sysErr); }
 
     res.json({ success: true, message: 'Member banned successfully' });
@@ -2464,8 +2480,8 @@ exports.transferOwnership = async (req, res) => {
       });
     }
     try {
-      const newOwnerUser = await User.findById(newOwnerId).select('username');
-      await createSystemMessage(req, conversation, requesterId, `${newOwnerUser?.username || 'A member'} is now the group owner`);
+      const newOwnerUserName = await getUserDisplayName(newOwnerId);
+      await createSystemMessage(req, conversation, requesterId, `${newOwnerUserName} is now the group owner`);
     } catch (sysErr) { console.error('[Group] system message error:', sysErr); }
 
     res.json({ success: true, message: 'Ownership transferred successfully' });
@@ -2523,8 +2539,8 @@ exports.approveJoinRequest = async (req, res) => {
       io.to(String(targetUserId)).emit('group:join_approved', { groupId, groupName: conversation.groupName });
     }
     try {
-      const approvedUser = await User.findById(targetUserId).select('username');
-      await createSystemMessage(req, conversation, requesterId, `${approvedUser?.username || 'A member'} was added`);
+      const approvedUserName = await getUserDisplayName(targetUserId);
+      await createSystemMessage(req, conversation, requesterId, `${approvedUserName} was added`);
     } catch (sysErr) { console.error('[Group] system message error:', sysErr); }
 
     res.json({ success: true, message: 'Join request approved' });

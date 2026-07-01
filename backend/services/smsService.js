@@ -150,6 +150,7 @@ class SMSService {
 
 // Run cleanup every minute
 const smsService = new SMSService();
-setInterval(() => smsService.cleanup(), 60 * 1000);
+const otpCleanupInterval = setInterval(() => smsService.cleanup(), 60 * 1000);
+otpCleanupInterval.unref?.();
 
 module.exports = smsService;

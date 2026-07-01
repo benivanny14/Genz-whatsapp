@@ -9,6 +9,8 @@ import { API_URL } from '../utils/authSession';
 import { getDeviceId } from '../utils/deviceIdentity';
 
 const NOTIFICATION_SETTINGS_KEY = 'genz_notification_settings';
+const ENABLE_DEV_SERVICE_WORKER = import.meta.env.VITE_ENABLE_DEV_SERVICE_WORKER === 'true';
+const canRegisterServiceWorker = () => import.meta.env.PROD || ENABLE_DEV_SERVICE_WORKER;
 
 const defaultSettings = {
   enabled: true,
@@ -260,6 +262,11 @@ export const showTypingNotification = (userName) => {
  * Register service worker for background notifications
  */
 export const registerServiceWorker = async () => {
+  if (!canRegisterServiceWorker()) {
+    console.log('[NotificationService] Skipping Service Worker registration in development');
+    return null;
+  }
+
   if (!('serviceWorker' in navigator)) {
     console.log('[NotificationService] Service Workers not supported');
     return null;

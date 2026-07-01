@@ -2073,7 +2073,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   // Filter messages for search
 
   return (
-    <div className="flex-1 flex flex-col bg-dark-bg min-w-0 w-full overflow-hidden relative h-full" style={{ height: 'var(--app-height, 100vh)' }}>
+    <div className="flex-1 flex flex-col bg-dark-bg min-w-0 w-full overflow-hidden relative h-full min-h-0">
       <div
         className="absolute inset-0 pointer-events-none z-0"
         style={wallpaperStyle}
@@ -2081,10 +2081,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
       <header
         style={{ backgroundColor: safeMods.customTheme }}
-        className="border-b border-white/10 px-4 py-3 flex items-center gap-4 shadow-lg transition-all duration-500 z-[100]"
+        className="border-b border-white/10 px-3 md:px-4 py-2.5 md:py-3 flex items-center gap-2 md:gap-4 shadow-lg transition-all duration-500 z-[100] flex-shrink-0 min-w-0"
       >
         {/* Mobile back arrow to close chat and show list */}
-        <button onClick={() => selectConversation(null)} className="md:hidden p-2 hover:bg-dark-hover rounded-lg mr-1 flex items-center justify-center">
+        <button onClick={() => selectConversation(null)} className="md:hidden p-2 hover:bg-dark-hover rounded-lg flex items-center justify-center flex-shrink-0">
           <ArrowLeft className="w-5 h-5 text-white" />
         </button>
 
@@ -2094,7 +2094,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
             <ArrowLeft className="w-5 h-5 text-white" />
           </button>
         )}
-        <div className="flex items-center gap-3 flex-1">
+        <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
           {isSearching ? (
             <div className="flex items-center gap-2 bg-black/20 px-3 py-1 rounded-full flex-1">
               <Search size={14} className="text-white/60" />
@@ -2109,7 +2109,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
             </div>
           ) : (
             <div
-              className="flex items-center gap-3 flex-1 cursor-pointer hover:bg-white/5 p-1 -ml-1 rounded-lg transition-colors"
+              className="flex items-center gap-2 md:gap-3 flex-1 min-w-0 cursor-pointer hover:bg-white/5 p-1 -ml-1 rounded-lg transition-colors"
               onClick={() => {
                 if (selectedConversation?.isGroup) {
                   setShowGroupInfo(true);
@@ -2121,7 +2121,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               {isLiveLocationActive && (
                 <span className="text-red-500 text-xs font-bold animate-pulse flex items-center gap-1 mr-2"><Radio size={14} /> LIVE</span>
               )}
-              <div className="relative">
+              <div className="relative flex-shrink-0">
                 <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center overflow-hidden border border-white/10">
                   {getConversationAvatar() ? (
                     <img src={getConversationAvatar()} alt="" className="w-full h-full object-cover" />
@@ -2136,8 +2136,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                   <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-[2.5px] border-[#202c33] rounded-full z-10 shadow-sm" />
                 )}
               </div>
-              <div className="flex-1">
-                <h2 className="text-white font-medium">{getConversationName()}</h2>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-white font-medium truncate leading-tight">{getConversationName()}</h2>
                 {selectedConversation.isGroup && !isOtherUserTyping && (
                   <p className="text-[10px] text-white/60 truncate">
                     {groupOnlineCount} online · {(selectedConversation.participants || []).length} members
@@ -2186,19 +2186,19 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         </div>
         {/* Header right-side action buttons */}
         {!isSearching && (
-          <div className="flex items-center gap-1 ml-auto relative">
+          <div className="flex items-center gap-0.5 md:gap-1 ml-auto relative flex-shrink-0">
             {/* Voice call */}
             <button onClick={() => !isDNDMode && initiateCall('audio', selectedConversation)}
               title="Voice Call"
               disabled={isDNDMode}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-40">
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-40 flex items-center justify-center">
               <Phone size={18} className="text-white/80" />
             </button>
             {/* Video call */}
             <button onClick={() => !isDNDMode && initiateCall('video', selectedConversation)}
               title="Video Call"
               disabled={isDNDMode}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-40">
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-40 flex items-center justify-center">
               <Video size={18} className="text-white/80" />
             </button>
             {/* Group call - only shown for group conversations */}
@@ -2223,7 +2223,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                 }}
                 title="Group Voice Call"
                 disabled={isDNDMode}
-                className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-40">
+                className="hidden sm:flex p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-40 items-center justify-center">
                 <Users size={18} className="text-white/80" />
               </button>
             )}
@@ -2233,16 +2233,16 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               setAiAssistantAnswer('');
               setAiAssistantQuestion('');
             }} title="AI Assistant"
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+              className="hidden sm:flex p-2 hover:bg-white/10 rounded-lg transition-colors items-center justify-center">
               <Sparkles size={18} className="text-purple-400" />
             </button>
             {/* Search in chat */}
             <button onClick={() => setShowSearchMessages(true)} title="Search messages"
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+              className="hidden sm:flex p-2 hover:bg-white/10 rounded-lg transition-colors items-center justify-center">
               <Search size={18} className="text-white/80" />
             </button>
             <button onClick={() => setShowMediaGallery(true)} title="Media gallery"
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+              className="hidden sm:flex p-2 hover:bg-white/10 rounded-lg transition-colors items-center justify-center">
               <ImageIcon size={18} className="text-white/80" />
             </button>
 
@@ -2283,6 +2283,19 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                   >
                     <Search size={16} className="text-white/60" />
                     <span>Search Messages</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowAIAssistant(true);
+                      setAiAssistantAnswer('');
+                      setAiAssistantQuestion('');
+                      setShowHeaderMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
+                  >
+                    <Sparkles size={16} className="text-purple-400" />
+                    <span>AI Assistant</span>
                   </button>
 
                   <button
@@ -2366,11 +2379,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       <div
         ref={messagesContainerRef}
         onScroll={handleMessagesScroll}
-        className={`flex-1 overflow-y-auto p-4 scrollbar-thin transition-all relative z-10 min-h-0 -webkit-overflow-scrolling-touch overscroll-behavior-contain ${safeMods?.fontSize === 'small' ? 'text-xs' :
+        className={`flex-1 min-h-0 overflow-y-auto px-2 py-3 md:p-4 scrollbar-thin transition-all relative z-10 -webkit-overflow-scrolling-touch overscroll-behavior-contain ${safeMods?.fontSize === 'small' ? 'text-xs' :
           safeMods?.fontSize === 'large' ? 'text-base' :
             safeMods?.fontSize === 'xlarge' ? 'text-lg' : 'text-sm'
           }`}
-        style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', height: 'calc(var(--app-height, 100vh) - 140px)' }}
+        style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}
       >
         {activeDoodle && (
           <div
@@ -2389,7 +2402,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
             </div>
           ) : (
-            <div className="space-y-4 w-full">
+            <div className="space-y-2 md:space-y-4 w-full">
               {selectedConversation?.disappearingMessages?.enabled && (
                 <div className="bg-yellow-100 dark:bg-yellow-900/30 border-l-4 border-yellow-500 p-2 text-yellow-700 dark:text-yellow-300 text-xs rounded-md shadow-sm mb-2 mx-auto max-w-md">
                   <p className="font-medium">⏰ Disappearing Messages</p>
@@ -3237,7 +3250,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         )
       }
 
-      <div className="bg-dark-surface border-t border-dark-border p-4 relative z-10">
+      <div className="bg-dark-surface border-t border-dark-border px-2 py-2 md:p-4 relative z-20 flex-shrink-0">
         {showEmojiPicker && (
           <div className="absolute bottom-20 left-2 right-2 md:left-4 md:right-auto md:w-[350px] max-w-[calc(100vw-1rem)] z-50 overflow-hidden rounded-lg shadow-2xl border border-dark-border bg-dark-surface min-h-[350px] flex items-center justify-center" style={{ maxHeight: 'calc(100vh - 200px)' }}>
             <React.Suspense fallback={<div className="animate-pulse text-dark-textSecondary">Loading emojis...</div>}>
@@ -3296,9 +3309,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           </div>
         )}
 
-        <form onSubmit={handleSendMessage} className="flex items-center gap-2 p-3 bg-dark-bg border-t border-dark-border flex-shrink-0 sticky bottom-0 z-50" role="form" aria-label="Send message">
+        <form onSubmit={handleSendMessage} className="flex items-end gap-2 p-1.5 md:p-3 bg-dark-bg border border-dark-border rounded-2xl flex-shrink-0 z-50" role="form" aria-label="Send message">
           {!voiceRecorderActive && (
-            <div className="flex items-center gap-1 md:gap-2 overflow-x-auto no-scrollbar max-w-[140px] md:max-w-none flex-shrink-0 snap-x">
+            <div className="flex items-center gap-1 md:gap-2 overflow-x-auto no-scrollbar max-w-[112px] sm:max-w-[160px] md:max-w-none flex-shrink-0 snap-x">
               <button
                 type="button"
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
@@ -4197,9 +4210,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 };
 
 export default ChatArea;
-
-
-
 
 
 

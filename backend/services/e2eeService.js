@@ -255,6 +255,7 @@ class E2EEService {
 const e2eeService = new E2EEService();
 
 // Run cleanup every hour
-setInterval(() => e2eeService.cleanup(), 60 * 60 * 1000);
+const e2eeCleanupInterval = setInterval(() => e2eeService.cleanup(), 60 * 60 * 1000);
+e2eeCleanupInterval.unref?.();
 
 module.exports = e2eeService;

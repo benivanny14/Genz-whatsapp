@@ -12,6 +12,25 @@ import { cleanupLocalBlobUrls } from './utils/sanitizeStorage'
 
 cleanupLocalBlobUrls();
 
+const ENABLE_DEV_SERVICE_WORKER = import.meta.env.VITE_ENABLE_DEV_SERVICE_WORKER === 'true';
+const shouldRegisterServiceWorker = import.meta.env.PROD || ENABLE_DEV_SERVICE_WORKER;
+
+const cleanupDevServiceWorkers = async () => {
+  if (!('serviceWorker' in navigator) || import.meta.env.PROD || ENABLE_DEV_SERVICE_WORKER) {
+    return;
+  }
+
+  try {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map((registration) => registration.unregister()));
+    if (registrations.length) {
+      console.log(`[SW] Removed ${registrations.length} development registration(s)`);
+    }
+  } catch (error) {
+    console.warn('[SW] Development cleanup failed:', error);
+  }
+};
+
 // Apply saved custom font on startup
 try {
   const mods = JSON.parse(localStorage.getItem('genz_mods') || '{}');
@@ -30,6 +49,11 @@ try {
 // ── Service Worker + Push Notification Registration ───────────────────────
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
+    if (!shouldRegisterServiceWorker) {
+      await cleanupDevServiceWorkers();
+      return;
+    }
+
     try {
       const registration = await navigator.serviceWorker.register('/service-worker.js', { scope: '/' });
       console.log('[SW] Registered:', registration.scope);
