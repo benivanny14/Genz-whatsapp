@@ -1065,7 +1065,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     ) : (
                       <span className="text-white font-semibold bg-gray-500 w-full h-full flex items-center justify-center">{status.username?.charAt(0) || '?'}</span>
                     )}
-                    {status.wasDeletedByOwner && mods.antiDeleteStatus && (
+                    {status.wasDeletedByOwner && mods?.antiDeleteStatus && (
                       <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center">
                         <Trash2 size={16} className="text-red-500 drop-shadow-md" />
                       </div>

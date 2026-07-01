@@ -414,7 +414,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
   // Standard WhatsApp Web styles
   const glassMode = false; // Disabled to match WhatsApp perfectly
-  const headerClass = 'bg-[#202c33]'; // WhatsApp Web dark header
   const inputAreaClass = 'bg-[#202c33]'; // WhatsApp Web dark input area
   const bubbleSentClass = 'message-bubble-sent'; // Fallback to index.css or tailwind classes
   const bubbleReceivedClass = 'message-bubble-received';
@@ -959,7 +958,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       setShowRecordingUI(false);
       setIsRecordingLocked(false);
       stopTimer();
-      if (!mods.ghostMode) sendRecordingStatus(false);
+      if (!safeMods.ghostMode) sendRecordingStatus(false);
     }
   };
 
@@ -1888,7 +1887,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   }
 
   // CHAT LOCK CHECK
-  const isLocked = selectedConversation.isLocked && !unlockedSessionChats.has(String(selectedConversation._id));
+  const isLocked = selectedConversation?.isLocked && unlockedSessionChats && !unlockedSessionChats.has(String(selectedConversation._id));
 
   if (isLocked) {
     return (
@@ -2175,7 +2174,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                 {isOtherUserRecording && (
                   <p className="text-sm text-white/70 animate-pulse">recording audio...</p>
                 )}
-                {mods.ghostMode && (
+                {safeMods.ghostMode && (
                   <p className="text-xs text-white/80 flex items-center gap-1">
                     <Ghost size={10} /> Ghost Mode Active
                   </p>
@@ -2581,11 +2580,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
                     {/* 📽️ Video Message 📽️ */}
                     {message.messageType === 'video' && mediaSourceOf(message) && (
-                      (message.isViewOnce || message.isSelfDestruct) && !mods.antiViewOnce && message.isConsumed ? (
+                      (message.isViewOnce || message.isSelfDestruct) && !safeMods.antiViewOnce && message.isConsumed ? (
                         <div className="flex items-center gap-2 text-dark-textSecondary py-2 italic text-sm">
                           <Eye size={16} /> {message.isSelfDestruct ? 'Self-destructed' : 'Opened'}
                         </div>
-                      ) : (message.isViewOnce || message.isSelfDestruct) && !mods.antiViewOnce ? (
+                      ) : (message.isViewOnce || message.isSelfDestruct) && !safeMods.antiViewOnce ? (
                         <div className="relative mb-1">
                           {/* Placeholder for View Once video - don't load actual video until clicked */}
                           <div
@@ -2637,11 +2636,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
                     {/* ── Image Message ── */}
                     {message.messageType === 'image' && (
-                      (message.isViewOnce || message.isSelfDestruct) && !mods.antiViewOnce && message.isConsumed ? (
+                      (message.isViewOnce || message.isSelfDestruct) && !safeMods.antiViewOnce && message.isConsumed ? (
                         <div className="flex items-center gap-2 text-dark-textSecondary py-2 italic text-sm">
                           <Eye size={16} /> {message.isSelfDestruct ? 'Self-destructed' : 'Opened'}
                         </div>
-                      ) : (message.isViewOnce || message.isSelfDestruct) && !mods.antiViewOnce ? (
+                      ) : (message.isViewOnce || message.isSelfDestruct) && !safeMods.antiViewOnce ? (
                         <div className="relative">
                           {/* Placeholder for View Once media - don't load actual image until clicked */}
                           <div
@@ -2802,7 +2801,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       !message.isSelfDestruct &&
                       message.messageType === 'text' &&
                       !isOwnMessage(message) &&
-                      !mods?.antiViewOnce &&
+                      !safeMods?.antiViewOnce &&
                       !message.isConsumed && (
                         <button
                           type="button"
@@ -2879,7 +2878,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       <span className="text-xs opacity-70">{formatMessageTime(message.createdAt)}</span>
                       {isOwnMessage(message) && (
                         <span
-                          className={`text-[10px] font-black ${message.status === 'read' && !mods?.hideBlueTickColor && (!mods?.tickStyle || mods?.tickStyle === 'default' || mods?.tickStyle === 'ios')
+                          className={`text-[10px] font-black ${message.status === 'read' && !safeMods?.hideBlueTickColor && (!safeMods?.tickStyle || safeMods?.tickStyle === 'default' || safeMods?.tickStyle === 'ios')
                             ? 'text-blue-400'
                             : message.status === 'delivered'
                               ? 'text-white/70'
@@ -2889,7 +2888,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                         >
                           {(() => {
                             const status = message.status;
-                            const style = mods?.tickStyle || 'default';
+                            const style = safeMods?.tickStyle || 'default';
                             const isSent = status === 'sent';
 
                             switch (style) {
@@ -3378,10 +3377,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               <AttachmentIcon icon={<BarChart2 className="text-yellow-600" />} label="Poll" disabled={!canCreatePolls && !currentUserIsAdmin} onClick={() => setShowPollModal(true)} />
               <AttachmentIcon icon={<Clock className="text-purple-600" />} label="Disappear" onClick={() => handleSetDisappearingMessages()} disabled={!selectedConversation} />
               {/* GENZ Ultra Attachments */}
-              {mods?.trendingStickers && (
+              {safeMods?.trendingStickers && (
                 <AttachmentIcon icon={<TrendingUp className="text-pink-500" />} label="Stickers" onClick={() => { setShowTrendingStickers(true); setShowAttachmentMenu(false); }} />
               )}
-              {mods?.aiCaption && (
+              {safeMods?.aiCaption && (
                 <AttachmentIcon icon={<Wand2 className="text-purple-400" />} label="AI Caption" onClick={() => { setShowAICaption(true); setShowAttachmentMenu(false); }} />
               )}
               <AttachmentIcon icon={<Sparkles className="text-yellow-400" />} label="Big File" onClick={() => { setShowChunkedUploader(true); setShowAttachmentMenu(false); }} />

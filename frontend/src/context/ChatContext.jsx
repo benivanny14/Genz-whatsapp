@@ -17,6 +17,7 @@ import { decryptMessageContent, decryptMessagesList } from '../utils/e2eeMessage
 import { isClientE2EEMessageContent } from '../utils/e2eeContent';
 import notificationService from '../services/notificationService';
 import { resolveApiBase, resolveSocketOrigin } from '../utils/resolveApiBase';
+import chatAPI from '../services/chatAPI';
 
 import { applyVoiceEffect } from '../utils/voiceEffects';
 import {
