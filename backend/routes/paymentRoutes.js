@@ -17,7 +17,10 @@ const {
   handleMpesaCallback,
   handleAirtelCallback,
   getTransactionHistory,
-  processRefund
+  processRefund,
+  initiatePesapalPayment,
+  handlePesapalCallback,
+  queryPesapalStatus
 } = require('../controllers/paymentController');
 const {
   mpesaWebhook,
@@ -77,6 +80,7 @@ router.post('/webhook/mpesa', webhookRateLimiter, preventWebhookRetryStorm, vali
 router.post('/webhook/airtel', webhookRateLimiter, preventWebhookRetryStorm, validateTimestamp, verifyAirtelSignature, sanitizeWebhook('airtel'), validateAirtelWebhook, gracefulWebhookHandler(handleAirtelCallback));
 router.post('/webhook/yas', webhookRateLimiter, preventWebhookRetryStorm, validateTimestamp, verifyYasSignature, sanitizeWebhook('yas'), validateYasWebhook, gracefulWebhookHandler(yasWebhook));
 router.post('/webhook/halopesa', webhookRateLimiter, preventWebhookRetryStorm, validateTimestamp, verifyHalopesaSignature, sanitizeWebhook('halopesa'), validateHalopesaWebhook, gracefulWebhookHandler(halopesaWebhook));
+router.post('/webhook/pesapal', webhookRateLimiter, preventWebhookRetryStorm, gracefulWebhookHandler(handlePesapalCallback));
 
 // Generic webhook route — disabled in production; provider-specific routes above are canonical
 router.post('/webhook', webhookRateLimiter, validateTimestamp, (req, res) => {
@@ -86,10 +90,12 @@ router.post('/webhook', webhookRateLimiter, validateTimestamp, (req, res) => {
   return paymentWebhook(req, res);
 });
 
-// M-Pesa and Airtel payment initiation routes
+// M-Pesa, Airtel and PesaPal payment initiation routes
 router.post('/mpesa/initiate', protect, paymentRateLimiter, initiateMpesaPayment);
 router.post('/airtel/initiate', protect, paymentRateLimiter, initiateAirtelPayment);
+router.post('/pesapal/initiate', protect, paymentRateLimiter, initiatePesapalPayment);
 router.get('/status/:transactionId', protect, paymentRateLimiter, queryPaymentStatus);
+router.get('/pesapal/status/:orderTrackingId', protect, paymentRateLimiter, queryPesapalStatus);
 router.get('/transactions', protect, subscriptionRateLimiter, getTransactionHistory);
 router.post('/refund', protect, isAdmin, processRefund);
 

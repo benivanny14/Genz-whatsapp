@@ -12,6 +12,12 @@ const {
 } = require('../services/paymentService');
 const { initiateYasPayment, verifyYasPayment } = require('../services/yasService');
 const { initiateHalopesaPayment, verifyHalopesaPayment } = require('../services/halopesaService');
+const { 
+  getPesapalAuthToken, 
+  submitOrderRequest, 
+  getTransactionStatus,
+  formatOrderData 
+} = require('../services/pesapalService');
 const {
   logPremiumActivation,
   logPremiumDeactivation,
@@ -22,7 +28,7 @@ const LOCAL_USER_ID = process.env.LOCAL_USER_ID || '60d5ecb8b392cb371c664c12';
 const SUBSCRIPTION_DAYS = 60; // Exactly 60 days
 const SUBSCRIPTION_MONTHS = 2; // Admin UI compatibility for the 60-day plan
 const SUBSCRIPTION_AMOUNT = 10000; // Tsh 10,000
-const VALID_PAYMENT_METHODS = ['mpesa', 'airtel', 'airtel-money', 'yas', 'halopesa', 'card', 'mock'];
+const VALID_PAYMENT_METHODS = ['mpesa', 'airtel', 'airtel-money', 'yas', 'halopesa', 'card', 'pesapal', 'mock'];
 
 const getCurrentUserId = (req) => req.user?._id?.toString() || req.body.deviceId || req.query.deviceId || LOCAL_USER_ID;
 
@@ -59,6 +65,7 @@ const getMissingProviderConfig = (paymentMethod) => {
     'airtel-money': ['AIRTEL_CLIENT_ID', 'AIRTEL_CLIENT_SECRET'],
     yas: ['YAS_API_KEY', 'YAS_MERCHANT_ID', 'YAS_SECRET_KEY'],
     halopesa: ['HALOPESA_API_KEY', 'HALOPESA_MERCHANT_ID', 'HALOPESA_SECRET_KEY'],
+    pesapal: ['PESAPAL_CONSUMER_KEY', 'PESAPAL_CONSUMER_SECRET'],
     card: ['STRIPE_SECRET_KEY']
   };
 
@@ -91,7 +98,7 @@ const createProviderTransaction = async ({ userId, amount, paymentMethod, phoneN
   );
 };
 
-const initiateProviderPayment = async ({ userId, amount, paymentMethod, phoneNumber, transactionId }) => {
+const initiateProviderPayment = async ({ userId, amount, paymentMethod, phoneNumber, transactionId, user }) => {
   if (paymentMethod === 'mpesa') {
     return serviceInitiateMpesaPayment(
       userId,
@@ -114,6 +121,31 @@ const initiateProviderPayment = async ({ userId, amount, paymentMethod, phoneNum
 
   if (paymentMethod === 'card') {
     throw new Error('Card checkout is not wired. Configure Stripe and add a checkout session provider before enabling card payments.');
+  }
+
+  if (paymentMethod === 'pesapal') {
+    await createProviderTransaction({ userId, amount, paymentMethod, phoneNumber, transactionId });
+    
+    const orderData = formatOrderData({
+      id: transactionId,
+      amount,
+      currency: 'TZS',
+      description: 'GENZ WhatsApp Premium Subscription',
+      phoneNumber,
+      email: user?.email || '',
+      firstName: user?.username?.split(' ')[0] || '',
+      lastName: user?.username?.split(' ').slice(1).join(' ') || user?.username || ''
+    });
+
+    const pesapalResult = await submitOrderRequest(orderData);
+    
+    return {
+      success: true,
+      transactionId,
+      paymentUrl: pesapalResult.redirect_url || pesapalResult.paymentUrl,
+      orderTrackingId: pesapalResult.order_tracking_id,
+      message: 'Payment link generated. Please complete payment via PesaPal.'
+    };
   }
 
   await createProviderTransaction({ userId, amount, paymentMethod, phoneNumber, transactionId });
@@ -283,7 +315,8 @@ exports.initiatePayment = async (req, res) => {
       amount: numericAmount,
       paymentMethod: normalizedMethod,
       phoneNumber: billingPhoneNumber,
-      transactionId
+      transactionId,
+      user: req.user
     });
 
     const providerTransactionId = providerResult.transactionId || transactionId;
@@ -748,6 +781,177 @@ exports.processRefund = async (req, res) => {
     res.status(200).json(result);
   } catch (error) {
     console.error('[PaymentController] Refund failed:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Initiate PesaPal payment
+// @route   POST /api/payment/pesapal/initiate
+// @access  Private
+exports.initiatePesapalPayment = async (req, res) => {
+  try {
+    const { amount, phoneNumber, email, firstName, lastName } = req.body;
+    const userId = req.user._id;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ success: false, message: 'Valid amount is required' });
+    }
+
+    const transactionId = `PESAPAL-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Create transaction record
+    await Transaction.create({
+      userId,
+      provider: 'pesapal',
+      type: 'subscription',
+      amount,
+      currency: 'TZS',
+      phoneNumber: phoneNumber || req.user?.phoneNumber || '',
+      reference: 'GENZ Subscription',
+      description: 'Premium subscription payment',
+      transactionId,
+      status: 'pending',
+      expiresAt: new Date(Date.now() + 30 * 60 * 1000) // 30 minutes
+    });
+
+    const orderData = formatOrderData({
+      id: transactionId,
+      amount,
+      currency: 'TZS',
+      description: 'GENZ WhatsApp Premium Subscription',
+      phoneNumber: phoneNumber || req.user?.phoneNumber || '',
+      email: email || req.user?.email || '',
+      firstName: firstName || req.user?.username?.split(' ')[0] || '',
+      lastName: lastName || req.user?.username?.split(' ').slice(1).join(' ') || req.user?.username || ''
+    });
+
+    const pesapalResult = await submitOrderRequest(orderData);
+    
+    // Update transaction with order tracking ID
+    await Transaction.findOneAndUpdate(
+      { transactionId },
+      {
+        providerTransactionId: pesapalResult.order_tracking_id,
+        status: 'processing'
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      transactionId,
+      paymentUrl: pesapalResult.redirect_url || pesapalResult.paymentUrl,
+      orderTrackingId: pesapalResult.order_tracking_id,
+      message: 'Payment link generated. Please complete payment via PesaPal.'
+    });
+  } catch (error) {
+    console.error('[PaymentController] PesaPal payment failed:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Handle PesaPal callback
+// @route   POST /api/payment/pesapal/callback
+// @access  Public
+exports.handlePesapalCallback = async (req, res) => {
+  try {
+    const { order_tracking_id, payment_status, payment_method } = req.body;
+
+    if (!order_tracking_id) {
+      return res.status(400).json({ success: false, message: 'Order tracking ID is required' });
+    }
+
+    // Find transaction by order tracking ID
+    const transaction = await Transaction.findOne({
+      providerTransactionId: order_tracking_id,
+      provider: 'pesapal'
+    });
+
+    if (!transaction) {
+      console.warn('[PaymentController] Transaction not found for PesaPal callback:', order_tracking_id);
+      return { success: false, message: 'Transaction not found' };
+    }
+
+    if (transaction.status === 'completed') {
+      return { success: true, message: 'Callback already processed' };
+    }
+
+    // Get transaction status from PesaPal
+    const statusResult = await getTransactionStatus(order_tracking_id);
+
+    if (statusResult && statusResult.status === 'completed') {
+      transaction.markCompleted(
+        order_tracking_id,
+        statusResult.receipt_number || order_tracking_id,
+        statusResult.payment_date || new Date()
+      );
+      await transaction.save();
+
+      // Update user subscription
+      await activateSubscription({
+        userId: transaction.userId,
+        amount: transaction.amount,
+        paymentMethod: 'pesapal',
+        phoneNumber: transaction.phoneNumber,
+        transactionId: transaction.transactionId,
+        gatewayResponse: statusResult
+      });
+
+      return { success: true, message: 'Payment completed successfully' };
+    } else if (statusResult && statusResult.status === 'failed') {
+      transaction.markFailed(statusResult.message || 'Payment failed');
+      await transaction.save();
+      return { success: true, message: 'Payment failed' };
+    }
+
+    res.status(200).json({ success: true, message: 'Callback processed' });
+  } catch (error) {
+    console.error('[PaymentController] PesaPal callback failed:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Query PesaPal transaction status
+// @route   GET /api/payment/pesapal/status/:orderTrackingId
+// @access  Private
+exports.queryPesapalStatus = async (req, res) => {
+  try {
+    const { orderTrackingId } = req.params;
+
+    const statusResult = await getTransactionStatus(orderTrackingId);
+
+    // Update transaction if status changed
+    if (statusResult) {
+      const transaction = await Transaction.findOne({
+        providerTransactionId: orderTrackingId,
+        provider: 'pesapal'
+      });
+
+      if (transaction && transaction.status !== 'completed' && statusResult.status === 'completed') {
+        transaction.markCompleted(
+          orderTrackingId,
+          statusResult.receipt_number || orderTrackingId,
+          statusResult.payment_date || new Date()
+        );
+        await transaction.save();
+
+        // Update user subscription
+        await activateSubscription({
+          userId: transaction.userId,
+          amount: transaction.amount,
+          paymentMethod: 'pesapal',
+          phoneNumber: transaction.phoneNumber,
+          transactionId: transaction.transactionId,
+          gatewayResponse: statusResult
+        });
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      status: statusResult
+    });
+  } catch (error) {
+    console.error('[PaymentController] Query PesaPal status failed:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
