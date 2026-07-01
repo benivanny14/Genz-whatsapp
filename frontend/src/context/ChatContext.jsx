@@ -2839,9 +2839,13 @@ export const ChatProvider = ({ children }) => {
             } catch (_) { /* IndexedDB cache is best-effort */ }
             const storedId = getStoredSelectedConversationId();
             if (storedId) {
-              const matched = remoteConversations.find(c => c._id === storedId);
+              const matched = remoteConversations.find(c => String(c._id) === String(storedId));
               if (matched) {
-                selectConversation(matched);
+                setTimeout(() => {
+                  if (socketRef.current?.connected) {
+                    socketRef.current.emit('join:conversation', matched._id);
+                  }
+                }, 300);
               }
             }
           }

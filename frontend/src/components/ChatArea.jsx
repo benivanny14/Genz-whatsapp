@@ -54,6 +54,9 @@ const DISAPPEARING_OPTIONS = [
   { label: '90 days', value: '90d' },
 ];
 
+// Header class for modals - consistent styling
+const headerClass = 'bg-dark-surface';
+
 // ── URL detection helper ──
 const URL_REGEX = /(https?:\/\/[^\s]+)/g;
 const extractFirstUrl = (text) => {
@@ -633,10 +636,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   function getConversationName() {
     if (!selectedConversation) return '';
     if (selectedConversation.isGroup) {
-      return selectedConversation.groupName;
+      return selectedConversation.groupName || 'Group';
     }
-    const otherUser = selectedConversation.participants?.find((p) => p._id !== user?.id);
-    return otherUser?.username || 'Unknown';
+    const otherUser = (selectedConversation.participants || []).find((p) => String(p?._id || p?.id || p) !== String(user?.id || user?._id));
+    return otherUser?.username || otherUser?.name || 'Unknown';
   }
 
   function getConversationAvatar() {
@@ -652,12 +655,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       }
       return `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedConversation.groupName || 'Group')}&background=random&color=fff`;
     }
-    const otherUser = selectedConversation.participants?.find((p) => p._id !== user?.id);
+    const otherUser = (selectedConversation.participants || []).find((p) => String(p?._id || p?.id || p) !== String(user?.id || user?._id));
     if (otherUser?.profilePicture && !hasStaleBlobUrl(otherUser.profilePicture)) {
       return otherUser.profilePicture;
     }
     // Fallback: generic avatar from ui-avatars
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(otherUser?.username || 'User')}&background=random&color=fff`;
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(otherUser?.username || otherUser?.name || 'User')}&background=random&color=fff`;
   }
 
   const handleGIFSelect = (gif) => {
@@ -1917,16 +1920,16 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   }
 
   // Get online history for the current user
-  const otherUser = selectedConversation.participants.find(p => p._id !== user?.id);
-  const history = presenceHistory[otherUser?._id] || [];
+  const otherUser = (selectedConversation?.participants || []).find((p) => String(p?._id || p?.id || p) !== String(user?.id || user?._id));
+  const history = (otherUser && presenceHistory) ? (presenceHistory[otherUser?._id || otherUser?.id] || []) : [];
 
   // GENZ MOD: Logic moved here to ensure selectedConversation is not null
   const currentUserIsAdmin = selectedConversation?.isGroup &&
-    selectedConversation.participants.find(p => p._id === user?.id)?.role === 'admin'; // Added null check for selectedConversation
-  const adminOnlyMessagingEnabled = selectedConversation?.isGroup && selectedConversation.adminOnlyMessaging; // Added null check
-  const canSendMedia = selectedConversation?.isGroup ? (selectedConversation.canSendMedia || currentUserIsAdmin) : true; // Added null check
-  const canCreatePolls = selectedConversation?.isGroup ? (selectedConversation.canCreatePolls || currentUserIsAdmin) : true; // Added null check
-  const canChangeGroupInfo = selectedConversation?.isGroup ? (selectedConversation.canChangeGroupInfo || currentUserIsAdmin) : true; // Added null check
+    (selectedConversation?.participants || []).find((p) => String(p?._id || p?.id || p) === String(user?.id || user?._id))?.role === 'admin';
+  const adminOnlyMessagingEnabled = selectedConversation?.isGroup && selectedConversation.adminOnlyMessaging;
+  const canSendMedia = selectedConversation?.isGroup ? (selectedConversation.canSendMedia || currentUserIsAdmin) : true;
+  const canCreatePolls = selectedConversation?.isGroup ? (selectedConversation.canCreatePolls || currentUserIsAdmin) : true;
+  const canChangeGroupInfo = selectedConversation?.isGroup ? (selectedConversation.canChangeGroupInfo || currentUserIsAdmin) : true;
   const groupOnlineCount = selectedConversation?.isGroup
     ? (selectedConversation.participants || []).filter((participant) => (
       String(participant?._id) !== String(user?.id) &&
@@ -2035,14 +2038,14 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   });
 
   const filteredMessages = chatSearchQuery
-    ? visibleMessages.filter(m => plaintextOf(m).toLowerCase().includes(chatSearchQuery.toLowerCase()))
+    ? visibleMessages.filter(m => m && plaintextOf(m)?.toLowerCase()?.includes(chatSearchQuery.toLowerCase()))
     : visibleMessages;
 
 
-  const safeChatWallpaper = hasStaleBlobUrl(mods.chatWallpaper) ? null : mods.chatWallpaper;
+  const safeChatWallpaper = mods && hasStaleBlobUrl(mods.chatWallpaper) ? null : mods?.chatWallpaper;
 
   // Custom per-chat wallpaper logic (TM Style)
-  const chatConfig = mods?.customWallpapers?.[selectedConversation?._id] || {};
+  const chatConfig = (mods?.customWallpapers && selectedConversation?._id) ? (mods.customWallpapers[selectedConversation._id] || {}) : {};
   const activeWallpaper = chatConfig.wallpaper || safeChatWallpaper;
   const activeDim = chatConfig.dim !== undefined ? chatConfig.dim : (mods?.chatWallpaperDim || 0);
   const activeDoodle = chatConfig.doodle !== undefined ? chatConfig.doodle : (mods?.chatWallpaperDoodle !== false);
@@ -2070,7 +2073,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   // Filter messages for search
 
   return (
-    <div className="flex-1 flex flex-col bg-dark-bg min-w-0 w-full overflow-hidden relative h-full" style={{ height: 'var(--app-height)' }}>
+    <div className="flex-1 flex flex-col bg-dark-bg min-w-0 w-full overflow-hidden relative h-full" style={{ height: 'var(--app-height, 100vh)' }}>
       <div
         className="absolute inset-0 pointer-events-none z-0"
         style={wallpaperStyle}
@@ -2363,11 +2366,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       <div
         ref={messagesContainerRef}
         onScroll={handleMessagesScroll}
-        className={`flex-1 overflow-y-auto p-4 scrollbar-thin transition-all relative z-10 min-h-0 -webkit-overflow-scrolling-touch overscroll-behavior-contain ${mods?.fontSize === 'small' ? 'text-xs' :
-          mods?.fontSize === 'large' ? 'text-base' :
-            mods?.fontSize === 'xlarge' ? 'text-lg' : 'text-sm'
+        className={`flex-1 overflow-y-auto p-4 scrollbar-thin transition-all relative z-10 min-h-0 -webkit-overflow-scrolling-touch overscroll-behavior-contain ${safeMods?.fontSize === 'small' ? 'text-xs' :
+          safeMods?.fontSize === 'large' ? 'text-base' :
+            safeMods?.fontSize === 'xlarge' ? 'text-lg' : 'text-sm'
           }`}
-        style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}
+        style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', height: 'calc(var(--app-height, 100vh) - 140px)' }}
       >
         {activeDoodle && (
           <div
@@ -3293,7 +3296,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           </div>
         )}
 
-        <form onSubmit={handleSendMessage} className="relative flex items-center gap-2 p-3 bg-dark-bg border-t border-dark-border flex-shrink-0 sticky bottom-0 z-50" role="form" aria-label="Send message">
+        <form onSubmit={handleSendMessage} className="flex items-center gap-2 p-3 bg-dark-bg border-t border-dark-border flex-shrink-0 sticky bottom-0 z-50" role="form" aria-label="Send message">
           {!voiceRecorderActive && (
             <div className="flex items-center gap-1 md:gap-2 overflow-x-auto no-scrollbar max-w-[140px] md:max-w-none flex-shrink-0 snap-x">
               <button
@@ -3454,7 +3457,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
             </div>
           )}
           {mentionState.open && mentionSuggestions.length > 0 && !showAttachmentMenu && !showAIWritingHelp && (
-            <div className="absolute bottom-16 left-2 right-2 md:left-40 md:right-auto md:w-80 bg-dark-surface border border-dark-border rounded-xl shadow-xl p-2 z-50" style={{ maxHeight: 'calc(100vh - 250px)' }}>
+            <div className="absolute bottom-16 left-2 right-2 md:left-40 md:right-auto md:w-80 bg-dark-surface border border-dark-border rounded-xl shadow-xl p-2 z-50" style={{ maxHeight: 'calc(var(--app-height, 100vh) - 250px)' }}>
               <div className="flex items-center gap-2 px-2 pb-2 text-[10px] uppercase tracking-wide text-dark-textSecondary">
                 <AtSign size={12} />
                 Mention
@@ -3510,7 +3513,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               onBlur={() => window.setTimeout(closeMentionPicker, 120)}
               placeholder="Type a message..."
               className="flex-1 min-w-[100px] px-4 py-2.5 bg-dark-bg border border-dark-border rounded-2xl text-dark-text placeholder-dark-textSecondary focus:outline-none focus:border-primary-500 transition-colors text-base md:text-sm"
-              style={{ fontSize: '16px' }}
             />
           )}
 
@@ -4195,5 +4197,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 };
 
 export default ChatArea;
+
+
+
+
 
 
