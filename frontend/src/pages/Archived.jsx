@@ -59,9 +59,9 @@ const Archived = () => {
         </button>
         <div>
           <h1 className="text-white font-bold flex items-center gap-2">
-            <Archive size={18} className="text-blue-400" /> Mazungumzo Yaliyohifadhiwa
+            <Archive size={18} className="text-blue-400" /> Archived Conversations
           </h1>
-          <p className="text-white/40 text-xs">{filtered.length} mazungumzo</p>
+          <p className="text-white/40 text-xs">{filtered.length} conversations</p>
         </div>
       </div>
 
@@ -70,7 +70,7 @@ const Archived = () => {
         <div className="relative">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
           <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Tafuta mazungumzo..."
+            placeholder="Search conversations..."
             className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-[#25d366]/40"
           />
         </div>

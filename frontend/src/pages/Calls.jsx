@@ -100,7 +100,7 @@ const Calls = () => {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tafuta simu..."
+            placeholder="Search calls..."
             className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-[#25d366]/40"
           />
         </div>
@@ -108,9 +108,9 @@ const Calls = () => {
 
       <div className="flex gap-1.5 px-4 pb-3 overflow-x-auto">
         {[
-          { id: 'all', label: 'Zote' },
-          { id: 'missed', label: '🔴 Zilizokosekana' },
-          { id: 'voice', label: '🎙️ Sauti' },
+          { id: 'all', label: 'All' },
+          { id: 'missed', label: '🔴 Missed' },
+          { id: 'voice', label: '🎙️ Voice' },
           { id: 'video', label: '📹 Video' }
         ].map((f) => (
           <button
@@ -212,7 +212,7 @@ const Calls = () => {
         <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
           <div className="w-full max-w-md bg-[#1f2c34] border border-white/10 rounded-2xl shadow-2xl max-h-[80vh] flex flex-col">
             <div className="p-4 border-b border-white/10 flex items-center justify-between">
-              <h2 className="text-white font-bold">Piga simu mpya</h2>
+              <h2 className="text-white font-bold">New Call</h2>
               <button type="button" onClick={() => setShowNewCall(false)} className="p-2 text-white/50 hover:text-white">
                 <X size={20} />
               </button>
@@ -222,14 +222,14 @@ const Calls = () => {
                 type="text"
                 value={contactSearch}
                 onChange={(e) => setContactSearch(e.target.value)}
-                placeholder="Tafuta mtu..."
+                placeholder="Search person..."
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-[#25d366]/40"
               />
             </div>
             <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2">
               {dialTargets.length === 0 ? (
                 <p className="text-white/40 text-sm text-center py-8">
-                  Hakuna mazungumzo. Anza chat kwanza kutoka ukurasa wa mazungumzo.
+                  No conversations. Start a chat first from the conversations page.
                 </p>
               ) : (
                 dialTargets.map((conv) => {
