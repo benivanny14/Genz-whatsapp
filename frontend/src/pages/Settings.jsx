@@ -308,7 +308,7 @@ const Settings = () => {
         setSettingsData(remoteSettings);
         persistSettings(remoteSettings);
       } catch (error) {
-        console.warn('[Settings] Using local settings fallback:', error.message);
+        // Using local settings fallback
       } finally {
         if (active) setLoading(false);
       }
@@ -356,7 +356,6 @@ const Settings = () => {
       showStatus('success', 'Settings saved successfully.');
       return saved;
     } catch (error) {
-      console.warn('[Settings] Remote save failed, kept local copy:', error.message);
       showStatus('warning', 'Saved on this device. Server sync will retry next time.');
       return nextSettings;
     } finally {

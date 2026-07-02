@@ -25,7 +25,6 @@ const LinkedDevices = () => {
       const data = await deviceService.getDevices();
       setDevices(data.devices || []);
     } catch (error) {
-      console.error('Error fetching devices:', error);
       setError('Failed to load devices. Please try again.');
     } finally {
       setLoading(false);
@@ -40,7 +39,6 @@ const LinkedDevices = () => {
       setQrData(data);
       setShowQRModal(true);
     } catch (error) {
-      console.error('Error generating QR:', error);
       setError('Failed to generate QR code. Please try again.');
     } finally {
       setQrLoading(false);
@@ -57,7 +55,6 @@ const LinkedDevices = () => {
       await deviceService.logoutAllDevices();
       await fetchDevices();
     } catch (error) {
-      console.error('Error logging out all devices:', error);
       setError('Failed to logout devices. Please try again.');
     } finally {
       setLoading(false);

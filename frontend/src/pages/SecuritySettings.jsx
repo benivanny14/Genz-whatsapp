@@ -45,7 +45,6 @@ const SecuritySettings = () => {
       setEmailVerified(emailStatus.verified);
       setVerificationEmail(emailStatus.email);
     } catch (error) {
-      console.error('Error fetching security settings:', error);
     } finally {
       setLoading(false);
     }
@@ -59,7 +58,6 @@ const SecuritySettings = () => {
       setSecret(data.secret);
       setShow2FAModal(true);
     } catch (error) {
-      console.error('Error setting up 2FA:', error);
     } finally {
       setSetupLoading(false);
     }
@@ -75,7 +73,6 @@ const SecuritySettings = () => {
       setQrCode(null);
       setSecret('');
     } catch (error) {
-      console.error('Error verifying 2FA:', error);
     } finally {
       setSetupLoading(false);
     }
@@ -89,7 +86,6 @@ const SecuritySettings = () => {
       setShowDisable2FAModal(false);
       setDisableCode('');
     } catch (error) {
-      console.error('Error disabling 2FA:', error);
     } finally {
       setSetupLoading(false);
     }
@@ -102,7 +98,6 @@ const SecuritySettings = () => {
       await securityService.sendEmailVerification(verificationEmail);
       setShowEmailModal(true);
     } catch (error) {
-      console.error('Error sending email verification:', error);
     } finally {
       setEmailLoading(false);
     }

@@ -23,11 +23,8 @@ const cleanupDevServiceWorkers = async () => {
   try {
     const registrations = await navigator.serviceWorker.getRegistrations();
     await Promise.all(registrations.map((registration) => registration.unregister()));
-    if (registrations.length) {
-      console.log(`[SW] Removed ${registrations.length} development registration(s)`);
-    }
   } catch (error) {
-    console.warn('[SW] Development cleanup failed:', error);
+    // Silent cleanup
   }
 };
 
@@ -56,7 +53,6 @@ if ('serviceWorker' in navigator) {
 
     try {
       const registration = await navigator.serviceWorker.register('/service-worker.js', { scope: '/' });
-      console.log('[SW] Registered:', registration.scope);
 
       // When a new SW version activates and takes control, reload once so
       // this tab picks up the fresh app shell + asset hashes instead of
@@ -84,12 +80,11 @@ if ('serviceWorker' in navigator) {
 
       // Request push notification permission
       if ('Notification' in window && Notification.permission === 'default') {
-        const permission = await Notification.requestPermission();
-        console.log('[Notifications] Permission:', permission);
+        await Notification.requestPermission();
       }
 
     } catch (error) {
-      console.warn('[SW] Registration failed:', error);
+      // Silent error handling
     }
   });
 }

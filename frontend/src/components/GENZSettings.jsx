@@ -95,9 +95,8 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
     if (storedProfile) {
       try {
         profileData = JSON.parse(storedProfile);
-        console.log('Loaded profile from localStorage:', { ...profileData, profilePicture: profileData.profilePicture?.length + ' chars' });
       } catch (e) {
-        console.error('Failed to parse stored profile:', e);
+        // Failed to parse stored profile
       }
     }
     return {
@@ -160,13 +159,9 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
         localStorage.setItem('genz_user_profile', JSON.stringify(currentProfile));
         previousProfileRef.current = currentProfile;
         if (updateUserProfile) updateUserProfile(currentProfile);
-        console.log('Saved profile to localStorage:', { ...currentProfile, profilePicture: currentProfile.profilePicture?.length + ' chars' });
       } catch (e) {
         if (e.name === 'QuotaExceededError') {
-          console.error('localStorage quota exceeded - profile picture too large');
           alert('Profile picture is too large. Please choose a smaller image.');
-        } else {
-          console.error('Failed to save profile data:', e);
         }
       }
     }, 800); // Increased debounce time for better performance
@@ -190,7 +185,6 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
           setIsPrivacyLocked(!(data.userPremium || data.isActive));
         }
       } catch (error) {
-        console.error('Error checking subscription:', error);
         setIsPrivacyLocked(true);
       }
     };
@@ -314,7 +308,6 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               }
             }
           } catch (error) {
-            console.error('Error checking payment status:', error);
           } finally {
             setPaymentLoading(false);
           }
@@ -358,7 +351,6 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
 
           setTimeout(pollStatus, 4000);
         } catch (error) {
-          console.error('Error polling payment status:', error);
           if (attempt >= maxAttempts) {
             setPaymentMessage('Kuna tatizo la mtandao. Tafadhali angalia hali ya malipo baadaye au jaribu tena.');
             setPaymentLoading(false);
@@ -370,7 +362,6 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
 
       setTimeout(pollStatus, 4000);
     } catch (error) {
-      console.error('Payment initiation error:', error);
       setPaymentMessage('Kuna tatizo la mtandao. Tafadhali jaribu tena.');
       setPaymentLoading(false);
     }
@@ -532,7 +523,6 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
       if (updateUserProfile) updateUserProfile({ profilePicture: uploadedUrl, avatar: uploadedUrl });
       showMsg('✅ Profile picture updated');
     } catch (error) {
-      console.error('Profile picture upload failed:', error);
       showMsg('⚠️ Preview shown, but upload failed. Try again.');
     } finally {
       if (e?.target) e.target.value = '';
@@ -562,7 +552,6 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
       const list = await listCloudBackups();
       setCloudBackups(list || []);
     } catch (err) {
-      console.error('Failed to list backups:', err);
       setBackupError('Imeshindwa kupata orodha ya backups (Failed to list backups)');
     } finally {
       setFetchingBackups(false);
@@ -581,7 +570,6 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
         setBackupError(res?.message || 'Uundaji wa Backup umeshindwa (Backup creation failed)');
       }
     } catch (err) {
-      console.error('Failed to create cloud backup:', err);
       setBackupError('Imeshindwa kuunda backup (Failed to create backup)');
     } finally {
       setBackupActionLoading(null);
@@ -602,7 +590,6 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
         setBackupError(res?.message || 'Kurejesha kumeshindwa (Restore failed)');
       }
     } catch (err) {
-      console.error('Failed to restore backup:', err);
       setBackupError('Imeshindwa kurejesha backup (Failed to restore backup)');
     } finally {
       setBackupActionLoading(null);
@@ -624,7 +611,6 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
         setBackupError(res?.message || 'Kufuta kumeshindwa (Delete failed)');
       }
     } catch (err) {
-      console.error('Failed to delete backup:', err);
       setBackupError('Imeshindwa kufuta backup (Failed to delete backup)');
     } finally {
       setBackupActionLoading(null);
@@ -1592,7 +1578,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
                     osc.stop(ctx.currentTime + delay + dur + 0.05);
                   });
                   setTimeout(() => ctx.close(), 2000);
-                } catch(e) { console.warn('Audio preview failed:', e); }
+                } catch(e) { }
               }}
               className="text-[10px] text-yellow-500 font-bold flex items-center gap-1 hover:underline"
             >
@@ -1640,7 +1626,6 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
                   audio.onerror = done;
                   await audio.play();
                 } catch (e) {
-                  console.warn('[GENZSettings] Voice effect preview failed:', e);
                   setVoiceFxPreviewBusy(false);
                 }
               }}

@@ -36,7 +36,6 @@ const GENZMods = () => {
       const data = await modsService.getModsSettings();
       setModsSettings(data.settings || {});
     } catch (error) {
-      console.error('Error fetching mods settings:', error);
       setError('Failed to load mods settings');
     } finally {
       setLoading(false);
@@ -51,7 +50,6 @@ const GENZMods = () => {
       setSuccess('Settings saved successfully');
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
-      console.error('Error saving mods settings:', error);
       setError('Failed to save settings');
     } finally {
       setSaving(false);
@@ -64,7 +62,6 @@ const GENZMods = () => {
       setDeletedMessages(data.messages || []);
       setShowDeletedMessages(true);
     } catch (error) {
-      console.error('Error fetching deleted messages:', error);
       setError('Failed to load deleted messages');
     }
   };
@@ -76,7 +73,6 @@ const GENZMods = () => {
       setSuccess('Message restored successfully');
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
-      console.error('Error restoring message:', error);
       setError('Failed to restore message');
     }
   };
@@ -94,7 +90,6 @@ const GENZMods = () => {
       setSuccess('Settings exported successfully');
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
-      console.error('Error exporting settings:', error);
       setError('Failed to export settings');
     }
   };
@@ -111,7 +106,6 @@ const GENZMods = () => {
       setSuccess('Settings imported successfully');
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
-      console.error('Error importing settings:', error);
       setError('Failed to import settings');
     }
     event.target.value = '';
