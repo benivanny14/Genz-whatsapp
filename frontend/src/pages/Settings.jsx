@@ -417,20 +417,6 @@ const Settings = () => {
     saveSettings(next);
   };
 
-  const exportSettings = () => {
-    const payload = {
-      exportedAt: new Date().toISOString(),
-      profile: profileData,
-      settings: settingsData
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'genz-whatsapp-account-info.json';
-    link.click();
-    URL.revokeObjectURL(url);
-  };
 
   const resetSettings = () => {
     if (!window.confirm('Reset all WhatsApp-style settings on this device?')) return;
@@ -527,7 +513,6 @@ const Settings = () => {
           <Toggle checked={settingsData.account.changeNumberGuard} onChange={() => toggleSetting('account.changeNumberGuard')} />
         } />
         <SettingRow icon={Download} title="Request account info" description={settingsData.account.requestAccountInfoAt ? `Requested ${new Date(settingsData.account.requestAccountInfoAt).toLocaleDateString()}` : 'Prepare an account information request timestamp.'} onClick={requestAccountInfo} />
-        <SettingRow icon={FileText} title="Export account settings" description="Download a JSON copy of profile and settings." onClick={exportSettings} />
         <SettingRow icon={Trash2} title="Delete account" description="Permanently erase your account and data." onClick={handleDeleteAccount} />
         <SettingRow icon={Shield} title="Delete account guard" description="Keep destructive account actions behind confirmation." control={
           <Toggle checked={settingsData.account.deleteAccountGuard} onChange={() => toggleSetting('account.deleteAccountGuard')} />
@@ -660,7 +645,6 @@ const Settings = () => {
         <SettingRow icon={Mail} title="Contact us" description="Prepare support email." onClick={() => { window.location.href = 'mailto:support@genz.local?subject=GENZ%20WhatsApp%20Support'; }} />
         <SettingRow icon={FileText} title="Terms and Privacy Policy" description="Terms, privacy, and app information entry." onClick={() => showStatus('success', 'Terms and Privacy Policy entry is available.')} />
         <SettingRow icon={Shield} title="Diagnostics" description="Attach safe diagnostics to support messages." control={<Toggle checked={settingsData.help.diagnostics} onChange={() => toggleSetting('help.diagnostics')} />} />
-        <SettingRow icon={Download} title="Export settings" description="Download local account settings." onClick={exportSettings} />
       </SettingSection>
       <ActionButton onClick={() => saveSettings()} disabled={saving}><Save size={16} /> Save help settings</ActionButton>
     </div>
