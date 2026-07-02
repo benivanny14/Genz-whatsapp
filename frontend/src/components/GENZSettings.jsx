@@ -739,7 +739,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
                 : 'border-transparent text-white/50 hover:text-white hover:bg-white/5'
             }`}
           >
-            <span>{tab.icon}</span> {tab.label}
+            <span className="text-sm">{tab.icon}</span> <span className="hidden sm:inline">{tab.label}</span><span className="sm:hidden">{tab.label.split(' ')[0]}</span>
           </button>
         ))}
       </div>
