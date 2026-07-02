@@ -235,13 +235,13 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
 
   const handleInitiatePayment = async () => {
     if (!phoneNumber) {
-      setPaymentMessage('Tafadhali ingiza namba ya simu');
+      setPaymentMessage('Please enter phone number');
       return;
     }
 
     // Validate phone number format (exactly 9 digits after stripping 0 or 255)
     if (phoneNumber.length !== 9 || !/^\d+$/.test(phoneNumber)) {
-      setPaymentMessage('Namba ya simu si sahihi. Tafadhali ingiza namba ya simu yenye tarakimu 9 (mfano: 712345678).');
+      setPaymentMessage('Invalid phone number. Please enter a 9-digit phone number (e.g., 712345678).');
       return;
     }
 
@@ -290,7 +290,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
       // needs to confirm on their phone, which can take anywhere from a few
       // seconds to about a minute. Poll the transaction-specific status
       // endpoint instead of checking exactly once and giving up.
-      setPaymentMessage('Malipo yameanza. Tafadhali maliza kwenye simu yako (weka PIN yako).');
+      setPaymentMessage('Payment started. Please complete on your phone (enter your PIN).');
       const transactionId = data.transactionId;
 
       if (!transactionId) {
@@ -331,20 +331,20 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               setSubscriptionStatus(subData);
               setIsPrivacyLocked(!(subData.userPremium || subData.isActive));
             }
-            setPaymentMessage('Malipo yamekamilika!');
+            setPaymentMessage('Payment completed!');
             setPaymentLoading(false);
             setTimeout(() => setShowPaymentModal(false), 1200);
             return;
           }
 
           if (statusData.status === 'expired' || statusData.status === 'failed') {
-            setPaymentMessage('Malipo hayakukamilika au muda umeisha. Tafadhali jaribu tena.');
+            setPaymentMessage('Payment did not complete or timed out. Please try again.');
             setPaymentLoading(false);
             return;
           }
 
           if (attempt >= maxAttempts) {
-            setPaymentMessage('Malipo yanachukua muda mrefu kuliko kawaida. Kama umeshalipa, subiri kidogo kisha fungua ukurasa huu upya. Kama hujalipa bado, jaribu tena.');
+            setPaymentMessage('Payment is taking longer than usual. If you have already paid, wait a moment then refresh this page. If you have not paid yet, try again.');
             setPaymentLoading(false);
             return;
           }
@@ -352,7 +352,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
           setTimeout(pollStatus, 4000);
         } catch (error) {
           if (attempt >= maxAttempts) {
-            setPaymentMessage('Kuna tatizo la mtandao. Tafadhali angalia hali ya malipo baadaye au jaribu tena.');
+            setPaymentMessage('Network error. Please check payment status later or try again.');
             setPaymentLoading(false);
             return;
           }
@@ -362,20 +362,20 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
 
       setTimeout(pollStatus, 4000);
     } catch (error) {
-      setPaymentMessage('Kuna tatizo la mtandao. Tafadhali jaribu tena.');
+      setPaymentMessage('Network error. Please try again.');
       setPaymentLoading(false);
     }
   };
 
   const handleRenewSubscription = async () => {
     if (!phoneNumber) {
-      setPaymentMessage('Tafadhali ingiza namba ya simu');
+      setPaymentMessage('Please enter phone number');
       return;
     }
 
     // Validate phone number format (exactly 9 digits after stripping 0 or 255)
     if (phoneNumber.length !== 9 || !/^\d+$/.test(phoneNumber)) {
-      setPaymentMessage('Namba ya simu si sahihi. Tafadhali ingiza namba ya simu yenye tarakimu 9 (mfano: 712345678).');
+      setPaymentMessage('Invalid phone number. Please enter a 9-digit phone number (e.g., 712345678).');
       return;
     }
 
@@ -414,7 +414,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
         return;
       }
 
-      setPaymentMessage('Udhibiti wa malipo umeanza. Tafadhali maliza kwenye simu yako (weka PIN yako).');
+      setPaymentMessage('Payment control started. Please complete on your phone (enter your PIN).');
       const transactionId = data.transactionId;
       const maxAttempts = 20;
       let attempt = 0;
@@ -489,7 +489,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
     if (file) {
       const compressedBase64 = await compressImage(file, 1080, 0.7);
       setPreviewWallpaper(compressedBase64);
-      showMsg('✨ Picha imepakiwa vizuri! Bonyeza Apply ili kuhifadhi.');
+      showMsg('✨ Image uploaded successfully! Click Apply to save.');
     }
   };
 
@@ -1203,7 +1203,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
                 
                 <div className="bg-white/5 p-3 rounded-lg border border-white/10">
                   <div className="flex justify-between items-center mb-1">
-                    <label className="text-xs text-blue-300 font-medium">Wallpaper Zoom (Kuza/Kupunguza)</label>
+                    <label className="text-xs text-blue-300 font-medium">Wallpaper Zoom</label>
                     <span className="text-xs text-blue-300 font-bold">{Math.round((mods.chatWallpaperZoom || 1) * 100)}%</span>
                   </div>
                   <input 
@@ -1415,12 +1415,12 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               </div>
               <h3 className="text-white text-xl font-bold mb-2">Premium Required</h3>
               <p className="text-gray-400 text-sm mb-4">
-                Lipa <span className="text-yellow-400 font-black">Tsh 10,000</span> kwa siku 60 ili kutumia features zote za Privacy &amp; Protection
+                Pay <span className="text-yellow-400 font-black">Tsh 10,000</span> for 60 days to use all Privacy & Protection features
               </p>
               {subscriptionStatus.hasSubscription === true && subscriptionStatus.expiryDate && (
                 <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-3 mb-4">
                   <p className="text-yellow-400 text-xs font-semibold">
-                    Malipo yako yalikwisha: {new Date(subscriptionStatus.expiryDate).toLocaleDateString()}
+                    Your payment expired: {new Date(subscriptionStatus.expiryDate).toLocaleDateString()}
                   </p>
                 </div>
               )}
@@ -1631,7 +1631,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               }}
               className="text-[10px] text-purple-500 font-bold flex items-center gap-1 hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <Play size={10} /> {voiceFxPreviewBusy ? 'Inacheza…' : 'Sikiza sampuli (bila maikrofoni)'}
+              <Play size={10} /> {voiceFxPreviewBusy ? 'Playing…' : 'Listen to sample (no microphone)'}
             </button>
           </div>
         </section>
@@ -1666,7 +1666,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
         {/* Cloud Backup */}
         <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
           <div className="p-4 bg-blue-900/30 border-b border-white/10 flex items-center gap-2 text-blue-400 font-bold">
-            <Cloud size={18} /> Hifadhi ya Wingu (Cloud Backup)
+            <Cloud size={18} /> Cloud Backup
           </div>
           <div className="p-4">
             {backupProgress !== null ? (
@@ -1674,7 +1674,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
                 <div className="flex justify-between items-end">
                   <p className="text-xs font-bold text-white flex items-center gap-2">
                     <RefreshCw size={14} className="animate-spin text-blue-400" />
-                    {backupProgress === 100 ? 'Backup imekamilika! (Backup Completed!)' : 'Kuhifadhi soga kwenye wingu... (Backing up chats...)'}
+                    {backupProgress === 100 ? 'Backup completed!' : 'Backing up chats...'}
                   </p>
                   <span className="text-sm font-black text-blue-400">{backupProgress}%</span>
                 </div>
@@ -1693,7 +1693,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
                 ) : (
                   <RefreshCw size={18} />
                 )}
-                Anza Kuhifadhi Mtandaoni (Start Online Backup)
+                Start Online Backup
               </button>
             )}
 
@@ -1850,12 +1850,12 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
             <BarChart size={18} /> System Dashboard
           </div>
           <div className="p-4 space-y-3">
-            <p className="text-gray-400 text-xs">Angalia takwimu za mfumo: ujumbe wa leo, users wanaokaa online sana, chats maarufu na zaidi</p>
+            <p className="text-gray-400 text-xs">View system statistics: today's messages, most online users, popular chats and more</p>
             <button
               onClick={() => setShowSystemDashboard(true)}
               className="w-full py-3 bg-gradient-to-r from-green-600/30 to-teal-600/30 border border-green-500/30 text-green-300 rounded-xl font-semibold text-sm hover:from-green-600/50 hover:to-teal-600/50 transition-all flex items-center justify-center gap-2"
             >
-              <Activity size={16} /> Fungua Dashboard
+              <Activity size={16} /> Open Dashboard
             </button>
           </div>
         </section>
@@ -1869,49 +1869,49 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
             <ModItem
               icon={<Star size={20} className="text-yellow-400" />}
               title="Story Highlights"
-              desc="Hifadhi statuses kama highlights zinazodumu daima"
+              desc="Save statuses as highlights that last forever"
               active={mods?.storyHighlights}
               onClick={() => toggleMod('storyHighlights')}
             />
             <ModItem
               icon={<Wand2 size={20} className="text-purple-400" />}
               title="AI Caption Generator"
-              desc="Generate captions za picha/video kwa AI"
+              desc="Generate captions for photos/videos using AI"
               active={mods?.aiCaption}
               onClick={() => toggleMod('aiCaption')}
             />
             <ModItem
               icon={<TrendingUp size={20} className="text-orange-400" />}
               title="Trending Stickers"
-              desc="Stickers za hali ya juu za East Africa"
+              desc="High-quality stickers from East Africa"
               active={mods?.trendingStickers}
               onClick={() => toggleMod('trendingStickers')}
             />
             <ModItem
               icon={<Activity size={20} className="text-pink-400" />}
               title="Live Reactions"
-              desc="Tuma emoji reactions zinazoelea wakati wa chat"
+              desc="Send floating emoji reactions during chat"
               active={mods?.liveReactions}
               onClick={() => toggleMod('liveReactions')}
             />
             <ModItem
               icon={<Video size={20} className="text-blue-400" />}
               title="Collaborative Status (Duet)"
-              desc="Fanya status pamoja na rafiki yako"
+              desc="Create status together with your friend"
               active={mods?.collabStatus}
               onClick={() => toggleMod('collabStatus')}
             />
             <ModItem
               icon={<Sparkles size={20} className="text-cyan-400" />}
               title="Chat Bubble Animations"
-              desc="Confetti na hearts wakati wa kutuma message"
+              desc="Confetti and hearts when sending messages"
               active={mods?.bubbleAnimations}
               onClick={() => toggleMod('bubbleAnimations')}
             />
             <ModItem
               icon={<MessageSquare size={20} className="text-green-400" />}
               title="Status Reel Mode"
-              desc="Angalia statuses kama Instagram Reels (full screen)"
+              desc="View statuses like Instagram Reels (full screen)"
               active={mods?.reelMode}
               onClick={() => toggleMod('reelMode')}
              />
@@ -2328,7 +2328,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
 
               {/* Step 2 - Phone Number */}
               <div>
-                <p className="text-white/70 text-sm font-semibold mb-2">2️⃣ Ingiza Namba ya Simu:</p>
+                <p className="text-white/70 text-sm font-semibold mb-2">2️⃣ Enter Phone Number:</p>
                 <div className="relative">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-white/50 text-sm font-mono pointer-events-none pr-3 border-r border-white/15">
                     <span>🇹🇿</span>
@@ -2350,21 +2350,21 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
                   />
                 </div>
                 <p className="text-white/30 text-xs mt-1.5 ml-1">
-                  {paymentMethod === 'mpesa' && '📱 Namba ya M-Pesa (huanza na 6 au 7)'}
-                  {paymentMethod === 'airtel-money' && '📱 Namba ya Airtel Money (huanza na 6 au 7)'}
-                  {paymentMethod === 'halopesa' && '📱 Namba ya HaloPesa (huanza na 6)'}
-                  {paymentMethod === 'yas' && '📱 Namba ya Yas Money (huanza na 6 au 7)'}
+                  {paymentMethod === 'mpesa' && '📱 M-Pesa number (starts with 6 or 7)'}
+                  {paymentMethod === 'airtel-money' && '📱 Airtel Money number (starts with 6 or 7)'}
+                  {paymentMethod === 'halopesa' && '📱 HaloPesa number (starts with 6)'}
+                  {paymentMethod === 'yas' && '📱 Yas Money number (starts with 6 or 7)'}
                 </p>
               </div>
 
               {/* Message feedback */}
               {paymentMessage && (
                 <div className={`p-3 rounded-xl text-sm flex items-start gap-2 ${
-                  paymentMessage.includes('kamilika') || paymentMessage.includes('Malipo yameanza')
+                  paymentMessage.includes('completed') || paymentMessage.includes('Payment started')
                     ? 'bg-green-500/15 text-green-400 border border-green-500/20'
                     : 'bg-red-500/15 text-red-400 border border-red-500/20'
                 }`}>
-                  <span>{paymentMessage.includes('kamilika') || paymentMessage.includes('yameanza') ? '✅' : '⚠️'}</span>
+                  <span>{paymentMessage.includes('completed') || paymentMessage.includes('Payment started') ? '✅' : '⚠️'}</span>
                   <span>{paymentMessage}</span>
                 </div>
               )}
@@ -2372,7 +2372,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               {/* Subscription expiry info */}
               {subscriptionStatus.hasSubscription && subscriptionStatus.expiryDate && (
                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 text-xs text-blue-300">
-                  ℹ️ Subscription yako: inaisha {new Date(subscriptionStatus.expiryDate).toLocaleDateString('sw-TZ')}
+                  ℹ️ Your subscription: expires {new Date(subscriptionStatus.expiryDate).toLocaleDateString('en-US')}
                 </div>
               )}
 
