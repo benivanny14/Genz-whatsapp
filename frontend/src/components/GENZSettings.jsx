@@ -266,14 +266,14 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        setPaymentMessage(data.message || data.error || 'Malipo yameshindwa. Tafadhali jaribu tena.');
+        setPaymentMessage(data.message || data.error || 'Payment failed. Please try again.');
         setPaymentLoading(false);
         return;
       }
 
       // Mock/dev mode completes instantly — no need to poll at all.
       if (data.paymentStatus === 'completed') {
-        setPaymentMessage('Malipo yamekamilika!');
+        setPaymentMessage('Payment completed!');
         try {
           const subResponse = await authFetch(`${API_URL}/payment/subscription`);
           if (subResponse.ok) {
@@ -305,7 +305,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               setIsPrivacyLocked(!(subData.userPremium || subData.isActive));
               if (subData.isActive) {
                 setShowPaymentModal(false);
-                setPaymentMessage('Malipo yamekamilika!');
+                setPaymentMessage('Payment completed!');
               }
             }
           } catch (error) {
@@ -433,20 +433,20 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               setSubscriptionStatus(subData);
               setIsPrivacyLocked(!(subData.userPremium || subData.isActive));
             }
-            setPaymentMessage('Udhibiti umekamilika!');
+            setPaymentMessage('Payment control completed!');
             setPaymentLoading(false);
             setTimeout(() => setShowPaymentModal(false), 1200);
             return;
           }
 
           if (statusData.status === 'expired' || statusData.status === 'failed') {
-            setPaymentMessage('Udhibiti haukukamilika au muda umeisha. Tafadhali jaribu tena.');
+            setPaymentMessage('Payment control did not complete or timed out. Please try again.');
             setPaymentLoading(false);
             return;
           }
 
           if (attempt >= maxAttempts) {
-            setPaymentMessage('Udhibiti unachukua muda mrefu kuliko kawaida. Kama umeshalipa, subiri kidogo kisha fungua ukurasa huu upya.');
+            setPaymentMessage('Payment control is taking longer than usual. If you have already paid, wait a moment then refresh this page.');
             setPaymentLoading(false);
             return;
           }
@@ -454,7 +454,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
           setTimeout(pollRenewStatus, 4000);
         } catch (error) {
           if (attempt >= maxAttempts) {
-            setPaymentMessage('Kuna tatizo la mtandao. Tafadhali angalia hali ya malipo baadaye.');
+            setPaymentMessage('Network error. Please check payment status later.');
             setPaymentLoading(false);
             return;
           }
@@ -473,14 +473,14 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
             setIsPrivacyLocked(!subData.isActive);
             if (subData.isActive) {
               setShowPaymentModal(false);
-              setPaymentMessage('Udhibiti umekamilika!');
+              setPaymentMessage('Payment control completed!');
             }
           }
           setPaymentLoading(false);
         }, 6000);
       }
     } catch (error) {
-      setPaymentMessage('Kuna tatizo la mtandao. Tafadhali jaribu tena.');
+      setPaymentMessage('Network error. Please try again.');
       setPaymentLoading(false);
     }
   };

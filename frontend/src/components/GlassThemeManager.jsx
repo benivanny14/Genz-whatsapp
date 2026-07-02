@@ -45,11 +45,11 @@ const GlassThemeManager = ({ mods, setMods, onClose }) => {
   const handleVideoUpload = async (file) => {
     if (!file) return;
     if (!file.type.startsWith('video/')) {
-      alert('Tafadhali chagua faili ya video (mp4, webm, mov)');
+      alert('Please select a video file (mp4, webm, mov)');
       return;
     }
     if (file.size > 500 * 1024 * 1024) {
-      alert('Video haipaswi kuzidi 500MB');
+      alert('Video must not exceed 500MB');
       return;
     }
     setUploading(true);
