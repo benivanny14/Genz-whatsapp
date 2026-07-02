@@ -1562,11 +1562,11 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               onChange={(e) => setNotificationSound(e.target.value)}
               className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-sm focus:ring-2 focus:ring-yellow-500 text-white"
             >
-              <option className=" bg-gray-800 text-white\ value="default">GENZ Default Tone</option>
-              <option className=" bg-gray-800 text-white\ value="classic">Classic WhatsApp</option>
-              <option className=" bg-gray-800 text-white\ value="modern">Modern Tech</option>
-              <option className=" bg-gray-800 text-white\ value="soft">Soft Minimalist</option>
-              <option className=" bg-gray-800 text-white\ value="none">Silent</option>
+              <option className="bg-gray-800 text-white" value="default">GENZ Default Tone</option>
+              <option className="bg-gray-800 text-white" value="classic">Classic WhatsApp</option>
+              <option className="bg-gray-800 text-white" value="modern">Modern Tech</option>
+              <option className="bg-gray-800 text-white" value="soft">Soft Minimalist</option>
+              <option className="bg-gray-800 text-white" value="none">Silent</option>
             </select>
             <button
               onClick={() => {
@@ -1616,7 +1616,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-500 text-white"
             >
               {VOICE_EFFECT_PRESETS.map((p) => (
-                <option className=" bg-gray-800 text-white\ key={p.id} value={p.id}>
+                <option className="bg-gray-800 text-white" key={p.id} value={p.id}>
                   {p.icon} {p.label}
                 </option>
               ))}
