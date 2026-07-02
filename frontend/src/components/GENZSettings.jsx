@@ -1552,7 +1552,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
 
         {/* Notifications */}
         <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
-          <div className="p-4 bg-blue-900/30 border-b border-white/10 flex items-center gap-2 text-yellow-400 font-bold">
+          <div className="p-4 bg-blue-900/30 border-b border-white/10 flex items-center gap-2 text-white font-bold">
             <Bell size={18} /> Notifications
           </div>
           <div className="p-4 space-y-3">
