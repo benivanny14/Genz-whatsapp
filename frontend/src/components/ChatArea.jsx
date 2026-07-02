@@ -2073,7 +2073,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   // Filter messages for search
 
   return (
-    <div className="flex-1 flex flex-col bg-dark-bg min-w-0 w-full overflow-hidden relative h-[100dvh] min-h-0">
+    <div className="flex-1 flex flex-col bg-dark-bg min-w-0 w-full overflow-hidden relative h-[100dvh] min-h-0" style={{ height: '100dvh', maxHeight: '100dvh' }}>
       <div
         className="absolute inset-0 pointer-events-none z-0"
         style={wallpaperStyle}
@@ -2383,7 +2383,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           safeMods?.fontSize === 'large' ? 'text-base' :
             safeMods?.fontSize === 'xlarge' ? 'text-lg' : 'text-sm'
           }`}
-        style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}
+        style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', flex: '1 1 auto', minHeight: '0' }}
       >
         {activeDoodle && (
           <div
@@ -3250,7 +3250,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         )
       }
 
-      <div className="bg-dark-surface border-t border-dark-border px-2 py-2 md:p-4 relative z-20 flex-shrink-0">
+      <div className="bg-dark-surface border-t border-dark-border px-2 py-2 md:p-4 relative z-20 flex-shrink-0" style={{ flex: '0 0 auto', position: 'relative' }}>
         {showEmojiPicker && (
           <div className="absolute bottom-20 left-2 right-2 md:left-4 md:right-auto md:w-[350px] max-w-[calc(100vw-1rem)] z-50 overflow-hidden rounded-lg shadow-2xl border border-dark-border bg-dark-surface min-h-[350px] flex items-center justify-center" style={{ maxHeight: 'calc(100vh - 200px)' }}>
             <React.Suspense fallback={<div className="animate-pulse text-dark-textSecondary">Loading emojis...</div>}>

@@ -9,8 +9,12 @@ import { ChatProvider } from './context/ChatContext'
 import { AuthProvider } from './context/AuthContext'
 import { LanguageProvider } from './context/LanguageContext'
 import { cleanupLocalBlobUrls } from './utils/sanitizeStorage'
+import { initViewportHeightFix } from './utils/useViewportHeight'
 
 cleanupLocalBlobUrls();
+
+// Initialize viewport height fix for keyboard layout
+initViewportHeightFix();
 
 const ENABLE_DEV_SERVICE_WORKER = import.meta.env.VITE_ENABLE_DEV_SERVICE_WORKER === 'true';
 const shouldRegisterServiceWorker = import.meta.env.PROD || ENABLE_DEV_SERVICE_WORKER;
