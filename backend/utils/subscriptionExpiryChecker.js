@@ -1,10 +1,11 @@
 const Subscription = require('../models/Subscription');
+const { logInfo, logError } = require('../config/winston');
 
 // Check and update expired subscriptions
 // This should be run periodically (e.g., every hour)
 const checkExpiredSubscriptions = async () => {
   try {
-    console.log('Running subscription expiry check...');
+    logInfo('Running subscription expiry check...');
 
     const now = new Date();
 
@@ -14,19 +15,19 @@ const checkExpiredSubscriptions = async () => {
       expiryDate: { $lt: now }
     });
 
-    console.log(`Found ${expiredSubscriptions.length} expired subscriptions`);
+    logInfo('Found expired subscriptions', { count: expiredSubscriptions.length });
 
     for (const subscription of expiredSubscriptions) {
       subscription.status = 'expired';
       subscription.paymentStatus = 'expired';
       await subscription.save();
 
-      console.log(`Expired subscription for user ${subscription.userId}`);
+      logInfo('Expired subscription', { userId: subscription.userId });
     }
 
     return expiredSubscriptions.length;
   } catch (error) {
-    console.error('Error checking expired subscriptions:', error);
+    logError('Error checking expired subscriptions', { message: error.message });
     return 0;
   }
 };
@@ -42,10 +43,10 @@ const checkExpiringSubscriptions = async () => {
       expiryDate: { $gte: now, $lte: sevenDaysFromNow }
     });
 
-    console.log(`Found ${expiringSubscriptions.length} subscriptions expiring soon.`);
+    logInfo('Found subscriptions expiring soon', { count: expiringSubscriptions.length });
     return expiringSubscriptions;
   } catch (error) {
-    console.error('Error in checkExpiringSubscriptions:', error);
+    logError('Error in checkExpiringSubscriptions', { message: error.message });
     return [];
   }
 };
@@ -56,7 +57,7 @@ let expiryCheckerInterval = null;
 const startExpiryChecker = () => {
   if (expiryCheckerInterval) return expiryCheckerInterval;
 
-  console.log('Starting subscription expiry checker...');
+  logInfo('Starting subscription expiry checker...');
   checkExpiredSubscriptions();
 
   expiryCheckerInterval = setInterval(() => {
@@ -64,7 +65,7 @@ const startExpiryChecker = () => {
   }, 3600000);
   expiryCheckerInterval.unref?.();
 
-  console.log('Subscription expiry checker started. Will run every hour.');
+  logInfo('Subscription expiry checker started. Will run every hour.');
   return expiryCheckerInterval;
 };
 

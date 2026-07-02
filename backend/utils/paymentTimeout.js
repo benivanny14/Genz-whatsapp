@@ -1,4 +1,5 @@
 const Subscription = require('../models/Subscription');
+const { logInfo, logError } = require('../config/winston');
 
 /**
  * Check and expire pending payments that have timed out
@@ -16,7 +17,7 @@ const checkPaymentTimeouts = async () => {
       createdAt: { $lt: timeoutDate }
     });
 
-    console.log(`Found ${timedOutSubscriptions.length} timed-out pending payments`);
+    logInfo('Found timed-out pending payments', { count: timedOutSubscriptions.length });
 
     for (const subscription of timedOutSubscriptions) {
       try {
@@ -30,9 +31,9 @@ const checkPaymentTimeouts = async () => {
         };
         await subscription.save();
 
-        console.log(`Marked subscription ${subscription.transactionId} as failed due to timeout`);
+        logInfo('Marked subscription as failed due to timeout', { transactionId: subscription.transactionId });
       } catch (error) {
-        console.error(`Error updating timed-out subscription ${subscription.transactionId}:`, error);
+        logError('Error updating timed-out subscription', { transactionId: subscription.transactionId, message: error.message });
       }
     }
 
@@ -41,7 +42,7 @@ const checkPaymentTimeouts = async () => {
       success: true
     };
   } catch (error) {
-    console.error('Error checking payment timeouts:', error);
+    logError('Error checking payment timeouts', { message: error.message });
     return {
       processed: 0,
       success: false,
@@ -77,7 +78,7 @@ const checkDuplicatePremiumActivation = async (userId, transactionId) => {
       reason: 'No duplicate found'
     };
   } catch (error) {
-    console.error('Error checking duplicate premium activation:', error);
+    logError('Error checking duplicate premium activation', { message: error.message });
     return {
       hasDuplicate: false,
       reason: 'Error checking duplicates, allowing activation'
@@ -97,7 +98,7 @@ const updatePremiumStatusAtomically = async (userId, transactionId, expiryDate, 
       reason: 'User model removed - no auth mode'
     };
   } catch (error) {
-    console.error('Error in atomic premium update:', error);
+    logError('Error in atomic premium update', { message: error.message });
     return {
       success: false,
       reason: 'Database error during premium update'

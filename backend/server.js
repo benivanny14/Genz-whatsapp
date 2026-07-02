@@ -328,7 +328,7 @@ const startExpiredMessageCleanup = (ioInstance) => {
             });
           });
         }
-        console.log(`[ExpiredMessageCleanup] Deleted ${expiredSelfDestruct.length} expired self-destruct messages`);
+        logger.debug('Deleted expired self-destruct messages', { count: expiredSelfDestruct.length });
       }
 
       // Also handle view-once messages that should be permanently removed
@@ -339,10 +339,10 @@ const startExpiredMessageCleanup = (ioInstance) => {
       });
 
       if (viewOnceResult.deletedCount > 0) {
-        console.log(`[ExpiredMessageCleanup] Deleted ${viewOnceResult.deletedCount} old view-once messages`);
+        logger.debug('Deleted old view-once messages', { count: viewOnceResult.deletedCount });
       }
     } catch (error) {
-      console.error('[ExpiredMessageCleanup] Error cleaning up expired messages:', error.message);
+      logger.error('Error cleaning up expired messages', { message: error.message });
     }
   }, 60 * 1000); // Run every minute
 
@@ -574,7 +574,7 @@ app.use('/uploads', secureUploads, (req, res) => {
   const socketIdMatch = cleanPath.match(/-user-[a-zA-Z0-9]+$/);
   if (socketIdMatch) {
     cleanPath = cleanPath.replace(/-user-[a-zA-Z0-9]+$/, '');
-    console.log('🔧 Removed socket ID suffix from path');
+    logger.debug('Removed socket ID suffix from path', { requestId: req.id, originalPath: req.path, cleanPath });
   }
   
   const filePath = path.resolve(uploadDir, `.${cleanPath}`);
@@ -588,7 +588,7 @@ app.use('/uploads', secureUploads, (req, res) => {
   
   // Check if file exists before serving
   if (!fs.existsSync(filePath)) {
-    console.log('❌ File not found:', filePath);
+    logger.warn('Media file not found', { requestId: req.id, filePath });
     return res.status(404).json({
       success: false,
       error: 'Media file not found'
@@ -723,12 +723,33 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       size: req.file.size
     });
   } catch (error) {
-    console.error('❌ Upload error:', error);
+    logger.error('Upload error', { message: error.message, requestId: req.id });
     res.status(500).json({
       success: false,
       error: 'Failed to upload file'
     });
   }
+});
+
+// Health check endpoint for monitoring
+app.get('/health', (req, res) => {
+  const health = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development',
+    memory: {
+      rss: Math.round(process.memoryUsage().rss / 1024 / 1024) + 'MB',
+      heapTotal: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + 'MB',
+      heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB'
+    },
+    services: {
+      mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+      redis: req.app.get('redisClient')?.isOpen ? 'connected' : 'disconnected',
+      cloudinary: isCloudinaryConfigured() ? 'configured' : 'not configured'
+    }
+  };
+  res.json(health);
 });
 
 // IMPORTANT: API Fallback - Never return HTML for API routes

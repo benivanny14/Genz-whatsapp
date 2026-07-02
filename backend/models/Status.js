@@ -57,6 +57,10 @@ const statusSchema = new mongoose.Schema({
 // Auto-delete baada ya saa 24
 statusSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
+// Indexes for efficient user queries
+statusSchema.index({ userId: 1, expiresAt: -1 });
+statusSchema.index({ userId: 1, createdAt: -1 });
+
 statusSchema.pre('save', function syncUserFields(next) {
   if (this.user && !this.userId) {
     this.userId = String(this.user);

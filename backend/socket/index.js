@@ -54,7 +54,8 @@ const _dedupCleanupInterval = setInterval(() => {
     deleted += toDelete.length;
   }
   if (deleted > 0) {
-    console.log(`[Socket] Cleaned up ${deleted} old deduplication entries. Current size: ${messageDeduplication.size}`);
+    const { logDebug } = require('../config/winston');
+    logDebug('Cleaned up old deduplication entries', { deleted, currentSize: messageDeduplication.size });
   }
 }, 30000); // Run every 30 seconds
 _dedupCleanupInterval.unref?.();
@@ -181,7 +182,8 @@ const setupSocket = (io) => {
 
 
   io.on('connection', (socket) => {
-    console.log('User connected:', socket.id);
+    const { logDebug } = require('../config/winston');
+    logDebug('User connected', { socketId: socket.id });
 
     // ── Global socket error protection ────────────────────────────────────
     // Override socket.on to automatically wrap handlers with try-catch
@@ -201,21 +203,24 @@ const setupSocket = (io) => {
 
     // Handle reconnection
     socket.on('reconnect_attempt', () => {
-      console.log('Reconnection attempt for socket:', socket.id);
+      const { logDebug } = require('../config/winston');
+      logDebug('Reconnection attempt', { socketId: socket.id });
     });
 
     socket.on('error', (error) => {
-      console.error('Socket error:', error);
+      const { logError } = require('../config/winston');
+      logError('Socket error', { message: error.message, socketId: socket.id });
     });
 
     socket.on('user:join', async (userId) => {
+      const { logError } = require('../config/winston');
       if (!userId) {
-        console.error('No userId provided for user:join');
+        logError('No userId provided for user:join');
         return;
       }
 
       if (socket.userId && userId.toString() !== socket.userId.toString()) {
-        console.error('[Socket] Blocked user:join impersonation attempt', {
+        logError('Blocked user:join impersonation attempt', {
           requested: userId,
           authenticated: socket.userId
         });
@@ -264,16 +269,19 @@ const setupSocket = (io) => {
         }
 
         socket.join(conversationId);
-        console.log(`User ${socket.userId} joined conversation ${conversationId}`);
+        const { logDebug } = require('../config/winston');
+        logDebug('User joined conversation', { userId: socket.userId, conversationId });
       } catch (error) {
-        console.error('Error joining conversation room:', error);
+        const { logError } = require('../config/winston');
+        logError('Error joining conversation room', { message: error.message, userId: socket.userId, conversationId });
         socket.emit('error', { message: 'Failed to join conversation' });
       }
     });
 
     socket.on('leave:conversation', (conversationId) => {
       socket.leave(conversationId);
-      console.log(`User ${socket.userId} left conversation ${conversationId}`);
+      const { logDebug } = require('../config/winston');
+      logDebug('User left conversation', { userId: socket.userId, conversationId });
     });
 
     socket.on('message:send', async (data) => {
@@ -304,12 +312,14 @@ const setupSocket = (io) => {
         
         // Check if message was already processed
         if (messageDeduplication.has(dedupKey)) {
-          console.log('Duplicate message detected, ignoring:', dedupKey);
+          const { logDebug } = require('../config/winston');
+          logDebug('Duplicate message detected, ignoring', { dedupKey });
           return;
         }
 
         if (!mongoose.Types.ObjectId.isValid(conversationId)) {
-          console.warn('[Socket] Invalid conversationId provided:', conversationId);
+          const { logWarn } = require('../config/winston');
+          logWarn('Invalid conversationId provided', { conversationId });
           return socket.emit('message:error', { error: 'Invalid conversation ID format' });
         }
 
@@ -798,14 +808,17 @@ const setupSocket = (io) => {
             calleeId: calleeId || targetUserId
           });
         }
-      } catch (err) { console.error('call:start error:', err); }
+      } catch (err) {
+        const { logError } = require('../config/winston');
+        logError('call:start error', { message: err.message });
+      }
     });
 
     socket.on('call_user', (data = {}) => {
       const conversationId = data.conversationId || data.chatId;
       if (conversationId) {
-        // Only logging, rely on webrtc:offer for actual incoming call signal
-        console.log(`[Call] User ${socket.userId} initiating call in conversation ${conversationId}`);
+        const { logDebug } = require('../config/winston');
+        logDebug('User initiating call', { userId: socket.userId, conversationId });
       }
       socket.broadcast.emit('incoming_call_signal', {
         ...data,
@@ -850,7 +863,8 @@ const setupSocket = (io) => {
           }
         }
       } catch (err) {
-        console.error('call:reject log error:', err);
+        const { logError } = require('../config/winston');
+        logError('call:reject log error', { message: err.message });
       }
       activeCalls.endCall(socket.userId, conversationId);
     });
@@ -896,7 +910,8 @@ const setupSocket = (io) => {
           }
         }
       } catch (err) {
-        console.error('call:end log error:', err);
+        const { logError } = require('../config/winston');
+        logError('call:end log error', { message: err.message });
       }
     });
 
@@ -1652,7 +1667,8 @@ try {
           io.to(message.conversationId.toString()).emit('message:deleted', { messageId, forEveryone: true });
         }
       } catch (error) {
-        console.error('Error deleting message:', error);
+        const { logError } = require('../config/winston');
+        logError('Error deleting message', { message: error.message });
       }
     });
 
@@ -1661,19 +1677,22 @@ try {
       const { chatId, skipReadReceipts } = data;
 
       if (!chatId || (!/^[0-9a-fA-F]{24}$/.test(chatId) && !chatId.startsWith('conv-status-'))) {
-        console.warn('Invalid chatId format in mark_as_read:', chatId);
+        const { logWarn } = require('../config/winston');
+        logWarn('Invalid chatId format in mark_as_read', { chatId });
         return;
       }
 
       // Skip processing if this is a status conversation ID
       if (chatId.startsWith('conv-status-')) {
-        console.log('Skipping status conv-id in mark_as_read:', chatId);
+        const { logDebug } = require('../config/winston');
+        logDebug('Skipping status conv-id in mark_as_read', { chatId });
         return;
       }
 
       const conversation = await getConversationIfParticipant(chatId, socket);
       if (!conversation) {
-        console.log('Conversation not found or user not participant:', chatId);
+        const { logDebug } = require('../config/winston');
+        logDebug('Conversation not found or user not participant', { chatId });
         return;
       }
 
@@ -2230,7 +2249,8 @@ try {
           responderId: socket.userId
         });
       } catch (error) {
-        console.error('Error answering call:', error);
+        const { logError } = require('../config/winston');
+        logError('Error answering WebRTC call', { message: error.message });
       }
     });
 
@@ -2241,11 +2261,13 @@ try {
         const resolvedSocketId = targetSocketId || onlineUsers.get(String(targetUserId));
         
         if (!resolvedSocketId) {
-          console.warn('[WebRTC] ICE candidate target not found', { targetUserId, targetSocketId });
+          const { logWarn } = require('../config/winston');
+          logWarn('WebRTC ICE candidate target not found', { targetUserId, targetSocketId });
           return socket.emit('call:error', { message: 'Target user is offline' });
         }
         
-        console.log('[WebRTC] Relaying ICE candidate', { from: socket.userId, to: resolvedSocketId });
+        const { logDebug } = require('../config/winston');
+        logDebug('Relaying ICE candidate', { from: socket.userId, to: resolvedSocketId });
         
         io.to(resolvedSocketId).emit('call:ice-candidate', {
           candidate,
@@ -2270,11 +2292,13 @@ try {
         const targetSocketId = onlineUsers.get(String(targetId)) || targetId;
 
         if (!targetSocketId) {
-          console.error('[WebRTC] Target user not found', { targetId });
+          const { logError } = require('../config/winston');
+          logError('WebRTC target user not found', { targetId });
           return socket.emit('call:error', { message: 'Target user is offline' });
         }
 
-        console.log('[WebRTC] Sending offer', { from: socket.userId, to: targetId, callType });
+        const { logDebug } = require('../config/winston');
+        logDebug('Sending WebRTC offer', { from: socket.userId, to: targetId, callType });
         const caller = await User.findById(socket.userId).select('username profilePicture').lean();
 
         io.to(targetSocketId).emit('webrtc:offer', {
@@ -2302,10 +2326,12 @@ try {
           callId: conversationId || `${socket.userId}-${Date.now()}`,
           offer
         }).catch((notifyErr) => {
-          console.warn('[Socket] Incoming call push notification failed:', notifyErr?.message || notifyErr);
+          const { logWarn } = require('../config/winston');
+          logWarn('Incoming call push notification failed', { message: notifyErr?.message });
         });
       } catch (error) {
-        console.error('Error relaying WebRTC offer:', error);
+        const { logError } = require('../config/winston');
+        logError('Error relaying WebRTC offer', { message: error.message });
         socket.emit('call:error', { message: error.message });
       }
     });
@@ -2315,11 +2341,13 @@ try {
         const { to, callerSocketId, answer } = data;
         const targetSocketId = callerSocketId || onlineUsers.get(String(to)) || to;
         if (!targetSocketId) {
-          console.error('[WebRTC] Caller socket not found', { to, callerSocketId });
+          const { logError } = require('../config/winston');
+          logError('WebRTC caller socket not found', { to, callerSocketId });
           return socket.emit('call:error', { message: 'Caller is offline' });
         }
 
-        console.log('[WebRTC] Sending answer', { from: socket.userId, to: targetSocketId });
+        const { logDebug } = require('../config/winston');
+        logDebug('Sending WebRTC answer', { from: socket.userId, to: targetSocketId });
 
         io.to(targetSocketId).emit('webrtc:answer', {
           from: socket.userId,
@@ -2331,7 +2359,8 @@ try {
           answer
         });
       } catch (error) {
-        console.error('Error relaying WebRTC answer:', error);
+        const { logError } = require('../config/winston');
+        logError('Error relaying WebRTC answer', { message: error.message });
         socket.emit('call:error', { message: 'Failed to send answer' });
       }
     });
@@ -2341,11 +2370,13 @@ try {
         const { to, targetSocketId, candidate } = data;
         const relaySocketId = targetSocketId || onlineUsers.get(String(to)) || to;
         if (!relaySocketId) {
-          console.warn('[WebRTC] ICE candidate relay target not found', { to, targetSocketId });
+          const { logWarn } = require('../config/winston');
+          logWarn('WebRTC ICE candidate relay target not found', { to, targetSocketId });
           return;
         }
 
-        console.log('[WebRTC] Relaying ICE candidate via webrtc event', { from: socket.userId, to: relaySocketId });
+        const { logDebug } = require('../config/winston');
+        logDebug('Relaying ICE candidate via webrtc event', { from: socket.userId, to: relaySocketId });
 
         io.to(relaySocketId).emit('webrtc:ice_candidate', {
           from: socket.userId,
@@ -2357,7 +2388,8 @@ try {
           candidate
         });
       } catch (error) {
-        console.error('Error relaying ICE candidate:', error);
+        const { logError } = require('../config/winston');
+        logError('Error relaying ICE candidate', { message: error.message });
       }
     });
 

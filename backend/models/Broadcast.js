@@ -40,4 +40,8 @@ const broadcastSchema = new mongoose.Schema({
   }
 });
 
+// Indexes for efficient querying
+broadcastSchema.index({ createdBy: 1, createdAt: -1 });
+broadcastSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('Broadcast', broadcastSchema);
