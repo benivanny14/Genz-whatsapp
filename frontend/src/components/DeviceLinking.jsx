@@ -39,17 +39,14 @@ const DeviceLinking = ({ onLinkDevice, onUnlinkDevice, linkedDevices = [] }) => 
       if (data.qrCode) {
         setQrCode(data.qrCode);
       } else {
-        // Fallback: generate local QR showing session token for manual entry
-        const sessionToken = data.sessionToken || data.token || 'GENZ-' + Date.now();
-        // Use qrcode.js or display the token text
+        // QR generation failed - show error message instead of token
         setQrCode(null);
-        setQrToken(sessionToken);
+        setQrToken(null);
       }
     } catch (e) {
-      console.warn('[DeviceLinking] QR fetch failed:', e);
-      const token = 'GENZ-' + Math.random().toString(36).slice(2, 10).toUpperCase();
-        setQrToken(token);
-        setQrCode(token); // Use same display path via qrserver.com
+      // QR generation failed - show error message
+      setQrCode(null);
+      setQrToken(null);
     } finally {
       setIsGenerating(false);
       setShowQRModal(true);
@@ -161,7 +158,7 @@ const DeviceLinking = ({ onLinkDevice, onUnlinkDevice, linkedDevices = [] }) => 
                   <RefreshCw size={32} className="animate-spin text-[#00a884] mb-4" />
                   <p className="text-gray-400">Generating QR code...</p>
                 </div>
-              ) : (
+              ) : qrCode ? (
                 <>
                   <div className="bg-white p-4 rounded-lg mb-4">
                     <img
@@ -172,23 +169,21 @@ const DeviceLinking = ({ onLinkDevice, onUnlinkDevice, linkedDevices = [] }) => 
                       }
                       alt="QR Code"
                       className="w-full h-auto"
-                      onError={e => {
-                        // If image fails, show text code
-                        e.target.style.display = 'none';
-                        const p = document.createElement('p');
-                        p.className = 'text-black text-center font-mono text-xs break-all p-2';
-                        p.textContent = qrCode;
-                        e.target.parentNode.appendChild(p);
-                      }}
                     />
                   </div>
                   <p className="text-sm text-gray-400 mb-2">
                     Scan this QR code with your device's camera
                   </p>
                   <p className="text-xs text-gray-500">
-                    QR code refreshes every 30 seconds for security
+                    QR code refreshes every 60 seconds for security
                   </p>
                 </>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <X size={32} className="text-red-400 mb-4" />
+                  <p className="text-gray-400">Failed to generate QR code</p>
+                  <p className="text-xs text-gray-500 mt-2">Please try again</p>
+                </div>
               )}
             </div>
 

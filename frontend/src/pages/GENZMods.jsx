@@ -77,22 +77,6 @@ const GENZMods = () => {
     }
   };
 
-  const exportSettings = async () => {
-    try {
-      const data = await modsService.exportModSettings();
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'genz-mods-settings.json';
-      a.click();
-      URL.revokeObjectURL(url);
-      setSuccess('Settings exported successfully');
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (error) {
-      setError('Failed to export settings');
-    }
-  };
 
   const importSettings = async (event) => {
     try {
@@ -152,13 +136,6 @@ const GENZMods = () => {
             </div>
             
             <div className="flex items-center space-x-2">
-              <button
-                onClick={exportSettings}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                title="Export Settings"
-              >
-                <Download className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              </button>
               <label className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer" title="Import Settings">
                 <Upload className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                 <input
