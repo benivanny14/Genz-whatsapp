@@ -61,11 +61,8 @@ exports.generateQRCode = async (req, res) => {
     });
     
     // Generate QR code data
-    const qrData = JSON.stringify({
-      token: pairingToken,
-      deviceId: tempDevice?.deviceId || crypto.randomUUID(),
-      timestamp: Date.now()
-    });
+    const clientUrl = process.env.CLIENT_URL || req.headers.origin || 'http://localhost:5173';
+    const qrData = `${clientUrl}/pair-device?token=${pairingToken}&deviceId=${tempDevice?.deviceId || crypto.randomUUID()}&timestamp=${Date.now()}`;
     
     // Generate QR code as base64
     const qrCodeImage = await QRCode.toDataURL(qrData, {

@@ -41,6 +41,7 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 const LinkedDevices = lazy(() => import('./pages/LinkedDevices'));
+const PairDevice = lazy(() => import('./pages/PairDevice'));
 const Broadcasts = lazy(() => import('./pages/Broadcasts'));
 const SecuritySettings = lazy(() => import('./pages/SecuritySettings'));
 const Channels = lazy(() => import('./pages/Channels'));
@@ -90,9 +91,9 @@ function App() {
         const mods = readStoredMods();
         const root = document.documentElement;
         if (mods.glassMode) {
-          root.classList.add('glass-mode');
+          root.classList.add('glass-mode-active');
         } else {
-          root.classList.remove('glass-mode');
+          root.classList.remove('glass-mode-active');
         }
         // Sync video background
         let videoBg = document.getElementById('genz-video-bg');
@@ -141,6 +142,37 @@ function App() {
     });
   }, []);
 
+  // --- PWA Updates ---
+  useEffect(() => {
+    const handleUpdate = () => {
+      toast(
+        (t) => (
+          <div className="flex flex-col gap-2">
+            <span className="font-semibold text-sm">Update available!</span>
+            <span className="text-xs text-gray-400">A new version of GENZ is ready.</span>
+            <div className="flex gap-2 mt-1">
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-primary-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold w-full"
+              >
+                Reload Now
+              </button>
+              <button
+                onClick={() => toast.dismiss(t.id)}
+                className="bg-gray-700 text-white px-3 py-1.5 rounded-lg text-xs w-full"
+              >
+                Later
+              </button>
+            </div>
+          </div>
+        ),
+        { duration: Infinity, position: 'bottom-right', style: { background: '#1e293b', color: '#fff', border: '1px solid #334155' } }
+      );
+    };
+    window.addEventListener('pwa-update-available', handleUpdate);
+    return () => window.removeEventListener('pwa-update-available', handleUpdate);
+  }, []);
+
   return (
     <ErrorBoundary>
       <OfflineBanner />
@@ -159,6 +191,7 @@ function App() {
           <Route path="/broadcast" element={<ProtectedRoute><Broadcasts /></ProtectedRoute>} />
           <Route path="/broadcast/simple" element={<ProtectedRoute><Broadcast /></ProtectedRoute>} />
           <Route path="/linked-devices" element={<ProtectedRoute><LinkedDevices /></ProtectedRoute>} />
+          <Route path="/pair-device" element={<ProtectedRoute><PairDevice /></ProtectedRoute>} />
           <Route path="/settings/security" element={<ProtectedRoute><SecuritySettings /></ProtectedRoute>} />
           <Route path="/starred" element={<ProtectedRoute><Starred /></ProtectedRoute>} />
           <Route path="/archived" element={<ProtectedRoute><Archived /></ProtectedRoute>} />

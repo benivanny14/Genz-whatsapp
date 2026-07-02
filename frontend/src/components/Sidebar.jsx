@@ -402,7 +402,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     if (mods?.debugEncryption) {
       // Show raw encrypted content for debugging
       if (typeof conv.lastMessage.content === 'object' && conv.lastMessage.content !== null) {
-        content = JSON.stringify(conv.lastMessage.content);
+        content = '[Encrypted Message]';
       } else {
         content = String(conv.lastMessage.message || conv.lastMessage.content || '');
       }
@@ -872,14 +872,28 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     </div>
                   </div>
                 </button>
-                {/* Pin Action Button */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); togglePinChat(conv._id); }}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1 hover:bg-dark-bg rounded text-dark-textSecondary transition-all"
-                  title={isChatPinned(conv) ? "Unpin Chat" : "Pin Chat"}
-                >
-                  <Pin size={14} className={isChatPinned(conv) ? "text-primary-500" : ""} />
-                </button>
+                {/* Action Buttons */}
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-100 md:opacity-0 md:group-hover:opacity-100 flex items-center gap-1 transition-all bg-dark-surface/80 md:bg-transparent rounded-lg backdrop-blur-sm p-0.5">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); togglePinChat(conv._id); }}
+                    className="p-1.5 hover:bg-dark-bg rounded text-dark-textSecondary"
+                    title={isChatPinned(conv) ? "Unpin Chat" : "Pin Chat"}
+                  >
+                    <Pin size={14} className={isChatPinned(conv) ? "text-primary-500" : ""} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setContextMenu({ x: rect.left - 150, y: rect.top, chatId: conv._id, isMuted: conv.isMuted, isArchived: conv.isArchived });
+                    }}
+                    className="p-1.5 hover:bg-dark-bg rounded text-dark-textSecondary"
+                    title="Options & Assign Tab"
+                  >
+                    <MoreVertical size={14} />
+                  </button>
+                </div>
               </div>
             ))}
           </div>

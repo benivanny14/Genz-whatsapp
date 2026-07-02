@@ -47,20 +47,20 @@ const NotificationSettings = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="p-2 bg-[#00a884]/20 rounded-lg">
-          <Bell size={20} className="text-[#00a884]" />
+        <div className="p-2 bg-blue-600/20 rounded-lg">
+          <Bell size={20} className="text-blue-600 dark:text-blue-400" />
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-white">Notifications</h2>
-          <p className="text-sm text-gray-400">Manage your notification preferences</p>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Manage your notification preferences</p>
         </div>
       </div>
 
       {/* Permission Status */}
-      <div className="bg-[#202c33] rounded-lg p-4 flex items-center justify-between">
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex items-center justify-between">
         <div>
-          <p className="font-medium text-white">Notification Permission</p>
-          <p className="text-sm text-gray-400">
+          <p className="font-medium text-gray-900 dark:text-white">Notification Permission</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             {permission === 'granted' && 'Notifications are enabled'}
             {permission === 'denied' && 'Notifications are blocked'}
             {permission === 'default' && 'Permission not requested yet'}
@@ -70,7 +70,7 @@ const NotificationSettings = () => {
         {permission !== 'granted' && permission !== 'unsupported' && (
           <button
             onClick={requestPermission}
-            className="px-4 py-2 bg-[#00a884] hover:bg-[#008f6f] text-white rounded-lg transition-colors text-sm font-medium"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-gray-900 dark:text-white rounded-lg transition-colors text-sm font-medium"
           >
             Enable
           </button>
@@ -80,12 +80,12 @@ const NotificationSettings = () => {
       {/* Notification Settings */}
       <div className="space-y-4">
         {/* Enable/Disable Notifications */}
-        <div className="bg-[#202c33] rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Bell size={20} className="text-gray-400" />
+            <Bell size={20} className="text-gray-500 dark:text-gray-400" />
             <div>
-              <p className="font-medium text-white">Notifications</p>
-              <p className="text-sm text-gray-400">Show notifications for new messages</p>
+              <p className="font-medium text-gray-900 dark:text-white">Notifications</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Show notifications for new messages</p>
             </div>
           </div>
           <button
@@ -93,7 +93,7 @@ const NotificationSettings = () => {
             className="p-1 rounded-lg transition-colors"
           >
             {settings.enabled ? (
-              <ToggleRight size={32} className="text-[#00a884]" />
+              <ToggleRight size={32} className="text-blue-600 dark:text-blue-400" />
             ) : (
               <ToggleLeft size={32} className="text-gray-500" />
             )}
@@ -101,19 +101,19 @@ const NotificationSettings = () => {
         </div>
 
         {/* Vibration */}
-        <div className="bg-[#202c33] rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Vibrate size={20} className="text-gray-400" />
+            <Vibrate size={20} className="text-gray-500 dark:text-gray-400" />
             <div>
-              <p className="font-medium text-white">Vibration</p>
-              <p className="text-sm text-gray-400">Vibrate on new messages and calls</p>
+              <p className="font-medium text-gray-900 dark:text-white">Vibration</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Vibrate on new messages and calls</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={testVibration}
               disabled={testing}
-              className="px-3 py-1 bg-[#202c33] hover:bg-[#37404a] text-white rounded-lg transition-colors text-sm"
+              className="px-3 py-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-[#37404a] text-gray-900 dark:text-white rounded-lg transition-colors text-sm"
             >
               {testing ? 'Testing...' : 'Test'}
             </button>
@@ -122,7 +122,7 @@ const NotificationSettings = () => {
               className="p-1 rounded-lg transition-colors"
             >
               {settings.vibration ? (
-                <ToggleRight size={32} className="text-[#00a884]" />
+                <ToggleRight size={32} className="text-blue-600 dark:text-blue-400" />
               ) : (
                 <ToggleLeft size={32} className="text-gray-500" />
               )}
@@ -131,12 +131,12 @@ const NotificationSettings = () => {
         </div>
 
         {/* Sound */}
-        <div className="bg-[#202c33] rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Volume2 size={20} className="text-gray-400" />
+            <Volume2 size={20} className="text-gray-500 dark:text-gray-400" />
             <div>
-              <p className="font-medium text-white">Sound</p>
-              <p className="text-sm text-gray-400">Play sound for notifications</p>
+              <p className="font-medium text-gray-900 dark:text-white">Sound</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Play sound for notifications</p>
             </div>
           </div>
           <button
@@ -144,7 +144,7 @@ const NotificationSettings = () => {
             className="p-1 rounded-lg transition-colors"
           >
             {settings.sound ? (
-              <ToggleRight size={32} className="text-[#00a884]" />
+              <ToggleRight size={32} className="text-blue-600 dark:text-blue-400" />
             ) : (
               <ToggleLeft size={32} className="text-gray-500" />
             )}
@@ -152,12 +152,12 @@ const NotificationSettings = () => {
         </div>
 
         {/* Show Preview */}
-        <div className="bg-[#202c33] rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Eye size={20} className="text-gray-400" />
+            <Eye size={20} className="text-gray-500 dark:text-gray-400" />
             <div>
-              <p className="font-medium text-white">Message Preview</p>
-              <p className="text-sm text-gray-400">Show message content in notifications</p>
+              <p className="font-medium text-gray-900 dark:text-white">Message Preview</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Show message content in notifications</p>
             </div>
           </div>
           <button
@@ -165,7 +165,7 @@ const NotificationSettings = () => {
             className="p-1 rounded-lg transition-colors"
           >
             {settings.showPreview ? (
-              <ToggleRight size={32} className="text-[#00a884]" />
+              <ToggleRight size={32} className="text-blue-600 dark:text-blue-400" />
             ) : (
               <ToggleLeft size={32} className="text-gray-500" />
             )}
@@ -177,14 +177,14 @@ const NotificationSettings = () => {
       <div className="flex gap-3">
         <button
           onClick={testNotification}
-          className="flex-1 px-4 py-3 bg-[#202c33] hover:bg-[#37404a] text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
+          className="flex-1 px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-[#37404a] text-gray-900 dark:text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
         >
           <Bell size={16} />
           Test Notification
         </button>
         <button
           onClick={testVibration}
-          className="flex-1 px-4 py-3 bg-[#202c33] hover:bg-[#37404a] text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
+          className="flex-1 px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-[#37404a] text-gray-900 dark:text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
         >
           <Vibrate size={16} />
           Test Vibration

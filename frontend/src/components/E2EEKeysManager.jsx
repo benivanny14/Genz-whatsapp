@@ -84,7 +84,7 @@ const E2EEKeysManager = () => {
         <strong>Status:</strong> {status}
       </div>
       {publicKey && (
-        <pre style={{ maxHeight: 160, overflow: 'auto', background: '#fafafa', padding: 8 }}>{JSON.stringify(publicKey, null, 2)}</pre>
+        <div className="text-xs text-green-500 font-medium">Keys generated successfully. You can now download them.</div>
       )}
     </div>
   );

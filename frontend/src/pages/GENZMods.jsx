@@ -47,6 +47,22 @@ const GENZMods = () => {
       setSaving(true);
       setError('');
       await modsService.updateModsSettings(modsSettings);
+      
+      // Sync with frontend ChatContext by saving to localStorage
+      try {
+        const existingLocalMods = JSON.parse(localStorage.getItem('genz_mods') || '{}');
+        const updatedLocalMods = {
+          ...existingLocalMods,
+          antiDelete: modsSettings.antiDelete,
+          autoReply: modsSettings.autoReply?.enabled,
+          autoReplyMsg: modsSettings.autoReply?.message,
+          ghostMode: modsSettings.ghostMode?.hideOnline || modsSettings.ghostMode?.hideTyping || modsSettings.ghostMode?.hideReadReceipts
+        };
+        localStorage.setItem('genz_mods', JSON.stringify(updatedLocalMods));
+        // Force refresh in App/ChatContext by dispatching event
+        window.dispatchEvent(new Event('storage'));
+      } catch(e) {}
+      
       setSuccess('Settings saved successfully');
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {

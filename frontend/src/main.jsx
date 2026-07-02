@@ -61,7 +61,8 @@ if ('serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (hasReloaded) return;
         hasReloaded = true;
-        window.location.reload();
+        // Dispatch event instead of forcing a disruptive reload
+        window.dispatchEvent(new CustomEvent('pwa-update-available'));
       });
 
       // Handle SW messages (open chat from notification click)

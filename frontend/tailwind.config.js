@@ -20,12 +20,12 @@ export default {
           900: '#054c40',
         },
         dark: {
-          bg: '#0f172a',
-      surface: '#1e293b',
-      hover: '#334155',
-      border: '#334155',
-      text: '#f1f5f9',
-      textSecondary: '#94a3b8'
+          bg: 'var(--color-dark-bg, #0f172a)',
+          surface: 'var(--color-dark-surface, #1e293b)',
+          hover: 'var(--color-dark-hover, #334155)',
+          border: 'var(--color-dark-border, #334155)',
+          text: 'var(--color-dark-text, #f1f5f9)',
+          textSecondary: 'var(--color-dark-textSecondary, #94a3b8)'
         }
       },
       animation: {

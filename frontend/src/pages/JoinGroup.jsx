@@ -12,7 +12,7 @@ const API_URL = import.meta.env.VITE_API_URL || '';
 const JoinGroup = () => {
   const { groupId, code } = useParams();
   const navigate = useNavigate();
-  const { refreshConversations, setStoredSelectedConversationId } = useChat();
+  const { refreshConversations, selectConversation } = useChat();
   const [status, setStatus] = useState('joining'); // joining | success | already | error
   const [message, setMessage] = useState('');
 
@@ -46,17 +46,17 @@ const JoinGroup = () => {
           // If backend returned the conversation, open it immediately
           if (data.conversation) {
             await refreshConversations?.();
-            setStoredSelectedConversationId?.(groupId);
+            selectConversation?.(groupId);
             // Give state a moment to settle, then navigate
             setTimeout(() => navigate('/chat', { replace: true }), 1200);
           } else {
             await refreshConversations?.();
-            setStoredSelectedConversationId?.(groupId);
+            selectConversation?.(groupId);
           }
         } else if (response.status === 400 && /already a member/i.test(data?.message || '')) {
           setStatus('already');
           setMessage('You are already in this group.');
-          setStoredSelectedConversationId?.(groupId);
+          selectConversation?.(groupId);
         } else {
           setStatus('error');
           setMessage(data?.message || 'This invite link is no longer valid.');
@@ -99,7 +99,7 @@ const JoinGroup = () => {
             onClick={goToChat}
             className="w-full bg-[#00a884] hover:bg-[#06cf9c] text-white font-semibold py-2.5 rounded-lg transition-colors"
           >
-            {status === 'error' ? 'Go to chats' : 'Open chat'}
+            {status === 'error' ? 'Go to chats' : 'View Group'}
           </button>
         )}
 

@@ -697,14 +697,14 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
                   ) : (
                     <RefreshCw size={10} />
                   )}
-                  Rejesha (Restore)
+                  Restore
                 </button>
                 <button
                   disabled={backupActionLoading !== null}
                   onClick={() => handleDeleteCloudBackup(backup.backupId)}
                   className="bg-red-500/25 hover:bg-red-500/50 border border-red-500/40 disabled:opacity-40 text-red-300 font-bold text-[10px] uppercase px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all active:scale-95"
                 >
-                  Futa (Delete)
+                  Delete
                 </button>
               </div>
             </div>
@@ -747,7 +747,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold whitespace-nowrap rounded-t-lg transition-all border-b-2 ${
+            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold whitespace-nowrap rounded-t-lg transition-all border-b-2 shrink-0 ${
               activeTab === tab.id
                 ? 'bg-white/10 border-blue-400 text-white'
                 : 'border-transparent text-white/50 hover:text-white hover:bg-white/5'
@@ -1562,11 +1562,11 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               onChange={(e) => setNotificationSound(e.target.value)}
               className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-sm focus:ring-2 focus:ring-yellow-500 text-white"
             >
-              <option value="default">GENZ Default Tone</option>
-              <option value="classic">Classic WhatsApp</option>
-              <option value="modern">Modern Tech</option>
-              <option value="soft">Soft Minimalist</option>
-              <option value="none">Silent</option>
+              <option className=" bg-gray-800 text-white\ value="default">GENZ Default Tone</option>
+              <option className=" bg-gray-800 text-white\ value="classic">Classic WhatsApp</option>
+              <option className=" bg-gray-800 text-white\ value="modern">Modern Tech</option>
+              <option className=" bg-gray-800 text-white\ value="soft">Soft Minimalist</option>
+              <option className=" bg-gray-800 text-white\ value="none">Silent</option>
             </select>
             <button
               onClick={() => {
@@ -1616,7 +1616,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-500 text-white"
             >
               {VOICE_EFFECT_PRESETS.map((p) => (
-                <option key={p.id} value={p.id}>
+                <option className=" bg-gray-800 text-white\ key={p.id} value={p.id}>
                   {p.icon} {p.label}
                 </option>
               ))}
@@ -1845,13 +1845,13 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
             <Layers size={18} /> Glass Theme &amp; Video Background
           </div>
           <div className="p-4 space-y-3">
-            <p className="text-gray-400 text-xs">Fanya UI nzima ya mfumo iwe kama kioo (glassmorphism) na uweke video kama background</p>
+            <p className="text-gray-400 text-xs">Make the entire UI transparent like glass and set a video background</p>
             <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
               <div className="flex items-center gap-3">
                 <Sparkles size={18} className="text-purple-400" />
                 <div>
                   <p className="text-white text-sm font-semibold">Glass Mode</p>
-                  <p className="text-gray-500 text-xs">{mods?.glassMode ? 'âœ… Imewashwa' : 'âŒ Imezimwa'}</p>
+                  <p className="text-[10px] text-gray-500">{mods.glassMode ? 'Active' : 'Disabled'}</p>
                 </div>
               </div>
               <button
@@ -1865,11 +1865,11 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               onClick={() => setShowGlassManager(true)}
               className="w-full py-3 bg-gradient-to-r from-blue-600/30 to-purple-600/30 border border-blue-500/30 text-blue-300 rounded-xl font-semibold text-sm hover:from-blue-600/50 hover:to-purple-600/50 transition-all flex items-center justify-center gap-2"
             >
-              <Video size={16} /> Dhibiti Glass Theme &amp; Video Background
+              <Video size={16} /> Manage Glass Theme &amp; Video Background
             </button>
             {mods?.glassMode && mods?.videoBg && (
               <div className="flex items-center gap-2 text-xs text-green-400 bg-green-500/10 border border-green-500/20 rounded-lg p-2">
-                <span>ðŸŽ¬</span> Video background imewashwa
+                <span>🎥</span> Video background enabled
               </div>
             )}
           </div>
@@ -2122,7 +2122,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
                 </div>
                 {isDNDMode && (
                   <div className="mt-3 p-2 bg-orange-500/10 rounded-lg border border-orange-500/20 text-xs text-orange-300">
-                    ðŸ”• You are offline. No messages or calls will be received.
+                    🔕 You are offline. No messages or calls will be received.
                   </div>
                 )}
               </div>
@@ -2300,7 +2300,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
             <div className="bg-gradient-to-r from-[#008069] to-[#005c4b] p-5 flex items-center justify-between sticky top-0 z-10">
               <div>
                 <h2 className="text-xl font-black text-white">💎 Premium Subscription</h2>
-                <p className="text-green-200 text-xs mt-0.5">Fungua vipengele vyote vya GENZ Ultra</p>
+                <p className="text-green-200 text-xs mt-0.5">Unlock all GENZ Ultra features</p>
               </div>
               <button
                 onClick={() => { setShowPaymentModal(false); setPaymentMessage(''); }}
@@ -2313,18 +2313,18 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               {/* Price Card */}
               <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/10 rounded-2xl p-4 border border-green-500/30">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-white/60 text-sm">Bei ya Subscription</span>
-                  <span className="bg-green-500 text-white text-xs px-3 py-1 rounded-full font-bold">MIEZI 2</span>
+                  <span className="text-white/60 text-sm">Subscription Price</span>
+                  <span className="bg-green-500 text-white text-xs px-3 py-1 rounded-full font-bold">2 MONTHS</span>
                 </div>
                 <div className="text-4xl font-black text-white">Tsh 10,000</div>
-                <p className="text-green-400 text-xs mt-1">≈ Tsh 5,000 / mwezi • Ghaghama pungufu!</p>
+                <p className="text-green-400 text-xs mt-1">≈ Tsh 5,000 / month • Discounted price!</p>
               </div>
 
               {/* Features */}
               <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <p className="text-white/50 text-xs font-semibold mb-2 uppercase tracking-wide">Utapata:</p>
+                <p className="text-white/50 text-xs font-semibold mb-2 uppercase tracking-wide">You will get:</p>
                 <div className="grid grid-cols-2 gap-1.5">
-                  {['🔒 Privacy ya juu', '👻 Ghost Mode', '🛡️ Anti-Delete', '💬 Glass Mode',
+                  {['🔒 High Privacy', '👻 Ghost Mode', '🛡️ Anti-Delete', '💬 Glass Mode',
                     '📊 Dashboard', '🎵 Chat Music', '⚡ All Mods', '🔄 Auto-Reply'].map(f => (
                     <div key={f} className="text-xs text-green-300">{f}</div>
                   ))}
