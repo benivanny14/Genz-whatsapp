@@ -108,7 +108,7 @@ const NewChat = () => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-dark-textSecondary" />
           <input
             type="text"
-            placeholder="Tafuta kwa jina au namba ya simu..."
+            placeholder="Search by name or phone number..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-3 bg-dark-surface border border-dark-border rounded-lg text-dark-text placeholder-dark-textSecondary focus:outline-none focus:border-primary-500"
@@ -118,7 +118,7 @@ const NewChat = () => {
         {/* Contacts count */}
         {!loading && myContacts.length > 0 && (
           <p className="text-xs text-dark-textSecondary mb-3 px-1 uppercase tracking-wider font-semibold">
-            Contacts kwenye simu yako &middot; {filteredContacts.length}
+            Contacts on your phone &middot; {filteredContacts.length}
           </p>
         )}
 
@@ -159,13 +159,13 @@ const NewChat = () => {
           </div>
         ) : searchQuery.trim() ? (
           <div className="text-center py-8">
-            <p className="text-dark-textSecondary">Hakuna mwasiliano aliyepatikana.</p>
+            <p className="text-dark-textSecondary">No contacts found.</p>
           </div>
         ) : (
           <div className="text-center py-8">
             <UserPlus className="w-12 h-12 text-dark-textSecondary mx-auto mb-3 opacity-40" />
-            <p className="text-dark-textSecondary mb-1">Huna contacts bado</p>
-            <p className="text-sm text-dark-textSecondary opacity-70">Bonyeza "Add New Contact" kuongeza mtu mpya</p>
+            <p className="text-dark-textSecondary mb-1">No contacts yet</p>
+            <p className="text-sm text-dark-textSecondary opacity-70">Click "Add New Contact" to add a new person</p>
           </div>
         )}
       </div>
