@@ -2057,7 +2057,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     backgroundImage: activeWallpaper.startsWith('#')
       ? `linear-gradient(rgba(0,0,0,${activeDim}), rgba(0,0,0,${activeDim}))`
       : `linear-gradient(rgba(0,0,0,${activeDim}), rgba(0,0,0,${activeDim})), url(${activeWallpaper})`,
-    backgroundSize: 'contain',
+    backgroundSize: 'cover',
     backgroundRepeat: 'no-repeat',
     backgroundPosition: 'center',
     transform: `scale(${activeZoom})`,
@@ -2073,7 +2073,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   // Filter messages for search
 
   return (
-    <div className="flex-1 flex flex-col bg-dark-bg min-w-0 w-full overflow-hidden relative h-full min-h-0">
+    <div className="flex-1 flex flex-col bg-dark-bg min-w-0 w-full overflow-hidden relative h-[100dvh] min-h-0">
       <div
         className="absolute inset-0 pointer-events-none z-0"
         style={wallpaperStyle}
