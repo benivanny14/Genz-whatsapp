@@ -25,6 +25,34 @@
   --app-offset-top: 0px;
 }
 
+/* PWA WebView keyboard fix - for environments where visualViewport API doesn't work properly */
+@media (display-mode: standalone) {
+  html {
+    height: 100dvh;
+    height: -webkit-fill-available;
+  }
+  
+  body {
+    height: 100dvh;
+    height: -webkit-fill-available;
+    overflow: hidden;
+  }
+  
+  /* Fix chat input bar position in PWA */
+  .bg-dark-surface.border-t {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 50 !important;
+  }
+  
+  /* Add padding to messages container to account for fixed input bar */
+  .flex-1.min-h-0.overflow-y-auto {
+    padding-bottom: 80px !important;
+  }
+}
+
 :root {
   --color-dark-bg: #0f172a;
   --color-dark-surface: #1e293b;
