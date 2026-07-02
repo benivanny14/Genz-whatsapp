@@ -703,10 +703,10 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                 <div key={folder} className="relative flex items-center flex-shrink-0">
                   <button
                     onClick={() => setActiveFolder(folder)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all whitespace-nowrap
+                    className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs font-semibold border transition-all whitespace-nowrap
                       ${isActive ? 'bg-[#00a884] border-[#00a884] text-white shadow-sm' : 'border-dark-border text-dark-textSecondary hover:bg-dark-hover hover:text-dark-text'}`}
                   >
-                    <span className="text-[10px]">{icon}</span>
+                    <span className="text-xs">{icon}</span>
                     {folder}
                   </button>
                   {!defaultChatTabs.includes(folder) && (
@@ -762,7 +762,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
               <Archive size={20} />
               <span className="font-medium">{showArchivedOnly ? 'Back to Chats' : 'Archived'}</span>
             </div>
-            <span className="bg-primary-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{archivedCount}</span>
+            <span className="bg-primary-600 text-white text-xs font-bold px-2.5 py-1 rounded-full">{archivedCount}</span>
           </button>
         )}
 
