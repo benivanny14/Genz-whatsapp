@@ -5,7 +5,7 @@ import {
   Smartphone, ChevronRight, Database, UserRound, KeyRound, Languages,
   HelpCircle, Download, Trash2, Phone, Wifi, Image as ImageIcon,
   HardDrive, CheckCircle2, EyeOff, Archive, Clock, Mail, FileText, Globe2,
-  RefreshCw, RotateCcw
+  RefreshCw, RotateCcw, Palette
 } from 'lucide-react';
 import ContactManager from '../components/ContactManager';
 import ProductCatalogue from '../components/ProductCatalogue';
