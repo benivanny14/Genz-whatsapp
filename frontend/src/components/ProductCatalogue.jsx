@@ -28,14 +28,14 @@ const ProductCatalogue = ({ onClose, onSendProduct }) => {
         if (data.success) {
           setProducts(data.products || []);
         } else {
-          setError(data.error || 'Imeshindwa kupakia bidhaa');
+          setError(data.error || 'Failed to load products');
         }
       } else {
-        setError('Kosa la mtandao wakati wa kupakia bidhaa');
+        setError('Network error while loading products');
       }
     } catch (err) {
       console.error('Error fetching products:', err);
-      setError('Kosa la mtandao limetokea');
+      setError('Network error occurred');
     } finally {
       setLoading(false);
     }
@@ -67,14 +67,14 @@ const ProductCatalogue = ({ onClose, onSendProduct }) => {
           setNewProduct({ name: '', description: '', price: '', image: '' });
           setShowAddForm(false);
         } else {
-          setError(data.error || 'Imeshindwa kuongeza bidhaa');
+          setError(data.error || 'Failed to add product');
         }
       } else {
-        setError('Kosa la mtandao wakati wa kuongeza bidhaa');
+        setError('Network error while adding product');
       }
     } catch (err) {
       console.error('Error adding product:', err);
-      setError('Imeshindwa kuongeza bidhaa kwenye mtandao');
+      setError('Failed to add product to server');
     } finally {
       setLoading(false);
     }
@@ -93,14 +93,14 @@ const ProductCatalogue = ({ onClose, onSendProduct }) => {
         if (data.success) {
           setProducts(products.filter(p => (p._id || p.id) !== id));
         } else {
-          setError(data.error || 'Imeshindwa kufuta bidhaa');
+          setError(data.error || 'Failed to delete product');
         }
       } else {
-        setError('Kosa la mtandao wakati wa kufuta bidhaa');
+        setError('Network error while deleting product');
       }
     } catch (err) {
       console.error('Error deleting product:', err);
-      setError('Imeshindwa kufuta bidhaa kwenye mtandao');
+      setError('Failed to delete product from server');
     } finally {
       setLoading(false);
     }

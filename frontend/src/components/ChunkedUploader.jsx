@@ -144,7 +144,7 @@ const ChunkedUploader = ({ onComplete, onClose, onUploadComplete, onCancel, acce
       );
     } catch (err) {
       if (err.message !== 'Upload cancelled') {
-        setError(err.message || 'Upload imeshindwa');
+        setError(err.message || 'Upload failed');
         setStatus('error');
       } else {
         setStatus('idle');

@@ -782,7 +782,7 @@ function StatusCreator({ onClose, onCreated, apiBase, token }) {
         onCreated(result.status);
         onClose();
       } else {
-        alert(result.message || "Imeshindwa kuweka status");
+        alert(result.message || "Failed to post status");
       }
     } catch (err) {
       alert("Hitilafu: " + err.message);
@@ -1000,7 +1000,7 @@ export default function StatusFeature({ currentUserId, apiBase, token }) {
         setOthers(data.others || []);
       }
     } catch (e) {
-      console.error("Imeshindwa kupakia statuses:", e);
+      console.error("Failed to load statuses:", e);
     } finally {
       setLoading(false);
     }

@@ -173,7 +173,7 @@ const Admin = () => {
       }
     } catch (error) {
       console.error('Admin dashboard fetch failed:', error);
-      showAction('Imeshindwa kupakia dashboard');
+      showAction('Failed to load dashboard');
     } finally {
       setLoading(false);
       setRefreshing(false);

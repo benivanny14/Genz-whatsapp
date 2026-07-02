@@ -39,7 +39,7 @@ const MassSenderModal = ({ onClose }) => {
 
   const handleSend = async () => {
     if (!message.trim() || selectedUsers.length === 0) {
-      toast.error("Tafadhali andika ujumbe na uchague angalau mtu mmoja.");
+      toast.error("Please write a message and select at least one person.");
       return;
     }
 
@@ -47,14 +47,14 @@ const MassSenderModal = ({ onClose }) => {
     try {
       const result = await sendMassMessage(selectedUsers, message);
       if (result?.success) {
-        const failedNote = result.failedCount ? ` (${result.failedCount} hawakufikiwa)` : '';
-        toast.success(`Ujumbe umetumwa kwa watu ${result.sentCount ?? selectedUsers.length}!${failedNote}`);
+        const failedNote = result.failedCount ? ` (${result.failedCount} not reached)` : '';
+        toast.success(`Message sent to ${result.sentCount ?? selectedUsers.length} people!${failedNote}`);
         onClose();
       } else {
-        toast.error(result?.error || "Imeshindwa kutuma ujumbe. Jaribu tena.");
+        toast.error(result?.error || "Failed to send message. Try again.");
       }
     } catch (error) {
-      toast.error("Imeshindwa kutuma ujumbe. Jaribu tena.");
+      toast.error("Failed to send message. Try again.");
     } finally {
       setIsSending(false);
     }
