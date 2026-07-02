@@ -31,13 +31,13 @@
     height: 100dvh;
     height: -webkit-fill-available;
   }
-  
+
   body {
     height: 100dvh;
     height: -webkit-fill-available;
     overflow: hidden;
   }
-  
+
   /* Fix chat input bar position in PWA */
   .bg-dark-surface.border-t {
     position: fixed !important;
@@ -46,11 +46,31 @@
     right: 0 !important;
     z-index: 50 !important;
   }
-  
+
   /* Add padding to messages container to account for fixed input bar */
   .flex-1.min-h-0.overflow-y-auto {
     padding-bottom: 80px !important;
   }
+}
+
+/* Unread message badge styling - match WhatsApp design */
+.unread-badge {
+  background-color: #25D366 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  min-width: 24px !important;
+  height: 24px !important;
+  padding: 0 8px !important;
+  border-radius: 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+  line-height: 1 !important;
+  letter-spacing: 0.5px !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
 }
 
 :root {

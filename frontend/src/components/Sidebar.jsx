@@ -813,7 +813,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                         {isChatPinned(conv) && <Pin size={12} className="text-primary-500 rotate-45" />}
                         {/* Unread count badge */}
                         {conv.unreadCount > 0 ? (
-                          <span className="inline-flex items-center justify-center px-1.5 min-w-[20px] h-5 bg-[#25D366] text-white text-[11px] font-semibold rounded-full">
+                          <span className="unread-badge">
                             {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
                           </span>
                         ) : (
