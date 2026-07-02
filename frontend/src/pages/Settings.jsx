@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Save, User, Lock, Bell, Palette, Shield, Users, Package,
+  ArrowLeft, Save, User, Lock, Bell, Shield, Users, Package,
   Smartphone, ChevronRight, Database, UserRound, KeyRound, Languages,
-  HelpCircle, MessageSquare, Download, Trash2, Phone, Wifi, Image as ImageIcon,
+  HelpCircle, Download, Trash2, Phone, Wifi, Image as ImageIcon,
   HardDrive, CheckCircle2, EyeOff, Archive, Clock, Mail, FileText, Globe2,
   RefreshCw, RotateCcw
 } from 'lucide-react';
@@ -40,43 +40,9 @@ const DEFAULT_SETTINGS = {
     protectIpAddressInCalls: false,
     disableLinkPreviews: false,
     blockUnknownAccountMessages: false,
-    appLock: {
-      enabled: false,
-      lockAfter: 'immediately',
-      requireBiometric: false
-    },
-    chatLock: {
-      enabled: false,
-      secretCodeEnabled: false,
-      hideLockedChats: false
-    },
     advancedChatPrivacy: false,
     privacyCheckupCompleted: false,
     privacyCheckupCompletedAt: null
-  },
-  chats: {
-    theme: 'system',
-    wallpaper: '',
-    wallpaperDimming: 0,
-    chatColor: '#00a884',
-    fontSize: 'medium',
-    enterIsSend: false,
-    mediaVisibility: true,
-    keepChatsArchived: true,
-    archiveMutedChats: true,
-    backup: {
-      enabled: false,
-      frequency: 'manual',
-      account: '',
-      includeVideos: false,
-      endToEndEncrypted: false,
-      passkeyEncrypted: false,
-      lastBackupAt: null
-    },
-    history: {
-      exportFormat: 'json',
-      clearCacheOnLogout: false
-    }
   },
   notifications: {
     messages: true,
@@ -88,15 +54,9 @@ const DEFAULT_SETTINGS = {
     highPriority: true,
     reactionNotifications: true,
     reminders: true,
-    messageTone: 'default',
-    groupTone: 'default',
-    callRingtone: 'default',
     vibration: 'default'
   },
   storageData: {
-    mobileAutoDownload: ['photos'],
-    wifiAutoDownload: ['photos', 'audio', 'videos', 'documents'],
-    roamingAutoDownload: [],
     photoUploadQuality: 'standard',
     videoUploadQuality: 'standard',
     useLessDataForCalls: false,
@@ -138,21 +98,6 @@ const TIMER_OPTIONS = [
   ['90d', '90 days']
 ];
 
-const TONE_OPTIONS = [
-  ['default', 'Default'],
-  ['classic', 'Classic'],
-  ['bell', 'Bell'],
-  ['chime', 'Chime'],
-  ['silent', 'Silent']
-];
-
-const MEDIA_TYPES = [
-  ['photos', 'Photos'],
-  ['audio', 'Audio'],
-  ['videos', 'Videos'],
-  ['documents', 'Documents']
-];
-
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
 const mergeDeep = (base, incoming) => {
@@ -178,23 +123,8 @@ const mergeDeep = (base, incoming) => {
 const normalizeSettings = (settings = {}) => {
   const normalized = clone(settings);
 
-  if (normalized.theme) {
-    normalized.chats = {
-      ...(normalized.chats || {}),
-      theme: normalized.theme.mode,
-      wallpaper: normalized.theme.wallpaper,
-      chatColor: normalized.theme.chatColor
-    };
-    delete normalized.theme;
-  }
-
   if (normalized.privacy?.statusPrivacy && !normalized.privacy.status) {
     normalized.privacy.status = normalized.privacy.statusPrivacy;
-  }
-
-  if (normalized.security?.pinLock && !normalized.privacy?.appLock) {
-    normalized.privacy = normalized.privacy || {};
-    normalized.privacy.appLock = normalized.security.pinLock;
   }
 
   return mergeDeep(DEFAULT_SETTINGS, normalized);
@@ -230,18 +160,6 @@ const setPath = (target, path, value) => {
 };
 
 const applyRuntimeSettings = (settings) => {
-  const root = document.documentElement;
-  const theme = settings.chats?.theme || 'system';
-  const systemDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
-  const effectiveTheme = theme === 'system' ? (systemDark ? 'dark' : 'light') : theme;
-
-  root.setAttribute('data-theme', theme);
-  root.classList.toggle('light-mode', effectiveTheme === 'light');
-  root.style.setProperty('--color-primary', settings.chats?.chatColor || '#00a884');
-  root.style.setProperty(
-    '--chat-font-size',
-    settings.chats?.fontSize === 'large' ? '17px' : settings.chats?.fontSize === 'small' ? '13px' : '15px'
-  );
   document.documentElement.lang = settings.app?.language === 'system' ? navigator.language : settings.app?.language || 'en';
   window.dispatchEvent(new Event('language-changed'));
 };
@@ -322,31 +240,6 @@ const SettingRow = ({ icon, title, description, control, onClick }) => {
   return <div className="flex items-center justify-between gap-3 px-4 py-3">{body}</div>;
 };
 
-const MediaPicker = ({ value, onChange }) => {
-  const selected = new Set(value || []);
-  const toggle = (type) => {
-    const next = new Set(selected);
-    if (next.has(type)) next.delete(type);
-    else next.add(type);
-    onChange(Array.from(next));
-  };
-
-  return (
-    <div className="flex flex-wrap gap-2">
-      {MEDIA_TYPES.map(([type, label]) => (
-        <button
-          key={type}
-          type="button"
-          onClick={() => toggle(type)}
-          className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${selected.has(type) ? 'border-[#00a884] bg-[#00a884]/20 text-white' : 'border-white/15 bg-white/5 text-blue-100/70'}`}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
-  );
-};
-
 const ActionButton = ({ children, onClick, tone = 'primary', disabled = false }) => {
   const tones = {
     primary: 'bg-[#00a884] text-white hover:bg-[#029b7a]',
@@ -382,16 +275,11 @@ const Settings = () => {
   const [showContacts, setShowContacts] = useState(false);
   const [showCatalogue, setShowCatalogue] = useState(false);
   const [showStorage, setShowStorage] = useState(false);
-  const [showPinModal, setShowPinModal] = useState(false);
-  const [pinForm, setPinForm] = useState({ current: '', newPin: '', confirm: '' });
-  const [pinError, setPinError] = useState('');
-  const hasExistingPin = !!localStorage.getItem('genz_lock_pin');
 
   const tabs = useMemo(() => ([
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'account', label: 'Account', icon: KeyRound },
     { id: 'privacy', label: 'Privacy', icon: Lock },
-    { id: 'chats', label: 'Chats', icon: MessageSquare },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'storage', label: 'Storage and data', icon: Database },
     { id: 'language', label: 'App language', icon: Languages },
@@ -683,181 +571,19 @@ const Settings = () => {
         <SettingRow icon={Shield} title="Protect IP address in calls" description="Relay calls for extra call privacy." control={<Toggle checked={settingsData.privacy.protectIpAddressInCalls} onChange={() => toggleSetting('privacy.protectIpAddressInCalls')} />} />
       </SettingSection>
 
-      <SettingSection title="Advanced privacy" description="Newer WhatsApp-style controls for links, unknown accounts, locked chats, and advanced chat privacy.">
+      <SettingSection title="Advanced privacy" description="Newer WhatsApp-style controls for links, unknown accounts, and advanced chat privacy.">
         <SettingRow icon={EyeOff} title="Disable link previews" control={<Toggle checked={settingsData.privacy.disableLinkPreviews} onChange={() => toggleSetting('privacy.disableLinkPreviews')} />} />
         <SettingRow icon={Shield} title="Block unknown account messages" description="Reduce spam from accounts you have not contacted." control={<Toggle checked={settingsData.privacy.blockUnknownAccountMessages} onChange={() => toggleSetting('privacy.blockUnknownAccountMessages')} />} />
-        <SettingRow icon={Lock} title="App lock" description="Require app unlock." control={<Toggle checked={settingsData.privacy.appLock.enabled} onChange={() => toggleSetting('privacy.appLock.enabled')} />} />
-        <SettingRow icon={Clock} title="App lock timeout" control={<Select value={settingsData.privacy.appLock.lockAfter} onChange={(value) => updateSetting('privacy.appLock.lockAfter', value)} options={[['immediately', 'Immediately'], ['1m', 'After 1 minute'], ['15m', 'After 15 minutes'], ['1h', 'After 1 hour']]} />} />
-        <SettingRow icon={Lock} title="Chat lock" description="Hide sensitive chats behind lock settings." control={<Toggle checked={settingsData.privacy.chatLock.enabled} onChange={() => toggleSetting('privacy.chatLock.enabled')} />} />
-        <SettingRow icon={KeyRound} title="Secret code for locked chats" control={<Toggle checked={settingsData.privacy.chatLock.secretCodeEnabled} onChange={() => toggleSetting('privacy.chatLock.secretCodeEnabled')} />} />
         <SettingRow icon={Shield} title="Advanced Chat Privacy" description="Block exports, media auto-downloads, and AI sharing for sensitive chats." control={<Toggle checked={settingsData.privacy.advancedChatPrivacy} onChange={() => toggleSetting('privacy.advancedChatPrivacy')} />} />
       </SettingSection>
-
-      <SettingSection title="Lock PIN Management" description="Set or change the 4-digit PIN used for chat lock, app lock, and all locked features.">
-        <SettingRow
-          icon={KeyRound}
-          title={hasExistingPin ? 'Change lock PIN' : 'Set lock PIN'}
-          description={hasExistingPin ? 'Update your current 4-digit lock PIN.' : 'Create a 4-digit PIN to use for locking chats and features.'}
-          onClick={() => { setShowPinModal(true); setPinForm({ current: '', newPin: '', confirm: '' }); setPinError(''); }}
-        />
-      </SettingSection>
-
-      {showPinModal && (
-        <div className="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center p-4" onClick={() => setShowPinModal(false)}>
-          <div className="bg-[#1a2730] rounded-2xl w-full max-w-sm p-6 shadow-2xl border border-white/10" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-white mb-1">{hasExistingPin ? 'Change PIN' : 'Set New PIN'}</h3>
-            <p className="text-xs text-white/50 mb-5">This PIN will be used for all lock features across the app.</p>
-
-            {hasExistingPin && (
-              <div className="mb-4">
-                <label className="block text-xs font-semibold text-white/60 mb-1.5">Current PIN</label>
-                <input
-                  type="password"
-                  maxLength={4}
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={pinForm.current}
-                  onChange={e => setPinForm(p => ({ ...p, current: e.target.value.replace(/\D/g, '') }))}
-                  className="w-full text-center text-2xl tracking-[0.5em] rounded-xl border border-white/15 bg-[#111b21] px-3 py-3 text-white outline-none focus:border-[#00a884]"
-                  placeholder="••••"
-                />
-              </div>
-            )}
-
-            <div className="mb-4">
-              <label className="block text-xs font-semibold text-white/60 mb-1.5">New PIN</label>
-              <input
-                type="password"
-                maxLength={4}
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={pinForm.newPin}
-                onChange={e => setPinForm(p => ({ ...p, newPin: e.target.value.replace(/\D/g, '') }))}
-                className="w-full text-center text-2xl tracking-[0.5em] rounded-xl border border-white/15 bg-[#111b21] px-3 py-3 text-white outline-none focus:border-[#00a884]"
-                placeholder="••••"
-              />
-            </div>
-
-            <div className="mb-5">
-              <label className="block text-xs font-semibold text-white/60 mb-1.5">Confirm PIN</label>
-              <input
-                type="password"
-                maxLength={4}
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={pinForm.confirm}
-                onChange={e => setPinForm(p => ({ ...p, confirm: e.target.value.replace(/\D/g, '') }))}
-                className="w-full text-center text-2xl tracking-[0.5em] rounded-xl border border-white/15 bg-[#111b21] px-3 py-3 text-white outline-none focus:border-[#00a884]"
-                placeholder="••••"
-              />
-            </div>
-
-            {pinError && <p className="text-red-400 text-xs mb-3 text-center">{pinError}</p>}
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowPinModal(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-white/15 text-white/70 text-sm font-semibold hover:bg-white/5 transition-colors"
-              >Cancel</button>
-              <button
-                onClick={() => {
-                  setPinError('');
-                  if (hasExistingPin) {
-                    const stored = localStorage.getItem('genz_lock_pin');
-                    if (pinForm.current !== stored) { setPinError('Current PIN is incorrect.'); return; }
-                  }
-                  if (pinForm.newPin.length !== 4) { setPinError('PIN must be exactly 4 digits.'); return; }
-                  if (pinForm.newPin !== pinForm.confirm) { setPinError('New PIN and confirmation do not match.'); return; }
-                  localStorage.setItem('genz_lock_pin', pinForm.newPin);
-                  setShowPinModal(false);
-                  showStatus('success', hasExistingPin ? 'PIN changed successfully!' : 'PIN set successfully!');
-                }}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-[#00a884] text-white text-sm font-semibold hover:bg-[#00a884]/90 transition-colors"
-              >{hasExistingPin ? 'Change PIN' : 'Set PIN'}</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <ActionButton onClick={() => saveSettings()} disabled={saving}><Save size={16} /> Save privacy settings</ActionButton>
     </div>
   );
 
-  const [backupLoading, setBackupLoading] = React.useState(false);
-  const [backupMsg, setBackupMsg] = React.useState('');
-
-  const handleBackupNow = async () => {
-    setBackupLoading(true);
-    setBackupMsg('');
-    try {
-      const token = localStorage.getItem('token');
-      const API = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${API}/api/backup/create`, {
-        method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-      });
-      const data = await res.json();
-      if (data.success) {
-        setBackupMsg('✅ Backup created: ' + new Date().toLocaleString());
-        localStorage.setItem('genz_last_backup', new Date().toISOString());
-      } else setBackupMsg('❌ ' + (data.message || 'Backup failed'));
-    } catch (e) {
-      // Local backup fallback
-      try {
-        const bd = { at: new Date().toISOString(), settings: localStorage.getItem('genz_user_settings'), mods: localStorage.getItem('genz_mods') };
-        const blob = new Blob([JSON.stringify(bd, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = `genz-backup-${Date.now()}.json`;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-        setBackupMsg('✅ Local backup downloaded');
-      } catch (_) { setBackupMsg('❌ Backup failed'); }
-    } finally { setBackupLoading(false); }
-  };
-
-  const renderChats = () => (
-    <div className="space-y-4">
-      <SettingSection title="Display" description="Theme, wallpaper, font size, color, and chat behavior.">
-        <SettingRow icon={Palette} title="Theme" control={<Select value={settingsData.chats.theme} onChange={(value) => updateSetting('chats.theme', value)} options={[['system', 'System default'], ['light', 'Light'], ['dark', 'Dark']]} />} />
-        <SettingRow icon={Palette} title="Chat color" control={
-          <input type="color" value={settingsData.chats.chatColor} onChange={(event) => updateSetting('chats.chatColor', event.target.value)} className="h-10 w-16 rounded-xl border border-white/15 bg-transparent" />
-        } />
-        <SettingRow icon={ImageIcon} title="Wallpaper URL" description="Paste an image URL for chat background." control={
-          <div className="w-64">
-            <TextInput value={settingsData.chats.wallpaper} onChange={(value) => updateSetting('chats.wallpaper', value)} placeholder="https://..." />
-          </div>
-        } />
-        <SettingRow icon={Palette} title="Wallpaper dimming" control={
-          <input type="range" min="0" max="100" value={settingsData.chats.wallpaperDimming} onChange={(event) => updateSetting('chats.wallpaperDimming', Number(event.target.value))} className="w-44 accent-[#00a884]" />
-        } />
-        <SettingRow icon={MessageSquare} title="Font size" control={<Select value={settingsData.chats.fontSize} onChange={(value) => updateSetting('chats.fontSize', value)} options={[['small', 'Small'], ['medium', 'Medium'], ['large', 'Large']]} />} />
-        <SettingRow icon={MessageSquare} title="Enter is send" control={<Toggle checked={settingsData.chats.enterIsSend} onChange={() => toggleSetting('chats.enterIsSend')} />} />
-        <SettingRow icon={ImageIcon} title="Media visibility" description="Show newly downloaded media in gallery-like views." control={<Toggle checked={settingsData.chats.mediaVisibility} onChange={() => toggleSetting('chats.mediaVisibility')} />} />
-      </SettingSection>
-
-      <SettingSection title="Archived chats and backups" description="Keep archive behavior and backup preferences in one place.">
-        <SettingRow icon={Archive} title="Keep chats archived" control={<Toggle checked={settingsData.chats.keepChatsArchived} onChange={() => toggleSetting('chats.keepChatsArchived')} />} />
-        <SettingRow icon={Archive} title="Archive muted chats" control={<Toggle checked={settingsData.chats.archiveMutedChats} onChange={() => toggleSetting('chats.archiveMutedChats')} />} />
-        {backupMsg && <div className={`mb-2 px-3 py-2 rounded-lg text-sm ${backupMsg.startsWith('✅') ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>{backupMsg}</div>}
-        <SettingRow icon={HardDrive} title="Chat backup" control={<Toggle checked={settingsData.chats.backup.enabled} onChange={() => toggleSetting('chats.backup.enabled')} />} />
-        <SettingRow icon={Save} title="Back Up Now" description={localStorage.getItem('genz_last_backup') ? 'Last: ' + new Date(localStorage.getItem('genz_last_backup')).toLocaleDateString() : 'Never backed up'}
-          control={<ActionButton onClick={handleBackupNow} disabled={backupLoading}><Save size={14} />{backupLoading ? 'Backing up...' : 'Back Up'}</ActionButton>} />
-        <SettingRow icon={Clock} title="Backup frequency" control={<Select value={settingsData.chats.backup.frequency} onChange={(value) => updateSetting('chats.backup.frequency', value)} options={[['manual', 'Only when I tap backup'], ['daily', 'Daily'], ['weekly', 'Weekly'], ['monthly', 'Monthly']]} />} />
-        <SettingRow icon={Mail} title="Backup account" control={
-          <div className="w-56">
-            <TextInput value={settingsData.chats.backup.account} onChange={(value) => updateSetting('chats.backup.account', value)} placeholder="backup@example.com" />
-          </div>
-        } />
-        <SettingRow icon={ImageIcon} title="Include videos" control={<Toggle checked={settingsData.chats.backup.includeVideos} onChange={() => toggleSetting('chats.backup.includeVideos')} />} />
-        <SettingRow icon={Shield} title="End-to-end encrypted backup" control={<Toggle checked={settingsData.chats.backup.endToEndEncrypted} onChange={() => toggleSetting('chats.backup.endToEndEncrypted')} />} />
-        <SettingRow icon={KeyRound} title="Passkey-encrypted backup" control={<Toggle checked={settingsData.chats.backup.passkeyEncrypted} onChange={() => toggleSetting('chats.backup.passkeyEncrypted')} />} />
-      </SettingSection>
-
-      <ActionButton onClick={() => saveSettings()} disabled={saving}><Save size={16} /> Save chat settings</ActionButton>
-    </div>
-  );
-
   const renderNotifications = () => (
     <div className="space-y-4">
-      <SettingSection title="Notifications" description="Message, group, call, preview, tones, vibration, and reactions.">
+      <SettingSection title="Notifications" description="Message, group, call, preview, vibration, and reactions.">
         <SettingRow icon={Bell} title="Message notifications" control={<Toggle checked={settingsData.notifications.messages} onChange={() => toggleSetting('notifications.messages')} />} />
         <SettingRow icon={Users} title="Group notifications" control={<Toggle checked={settingsData.notifications.groups} onChange={() => toggleSetting('notifications.groups')} />} />
         <SettingRow icon={Phone} title="Call notifications" control={<Toggle checked={settingsData.notifications.calls} onChange={() => toggleSetting('notifications.calls')} />} />
@@ -867,9 +593,6 @@ const Settings = () => {
         <SettingRow icon={Bell} title="High priority notifications" control={<Toggle checked={settingsData.notifications.highPriority} onChange={() => toggleSetting('notifications.highPriority')} />} />
         <SettingRow icon={CheckCircle2} title="Reaction notifications" control={<Toggle checked={settingsData.notifications.reactionNotifications} onChange={() => toggleSetting('notifications.reactionNotifications')} />} />
         <SettingRow icon={Clock} title="Reminders" control={<Toggle checked={settingsData.notifications.reminders} onChange={() => toggleSetting('notifications.reminders')} />} />
-        <SettingRow icon={MessageSquare} title="Message tone" control={<Select value={settingsData.notifications.messageTone} onChange={(value) => updateSetting('notifications.messageTone', value)} options={TONE_OPTIONS} />} />
-        <SettingRow icon={Users} title="Group tone" control={<Select value={settingsData.notifications.groupTone} onChange={(value) => updateSetting('notifications.groupTone', value)} options={TONE_OPTIONS} />} />
-        <SettingRow icon={Phone} title="Call ringtone" control={<Select value={settingsData.notifications.callRingtone} onChange={(value) => updateSetting('notifications.callRingtone', value)} options={TONE_OPTIONS} />} />
         <SettingRow icon={Bell} title="Vibration" control={<Select value={settingsData.notifications.vibration} onChange={(value) => updateSetting('notifications.vibration', value)} options={[['off', 'Off'], ['default', 'Default'], ['short', 'Short'], ['long', 'Long']]} />} />
       </SettingSection>
 
@@ -879,24 +602,9 @@ const Settings = () => {
 
   const renderStorage = () => (
     <div className="space-y-4">
-      <SettingSection title="Manage storage" description="Open the existing storage manager and tune auto-download behavior.">
+      <SettingSection title="Manage storage" description="Open the existing storage manager and tune data usage.">
         <SettingRow icon={Database} title="Manage storage" description="Review large files and cached media by chat." onClick={() => setShowStorage(true)} />
         <SettingRow icon={Wifi} title="Use less data for calls" control={<Toggle checked={settingsData.storageData.useLessDataForCalls} onChange={() => toggleSetting('storageData.useLessDataForCalls')} />} />
-      </SettingSection>
-
-      <SettingSection title="Media auto-download" description="Choose what downloads on mobile data, Wi-Fi, and roaming.">
-        <div className="px-4 py-3">
-          <p className="mb-2 text-sm font-semibold text-white">When using mobile data</p>
-          <MediaPicker value={settingsData.storageData.mobileAutoDownload} onChange={(value) => updateSetting('storageData.mobileAutoDownload', value)} />
-        </div>
-        <div className="px-4 py-3">
-          <p className="mb-2 text-sm font-semibold text-white">When connected on Wi-Fi</p>
-          <MediaPicker value={settingsData.storageData.wifiAutoDownload} onChange={(value) => updateSetting('storageData.wifiAutoDownload', value)} />
-        </div>
-        <div className="px-4 py-3">
-          <p className="mb-2 text-sm font-semibold text-white">When roaming</p>
-          <MediaPicker value={settingsData.storageData.roamingAutoDownload} onChange={(value) => updateSetting('storageData.roamingAutoDownload', value)} />
-        </div>
       </SettingSection>
 
       <SettingSection title="Media upload quality and proxy" description="HD media preferences, proxy settings, and network usage reset.">
@@ -968,7 +676,6 @@ const Settings = () => {
     if (activeTab === 'profile') return renderProfile();
     if (activeTab === 'account') return renderAccount();
     if (activeTab === 'privacy') return renderPrivacy();
-    if (activeTab === 'chats') return renderChats();
     if (activeTab === 'notifications') return renderNotifications();
     if (activeTab === 'storage') return renderStorage();
     if (activeTab === 'language') return renderLanguage();
