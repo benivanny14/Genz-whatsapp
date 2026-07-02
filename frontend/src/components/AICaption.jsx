@@ -65,9 +65,9 @@ const AICaption = ({ onSelect, onClose, mediaType = 'image' }) => {
   const generate = async () => {
     setLoading(true);
     const styleLabel = CAPTION_STYLES.find(s => s.id === selectedStyle)?.label || selectedStyle;
-    const prompt = `Tengeneza maelezo (captions) 3 fupi na za kuvutia sana kwa ajili ya ${mediaType === 'video' ? 'video' : 'picha'} yangu kwenye WhatsApp.
-Mtindo (style) wa maelezo haya uwe: ${styleLabel}.
-Tafadhali zirudishe kama mistari 3 pekee iliyotenganishwa kwa namba 1, 2, na 3 bila utangulizi au hitimisho lolote. Kila mstari uwe na maelezo yake yenyewe. Hakikisha yote yameandikwa kwa lugha ya Kiswahili ya kuvutia, yenye hisia na vionjo vya kisasa vya GENZ.`;
+    const prompt = `Generate 3 short and very attractive captions for my WhatsApp ${mediaType === 'video' ? 'video' : 'photo'}.
+The style of these captions should be: ${styleLabel}.
+Please return them as only 3 lines separated by numbers 1, 2, and 3 without any introduction or conclusion. Each line should have its own caption. Ensure all are written in attractive English with emotion and modern GENZ vibes.`;
 
     try {
       const response = await authFetch('/api/advanced/ai-assistant', {

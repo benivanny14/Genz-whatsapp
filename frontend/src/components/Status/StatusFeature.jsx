@@ -53,23 +53,23 @@ const api = (base, token) => ({
   }).then(r => r.json()),
 });
 
-// ─── Muda wa Kiswahili ───────────────────────────────────────────────────────
+// ─── Time formatting ───────────────────────────────────────────────────────
 const timeAgo = (date) => {
   const diff = Date.now() - new Date(date).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "Sasa hivi";
-  if (mins < 60) return `Dakika ${mins} zilizopita`;
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins} minutes ago`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `Masaa ${hrs} yaliyopita`;
-  return "Jana";
+  if (hrs < 24) return `${hrs} hours ago`;
+  return "Yesterday";
 };
 
 const timeLeft = (expiresAt) => {
   const diff = new Date(expiresAt).getTime() - Date.now();
-  if (diff <= 0) return "Imeisha";
+  if (diff <= 0) return "Expired";
   const hrs = Math.floor(diff / 3600000);
   const mins = Math.floor((diff % 3600000) / 60000);
-  return hrs > 0 ? `Masaa ${hrs}` : `Dakika ${mins}`;
+  return hrs > 0 ? `${hrs} hours` : `${mins} minutes`;
 };
 
 // ─── Component: StatusBar (progress bar juu) ─────────────────────────────────
