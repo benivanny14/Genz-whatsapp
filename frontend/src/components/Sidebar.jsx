@@ -722,6 +722,13 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
               );
             })}
             <button
+              onClick={() => navigate('/new-chat')}
+              className="flex-shrink-0 w-7 h-7 rounded-full border border-dark-border text-dark-textSecondary hover:bg-dark-hover hover:text-dark-text flex items-center justify-center transition-all"
+              title="Add new contact"
+            >
+              <UserPlus size={13} />
+            </button>
+            <button
               onClick={() => setShowAddTabModal(true)}
               className="flex-shrink-0 w-7 h-7 rounded-full border border-dark-border text-dark-textSecondary hover:bg-dark-hover hover:text-dark-text flex items-center justify-center transition-all"
               title="Add new tab"
