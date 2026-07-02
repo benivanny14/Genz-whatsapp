@@ -34,7 +34,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
     updateAutoReply, presenceHistory,
     toggleAppTheme, appTheme,
     toggleDNDMode, isDNDMode,
-    getMessageStats, exportBackup,
+    getMessageStats,
     listCloudBackups, restoreCloudBackup, deleteCloudBackup,
     selectedConversation
   } = useChat();
@@ -2135,10 +2135,6 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
                 <button onClick={startCloudBackup}
                   className="w-full py-3 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 rounded-xl text-green-300 text-sm font-bold flex items-center justify-center gap-2 transition-all">
                   <Cloud size={16} /> Create Cloud Backup
-                </button>
-                <button onClick={() => exportBackup?.()}
-                  className="w-full py-3 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-xl text-blue-300 text-sm font-bold flex items-center justify-center gap-2 transition-all">
-                  <Download size={16} /> Export All Data (JSON)
                 </button>
                 {backupProgress !== null && backupProgress !== undefined && (
                   <div className="mt-2">

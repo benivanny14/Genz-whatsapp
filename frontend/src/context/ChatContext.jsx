@@ -2526,22 +2526,6 @@ export const ChatProvider = ({ children }) => {
   };
 
   // ── Cloud Backup (Phase 5 — real IndexedDB export) ──
-  const exportBackup = async () => {
-    try {
-      const allConvs = await DB.getConversations();
-      const allMsgs = [];
-      for (const conv of (allConvs || [])) {
-        const msgs = await DB.getMessages(conv._id);
-        allMsgs.push(...(msgs || []));
-      }
-      const blob = new Blob([JSON.stringify({ conversations: allConvs, messages: allMsgs, exportedAt: new Date().toISOString() }, null, 2)], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `GENZ_Backup_${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-    } catch (e) { console.error('Backup export failed:', e); }
-  };
 
   const startCloudBackup = async () => {
     if (backupService.isBackingUp()) {
@@ -4734,8 +4718,7 @@ export const ChatProvider = ({ children }) => {
     isDNDMode, toggleDNDMode,
     getMessageStats,
     appTheme, toggleAppTheme,
-    setDisappearingTimer,
-    exportBackup
+    setDisappearingTimer
   }), [
     user, conversations, selectedConversation, messages, loading,
     isOtherUserTyping, isOtherUserRecording, typingByConversation, activeCall, activeGroupCall,
