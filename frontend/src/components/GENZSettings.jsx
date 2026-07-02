@@ -1452,13 +1452,6 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
           ) : (
             <div className="p-2">
               <ModItem
-                icon={<EyeOff size={20} className="text-blue-500" />}
-                title="Freeze Last Seen"
-                desc="Hide your online status"
-                active={mods.hideLastSeen}
-                onClick={() => toggleMod('hideLastSeen')}
-              />
-              <ModItem
                 icon={<Zap size={20} className="text-purple-500" />}
                 title="Ghost Mode"
                 desc="Hide typing and voice recording status"
