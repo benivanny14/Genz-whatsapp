@@ -4590,6 +4590,11 @@ export const ChatProvider = ({ children }) => {
       if (data.success) {
         setConversations(prev => prev.filter(conv => conv._id !== groupId));
         setSelectedConversation(prev => (prev?._id === groupId ? null : prev));
+        // Delete from IndexedDB to prevent reappearing after refresh
+        try {
+          await DB.deleteConversation(groupId);
+          await DB.deleteMessagesForConversation(groupId);
+        } catch (e) { }
         emitSafe('group:left', { groupId });
       }
       return data;
