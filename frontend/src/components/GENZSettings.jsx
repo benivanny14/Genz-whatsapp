@@ -552,7 +552,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
       const list = await listCloudBackups();
       setCloudBackups(list || []);
     } catch (err) {
-      setBackupError('Imeshindwa kupata orodha ya backups (Failed to list backups)');
+      setBackupError('Failed to list backups');
     } finally {
       setFetchingBackups(false);
     }
@@ -564,20 +564,20 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
     try {
       const res = await startCloudBackup();
       if (res?.success) {
-        showMsg('✅ Backup ya wingu imekamilika! (Cloud backup completed!)');
+        showMsg('✅ Cloud backup completed!');
         await loadCloudBackups();
       } else {
-        setBackupError(res?.message || 'Uundaji wa Backup umeshindwa (Backup creation failed)');
+        setBackupError(res?.message || 'Backup creation failed');
       }
     } catch (err) {
-      setBackupError('Imeshindwa kuunda backup (Failed to create backup)');
+      setBackupError('Failed to create backup');
     } finally {
       setBackupActionLoading(null);
     }
   };
 
   const handleRestoreCloudBackup = async (backupId) => {
-    if (!window.confirm('Je, una uhakika unataka kurejesha backup hii? Hii itafuta data ya sasa ya IndexedDB na kuweka ya wingu. (Are you sure you want to restore this backup? This will replace your current IndexedDB cache.)')) {
+    if (!window.confirm('Are you sure you want to restore this backup? This will replace your current IndexedDB cache.')) {
       return;
     }
     setBackupActionLoading(backupId);
@@ -585,19 +585,19 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
     try {
       const res = await restoreCloudBackup(backupId);
       if (res?.success) {
-        showMsg('✅ Kurejesha kumekamilika! Mfumo utajipakia upya sasa... (Restore completed! Reloading...)');
+        showMsg('✅ Restore completed! Reloading...');
       } else {
-        setBackupError(res?.message || 'Kurejesha kumeshindwa (Restore failed)');
+        setBackupError(res?.message || 'Restore failed');
       }
     } catch (err) {
-      setBackupError('Imeshindwa kurejesha backup (Failed to restore backup)');
+      setBackupError('Failed to restore backup');
     } finally {
       setBackupActionLoading(null);
     }
   };
 
   const handleDeleteCloudBackup = async (backupId) => {
-    if (!window.confirm('Je, una uhakika unataka kufuta backup hii milele? (Are you sure you want to delete this backup permanently?)')) {
+    if (!window.confirm('Are you sure you want to delete this backup permanently?')) {
       return;
     }
     setBackupActionLoading(backupId);
@@ -605,13 +605,13 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
     try {
       const res = await deleteCloudBackup(backupId);
       if (res?.success) {
-        showMsg('✅ Backup imefutwa! (Backup deleted!)');
+        showMsg('✅ Backup deleted!');
         await loadCloudBackups();
       } else {
-        setBackupError(res?.message || 'Kufuta kumeshindwa (Delete failed)');
+        setBackupError(res?.message || 'Delete failed');
       }
     } catch (err) {
-      setBackupError('Imeshindwa kufuta backup (Failed to delete backup)');
+      setBackupError('Failed to delete backup');
     } finally {
       setBackupActionLoading(null);
     }
