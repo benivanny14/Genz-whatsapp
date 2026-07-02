@@ -7,7 +7,7 @@ import {
   LogOut, Info, Mic, Music, UserCircle, Edit3, Camera, Sun, Moon, BellOff,
   BarChart2, Smartphone as SmartphoneIcon, Mail, Forward, Eye, Globe,
   MessageSquare, Layers, Video, Sparkles, TrendingUp, Star, Wand2,
-  Activity, BarChart
+  Activity, BarChart, Upload
 } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
@@ -131,6 +131,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
   const [backupError, setBackupError] = useState('');
   const profilePictureInputRef = useRef(null);
   const wallpaperInputRef = useRef(null);
+  const musicFileInputRef = useRef(null);
   const previousProfileRef = useRef(null);
 
   // Save profile data to localStorage when it changes (debounced to avoid issues)
@@ -527,6 +528,19 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
     } finally {
       if (e?.target) e.target.value = '';
     }
+  };
+
+  const handleMusicFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const dataUrl = reader.result;
+      setMods(prev => ({ ...prev, chatMusicUrl: dataUrl }));
+      showMsg('✅ Music file selected!');
+    };
+    reader.readAsDataURL(file);
   };
 
   const toggleMod = (key) => {
@@ -1652,13 +1666,30 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               </div>
             </div>
             {mods.chatMusic && (
-              <input
-                type="text"
-                placeholder="Paste MP3 URL..."
-                value={mods.chatMusicUrl || ''}
-                onChange={(e) => setMods(prev => ({ ...prev, chatMusicUrl: e.target.value }))}
-                className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-sm focus:ring-2 focus:ring-pink-500 text-white placeholder-blue-200/50"
-              />
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => musicFileInputRef.current?.click()}
+                    className="flex-1 py-2 px-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-sm text-white transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Upload size={14} /> Select File
+                  </button>
+                  <input
+                    type="file"
+                    ref={musicFileInputRef}
+                    hidden
+                    accept="audio/*"
+                    onChange={handleMusicFileUpload}
+                  />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Or paste MP3 URL..."
+                  value={mods.chatMusicUrl || ''}
+                  onChange={(e) => setMods(prev => ({ ...prev, chatMusicUrl: e.target.value }))}
+                  className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-sm focus:ring-2 focus:ring-pink-500 text-white placeholder-blue-200/50"
+                />
+              </div>
             )}
           </div>
         </section>
