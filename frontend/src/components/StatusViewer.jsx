@@ -36,6 +36,7 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
   const [replySuccess, setReplySuccess] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [detailedViewers, setDetailedViewers] = useState([]);
+  const [loadingViewers, setLoadingViewers] = useState(false);
   const previousStatusIdRef = useRef(null);
   const replyInputRef = useRef(null);
   const timerRef = useRef(null);
@@ -84,7 +85,7 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
     e.stopPropagation();
     if (!currentStatus) return;
     
-    if (window.confirm("Je, una uhakika unataka kufuta status hii?")) {
+    if (window.confirm("Are you sure you want to delete this status?")) {
       try {
         await deleteStatus(sid(currentStatus));
         // If it's the last status in the viewer, close it
@@ -118,20 +119,26 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
   useEffect(() => {
     if (!showViewers || !isOwnStatus || !currentId) return;
     let cancelled = false;
+    setLoadingViewers(true);
     (async () => {
       try {
         const data = await statusService.getStatusViewers(currentId);
         if (!cancelled && data) {
           if (data.viewers) {
-            setDetailedViewers(data.viewers.map((v) => {
-              const viewerId = v.user?._id || v.user || v._id;
-              const defaultName = v.username || v.user?.username || 'User';
-              return {
-                userId: viewerId,
-                username: getContactName(viewerId, defaultName),
-                viewedAt: v.viewedAt
-              };
-            }));
+            setDetailedViewers(data.viewers
+              .filter(v => {
+                const viewerId = v.user?._id || v.user || v._id;
+                return String(viewerId) !== String(user?._id);
+              })
+              .map((v) => {
+                const viewerId = v.user?._id || v.user || v._id;
+                const defaultName = v.username || v.user?.username || 'User';
+                return {
+                  userId: viewerId,
+                  username: getContactName(viewerId, defaultName),
+                  viewedAt: v.viewedAt
+                };
+              }));
           }
           if (data.reactions) {
             const likes = data.reactions.filter(r => r.emoji === '❤️' || r.emoji === '\u2764\uFE0F' || r.emoji === 'like');
@@ -149,12 +156,17 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
         }
       } catch (_) { /* optional endpoint */ }
     })();
-    return () => { cancelled = true; };
+    return () => { 
+      cancelled = true;
+      setLoadingViewers(false);
+    };
   }, [showViewers, isOwnStatus, currentId, getContactName, user?._id]);
 
   const viewCount = currentStatus
     ? (typeof currentStatus.viewsCount === 'number' ? currentStatus.viewsCount : viewersList.length)
     : 0;
+
+  const displayViewCount = isOwnStatus ? viewCount : viewCount;
 
   const handleReply = useCallback(() => {
     if (!currentStatus) return;
@@ -494,7 +506,7 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
           >
             {replySuccess ? (
               <div className="flex items-center justify-center gap-2 py-2 text-green-400 font-semibold">
-                <span>✅</span> Reply imtumwa!
+                <span>✅</span> Reply sent!
               </div>
             ) : (
               <div className="flex items-center gap-2">
@@ -507,7 +519,7 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
                   value={replyText}
                   onChange={e => setReplyText(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSendReply()}
-                  placeholder="Andika reply..."
+                  placeholder="Type a reply..."
                   className="flex-1 bg-white/10 border border-white/20 rounded-full px-4 py-2 text-sm text-white placeholder-white/40 outline-none focus:border-green-400/50 transition-all"
                 />
                 <button
@@ -534,7 +546,7 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
             className="flex items-center gap-2 bg-[#1f2c34]/80 backdrop-blur-md px-6 py-2 rounded-full text-white/90 hover:bg-[#202c33] transition-all"
           >
             <Eye size={20} />
-            <span className="font-medium">{viewCount}</span>
+            <span className="font-medium">{displayViewCount}</span>
             <ChevronUp size={20} className="ml-1" />
           </button>
         </div>
@@ -594,7 +606,7 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
           >
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-white font-semibold flex items-center gap-2">
-                <Eye size={18} className="text-[#00a884]" /> {viewCount} Viewed
+                <Eye size={18} className="text-[#00a884]" /> {viewersList.length} Viewed
                 {likeCount > 0 && (
                   <span className="flex items-center gap-1 ml-2 text-red-400 text-sm font-normal">
                     <Heart size={14} className="fill-red-400" /> {likeCount}
@@ -609,8 +621,12 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
             </div>
             
             <div className="flex-1 overflow-y-auto space-y-1 pr-2">
-              {viewersList.length === 0 ? (
-                <div className="text-white/50 text-center mt-10 text-sm">Hakuna aliyeona bado</div>
+              {loadingViewers ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                </div>
+              ) : viewersList.length === 0 ? (
+                <div className="text-white/50 text-center mt-10 text-sm">No viewers yet</div>
               ) : (
                 viewersList.map((viewer, i) => {
                   const viewerHasLiked = likesList.some(
