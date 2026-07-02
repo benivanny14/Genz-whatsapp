@@ -27,12 +27,10 @@ const DEFAULT_SETTINGS = {
     deleteAccountGuard: true
   },
   privacy: {
-    lastSeen: 'everyone',
     online: 'same_as_last_seen',
     profilePhoto: 'everyone',
     about: 'everyone',
     status: 'contacts',
-    readReceipts: true,
     defaultMessageTimer: 'off',
     groups: 'everyone',
     blockedUsers: [],
@@ -395,7 +393,6 @@ const Settings = () => {
       ...settingsData,
       privacy: {
         ...settingsData.privacy,
-        lastSeen: 'contacts',
         online: 'same_as_last_seen',
         profilePhoto: 'contacts',
         about: 'contacts',
@@ -555,13 +552,11 @@ const Settings = () => {
         />
       </SettingSection>
 
-      <SettingSection title="Who can see my personal info" description="Last seen, online, profile photo, about, status, and read receipts.">
-        <SettingRow icon={Clock} title="Last seen" control={<Select value={settingsData.privacy.lastSeen} onChange={(value) => updateSetting('privacy.lastSeen', value)} options={VISIBILITY_OPTIONS} />} />
+      <SettingSection title="Who can see my personal info" description="Online, profile photo, about, and status visibility.">
         <SettingRow icon={Globe2} title="Online" control={<Select value={settingsData.privacy.online} onChange={(value) => updateSetting('privacy.online', value)} options={[['everyone', 'Everyone'], ['same_as_last_seen', 'Same as last seen']]} />} />
         <SettingRow icon={UserRound} title="Profile photo" control={<Select value={settingsData.privacy.profilePhoto} onChange={(value) => updateSetting('privacy.profilePhoto', value)} options={VISIBILITY_OPTIONS} />} />
         <SettingRow icon={User} title="About" control={<Select value={settingsData.privacy.about} onChange={(value) => updateSetting('privacy.about', value)} options={VISIBILITY_OPTIONS} />} />
         <SettingRow icon={Palette} title="Status" control={<Select value={settingsData.privacy.status} onChange={(value) => updateSetting('privacy.status', value)} options={STATUS_OPTIONS} />} />
-        <SettingRow icon={CheckCircle2} title="Read receipts" description="Blue ticks and status view receipts." control={<Toggle checked={settingsData.privacy.readReceipts} onChange={() => toggleSetting('privacy.readReceipts')} />} />
       </SettingSection>
 
       <SettingSection title="Messages, groups, and calls" description="Controls for disappearing messages, group invites, unknown calls, and call privacy.">
