@@ -2258,7 +2258,17 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               </button>
 
               {showHeaderMenu && (
-                <div className="absolute right-0 top-11 bg-dark-surface/95 backdrop-blur-md border border-dark-border rounded-xl shadow-2xl py-2 w-48 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="fixed inset-y-0 right-0 w-80 bg-dark-surface/95 backdrop-blur-md border-l border-dark-border shadow-2xl z-50 overflow-y-auto">
+                  <div className="p-4 border-b border-dark-border flex items-center justify-between">
+                    <h2 className="text-lg font-semibold text-white">Menu</h2>
+                    <button
+                      onClick={() => setShowHeaderMenu(false)}
+                      className="p-2 hover:bg-dark-hover rounded-lg transition-colors"
+                    >
+                      <X size={18} className="text-white/80" />
+                    </button>
+                  </div>
+                  <div className="py-2">
                   {/* Mobile DND toggle */}
                   <button
                     onClick={() => {
@@ -2369,6 +2379,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       <span>Group Info</span>
                     </button>
                   )}
+                  </div>
                 </div>
               )}
             </div>

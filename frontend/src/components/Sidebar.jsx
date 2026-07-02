@@ -500,7 +500,17 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                 <MoreVertical className="w-5 h-5 text-dark-text" />
               </button>
               {showMenu && (
-                <div className="absolute right-0 top-10 bg-dark-surface border border-dark-border rounded-lg shadow-xl py-2 w-56 z-50 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                <div className="fixed inset-y-0 right-0 w-80 bg-dark-surface border-l border-dark-border shadow-2xl z-50 overflow-y-auto">
+                  <div className="p-4 border-b border-dark-border flex items-center justify-between">
+                    <h2 className="text-lg font-semibold text-dark-text">Menu</h2>
+                    <button
+                      onClick={() => setShowMenu(false)}
+                      className="p-2 hover:bg-dark-hover rounded-lg transition-colors"
+                    >
+                      <X className="w-5 h-5 text-dark-text" />
+                    </button>
+                  </div>
+                  <div className="py-2">
                   {/* Header Actions (Moved to Menu) */}
                   <button
                     onClick={(e) => {
@@ -650,6 +660,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     <LogOut className="w-4 h-4" />
                     <span>Logout</span>
                   </button>
+                  </div>
                 </div>
               )}
             </div>
