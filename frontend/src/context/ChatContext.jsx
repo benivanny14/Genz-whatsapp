@@ -913,8 +913,9 @@ export const ChatProvider = ({ children }) => {
           if (data?.success && Array.isArray(data.conversations)) {
             const openChatId = getStoredSelectedConversationId();
             setConversations(prev => {
+              const localOnlyConvs = prev.filter(c => c._id && (c._id.startsWith('conv-') || c._id.startsWith('temp-')));
               const mergedMap = new Map();
-              prev.forEach(c => mergedMap.set(c._id, c));
+              localOnlyConvs.forEach(c => mergedMap.set(c._id, c));
               data.conversations.forEach(c => {
                 const isOpen = openChatId && String(c._id) === String(openChatId);
                 mergedMap.set(c._id, isOpen ? { ...c, unreadCount: 0 } : c);
@@ -923,6 +924,17 @@ export const ChatProvider = ({ children }) => {
                 (a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
               );
             });
+            try {
+              const remoteIds = new Set(data.conversations.map(c => String(c._id)));
+              const offlineConvs = await DB.getConversations();
+              for (const c of offlineConvs) {
+                if (!c._id.startsWith('conv-') && !c._id.startsWith('temp-') && !remoteIds.has(String(c._id))) {
+                  await DB.deleteConversation(c._id);
+                  await DB.deleteMessagesForConversation(c._id);
+                }
+              }
+              await Promise.all(data.conversations.map(c => DB.saveConversation(c)));
+            } catch (_) {}
           }
         } catch (e) {
           console.warn('[ChatContext] Failed to refresh conversations on reconnect:', e?.message || e);
@@ -1239,6 +1251,17 @@ export const ChatProvider = ({ children }) => {
           conv._id === groupId ? { ...conv, groupName: updates.groupName || conv.groupName, groupPhoto: updates.groupPhoto || conv.groupPhoto } : conv
         ));
         setSelectedConversation(prev => (prev && prev._id === groupId) ? { ...prev, groupName: updates.groupName || prev.groupName, groupPhoto: updates.groupPhoto || prev.groupPhoto } : prev);
+      });
+
+      socket.on('device:linked', ({ device } = {}) => {
+        if (device) {
+          setConnectedDevices(prev => {
+            const exists = prev.some(d => String(d.id) === String(device.id));
+            if (!exists) return [...prev, device];
+            return prev.map(d => String(d.id) === String(device.id) ? device : d);
+          });
+          showLocalNotification?.('New Device Linked', `A new device (${device.name}) was linked to your account.`);
+        }
       });
 
       socket.on('profile:updated', ({ user: updatedUser } = {}) => {
@@ -2819,6 +2842,14 @@ export const ChatProvider = ({ children }) => {
               return Array.from(mergedMap.values()).sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
             });
             try {
+              const remoteIds = new Set(remoteConversations.map(c => String(c._id)));
+              const offlineConvs = await DB.getConversations();
+              for (const c of offlineConvs) {
+                if (!c._id.startsWith('conv-') && !c._id.startsWith('temp-') && !remoteIds.has(String(c._id))) {
+                  await DB.deleteConversation(c._id);
+                  await DB.deleteMessagesForConversation(c._id);
+                }
+              }
               await Promise.all(remoteConversations.map((conversation) => DB.saveConversation(conversation)));
             } catch (_) { /* IndexedDB cache is best-effort */ }
             const storedId = getStoredSelectedConversationId();
@@ -4609,11 +4640,23 @@ export const ChatProvider = ({ children }) => {
       const data = await apiService.getConversations();
       if (data?.success && Array.isArray(data.conversations)) {
         setConversations(prev => {
+          const localOnlyConvs = prev.filter(c => c._id && (c._id.startsWith('conv-') || c._id.startsWith('temp-')));
           const mergedMap = new Map();
-          prev.forEach(c => mergedMap.set(c._id, c));
+          localOnlyConvs.forEach(c => mergedMap.set(c._id, c));
           data.conversations.forEach(c => mergedMap.set(c._id, c));
-          return Array.from(mergedMap.values());
+          return Array.from(mergedMap.values()).sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
         });
+        try {
+          const remoteIds = new Set(data.conversations.map(c => String(c._id)));
+          const offlineConvs = await DB.getConversations();
+          for (const c of offlineConvs) {
+            if (!c._id.startsWith('conv-') && !c._id.startsWith('temp-') && !remoteIds.has(String(c._id))) {
+              await DB.deleteConversation(c._id);
+              await DB.deleteMessagesForConversation(c._id);
+            }
+          }
+          await Promise.all(data.conversations.map(c => DB.saveConversation(c)));
+        } catch (_) {}
       }
       return data;
     } catch (err) {

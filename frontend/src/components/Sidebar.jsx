@@ -500,17 +500,17 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                 <MoreVertical className="w-5 h-5 text-dark-text" />
               </button>
               {showMenu && (
-                <div className="fixed inset-y-0 right-0 w-80 bg-dark-surface border-l border-dark-border shadow-2xl z-50 overflow-y-auto">
-                  <div className="p-4 border-b border-dark-border flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-dark-text">Menu</h2>
+                <div className="absolute left-full top-0 ml-2 w-64 bg-dark-surface border border-dark-border rounded-lg shadow-2xl z-[100] overflow-y-auto max-h-[80vh]">
+                  <div className="p-3 border-b border-dark-border flex items-center justify-between">
+                    <h2 className="text-base font-semibold text-dark-text">Menu</h2>
                     <button
                       onClick={() => setShowMenu(false)}
-                      className="p-2 hover:bg-dark-hover rounded-lg transition-colors"
+                      className="p-1 hover:bg-dark-hover rounded-md transition-colors"
                     >
-                      <X className="w-5 h-5 text-dark-text" />
+                      <X className="w-4 h-4 text-dark-textSecondary" />
                     </button>
                   </div>
-                  <div className="py-2">
+                  <div className="py-1">
                   {/* Header Actions (Moved to Menu) */}
                   <button
                     onClick={(e) => {
@@ -897,7 +897,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                       e.stopPropagation();
                       e.preventDefault();
                       const rect = e.currentTarget.getBoundingClientRect();
-                      setContextMenu({ x: rect.left - 150, y: rect.top, chatId: conv._id, isMuted: conv.isMuted, isArchived: conv.isArchived });
+                      setContextMenu({ x: rect.right + 10, y: rect.top, chatId: conv._id, isMuted: conv.isMuted, isArchived: conv.isArchived });
                     }}
                     className="p-1.5 hover:bg-dark-bg rounded text-dark-textSecondary"
                     title="Options & Assign Tab"

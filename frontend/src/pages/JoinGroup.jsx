@@ -43,20 +43,20 @@ const JoinGroup = () => {
         if (data?.success || data?.alreadyMember) {
           setStatus(data.alreadyMember ? 'already' : 'success');
           setMessage(data.alreadyMember ? 'You are already in this group.' : 'You joined the group!');
-          // If backend returned the conversation, open it immediately
-          if (data.conversation) {
-            await refreshConversations?.();
+          
+          await refreshConversations?.();
+          
+          setTimeout(() => {
             selectConversation?.(groupId);
-            // Give state a moment to settle, then navigate
-            setTimeout(() => navigate('/chat', { replace: true }), 1200);
-          } else {
-            await refreshConversations?.();
-            selectConversation?.(groupId);
-          }
+            navigate('/chat', { replace: true });
+          }, 1500);
         } else if (response.status === 400 && /already a member/i.test(data?.message || '')) {
           setStatus('already');
           setMessage('You are already in this group.');
-          selectConversation?.(groupId);
+          setTimeout(() => {
+            selectConversation?.(groupId);
+            navigate('/chat', { replace: true });
+          }, 1500);
         } else {
           setStatus('error');
           setMessage(data?.message || 'This invite link is no longer valid.');
@@ -74,7 +74,10 @@ const JoinGroup = () => {
     return () => { cancelled = true; };
   }, [groupId, code]);
 
-  const goToChat = () => navigate('/chat', { replace: true });
+  const goToChat = () => {
+    selectConversation?.(groupId);
+    navigate('/chat', { replace: true });
+  };
 
   return (
     <div className="min-h-screen bg-[#0b141a] flex items-center justify-center p-4">

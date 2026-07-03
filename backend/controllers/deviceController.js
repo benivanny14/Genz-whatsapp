@@ -125,6 +125,14 @@ exports.pairDevice = async (req, res) => {
     
     await device.save();
     
+    // Notify all instances of this user that a new device was linked
+    const io = req.app.get("io");
+    if (io) {
+      io.to(currentUserId.toString()).emit('device:linked', {
+        device: serializeDevice(device)
+      });
+    }
+
     res.status(200).json({
       success: true,
       message: 'Device paired successfully',

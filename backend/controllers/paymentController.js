@@ -268,6 +268,16 @@ exports.initiatePayment = async (req, res) => {
         }
       });
 
+      // Notify the user's connected clients that premium is now active
+      const io = req.app.get('io');
+      if (io) {
+        io.to(userId.toString()).emit('payment:completed', {
+          isActive: true,
+          expiryDate: subscription.expiryDate,
+          transactionId
+        });
+      }
+
       return res.status(200).json({
         success: true,
         paymentUrl: `https://mock-payment-gateway.local/pay/${transactionId}`,
@@ -479,6 +489,16 @@ exports.adminActivatePremium = async (req, res) => {
     );
 
     await logPremiumActivation(req.user?._id, user._id, subscription._id, req);
+
+    // Notify user that premium was activated
+    const io = req.app.get('io');
+    if (io) {
+      io.to(userId.toString()).emit('payment:completed', {
+        isActive: true,
+        expiryDate: subscription.expiryDate,
+        transactionId
+      });
+    }
 
     res.status(200).json({ success: true, user, subscription });
   } catch (error) {

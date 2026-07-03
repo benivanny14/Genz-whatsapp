@@ -36,7 +36,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
     toggleDNDMode, isDNDMode,
     getMessageStats,
     listCloudBackups, restoreCloudBackup, deleteCloudBackup,
-    selectedConversation
+    selectedConversation, socketRef
   } = useChat();
   const { updateUserProfile } = useUser();
 
@@ -197,6 +197,30 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
 
     return () => clearInterval(interval);
   }, []);
+
+  // Listen for real-time payment confirmation via WebSocket
+  useEffect(() => {
+    const socket = socketRef?.current;
+    if (!socket) return;
+
+    const handlePaymentCompleted = (data) => {
+      if (data?.isActive) {
+        setSubscriptionStatus(prev => ({
+          ...prev,
+          isActive: true,
+          userPremium: true,
+          expiryDate: data.expiryDate || prev.expiryDate
+        }));
+        setIsPrivacyLocked(false);
+        setPaymentLoading(false);
+        setPaymentMessage('Payment completed!');
+        setTimeout(() => setShowPaymentModal(false), 1200);
+      }
+    };
+
+    socket.on('payment:completed', handlePaymentCompleted);
+    return () => socket.off('payment:completed', handlePaymentCompleted);
+  }, [socketRef?.current]);
 
   // Countdown timer effect
   useEffect(() => {

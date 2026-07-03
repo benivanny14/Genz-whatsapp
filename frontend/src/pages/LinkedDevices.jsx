@@ -4,9 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import DeviceCard from '../components/DeviceCard';
 import deviceService from '../services/deviceService';
+import { useChat } from '../context/ChatContext';
 
 const LinkedDevices = () => {
   const navigate = useNavigate();
+  const { socketRef } = useChat();
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showQRModal, setShowQRModal] = useState(false);
@@ -16,7 +18,18 @@ const LinkedDevices = () => {
 
   useEffect(() => {
     fetchDevices();
-  }, []);
+    
+    const socket = socketRef?.current;
+    if (socket) {
+      const handleDeviceLinked = () => {
+        fetchDevices();
+        setShowQRModal(false);
+      };
+      
+      socket.on('device:linked', handleDeviceLinked);
+      return () => socket.off('device:linked', handleDeviceLinked);
+    }
+  }, [socketRef?.current]);
 
   const fetchDevices = async () => {
     try {
