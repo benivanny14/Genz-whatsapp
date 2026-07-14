@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.genz.whatsapp",
+      "sha256_cert_fingerprints": [
+        "93:E5:BE:AE:A8:09:92:87:98:02:7D:58:96:61:4A:1C:97:59:53:F0:BA:17:A4:A5:90:36:6F:68:58:94:7D:69"
+      ]
+    }
+  }
+]
