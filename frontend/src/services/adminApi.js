@@ -5,7 +5,7 @@ import axios from 'axios';
 // reachable via the normal, guessable /api/admin/* pattern for login.
 const API_URL = import.meta.env.VITE_API_URL || '';
 const API_ROOT = API_URL.replace(/\/api\/?$/, '');
-const ADMIN_BASE_PATH = import.meta.env.VITE_ADMIN_BASE_PATH || '/api/system-gateway-x9k2';
+const ADMIN_BASE_PATH = import.meta.env.VITE_ADMIN_BASE_PATH || '/api/x7f2-owner-gate-9k';
 
 const ACCESS_TOKEN_KEY_MEM = { current: null }; // access token: memory only, never persisted
 const REFRESH_TOKEN_KEY = 'genz_admin_refresh'; // refresh token: sessionStorage (cleared when tab closes)

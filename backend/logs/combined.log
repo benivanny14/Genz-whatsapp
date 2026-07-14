@@ -1,0 +1,40 @@
+{"environment":"development","frontendUrl":null,"level":"info","mediaStorage":"local","message":"TM Backend started","port":"5000","publicApiUrl":"http://localhost:5000","redisConfigured":false,"service":"genz-whatsapp","timestamp":"2026-07-15 00:37:04"}
+{"level":"info","message":"Starting subscription expiry checker...","service":"genz-whatsapp","timestamp":"2026-07-15 00:37:04"}
+{"level":"info","message":"Running subscription expiry check...","service":"genz-whatsapp","timestamp":"2026-07-15 00:37:04"}
+{"level":"info","message":"Subscription expiry checker started. Will run every hour.","service":"genz-whatsapp","timestamp":"2026-07-15 00:37:04"}
+{"count":0,"level":"info","message":"Found expired subscriptions","service":"genz-whatsapp","timestamp":"2026-07-15 00:37:04"}
+{"environment":"development","frontendUrl":null,"level":"info","mediaStorage":"local","message":"TM Backend started","port":"5000","publicApiUrl":"http://localhost:5000","redisConfigured":false,"service":"genz-whatsapp","timestamp":"2026-07-15 00:44:34"}
+{"level":"info","message":"Starting subscription expiry checker...","service":"genz-whatsapp","timestamp":"2026-07-15 00:44:35"}
+{"level":"info","message":"Running subscription expiry check...","service":"genz-whatsapp","timestamp":"2026-07-15 00:44:35"}
+{"level":"info","message":"Subscription expiry checker started. Will run every hour.","service":"genz-whatsapp","timestamp":"2026-07-15 00:44:35"}
+{"count":0,"level":"info","message":"Found expired subscriptions","service":"genz-whatsapp","timestamp":"2026-07-15 00:44:35"}
+{"environment":"development","frontendUrl":null,"level":"info","mediaStorage":"local","message":"TM Backend started","port":"5000","publicApiUrl":"http://localhost:5000","redisConfigured":false,"service":"genz-whatsapp","timestamp":"2026-07-15 00:48:31"}
+{"level":"info","message":"Starting subscription expiry checker...","service":"genz-whatsapp","timestamp":"2026-07-15 00:48:31"}
+{"level":"info","message":"Running subscription expiry check...","service":"genz-whatsapp","timestamp":"2026-07-15 00:48:31"}
+{"level":"info","message":"Subscription expiry checker started. Will run every hour.","service":"genz-whatsapp","timestamp":"2026-07-15 00:48:31"}
+{"count":0,"level":"info","message":"Found expired subscriptions","service":"genz-whatsapp","timestamp":"2026-07-15 00:48:31"}
+{"level":"info","message":"Running payment timeout check","service":"genz-whatsapp","timestamp":"2026-07-15 01:03:31"}
+{"count":0,"level":"info","message":"Found timed-out pending payments","service":"genz-whatsapp","timestamp":"2026-07-15 01:03:31"}
+{"level":"info","message":"Payment timeout check completed","processed":0,"service":"genz-whatsapp","timestamp":"2026-07-15 01:03:31"}
+{"level":"info","message":"Running payment timeout check","service":"genz-whatsapp","timestamp":"2026-07-15 01:18:31"}
+{"count":0,"level":"info","message":"Found timed-out pending payments","service":"genz-whatsapp","timestamp":"2026-07-15 01:18:31"}
+{"level":"info","message":"Payment timeout check completed","processed":0,"service":"genz-whatsapp","timestamp":"2026-07-15 01:18:31"}
+{"level":"info","message":"Running payment timeout check","service":"genz-whatsapp","timestamp":"2026-07-15 01:33:31"}
+{"count":0,"level":"info","message":"Found timed-out pending payments","service":"genz-whatsapp","timestamp":"2026-07-15 01:33:31"}
+{"level":"info","message":"Payment timeout check completed","processed":0,"service":"genz-whatsapp","timestamp":"2026-07-15 01:33:31"}
+{"level":"info","message":"Running subscription expiry check...","service":"genz-whatsapp","timestamp":"2026-07-15 01:48:31"}
+{"count":0,"level":"info","message":"Found expired subscriptions","service":"genz-whatsapp","timestamp":"2026-07-15 01:48:31"}
+{"level":"info","message":"Running payment timeout check","service":"genz-whatsapp","timestamp":"2026-07-15 01:48:31"}
+{"count":0,"level":"info","message":"Found timed-out pending payments","service":"genz-whatsapp","timestamp":"2026-07-15 01:48:31"}
+{"level":"info","message":"Payment timeout check completed","processed":0,"service":"genz-whatsapp","timestamp":"2026-07-15 01:48:31"}
+{"environment":"development","frontendUrl":null,"level":"info","mediaStorage":"local","message":"TM Backend started","port":"5000","publicApiUrl":"http://localhost:5000","redisConfigured":false,"service":"genz-whatsapp","timestamp":"2026-07-15 01:59:38"}
+{"level":"info","message":"Starting subscription expiry checker...","service":"genz-whatsapp","timestamp":"2026-07-15 01:59:38"}
+{"level":"info","message":"Running subscription expiry check...","service":"genz-whatsapp","timestamp":"2026-07-15 01:59:38"}
+{"level":"info","message":"Subscription expiry checker started. Will run every hour.","service":"genz-whatsapp","timestamp":"2026-07-15 01:59:38"}
+{"count":0,"level":"info","message":"Found expired subscriptions","service":"genz-whatsapp","timestamp":"2026-07-15 01:59:38"}
+{"level":"info","message":"Running payment timeout check","service":"genz-whatsapp","timestamp":"2026-07-15 02:14:38"}
+{"count":0,"level":"info","message":"Found timed-out pending payments","service":"genz-whatsapp","timestamp":"2026-07-15 02:14:38"}
+{"level":"info","message":"Payment timeout check completed","processed":0,"service":"genz-whatsapp","timestamp":"2026-07-15 02:14:38"}
+{"level":"info","message":"Running payment timeout check","service":"genz-whatsapp","timestamp":"2026-07-15 02:29:38"}
+{"count":0,"level":"info","message":"Found timed-out pending payments","service":"genz-whatsapp","timestamp":"2026-07-15 02:29:38"}
+{"level":"info","message":"Payment timeout check completed","processed":0,"service":"genz-whatsapp","timestamp":"2026-07-15 02:29:38"}

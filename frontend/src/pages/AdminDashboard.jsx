@@ -4,7 +4,7 @@ import {
   UsersRound, Radio, CircleDot, PhoneCall, Sparkles, Megaphone, Bell,
   LifeBuoy, MessagesSquare, BarChart3, TrendingUp, ShieldAlert, Copy,
   ScrollText, ShieldCheck, KeyRound, Smartphone, Timer, Sun, Moon,
-  Menu, X, LogOut, RefreshCcw, Search, CheckCircle2, XCircle
+  Menu, X, LogOut, RefreshCcw, Search, CheckCircle2, XCircle, AlertTriangle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import adminApi from '../services/adminApi';
@@ -24,6 +24,7 @@ import FraudDetection from '../components/admin/FraudDetection';
 import RolesPermissions from '../components/admin/RolesPermissions';
 import AdminDeviceManagement from '../components/admin/AdminDeviceManagement';
 import SessionManagement from '../components/admin/SessionManagement';
+import AbuseReports from '../components/admin/AbuseReports';
 
 // ---------------------------------------------------------------------
 // Section registry — all 33 requested modules, ALL now implemented and
@@ -48,6 +49,7 @@ const SECTIONS = [
   { key: 'notifications', label: 'Notification Center', icon: Bell, group: 'Mawasiliano', implemented: true },
   { key: 'tickets', label: 'Support Ticket System', icon: LifeBuoy, group: 'Mawasiliano', implemented: true },
   { key: 'adminChat', label: 'Admin ↔ User Chat', icon: MessagesSquare, group: 'Mawasiliano', implemented: true },
+  { key: 'abuseReports', label: 'Abuse Reports', icon: AlertTriangle, group: 'Ripoti', implemented: true },
   { key: 'reports', label: 'Reports & Analytics', icon: BarChart3, group: 'Ripoti', implemented: true },
   { key: 'auditLogs', label: 'Audit Logs', icon: ScrollText, group: 'Usalama', implemented: true },
   { key: 'security', label: 'Security Center', icon: ShieldCheck, group: 'Usalama', implemented: true },
@@ -443,6 +445,7 @@ const AdminDashboard = () => {
       case 'notifications': return <NotificationCenter />;
       case 'tickets': return <SupportTickets />;
       case 'adminChat': return <AdminUserChat />;
+      case 'abuseReports': return <AbuseReports />;
       case 'reports': return <ReportsAnalytics />;
       case 'auditLogs': return <AuditLogsSection />;
       case 'security': return <SecuritySection />;
@@ -457,7 +460,7 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-gray-100 flex">
+    <div className="h-screen bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-gray-100 flex overflow-hidden">
       {/* Sidebar */}
       <aside className={`fixed md:static z-30 inset-y-0 left-0 w-72 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transform transition-transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 overflow-y-auto`}>
         <div className="p-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
@@ -489,8 +492,8 @@ const AdminDashboard = () => {
       </aside>
 
       {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 flex items-center justify-between px-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <header className="h-14 flex items-center justify-between px-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
           <div className="flex items-center gap-3">
             <button className="md:hidden" onClick={() => setSidebarOpen(true)}><Menu size={20} /></button>
             <h1 className="font-medium">{SECTIONS.find((s) => s.key === active)?.label}</h1>

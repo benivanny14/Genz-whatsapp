@@ -17,6 +17,7 @@ const broadcast = require('../controllers/adminBroadcastController');
 const support = require('../controllers/adminSupportController');
 const insights = require('../controllers/adminInsightsController');
 const access = require('../controllers/adminAccessController');
+const abuse = require('../controllers/adminAbuseController');
 
 // SECURITY NOTE:
 // The old self-service "/bootstrap" + "promote/demote" routes have been
@@ -103,5 +104,12 @@ router.delete('/devices/:id', strictRateLimiter, access.revokeDevice);
 router.get('/sessions/:userId', access.listUserSessions);
 router.delete('/sessions/:userId/all', strictRateLimiter, access.revokeAllUserSessions);
 router.delete('/sessions/:userId/:sessionToken', strictRateLimiter, access.revokeUserSession);
+
+// --- Abuse Reports ---
+router.get('/abuse-reports', abuse.listAbuseReports);
+router.get('/abuse-reports/stats', abuse.getAbuseReportStats);
+router.get('/abuse-reports/:id', abuse.getAbuseReport);
+router.patch('/abuse-reports/:id/status', strictRateLimiter, abuse.updateAbuseReportStatus);
+router.delete('/abuse-reports/:id', strictRateLimiter, abuse.deleteAbuseReport);
 
 module.exports = router;
