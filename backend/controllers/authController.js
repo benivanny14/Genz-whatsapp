@@ -112,6 +112,22 @@ exports.register = async (req, res) => {
 
     console.log('[Auth] Registration successful:', { userId: user._id, username: user.username });
 
+    // Let every open admin dashboard know a new user just joined, so the
+    // Overview/Users tabs update live instead of waiting for the 30s poll.
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to('role:admin').emit('admin:new-user', {
+          _id: user._id,
+          username: user.username,
+          phoneNumber: user.phoneNumber,
+          createdAt: user.createdAt
+        });
+      }
+    } catch (notifyError) {
+      console.error('[Auth] Admin new-user notify failed:', notifyError.message);
+    }
+
     res.status(201).json({
       success: true,
       token,

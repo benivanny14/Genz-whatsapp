@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import authService from '../services/authService';
 import { tryRefreshAccessToken, clearAllUserData } from '../utils/authSession';
+import { getSocket } from '../services/socket';
 
 const AuthContext = createContext();
 
@@ -11,6 +12,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const socket = getSocket();
 
   // Restore session on app load
   useEffect(() => {
@@ -125,6 +127,40 @@ export const AuthProvider = ({ children }) => {
       clearTimeout(hardCap);
     };
   }, []);
+
+  // Listen for admin account updates (block/unblock, premium toggle, role change)
+  useEffect(() => {
+    if (!socket || !user) return;
+
+    const handleAccountUpdated = (data) => {
+      console.log('[AuthContext] Account updated by admin:', data);
+      
+      // If the current user was blocked, log them out immediately
+      if (data.isBlocked) {
+        console.log('[AuthContext] User blocked by admin, logging out');
+        logout();
+        return;
+      }
+
+      // Update user state with new data
+      setUser(prev => ({
+        ...prev,
+        ...data
+      }));
+      
+      // Update localStorage
+      localStorage.setItem('user', JSON.stringify({
+        ...user,
+        ...data
+      }));
+    };
+
+    socket.on('admin:account-updated', handleAccountUpdated);
+
+    return () => {
+      socket.off('admin:account-updated', handleAccountUpdated);
+    };
+  }, [socket, user]);
 
   const clearSession = () => {
     authService.clearTokens();

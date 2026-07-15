@@ -39,6 +39,37 @@ const safeUserProjection = [
 
 const isUserAdmin = (user) => Boolean(user?.isAdmin || user?.role === 'admin');
 
+// --- Realtime bridge: admin page -> live system, and system -> admin page ---
+const getIO = (req) => req.app.get('io');
+
+/** Push an update to one specific user's active session(s) via Socket.IO. */
+const notifyUser = (req, userId, event, payload) => {
+  const io = getIO(req);
+  if (io && userId) io.to(String(userId)).emit(event, payload);
+};
+
+/** Broadcast an update to every connected admin dashboard. */
+const notifyAdmins = (req, event, payload) => {
+  const io = getIO(req);
+  if (io) io.to('role:admin').emit(event, payload);
+};
+
+/**
+ * When an admin blocks a user, that user must lose access immediately —
+ * not just on their next login. This force-disconnects any live socket
+ * connections the user currently has, in addition to REST/JWT checks
+ * already enforced by the auth middleware on the next request.
+ */
+const forceDisconnectUser = async (req, userId) => {
+  const io = getIO(req);
+  if (!io || !userId) return;
+  try {
+    await io.in(String(userId)).disconnectSockets(true);
+  } catch (error) {
+    console.error('Admin force-disconnect error:', error);
+  }
+};
+
 const timingSafeTokenEqual = (provided = '', expected = '') => {
   const providedBuffer = Buffer.from(String(provided));
   const expectedBuffer = Buffer.from(String(expected));
@@ -334,6 +365,32 @@ exports.updateUser = async (req, res) => {
     }
 
     await logAdminAction(req.user._id, 'user_updated', { updates }, user._id, null, req);
+
+    // --- Push the change into the live system immediately ---
+    // 1) Tell the affected user's own session(s) so their UI (premium badge,
+    //    admin menu, block screen) updates without needing to reload.
+    notifyUser(req, user._id, 'admin:account-updated', {
+      userId: String(user._id),
+      isBlocked: user.isBlocked,
+      role: user.role,
+      isAdmin: user.isAdmin,
+      premium: user.premium,
+      subscriptionExpiresAt: user.subscriptionExpiresAt
+    });
+
+    // 2) If they were just blocked, don't wait for their token to expire —
+    //    kick any active socket connections right now.
+    if (updates.isBlocked === true) {
+      await forceDisconnectUser(req, user._id);
+    }
+
+    // 3) Let every other open admin dashboard know a user changed, so lists
+    //    stay in sync across admins without waiting for the next poll.
+    notifyAdmins(req, 'admin:user-changed', {
+      userId: String(user._id),
+      updates,
+      updatedBy: String(req.user._id)
+    });
 
     return res.status(200).json({ success: true, user });
   } catch (error) {

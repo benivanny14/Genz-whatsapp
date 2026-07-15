@@ -498,6 +498,26 @@ exports.adminActivatePremium = async (req, res) => {
 
     await logPremiumActivation(req.user?._id, user._id, subscription._id, req);
 
+    // Push the change into the live system: the user's session updates
+    // immediately (premium badge/features unlock) without a page reload.
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(String(user._id)).emit('admin:account-updated', {
+          userId: String(user._id),
+          premium: true,
+          subscriptionExpiresAt: user.subscriptionExpiresAt
+        });
+        io.to('role:admin').emit('admin:user-changed', {
+          userId: String(user._id),
+          updates: { premium: true },
+          updatedBy: String(req.user?._id || '')
+        });
+      }
+    } catch (notifyError) {
+      console.error('Admin activate premium notify error:', notifyError.message);
+    }
+
     res.status(200).json({ success: true, user, subscription });
   } catch (error) {
     console.error('Admin activate premium error:', error);
@@ -534,6 +554,24 @@ exports.adminDeactivatePremium = async (req, res) => {
     );
 
     await logPremiumDeactivation(req.user?._id, user._id, subscription?._id || null, req);
+
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(String(user._id)).emit('admin:account-updated', {
+          userId: String(user._id),
+          premium: false,
+          subscriptionExpiresAt: null
+        });
+        io.to('role:admin').emit('admin:user-changed', {
+          userId: String(user._id),
+          updates: { premium: false },
+          updatedBy: String(req.user?._id || '')
+        });
+      }
+    } catch (notifyError) {
+      console.error('Admin deactivate premium notify error:', notifyError.message);
+    }
 
     res.status(200).json({ success: true, user });
   } catch (error) {

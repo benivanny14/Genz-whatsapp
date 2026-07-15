@@ -9,6 +9,7 @@ import {
   listPayments, getStatistics, getPaymentDetails, approvePayment,
   rejectPayment, adminSendMessage, suspendUser, reactivateUser
 } from '../services/manualPaymentService';
+import { getSocket } from '../services/socket';
 
 const TABS = [
   { id: 'Pending', label: 'Pending' },
@@ -38,6 +39,7 @@ const StatCard = ({ icon, label, value, color }) => (
 
 export default function AdminPaymentManagement() {
   const navigate = useNavigate();
+  const socket = getSocket();
 
   const [tab, setTab] = useState('Pending');
   const [search, setSearch] = useState('');
@@ -52,6 +54,7 @@ export default function AdminPaymentManagement() {
   const [stats, setStats] = useState(null);
 
   const [selectedId, setSelectedId] = useState(null);
+  const [newPaymentBanner, setNewPaymentBanner] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -71,6 +74,44 @@ export default function AdminPaymentManagement() {
   useEffect(() => { load(); }, [load]);
   useEffect(() => { loadStats(); }, [loadStats]);
   useEffect(() => { setPage(1); }, [tab, search]);
+
+  // Listen for real-time payment updates
+  useEffect(() => {
+    if (!socket) return;
+
+    const handlePaymentSubmitted = (data) => {
+      console.log('[AdminPaymentManagement] Payment submitted:', data);
+      setNewPaymentBanner(true);
+      load();
+      loadStats();
+      // Auto-hide banner after 5 seconds
+      setTimeout(() => setNewPaymentBanner(false), 5000);
+    };
+
+    const handlePaymentDuplicate = (data) => {
+      console.log('[AdminPaymentManagement] Duplicate payment:', data);
+      setNewPaymentBanner(true);
+      load();
+      loadStats();
+      setTimeout(() => setNewPaymentBanner(false), 5000);
+    };
+
+    const handlePaymentMessage = (data) => {
+      console.log('[AdminPaymentManagement] Payment message:', data);
+      load();
+      loadStats();
+    };
+
+    socket.on('payment:submitted', handlePaymentSubmitted);
+    socket.on('payment:duplicate', handlePaymentDuplicate);
+    socket.on('payment:message', handlePaymentMessage);
+
+    return () => {
+      socket.off('payment:submitted', handlePaymentSubmitted);
+      socket.off('payment:duplicate', handlePaymentDuplicate);
+      socket.off('payment:message', handlePaymentMessage);
+    };
+  }, [socket, load, loadStats]);
 
   const toggleSort = (field) => {
     if (sortBy === field) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));

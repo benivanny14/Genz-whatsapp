@@ -28,6 +28,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
+import { getSocket } from '../services/socket';
 
 const API_URL = resolveApiBase();
 
@@ -112,6 +113,7 @@ const IconButton = ({ title, onClick, children, tone = 'neutral', disabled = fal
 
 const Admin = () => {
   const navigate = useNavigate();
+  const socket = getSocket();
   const [activeTab, setActiveTab] = useState('overview');
   const [overview, setOverview] = useState(null);
   const [users, setUsers] = useState([]);
@@ -187,6 +189,59 @@ const Admin = () => {
     const interval = window.setInterval(fetchAll, 30000);
     return () => window.clearInterval(interval);
   }, [fetchAll]);
+
+  // Listen for real-time updates from the backend
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewUser = (userData) => {
+      console.log('[Admin] New user registered:', userData);
+      setUsers(prev => [userData, ...prev]);
+      showAction('New user joined');
+      // Refresh overview to update user count
+      fetchAll();
+    };
+
+    const handleUserChanged = (data) => {
+      console.log('[Admin] User changed by admin:', data);
+      setUsers(prev => prev.map(u => 
+        u._id === data.userId ? { ...u, ...data.updates } : u
+      ));
+      showAction('User updated');
+    };
+
+    const handlePaymentSubmitted = (data) => {
+      console.log('[Admin] Payment submitted:', data);
+      showAction('New payment submitted');
+      fetchAll();
+    };
+
+    const handlePaymentDuplicate = (data) => {
+      console.log('[Admin] Duplicate payment detected:', data);
+      showAction('Duplicate payment detected');
+      fetchAll();
+    };
+
+    const handlePaymentMessage = (data) => {
+      console.log('[Admin] Payment message:', data);
+      showAction(data.message || 'Payment update');
+      fetchAll();
+    };
+
+    socket.on('admin:new-user', handleNewUser);
+    socket.on('admin:user-changed', handleUserChanged);
+    socket.on('payment:submitted', handlePaymentSubmitted);
+    socket.on('payment:duplicate', handlePaymentDuplicate);
+    socket.on('payment:message', handlePaymentMessage);
+
+    return () => {
+      socket.off('admin:new-user', handleNewUser);
+      socket.off('admin:user-changed', handleUserChanged);
+      socket.off('payment:submitted', handlePaymentSubmitted);
+      socket.off('payment:duplicate', handlePaymentDuplicate);
+      socket.off('payment:message', handlePaymentMessage);
+    };
+  }, [socket, fetchAll]);
 
   const runAction = async (url, options, successMessage) => {
     const response = await authFetch(url, options);

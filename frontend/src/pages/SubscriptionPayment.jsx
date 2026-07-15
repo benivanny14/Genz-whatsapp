@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   getPaymentInfo, previewSms, submitPayment, getMyPayments, sendUserReply
 } from '../services/manualPaymentService';
+import { getSocket } from '../services/socket';
 
 const STATUS_META = {
   Pending: { color: 'text-yellow-300 bg-yellow-500/10 border-yellow-500/30', icon: Clock, label: 'Pending review' },
@@ -23,6 +24,7 @@ const fmtDate = (d) => (d ? new Date(d).toLocaleString() : '—');
 export default function SubscriptionPayment() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const socket = getSocket();
 
   const [info, setInfo] = useState(null);
   const [loadingInfo, setLoadingInfo] = useState(true);
@@ -62,6 +64,53 @@ export default function SubscriptionPayment() {
     })();
     loadHistory();
   }, []);
+
+  // Listen for real-time payment updates from admin
+  useEffect(() => {
+    if (!socket) return;
+
+    const handlePaymentApproved = (data) => {
+      console.log('[SubscriptionPayment] Payment approved by admin:', data);
+      loadHistory();
+      // Reload payment info to update premium status
+      (async () => {
+        try {
+          const res = await getPaymentInfo();
+          if (res?.success) setInfo(res);
+        } catch (error) {
+          console.error('Error fetching payment info after approval:', error);
+        }
+      })();
+      setSuccessMsg('Your payment has been approved! Premium is now active.');
+      setTimeout(() => setSuccessMsg(''), 5000);
+    };
+
+    const handlePaymentRejected = (data) => {
+      console.log('[SubscriptionPayment] Payment rejected by admin:', data);
+      loadHistory();
+      setFormError('Your payment was rejected. Please check the details and try again.');
+      setTimeout(() => setFormError(''), 5000);
+    };
+
+    const handlePaymentMessage = (data) => {
+      console.log('[SubscriptionPayment] Payment message from admin:', data);
+      loadHistory();
+      if (data.message) {
+        setSuccessMsg(data.message);
+        setTimeout(() => setSuccessMsg(''), 5000);
+      }
+    };
+
+    socket.on('payment:approved', handlePaymentApproved);
+    socket.on('payment:rejected', handlePaymentRejected);
+    socket.on('payment:message', handlePaymentMessage);
+
+    return () => {
+      socket.off('payment:approved', handlePaymentApproved);
+      socket.off('payment:rejected', handlePaymentRejected);
+      socket.off('payment:message', handlePaymentMessage);
+    };
+  }, [socket]);
 
   const loadHistory = async () => {
     setLoadingHistory(true);
