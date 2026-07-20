@@ -1,0 +1,67 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Background gradient: deep teal -> emerald -> a hint of violet for a GenZ pop -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a3d3a"/>
+      <stop offset="45%" stop-color="#04785c"/>
+      <stop offset="78%" stop-color="#00d69a"/>
+      <stop offset="100%" stop-color="#7c5cff"/>
+    </linearGradient>
+
+    <!-- Soft radial glow behind the glass panel -->
+    <radialGradient id="glow" cx="50%" cy="38%" r="65%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.35"/>
+      <stop offset="55%" stop-color="#ffffff" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Glass bubble fill -->
+    <linearGradient id="glassFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.16"/>
+    </linearGradient>
+
+    <!-- Diagonal glass highlight streak -->
+    <linearGradient id="shine" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.85"/>
+      <stop offset="35%" stop-color="#ffffff" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Spark accent gradient -->
+    <linearGradient id="sparkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff8dc"/>
+      <stop offset="100%" stop-color="#ffd166"/>
+    </linearGradient>
+
+    <clipPath id="bubbleClip">
+      <path d="M256 108c88.4 0 160 60.7 160 135.6 0 74.9-71.6 135.6-160 135.6-16.3 0-32-2.1-46.8-6l-46.3 27.6c-6.9 4.1-15.5-2.1-13.6-9.9l11.9-49.2C165 316.4 96 285.4 96 243.6 96 168.7 167.6 108 256 108z"/>
+    </clipPath>
+  </defs>
+
+  <!-- App-icon background fills the full square edge-to-edge (no pre-rounded
+       corners): PWA/Android "maskable" icons must NOT have transparent
+       corners, because the OS applies its own shape mask on top. -->
+  <g>
+    <rect x="0" y="0" width="512" height="512" fill="url(#bgGrad)"/>
+    <rect x="0" y="0" width="512" height="512" fill="url(#glow)"/>
+
+    <!-- Frosted glass chat bubble -->
+    <g>
+      <path d="M256 108c88.4 0 160 60.7 160 135.6 0 74.9-71.6 135.6-160 135.6-16.3 0-32-2.1-46.8-6l-46.3 27.6c-6.9 4.1-15.5-2.1-13.6-9.9l11.9-49.2C165 316.4 96 285.4 96 243.6 96 168.7 167.6 108 256 108z"
+            fill="url(#glassFill)" stroke="#ffffff" stroke-opacity="0.65" stroke-width="4"/>
+      <!-- diagonal glass shine, clipped to the bubble so it reads as a highlight on frosted glass -->
+      <g clip-path="url(#bubbleClip)">
+        <polygon points="120,120 260,120 160,300 100,300" fill="url(#shine)"/>
+      </g>
+      <!-- three dots = "typing" motif, kept simple so it still reads at 16px -->
+      <circle cx="211" cy="243" r="15" fill="#0a3d3a"/>
+      <circle cx="256" cy="243" r="15" fill="#0a3d3a"/>
+      <circle cx="301" cy="243" r="15" fill="#0a3d3a"/>
+    </g>
+
+    <!-- GenZ spark accent, bottom-right -->
+    <path d="M372 336l14-40 10 28 30-12-22 34 26 10-38 4 6 30-20-24-24 18 8-30-32-6z"
+          fill="url(#sparkGrad)" opacity="0.95"/>
+  </g>
+</svg>

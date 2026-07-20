@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Bootstrap</title>
+</head>
+<body>
+    <h1>Admin Account Bootstrap</h1>
+    <button onclick="createAdmin()">Create Admin Account</button>
+    <div id="result"></div>
+    
+    <script>
+        async function createAdmin() {
+            const token = 'C7+/CsBonW0GKk0NTVGqHUcuh8SSnBDIlF/Q0bkHeCJveOIxARL+zrOuU4KKVfAu';
+            const url = 'https://genz-whatsapp.onrender.com/api/system-gateway-x9k/auth/bootstrap';
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Creating admin account...';
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'x-admin-bootstrap-token': token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'BennyIvanny14',
+                        password: '0755266810Ivan'
+                    })
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <h2>Response:</h2>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                
+                if (data.success) {
+                    resultDiv.innerHTML += `
+                        <h3>Admin Account Created Successfully!</h3>
+                        <p><strong>Username:</strong> ${data.username}</p>
+                        <p><strong>TOTP Secret:</strong> ${data.totpSecret}</p>
+                        <p><strong>OTPAuth URL:</strong> ${data.otpauth_url}</p>
+                        <p><strong>Important:</strong> Save this TOTP secret and setup Google Authenticator immediately!</p>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

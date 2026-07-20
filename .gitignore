@@ -1,0 +1,11 @@
+node_modules/
+.env
+.env.*
+!.env.example
+dist/
+*.log
+logs/
+uploads/
+backend/uploads/
+Microsoft/
+scripts/render-env-export.txt
