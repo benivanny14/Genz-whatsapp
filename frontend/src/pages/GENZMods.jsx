@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Shield, Ghost, MessageSquare, Eye, EyeOff, Clock, Users, Download, Upload, RefreshCw, Trash2, Settings, Zap, Lock } from 'lucide-react';
+import { ArrowLeft, Shield, Ghost, MessageSquare, Eye, EyeOff, Clock, Users, Download, Upload, RefreshCw, Trash2, Settings, Zap, Lock, Bell, VolumeX, Tag, Languages, Palette, Moon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import modsService from '../services/modsService';
@@ -611,6 +611,176 @@ const GENZMods = () => {
         <WhoViewedProfile onClose={() => setShowWhoViewed(false)} />
       )}
 
+      {/* ── Notification & Privacy Extras ── */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 mb-4 space-y-5">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-orange-500/20 rounded-xl flex items-center justify-center">
+            <Bell className="w-5 h-5 text-orange-400" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Notification & Privacy Extras</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">DND Mode, Online Notifier, Hide Forward Tag, Translator</p>
+          </div>
+        </div>
+
+        {/* DND Mode */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <VolumeX className="w-4 h-4 text-gray-500" />
+            <div>
+              <p className="font-medium text-gray-900 dark:text-white">DND Mode</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Silence all notifications</p>
+            </div>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={!!modsSettings.dndMode}
+              onChange={(e) => setModsSettings(prev => ({ ...prev, dndMode: e.target.checked }))}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-600"></div>
+          </label>
+        </div>
+
+        {/* Contact Online Notifier */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Users className="w-4 h-4 text-gray-500" />
+            <div>
+              <p className="font-medium text-gray-900 dark:text-white">Contact Online Notifier</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Get notified when contacts come online</p>
+            </div>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={!!modsSettings.contactOnlineNotifier}
+              onChange={(e) => setModsSettings(prev => ({ ...prev, contactOnlineNotifier: e.target.checked }))}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-600"></div>
+          </label>
+        </div>
+
+        {/* Hide Forward Tag */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Tag className="w-4 h-4 text-gray-500" />
+            <div>
+              <p className="font-medium text-gray-900 dark:text-white">Hide Forward Tag</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Hide 'Forwarded' label on messages</p>
+            </div>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={!!modsSettings.hideForwardTag}
+              onChange={(e) => setModsSettings(prev => ({ ...prev, hideForwardTag: e.target.checked }))}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-600"></div>
+          </label>
+        </div>
+
+        {/* Auto Translate */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center space-x-3">
+              <Languages className="w-4 h-4 text-gray-500" />
+              <div>
+                <p className="font-medium text-gray-900 dark:text-white">Auto Translate</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Auto-translate incoming messages</p>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!modsSettings.autoTranslate}
+                onChange={(e) => setModsSettings(prev => ({ ...prev, autoTranslate: e.target.checked }))}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-600"></div>
+            </label>
+          </div>
+          {modsSettings.autoTranslate && (
+            <select
+              value={modsSettings.autoTranslateLanguage || 'en'}
+              onChange={(e) => setModsSettings(prev => ({ ...prev, autoTranslateLanguage: e.target.value }))}
+              className="mt-2 w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+            >
+              <option value="en">English</option>
+              <option value="sw">Swahili</option>
+              <option value="es">Spanish</option>
+              <option value="fr">French</option>
+              <option value="de">German</option>
+              <option value="ar">Arabic</option>
+              <option value="hi">Hindi</option>
+              <option value="zh">Chinese</option>
+            </select>
+          )}
+        </div>
+      </div>
+
+      {/* ── Theme Customization ── */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 mb-4 space-y-5">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-pink-500/20 rounded-xl flex items-center justify-center">
+            <Palette className="w-5 h-5 text-pink-400" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Theme Customization</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Customize app colors and appearance</p>
+          </div>
+        </div>
+
+        {/* Theme Color */}
+        <div>
+          <p className="font-medium text-gray-900 dark:text-white mb-3">Theme Color</p>
+          <div className="flex gap-2 flex-wrap">
+            {[
+              { color: '#00a884', name: 'WhatsApp Green' },
+              { color: '#6366f1', name: 'Indigo' },
+              { color: '#ec4899', name: 'Pink' },
+              { color: '#f59e0b', name: 'Amber' },
+              { color: '#ef4444', name: 'Red' },
+              { color: '#8b5cf6', name: 'Purple' },
+              { color: '#06b6d4', name: 'Cyan' },
+              { color: '#10b981', name: 'Emerald' },
+            ].map(theme => (
+              <button
+                key={theme.color}
+                onClick={() => setModsSettings(prev => ({ ...prev, themeColor: theme.color }))}
+                className={`w-10 h-10 rounded-full border-2 transition-all ${
+                  modsSettings.themeColor === theme.color ? 'border-gray-900 dark:border-white scale-110' : 'border-transparent'
+                }`}
+                style={{ backgroundColor: theme.color }}
+                title={theme.name}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Dark Mode */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Moon className="w-4 h-4 text-gray-500" />
+            <div>
+              <p className="font-medium text-gray-900 dark:text-white">Dark Mode</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Use dark theme</p>
+            </div>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={!!modsSettings.themeDarkMode}
+              onChange={(e) => setModsSettings(prev => ({ ...prev, themeDarkMode: e.target.checked }))}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-pink-600"></div>
+          </label>
+        </div>
+      </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 mb-4">
         <div className="flex items-center gap-3 mb-4">

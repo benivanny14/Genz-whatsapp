@@ -25,6 +25,34 @@ const conversationSchema = new mongoose.Schema({
       ref: 'User'
     }]
   },
+  // Self-chat (Message Yourself) - user talking to themselves for notes/reminders
+  isSelfChat: {
+    type: Boolean,
+    default: false
+  },
+  // Live location sharing - stores active live location shares
+  liveLocations: [{
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    latitude: {
+      type: Number,
+      required: true
+    },
+    longitude: {
+      type: Number,
+      required: true
+    },
+    startedAt: {
+      type: Date,
+      default: Date.now
+    },
+    expiresAt: {
+      type: Date,
+      required: true
+    }
+  }],
   isGroup: {
     type: Boolean,
     default: false

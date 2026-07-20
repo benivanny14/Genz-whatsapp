@@ -649,6 +649,7 @@ const stickerRoutes = require('./routes/stickerRoutes');
 const statusRoutes = require('./routes/status');
 const profileViewRoutes = require('./routes/profileViewRoutes');
 const callLinkRoutes = require('./routes/callLinkRoutes');
+const communityRoutes = require('./routes/communityRoutes');
 
 // Mount Routes
 app.use('/api/auth', safeMiddleware(authLimiter), authRoutes);
@@ -689,6 +690,7 @@ app.use('/api/status', statusRoutes);
 app.use('/api/channels', channelRoutes);
 app.use('/api/profile-views', profileViewRoutes);
 app.use('/api/calls/link', callLinkRoutes);
+app.use('/api/communities', communityRoutes);
 
 // File upload route
 app.post('/api/upload', upload.single('file'), async (req, res) => {

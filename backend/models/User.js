@@ -13,6 +13,15 @@ const userSchema = new mongoose.Schema({
     unique: true,
     trim: true
   },
+  // WhatsApp-style @username for discovery (e.g., @john123)
+  whatsappUsername: {
+    type: String,
+    unique: true,
+    sparse: true,
+    trim: true,
+    lowercase: true,
+    default: ''
+  },
   phoneNumber: {
     type: String,
     required: true,

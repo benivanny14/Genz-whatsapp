@@ -35,7 +35,23 @@ const defaultSettings = {
   // Status videos/photos from contacts save straight to your gallery automatically
   autoDownloadStatus: false,
   // Override the location sent via "Send Current Location" / "Live Location"
-  fakeLocation: { enabled: false, label: '', lat: null, lng: null }
+  fakeLocation: { enabled: false, label: '', lat: null, lng: null },
+  // DND Mode - silence all notifications
+  dndMode: false,
+  // Contact Online Notifier - get notified when specific contacts come online
+  contactOnlineNotifier: false,
+  // Hide Forward Tag - hide "Forwarded" label on forwarded messages
+  hideForwardTag: false,
+  // Message Translator - auto-translate incoming messages
+  autoTranslate: false,
+  autoTranslateLanguage: 'en',
+  // Hide Chats with Password - hide specific chats with PIN
+  hiddenChats: [],
+  // Theme customization
+  themeColor: '#00a884',
+  themeDarkMode: false,
+  // Font style
+  fontFamily: 'default'
 };
 
 const normalizeIncomingMods = (incoming = {}, existing = {}) => {
@@ -109,7 +125,8 @@ const mergeSettings = (settings = {}) => ({
   fakeLocation: {
     ...defaultSettings.fakeLocation,
     ...(settings.fakeLocation || {})
-  }
+  },
+  hiddenChats: settings.hiddenChats || []
 });
 
 exports.updateGenzModsSettings = async (req, res) => {

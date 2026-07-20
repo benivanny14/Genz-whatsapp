@@ -2887,3 +2887,294 @@ exports.updateJoinApproval = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
+// ─── EDIT MESSAGE ─────────────────────────────────────────────────────────────
+exports.editMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { content } = req.body;
+    const requesterId = getCurrentUserId(req);
+
+    const message = await Message.findById(messageId);
+    if (!message)
+      return res.status(404).json({ success: false, message: 'Message not found' });
+
+    // Only sender can edit their own message
+    if (message.sender.toString() !== requesterId)
+      return res.status(403).json({ success: false, message: 'You can only edit your own messages' });
+
+    // WhatsApp allows editing within 15 minutes
+    const editTimeLimit = 15 * 60 * 1000; // 15 minutes in milliseconds
+    const timeSinceCreation = Date.now() - message.createdAt.getTime();
+    if (timeSinceCreation > editTimeLimit)
+      return res.status(403).json({ success: false, message: 'Message can only be edited within 15 minutes' });
+
+    // Update message
+    message.content = content;
+    message.isEdited = true;
+    message.editedAt = new Date();
+    await message.save();
+
+    // Emit socket event to notify all participants
+    const io = req.app.get('io');
+    if (io) {
+      const populated = await Message.findById(message._id).populate('sender', 'username profilePicture');
+      const serialized = serializeOutgoingMessage(populated);
+      io.to(String(message.conversationId)).emit('message:edited', serialized);
+    }
+
+    res.json({ success: true, message });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ─── PIN MESSAGE ─────────────────────────────────────────────────────────────
+exports.pinMessage = async (req, res) => {
+  try {
+    const { conversationId, messageId } = req.params;
+    const { pin } = req.body; // true to pin, false to unpin
+    const requesterId = getCurrentUserId(req);
+
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation)
+      return res.status(404).json({ success: false, message: 'Conversation not found' });
+    if (!includesId(conversation.participants, requesterId))
+      return res.status(403).json({ success: false, message: 'Not a participant' });
+
+    if (pin) {
+      // Add to pinned messages if not already pinned
+      if (!conversation.pinnedMessages || !conversation.pinnedMessages.includes(messageId)) {
+        conversation.pinnedMessages = conversation.pinnedMessages || [];
+        conversation.pinnedMessages.push(messageId);
+      }
+    } else {
+      // Remove from pinned messages
+      if (conversation.pinnedMessages) {
+        conversation.pinnedMessages = conversation.pinnedMessages.filter(id => id.toString() !== messageId);
+      }
+    }
+
+    await conversation.save();
+
+    // Emit socket event
+    const io = req.app.get('io');
+    if (io) {
+      io.to(String(conversationId)).emit('conversation:pinned_messages_updated', {
+        conversationId,
+        pinnedMessages: conversation.pinnedMessages
+      });
+    }
+
+    res.json({ success: true, pinnedMessages: conversation.pinnedMessages });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ─── GET PINNED MESSAGES ─────────────────────────────────────────────────────
+exports.getPinnedMessages = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const requesterId = getCurrentUserId(req);
+
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation)
+      return res.status(404).json({ success: false, message: 'Conversation not found' });
+    if (!includesId(conversation.participants, requesterId))
+      return res.status(403).json({ success: false, message: 'Not a participant' });
+
+    const pinnedMessages = await Message.find({
+      _id: { $in: conversation.pinnedMessages || [] }
+    }).populate('sender', 'username profilePicture');
+
+    res.json({ success: true, pinnedMessages });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ─── MESSAGE YOURSELF (Self-Chat) ─────────────────────────────────────────────
+exports.getSelfConversation = async (req, res) => {
+  try {
+    const requesterId = getCurrentUserId(req);
+
+    // Find or create self-chat conversation
+    let conversation = await Conversation.findOne({
+      isGroup: false,
+      participants: [requesterId, requesterId],
+      isSelfChat: true
+    });
+
+    if (!conversation) {
+      conversation = await Conversation.create({
+        isGroup: false,
+        participants: [requesterId, requesterId],
+        isSelfChat: true,
+        groupName: 'Message Yourself',
+        groupDescription: 'Save notes, reminders, and messages to yourself'
+      });
+    }
+
+    res.json({ success: true, conversation });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ─── LIVE LOCATION ───────────────────────────────────────────────────────────
+exports.shareLiveLocation = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { latitude, longitude, duration } = req.body; // duration in minutes
+    const requesterId = getCurrentUserId(req);
+
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation)
+      return res.status(404).json({ success: false, message: 'Conversation not found' });
+    if (!includesId(conversation.participants, requesterId))
+      return res.status(403).json({ success: false, message: 'Not a participant' });
+
+    // Create or update live location sharing
+    const expiresAt = new Date(Date.now() + duration * 60 * 1000);
+    
+    // Store live location in conversation or user
+    const liveLocationData = {
+      userId: requesterId,
+      latitude,
+      longitude,
+      startedAt: new Date(),
+      expiresAt
+    };
+
+    // Check if user already sharing live location
+    const existingIndex = (conversation.liveLocations || []).findIndex(
+      loc => loc.userId.toString() === requesterId
+    );
+
+    if (existingIndex >= 0) {
+      conversation.liveLocations[existingIndex] = liveLocationData;
+    } else {
+      conversation.liveLocations = conversation.liveLocations || [];
+      conversation.liveLocations.push(liveLocationData);
+    }
+
+    await conversation.save();
+
+    // Emit socket event
+    const io = req.app.get('io');
+    if (io) {
+      io.to(String(conversationId)).emit('live_location_updated', {
+        conversationId,
+        liveLocation: liveLocationData
+      });
+    }
+
+    res.json({ success: true, liveLocation: liveLocationData });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.stopLiveLocation = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const requesterId = getCurrentUserId(req);
+
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation)
+      return res.status(404).json({ success: false, message: 'Conversation not found' });
+
+    // Remove user's live location
+    if (conversation.liveLocations) {
+      conversation.liveLocations = conversation.liveLocations.filter(
+        loc => loc.userId.toString() !== requesterId
+      );
+      await conversation.save();
+    }
+
+    // Emit socket event
+    const io = req.app.get('io');
+    if (io) {
+      io.to(String(conversationId)).emit('live_location_stopped', {
+        conversationId,
+        userId: requesterId
+      });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ─── USERNAME SEARCH ─────────────────────────────────────────────────────────
+exports.searchByUsername = async (req, res) => {
+  try {
+    const { username } = req.query;
+    const requesterId = getCurrentUserId(req);
+
+    if (!username) {
+      return res.status(400).json({ success: false, message: 'Username is required' });
+    }
+
+    // Remove @ if present and convert to lowercase
+    const searchUsername = username.replace('@', '').toLowerCase();
+
+    const user = await User.findOne({
+      whatsappUsername: searchUsername,
+      _id: { $ne: requesterId }
+    }).select('username profilePicture about whatsappUsername');
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.json({ success: true, user });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ─── UPDATE WHATSAPP USERNAME ─────────────────────────────────────────────────
+exports.updateWhatsappUsername = async (req, res) => {
+  try {
+    const { whatsappUsername } = req.body;
+    const requesterId = getCurrentUserId(req);
+
+    if (!whatsappUsername) {
+      return res.status(400).json({ success: false, message: 'Username is required' });
+    }
+
+    // Validate username format (alphanumeric, underscores, 3-20 chars)
+    const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+    if (!usernameRegex.test(whatsappUsername)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Username must be 3-20 characters and contain only letters, numbers, and underscores' 
+      });
+    }
+
+    const user = await User.findById(requesterId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Check if username is already taken
+    const existingUser = await User.findOne({
+      whatsappUsername: whatsappUsername.toLowerCase(),
+      _id: { $ne: requesterId }
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: 'Username already taken' });
+    }
+
+    user.whatsappUsername = whatsappUsername.toLowerCase();
+    await user.save();
+
+    res.json({ success: true, whatsappUsername: user.whatsappUsername });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};

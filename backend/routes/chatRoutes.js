@@ -57,6 +57,13 @@ const {
   rsvpGroupEvent,
   getGroupEvents,
   updateJoinApproval,
+  pinMessage,
+  getPinnedMessages,
+  getSelfConversation,
+  shareLiveLocation,
+  stopLiveLocation,
+  searchByUsername,
+  updateWhatsappUsername,
 } = require("../controllers/chatController");
 const { validateMessage } = require("../middleware/validator");
 const { protect } = require("../middleware/auth");
@@ -119,6 +126,10 @@ router.post("/messages/:messageId/report", reportMessage);
 router.post("/messages/:id/reactions", addReaction);
 router.delete("/messages/:id/reactions", removeReaction);
 
+// Pin messages
+router.put("/conversations/:conversationId/messages/:messageId/pin", pinMessage);
+router.get("/conversations/:conversationId/pinned-messages", getPinnedMessages);
+
 // Anti-screenshot
 router.post("/messages/:messageId/screenshot-attempt", reportScreenshotAttempt);
 
@@ -133,10 +144,21 @@ router.delete("/conversations/:chatId", deleteChat);
 
 // Contact & user management
 router.get("/users/search", searchUsers);
+router.get("/users/search-by-username", searchByUsername);
 router.post("/contacts/add", addContactByPhone);
 router.post("/contacts", addContact);
 router.get("/contacts", getContacts);
 router.post("/users/:id/block", blockUser);
 router.delete("/users/:id/block", unblockUser);
+
+// Self-chat (Message Yourself)
+router.get("/self-conversation", getSelfConversation);
+
+// Live location
+router.post("/conversations/:conversationId/live-location", shareLiveLocation);
+router.delete("/conversations/:conversationId/live-location", stopLiveLocation);
+
+// WhatsApp username
+router.put("/users/whatsapp-username", updateWhatsappUsername);
 
 module.exports = router;
