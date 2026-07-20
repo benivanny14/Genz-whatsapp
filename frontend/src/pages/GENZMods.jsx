@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Shield, Ghost, MessageSquare, Eye, EyeOff, Clock, Users, Download, Upload, RefreshCw, Trash2, Settings, Zap, Lock, Bell, VolumeX, Tag, Languages, Palette, Moon } from 'lucide-react';
+import { ArrowLeft, Shield, Ghost, MessageSquare, Eye, EyeOff, Clock, Users, Download, Upload, RefreshCw, Trash2, Settings, Zap, Lock, Bell, VolumeX, Tag, Languages, Palette, Moon, Send, Smartphone, Image as ImageIcon, FileText, Video } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import modsService from '../services/modsService';
@@ -208,21 +208,27 @@ const GENZMods = () => {
           )}
         </AnimatePresence>
 
-        {/* Anti-Delete */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-start space-x-3">
-              <div className="p-2 bg-red-100 dark:bg-red-900 rounded-lg">
-                <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
-              </div>
+        {/* ── MESSAGING FEATURES ── */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
+              <Send className="w-5 h-5 text-blue-400" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Messaging Features</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Anti-Delete, Auto-Reply, Hide Forward Tag</p>
+            </div>
+          </div>
+
+          {/* Anti-Delete */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <Trash2 className="w-4 h-4 text-gray-500" />
               <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Anti-Delete</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  See and restore deleted messages
-                </p>
+                <p className="font-medium text-gray-900 dark:text-white">Anti-Delete</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">See and restore deleted messages</p>
               </div>
             </div>
-            
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
@@ -233,9 +239,8 @@ const GENZMods = () => {
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
             </label>
           </div>
-
           {modsSettings.antiDelete && (
-            <div className="mt-4">
+            <div className="mb-4">
               <button
                 onClick={fetchDeletedMessages}
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
@@ -244,23 +249,16 @@ const GENZMods = () => {
               </button>
             </div>
           )}
-        </div>
 
-        {/* Auto-Reply */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-start space-x-3">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                <MessageSquare className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              </div>
+          {/* Auto-Reply */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <MessageSquare className="w-4 h-4 text-gray-500" />
               <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Auto-Reply</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  Automatically reply to messages when you're busy
-                </p>
+                <p className="font-medium text-gray-900 dark:text-white">Auto-Reply</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Automatically reply to messages when you're busy</p>
               </div>
             </div>
-            
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
@@ -274,9 +272,8 @@ const GENZMods = () => {
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
             </label>
           </div>
-
           {modsSettings.autoReply?.enabled && (
-            <div className="mt-4">
+            <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Auto-Reply Message
               </label>
@@ -292,23 +289,42 @@ const GENZMods = () => {
               />
             </div>
           )}
+
+          {/* Hide Forward Tag */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Tag className="w-4 h-4 text-gray-500" />
+              <div>
+                <p className="font-medium text-gray-900 dark:text-white">Hide Forward Tag</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Hide 'Forwarded' label on messages</p>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!modsSettings.hideForwardTag}
+                onChange={(e) => setModsSettings(prev => ({ ...prev, hideForwardTag: e.target.checked }))}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
         </div>
 
-        {/* Ghost Mode */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-start space-x-3 mb-4">
-            <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
-              <Ghost className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+        {/* ── PRIVACY FEATURES ── */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center">
+              <Ghost className="w-5 h-5 text-purple-400" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Ghost Mode</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Control your privacy and visibility
-              </p>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Privacy Features</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Ghost Mode, Hide View Status, Who Viewed Profile, Fake Location</p>
             </div>
           </div>
 
-          <div className="space-y-4">
+          {/* Ghost Mode */}
+          <div className="space-y-4 mb-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <Users className="w-4 h-4 text-gray-500" />
@@ -385,442 +401,374 @@ const GENZMods = () => {
               </label>
             </div>
           </div>
-        </div>
 
-        {/* Privacy Settings */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-start space-x-3 mb-4">
-            <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-              <Shield className="w-5 h-5 text-green-600 dark:text-green-400" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Privacy Settings</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Control what others can see
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Eye className="w-4 h-4 text-gray-500" />
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-white">Read Receipts</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Show when you've read messages</p>
-                </div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={!!modsSettings.readReceipts}
-                  onChange={(e) => setModsSettings(prev => ({ ...prev, readReceipts: e.target.checked }))}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
-              </label>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <MessageSquare className="w-4 h-4 text-gray-500" />
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-white">Typing Indicators</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Show when you're typing</p>
-                </div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={!!modsSettings.typingIndicators}
-                  onChange={(e) => setModsSettings(prev => ({ ...prev, typingIndicators: e.target.checked }))}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
-              </label>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Users className="w-4 h-4 text-gray-500" />
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-white">Online Status</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Show when you're online</p>
-                </div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={!!modsSettings.onlineStatus}
-                  onChange={(e) => setModsSettings(prev => ({ ...prev, onlineStatus: e.target.checked }))}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
-              </label>
-            </div>
-          </div>
-        </div>
-        </div>
-      </div>
-
-      {/* Deleted Messages Modal */}
-
-      {/* ── Privacy Extras: Hide View Status, Who Viewed My Profile, Auto-Download Status, Fake Location ── */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 mb-4 space-y-5">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center">
-            <EyeOff className="w-5 h-5 text-indigo-400" />
-          </div>
-          <div>
-            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Privacy Extras</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Hide View Status, Who Viewed Profile, Fake Location na zaidi</p>
-          </div>
-        </div>
-
-        {/* Hide View Status */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Eye className="w-4 h-4 text-gray-500" />
-            <div>
-              <p className="font-medium text-gray-900 dark:text-white">Hide View Status</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Angalia Status/profile za watu bila jina lako kuonekana</p>
-            </div>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={!!modsSettings.hideViewStatus}
-              onChange={(e) => setModsSettings(prev => ({ ...prev, hideViewStatus: e.target.checked }))}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
-          </label>
-        </div>
-
-        {/* Who Viewed My Profile */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Users className="w-4 h-4 text-gray-500" />
-            <div>
-              <p className="font-medium text-gray-900 dark:text-white">Who Viewed My Profile</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Ona orodha ya waliotazama profile yako</p>
-            </div>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={!!modsSettings.whoViewedProfileEnabled}
-              onChange={(e) => setModsSettings(prev => ({ ...prev, whoViewedProfileEnabled: e.target.checked }))}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
-          </label>
-        </div>
-        {modsSettings.whoViewedProfileEnabled && (
-          <button
-            onClick={() => setShowWhoViewed(true)}
-            className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            Ona Waliotazama Profile Yangu
-          </button>
-        )}
-
-        {/* Auto-Download Status */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Download className="w-4 h-4 text-gray-500" />
-            <div>
-              <p className="font-medium text-gray-900 dark:text-white">Auto-Download Status</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Status za marafiki zijihifadhi gallery kiotomatiki</p>
-            </div>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={!!modsSettings.autoDownloadStatus}
-              onChange={(e) => setModsSettings(prev => ({ ...prev, autoDownloadStatus: e.target.checked }))}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
-          </label>
-        </div>
-
-        {/* Fake Location */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
+          {/* Hide View Status */}
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
-              <Zap className="w-4 h-4 text-gray-500" />
+              <EyeOff className="w-4 h-4 text-gray-500" />
               <div>
-                <p className="font-medium text-gray-900 dark:text-white">Fake Location</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Badili location unayotuma kwenye chat</p>
+                <p className="font-medium text-gray-900 dark:text-white">Hide View Status</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Angalia Status/profile za watu bila jina lako kuonekana</p>
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
-                checked={!!modsSettings.fakeLocation?.enabled}
-                onChange={(e) => setModsSettings(prev => ({
-                  ...prev,
-                  fakeLocation: { ...(prev.fakeLocation || {}), enabled: e.target.checked }
-                }))}
+                checked={!!modsSettings.hideViewStatus}
+                onChange={(e) => setModsSettings(prev => ({ ...prev, hideViewStatus: e.target.checked }))}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-purple-600"></div>
             </label>
           </div>
-          {modsSettings.fakeLocation?.enabled && (
-            <div className="grid grid-cols-3 gap-2 mt-3">
-              <input
-                type="text"
-                placeholder="Jina la mahali"
-                value={modsSettings.fakeLocation?.label || ''}
-                onChange={(e) => setModsSettings(prev => ({
-                  ...prev,
-                  fakeLocation: { ...(prev.fakeLocation || {}), label: e.target.value }
-                }))}
-                className="col-span-3 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
-              <input
-                type="number"
-                step="any"
-                placeholder="Latitude"
-                value={modsSettings.fakeLocation?.lat ?? ''}
-                onChange={(e) => setModsSettings(prev => ({
-                  ...prev,
-                  fakeLocation: { ...(prev.fakeLocation || {}), lat: e.target.value === '' ? null : parseFloat(e.target.value) }
-                }))}
-                className="px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
-              <input
-                type="number"
-                step="any"
-                placeholder="Longitude"
-                value={modsSettings.fakeLocation?.lng ?? ''}
-                onChange={(e) => setModsSettings(prev => ({
-                  ...prev,
-                  fakeLocation: { ...(prev.fakeLocation || {}), lng: e.target.value === '' ? null : parseFloat(e.target.value) }
-                }))}
-                className="px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
-            </div>
-          )}
-        </div>
-      </div>
 
-      {showWhoViewed && (
-        <WhoViewedProfile onClose={() => setShowWhoViewed(false)} />
-      )}
-
-      {/* ── Notification & Privacy Extras ── */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 mb-4 space-y-5">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-orange-500/20 rounded-xl flex items-center justify-center">
-            <Bell className="w-5 h-5 text-orange-400" />
-          </div>
-          <div>
-            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Notification & Privacy Extras</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">DND Mode, Online Notifier, Hide Forward Tag, Translator</p>
-          </div>
-        </div>
-
-        {/* DND Mode */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <VolumeX className="w-4 h-4 text-gray-500" />
-            <div>
-              <p className="font-medium text-gray-900 dark:text-white">DND Mode</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Silence all notifications</p>
-            </div>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={!!modsSettings.dndMode}
-              onChange={(e) => setModsSettings(prev => ({ ...prev, dndMode: e.target.checked }))}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-600"></div>
-          </label>
-        </div>
-
-        {/* Contact Online Notifier */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Users className="w-4 h-4 text-gray-500" />
-            <div>
-              <p className="font-medium text-gray-900 dark:text-white">Contact Online Notifier</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Get notified when contacts come online</p>
-            </div>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={!!modsSettings.contactOnlineNotifier}
-              onChange={(e) => setModsSettings(prev => ({ ...prev, contactOnlineNotifier: e.target.checked }))}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-600"></div>
-          </label>
-        </div>
-
-        {/* Hide Forward Tag */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Tag className="w-4 h-4 text-gray-500" />
-            <div>
-              <p className="font-medium text-gray-900 dark:text-white">Hide Forward Tag</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Hide 'Forwarded' label on messages</p>
-            </div>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={!!modsSettings.hideForwardTag}
-              onChange={(e) => setModsSettings(prev => ({ ...prev, hideForwardTag: e.target.checked }))}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-600"></div>
-          </label>
-        </div>
-
-        {/* Auto Translate */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
+          {/* Who Viewed My Profile */}
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
-              <Languages className="w-4 h-4 text-gray-500" />
+              <Users className="w-4 h-4 text-gray-500" />
               <div>
-                <p className="font-medium text-gray-900 dark:text-white">Auto Translate</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Auto-translate incoming messages</p>
+                <p className="font-medium text-gray-900 dark:text-white">Who Viewed My Profile</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Ona orodha ya waliotazama profile yako</p>
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
-                checked={!!modsSettings.autoTranslate}
-                onChange={(e) => setModsSettings(prev => ({ ...prev, autoTranslate: e.target.checked }))}
+                checked={!!modsSettings.whoViewedProfileEnabled}
+                onChange={(e) => setModsSettings(prev => ({ ...prev, whoViewedProfileEnabled: e.target.checked }))}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-purple-600"></div>
+            </label>
+          </div>
+          {modsSettings.whoViewedProfileEnabled && (
+            <button
+              onClick={() => setShowWhoViewed(true)}
+              className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors mb-4"
+            >
+              Ona Waliotazama Profile Yangu
+            </button>
+          )}
+
+          {/* Fake Location */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center space-x-3">
+                <Zap className="w-4 h-4 text-gray-500" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">Fake Location</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Badili location unayotuma kwenye chat</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!modsSettings.fakeLocation?.enabled}
+                  onChange={(e) => setModsSettings(prev => ({
+                    ...prev,
+                    fakeLocation: { ...(prev.fakeLocation || {}), enabled: e.target.checked }
+                  }))}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-purple-600"></div>
+              </label>
+            </div>
+            {modsSettings.fakeLocation?.enabled && (
+              <div className="grid grid-cols-3 gap-2 mt-3">
+                <input
+                  type="text"
+                  placeholder="Jina la mahali"
+                  value={modsSettings.fakeLocation?.label || ''}
+                  onChange={(e) => setModsSettings(prev => ({
+                    ...prev,
+                    fakeLocation: { ...(prev.fakeLocation || {}), label: e.target.value }
+                  }))}
+                  className="col-span-3 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <input
+                  type="number"
+                  step="any"
+                  placeholder="Latitude"
+                  value={modsSettings.fakeLocation?.lat ?? ''}
+                  onChange={(e) => setModsSettings(prev => ({
+                    ...prev,
+                    fakeLocation: { ...(prev.fakeLocation || {}), lat: e.target.value === '' ? null : parseFloat(e.target.value) }
+                  }))}
+                  className="px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <input
+                  type="number"
+                  step="any"
+                  placeholder="Longitude"
+                  value={modsSettings.fakeLocation?.lng ?? ''}
+                  onChange={(e) => setModsSettings(prev => ({
+                    ...prev,
+                    fakeLocation: { ...(prev.fakeLocation || {}), lng: e.target.value === '' ? null : parseFloat(e.target.value) }
+                  }))}
+                  className="px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── NOTIFICATION FEATURES ── */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-orange-500/20 rounded-xl flex items-center justify-center">
+              <Bell className="w-5 h-5 text-orange-400" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Notification Features</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400">DND Mode, Contact Online Notifier</p>
+            </div>
+          </div>
+
+          {/* DND Mode */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <VolumeX className="w-4 h-4 text-gray-500" />
+              <div>
+                <p className="font-medium text-gray-900 dark:text-white">DND Mode</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Silence all notifications</p>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!modsSettings.dndMode}
+                onChange={(e) => setModsSettings(prev => ({ ...prev, dndMode: e.target.checked }))}
                 className="sr-only peer"
               />
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-600"></div>
             </label>
           </div>
-          {modsSettings.autoTranslate && (
-            <select
-              value={modsSettings.autoTranslateLanguage || 'en'}
-              onChange={(e) => setModsSettings(prev => ({ ...prev, autoTranslateLanguage: e.target.value }))}
-              className="mt-2 w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value="en">English</option>
-              <option value="sw">Swahili</option>
-              <option value="es">Spanish</option>
-              <option value="fr">French</option>
-              <option value="de">German</option>
-              <option value="ar">Arabic</option>
-              <option value="hi">Hindi</option>
-              <option value="zh">Chinese</option>
-            </select>
-          )}
-        </div>
-      </div>
 
-      {/* ── Theme Customization ── */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 mb-4 space-y-5">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-pink-500/20 rounded-xl flex items-center justify-center">
-            <Palette className="w-5 h-5 text-pink-400" />
-          </div>
-          <div>
-            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Theme Customization</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Customize app colors and appearance</p>
-          </div>
-        </div>
-
-        {/* Theme Color */}
-        <div>
-          <p className="font-medium text-gray-900 dark:text-white mb-3">Theme Color</p>
-          <div className="flex gap-2 flex-wrap">
-            {[
-              { color: '#00a884', name: 'WhatsApp Green' },
-              { color: '#6366f1', name: 'Indigo' },
-              { color: '#ec4899', name: 'Pink' },
-              { color: '#f59e0b', name: 'Amber' },
-              { color: '#ef4444', name: 'Red' },
-              { color: '#8b5cf6', name: 'Purple' },
-              { color: '#06b6d4', name: 'Cyan' },
-              { color: '#10b981', name: 'Emerald' },
-            ].map(theme => (
-              <button
-                key={theme.color}
-                onClick={() => setModsSettings(prev => ({ ...prev, themeColor: theme.color }))}
-                className={`w-10 h-10 rounded-full border-2 transition-all ${
-                  modsSettings.themeColor === theme.color ? 'border-gray-900 dark:border-white scale-110' : 'border-transparent'
-                }`}
-                style={{ backgroundColor: theme.color }}
-                title={theme.name}
+          {/* Contact Online Notifier */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Users className="w-4 h-4 text-gray-500" />
+              <div>
+                <p className="font-medium text-gray-900 dark:text-white">Contact Online Notifier</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Get notified when contacts come online</p>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!modsSettings.contactOnlineNotifier}
+                onChange={(e) => setModsSettings(prev => ({ ...prev, contactOnlineNotifier: e.target.checked }))}
+                className="sr-only peer"
               />
-            ))}
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-600"></div>
+            </label>
           </div>
         </div>
 
-        {/* Dark Mode */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Moon className="w-4 h-4 text-gray-500" />
+        {/* ── MEDIA FEATURES ── */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center">
+              <Download className="w-5 h-5 text-green-400" />
+            </div>
             <div>
-              <p className="font-medium text-gray-900 dark:text-white">Dark Mode</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Use dark theme</p>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Media Features</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Auto-Download Status, Auto-Save Media</p>
             </div>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={!!modsSettings.themeDarkMode}
-              onChange={(e) => setModsSettings(prev => ({ ...prev, themeDarkMode: e.target.checked }))}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-pink-600"></div>
-          </label>
-        </div>
-      </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 mb-4">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center">
-            <span className="text-purple-400 text-lg font-bold">Aa</span>
+          {/* Auto-Download Status */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <Download className="w-4 h-4 text-gray-500" />
+              <div>
+                <p className="font-medium text-gray-900 dark:text-white">Auto-Download Status</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Status za marafiki zijihifadhi gallery kiotomatiki</p>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!modsSettings.autoDownloadStatus}
+                onChange={(e) => setModsSettings(prev => ({ ...prev, autoDownloadStatus: e.target.checked }))}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+            </label>
           </div>
+
+          {/* Auto-Save Media */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <ImageIcon className="w-4 h-4 text-gray-500" />
+              <div>
+                <p className="font-medium text-gray-900 dark:text-white">Auto-Save Media</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Picha na video zihifadhi kiotomatiki</p>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!modsSettings.autoSaveMedia}
+                onChange={(e) => setModsSettings(prev => ({ ...prev, autoSaveMedia: e.target.checked }))}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+            </label>
+          </div>
+        </div>
+
+        {/* ── UI & APPEARANCE FEATURES ── */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-pink-500/20 rounded-xl flex items-center justify-center">
+              <Palette className="w-5 h-5 text-pink-400" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">UI & Appearance</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Theme Color, Dark Mode, Custom Fonts</p>
+            </div>
+          </div>
+
+          {/* Theme Color */}
+          <div className="mb-4">
+            <p className="font-medium text-gray-900 dark:text-white mb-3">Theme Color</p>
+            <div className="flex gap-2 flex-wrap">
+              {[
+                { color: '#00a884', name: 'WhatsApp Green' },
+                { color: '#6366f1', name: 'Indigo' },
+                { color: '#ec4899', name: 'Pink' },
+                { color: '#f59e0b', name: 'Amber' },
+                { color: '#ef4444', name: 'Red' },
+                { color: '#8b5cf6', name: 'Purple' },
+                { color: '#06b6d4', name: 'Cyan' },
+                { color: '#10b981', name: 'Emerald' },
+              ].map(theme => (
+                <button
+                  key={theme.color}
+                  onClick={() => setModsSettings(prev => ({ ...prev, themeColor: theme.color }))}
+                  className={`w-10 h-10 rounded-full border-2 transition-all ${
+                    modsSettings.themeColor === theme.color ? 'border-gray-900 dark:border-white scale-110' : 'border-transparent'
+                  }`}
+                  style={{ backgroundColor: theme.color }}
+                  title={theme.name}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Dark Mode */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <Moon className="w-4 h-4 text-gray-500" />
+              <div>
+                <p className="font-medium text-gray-900 dark:text-white">Dark Mode</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Use dark theme</p>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!modsSettings.themeDarkMode}
+                onChange={(e) => setModsSettings(prev => ({ ...prev, themeDarkMode: e.target.checked }))}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-pink-600"></div>
+            </label>
+          </div>
+
+          {/* Custom Fonts */}
           <div>
-            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Custom Fonts</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Change the app font style</p>
+            <p className="font-medium text-gray-900 dark:text-white mb-3">Custom Fonts</p>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: 'default', label: 'Default', preview: 'Hello there!', cssFont: '' },
+                { id: 'serif', label: 'Serif', preview: 'Hello there!', cssFont: "Georgia, serif" },
+                { id: 'mono', label: 'Monospace', preview: 'Hello there!', cssFont: "'Courier New', monospace" },
+                { id: 'rounded', label: 'Rounded', preview: 'Hello there!', cssFont: "'Trebuchet MS', sans-serif" },
+                { id: 'elegant', label: 'Elegant', preview: 'Hello there!', cssFont: "Palatino, serif" },
+                { id: 'bold', label: 'Bold', preview: 'Hello there!', cssFont: "'Arial Black', sans-serif" },
+              ].map(font => {
+                const isActive = (modsSettings?.customFont || 'default') === font.id;
+                return (
+                  <button
+                    key={font.id}
+                    onClick={() => {
+                      const newMods = { ...modsSettings, customFont: font.id };
+                      setModsSettings(newMods);
+                      saveModsSettings();
+                      document.body.style.fontFamily = font.cssFont || '';
+                    }}
+                    className={`p-3 rounded-xl border-2 text-center transition-all ${isActive ? 'border-pink-500 bg-pink-500/10' : 'border-gray-200 dark:border-gray-600 hover:border-pink-300'}`}
+                  >
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white" style={{ fontFamily: font.cssFont || 'inherit' }}>{font.label}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5" style={{ fontFamily: font.cssFont || 'inherit' }}>{font.preview}</p>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          {[
-            { id: 'default', label: 'Default', preview: 'Hello there!', cssFont: '' },
-            { id: 'serif', label: 'Serif', preview: 'Hello there!', cssFont: "Georgia, serif" },
-            { id: 'mono', label: 'Monospace', preview: 'Hello there!', cssFont: "'Courier New', monospace" },
-            { id: 'rounded', label: 'Rounded', preview: 'Hello there!', cssFont: "'Trebuchet MS', sans-serif" },
-            { id: 'elegant', label: 'Elegant', preview: 'Hello there!', cssFont: "Palatino, serif" },
-            { id: 'bold', label: 'Bold', preview: 'Hello there!', cssFont: "'Arial Black', sans-serif" },
-          ].map(font => {
-            const isActive = (modsSettings?.customFont || 'default') === font.id;
-            return (
-              <button
-                key={font.id}
-                onClick={() => {
-                  const newMods = { ...modsSettings, customFont: font.id };
-                  setModsSettings(newMods);
-                  saveModsSettings();
-                  document.body.style.fontFamily = font.cssFont || '';
-                }}
-                className={`p-3 rounded-xl border-2 text-center transition-all ${isActive ? 'border-purple-500 bg-purple-500/10' : 'border-gray-200 dark:border-gray-600 hover:border-purple-300'}`}
+
+        {/* ── LANGUAGE FEATURES ── */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-cyan-500/20 rounded-xl flex items-center justify-center">
+              <Languages className="w-5 h-5 text-cyan-400" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Language Features</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Auto Translate</p>
+            </div>
+          </div>
+
+          {/* Auto Translate */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center space-x-3">
+                <Languages className="w-4 h-4 text-gray-500" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">Auto Translate</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Auto-translate incoming messages</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!modsSettings.autoTranslate}
+                  onChange={(e) => setModsSettings(prev => ({ ...prev, autoTranslate: e.target.checked }))}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-cyan-600"></div>
+              </label>
+            </div>
+            {modsSettings.autoTranslate && (
+              <select
+                value={modsSettings.autoTranslateLanguage || 'en'}
+                onChange={(e) => setModsSettings(prev => ({ ...prev, autoTranslateLanguage: e.target.value }))}
+                className="mt-2 w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
               >
-                <p className="text-sm font-semibold text-gray-900 dark:text-white" style={{ fontFamily: font.cssFont || 'inherit' }}>{font.label}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5" style={{ fontFamily: font.cssFont || 'inherit' }}>{font.preview}</p>
-              </button>
-            );
-          })}
+                <option value="en">English</option>
+                <option value="sw">Swahili</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ar">Arabic</option>
+                <option value="hi">Hindi</option>
+                <option value="zh">Chinese</option>
+              </select>
+            )}
+          </div>
+        </div>
         </div>
       </div>
 
+      {/* Who Viewed Profile Modal */}
+      {showWhoViewed && (
+        <WhoViewedProfile onClose={() => setShowWhoViewed(false)} />
+      )}
+
+      {/* Deleted Messages Modal */}
       <AnimatePresence>
         {showDeletedMessages && (
           <motion.div
@@ -837,55 +785,37 @@ const GENZMods = () => {
               className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Deleted Messages ({deletedMessages.length})
-                  </h2>
-                  <button
-                    onClick={() => setShowDeletedMessages(false)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                   aria-label="Back">
-                    <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                  </button>
-                </div>
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Deleted Messages</h3>
+                <button
+                  onClick={() => setShowDeletedMessages(false)}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
-              
-              <div className="overflow-y-auto max-h-[60vh] p-4">
+              <div className="p-4 overflow-y-auto max-h-[60vh]">
                 {deletedMessages.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Trash2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500 dark:text-gray-400">No deleted messages found</p>
-                  </div>
+                  <p className="text-gray-500 dark:text-gray-400 text-center py-8">No deleted messages found</p>
                 ) : (
                   <div className="space-y-3">
-                    {deletedMessages.map((message) => (
-                      <div key={message.id} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <span className="font-medium text-gray-900 dark:text-white">
-                                {message.sender?.name || 'Unknown'}
-                              </span>
-                              <span className="text-xs text-gray-500 dark:text-gray-400">
-                                {new Date(message.deletedAt).toLocaleString()}
-                              </span>
-                            </div>
-                            <p className="text-gray-700 dark:text-gray-300">{message.content}</p>
-                            {message.media && (
-                              <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                                📎 Media: {message.media.type}
-                              </div>
-                            )}
-                          </div>
-                          <button
-                            onClick={() => restoreMessage(message.id)}
-                            className="ml-3 p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
-                            title="Restore Message" aria-label="Restore Message"
-                          >
-                            <RefreshCw className="w-4 h-4 text-green-600 dark:text-green-400" />
-                          </button>
+                    {deletedMessages.map((msg) => (
+                      <div key={msg.id} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">
+                            {msg.senderName || 'Unknown'}
+                          </span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {new Date(msg.timestamp).toLocaleString()}
+                          </span>
                         </div>
+                        <p className="text-sm text-gray-700 dark:text-gray-300">{msg.content}</p>
+                        <button
+                          onClick={() => restoreMessage(msg.id)}
+                          className="mt-2 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                        >
+                          Restore
+                        </button>
                       </div>
                     ))}
                   </div>
