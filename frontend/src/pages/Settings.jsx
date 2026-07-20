@@ -286,7 +286,7 @@ const Settings = () => {
   const [showCatalogue, setShowCatalogue] = useState(false);
   const [showStorage, setShowStorage] = useState(false);
   const [showPrivacyPicker, setShowPrivacyPicker] = useState(false);
-  const [privacyPickerType, setPrivacyPickerType] = useState(null); // 'lastSeen', 'profilePhoto', 'about', 'status'
+  const [privacyPickerType, setPrivacyPickerType] = useState(null); // 'lastSeen', 'profilePhoto', 'about', 'status', 'groups'
   const [selectedPrivacyUsers, setSelectedPrivacyUsers] = useState([]);
 
   const tabs = useMemo(() => ([
@@ -593,11 +593,16 @@ const Settings = () => {
                 updateSetting('privacy.lastSeen', value);
                 if (value === 'contacts_except') {
                   setPrivacyPickerType('lastSeen');
+                  setSelectedPrivacyUsers(settingsData.privacy.lastSeenExceptions || []);
                   setShowPrivacyPicker(true);
                 }
               }} options={VISIBILITY_OPTIONS} />
               {settingsData.privacy.lastSeen === 'contacts_except' && (
-                <button onClick={() => { setPrivacyPickerType('lastSeen'); setShowPrivacyPicker(true); }} className="text-xs text-[#00a884] hover:underline">
+                <button onClick={() => { 
+                  setPrivacyPickerType('lastSeen'); 
+                  setSelectedPrivacyUsers(settingsData.privacy.lastSeenExceptions || []);
+                  setShowPrivacyPicker(true); 
+                }} className="text-xs text-[#00a884] hover:underline">
                   Edit
                 </button>
               )}
@@ -614,11 +619,16 @@ const Settings = () => {
                 updateSetting('privacy.profilePhoto', value);
                 if (value === 'contacts_except') {
                   setPrivacyPickerType('profilePhoto');
+                  setSelectedPrivacyUsers(settingsData.privacy.profilePhotoExceptions || []);
                   setShowPrivacyPicker(true);
                 }
               }} options={VISIBILITY_OPTIONS} />
               {settingsData.privacy.profilePhoto === 'contacts_except' && (
-                <button onClick={() => { setPrivacyPickerType('profilePhoto'); setShowPrivacyPicker(true); }} className="text-xs text-[#00a884] hover:underline">
+                <button onClick={() => { 
+                  setPrivacyPickerType('profilePhoto'); 
+                  setSelectedPrivacyUsers(settingsData.privacy.profilePhotoExceptions || []);
+                  setShowPrivacyPicker(true); 
+                }} className="text-xs text-[#00a884] hover:underline">
                   Edit
                 </button>
               )}
@@ -634,11 +644,16 @@ const Settings = () => {
                 updateSetting('privacy.about', value);
                 if (value === 'contacts_except') {
                   setPrivacyPickerType('about');
+                  setSelectedPrivacyUsers(settingsData.privacy.aboutExceptions || []);
                   setShowPrivacyPicker(true);
                 }
               }} options={VISIBILITY_OPTIONS} />
               {settingsData.privacy.about === 'contacts_except' && (
-                <button onClick={() => { setPrivacyPickerType('about'); setShowPrivacyPicker(true); }} className="text-xs text-[#00a884] hover:underline">
+                <button onClick={() => { 
+                  setPrivacyPickerType('about'); 
+                  setSelectedPrivacyUsers(settingsData.privacy.aboutExceptions || []);
+                  setShowPrivacyPicker(true); 
+                }} className="text-xs text-[#00a884] hover:underline">
                   Edit
                 </button>
               )}
@@ -654,11 +669,16 @@ const Settings = () => {
                 updateSetting('privacy.status', value);
                 if (value === 'contacts_except' || value === 'only_share_with') {
                   setPrivacyPickerType('status');
+                  setSelectedPrivacyUsers(settingsData.privacy.statusExceptions || []);
                   setShowPrivacyPicker(true);
                 }
               }} options={STATUS_OPTIONS} />
               {(settingsData.privacy.status === 'contacts_except' || settingsData.privacy.status === 'only_share_with') && (
-                <button onClick={() => { setPrivacyPickerType('status'); setShowPrivacyPicker(true); }} className="text-xs text-[#00a884] hover:underline">
+                <button onClick={() => { 
+                  setPrivacyPickerType('status'); 
+                  setSelectedPrivacyUsers(settingsData.privacy.statusExceptions || []);
+                  setShowPrivacyPicker(true); 
+                }} className="text-xs text-[#00a884] hover:underline">
                   Edit
                 </button>
               )}
@@ -683,11 +703,16 @@ const Settings = () => {
                 updateSetting('privacy.groups', value);
                 if (value === 'contacts_except') {
                   setPrivacyPickerType('groups');
+                  setSelectedPrivacyUsers(settingsData.privacy.groupsExceptions || []);
                   setShowPrivacyPicker(true);
                 }
               }} options={GROUPS_OPTIONS} />
               {settingsData.privacy.groups === 'contacts_except' && (
-                <button onClick={() => { setPrivacyPickerType('groups'); setShowPrivacyPicker(true); }} className="text-xs text-[#00a884] hover:underline">
+                <button onClick={() => { 
+                  setPrivacyPickerType('groups'); 
+                  setSelectedPrivacyUsers(settingsData.privacy.groupsExceptions || []);
+                  setShowPrivacyPicker(true); 
+                }} className="text-xs text-[#00a884] hover:underline">
                   Edit
                 </button>
               )}
@@ -717,6 +742,7 @@ const Settings = () => {
                 {privacyPickerType === 'profilePhoto' && 'Profile photo exceptions'}
                 {privacyPickerType === 'about' && 'About exceptions'}
                 {privacyPickerType === 'status' && 'Status exceptions'}
+                {privacyPickerType === 'groups' && 'Groups exceptions'}
               </h3>
               <button onClick={() => setShowPrivacyPicker(false)} className="text-white/50 hover:text-white">
                 <X size={20} />
@@ -729,33 +755,37 @@ const Settings = () => {
                   : 'Only these contacts will see your info'}
               </p>
               <div className="space-y-2">
-                {user?.contacts?.map((contact) => (
-                  <div key={contact._id} className="flex items-center justify-between p-3 bg-[#111b21] rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[#2a3942] flex items-center justify-center text-white text-sm">
-                        {contact.savedName?.charAt(0).toUpperCase() || '?'}
+                {user?.contacts?.map((contact) => {
+                  const contactId = contact.user?._id || contact._id;
+                  const contactName = contact.savedName || contact.user?.username || 'Unknown';
+                  return (
+                    <div key={contactId} className="flex items-center justify-between p-3 bg-[#111b21] rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-[#2a3942] flex items-center justify-center text-white text-sm">
+                          {contactName.charAt(0).toUpperCase() || '?'}
+                        </div>
+                        <span className="text-white text-sm">{contactName}</span>
                       </div>
-                      <span className="text-white text-sm">{contact.savedName}</span>
+                      <button
+                        onClick={() => {
+                          const userId = contactId;
+                          setSelectedPrivacyUsers(prev => 
+                            prev.includes(userId) 
+                              ? prev.filter(id => id !== userId)
+                              : [...prev, userId]
+                          );
+                        }}
+                        className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${
+                          selectedPrivacyUsers.includes(contactId)
+                            ? 'bg-[#00a884] border-[#00a884]'
+                            : 'border-white/30'
+                        }`}
+                      >
+                        {selectedPrivacyUsers.includes(contactId) && <div className="w-3 h-3 rounded-full bg-white" />}
+                      </button>
                     </div>
-                    <button
-                      onClick={() => {
-                        const userId = contact._id;
-                        setSelectedPrivacyUsers(prev => 
-                          prev.includes(userId) 
-                            ? prev.filter(id => id !== userId)
-                            : [...prev, userId]
-                        );
-                      }}
-                      className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${
-                        selectedPrivacyUsers.includes(contact._id)
-                          ? 'bg-[#00a884] border-[#00a884]'
-                          : 'border-white/30'
-                      }`}
-                    >
-                      {selectedPrivacyUsers.includes(contact._id) && <div className="w-3 h-3 rounded-full bg-white" />}
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
             <div className="p-4 border-t border-white/10 flex gap-2">
