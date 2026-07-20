@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Phone, Video, Mic, MicOff, Camera, CameraOff, PhoneOff, Volume2, VolumeX, RotateCcw, Wifi, WifiOff, Monitor, MonitorOff } from 'lucide-react';
+import { Phone, Video, Mic, MicOff, Camera, CameraOff, PhoneOff, Volume2, VolumeX, RotateCcw, Wifi, WifiOff, Monitor, MonitorOff, Sparkles, Sliders } from 'lucide-react';
 import webRTCService from '../services/webrtc';
 import { playCallRingtone } from '../utils/soundPlayer';
 import { getSocket } from '../services/socket';
@@ -18,6 +18,9 @@ const CallScreen = ({ call, onEndCall, onAcceptCall, onRejectCall }) => {
   const [errorMsg, setErrorMsg] = useState('');
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [showEffects, setShowEffects] = useState(false);
+  const [backgroundBlur, setBackgroundBlur] = useState(false);
+  const [filter, setFilter] = useState('none');
 
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -446,7 +449,65 @@ const CallScreen = ({ call, onEndCall, onAcceptCall, onRejectCall }) => {
       {/* Local video PiP */}
       {isVideoCall && hasLocalStream && (
         <div className="absolute bottom-32 right-4 w-28 h-40 rounded-xl overflow-hidden border-2 border-[#2a3942] z-20 shadow-2xl">
-          <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+          <video 
+            ref={localVideoRef} 
+            autoPlay 
+            playsInline 
+            muted 
+            className="w-full h-full object-cover"
+            style={{
+              filter: backgroundBlur ? 'blur(10px)' : filter !== 'none' ? filter : 'none'
+            }}
+          />
+        </div>
+      )}
+
+      {/* Video Effects Panel */}
+      {showEffects && (
+        <div className="absolute bottom-32 left-4 bg-[#202c33] rounded-xl p-4 z-30 shadow-2xl max-w-xs">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-white font-semibold text-sm">Video Effects</h3>
+            <button onClick={() => setShowEffects(false)} className="text-[#8696a0] hover:text-white">
+              <Sliders size={16} />
+            </button>
+          </div>
+          
+          {/* Background Blur */}
+          <div className="mb-4">
+            <label className="flex items-center justify-between text-[#e9edef] text-sm mb-2">
+              <span>Background Blur</span>
+              <button
+                onClick={() => setBackgroundBlur(!backgroundBlur)}
+                className={`w-10 h-5 rounded-full transition-colors ${backgroundBlur ? 'bg-[#00a884]' : 'bg-[#374045]'}`}
+              >
+                <div className={`w-4 h-4 bg-white rounded-full transition-transform ${backgroundBlur ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              </button>
+            </label>
+          </div>
+
+          {/* Filters */}
+          <div>
+            <p className="text-[#8696a0] text-xs mb-2">Filters</p>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { name: 'none', label: 'None', style: '' },
+                { name: 'grayscale(100%)', label: 'B&W', style: 'grayscale(100%)' },
+                { name: 'sepia(100%)', label: 'Sepia', style: 'sepia(100%)' },
+                { name: 'contrast(150%)', label: 'Contrast', style: 'contrast(150%)' },
+                { name: 'brightness(120%)', label: 'Bright', style: 'brightness(120%)' },
+                { name: 'saturate(150%)', label: 'Vivid', style: 'saturate(150%)' }
+              ].map((f) => (
+                <button
+                  key={f.name}
+                  onClick={() => setFilter(f.name)}
+                  className={`p-2 rounded-lg text-xs text-[#e9edef] transition-colors ${filter === f.name ? 'bg-[#00a884]' : 'bg-[#374045] hover:bg-[#4a555c]'}`}
+                  style={{ filter: f.style }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -455,6 +516,11 @@ const CallScreen = ({ call, onEndCall, onAcceptCall, onRejectCall }) => {
         {isVideoCall && (
           <ControlBtn onClick={handleCamera} active={isCameraOff} title={isCameraOff ? 'Camera off' : 'Camera on'}>
             {isCameraOff ? <CameraOff size={22} /> : <Camera size={22} />}
+          </ControlBtn>
+        )}
+        {isVideoCall && (
+          <ControlBtn onClick={() => setShowEffects(!showEffects)} active={showEffects} title="Video Effects">
+            <Sparkles size={22} />
           </ControlBtn>
         )}
         {isVideoCall && (

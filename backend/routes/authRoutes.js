@@ -19,6 +19,7 @@ const {
   addQuickReply,
   removeQuickReply,
   updateAwayMessage,
+  updatePrivacyExceptions,
   getBusinessAnalytics,
   checkAvailability,
   getMyOnlineHistory,
@@ -48,6 +49,7 @@ router.delete('/catalog/:productId', protect, removeCatalogItem);
 router.post('/quick-replies', protect, addQuickReply);
 router.delete('/quick-replies/:id', protect, removeQuickReply);
 router.put('/away-message', protect, updateAwayMessage);
+router.put('/privacy-exceptions', protect, updatePrivacyExceptions);
 router.get('/business-analytics', protect, getBusinessAnalytics);
 
 router.post('/check-availability', checkAvailability);

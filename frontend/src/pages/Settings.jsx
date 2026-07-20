@@ -5,7 +5,7 @@ import {
   Smartphone, ChevronRight, Database, UserRound, KeyRound, Languages,
   HelpCircle, Download, Trash2, Phone, Wifi, Image as ImageIcon,
   HardDrive, CheckCircle2, EyeOff, Archive, Clock, Mail, FileText, Globe2,
-  RefreshCw, RotateCcw, Palette
+  RefreshCw, RotateCcw, Palette, CheckCheck
 } from 'lucide-react';
 import ContactManager from '../components/ContactManager';
 import ProductCatalogue from '../components/ProductCatalogue';
@@ -29,12 +29,15 @@ const DEFAULT_SETTINGS = {
     deleteAccountGuard: true
   },
   privacy: {
+    lastSeen: 'everyone',
     online: 'same_as_last_seen',
     profilePhoto: 'everyone',
     about: 'everyone',
     status: 'contacts',
+    readReceipts: true,
     defaultMessageTimer: 'off',
     groups: 'everyone',
+    chatLock: false,
     blockedUsers: [],
     silenceUnknownCallers: false,
     protectIpAddressInCalls: false,
@@ -276,6 +279,9 @@ const Settings = () => {
   const [showContacts, setShowContacts] = useState(false);
   const [showCatalogue, setShowCatalogue] = useState(false);
   const [showStorage, setShowStorage] = useState(false);
+  const [showPrivacyPicker, setShowPrivacyPicker] = useState(false);
+  const [privacyPickerType, setPrivacyPickerType] = useState(null); // 'lastSeen', 'profilePhoto', 'about', 'status'
+  const [selectedPrivacyUsers, setSelectedPrivacyUsers] = useState([]);
 
   const tabs = useMemo(() => ([
     { id: 'profile', label: 'Profile', icon: User },
@@ -382,6 +388,12 @@ const Settings = () => {
       const saved = normalizeSettings(response.settings || nextSettings);
       setSettingsData(saved);
       persistSettings(saved);
+      
+      // Sync privacy settings with ChatContext
+      window.dispatchEvent(new CustomEvent('privacy-settings-updated', { 
+        detail: saved.privacy 
+      }));
+      
       showStatus('success', 'Settings saved successfully.');
       return saved;
     } catch (error) {
@@ -565,16 +577,98 @@ const Settings = () => {
         />
       </SettingSection>
 
-      <SettingSection title="Who can see my personal info" description="Online, profile photo, about, and status visibility.">
+      <SettingSection title="Who can see my personal info" description="Last seen, online, profile photo, about, and status visibility.">
+        <SettingRow 
+          icon={Clock} 
+          title="Last seen and online" 
+          control={
+            <div className="flex items-center gap-2">
+              <Select value={settingsData.privacy.lastSeen} onChange={(value) => {
+                updateSetting('privacy.lastSeen', value);
+                if (value === 'contacts_except' || value === 'only_share_with') {
+                  setPrivacyPickerType('lastSeen');
+                  setShowPrivacyPicker(true);
+                }
+              }} options={VISIBILITY_OPTIONS} />
+              {(settingsData.privacy.lastSeen === 'contacts_except' || settingsData.privacy.lastSeen === 'only_share_with') && (
+                <button onClick={() => { setPrivacyPickerType('lastSeen'); setShowPrivacyPicker(true); }} className="text-xs text-[#00a884] hover:underline">
+                  Edit
+                </button>
+              )}
+            </div>
+          } 
+        />
         <SettingRow icon={Globe2} title="Online" control={<Select value={settingsData.privacy.online} onChange={(value) => updateSetting('privacy.online', value)} options={[['everyone', 'Everyone'], ['same_as_last_seen', 'Same as last seen']]} />} />
-        <SettingRow icon={UserRound} title="Profile photo" control={<Select value={settingsData.privacy.profilePhoto} onChange={(value) => updateSetting('privacy.profilePhoto', value)} options={VISIBILITY_OPTIONS} />} />
-        <SettingRow icon={User} title="About" control={<Select value={settingsData.privacy.about} onChange={(value) => updateSetting('privacy.about', value)} options={VISIBILITY_OPTIONS} />} />
-        <SettingRow icon={Palette} title="Status" control={<Select value={settingsData.privacy.status} onChange={(value) => updateSetting('privacy.status', value)} options={STATUS_OPTIONS} />} />
+        <SettingRow 
+          icon={UserRound} 
+          title="Profile photo" 
+          control={
+            <div className="flex items-center gap-2">
+              <Select value={settingsData.privacy.profilePhoto} onChange={(value) => {
+                updateSetting('privacy.profilePhoto', value);
+                if (value === 'contacts_except' || value === 'only_share_with') {
+                  setPrivacyPickerType('profilePhoto');
+                  setShowPrivacyPicker(true);
+                }
+              }} options={VISIBILITY_OPTIONS} />
+              {(settingsData.privacy.profilePhoto === 'contacts_except' || settingsData.privacy.profilePhoto === 'only_share_with') && (
+                <button onClick={() => { setPrivacyPickerType('profilePhoto'); setShowPrivacyPicker(true); }} className="text-xs text-[#00a884] hover:underline">
+                  Edit
+                </button>
+              )}
+            </div>
+          } 
+        />
+        <SettingRow 
+          icon={User} 
+          title="About" 
+          control={
+            <div className="flex items-center gap-2">
+              <Select value={settingsData.privacy.about} onChange={(value) => {
+                updateSetting('privacy.about', value);
+                if (value === 'contacts_except' || value === 'only_share_with') {
+                  setPrivacyPickerType('about');
+                  setShowPrivacyPicker(true);
+                }
+              }} options={VISIBILITY_OPTIONS} />
+              {(settingsData.privacy.about === 'contacts_except' || settingsData.privacy.about === 'only_share_with') && (
+                <button onClick={() => { setPrivacyPickerType('about'); setShowPrivacyPicker(true); }} className="text-xs text-[#00a884] hover:underline">
+                  Edit
+                </button>
+              )}
+            </div>
+          } 
+        />
+        <SettingRow 
+          icon={Palette} 
+          title="Status" 
+          control={
+            <div className="flex items-center gap-2">
+              <Select value={settingsData.privacy.status} onChange={(value) => {
+                updateSetting('privacy.status', value);
+                if (value === 'contacts_except' || value === 'only_share_with') {
+                  setPrivacyPickerType('status');
+                  setShowPrivacyPicker(true);
+                }
+              }} options={STATUS_OPTIONS} />
+              {(settingsData.privacy.status === 'contacts_except' || settingsData.privacy.status === 'only_share_with') && (
+                <button onClick={() => { setPrivacyPickerType('status'); setShowPrivacyPicker(true); }} className="text-xs text-[#00a884] hover:underline">
+                  Edit
+                </button>
+              )}
+            </div>
+          } 
+        />
+      </SettingSection>
+
+      <SettingSection title="Read receipts" description="If turned off, you won't see read receipts.">
+        <SettingRow icon={CheckCheck} title="Read receipts" description="Show when you've read messages." control={<Toggle checked={settingsData.privacy.readReceipts} onChange={() => toggleSetting('privacy.readReceipts')} />} />
       </SettingSection>
 
       <SettingSection title="Messages, groups, and calls" description="Controls for disappearing messages, group invites, unknown calls, and call privacy.">
         <SettingRow icon={Clock} title="Default message timer" control={<Select value={settingsData.privacy.defaultMessageTimer} onChange={(value) => updateSetting('privacy.defaultMessageTimer', value)} options={TIMER_OPTIONS} />} />
         <SettingRow icon={Users} title="Groups" description="Who can add you to groups." control={<Select value={settingsData.privacy.groups} onChange={(value) => updateSetting('privacy.groups', value)} options={VISIBILITY_OPTIONS.filter(([value]) => value !== 'nobody')} />} />
+        <SettingRow icon={Lock} title="Chat lock" description="Lock chats with fingerprint or face ID." control={<Toggle checked={settingsData.privacy.chatLock} onChange={() => toggleSetting('privacy.chatLock')} />} />
         <SettingRow icon={Phone} title="Silence unknown callers" description="Unknown calls will not ring, but stay visible in calls." control={<Toggle checked={settingsData.privacy.silenceUnknownCallers} onChange={() => toggleSetting('privacy.silenceUnknownCallers')} />} />
         <SettingRow icon={Shield} title="Protect IP address in calls" description="Relay calls for extra call privacy." control={<Toggle checked={settingsData.privacy.protectIpAddressInCalls} onChange={() => toggleSetting('privacy.protectIpAddressInCalls')} />} />
       </SettingSection>
@@ -586,6 +680,94 @@ const Settings = () => {
       </SettingSection>
 
       <ActionButton onClick={() => saveSettings()} disabled={saving}><Save size={16} /> Save privacy settings</ActionButton>
+
+      {/* Privacy Picker Modal */}
+      {showPrivacyPicker && (
+        <div className="fixed inset-0 z-[200] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowPrivacyPicker(false)}>
+          <div className="bg-[#202c33] w-full max-w-md rounded-2xl shadow-2xl border border-white/10 overflow-hidden max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 border-b border-white/10 flex items-center justify-between">
+              <h3 className="text-white font-bold text-base">
+                {privacyPickerType === 'lastSeen' && 'Last seen exceptions'}
+                {privacyPickerType === 'profilePhoto' && 'Profile photo exceptions'}
+                {privacyPickerType === 'about' && 'About exceptions'}
+                {privacyPickerType === 'status' && 'Status exceptions'}
+              </h3>
+              <button onClick={() => setShowPrivacyPicker(false)} className="text-white/50 hover:text-white">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4 flex-1 overflow-y-auto">
+              <p className="text-white/70 text-sm mb-4">
+                {settingsData.privacy[privacyPickerType] === 'contacts_except' 
+                  ? 'These contacts will NOT see your info'
+                  : 'Only these contacts will see your info'}
+              </p>
+              <div className="space-y-2">
+                {user?.contacts?.map((contact) => (
+                  <div key={contact._id} className="flex items-center justify-between p-3 bg-[#111b21] rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[#2a3942] flex items-center justify-center text-white text-sm">
+                        {contact.savedName?.charAt(0).toUpperCase() || '?'}
+                      </div>
+                      <span className="text-white text-sm">{contact.savedName}</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const userId = contact._id;
+                        setSelectedPrivacyUsers(prev => 
+                          prev.includes(userId) 
+                            ? prev.filter(id => id !== userId)
+                            : [...prev, userId]
+                        );
+                      }}
+                      className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${
+                        selectedPrivacyUsers.includes(contact._id)
+                          ? 'bg-[#00a884] border-[#00a884]'
+                          : 'border-white/30'
+                      }`}
+                    >
+                      {selectedPrivacyUsers.includes(contact._id) && <div className="w-3 h-3 rounded-full bg-white" />}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="p-4 border-t border-white/10 flex gap-2">
+              <button
+                onClick={async () => {
+                  try {
+                    const exceptionsKey = `${privacyPickerType}Exceptions`;
+                    const exceptions = { [exceptionsKey]: selectedPrivacyUsers };
+                    await userService.updatePrivacyExceptions(exceptions);
+                    
+                    // Update local settings
+                    const key = `privacy.${privacyPickerType}Exceptions`;
+                    updateSetting(key, selectedPrivacyUsers);
+                    
+                    showStatus('success', 'Privacy exceptions saved successfully');
+                    setShowPrivacyPicker(false);
+                    setSelectedPrivacyUsers([]);
+                  } catch (error) {
+                    showStatus('error', 'Failed to save privacy exceptions');
+                  }
+                }}
+                className="flex-1 py-2 bg-[#00a884] hover:bg-[#008f6f] text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => {
+                  setShowPrivacyPicker(false);
+                  setSelectedPrivacyUsers([]);
+                }}
+                className="flex-1 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 

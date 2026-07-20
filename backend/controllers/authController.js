@@ -701,6 +701,46 @@ exports.updateAwayMessage = async (req, res) => {
   }
 };
 
+// @desc    Update privacy exceptions
+// @route   PUT /api/auth/privacy-exceptions
+// @access  Private
+exports.updatePrivacyExceptions = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { exceptions } = req.body; // { lastSeenExceptions: [], profilePhotoExceptions: [], etc. }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (!user.privacyExceptions) {
+      user.privacyExceptions = {};
+    }
+
+    // Update each exception type if provided
+    if (exceptions.lastSeenExceptions !== undefined) {
+      user.privacyExceptions.lastSeenExceptions = exceptions.lastSeenExceptions;
+    }
+    if (exceptions.profilePhotoExceptions !== undefined) {
+      user.privacyExceptions.profilePhotoExceptions = exceptions.profilePhotoExceptions;
+    }
+    if (exceptions.aboutExceptions !== undefined) {
+      user.privacyExceptions.aboutExceptions = exceptions.aboutExceptions;
+    }
+    if (exceptions.statusExceptions !== undefined) {
+      user.privacyExceptions.statusExceptions = exceptions.statusExceptions;
+    }
+
+    await user.save();
+
+    res.json({ success: true, privacyExceptions: user.privacyExceptions });
+  } catch (error) {
+    console.error('Update privacy exceptions error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // @desc    Get business analytics
 // @route   GET /api/auth/business-analytics
 // @access  Private

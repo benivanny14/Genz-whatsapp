@@ -57,6 +57,8 @@ const Channels = lazy(() => import('./pages/Channels'));
 const ChannelView = lazy(() => import('./pages/ChannelView'));
 const JoinGroup = lazy(() => import('./pages/JoinGroup'));
 const SubscriptionPayment = lazy(() => import('./pages/SubscriptionPayment'));
+const Communities = lazy(() => import('./pages/Communities'));
+const MetaAI = lazy(() => import('./pages/MetaAI'));
 const CallScreen = lazy(() => import('./components/CallScreen'));
 const GroupCallScreen = lazy(() => import('./components/GroupCallScreen'));
 
@@ -372,6 +374,9 @@ function App() {
             }
           />
           <Route path="/genz-mods" element={<ProtectedRoute><GENZMods /></ProtectedRoute>} />
+          <Route path="/meta-ai" element={<ProtectedRoute><MetaAI /></ProtectedRoute>} />
+          <Route path="/communities" element={<ProtectedRoute><Communities /></ProtectedRoute>} />
+          <Route path="/communities/:communityId" element={<ProtectedRoute><Communities /></ProtectedRoute>} />
           <Route path="/channels" element={<ProtectedRoute><Channels /></ProtectedRoute>} />
           <Route path="/channels/:channelId" element={<ProtectedRoute><ChannelView /></ProtectedRoute>} />
           <Route path="/join/:groupId/:code" element={<ProtectedRoute><JoinGroup /></ProtectedRoute>} />

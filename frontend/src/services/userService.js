@@ -152,6 +152,16 @@ const userService = {
     }
     return res.json();
   },
+
+  updatePrivacyExceptions: async (exceptions) => {
+    const res = await authFetch(`${API_URL}/auth/privacy-exceptions`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ exceptions }),
+    });
+    if (!res.ok) throw new Error('Failed to update privacy exceptions');
+    return res.json();
+  },
 };
 
 export default userService;

@@ -9,6 +9,7 @@ const applyPrivacyFilter = (user, requesterId) => {
   // Need plain object to delete/modify fields safely
   const filteredUser = user.toObject ? user.toObject() : { ...user };
   const privacySettings = filteredUser.settings?.privacy || {};
+  const privacyExceptions = filteredUser.privacyExceptions || {};
 
   // Helper to determine if requester is a contact
   const isContact = () => {
@@ -16,15 +17,30 @@ const applyPrivacyFilter = (user, requesterId) => {
     return filteredUser.contacts.some(c => c.toString() === requesterId.toString());
   };
 
-  const isAllowed = (settingValue) => {
+  // Helper to check if requester is in exceptions list
+  const isInExceptions = (exceptionsKey) => {
+    if (!requesterId || !privacyExceptions[exceptionsKey]) return false;
+    return privacyExceptions[exceptionsKey].some(id => id.toString() === requesterId.toString());
+  };
+
+  const isAllowed = (settingValue, exceptionsKey) => {
     if (settingValue === 'everyone') return true;
-    if (settingValue === 'contacts' || settingValue === 'contacts_except') return isContact();
+    if (settingValue === 'contacts') return isContact();
+    if (settingValue === 'contacts_except') {
+      // Allow all contacts except those in exceptions
+      if (!isContact()) return false;
+      return !isInExceptions(exceptionsKey);
+    }
     if (settingValue === 'nobody') return false;
+    if (settingValue === 'only_share_with') {
+      // Only allow users in exceptions list
+      return isInExceptions(exceptionsKey);
+    }
     return true; // Default to allowed
   };
 
   // Filter Last Seen
-  if (!isAllowed(privacySettings.lastSeen)) {
+  if (!isAllowed(privacySettings.lastSeen, 'lastSeenExceptions')) {
     delete filteredUser.lastSeen;
   }
 
@@ -34,18 +50,23 @@ const applyPrivacyFilter = (user, requesterId) => {
     ? privacySettings.lastSeen 
     : privacySettings.online;
   
-  if (!isAllowed(onlineSetting)) {
+  if (!isAllowed(onlineSetting, 'lastSeenExceptions')) {
     delete filteredUser.isOnline;
   }
 
-  // Profile pictures are now visible to all users (removed privacy filter)
-  // This allows users to see profile pictures when searching for contacts
+  // Filter Profile Photo
+  if (!isAllowed(privacySettings.profilePhoto, 'profilePhotoExceptions')) {
+    delete filteredUser.profilePicture;
+  }
 
   // Filter About
-  if (!isAllowed(privacySettings.about)) {
+  if (!isAllowed(privacySettings.about, 'aboutExceptions')) {
     delete filteredUser.about;
     delete filteredUser.bio;
   }
+
+  // Filter Status - Status privacy is handled at Status model level
+  // with excludedViewers and includedViewers arrays
 
   return filteredUser;
 };

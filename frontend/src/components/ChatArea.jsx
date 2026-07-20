@@ -313,7 +313,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [swipeDirection, setSwipeDirection] = useState(null);
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showProductCatalogue, setShowProductCatalogue] = useState(false); // msgId showing quick reactions
+  const [showProductCatalogue, setShowProductCatalogue] = useState(false);
+  const [showAIStickers, setShowAIStickers] = useState(false);
+  const [aiStickerPrompt, setAiStickerPrompt] = useState('');
+  const [aiStickerGenerating, setAiStickerGenerating] = useState(false);
+  const [generatedStickerUrl, setGeneratedStickerUrl] = useState(null); // msgId showing quick reactions
   // Swipe-to-reply touch tracking
   const swipeTouchStartRef = useRef({});
   const swipeActiveRef = useRef(null); // message id being swiped
@@ -2422,6 +2426,56 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                     <span>AI Assistant</span>
                   </button>
 
+                  {/* Contact Info */}
+                  {!selectedConversation?.isGroup && (
+                    <button
+                      onClick={() => {
+                        setShowContactInfo(true);
+                        setShowHeaderMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
+                    >
+                      <User size={16} className="text-white/60" />
+                      <span>Contact Info</span>
+                    </button>
+                  )}
+
+                  {/* Mute Notifications */}
+                  <button
+                    onClick={() => {
+                      // Toggle mute notifications (implementation needed)
+                      setShowHeaderMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
+                  >
+                    <BellOff size={16} className="text-white/60" />
+                    <span>Mute Notifications</span>
+                  </button>
+
+                  {/* Disappearing Messages */}
+                  <button
+                    onClick={() => {
+                      handleSetDisappearingMessages();
+                      setShowHeaderMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
+                  >
+                    <Clock size={16} className="text-white/60" />
+                    <span>Disappearing Messages</span>
+                  </button>
+
+                  {/* Add to Favorites */}
+                  <button
+                    onClick={() => {
+                      // Toggle favorite (implementation needed)
+                      setShowHeaderMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
+                  >
+                    <Star size={16} className="text-white/60" />
+                    <span>Add to Favorites</span>
+                  </button>
+
                   <button
                     onClick={() => {
                       setShowMediaGallery(true);
@@ -3453,6 +3507,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               {safeMods?.trendingStickers && (
                 <AttachmentIcon icon={<TrendingUp className="text-pink-500" />} label="Stickers" onClick={() => { setShowTrendingStickers(true); setShowAttachmentMenu(false); }} />
               )}
+              <AttachmentIcon icon={<Sparkles className="text-purple-400" />} label="AI Stickers" onClick={() => { setShowAIStickers(true); setShowAttachmentMenu(false); }} disabled={!canSendMedia && !currentUserIsAdmin} />
               {safeMods?.aiCaption && (
                 <AttachmentIcon icon={<Wand2 className="text-purple-400" />} label="AI Caption" onClick={() => { setShowAICaption(true); setShowAttachmentMenu(false); }} />
               )}
@@ -4246,6 +4301,108 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                   </button>
                 );
               })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI Stickers Modal */}
+      {showAIStickers && (
+        <div
+          className="fixed inset-0 z-[180] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm"
+          onClick={() => setShowAIStickers(false)}
+        >
+          <div
+            className="bg-[#202c33] w-full max-w-md rounded-2xl shadow-2xl border border-white/10 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-white/10 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-purple-400" />
+                <h3 className="text-white font-bold text-base">AI Stickers</h3>
+              </div>
+              <button
+                onClick={() => setShowAIStickers(false)}
+                className="text-white/50 hover:text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-white/70 text-sm mb-2">Describe your sticker</label>
+                <textarea
+                  value={aiStickerPrompt}
+                  onChange={(e) => setAiStickerPrompt(e.target.value)}
+                  placeholder="e.g., A cute cat dancing, A happy emoji with sunglasses"
+                  rows={3}
+                  className="w-full px-3 py-2 bg-[#111b21] border border-white/10 rounded-lg text-white placeholder:text-white/30 focus:outline-none focus:border-[#00a884] resize-none"
+                />
+              </div>
+              <button
+                onClick={async () => {
+                  if (!aiStickerPrompt.trim()) return;
+                  setAiStickerGenerating(true);
+                  try {
+                    // Simulate AI sticker generation (in production, call actual AI API)
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    // Generate a placeholder sticker URL based on prompt
+                    const stickerUrl = `data:image/svg+xml,${encodeURIComponent(`
+                      <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+                        <rect width="200" height="200" fill="#${Math.floor(Math.random()*16777215).toString(16)}"/>
+                        <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white" font-size="20">${aiStickerPrompt.substring(0, 10)}</text>
+                      </svg>
+                    `)}`;
+                    setGeneratedStickerUrl(stickerUrl);
+                  } catch (error) {
+                    console.error('AI Sticker generation error:', error);
+                  } finally {
+                    setAiStickerGenerating(false);
+                  }
+                }}
+                disabled={!aiStickerPrompt.trim() || aiStickerGenerating}
+                className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {aiStickerGenerating ? (
+                  <>
+                    <RefreshCw size={16} className="animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={16} />
+                    Generate Sticker
+                  </>
+                )}
+              </button>
+              {generatedStickerUrl && (
+                <div className="mt-4 p-4 bg-[#111b21] rounded-lg">
+                  <p className="text-white/70 text-sm mb-2">Generated Sticker:</p>
+                  <img src={generatedStickerUrl} alt="AI Generated Sticker" className="w-32 h-32 mx-auto rounded-lg" />
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={() => {
+                        handleSendStickerWithCaption(generatedStickerUrl);
+                        setShowAIStickers(false);
+                        setGeneratedStickerUrl(null);
+                        setAiStickerPrompt('');
+                      }}
+                      className="flex-1 py-2 bg-[#00a884] hover:bg-[#008f6f] text-white text-sm font-medium rounded-lg transition-colors"
+                    >
+                      Send Sticker
+                    </button>
+                    <button
+                      onClick={() => {
+                        setGeneratedStickerUrl(null);
+                        setAiStickerPrompt('');
+                      }}
+                      className="flex-1 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-lg transition-colors"
+                    >
+                      Regenerate
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

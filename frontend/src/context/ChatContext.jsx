@@ -151,7 +151,15 @@ const buildGENZSettings = (parsed = {}) => ({
   appTheme: parsed.appTheme || DEFAULT_GENZ_SETTINGS.appTheme,
   statusPrivacy: parsed.statusPrivacy || DEFAULT_GENZ_SETTINGS.statusPrivacy,
   notificationSound: parsed.notificationSound || DEFAULT_GENZ_SETTINGS.notificationSound,
-  isDNDMode: parsed.isDNDMode !== undefined ? parsed.isDNDMode : DEFAULT_GENZ_SETTINGS.isDNDMode
+  isDNDMode: parsed.isDNDMode !== undefined ? parsed.isDNDMode : DEFAULT_GENZ_SETTINGS.isDNDMode,
+  privacySettings: parsed.privacySettings || {
+    lastSeen: 'everyone',
+    online: 'same_as_last_seen',
+    profilePhoto: 'everyone',
+    about: 'everyone',
+    status: 'contacts',
+    readReceipts: true
+  }
 });
 
 // Safe load GENZ settings from localStorage
@@ -542,6 +550,21 @@ export const ChatProvider = ({ children }) => {
       setIsDNDMode(savedSettings.isDNDMode);
       setAppTheme(savedSettings.appTheme);
     }
+  }, [currentUserId]);
+
+  // ── Listen for privacy settings updates from Settings page ──
+  useEffect(() => {
+    const handlePrivacySettingsUpdate = (event) => {
+      const privacySettings = event.detail;
+      if (privacySettings) {
+        const savedSettings = loadGENZSettings(currentUserId);
+        savedSettings.privacySettings = privacySettings;
+        saveGENZSettings(savedSettings, currentUserId);
+      }
+    };
+
+    window.addEventListener('privacy-settings-updated', handlePrivacySettingsUpdate);
+    return () => window.removeEventListener('privacy-settings-updated', handlePrivacySettingsUpdate);
   }, [currentUserId]);
 
   // ── Persist mods ref for socket callbacks ──

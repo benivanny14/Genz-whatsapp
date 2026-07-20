@@ -181,6 +181,12 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  privacyExceptions: {
+    lastSeenExceptions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    profilePhotoExceptions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    aboutExceptions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    statusExceptions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+  },
   contacts: [{
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     savedName: { type: String, required: true }
