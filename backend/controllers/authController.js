@@ -731,6 +731,9 @@ exports.updatePrivacyExceptions = async (req, res) => {
     if (exceptions.statusExceptions !== undefined) {
       user.privacyExceptions.statusExceptions = exceptions.statusExceptions;
     }
+    if (exceptions.groupsExceptions !== undefined) {
+      user.privacyExceptions.groupsExceptions = exceptions.groupsExceptions;
+    }
 
     await user.save();
 

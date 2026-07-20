@@ -94,6 +94,12 @@ const STATUS_OPTIONS = [
   ['nobody', 'Nobody']
 ];
 
+const GROUPS_OPTIONS = [
+  ['everyone', 'Everyone'],
+  ['contacts', 'My contacts'],
+  ['contacts_except', 'My contacts except...']
+];
+
 const TIMER_OPTIONS = [
   ['off', 'Off'],
   ['24h', '24 hours'],
@@ -585,12 +591,12 @@ const Settings = () => {
             <div className="flex items-center gap-2">
               <Select value={settingsData.privacy.lastSeen} onChange={(value) => {
                 updateSetting('privacy.lastSeen', value);
-                if (value === 'contacts_except' || value === 'only_share_with') {
+                if (value === 'contacts_except') {
                   setPrivacyPickerType('lastSeen');
                   setShowPrivacyPicker(true);
                 }
               }} options={VISIBILITY_OPTIONS} />
-              {(settingsData.privacy.lastSeen === 'contacts_except' || settingsData.privacy.lastSeen === 'only_share_with') && (
+              {settingsData.privacy.lastSeen === 'contacts_except' && (
                 <button onClick={() => { setPrivacyPickerType('lastSeen'); setShowPrivacyPicker(true); }} className="text-xs text-[#00a884] hover:underline">
                   Edit
                 </button>
@@ -606,12 +612,12 @@ const Settings = () => {
             <div className="flex items-center gap-2">
               <Select value={settingsData.privacy.profilePhoto} onChange={(value) => {
                 updateSetting('privacy.profilePhoto', value);
-                if (value === 'contacts_except' || value === 'only_share_with') {
+                if (value === 'contacts_except') {
                   setPrivacyPickerType('profilePhoto');
                   setShowPrivacyPicker(true);
                 }
               }} options={VISIBILITY_OPTIONS} />
-              {(settingsData.privacy.profilePhoto === 'contacts_except' || settingsData.privacy.profilePhoto === 'only_share_with') && (
+              {settingsData.privacy.profilePhoto === 'contacts_except' && (
                 <button onClick={() => { setPrivacyPickerType('profilePhoto'); setShowPrivacyPicker(true); }} className="text-xs text-[#00a884] hover:underline">
                   Edit
                 </button>
@@ -626,12 +632,12 @@ const Settings = () => {
             <div className="flex items-center gap-2">
               <Select value={settingsData.privacy.about} onChange={(value) => {
                 updateSetting('privacy.about', value);
-                if (value === 'contacts_except' || value === 'only_share_with') {
+                if (value === 'contacts_except') {
                   setPrivacyPickerType('about');
                   setShowPrivacyPicker(true);
                 }
               }} options={VISIBILITY_OPTIONS} />
-              {(settingsData.privacy.about === 'contacts_except' || settingsData.privacy.about === 'only_share_with') && (
+              {settingsData.privacy.about === 'contacts_except' && (
                 <button onClick={() => { setPrivacyPickerType('about'); setShowPrivacyPicker(true); }} className="text-xs text-[#00a884] hover:underline">
                   Edit
                 </button>
@@ -667,7 +673,27 @@ const Settings = () => {
 
       <SettingSection title="Messages, groups, and calls" description="Controls for disappearing messages, group invites, unknown calls, and call privacy.">
         <SettingRow icon={Clock} title="Default message timer" control={<Select value={settingsData.privacy.defaultMessageTimer} onChange={(value) => updateSetting('privacy.defaultMessageTimer', value)} options={TIMER_OPTIONS} />} />
-        <SettingRow icon={Users} title="Groups" description="Who can add you to groups." control={<Select value={settingsData.privacy.groups} onChange={(value) => updateSetting('privacy.groups', value)} options={VISIBILITY_OPTIONS.filter(([value]) => value !== 'nobody')} />} />
+        <SettingRow 
+          icon={Users} 
+          title="Groups" 
+          description="Who can add you to groups." 
+          control={
+            <div className="flex items-center gap-2">
+              <Select value={settingsData.privacy.groups} onChange={(value) => {
+                updateSetting('privacy.groups', value);
+                if (value === 'contacts_except') {
+                  setPrivacyPickerType('groups');
+                  setShowPrivacyPicker(true);
+                }
+              }} options={GROUPS_OPTIONS} />
+              {settingsData.privacy.groups === 'contacts_except' && (
+                <button onClick={() => { setPrivacyPickerType('groups'); setShowPrivacyPicker(true); }} className="text-xs text-[#00a884] hover:underline">
+                  Edit
+                </button>
+              )}
+            </div>
+          } 
+        />
         <SettingRow icon={Lock} title="Chat lock" description="Lock chats with fingerprint or face ID." control={<Toggle checked={settingsData.privacy.chatLock} onChange={() => toggleSetting('privacy.chatLock')} />} />
         <SettingRow icon={Phone} title="Silence unknown callers" description="Unknown calls will not ring, but stay visible in calls." control={<Toggle checked={settingsData.privacy.silenceUnknownCallers} onChange={() => toggleSetting('privacy.silenceUnknownCallers')} />} />
         <SettingRow icon={Shield} title="Protect IP address in calls" description="Relay calls for extra call privacy." control={<Toggle checked={settingsData.privacy.protectIpAddressInCalls} onChange={() => toggleSetting('privacy.protectIpAddressInCalls')} />} />

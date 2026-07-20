@@ -68,6 +68,11 @@ const applyPrivacyFilter = (user, requesterId) => {
   // Filter Status - Status privacy is handled at Status model level
   // with excludedViewers and includedViewers arrays
 
+  // Filter Groups - Who can add user to groups
+  // This is checked when someone tries to add user to a group
+  // We'll add this to the filtered user for reference
+  filteredUser.canAddToGroups = isAllowed(privacySettings.groups, 'groupsExceptions');
+
   return filteredUser;
 };
 
