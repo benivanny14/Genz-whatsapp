@@ -168,6 +168,35 @@ exports.deleteStatus = async (req, res) => {
   }
 };
 
+// GET /api/status/:id/download - literal download (Content-Disposition: attachment)
+exports.downloadStatus = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: 'Invalid status ID' });
+    }
+    const userId = req.user._id || req.user.id;
+    const status = await Status.findById(req.params.id);
+    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+    if (!status.mediaUrl) return res.status(404).json({ success: false, message: 'Status haina media' });
+
+    // Check viewer can see this status
+    if (String(status.user) !== String(userId)) {
+      const blocked = await isEitherUserBlocked(userId, status.user);
+      if (blocked) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+    }
+
+    const axios = require('axios');
+    const response = await axios.get(status.mediaUrl, { responseType: 'stream' });
+    const ext = status.type === 'video' ? 'mp4' : status.type === 'voice' ? 'mp3' : 'jpg';
+    res.setHeader('Content-Type', response.headers['content-type'] || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="genz-status-${status._id}.${ext}"`);
+    response.data.pipe(res);
+  } catch (error) {
+    console.error('Status download error:', error.message);
+    res.status(500).json({ success: false, message: 'Imeshindwa kupakua status', error: error.message });
+  }
+};
+
 // GET /api/status/:id/viewers - watu walioona status yako
 exports.getViewers = async (req, res) => {
   try {

@@ -650,6 +650,8 @@ const statusRoutes = require('./routes/status');
 const profileViewRoutes = require('./routes/profileViewRoutes');
 const callLinkRoutes = require('./routes/callLinkRoutes');
 const communityRoutes = require('./routes/communityRoutes');
+const exportRoutes = require('./routes/exportRoutes');
+const bulkRoutes = require('./routes/bulkRoutes');
 
 // Mount Routes
 app.use('/api/auth', safeMiddleware(authLimiter), authRoutes);
@@ -691,6 +693,11 @@ app.use('/api/channels', channelRoutes);
 app.use('/api/profile-views', profileViewRoutes);
 app.use('/api/calls/link', callLinkRoutes);
 app.use('/api/communities', communityRoutes);
+app.use('/api/export', exportRoutes);
+app.use('/api/bulk', bulkRoutes);
+app.use('/api/text-tools', require('./routes/textToolsRoutes'));
+app.use('/api/notifier', require('./routes/notifierRoutes'));
+app.use('/api/fake-chat', require('./routes/fakeChatRoutes'));
 
 // File upload route
 app.post('/api/upload', upload.single('file'), async (req, res) => {
