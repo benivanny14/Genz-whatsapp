@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  MessageSquare, Users, TrendingUp, Activity, Clock, 
+  MessageSquare, Users, TrendingUp, Activity, Timer,
   BarChart2, Wifi, WifiOff, X, RefreshCw, Award, Zap,
   Eye, Star
 } from 'lucide-react';
@@ -219,7 +219,7 @@ const SystemDashboard = ({ onClose }) => {
                           {user.isOnline ? (
                             <><Wifi size={10} className="text-green-400" /> Online</>
                           ) : (
-                            <><Clock size={10} /> {user.lastSeen ? `Last seen: ${new Date(user.lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Offline'}</>
+                            <><Timer size={10} /> {user.lastSeen ? `Last seen: ${new Date(user.lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Offline'}</>
                           )}
                         </p>
                       </div>

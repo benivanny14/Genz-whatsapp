@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Clock, TrendingUp, X, Wifi, WifiOff, Calendar } from 'lucide-react';
+import { Timer, TrendingUp, X, Wifi, WifiOff, Calendar } from 'lucide-react';
 import { api } from '../services/api';
 
 const OnlineHistoryDashboard = ({ onClose, targetUserId }) => {
@@ -91,7 +91,7 @@ const OnlineHistoryDashboard = ({ onClose, targetUserId }) => {
               <div className="grid grid-cols-3 gap-3">
                 {[
                   { label: 'Sessions', value: stats.totalSessions, icon: Wifi },
-                  { label: 'Avg Duration', value: fmtDur(stats.avgDuration), icon: Clock },
+                  { label: 'Avg Duration', value: fmtDur(stats.avgDuration), icon: Timer },
                   { label: 'Peak Hour', value: `${stats.mostActiveHour}:00`, icon: Calendar },
                 ].map(({ label, value, icon: Icon }) => (
                   <div key={label} className="bg-[#202c33] rounded-xl p-3 text-center border border-[#2a3942]">
