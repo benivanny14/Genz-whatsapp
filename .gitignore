@@ -9,3 +9,8 @@ uploads/
 backend/uploads/
 Microsoft/
 scripts/render-env-export.txt
+events.json
+events2.json
+backend/tmp_final_check2.js
+tmp_check_syntax.js
+tmp_final_check.js
