@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, FileText, Send, Type, Eye, MessageSquare, Trash2, Sparkles, Repeat, FileDigit, Image } from 'lucide-react';
+import { Download, FileText, Send, Type, Eye, MessageSquare, Trash2, Sparkles, Repeat, FileDigit, Image, Contact, Clock, BarChart2, Grid3x3 } from 'lucide-react';
 import { exportChat, sendBulkMessage, applyTextStyle, getBlankMessage, repeatText, watchUserOnline, generateFakeChat, clearAllChats, getTextStyles, downloadStatus } from '../utils/quickActions';
 import toast from 'react-hot-toast';
 
@@ -165,14 +165,39 @@ const QuickActionsMenu = ({ conversationId, peerUserId, peerUsername, onClose })
           <span className="text-sm">Fake Chat Generator</span>
         </button>
 
+        <button onClick={() => { onClose?.(); onOpenContactPicker?.(); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 text-white transition-colors">
+          <Contact size={18} className="text-orange-400" />
+          <span className="text-sm">Contact Picker</span>
+        </button>
+
         <button onClick={() => setShowTextToolsSubmenu(true)} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 text-white transition-colors">
           <Type size={18} className="text-cyan-400" />
           <span className="text-sm">Text Tools</span>
         </button>
 
+        <button onClick={() => { onClose?.(); onOpenSchedule?.(); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 text-white transition-colors">
+          <Clock size={18} className="text-indigo-400" />
+          <span className="text-sm">Schedule Message</span>
+        </button>
+
+        <button onClick={() => { onClose?.(); onOpenPoll?.(); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 text-white transition-colors">
+          <BarChart2 size={18} className="text-emerald-400" />
+          <span className="text-sm">Create Poll</span>
+        </button>
+
+        <button onClick={() => { onClose?.(); onOpenAIStickers?.(); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 text-white transition-colors">
+          <Sparkles size={18} className="text-rose-400" />
+          <span className="text-sm">AI Stickers</span>
+        </button>
+
         <button onClick={async () => { await downloadStatus(conversationId); onClose?.(); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 text-white transition-colors">
           <Image size={18} className="text-pink-400" />
           <span className="text-sm">Download Status</span>
+        </button>
+
+        <button onClick={() => { onClose?.(); onOpenProducts?.(); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 text-white transition-colors">
+          <Grid3x3 size={18} className="text-lime-400" />
+          <span className="text-sm">Product Catalogue</span>
         </button>
 
         {peerUserId && (
