@@ -15,9 +15,14 @@ function headersToPlainObject(h) {
 }
 
 function resolveUrlString(input) {
-  if (typeof input === 'string') return input;
-  if (input instanceof Request) return input.url;
-  return String(input);
+  let url = '';
+  if (typeof input === 'string') url = input;
+  else if (input instanceof Request) url = input.url;
+  else url = String(input);
+  // Fix double /api/api/ which happens when BACKEND_URL already ends with /api
+  // and the caller prepends another /api/ segment.
+  url = url.replace(/\/api\/api\//g, '/api/');
+  return url;
 }
 
 /**
