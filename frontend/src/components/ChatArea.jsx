@@ -38,6 +38,7 @@ import { compressImage } from '../utils/imageCompression';
 // New components for enhanced features
 import MediaViewer from './MediaViewer';
 import ProfileEnlarger from './ProfileEnlarger';
+import QuickActionsMenu from './QuickActionsMenu';
 import TypingIndicator from './TypingIndicator';
 import TypingStatus from './TypingStatus';
 import ReplyMessage from './ReplyMessage';
@@ -315,6 +316,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showProductCatalogue, setShowProductCatalogue] = useState(false);
   const [showAIStickers, setShowAIStickers] = useState(false);
+  const [showQuickActions, setShowQuickActions] = useState(false);
   const [aiStickerPrompt, setAiStickerPrompt] = useState('');
   const [aiStickerGenerating, setAiStickerGenerating] = useState(false);
   const [generatedStickerUrl, setGeneratedStickerUrl] = useState(null); // msgId showing quick reactions
@@ -4419,6 +4421,3 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 };
 
 export default ChatArea;
-
-
-
