@@ -216,7 +216,7 @@ exports.exportAsHtml = async (req, res) => {
       
       html += `<div class="message ${isSentByMe ? 'sent' : 'received'}">
         ${conversation.isGroup && !isSentByMe ? `<div class="sender">${senderName}</div>` : ''}
-        <div class="content">${escapeHtml(msg.content || `[${msg.messageType}]`)}</div>
+        <div class="content">${(msg.content || `[${msg.messageType}]`).replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>')}</div>
         ${msg.isEdited ? '<div class="edited">(edited)</div>' : ''}
         ${msg.mediaUrl ? `<div class="media">📎 <a href="${msg.mediaUrl}" style="color:#53bdeb">${msg.fileName || msg.messageType}</a></div>` : ''}
         <div class="time">${time}</div>
@@ -294,15 +294,5 @@ exports.exportAsJson = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
-function escapeHtml(text) {
-  if (!text) return '';
-  return text
-    .replace(/&/g, '&')
-    .replace(/</g, '<')
-    .replace(/>/g, '>')
-    .replace(/"/g, '"')
-    .replace(/'/g, '&#039;');
-}
 
 module.exports = exports;

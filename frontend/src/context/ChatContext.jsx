@@ -141,9 +141,7 @@ const DEFAULT_GENZ_SETTINGS = {
     // New features
     autoCaps: false,
     antiDeleteStatus: false,
-    antiViewOnce: false,
     hideRecording: false,
-    spamFilter: false,
     textRepeaterText: '',
     textRepeaterCount: 5
   },
@@ -5074,5 +5072,3 @@ export const ChatProvider = ({ children }) => {
 };
 
 export const useChat = () => useContext(ChatContext);
-
-
