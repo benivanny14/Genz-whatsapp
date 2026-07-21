@@ -1,0 +1,83 @@
+# Render Blueprint — GENZ WhatsApp
+# Dashboard: New + → Blueprint → connect repo → path: render.yaml
+# Secrets: set in Render Dashboard or via scripts/setup-render-env.js
+
+services:
+  - type: web
+    name: genz-whatsapp
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install --legacy-peer-deps
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: JWT_EXPIRE
+        value: 7d
+      - key: FRONTEND_URL
+        value: https://genz-whatsapp-1.onrender.com
+      - key: PUBLIC_API_URL
+        value: https://genz-whatsapp.onrender.com
+      - key: ADMIN_BOOTSTRAP_TOKEN
+        sync: false
+      - key: BACKUP_ENCRYPTION_KEY
+        sync: false
+      - key: MESSAGE_ENCRYPTION_SECRET
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        value: mailto:admin@genz-whatsapp.com
+      - key: ALLOW_ANONYMOUS_DEVICE_AUTH
+        value: "false"
+      - key: ALLOW_SOCKET_WITHOUT_AUTH
+        value: "false"
+      - key: ALLOW_MOCK_PAYMENTS
+        value: "false"
+      - key: ADMIN_BASE_PATH
+        value: /api/system-gateway-x9k
+      - key: ADMIN_JWT_SECRET
+        sync: false
+
+  - type: web
+    name: genz-whatsapp-frontend
+    runtime: node
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: "npm start"
+    envVars:
+      - key: VITE_API_URL
+        value: https://genz-whatsapp.onrender.com/api
+      - key: VITE_SOCKET_URL
+        value: https://genz-whatsapp.onrender.com
+      - key: VITE_REQUIRE_AUTH
+        value: "true"
+      - key: VITE_ADMIN_BASE_PATH
+        value: /api/system-gateway-x9k
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
