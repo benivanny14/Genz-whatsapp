@@ -8,7 +8,7 @@ import {
   BarChart2, Smartphone as SmartphoneIcon, Mail, Forward, Eye, Globe,
   MessageSquare, Layers, Video, Sparkles, TrendingUp, Star, Wand2,
   Activity, BarChart, Upload, Keyboard, Copy, Smile, Folder, FileText,
-  Phone, Pause, MicOff, PhoneOff, History, Link
+  Phone, Pause, MicOff, PhoneOff, History, Link, Users
 } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
@@ -1691,6 +1691,64 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               desc="Generate call links for sharing"
               active={mods.callLink}
               onClick={() => toggleMod('callLink')}
+            />
+          </div>
+        </section>
+
+        {/* Group Features */}
+        <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
+          <div className="p-4 bg-blue-900/30 border-b border-white/10 flex items-center gap-2 text-orange-400 font-bold">
+            <Users size={18} /> Group Features
+          </div>
+          <div className="p-2">
+            <ModItem
+              icon={<Shield size={20} className="text-red-500" />}
+              title="Group Admin Control"
+              desc="Enhanced admin controls for groups"
+              active={mods.groupAdminControl}
+              onClick={() => toggleMod('groupAdminControl')}
+            />
+            <ModItem
+              icon={<Users size={20} className="text-blue-500" />}
+              title="Group Member Limit"
+              desc="Increase group member limit"
+              active={mods.groupMemberLimit > 512}
+              onClick={() => toggleMod('groupMemberLimit', mods.groupMemberLimit > 512 ? 512 : 1024)}
+            />
+            <ModItem
+              icon={<FileText size={20} className="text-green-500" />}
+              title="Group Description"
+              desc="Enable group descriptions"
+              active={mods.groupDescription}
+              onClick={() => toggleMod('groupDescription')}
+            />
+            <ModItem
+              icon={<UserCircle size={20} className="text-purple-500" />}
+              title="Group Avatar"
+              desc="Enable group avatars"
+              active={mods.groupAvatar}
+              onClick={() => toggleMod('groupAvatar')}
+            />
+            <ModItem
+              icon={<Link size={20} className="text-cyan-500" />}
+              title="Group Invite Link"
+              desc="Enable group invite links"
+              active={mods.groupInviteLink}
+              onClick={() => toggleMod('groupInviteLink')}
+            />
+            <ModItem
+              icon={<BellOff size={20} className="text-yellow-500" />}
+              title="Group Mute"
+              desc="Mute group notifications"
+              active={mods.groupMute}
+              onClick={() => toggleMod('groupMute')}
+            />
+            <ModItem
+              icon={<Bell size={20} className="text-pink-500" />}
+              title="Group Notifications"
+              desc="Enable group notifications"
+              active={mods.groupNotifications}
+              onClick={() => toggleMod('groupNotifications')}
             />
           </div>
         </section>

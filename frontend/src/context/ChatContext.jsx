@@ -196,7 +196,15 @@ const DEFAULT_GENZ_SETTINGS = {
     callMute: false,
     callBlocker: false,
     callHistory: true,
-    callLink: false
+    callLink: false,
+    // Additional Group features
+    groupAdminControl: false,
+    groupMemberLimit: 512,
+    groupDescription: true,
+    groupAvatar: true,
+    groupInviteLink: true,
+    groupMute: false,
+    groupNotifications: true
   },
   appTheme: 'dark',
   statusPrivacy: 'everyone',
