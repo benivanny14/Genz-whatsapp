@@ -185,7 +185,18 @@ const DEFAULT_GENZ_SETTINGS = {
     customFontSize: 14,
     customBubbleColor: false,
     customHeaderColor: false,
-    customStatusBarColor: false
+    customStatusBarColor: false,
+    // Additional Calling features
+    callRecording: false,
+    callWaiting: false,
+    callHold: false,
+    callTransfer: false,
+    callScreenShare: false,
+    callVideoToggle: false,
+    callMute: false,
+    callBlocker: false,
+    callHistory: true,
+    callLink: false
   },
   appTheme: 'dark',
   statusPrivacy: 'everyone',

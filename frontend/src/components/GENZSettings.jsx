@@ -7,7 +7,8 @@ import {
   LogOut, Info, Mic, Music, UserCircle, Edit3, Camera, Sun, Moon, BellOff,
   BarChart2, Smartphone as SmartphoneIcon, Mail, Forward, Eye, Globe,
   MessageSquare, Layers, Video, Sparkles, TrendingUp, Star, Wand2,
-  Activity, BarChart, Upload, Keyboard, Copy, Smile, Folder, FileText
+  Activity, BarChart, Upload, Keyboard, Copy, Smile, Folder, FileText,
+  Phone, Pause, MicOff, PhoneOff, History, Link
 } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
@@ -1612,6 +1613,85 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
             >
               <Play size={10} /> Test Selected Sound
             </button>
+          </div>
+        </section>
+
+        {/* Calling Features */}
+        <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
+          <div className="p-4 bg-blue-900/30 border-b border-white/10 flex items-center gap-2 text-cyan-400 font-bold">
+            <Phone size={18} /> Calling Features
+          </div>
+          <div className="p-2">
+            <ModItem
+              icon={<Mic size={20} className="text-red-500" />}
+              title="Call Recording"
+              desc="Record voice and video calls"
+              active={mods.callRecording}
+              onClick={() => toggleMod('callRecording')}
+            />
+            <ModItem
+              icon={<Phone size={20} className="text-blue-500" />}
+              title="Call Waiting"
+              desc="Enable call waiting during calls"
+              active={mods.callWaiting}
+              onClick={() => toggleMod('callWaiting')}
+            />
+            <ModItem
+              icon={<Pause size={20} className="text-green-500" />}
+              title="Call Hold"
+              desc="Put calls on hold"
+              active={mods.callHold}
+              onClick={() => toggleMod('callHold')}
+            />
+            <ModItem
+              icon={<Forward size={20} className="text-purple-500" />}
+              title="Call Transfer"
+              desc="Transfer calls to other contacts"
+              active={mods.callTransfer}
+              onClick={() => toggleMod('callTransfer')}
+            />
+            <ModItem
+              icon={<MonitorSmartphone size={20} className="text-orange-500" />}
+              title="Call Screen Share"
+              desc="Share screen during video calls"
+              active={mods.callScreenShare}
+              onClick={() => toggleMod('callScreenShare')}
+            />
+            <ModItem
+              icon={<Video size={20} className="text-pink-500" />}
+              title="Call Video Toggle"
+              desc="Toggle video during calls"
+              active={mods.callVideoToggle}
+              onClick={() => toggleMod('callVideoToggle')}
+            />
+            <ModItem
+              icon={<MicOff size={20} className="text-yellow-500" />}
+              title="Call Mute"
+              desc="Mute microphone during calls"
+              active={mods.callMute}
+              onClick={() => toggleMod('callMute')}
+            />
+            <ModItem
+              icon={<PhoneOff size={20} className="text-red-400" />}
+              title="Call Blocker"
+              desc="Block unwanted calls"
+              active={mods.callBlocker}
+              onClick={() => toggleMod('callBlocker')}
+            />
+            <ModItem
+              icon={<History size={20} className="text-blue-400" />}
+              title="Call History"
+              desc="Keep call history logs"
+              active={mods.callHistory}
+              onClick={() => toggleMod('callHistory')}
+            />
+            <ModItem
+              icon={<Link size={20} className="text-green-400" />}
+              title="Call Link"
+              desc="Generate call links for sharing"
+              active={mods.callLink}
+              onClick={() => toggleMod('callLink')}
+            />
           </div>
         </section>
 
