@@ -12,7 +12,7 @@ import {
   QrCode, Scan, MapPin, Navigation, Briefcase, ShoppingBag, CreditCard,
   Battery, Wifi, WifiOff, Calendar, User, MoreVertical, Reply, Trash2,
   Pin, Archive, Search, Filter, SortAsc, Radio, Tv, Badge, SwipeRight,
-  Hand, DoubleTap, Layout, LayoutList, Share2, AtSign, Type
+  Hand, DoubleTap, Layout, LayoutList, Share2, AtSign, Type, Check, Unlock
 } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
