@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useChat } from '../context/ChatContext';
-import { Phone, Video, PhoneIncoming, PhoneMissed, PhoneOutgoing, Search, ArrowLeft, Clock, UserPlus, X, Trash2, CheckSquare, Square, Link2 } from 'lucide-react';
+import { Phone, Video, PhoneIncoming, PhoneMissed, PhoneOutgoing, Search, ArrowLeft, Timer, UserPlus, X, Trash2, CheckSquare, Square, Link2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import callService from '../services/callService';
 import CallLinkModal from '../components/CallLinkModal';
@@ -266,7 +266,7 @@ const Calls = () => {
 
                 <div className="flex flex-col items-end gap-2 shrink-0">
                   <span className="text-white/25 text-xs flex items-center gap-1">
-                    <Clock size={10} />
+                    <Timer size={10} />
                     {log.timestamp
                       ? new Date(log.timestamp).toLocaleTimeString('sw-TZ', {
                           hour: '2-digit',
