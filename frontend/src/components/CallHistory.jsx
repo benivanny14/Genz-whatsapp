@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Clock, X, Phone, Video, Filter, Trash2, Search, Calendar, User, ArrowDownRight, ArrowUpRight } from 'lucide-react';
+import { Timer, X, Phone, Video, Filter, Trash2, Search, Calendar, User, ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const CallHistory = ({ calls, onCall, onVideoCall, onDelete, onClose }) => {
@@ -59,7 +59,7 @@ const CallHistory = ({ calls, onCall, onVideoCall, onDelete, onClose }) => {
         <div className="bg-[#0b141a] p-4 flex items-center justify-between border-b border-[#00a884]/20">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#00a884]/20 rounded-full flex items-center justify-center">
-              <Clock size={20} className="text-[#00a884]" />
+              <Timer size={20} className="text-[#00a884]" />
             </div>
             <div>
               <h2 className="text-white text-xl font-semibold">Call History</h2>
