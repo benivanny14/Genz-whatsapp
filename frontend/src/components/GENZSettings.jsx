@@ -11,7 +11,8 @@ import {
   Phone, Pause, MicOff, PhoneOff, History, Link, Users, Bot, Send,
   QrCode, Scan, MapPin, Navigation, Briefcase, ShoppingBag, CreditCard,
   Battery, Wifi, WifiOff, Calendar, User, MoreVertical, Reply, Trash2,
-  Pin, Archive, Search, Filter, SortAsc, Radio, Tv
+  Pin, Archive, Search, Filter, SortAsc, Radio, Tv, Badge, SwipeRight,
+  Hand, DoubleTap, Layout, LayoutList
 } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
@@ -2234,6 +2235,190 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               desc="Enable channels"
               active={mods.chatChannels}
               onClick={() => toggleMod('chatChannels')}
+            />
+          </div>
+        </section>
+
+        {/* Chat List & Main Dashboard Features */}
+        <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
+          <div className="p-4 bg-blue-900/30 border-b border-white/10 flex items-center gap-2 text-amber-400 font-bold">
+            <LayoutList size={18} /> Chat List & Dashboard
+          </div>
+          <div className="p-2">
+            <ModItem
+              icon={<UserCircle size={20} className="text-blue-500" />}
+              title="Chat List Avatar"
+              desc="Show avatars in chat list"
+              active={mods.chatListAvatar}
+              onClick={() => toggleMod('chatListAvatar')}
+            />
+            <ModItem
+              icon={<User size={20} className="text-green-500" />}
+              title="Chat List Name"
+              desc="Show names in chat list"
+              active={mods.chatListName}
+              onClick={() => toggleMod('chatListName')}
+            />
+            <ModItem
+              icon={<MessageSquare size={20} className="text-purple-500" />}
+              title="Chat List Last Message"
+              desc="Show last message in chat list"
+              active={mods.chatListLastMessage}
+              onClick={() => toggleMod('chatListLastMessage')}
+            />
+            <ModItem
+              icon={<Timer size={20} className="text-cyan-500" />}
+              title="Chat List Timestamp"
+              desc="Show timestamps in chat list"
+              active={mods.chatListTimestamp}
+              onClick={() => toggleMod('chatListTimestamp')}
+            />
+            <ModItem
+              icon={<Badge size={20} className="text-red-500" />}
+              title="Chat List Unread Count"
+              desc="Show unread message count"
+              active={mods.chatListUnreadCount}
+              onClick={() => toggleMod('chatListUnreadCount')}
+            />
+            <ModItem
+              icon={<BellOff size={20} className="text-orange-500" />}
+              title="Chat List Mute Indicator"
+              desc="Show mute indicator"
+              active={mods.chatListMuteIndicator}
+              onClick={() => toggleMod('chatListMuteIndicator')}
+            />
+            <ModItem
+              icon={<Pin size={20} className="text-yellow-500" />}
+              title="Chat List Pin Indicator"
+              desc="Show pin indicator"
+              active={mods.chatListPinIndicator}
+              onClick={() => toggleMod('chatListPinIndicator')}
+            />
+            <ModItem
+              icon={<Archive size={20} className="text-blue-400" />}
+              title="Chat List Archive Indicator"
+              desc="Show archive indicator"
+              active={mods.chatListArchiveIndicator}
+              onClick={() => toggleMod('chatListArchiveIndicator')}
+            />
+            <ModItem
+              icon={<Globe size={20} className="text-green-400" />}
+              title="Chat List Online Status"
+              desc="Show online status in chat list"
+              active={mods.chatListOnlineStatus}
+              onClick={() => toggleMod('chatListOnlineStatus')}
+            />
+            <ModItem
+              icon={<Edit3 size={20} className="text-purple-400" />}
+              title="Chat List Typing Indicator"
+              desc="Show typing indicator in chat list"
+              active={mods.chatListTypingIndicator}
+              onClick={() => toggleMod('chatListTypingIndicator')}
+            />
+            <ModItem
+              icon={<SwipeRight size={20} className="text-pink-400" />}
+              title="Chat List Swipe Actions"
+              desc="Enable swipe actions"
+              active={mods.chatListSwipeActions}
+              onClick={() => toggleMod('chatListSwipeActions')}
+            />
+            <ModItem
+              icon={<Hand size={20} className="text-orange-400" />}
+              title="Chat List Long Press"
+              desc="Enable long press actions"
+              active={mods.chatListLongPress}
+              onClick={() => toggleMod('chatListLongPress')}
+            />
+            <ModItem
+              icon={<DoubleTap size={20} className="text-cyan-400" />}
+              title="Chat List Double Tap"
+              desc="Enable double tap actions"
+              active={mods.chatListDoubleTap}
+              onClick={() => toggleMod('chatListDoubleTap')}
+            />
+            <ModItem
+              icon={<Search size={20} className="text-yellow-400" />}
+              title="Chat List Search"
+              desc="Enable chat list search"
+              active={mods.chatListSearch}
+              onClick={() => toggleMod('chatListSearch')}
+            />
+            <ModItem
+              icon={<Filter size={20} className="text-green-400" />}
+              title="Chat List Filter"
+              desc="Enable chat list filter"
+              active={mods.chatListFilter}
+              onClick={() => toggleMod('chatListFilter')}
+            />
+            <ModItem
+              icon={<SortAsc size={20} className="text-blue-400" />}
+              title="Chat List Sort"
+              desc="Enable chat list sort"
+              active={mods.chatListSort !== 'recent'}
+              onClick={() => toggleMod('chatListSort', mods.chatListSort !== 'recent' ? 'recent' : 'alphabetical')}
+            />
+            <ModItem
+              icon={<Layout size={20} className="text-purple-400" />}
+              title="Chat List View Mode"
+              desc="Change chat list view mode"
+              active={mods.chatListViewMode === 'grid'}
+              onClick={() => toggleMod('chatListViewMode', mods.chatListViewMode === 'grid' ? 'list' : 'grid')}
+            />
+            <ModItem
+              icon={<LayoutList size={20} className="text-orange-400" />}
+              title="Chat List Density"
+              desc="Change chat list density"
+              active={mods.chatListDensity === 'compact'}
+              onClick={() => toggleMod('chatListDensity', mods.chatListDensity === 'compact' ? 'comfortable' : 'compact')}
+            />
+            <ModItem
+              icon={<Layers size={20} className="text-pink-400" />}
+              title="Chat List Group By"
+              desc="Group chat list items"
+              active={mods.chatListGroupBy !== 'none'}
+              onClick={() => toggleMod('chatListGroupBy', mods.chatListGroupBy !== 'none' ? 'none' : 'date')}
+            />
+            <ModItem
+              icon={<Zap size={20} className="text-yellow-400" />}
+              title="Dashboard Quick Actions"
+              desc="Show quick actions on dashboard"
+              active={mods.dashboardQuickActions}
+              onClick={() => toggleMod('dashboardQuickActions')}
+            />
+            <ModItem
+              icon={<BarChart size={20} className="text-green-400" />}
+              title="Dashboard Stats"
+              desc="Show statistics on dashboard"
+              active={mods.dashboardStats}
+              onClick={() => toggleMod('dashboardStats')}
+            />
+            <ModItem
+              icon={<MessageSquare size={20} className="text-blue-400" />}
+              title="Dashboard Recent Chats"
+              desc="Show recent chats on dashboard"
+              active={mods.dashboardRecentChats}
+              onClick={() => toggleMod('dashboardRecentChats')}
+            />
+            <ModItem
+              icon={<Pin size={20} className="text-purple-400" />}
+              title="Dashboard Pinned Chats"
+              desc="Show pinned chats on dashboard"
+              active={mods.dashboardPinnedChats}
+              onClick={() => toggleMod('dashboardPinnedChats')}
+            />
+            <ModItem
+              icon={<Archive size={20} className="text-orange-400" />}
+              title="Dashboard Archived Chats"
+              desc="Show archived chats on dashboard"
+              active={mods.dashboardArchivedChats}
+              onClick={() => toggleMod('dashboardArchivedChats')}
+            />
+            <ModItem
+              icon={<Star size={20} className="text-pink-400" />}
+              title="Dashboard Starred Messages"
+              desc="Show starred messages on dashboard"
+              active={mods.dashboardStarredMessages}
+              onClick={() => toggleMod('dashboardStarredMessages')}
             />
           </div>
         </section>
