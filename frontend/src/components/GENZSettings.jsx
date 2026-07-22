@@ -8,7 +8,9 @@ import {
   BarChart2, Smartphone as SmartphoneIcon, Mail, Forward, Eye, Globe,
   MessageSquare, Layers, Video, Sparkles, TrendingUp, Star, Wand2,
   Activity, BarChart, Upload, Keyboard, Copy, Smile, Folder, FileText,
-  Phone, Pause, MicOff, PhoneOff, History, Link, Users
+  Phone, Pause, MicOff, PhoneOff, History, Link, Users, Bot, Send,
+  QrCode, Scan, MapPin, Navigation, Briefcase, ShoppingBag, CreditCard,
+  Battery, Wifi, WifiOff
 } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
@@ -1749,6 +1751,211 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               desc="Enable group notifications"
               active={mods.groupNotifications}
               onClick={() => toggleMod('groupNotifications')}
+            />
+          </div>
+        </section>
+
+        {/* Advanced/Extra Features */}
+        <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
+          <div className="p-4 bg-blue-900/30 border-b border-white/10 flex items-center gap-2 text-indigo-400 font-bold">
+            <Sparkles size={18} /> Advanced Features
+          </div>
+          <div className="p-2">
+            <ModItem
+              icon={<RefreshCw size={20} className="text-blue-500" />}
+              title="Text Repeater"
+              desc="Repeat text multiple times"
+              active={mods.textRepeater}
+              onClick={() => toggleMod('textRepeater')}
+            />
+            <ModItem
+              icon={<Timer size={20} className="text-green-500" />}
+              title="Message Scheduler"
+              desc="Schedule messages to send later"
+              active={mods.messageScheduler}
+              onClick={() => toggleMod('messageScheduler')}
+            />
+            <ModItem
+              icon={<Bot size={20} className="text-purple-500" />}
+              title="Auto Reply"
+              desc="Automatically reply to messages"
+              active={mods.autoReply}
+              onClick={() => toggleMod('autoReply')}
+            />
+            <ModItem
+              icon={<Globe size={20} className="text-cyan-500" />}
+              title="Message Translator"
+              desc="Translate messages to different languages"
+              active={mods.messageTranslator}
+              onClick={() => toggleMod('messageTranslator')}
+            />
+            <ModItem
+              icon={<Lock size={20} className="text-red-500" />}
+              title="Message Encryptor"
+              desc="Encrypt messages with custom encryption"
+              active={mods.messageEncryptor}
+              onClick={() => toggleMod('messageEncryptor')}
+            />
+            <ModItem
+              icon={<Unlock size={20} className="text-orange-500" />}
+              title="Message Decryptor"
+              desc="Decrypt encrypted messages"
+              active={mods.messageDecryptor}
+              onClick={() => toggleMod('messageDecryptor')}
+            />
+            <ModItem
+              icon={<Send size={20} className="text-pink-500" />}
+              title="Bulk Sender"
+              desc="Send messages to multiple contacts"
+              active={mods.bulkSender}
+              onClick={() => toggleMod('bulkSender')}
+            />
+            <ModItem
+              icon={<BarChart2 size={20} className="text-yellow-500" />}
+              title="Message Counter"
+              desc="Count messages sent and received"
+              active={mods.messageCounter}
+              onClick={() => toggleMod('messageCounter')}
+            />
+            <ModItem
+              icon={<Activity size={20} className="text-green-400" />}
+              title="Chat Analyzer"
+              desc="Analyze chat patterns and statistics"
+              active={mods.chatAnalyzer}
+              onClick={() => toggleMod('chatAnalyzer')}
+            />
+            <ModItem
+              icon={<TrendingUp size={20} className="text-blue-400" />}
+              title="Data Usage"
+              desc="Monitor data usage"
+              active={mods.dataUsage}
+              onClick={() => toggleMod('dataUsage')}
+            />
+            <ModItem
+              icon={<HardDrive size={20} className="text-purple-400" />}
+              title="Storage Manager"
+              desc="Manage app storage"
+              active={mods.storageManager}
+              onClick={() => toggleMod('storageManager')}
+            />
+            <ModItem
+              icon={<RefreshCw size={20} className="text-orange-400" />}
+              title="Cache Cleaner"
+              desc="Clean app cache"
+              active={mods.cacheCleaner}
+              onClick={() => toggleMod('cacheCleaner')}
+            />
+            <ModItem
+              icon={<Zap size={20} className="text-yellow-400" />}
+              title="Performance Mode"
+              desc="Optimize app performance"
+              active={mods.performanceMode === 'high'}
+              onClick={() => toggleMod('performanceMode', mods.performanceMode === 'high' ? 'balanced' : 'high')}
+            />
+            <ModItem
+              icon={<Battery size={20} className="text-green-400" />}
+              title="Battery Saver"
+              desc="Reduce battery consumption"
+              active={mods.batterySaver}
+              onClick={() => toggleMod('batterySaver')}
+            />
+            <ModItem
+              icon={<Wifi size={20} className="text-blue-400" />}
+              title="Low Data Mode"
+              desc="Reduce data usage"
+              active={mods.lowDataMode}
+              onClick={() => toggleMod('lowDataMode')}
+            />
+            <ModItem
+              icon={<WifiOff size={20} className="text-red-400" />}
+              title="Offline Mode"
+              desc="Use app without internet"
+              active={mods.offlineMode}
+              onClick={() => toggleMod('offlineMode')}
+            />
+            <ModItem
+              icon={<Cloud size={20} className="text-cyan-400" />}
+              title="Sync Settings"
+              desc="Sync settings across devices"
+              active={mods.syncSettings}
+              onClick={() => toggleMod('syncSettings')}
+            />
+            <ModItem
+              icon={<Download size={20} className="text-green-400" />}
+              title="Backup Restore"
+              desc="Backup and restore chats"
+              active={mods.backupRestore}
+              onClick={() => toggleMod('backupRestore')}
+            />
+            <ModItem
+              icon={<Upload size={20} className="text-blue-400" />}
+              title="Export Chats"
+              desc="Export chats to file"
+              active={mods.exportChats}
+              onClick={() => toggleMod('exportChats')}
+            />
+            <ModItem
+              icon={<Download size={20} className="text-purple-400" />}
+              title="Import Chats"
+              desc="Import chats from file"
+              active={mods.importChats}
+              onClick={() => toggleMod('importChats')}
+            />
+            <ModItem
+              icon={<QrCode size={20} className="text-orange-400" />}
+              title="QR Code Generator"
+              desc="Generate QR codes for sharing"
+              active={mods.qrCodeGenerator}
+              onClick={() => toggleMod('qrCodeGenerator')}
+            />
+            <ModItem
+              icon={<Scan size={20} className="text-pink-400" />}
+              title="QR Code Scanner"
+              desc="Scan QR codes"
+              active={mods.qrCodeScanner}
+              onClick={() => toggleMod('qrCodeScanner')}
+            />
+            <ModItem
+              icon={<MapPin size={20} className="text-red-400" />}
+              title="Location Sharing"
+              desc="Share your location"
+              active={mods.locationSharing}
+              onClick={() => toggleMod('locationSharing')}
+            />
+            <ModItem
+              icon={<Navigation size={20} className="text-green-400" />}
+              title="Live Location"
+              desc="Share live location"
+              active={mods.liveLocation}
+              onClick={() => toggleMod('liveLocation')}
+            />
+            <ModItem
+              icon={<Users size={20} className="text-blue-400" />}
+              title="Nearby Friends"
+              desc="Find nearby friends"
+              active={mods.nearbyFriends}
+              onClick={() => toggleMod('nearbyFriends')}
+            />
+            <ModItem
+              icon={<Briefcase size={20} className="text-yellow-400" />}
+              title="Business Account"
+              desc="Enable business account features"
+              active={mods.businessAccount}
+              onClick={() => toggleMod('businessAccount')}
+            />
+            <ModItem
+              icon={<ShoppingBag size={20} className="text-purple-400" />}
+              title="Catalog Manager"
+              desc="Manage product catalog"
+              active={mods.catalogManager}
+              onClick={() => toggleMod('catalogManager')}
+            />
+            <ModItem
+              icon={<CreditCard size={20} className="text-green-400" />}
+              title="Payment Integration"
+              desc="Enable payment features"
+              active={mods.paymentIntegration}
+              onClick={() => toggleMod('paymentIntegration')}
             />
           </div>
         </section>
