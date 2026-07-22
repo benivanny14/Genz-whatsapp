@@ -12,7 +12,7 @@ import {
   QrCode, Scan, MapPin, Navigation, Briefcase, ShoppingBag, CreditCard,
   Battery, Wifi, WifiOff, Calendar, User, MoreVertical, Reply, Trash2,
   Pin, Archive, Search, Filter, SortAsc, Radio, Tv, Badge, SwipeRight,
-  Hand, DoubleTap, Layout, LayoutList
+  Hand, DoubleTap, Layout, LayoutList, Share2, AtSign, Type
 } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
@@ -2419,6 +2419,162 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               desc="Show starred messages on dashboard"
               active={mods.dashboardStarredMessages}
               onClick={() => toggleMod('dashboardStarredMessages')}
+            />
+          </div>
+        </section>
+
+        {/* Status Features */}
+        <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
+          <div className="p-4 bg-blue-900/30 border-b border-white/10 flex items-center gap-2 text-pink-400 font-bold">
+            <Activity size={18} /> Status Features
+          </div>
+          <div className="p-2">
+            <ModItem
+              icon={<Eye size={20} className="text-blue-500" />}
+              title="Status Privacy"
+              desc="Control who can see your status"
+              active={mods.statusPrivacy === 'contacts'}
+              onClick={() => toggleMod('statusPrivacy', mods.statusPrivacy === 'contacts' ? 'everyone' : 'contacts')}
+            />
+            <ModItem
+              icon={<Eye size={20} className="text-green-500" />}
+              title="Status View Count"
+              desc="Show who viewed your status"
+              active={mods.statusViewCount}
+              onClick={() => toggleMod('statusViewCount')}
+            />
+            <ModItem
+              icon={<BellOff size={20} className="text-orange-500" />}
+              title="Status Mute"
+              desc="Mute status updates"
+              active={mods.statusMute}
+              onClick={() => toggleMod('statusMute')}
+            />
+            <ModItem
+              icon={<Archive size={20} className="text-purple-500" />}
+              title="Status Archive"
+              desc="Archive old statuses"
+              active={mods.statusArchive}
+              onClick={() => toggleMod('statusArchive')}
+            />
+            <ModItem
+              icon={<Trash2 size={20} className="text-red-500" />}
+              title="Status Delete"
+              desc="Enable status deletion"
+              active={mods.statusDelete}
+              onClick={() => toggleMod('statusDelete')}
+            />
+            <ModItem
+              icon={<Edit3 size={20} className="text-blue-400" />}
+              title="Status Edit"
+              desc="Enable status editing"
+              active={mods.statusEdit}
+              onClick={() => toggleMod('statusEdit')}
+            />
+            <ModItem
+              icon={<Share2 size={20} className="text-green-400" />}
+              title="Status Share"
+              desc="Enable status sharing"
+              active={mods.statusShare}
+              onClick={() => toggleMod('statusShare')}
+            />
+            <ModItem
+              icon={<Download size={20} className="text-cyan-400" />}
+              title="Status Download"
+              desc="Enable status download"
+              active={mods.statusDownload}
+              onClick={() => toggleMod('statusDownload')}
+            />
+            <ModItem
+              icon={<Forward size={20} className="text-yellow-400" />}
+              title="Status Forward"
+              desc="Enable status forwarding"
+              active={mods.statusForward}
+              onClick={() => toggleMod('statusForward')}
+            />
+            <ModItem
+              icon={<MessageSquare size={20} className="text-pink-400" />}
+              title="Status Caption"
+              desc="Enable status captions"
+              active={mods.statusCaption}
+              onClick={() => toggleMod('statusCaption')}
+            />
+            <ModItem
+              icon={<AtSign size={20} className="text-orange-400" />}
+              title="Status Mentions"
+              desc="Enable status mentions"
+              active={mods.statusMentions}
+              onClick={() => toggleMod('statusMentions')}
+            />
+            <ModItem
+              icon={<Link size={20} className="text-blue-400" />}
+              title="Status Links"
+              desc="Enable status links"
+              active={mods.statusLinks}
+              onClick={() => toggleMod('statusLinks')}
+            />
+            <ModItem
+              icon={<ImageIcon size={20} className="text-purple-400" />}
+              title="Status Background"
+              desc="Enable custom status backgrounds"
+              active={mods.statusBackground}
+              onClick={() => toggleMod('statusBackground')}
+            />
+            <ModItem
+              icon={<Type size={20} className="text-green-400" />}
+              title="Status Font"
+              desc="Custom status font"
+              active={mods.statusFont !== 'default'}
+              onClick={() => toggleMod('statusFont', mods.statusFont !== 'default' ? 'default' : 'custom')}
+            />
+            <ModItem
+              icon={<Palette size={20} className="text-pink-400" />}
+              title="Status Color"
+              desc="Custom status color"
+              active={mods.statusColor !== 'default'}
+              onClick={() => toggleMod('statusColor', mods.statusColor !== 'default' ? 'default' : 'custom')}
+            />
+            <ModItem
+              icon={<Timer size={20} className="text-orange-400" />}
+              title="Status Duration"
+              desc="Set status duration"
+              active={mods.statusDuration !== 24}
+              onClick={() => toggleMod('statusDuration', mods.statusDuration !== 24 ? 24 : 48)}
+            />
+            <ModItem
+              icon={<Trash2 size={20} className="text-red-400" />}
+              title="Status Auto Delete"
+              desc="Auto delete old statuses"
+              active={mods.statusAutoDelete}
+              onClick={() => toggleMod('statusAutoDelete')}
+            />
+            <ModItem
+              icon={<Eye size={20} className="text-blue-400" />}
+              title="Status View Receipts"
+              desc="Show status view receipts"
+              active={mods.statusViewReceipts}
+              onClick={() => toggleMod('statusViewReceipts')}
+            />
+            <ModItem
+              icon={<EyeOff size={20} className="text-purple-400" />}
+              title="Status Hide Viewers"
+              desc="Hide status viewers"
+              active={mods.statusHideViewers}
+              onClick={() => toggleMod('statusHideViewers')}
+            />
+            <ModItem
+              icon={<MessageSquare size={20} className="text-green-400" />}
+              title="Status Allow Replies"
+              desc="Allow replies to status"
+              active={mods.statusAllowReplies}
+              onClick={() => toggleMod('statusAllowReplies')}
+            />
+            <ModItem
+              icon={<Share2 size={20} className="text-cyan-400" />}
+              title="Status Allow Shares"
+              desc="Allow sharing of status"
+              active={mods.statusAllowShares}
+              onClick={() => toggleMod('statusAllowShares')}
             />
           </div>
         </section>
