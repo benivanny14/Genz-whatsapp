@@ -7,7 +7,7 @@ import {
   LogOut, Info, Mic, Music, UserCircle, Edit3, Camera, Sun, Moon, BellOff,
   BarChart2, Smartphone as SmartphoneIcon, Mail, Forward, Eye, Globe,
   MessageSquare, Layers, Video, Sparkles, TrendingUp, Star, Wand2,
-  Activity, BarChart, Upload, Keyboard, Copy
+  Activity, BarChart, Upload, Keyboard, Copy, Smile, Folder, FileText
 } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
@@ -1342,6 +1342,111 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               desc="Auto-download images in chat"
               active={mods.autoDownloadMedia}
               onClick={() => toggleMod('autoDownloadMedia')}
+            />
+            <ModItem
+              icon={<Video size={20} className="text-blue-500" />}
+              title="Auto-download Videos"
+              desc="Auto-download videos in chat"
+              active={mods.autoDownloadVideos}
+              onClick={() => toggleMod('autoDownloadVideos')}
+            />
+            <ModItem
+              icon={<Mic size={20} className="text-purple-500" />}
+              title="Auto-download Audio"
+              desc="Auto-download audio files in chat"
+              active={mods.autoDownloadAudio}
+              onClick={() => toggleMod('autoDownloadAudio')}
+            />
+            <ModItem
+              icon={<FileText size={20} className="text-orange-500" />}
+              title="Auto-download Documents"
+              desc="Auto-download documents in chat"
+              active={mods.autoDownloadDocuments}
+              onClick={() => toggleMod('autoDownloadDocuments')}
+            />
+            <ModItem
+              icon={<Sparkles size={20} className="text-pink-500" />}
+              title="Image Quality"
+              desc="Choose image upload quality"
+              active={mods.imageQuality === 'high'}
+              onClick={() => toggleMod('imageQuality', mods.imageQuality === 'high' ? 'standard' : 'high')}
+            />
+            <ModItem
+              icon={<Video size={20} className="text-cyan-500" />}
+              title="Video Quality"
+              desc="Choose video upload quality"
+              active={mods.videoQuality === 'high'}
+              onClick={() => toggleMod('videoQuality', mods.videoQuality === 'high' ? 'standard' : 'high')}
+            />
+            <ModItem
+              icon={<RefreshCw size={20} className="text-yellow-500" />}
+              title="Media Compressor"
+              desc="Compress media files before sending"
+              active={mods.mediaCompressor}
+              onClick={() => toggleMod('mediaCompressor')}
+            />
+            <ModItem
+              icon={<ImageIcon size={20} className="text-red-500" />}
+              title="GIF Player"
+              desc="Enable GIF player and animations"
+              active={mods.gifPlayer}
+              onClick={() => toggleMod('gifPlayer')}
+            />
+            <ModItem
+              icon={<Smile size={20} className="text-green-400" />}
+              title="Sticker Maker"
+              desc="Create custom stickers from images"
+              active={mods.stickerMaker}
+              onClick={() => toggleMod('stickerMaker')}
+            />
+            <ModItem
+              icon={<Edit3 size={20} className="text-blue-400" />}
+              title="Image Editor"
+              desc="Edit images before sending"
+              active={mods.imageEditor}
+              onClick={() => toggleMod('imageEditor')}
+            />
+            <ModItem
+              icon={<Video size={20} className="text-purple-400" />}
+              title="Video Editor"
+              desc="Edit videos before sending"
+              active={mods.videoEditor}
+              onClick={() => toggleMod('videoEditor')}
+            />
+            <ModItem
+              icon={<Mic size={20} className="text-orange-400" />}
+              title="Audio Editor"
+              desc="Edit audio files before sending"
+              active={mods.audioEditor}
+              onClick={() => toggleMod('audioEditor')}
+            />
+            <ModItem
+              icon={<Folder size={20} className="text-yellow-400" />}
+              title="File Manager"
+              desc="Manage downloaded media files"
+              active={mods.fileManager}
+              onClick={() => toggleMod('fileManager')}
+            />
+            <ModItem
+              icon={<Cloud size={20} className="text-cyan-400" />}
+              title="Cloud Storage"
+              desc="Backup media to cloud storage"
+              active={mods.cloudStorage}
+              onClick={() => toggleMod('cloudStorage')}
+            />
+            <ModItem
+              icon={<Download size={20} className="text-green-400" />}
+              title="Media Backup"
+              desc="Backup all media files"
+              active={mods.mediaBackup}
+              onClick={() => toggleMod('mediaBackup')}
+            />
+            <ModItem
+              icon={<Upload size={20} className="text-blue-400" />}
+              title="Media Restore"
+              desc="Restore media from backup"
+              active={mods.mediaRestore}
+              onClick={() => toggleMod('mediaRestore')}
             />
           </div>
         </section>
