@@ -651,6 +651,119 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
                 ))}
               </div>
             </div>
+            <div>
+              <label className="text-xs text-blue-300 mb-2 block font-bold">Font Size</label>
+              <div className="flex gap-2">
+                {['small', 'medium', 'large', 'extra'].map((size) => (
+                  <button
+                    key={size}
+                    onClick={() => setMods(prev => ({ ...prev, fontSize: size, customFontSize: size === 'small' ? 12 : size === 'medium' ? 14 : size === 'large' ? 16 : 18 }))}
+                    className={`flex-1 py-2 text-[10px] font-bold rounded-lg border transition-all ${
+                      mods.fontSize === size ? 'border-pink-500 bg-pink-500/20 text-white' : 'border-white/10 text-gray-400'
+                    }`}
+                  >
+                    {size.charAt(0).toUpperCase() + size.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-blue-300 mb-2 block font-bold">Custom Font Size</label>
+              <input
+                type="range"
+                min="10"
+                max="24"
+                value={mods.customFontSize || 14}
+                onChange={(e) => setMods(prev => ({ ...prev, customFontSize: parseInt(e.target.value), customFont: true }))}
+                className="w-full accent-pink-500"
+              />
+              <span className="text-xs text-gray-400">{mods.customFontSize || 14}px</span>
+            </div>
+          </div>
+        </section>
+
+        {/* Theme Mode Customization */}
+        <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10 mt-3">
+          <div className="p-4 bg-blue-900/30 border-b border-white/10 flex items-center gap-2 text-yellow-400 font-bold">
+            <Sun size={18} /> Theme Mode
+          </div>
+          <div className="p-4 space-y-4">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setMods(prev => ({ ...prev, darkMode: true, lightMode: false, autoTheme: false, nightMode: false }))}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${
+                  mods.darkMode ? 'border-yellow-500 bg-yellow-500/20 text-white' : 'border-white/10 text-gray-400'
+                }`}
+              >
+                Dark Mode
+              </button>
+              <button
+                onClick={() => setMods(prev => ({ ...prev, darkMode: false, lightMode: true, autoTheme: false, nightMode: false }))}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${
+                  mods.lightMode ? 'border-yellow-500 bg-yellow-500/20 text-white' : 'border-white/10 text-gray-400'
+                }`}
+              >
+                Light Mode
+              </button>
+              <button
+                onClick={() => setMods(prev => ({ ...prev, darkMode: false, lightMode: false, autoTheme: true, nightMode: false }))}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${
+                  mods.autoTheme ? 'border-yellow-500 bg-yellow-500/20 text-white' : 'border-white/10 text-gray-400'
+                }`}
+              >
+                Auto Theme
+              </button>
+              <button
+                onClick={() => setMods(prev => ({ ...prev, darkMode: false, lightMode: false, autoTheme: false, nightMode: true }))}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${
+                  mods.nightMode ? 'border-yellow-500 bg-yellow-500/20 text-white' : 'border-white/10 text-gray-400'
+                }`}
+              >
+                Night Mode
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* Color Customization */}
+        <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10 mt-3">
+          <div className="p-4 bg-blue-900/30 border-b border-white/10 flex items-center gap-2 text-purple-400 font-bold">
+            <Palette size={18} /> Color Customization
+          </div>
+          <div className="p-4 space-y-4">
+            <div>
+              <label className="text-xs text-blue-300 mb-2 block font-bold">Custom Theme Color</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={mods.customThemeColor || '#008069'}
+                  onChange={(e) => setMods(prev => ({ ...prev, customThemeColor: e.target.value, customTheme: true }))}
+                  className="w-12 h-12 rounded cursor-pointer border-none"
+                />
+                <span className="text-xs text-gray-400">{mods.customThemeColor || '#008069'}</span>
+              </div>
+            </div>
+            <ModItem
+              icon={<MessageSquare size={20} className="text-blue-500" />}
+              title="Custom Bubble Color"
+              desc="Enable custom bubble colors"
+              active={mods.customBubbleColor}
+              onClick={() => toggleMod('customBubbleColor')}
+            />
+            <ModItem
+              icon={<Layers size={20} className="text-green-500" />}
+              title="Custom Header Color"
+              desc="Enable custom header colors"
+              active={mods.customHeaderColor}
+              onClick={() => toggleMod('customHeaderColor')}
+            />
+            <ModItem
+              icon={<BarChart2 size={20} className="text-orange-500" />}
+              title="Custom Status Bar Color"
+              desc="Enable custom status bar colors"
+              active={mods.customStatusBarColor}
+              onClick={() => toggleMod('customStatusBarColor')}
+            />
           </div>
         </section>
 
