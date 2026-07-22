@@ -7,7 +7,7 @@ import {
   LogOut, Info, Mic, Music, UserCircle, Edit3, Camera, Sun, Moon, BellOff,
   BarChart2, Smartphone as SmartphoneIcon, Mail, Forward, Eye, Globe,
   MessageSquare, Layers, Video, Sparkles, TrendingUp, Star, Wand2,
-  Activity, BarChart, Upload
+  Activity, BarChart, Upload, Keyboard, Copy
 } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
@@ -1253,6 +1253,62 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
                 desc="Show messages in encrypted format (Hash view)"
                 active={mods.debugEncryption}
                 onClick={() => toggleMod('debugEncryption')}
+              />
+              <ModItem
+                icon={<CheckCheck size={20} className="text-blue-400" />}
+                title="Hide Double Ticks"
+                desc="Hide double tick read receipts from others"
+                active={mods.hideDoubleTick}
+                onClick={() => toggleMod('hideDoubleTick')}
+              />
+              <ModItem
+                icon={<EyeOff size={20} className="text-purple-600" />}
+                title="Hide Online Status"
+                desc="Hide your online status from others"
+                active={mods.hideOnlineStatus}
+                onClick={() => toggleMod('hideOnlineStatus')}
+              />
+              <ModItem
+                icon={<EyeOff size={20} className="text-orange-600" />}
+                title="Hide Status View"
+                desc="Hide when you view someone's status"
+                active={mods.hideStatusView}
+                onClick={() => toggleMod('hideStatusView')}
+              />
+              <ModItem
+                icon={<CheckCheck size={20} className="text-green-400" />}
+                title="Hide Status Read Receipts"
+                desc="Hide read receipts for status views"
+                active={mods.hideStatusReadReceipts}
+                onClick={() => toggleMod('hideStatusReadReceipts')}
+              />
+              <ModItem
+                icon={<Lock size={20} className="text-red-600" />}
+                title="Hide Chats from List"
+                desc="Hide specific chats from main chat list"
+                active={mods.hideChatsFromList}
+                onClick={() => toggleMod('hideChatsFromList')}
+              />
+              <ModItem
+                icon={<Keyboard size={20} className="text-yellow-500" />}
+                title="Incognito Keyboard"
+                desc="Hide keyboard suggestions and typing indicators"
+                active={mods.incognitoKeyboard}
+                onClick={() => toggleMod('incognitoKeyboard')}
+              />
+              <ModItem
+                icon={<CheckCheck size={20} className="text-cyan-400" />}
+                title="Show Blue Ticks After Reply"
+                desc="Show blue ticks only after you reply"
+                active={mods.showBlueTicksAfterReply}
+                onClick={() => toggleMod('showBlueTicksAfterReply')}
+              />
+              <ModItem
+                icon={<Copy size={20} className="text-pink-500" />}
+                title="Hide Name & Date When Copying"
+                desc="Hide sender name and date when copying messages"
+                active={mods.hideNameDateWhenCopying}
+                onClick={() => toggleMod('hideNameDateWhenCopying')}
               />
               {subscriptionStatus.expiryDate && (
                 <div className="p-3 text-center">

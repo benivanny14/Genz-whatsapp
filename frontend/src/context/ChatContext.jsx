@@ -143,7 +143,16 @@ const DEFAULT_GENZ_SETTINGS = {
     antiDeleteStatus: false,
     hideRecording: false,
     textRepeaterText: '',
-    textRepeaterCount: 5
+    textRepeaterCount: 5,
+    // Additional Privacy & Security features
+    hideDoubleTick: false,
+    hideOnlineStatus: false,
+    hideStatusView: false,
+    hideStatusReadReceipts: false,
+    hideChatsFromList: false,
+    incognitoKeyboard: false,
+    showBlueTicksAfterReply: false,
+    hideNameDateWhenCopying: false
   },
   appTheme: 'dark',
   statusPrivacy: 'everyone',
