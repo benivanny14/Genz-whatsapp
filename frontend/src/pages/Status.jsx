@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, X, Eye, Clock, Camera, Image, Type, Upload, RefreshCw, Film, Sparkles, Bookmark } from 'lucide-react';
+import { Plus, X, Eye, Timer, Camera, Image, Type, Upload, RefreshCw, Film, Sparkles, Bookmark } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import StatusScrollFeed from '../components/StatusScrollFeed';
 import StatusReel from '../components/StatusReel';
@@ -254,7 +254,7 @@ const Status = () => {
                           <p className="text-sm text-gray-400 truncate">{status.content || status.caption || status.type}</p>
                         </div>
                         <div className="flex items-center gap-2 text-gray-400 text-sm flex-shrink-0">
-                          <Clock size={14} />
+                          <Timer size={14} />
                           <span>{statusTime(status)}</span>
                         </div>
                       </div>
