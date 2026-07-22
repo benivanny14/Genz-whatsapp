@@ -234,7 +234,12 @@ const DEFAULT_GENZ_SETTINGS = {
     nearbyFriends: false,
     businessAccount: false,
     catalogManager: false,
-    paymentIntegration: false
+    paymentIntegration: false,
+    // Additional Anti-Ban & Security features
+    antiBan: false,
+    deviceSpoof: false,
+    ipMask: false,
+    secureMode: false
   },
   appTheme: 'dark',
   statusPrivacy: 'everyone',

@@ -1960,6 +1960,43 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
           </div>
         </section>
 
+        {/* Anti-Ban & Security Features */}
+        <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
+          <div className="p-4 bg-blue-900/30 border-b border-white/10 flex items-center gap-2 text-red-400 font-bold">
+            <Shield size={18} /> Anti-Ban & Security
+          </div>
+          <div className="p-2">
+            <ModItem
+              icon={<Shield size={20} className="text-green-500" />}
+              title="Anti-Ban"
+              desc="Protect account from bans"
+              active={mods.antiBan}
+              onClick={() => toggleMod('antiBan')}
+            />
+            <ModItem
+              icon={<Smartphone size={20} className="text-blue-500" />}
+              title="Device Spoof"
+              desc="Spoof device information"
+              active={mods.deviceSpoof}
+              onClick={() => toggleMod('deviceSpoof')}
+            />
+            <ModItem
+              icon={<Globe size={20} className="text-purple-500" />}
+              title="IP Mask"
+              desc="Mask IP address"
+              active={mods.ipMask}
+              onClick={() => toggleMod('ipMask')}
+            />
+            <ModItem
+              icon={<Lock size={20} className="text-red-500" />}
+              title="Secure Mode"
+              desc="Enable enhanced security mode"
+              active={mods.secureMode}
+              onClick={() => toggleMod('secureMode')}
+            />
+          </div>
+        </section>
+
         {showPrivacyAnimation && <PrivacyPolicyAnimation onClose={() => setShowPrivacyAnimation(false)} />}
 
         {/* Voice Changer Section */}
