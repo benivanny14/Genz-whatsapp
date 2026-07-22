@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mic, X, Play, Pause, Download, Trash2, RefreshCw, Check, AlertCircle, FileText, Clock } from 'lucide-react';
+import { Mic, X, Play, Pause, Download, Trash2, RefreshCw, Check, AlertCircle, FileText, Timer } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const CallRecording = ({ call, onStartRecording, onStopRecording, onDownload, onDelete, onClose }) => {
@@ -156,7 +156,7 @@ const CallRecording = ({ call, onStartRecording, onStopRecording, onDownload, on
                             <span className="text-gray-500 text-xs">{recording.size}</span>
                           </div>
                           <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
-                            <Clock size={12} />
+                            <Timer size={12} />
                             <span>{formatDuration(recording.duration)}</span>
                             <span>•</span>
                             <span>{new Date(recording.timestamp).toLocaleDateString()}</span>
