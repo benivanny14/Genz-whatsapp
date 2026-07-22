@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { X, Heart, Laugh, Wow, Sad, Angry, ThumbsUp, Sparkles } from 'lucide-react';
+import { X, Heart, Laugh, Eye, Frown, Angry, ThumbsUp, Sparkles } from 'lucide-react';
 
 const REACTIONS = [
   { emoji: '❤️', icon: Heart, color: 'text-red-400', bg: 'bg-red-500/20' },
   { emoji: '😂', icon: Laugh, color: 'text-yellow-400', bg: 'bg-yellow-500/20' },
-  { emoji: '😮', icon: Wow, color: 'text-blue-400', bg: 'bg-blue-500/20' },
-  { emoji: '😢', icon: Sad, color: 'text-indigo-400', bg: 'bg-indigo-500/20' },
+  { emoji: '😮', icon: Eye, color: 'text-blue-400', bg: 'bg-blue-500/20' },
+  { emoji: '😢', icon: Frown, color: 'text-indigo-400', bg: 'bg-indigo-500/20' },
   { emoji: '😡', icon: Angry, color: 'text-orange-400', bg: 'bg-orange-500/20' },
   { emoji: '👍', icon: ThumbsUp, color: 'text-green-400', bg: 'bg-green-500/20' },
   { emoji: '🔥', icon: Sparkles, color: 'text-rose-400', bg: 'bg-rose-500/20' },

@@ -208,8 +208,6 @@ const DEFAULT_GENZ_SETTINGS = {
     // Additional Advanced/Extra features
     textRepeater: false,
     messageScheduler: false,
-    autoReply: false,
-    autoReplyMsg: "I'm offline, will reply soon.",
     messageTranslator: false,
     messageEncryptor: false,
     messageDecryptor: false,

@@ -11,8 +11,8 @@ import {
   Phone, Pause, MicOff, PhoneOff, History, Link, Users, Bot, Send,
   QrCode, Scan, MapPin, Navigation, Briefcase, ShoppingBag, CreditCard,
   Battery, Wifi, WifiOff, Calendar, User, MoreVertical, Reply, Trash2,
-  Pin, Archive, Search, Filter, SortAsc, Radio, Tv, Badge, SwipeRight,
-  Hand, DoubleTap, Layout, LayoutList, Share2, AtSign, Type, Check, Unlock
+  Pin, Archive, Search, Filter, SortAsc, Radio, Tv, Badge, ChevronRight,
+  Hand, Layout, LayoutList, Share2, AtSign, Type, Check, Unlock
 } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
@@ -2316,7 +2316,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               onClick={() => toggleMod('chatListTypingIndicator')}
             />
             <ModItem
-              icon={<SwipeRight size={20} className="text-pink-400" />}
+              icon={<ChevronRight size={20} className="text-pink-400" />}
               title="Chat List Swipe Actions"
               desc="Enable swipe actions"
               active={mods.chatListSwipeActions}
@@ -2330,7 +2330,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               onClick={() => toggleMod('chatListLongPress')}
             />
             <ModItem
-              icon={<DoubleTap size={20} className="text-cyan-400" />}
+              icon={<Hand size={20} className="text-cyan-400" />}
               title="Chat List Double Tap"
               desc="Enable double tap actions"
               active={mods.chatListDoubleTap}
