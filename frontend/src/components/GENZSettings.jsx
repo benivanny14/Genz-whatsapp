@@ -12,7 +12,7 @@ import {
   QrCode, Scan, MapPin, Navigation, Briefcase, ShoppingBag, CreditCard,
   Battery, Wifi, WifiOff, Calendar, User, MoreVertical, Reply, Trash2,
   Pin, Archive, Search, Filter, SortAsc, Radio, Tv, Badge, ChevronRight,
-  Hand, Layout, LayoutList, Share2, AtSign, Type, Check, Unlock, Contact, Grid3x3
+  Hand, Layout, LayoutList, Share2, AtSign, Type, Check, Unlock, Contact, Grid3x3, Heart
 } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
@@ -2621,7 +2621,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               onClick={() => toggleMod('quickActionsTextTools')}
             />
             <ModItem
-              icon={<Clock size={20} className="text-indigo-500" />}
+              icon={<Timer size={20} className="text-indigo-500" />}
               title="Schedule Message"
               desc="Enable message scheduling"
               active={mods.quickActionsScheduleMessage}
@@ -2668,6 +2668,64 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               desc="Enable clear all chats feature"
               active={mods.quickActionsClearAllChats}
               onClick={() => toggleMod('quickActionsClearAllChats')}
+            />
+          </div>
+        </section>
+
+        {/* Feature Integration Panel Features */}
+        <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
+          <div className="p-4 bg-blue-900/30 border-b border-white/10 flex items-center gap-2 text-purple-400 font-bold">
+            <Sparkles size={18} /> More Features
+          </div>
+          <div className="p-2">
+            <ModItem
+              icon={<Calendar size={20} className="text-blue-500" />}
+              title="Jump to Date"
+              desc="Navigate to specific date in chat"
+              active={mods.featureJumpToDate}
+              onClick={() => toggleMod('featureJumpToDate')}
+            />
+            <ModItem
+              icon={<Smile size={20} className="text-yellow-500" />}
+              title="Quick Reactions"
+              desc="Double-tap to send reactions"
+              active={mods.featureQuickReactions}
+              onClick={() => toggleMod('featureQuickReactions')}
+            />
+            <ModItem
+              icon={<PhoneOff size={20} className="text-red-500" />}
+              title="Call Blocker"
+              desc="Block unwanted calls"
+              active={mods.featureCallBlocker}
+              onClick={() => toggleMod('featureCallBlocker')}
+            />
+            <ModItem
+              icon={<ImageIcon size={20} className="text-green-500" />}
+              title="Media Gallery"
+              desc="View all media in one place"
+              active={mods.featureMediaGallery}
+              onClick={() => toggleMod('featureMediaGallery')}
+            />
+            <ModItem
+              icon={<Heart size={20} className="text-pink-500" />}
+              title="Status Reaction"
+              desc="React to status updates"
+              active={mods.featureStatusReaction}
+              onClick={() => toggleMod('featureStatusReaction')}
+            />
+            <ModItem
+              icon={<Eye size={20} className="text-cyan-500" />}
+              title="Status Viewers"
+              desc="See who viewed your status"
+              active={mods.featureStatusViewers}
+              onClick={() => toggleMod('featureStatusViewers')}
+            />
+            <ModItem
+              icon={<Users size={20} className="text-orange-500" />}
+              title="Group Members"
+              desc="Manage group members"
+              active={mods.featureGroupMembers}
+              onClick={() => toggleMod('featureGroupMembers')}
             />
           </div>
         </section>

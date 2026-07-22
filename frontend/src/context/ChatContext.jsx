@@ -332,7 +332,15 @@ const DEFAULT_GENZ_SETTINGS = {
     quickActionsDownloadStatus: true,
     quickActionsProductCatalogue: true,
     quickActionsNotifyWhenOnline: true,
-    quickActionsClearAllChats: false
+    quickActionsClearAllChats: false,
+    // Feature Integration Panel features
+    featureJumpToDate: true,
+    featureQuickReactions: true,
+    featureCallBlocker: false,
+    featureMediaGallery: true,
+    featureStatusReaction: true,
+    featureStatusViewers: true,
+    featureGroupMembers: true
   },
   appTheme: 'dark',
   statusPrivacy: 'everyone',
