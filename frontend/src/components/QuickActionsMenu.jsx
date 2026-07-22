@@ -3,7 +3,7 @@ import { Download, FileText, Send, Type, Eye, MessageSquare, Trash2, Sparkles, R
 import { exportChat, sendBulkMessage, applyTextStyle, getBlankMessage, repeatText, watchUserOnline, generateFakeChat, clearAllChats, getTextStyles, downloadStatus } from '../utils/quickActions';
 import toast from 'react-hot-toast';
 
-const QuickActionsMenu = ({ conversationId, peerUserId, peerUsername, onClose }) => {
+const QuickActionsMenu = ({ conversationId, peerUserId, peerUsername, onClose, onOpenContactPicker, onOpenSchedule, onOpenPoll, onOpenAIStickers, onOpenProducts }) => {
   const [showExportSubmenu, setShowExportSubmenu] = useState(false);
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [showFakeModal, setShowFakeModal] = useState(false);
