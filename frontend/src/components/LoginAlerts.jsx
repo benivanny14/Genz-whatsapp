@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Smartphone, X, Check, AlertTriangle, RefreshCw, MapPin, Clock, Shield, Bell } from 'lucide-react';
+import { Smartphone, X, Check, AlertTriangle, RefreshCw, MapPin, Timer, Shield, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const LoginAlerts = ({ loginHistory, onDismissAlert, onReviewDevice, onClose }) => {
@@ -90,7 +90,7 @@ const LoginAlerts = ({ loginHistory, onDismissAlert, onReviewDevice, onClose }) 
                         <span>{login.location}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Clock size={12} />
+                        <Timer size={12} />
                         <span>{formatTime(login.timestamp)}</span>
                       </div>
                       <div className="flex items-center gap-1">
