@@ -7,11 +7,10 @@ import LockScreen, { useInactivityLock, saveSecurePin } from '../components/Lock
 import OfflineIndicator from '../components/OfflineIndicator';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Wifi, WifiOff, Grid3x3 } from 'lucide-react';
+import { Bell, Wifi, WifiOff } from 'lucide-react';
 
 const ChatArea = lazy(() => import('../components/ChatArea'));
 const GENZSettings = lazy(() => import('../components/GENZSettings'));
-const FeatureIntegrationPanel = lazy(() => import('../components/FeatureIntegrationPanel'));
 
 const PanelLoader = () => (
   <div className="flex-1 flex items-center justify-center bg-[#0b141a]">
@@ -25,7 +24,6 @@ const Chat = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showGENZSettings, setShowGENZSettings] = useState(false);
-  const [showFeaturePanel, setShowFeaturePanel] = useState(false);
 
   const [isLocked, setIsLocked] = useState(() => {
     return localStorage.getItem('genz_lock_type') === 'pin' && !!localStorage.getItem('genz_pin_hash');
@@ -119,29 +117,6 @@ const Chat = () => {
           </Suspense>
         </div>
 
-        {/* Floating More Features Button - always visible */}
-        <button
-          onClick={() => setShowFeaturePanel(true)}
-          className="fixed bottom-6 left-6 z-[90] w-14 h-14 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 shadow-2xl flex items-center justify-center hover:scale-110 transition-transform hover:shadow-pink-500/30"
-          title="✨ More Features"
-        >
-          <Grid3x3 size={22} className="text-white" />
-        </button>
-
-        {/* Feature Integration Panel */}
-        <AnimatePresence>
-          {showFeaturePanel && (
-            <Suspense fallback={<PanelLoader />}>
-              <FeatureIntegrationPanel
-                conversation={selectedConversation}
-                messages={[]}
-                messagesContainerRef={null}
-                currentUserId={user?._id || user?.id}
-                onClose={() => setShowFeaturePanel(false)}
-              />
-            </Suspense>
-          )}
-        </AnimatePresence>
 
         <AnimatePresence>
           {showGENZSettings && (
