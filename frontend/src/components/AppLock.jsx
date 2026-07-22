@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, Unlock, Eye, EyeOff, Clock, Shield, Check, X, RefreshCw, Smartphone } from 'lucide-react';
+import { Lock, Unlock, Eye, EyeOff, Timer, Shield, Check, X, RefreshCw, Smartphone } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const AppLock = ({ isEnabled, onToggle, onUnlock, onClose }) => {
