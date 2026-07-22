@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Eye, EyeOff, Settings, Check, X } from 'lucide-react';
+import { Timer, Eye, EyeOff, Settings, Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const LastSeen = ({ user, privacySettings, onPrivacyChange }) => {
@@ -65,7 +65,7 @@ const LastSeen = ({ user, privacySettings, onPrivacyChange }) => {
         </div>
       ) : (
         <div className="flex items-center gap-2">
-          <Clock size={12} className="text-gray-400" />
+          <Timer size={12} className="text-gray-400" />
           <span className="text-gray-400 text-xs">
             {privacySettings?.lastSeen === 'nobody' 
               ? 'Last seen hidden' 
