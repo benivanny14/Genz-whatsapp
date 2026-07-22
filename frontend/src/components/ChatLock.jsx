@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, Unlock, Eye, EyeOff, Clock, Shield, Check, X, Settings } from 'lucide-react';
+import { Lock, Unlock, Eye, EyeOff, Timer, Shield, Check, X, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const ChatLock = ({ chat, onLockChat, onUnlockChat, onLockSettings, isLocked }) => {
@@ -13,9 +13,9 @@ const ChatLock = ({ chat, onLockChat, onUnlockChat, onLockSettings, isLocked }) 
 
   const durations = [
     { value: 'immediate', label: 'Immediately', icon: <Lock size={16} /> },
-    { value: '1min', label: 'After 1 minute', icon: <Clock size={16} /> },
-    { value: '5min', label: 'After 5 minutes', icon: <Clock size={16} /> },
-    { value: '1hour', label: 'After 1 hour', icon: <Clock size={16} /> },
+    { value: '1min', label: 'After 1 minute', icon: <Timer size={16} /> },
+    { value: '5min', label: 'After 5 minutes', icon: <Timer size={16} /> },
+    { value: '1hour', label: 'After 1 hour', icon: <Timer size={16} /> },
   ];
 
   const handleLock = () => {
