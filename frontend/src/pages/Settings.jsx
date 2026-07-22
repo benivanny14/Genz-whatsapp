@@ -4,7 +4,7 @@ import {
   ArrowLeft, Save, User, Lock, Bell, Shield, Users, Package,
   Smartphone, ChevronRight, Database, UserRound, KeyRound, Languages,
   HelpCircle, Download, Trash2, Phone, Wifi, Image as ImageIcon,
-  HardDrive, CheckCircle2, EyeOff, Archive, Clock, Mail, FileText, Globe2,
+  HardDrive, CheckCircle2, EyeOff, Archive, Timer, Mail, FileText, Globe2,
   RefreshCw, RotateCcw, Palette, CheckCheck
 } from 'lucide-react';
 import ContactManager from '../components/ContactManager';
@@ -838,7 +838,7 @@ const Settings = () => {
         <SettingRow icon={EyeOff} title="Show preview" description="Show message text in notifications." control={<Toggle checked={settingsData.notifications.showPreview} onChange={() => toggleSetting('notifications.showPreview')} />} />
         <SettingRow icon={Bell} title="High priority notifications" control={<Toggle checked={settingsData.notifications.highPriority} onChange={() => toggleSetting('notifications.highPriority')} />} />
         <SettingRow icon={CheckCircle2} title="Reaction notifications" control={<Toggle checked={settingsData.notifications.reactionNotifications} onChange={() => toggleSetting('notifications.reactionNotifications')} />} />
-        <SettingRow icon={Clock} title="Reminders" control={<Toggle checked={settingsData.notifications.reminders} onChange={() => toggleSetting('notifications.reminders')} />} />
+        <SettingRow icon={Timer} title="Reminders" control={<Toggle checked={settingsData.notifications.reminders} onChange={() => toggleSetting('notifications.reminders')} />} />
         <SettingRow icon={Bell} title="Vibration" control={<Select value={settingsData.notifications.vibration} onChange={(value) => updateSetting('notifications.vibration', value)} options={[['off', 'Off'], ['default', 'Default'], ['short', 'Short'], ['long', 'Long']]} />} />
       </SettingSection>
 
