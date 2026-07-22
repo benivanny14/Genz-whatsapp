@@ -12,7 +12,7 @@ import {
   QrCode, Scan, MapPin, Navigation, Briefcase, ShoppingBag, CreditCard,
   Battery, Wifi, WifiOff, Calendar, User, MoreVertical, Reply, Trash2,
   Pin, Archive, Search, Filter, SortAsc, Radio, Tv, Badge, ChevronRight,
-  Hand, Layout, LayoutList, Share2, AtSign, Type, Check, Unlock
+  Hand, Layout, LayoutList, Share2, AtSign, Type, Check, Unlock, Contact, Grid3x3
 } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
@@ -2575,6 +2575,99 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               desc="Allow sharing of status"
               active={mods.statusAllowShares}
               onClick={() => toggleMod('statusAllowShares')}
+            />
+          </div>
+        </section>
+
+        {/* Quick Actions Features */}
+        <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
+          <div className="p-4 bg-blue-900/30 border-b border-white/10 flex items-center gap-2 text-yellow-400 font-bold">
+            <Zap size={18} /> Quick Actions
+          </div>
+          <div className="p-2">
+            <ModItem
+              icon={<Download size={20} className="text-blue-500" />}
+              title="Export Chat"
+              desc="Enable chat export feature"
+              active={mods.quickActionsExportChat}
+              onClick={() => toggleMod('quickActionsExportChat')}
+            />
+            <ModItem
+              icon={<Send size={20} className="text-green-500" />}
+              title="Mass Message"
+              desc="Enable mass messaging"
+              active={mods.quickActionsMassMessage}
+              onClick={() => toggleMod('quickActionsMassMessage')}
+            />
+            <ModItem
+              icon={<Sparkles size={20} className="text-purple-500" />}
+              title="Fake Chat Generator"
+              desc="Enable fake chat generation"
+              active={mods.quickActionsFakeChat}
+              onClick={() => toggleMod('quickActionsFakeChat')}
+            />
+            <ModItem
+              icon={<Contact size={20} className="text-orange-500" />}
+              title="Contact Picker"
+              desc="Enable contact picker"
+              active={mods.quickActionsContactPicker}
+              onClick={() => toggleMod('quickActionsContactPicker')}
+            />
+            <ModItem
+              icon={<Type size={20} className="text-cyan-500" />}
+              title="Text Tools"
+              desc="Enable text styling tools"
+              active={mods.quickActionsTextTools}
+              onClick={() => toggleMod('quickActionsTextTools')}
+            />
+            <ModItem
+              icon={<Clock size={20} className="text-indigo-500" />}
+              title="Schedule Message"
+              desc="Enable message scheduling"
+              active={mods.quickActionsScheduleMessage}
+              onClick={() => toggleMod('quickActionsScheduleMessage')}
+            />
+            <ModItem
+              icon={<BarChart2 size={20} className="text-emerald-500" />}
+              title="Create Poll"
+              desc="Enable poll creation"
+              active={mods.quickActionsCreatePoll}
+              onClick={() => toggleMod('quickActionsCreatePoll')}
+            />
+            <ModItem
+              icon={<Sparkles size={20} className="text-rose-500" />}
+              title="AI Stickers"
+              desc="Enable AI sticker generation"
+              active={mods.quickActionsAIStickers}
+              onClick={() => toggleMod('quickActionsAIStickers')}
+            />
+            <ModItem
+              icon={<ImageIcon size={20} className="text-pink-500" />}
+              title="Download Status"
+              desc="Enable status download"
+              active={mods.quickActionsDownloadStatus}
+              onClick={() => toggleMod('quickActionsDownloadStatus')}
+            />
+            <ModItem
+              icon={<Grid3x3 size={20} className="text-lime-500" />}
+              title="Product Catalogue"
+              desc="Enable product catalogue"
+              active={mods.quickActionsProductCatalogue}
+              onClick={() => toggleMod('quickActionsProductCatalogue')}
+            />
+            <ModItem
+              icon={<Eye size={20} className="text-yellow-500" />}
+              title="Notify When Online"
+              desc="Enable online status notifications"
+              active={mods.quickActionsNotifyWhenOnline}
+              onClick={() => toggleMod('quickActionsNotifyWhenOnline')}
+            />
+            <ModItem
+              icon={<Trash2 size={20} className="text-red-500" />}
+              title="Clear All Chats"
+              desc="Enable clear all chats feature"
+              active={mods.quickActionsClearAllChats}
+              onClick={() => toggleMod('quickActionsClearAllChats')}
             />
           </div>
         </section>

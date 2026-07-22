@@ -319,7 +319,20 @@ const DEFAULT_GENZ_SETTINGS = {
     statusViewReceipts: true,
     statusHideViewers: false,
     statusAllowReplies: true,
-    statusAllowShares: true
+    statusAllowShares: true,
+    // Quick Actions features
+    quickActionsExportChat: true,
+    quickActionsMassMessage: false,
+    quickActionsFakeChat: false,
+    quickActionsContactPicker: true,
+    quickActionsTextTools: true,
+    quickActionsScheduleMessage: false,
+    quickActionsCreatePoll: true,
+    quickActionsAIStickers: false,
+    quickActionsDownloadStatus: true,
+    quickActionsProductCatalogue: true,
+    quickActionsNotifyWhenOnline: true,
+    quickActionsClearAllChats: false
   },
   appTheme: 'dark',
   statusPrivacy: 'everyone',
