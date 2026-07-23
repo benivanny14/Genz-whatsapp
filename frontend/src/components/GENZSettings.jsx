@@ -6,13 +6,14 @@ import {
   RefreshCw, Download, Play, MonitorSmartphone, Monitor, Smartphone,
   LogOut, Info, Mic, Music, UserCircle, Edit3, Camera, Sun, Moon, BellOff,
   BarChart2, Smartphone as SmartphoneIcon, Mail, Forward, Eye, Globe,
-  MessageSquare, Layers, Video, Sparkles, TrendingUp, Star, Wand2,
+  MessageSquare, Layers, Video, VideoOff, Sparkles, TrendingUp, Star, Wand2,
   Activity, BarChart, Upload, Keyboard, Copy, Smile, Folder, FileText,
   Phone, Pause, MicOff, PhoneOff, History, Link, Users, Bot, Send,
   QrCode, Scan, MapPin, Navigation, Briefcase, ShoppingBag, CreditCard,
   Battery, Wifi, WifiOff, Calendar, User, MoreVertical, Reply, Trash2,
   Pin, Archive, Search, Filter, SortAsc, Radio, Tv, Badge, ChevronRight,
-  Hand, Layout, LayoutList, Share2, AtSign, Type, Check, Unlock, Contact, Grid3x3, Heart
+  Hand, Layout, LayoutList, Share2, AtSign, Type, Check, Unlock, Contact, Grid3x3, Heart,
+  Maximize, HelpCircle, Fingerprint, UserPlus, UserMinus, ShieldOff, Settings, ArrowUp, ToggleLeft
 } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
@@ -684,6 +685,104 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               />
               <span className="text-xs text-gray-400">{mods.customFontSize || 14}px</span>
             </div>
+            <ModItem
+              icon={<Sparkles size={20} className="text-purple-400" />}
+              title="4000+ Themes"
+              desc="Access 4000+ custom themes"
+              active={mods.themes4000Plus}
+              onClick={() => toggleMod('themes4000Plus')}
+            />
+            <ModItem
+              icon={<Edit3 size={20} className="text-blue-400" />}
+              title="Custom Fonts"
+              desc="Use custom fonts"
+              active={mods.customFonts}
+              onClick={() => toggleMod('customFonts')}
+            />
+            <ModItem
+              icon={<MessageSquare size={20} className="text-green-400" />}
+              title="Chat Bubble Styles"
+              desc="Customize chat bubble styles"
+              active={mods.chatBubbleStyles}
+              onClick={() => toggleMod('chatBubbleStyles')}
+            />
+            <ModItem
+              icon={<CheckCheck size={20} className="text-cyan-400" />}
+              title="Tick Styles"
+              desc="Customize message tick styles"
+              active={mods.tickStyles}
+              onClick={() => toggleMod('tickStyles')}
+            />
+            <ModItem
+              icon={<Smartphone size={20} className="text-yellow-400" />}
+              title="Launcher Icon Change"
+              desc="Change app launcher icon"
+              active={mods.launcherIconChange}
+              onClick={() => toggleMod('launcherIconChange')}
+            />
+            <ModItem
+              icon={<Bell size={20} className="text-pink-400" />}
+              title="Notification Icon Change"
+              desc="Change notification icon"
+              active={mods.notificationIconChange}
+              onClick={() => toggleMod('notificationIconChange')}
+            />
+            <ModItem
+              icon={<Moon size={20} className="text-gray-400" />}
+              title="AMOLED Mode"
+              desc="Enable AMOLED dark mode"
+              active={mods.amoledMode}
+              onClick={() => toggleMod('amoledMode')}
+            />
+            <ModItem
+              icon={<Music size={20} className="text-orange-400" />}
+              title="Custom Notification Sounds"
+              desc="Use custom notification sounds"
+              active={mods.customNotificationSounds}
+              onClick={() => toggleMod('customNotificationSounds')}
+            />
+            <ModItem
+              icon={<Bell size={20} className="text-red-400" />}
+              title="Popup Notifications"
+              desc="Enable popup notifications"
+              active={mods.popupNotifications}
+              onClick={() => toggleMod('popupNotifications')}
+            />
+            <ModItem
+              icon={<Zap size={20} className="text-blue-400" />}
+              title="FAB Customization"
+              desc="Customize floating action button"
+              active={mods.fabCustomization}
+              onClick={() => toggleMod('fabCustomization')}
+            />
+            <ModItem
+              icon={<Layout size={20} className="text-purple-400" />}
+              title="Home Screen Styles"
+              desc="Customize home screen"
+              active={mods.homeScreenStyles}
+              onClick={() => toggleMod('homeScreenStyles')}
+            />
+            <ModItem
+              icon={<MessageSquare size={20} className="text-green-400" />}
+              title="Conversation Entry Style"
+              desc="Customize conversation entry"
+              active={mods.conversationEntryStyle}
+              onClick={() => toggleMod('conversationEntryStyle')}
+            />
+            <ModItem
+              icon={<Smile size={20} className="text-yellow-400" />}
+              title="Emoji Changer"
+              desc="Change emoji style"
+              active={mods.emojiChanger}
+              onClick={() => toggleMod('emojiChanger')}
+            />
+            <ModItem
+              icon={<Palette size={20} className="text-pink-400" />}
+              title="Navigation Bar Color"
+              desc="Customize navigation bar color"
+              active={mods.navigationBarColor}
+              onClick={() => toggleMod('navigationBarColor')}
+            />
           </div>
         </section>
 
@@ -1428,6 +1527,83 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
                 active={mods.hideNameDateWhenCopying}
                 onClick={() => toggleMod('hideNameDateWhenCopying')}
               />
+              <ModItem
+                icon={<Keyboard size={20} className="text-yellow-400" />}
+                title="Hide Typing Indicator"
+                desc="Hide typing indicator from others"
+                active={mods.hideTypingIndicator}
+                onClick={() => toggleMod('hideTypingIndicator')}
+              />
+              <ModItem
+                icon={<CameraOff size={20} className="text-red-400" />}
+                title="Screenshot Prevention"
+                desc="Prevent taking screenshots"
+                active={mods.screenshotPrevention}
+                onClick={() => toggleMod('screenshotPrevention')}
+              />
+              <ModItem
+                icon={<Trash2 size={20} className="text-orange-400" />}
+                title="Delete Messages 3 Days"
+                desc="Delete messages up to 3 days old"
+                active={mods.deleteMessages3Days}
+                onClick={() => toggleMod('deleteMessages3Days')}
+              />
+              <ModItem
+                icon={<ImageIcon size={20} className="text-green-400" />}
+                title="Send 100+ Images"
+                desc="Send more than 100 images at once"
+                active={mods.sendImages100Plus}
+                onClick={() => toggleMod('sendImages100Plus')}
+              />
+              <ModItem
+                icon={<Video size={20} className="text-blue-400" />}
+                title="Send 1GB+ Videos"
+                desc="Send videos larger than 1GB"
+                active={mods.sendVideo1GB}
+                onClick={() => toggleMod('sendVideo1GB')}
+              />
+              <ModItem
+                icon={<FileText size={20} className="text-purple-400" />}
+                title="Send 1GB+ Documents"
+                desc="Send documents larger than 1GB"
+                active={mods.sendDocument1GB}
+                onClick={() => toggleMod('sendDocument1GB')}
+              />
+              <ModItem
+                icon={<Radio size={20} className="text-cyan-400" />}
+                title="Broadcast 600+"
+                desc="Broadcast to 600+ contacts"
+                active={mods.broadcast600Plus}
+                onClick={() => toggleMod('broadcast600Plus')}
+              />
+              <ModItem
+                icon={<Pin size={20} className="text-yellow-400" />}
+                title="Pin More Than 3 Chats"
+                desc="Pin more than 3 chats"
+                active={mods.pinMoreThan3Chats}
+                onClick={() => toggleMod('pinMoreThan3Chats')}
+              />
+              <ModItem
+                icon={<Sparkles size={20} className="text-pink-400" />}
+                title="Stylish Text"
+                desc="Use stylish text fonts"
+                active={mods.stylishText}
+                onClick={() => toggleMod('stylishText')}
+              />
+              <ModItem
+                icon={<MessageSquare size={20} className="text-gray-400" />}
+                title="Blank Messages"
+                desc="Send blank messages"
+                active={mods.blankMessages}
+                onClick={() => toggleMod('blankMessages')}
+              />
+              <ModItem
+                icon={<Forward size={20} className="text-green-400" />}
+                title="Increase Forward Limit"
+                desc="Increase message forward limit"
+                active={mods.increaseForwardLimit}
+                onClick={() => toggleMod('increaseForwardLimit')}
+              />
               {subscriptionStatus.expiryDate && (
                 <div className="p-3 text-center">
                   <p className="text-xs text-gray-400">
@@ -1696,6 +1872,34 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               active={mods.callLink}
               onClick={() => toggleMod('callLink')}
             />
+            <ModItem
+              icon={<PhoneOff size={20} className="text-red-400" />}
+              title="Hide Call Button"
+              desc="Hide call button in chat"
+              active={mods.hideCallButton}
+              onClick={() => toggleMod('hideCallButton')}
+            />
+            <ModItem
+              icon={<BellOff size={20} className="text-orange-400" />}
+              title="DND Mode for Calls"
+              desc="Do not disturb mode for calls"
+              active={mods.dndModeForCalls}
+              onClick={() => toggleMod('dndModeForCalls')}
+            />
+            <ModItem
+              icon={<MicOff size={20} className="text-gray-400" />}
+              title="Disable Voice Calls"
+              desc="Disable voice calls"
+              active={mods.disableVoiceCalls}
+              onClick={() => toggleMod('disableVoiceCalls')}
+            />
+            <ModItem
+              icon={<VideoOff size={20} className="text-purple-400" />}
+              title="Disable Video Calls"
+              desc="Disable video calls"
+              active={mods.disableVideoCalls}
+              onClick={() => toggleMod('disableVideoCalls')}
+            />
           </div>
         </section>
 
@@ -1753,6 +1957,48 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               desc="Enable group notifications"
               active={mods.groupNotifications}
               onClick={() => toggleMod('groupNotifications')}
+            />
+            <ModItem
+              icon={<QrCode size={20} className="text-cyan-400" />}
+              title="Group QR Code"
+              desc="Generate group QR code"
+              active={mods.groupQRCode}
+              onClick={() => toggleMod('groupQRCode')}
+            />
+            <ModItem
+              icon={<ShieldOff size={20} className="text-red-400" />}
+              title="Restrict Messaging"
+              desc="Restrict messaging to admins only"
+              active={mods.restrictMessaging}
+              onClick={() => toggleMod('restrictMessaging')}
+            />
+            <ModItem
+              icon={<Trash2 size={20} className="text-orange-400" />}
+              title="Anti Delete Group Messages"
+              desc="Prevent deletion of group messages"
+              active={mods.antiDeleteGroupMessages}
+              onClick={() => toggleMod('antiDeleteGroupMessages')}
+            />
+            <ModItem
+              icon={<BarChart size={20} className="text-green-400" />}
+              title="Group Polls"
+              desc="Create and manage group polls"
+              active={mods.groupPolls}
+              onClick={() => toggleMod('groupPolls')}
+            />
+            <ModItem
+              icon={<Radio size={20} className="text-blue-400" />}
+              title="Group Announcements"
+              desc="Enable group announcements mode"
+              active={mods.groupAnnouncements}
+              onClick={() => toggleMod('groupAnnouncements')}
+            />
+            <ModItem
+              icon={<Calendar size={20} className="text-purple-400" />}
+              title="Group Events"
+              desc="Create and manage group events"
+              active={mods.groupEvents}
+              onClick={() => toggleMod('groupEvents')}
             />
           </div>
         </section>
@@ -1958,6 +2204,216 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               desc="Enable payment features"
               active={mods.paymentIntegration}
               onClick={() => toggleMod('paymentIntegration')}
+            />
+            <ModItem
+              icon={<Users size={20} className="text-cyan-400" />}
+              title="Multi Accounts"
+              desc="Use multiple accounts"
+              active={mods.multiAccounts}
+              onClick={() => toggleMod('multiAccounts')}
+            />
+            <ModItem
+              icon={<Copy size={20} className="text-purple-400" />}
+              title="Clone App"
+              desc="Clone the app instance"
+              active={mods.cloneApp}
+              onClick={() => toggleMod('cloneApp')}
+            />
+            <ModItem
+              icon={<WifiOff size={20} className="text-orange-400" />}
+              title="Airplane Mode App Only"
+              desc="Use app in airplane mode"
+              active={mods.airplaneModeAppOnly}
+              onClick={() => toggleMod('airplaneModeAppOnly')}
+            />
+            <ModItem
+              icon={<BellOff size={20} className="text-red-400" />}
+              title="DND Mode"
+              desc="Do not disturb mode"
+              active={mods.dndMode}
+              onClick={() => toggleMod('dndMode')}
+            />
+            <ModItem
+              icon={<Type size={20} className="text-blue-400" />}
+              title="Increase Status Characters"
+              desc="Increase status character limit"
+              active={mods.increaseStatusCharacters}
+              onClick={() => toggleMod('increaseStatusCharacters')}
+            />
+            <ModItem
+              icon={<Users size={20} className="text-green-400" />}
+              title="Increase Group Members"
+              desc="Increase group member limit"
+              active={mods.increaseGroupMembers}
+              onClick={() => toggleMod('increaseGroupMembers')}
+            />
+            <ModItem
+              icon={<Video size={20} className="text-purple-400" />}
+              title="Increase Status Video Length"
+              desc="Increase status video duration"
+              active={mods.increaseStatusVideoLength}
+              onClick={() => toggleMod('increaseStatusVideoLength')}
+            />
+            <ModItem
+              icon={<MessageSquare size={20} className="text-yellow-400" />}
+              title="Fake Chat"
+              desc="Create fake chats"
+              active={mods.fakeChat}
+              onClick={() => toggleMod('fakeChat')}
+            />
+            <ModItem
+              icon={<Phone size={20} className="text-pink-400" />}
+              title="Fake Voice/Video Call"
+              desc="Simulate fake calls"
+              active={mods.fakeVoiceVideoCall}
+              onClick={() => toggleMod('fakeVoiceVideoCall')}
+            />
+            <ModItem
+              icon={<Bell size={20} className="text-cyan-400" />}
+              title="Contact Online Notifier"
+              desc="Get notified when contacts come online"
+              active={mods.contactOnlineNotifier}
+              onClick={() => toggleMod('contactOnlineNotifier')}
+            />
+            <ModItem
+              icon={<Send size={20} className="text-green-400" />}
+              title="Direct Message"
+              desc="Send direct messages"
+              active={mods.directMessage}
+              onClick={() => toggleMod('directMessage')}
+            />
+            <ModItem
+              icon={<MonitorSmartphone size={20} className="text-blue-400" />}
+              title="WhatsApp Web"
+              desc="Enable WhatsApp Web features"
+              active={mods.whatsappWeb}
+              onClick={() => toggleMod('whatsappWeb')}
+            />
+            <ModItem
+              icon={<Users size={20} className="text-orange-400" />}
+              title="Separate Group Chats"
+              desc="Separate group chats from main list"
+              active={mods.separateGroupChats}
+              onClick={() => toggleMod('separateGroupChats')}
+            />
+            <ModItem
+              icon={<Radio size={20} className="text-purple-400" />}
+              title="Separate Broadcast Chats"
+              desc="Separate broadcast chats from main list"
+              active={mods.separateBroadcastChats}
+              onClick={() => toggleMod('separateBroadcastChats')}
+            />
+            <ModItem
+              icon={<Wifi size={20} className="text-green-400" />}
+              title="Always Online"
+              desc="Always show as online"
+              active={mods.alwaysOnline}
+              onClick={() => toggleMod('alwaysOnline')}
+            />
+            <ModItem
+              icon={<Eye size={20} className="text-blue-400" />}
+              title="Show Deleted Messages"
+              desc="Show deleted messages"
+              active={mods.showDeletedMessages}
+              onClick={() => toggleMod('showDeletedMessages')}
+            />
+            <ModItem
+              icon={<Eye size={20} className="text-purple-400" />}
+              title="Show Deleted Status"
+              desc="Show deleted status updates"
+              active={mods.showDeletedStatus}
+              onClick={() => toggleMod('showDeletedStatus')}
+            />
+            <ModItem
+              icon={<Copy size={20} className="text-yellow-400" />}
+              title="Copy Status Caption"
+              desc="Copy status captions"
+              active={mods.copyStatusCaption}
+              onClick={() => toggleMod('copyStatusCaption')}
+            />
+            <ModItem
+              icon={<Maximize size={20} className="text-pink-400" />}
+              title="Zoom Profile Picture"
+              desc="Zoom profile pictures"
+              active={mods.zoomProfilePicture}
+              onClick={() => toggleMod('zoomProfilePicture')}
+            />
+            <ModItem
+              icon={<Bell size={20} className="text-cyan-400" />}
+              title="Toast When Online"
+              desc="Show toast when contact comes online"
+              active={mods.toastWhenOnline}
+              onClick={() => toggleMod('toastWhenOnline')}
+            />
+            <ModItem
+              icon={<Keyboard size={20} className="text-green-400" />}
+              title="Toast When Typing"
+              desc="Show toast when contact is typing"
+              active={mods.toastWhenTyping}
+              onClick={() => toggleMod('toastWhenTyping')}
+            />
+            <ModItem
+              icon={<ImageIcon size={20} className="text-orange-400" />}
+              title="Custom Wallpaper"
+              desc="Set custom wallpaper"
+              active={mods.customWallpaper}
+              onClick={() => toggleMod('customWallpaper')}
+            />
+            <ModItem
+              icon={<Palette size={20} className="text-purple-400" />}
+              title="Solid Color Background"
+              desc="Use solid color background"
+              active={mods.solidColorBackground}
+              onClick={() => toggleMod('solidColorBackground')}
+            />
+            <ModItem
+              icon={<MessageSquare size={20} className="text-blue-400" />}
+              title="Default Message"
+              desc="Set default message"
+              active={mods.defaultMessage}
+              onClick={() => toggleMod('defaultMessage')}
+            />
+            <ModItem
+              icon={<Reply size={20} className="text-green-400" />}
+              title="Quick Reply"
+              desc="Quick reply feature"
+              active={mods.quickReply}
+              onClick={() => toggleMod('quickReply')}
+            />
+            <ModItem
+              icon={<Hand size={20} className="text-yellow-400" />}
+              title="Swipe to Reply"
+              desc="Swipe to reply to messages"
+              active={mods.swipeToReply}
+              onClick={() => toggleMod('swipeToReply')}
+            />
+            <ModItem
+              icon={<Archive size={20} className="text-purple-400" />}
+              title="Swipe to Archive"
+              desc="Swipe to archive chats"
+              active={mods.swipeToArchive}
+              onClick={() => toggleMod('swipeToArchive')}
+            />
+            <ModItem
+              icon={<Archive size={20} className="text-orange-400" />}
+              title="Archive All Chats"
+              desc="Archive all chats at once"
+              active={mods.archiveAllChats}
+              onClick={() => toggleMod('archiveAllChats')}
+            />
+            <ModItem
+              icon={<Trash2 size={20} className="text-red-400" />}
+              title="Clear All Chats"
+              desc="Clear all chats"
+              active={mods.clearAllChats}
+              onClick={() => toggleMod('clearAllChats')}
+            />
+            <ModItem
+              icon={<Trash2 size={20} className="text-pink-400" />}
+              title="Delete All Chats"
+              desc="Delete all chats"
+              active={mods.deleteAllChats}
+              onClick={() => toggleMod('deleteAllChats')}
             />
           </div>
         </section>
@@ -2236,6 +2692,132 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               active={mods.chatChannels}
               onClick={() => toggleMod('chatChannels')}
             />
+            <ModItem
+              icon={<Heart size={20} className="text-red-400" />}
+              title="Double Tap to Like"
+              desc="Double tap to like messages"
+              active={mods.doubleTapToLike}
+              onClick={() => toggleMod('doubleTapToLike')}
+            />
+            <ModItem
+              icon={<Smile size={20} className="text-yellow-400" />}
+              title="Message Reactions"
+              desc="React to messages with emojis"
+              active={mods.messageReactions}
+              onClick={() => toggleMod('messageReactions')}
+            />
+            <ModItem
+              icon={<Globe size={20} className="text-blue-400" />}
+              title="Message Translation"
+              desc="Translate messages"
+              active={mods.messageTranslation}
+              onClick={() => toggleMod('messageTranslation')}
+            />
+            <ModItem
+              icon={<Copy size={20} className="text-green-400" />}
+              title="Message Copy with Selection"
+              desc="Copy selected text from messages"
+              active={mods.messageCopyWithSelection}
+              onClick={() => toggleMod('messageCopyWithSelection')}
+            />
+            <ModItem
+              icon={<Search size={20} className="text-purple-400" />}
+              title="Message Search Within Chat"
+              desc="Search within chat"
+              active={mods.messageSearchWithinChat}
+              onClick={() => toggleMod('messageSearchWithinChat')}
+            />
+            <ModItem
+              icon={<ArrowUp size={20} className="text-cyan-400" />}
+              title="Jump to First Message"
+              desc="Jump to first message in chat"
+              active={mods.jumpToFirstMessage}
+              onClick={() => toggleMod('jumpToFirstMessage')}
+            />
+            <ModItem
+              icon={<Calendar size={20} className="text-orange-400" />}
+              title="Jump to Specific Date"
+              desc="Jump to messages from specific date"
+              active={mods.jumpToSpecificDate}
+              onClick={() => toggleMod('jumpToSpecificDate')}
+            />
+            <ModItem
+              icon={<Camera size={20} className="text-pink-400" />}
+              title="Quick Camera"
+              desc="Quick access to camera"
+              active={mods.quickCamera}
+              onClick={() => toggleMod('quickCamera')}
+            />
+            <ModItem
+              icon={<Mic size={20} className="text-red-400" />}
+              title="Quick Voice Message"
+              desc="Quick voice message recording"
+              active={mods.quickVoiceMessage}
+              onClick={() => toggleMod('quickVoiceMessage')}
+            />
+            <ModItem
+              icon={<Smile size={20} className="text-yellow-400" />}
+              title="Quick Emoji Reaction"
+              desc="Quick emoji reactions"
+              active={mods.quickEmojiReaction}
+              onClick={() => toggleMod('quickEmojiReaction')}
+            />
+            <ModItem
+              icon={<Bot size={20} className="text-purple-400" />}
+              title="Auto Reply in Chat"
+              desc="Auto reply in chat"
+              active={mods.autoReplyInChat}
+              onClick={() => toggleMod('autoReplyInChat')}
+            />
+            <ModItem
+              icon={<Eye size={20} className="text-blue-400" />}
+              title="Anti Revoke in Chat"
+              desc="Show revoked messages"
+              active={mods.antiRevokeInChat}
+              onClick={() => toggleMod('antiRevokeInChat')}
+            />
+            <ModItem
+              icon={<Keyboard size={20} className="text-green-400" />}
+              title="Hide Typing in Chat"
+              desc="Hide typing indicator in chat"
+              active={mods.hideTypingInChat}
+              onClick={() => toggleMod('hideTypingInChat')}
+            />
+            <ModItem
+              icon={<Palette size={20} className="text-pink-400" />}
+              title="Custom Bubble per Contact"
+              desc="Custom chat bubbles per contact"
+              active={mods.customBubblePerContact}
+              onClick={() => toggleMod('customBubblePerContact')}
+            />
+            <ModItem
+              icon={<Lock size={20} className="text-red-400" />}
+              title="Chat Lock"
+              desc="Lock individual chats"
+              active={mods.chatLock}
+              onClick={() => toggleMod('chatLock')}
+            />
+            <ModItem
+              icon={<Shield size={20} className="text-purple-400" />}
+              title="Secret Chat"
+              desc="Enable secret chat mode"
+              active={mods.secretChat}
+              onClick={() => toggleMod('secretChat')}
+            />
+            <ModItem
+              icon={<Timer size={20} className="text-orange-400" />}
+              title="Self Destructing Messages"
+              desc="Messages that self-destruct"
+              active={mods.selfDestructingMessages}
+              onClick={() => toggleMod('selfDestructingMessages')}
+            />
+            <ModItem
+              icon={<Trash2 size={20} className="text-gray-400" />}
+              title="Message Recall"
+              desc="Recall sent messages"
+              active={mods.messageRecall}
+              onClick={() => toggleMod('messageRecall')}
+            />
           </div>
         </section>
 
@@ -2420,6 +3002,195 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               active={mods.dashboardStarredMessages}
               onClick={() => toggleMod('dashboardStarredMessages')}
             />
+            <ModItem
+              icon={<Users size={20} className="text-cyan-400" />}
+              title="Groups Tab"
+              desc="Separate groups tab"
+              active={mods.groupsTab}
+              onClick={() => toggleMod('groupsTab')}
+            />
+            <ModItem
+              icon={<Radio size={20} className="text-orange-400" />}
+              title="Broadcast Tab"
+              desc="Separate broadcast tab"
+              active={mods.broadcastTab}
+              onClick={() => toggleMod('broadcastTab')}
+            />
+            <ModItem
+              icon={<Badge size={20} className="text-yellow-400" />}
+              title="Tab Indicator"
+              desc="Show tab indicator"
+              active={mods.tabIndicator}
+              onClick={() => toggleMod('tabIndicator')}
+            />
+            <ModItem
+              icon={<Hand size={20} className="text-green-400" />}
+              title="Tab Swipe"
+              desc="Enable tab swipe"
+              active={mods.tabSwipe}
+              onClick={() => toggleMod('tabSwipe')}
+            />
+            <ModItem
+              icon={<Badge size={20} className="text-red-400" />}
+              title="Unread Badge on Tabs"
+              desc="Show unread badge on tabs"
+              active={mods.unreadBadgeOnTabs}
+              onClick={() => toggleMod('unreadBadgeOnTabs')}
+            />
+            <ModItem
+              icon={<Users size={20} className="text-blue-400" />}
+              title="Group Member Count"
+              desc="Show group member count"
+              active={mods.groupMemberCount}
+              onClick={() => toggleMod('groupMemberCount')}
+            />
+            <ModItem
+              icon={<Shield size={20} className="text-purple-400" />}
+              title="Admin Badge"
+              desc="Show admin badge"
+              active={mods.adminBadge}
+              onClick={() => toggleMod('adminBadge')}
+            />
+            <ModItem
+              icon={<UserPlus size={20} className="text-green-400" />}
+              title="Add Participants"
+              desc="Add participants to groups"
+              active={mods.addParticipants}
+              onClick={() => toggleMod('addParticipants')}
+            />
+            <ModItem
+              icon={<UserMinus size={20} className="text-red-400" />}
+              title="Remove Participants"
+              desc="Remove participants from groups"
+              active={mods.removeParticipants}
+              onClick={() => toggleMod('removeParticipants')}
+            />
+            <ModItem
+              icon={<Shield size={20} className="text-yellow-400" />}
+              title="Make Admin"
+              desc="Make participants admin"
+              active={mods.makeAdmin}
+              onClick={() => toggleMod('makeAdmin')}
+            />
+            <ModItem
+              icon={<ShieldOff size={20} className="text-orange-400" />}
+              title="Dismiss as Admin"
+              desc="Dismiss admin privileges"
+              active={mods.dismissAsAdmin}
+              onClick={() => toggleMod('dismissAsAdmin')}
+            />
+            <ModItem
+              icon={<Settings size={20} className="text-blue-400" />}
+              title="Group Settings"
+              desc="Access group settings"
+              active={mods.groupSettings}
+              onClick={() => toggleMod('groupSettings')}
+            />
+            <ModItem
+              icon={<ImageIcon size={20} className="text-purple-400" />}
+              title="Group Media"
+              desc="Access group media"
+              active={mods.groupMedia}
+              onClick={() => toggleMod('groupMedia')}
+            />
+            <ModItem
+              icon={<Layers size={20} className="text-pink-400" />}
+              title="Floating Widget"
+              desc="Enable floating widget"
+              active={mods.floatingWidget}
+              onClick={() => toggleMod('floatingWidget')}
+            />
+            <ModItem
+              icon={<Layout size={20} className="text-cyan-400" />}
+              title="Home Screen Widget"
+              desc="Enable home screen widget"
+              active={mods.homeScreenWidget}
+              onClick={() => toggleMod('homeScreenWidget')}
+            />
+            <ModItem
+              icon={<Zap size={20} className="text-yellow-400" />}
+              title="App Shortcuts"
+              desc="Enable app shortcuts"
+              active={mods.appShortcuts}
+              onClick={() => toggleMod('appShortcuts')}
+            />
+            <ModItem
+              icon={<Mic size={20} className="text-green-400" />}
+              title="Voice Search"
+              desc="Enable voice search"
+              active={mods.voiceSearch}
+              onClick={() => toggleMod('voiceSearch')}
+            />
+            <ModItem
+              icon={<Mic size={20} className="text-blue-400" />}
+              title="Voice Commands"
+              desc="Enable voice commands"
+              active={mods.voiceCommands}
+              onClick={() => toggleMod('voiceCommands')}
+            />
+            <ModItem
+              icon={<Mic size={20} className="text-purple-400" />}
+              title="Voice Read Messages"
+              desc="Read messages with voice"
+              active={mods.voiceReadMessages}
+              onClick={() => toggleMod('voiceReadMessages')}
+            />
+            <ModItem
+              icon={<Mic size={20} className="text-orange-400" />}
+              title="Voice Reply"
+              desc="Reply with voice"
+              active={mods.voiceReply}
+              onClick={() => toggleMod('voiceReply')}
+            />
+            <ModItem
+              icon={<Maximize size={20} className="text-red-400" />}
+              title="Large Text Mode"
+              desc="Enable large text mode"
+              active={mods.largeTextMode}
+              onClick={() => toggleMod('largeTextMode')}
+            />
+            <ModItem
+              icon={<Sun size={20} className="text-yellow-400" />}
+              title="High Contrast Mode"
+              desc="Enable high contrast mode"
+              active={mods.highContrastMode}
+              onClick={() => toggleMod('highContrastMode')}
+            />
+            <ModItem
+              icon={<Palette size={20} className="text-green-400" />}
+              title="Color Blind Mode"
+              desc="Enable color blind mode"
+              active={mods.colorBlindMode}
+              onClick={() => toggleMod('colorBlindMode')}
+            />
+            <ModItem
+              icon={<Activity size={20} className="text-blue-400" />}
+              title="Reduce Motion"
+              desc="Reduce animations"
+              active={mods.reduceMotion}
+              onClick={() => toggleMod('reduceMotion')}
+            />
+            <ModItem
+              icon={<Layers size={20} className="text-purple-400" />}
+              title="Reduce Transparency"
+              desc="Reduce transparency effects"
+              active={mods.reduceTransparency}
+              onClick={() => toggleMod('reduceTransparency')}
+            />
+            <ModItem
+              icon={<Settings size={20} className="text-orange-400" />}
+              title="Switch Access"
+              desc="Enable switch access"
+              active={mods.switchAccess}
+              onClick={() => toggleMod('switchAccess')}
+            />
+            <ModItem
+              icon={<HelpCircle size={20} className="text-pink-400" />}
+              title="Braille Support"
+              desc="Enable braille support"
+              active={mods.brailleSupport}
+              onClick={() => toggleMod('brailleSupport')}
+            />
           </div>
         </section>
 
@@ -2575,6 +3346,223 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               desc="Allow sharing of status"
               active={mods.statusAllowShares}
               onClick={() => toggleMod('statusAllowShares')}
+            />
+            <ModItem
+              icon={<Camera size={20} className="text-blue-400" />}
+              title="Status Camera Capture"
+              desc="Capture status with camera"
+              active={mods.statusCameraCapture}
+              onClick={() => toggleMod('statusCameraCapture')}
+            />
+            <ModItem
+              icon={<ImageIcon size={20} className="text-green-400" />}
+              title="Status Gallery Selection"
+              desc="Select status from gallery"
+              active={mods.statusGallerySelection}
+              onClick={() => toggleMod('statusGallerySelection')}
+            />
+            <ModItem
+              icon={<Layers size={20} className="text-purple-400" />}
+              title="Status Multi Select"
+              desc="Select multiple status items"
+              active={mods.statusMultiSelect}
+              onClick={() => toggleMod('statusMultiSelect')}
+            />
+            <ModItem
+              icon={<Type size={20} className="text-orange-400" />}
+              title="Status Text Status"
+              desc="Create text status"
+              active={mods.statusTextStatus}
+              onClick={() => toggleMod('statusTextStatus')}
+            />
+            <ModItem
+              icon={<Link size={20} className="text-cyan-400" />}
+              title="Status Link Status"
+              desc="Create link status"
+              active={mods.statusLinkStatus}
+              onClick={() => toggleMod('statusLinkStatus')}
+            />
+            <ModItem
+              icon={<Smile size={20} className="text-yellow-400" />}
+              title="Status GIF Status"
+              desc="Create GIF status"
+              active={mods.statusGIFStatus}
+              onClick={() => toggleMod('statusGIFStatus')}
+            />
+            <ModItem
+              icon={<Mic size={20} className="text-red-400" />}
+              title="Status Voice Status"
+              desc="Create voice status"
+              active={mods.statusVoiceStatus}
+              onClick={() => toggleMod('statusVoiceStatus')}
+            />
+            <ModItem
+              icon={<Music size={20} className="text-pink-400" />}
+              title="Status Music Status"
+              desc="Create music status"
+              active={mods.statusMusicStatus}
+              onClick={() => toggleMod('statusMusicStatus')}
+            />
+            <ModItem
+              icon={<BarChart size={20} className="text-green-400" />}
+              title="Status Poll Status"
+              desc="Create poll status"
+              active={mods.statusPollStatus}
+              onClick={() => toggleMod('statusPollStatus')}
+            />
+            <ModItem
+              icon={<HelpCircle size={20} className="text-blue-400" />}
+              title="Status Quiz Status"
+              desc="Create quiz status"
+              active={mods.statusQuizStatus}
+              onClick={() => toggleMod('statusQuizStatus')}
+            />
+            <ModItem
+              icon={<HelpCircle size={20} className="text-purple-400" />}
+              title="Status Question Status"
+              desc="Create question status"
+              active={mods.statusQuestionStatus}
+              onClick={() => toggleMod('statusQuestionStatus')}
+            />
+            <ModItem
+              icon={<Timer size={20} className="text-orange-400" />}
+              title="Status Countdown Status"
+              desc="Create countdown status"
+              active={mods.statusCountdownStatus}
+              onClick={() => toggleMod('statusCountdownStatus')}
+            />
+            <ModItem
+              icon={<MapPin size={20} className="text-red-400" />}
+              title="Status Location Status"
+              desc="Create location status"
+              active={mods.statusLocationStatus}
+              onClick={() => toggleMod('statusLocationStatus')}
+            />
+            <ModItem
+              icon={<Layers size={20} className="text-cyan-400" />}
+              title="Status Collage Status"
+              desc="Create collage status"
+              active={mods.statusCollageStatus}
+              onClick={() => toggleMod('statusCollageStatus')}
+            />
+            <ModItem
+              icon={<RefreshCw size={20} className="text-yellow-400" />}
+              title="Status Boomerang Status"
+              desc="Create boomerang status"
+              active={mods.statusBoomerangStatus}
+              onClick={() => toggleMod('statusBoomerangStatus')}
+            />
+            <ModItem
+              icon={<Smile size={20} className="text-pink-400" />}
+              title="Status Reaction Status"
+              desc="Create reaction status"
+              active={mods.statusReactionStatus}
+              onClick={() => toggleMod('statusReactionStatus')}
+            />
+            <ModItem
+              icon={<Maximize size={20} className="text-green-400" />}
+              title="Status Full Screen Viewer"
+              desc="Full screen status viewer"
+              active={mods.statusFullScreenViewer}
+              onClick={() => toggleMod('statusFullScreenViewer')}
+            />
+            <ModItem
+              icon={<Hand size={20} className="text-blue-400" />}
+              title="Status Tap to Next/Previous"
+              desc="Tap to navigate status"
+              active={mods.statusTapToNextPrevious}
+              onClick={() => toggleMod('statusTapToNextPrevious')}
+            />
+            <ModItem
+              icon={<Hand size={20} className="text-purple-400" />}
+              title="Status Swipe to Dismiss"
+              desc="Swipe to dismiss status"
+              active={mods.statusSwipeToDismiss}
+              onClick={() => toggleMod('statusSwipeToDismiss')}
+            />
+            <ModItem
+              icon={<Hand size={20} className="text-orange-400" />}
+              title="Status Hold to Pause"
+              desc="Hold to pause status"
+              active={mods.statusHoldToPause}
+              onClick={() => toggleMod('statusHoldToPause')}
+            />
+            <ModItem
+              icon={<Users size={20} className="text-cyan-400" />}
+              title="Status Viewer List"
+              desc="Show status viewer list"
+              active={mods.statusViewerList}
+              onClick={() => toggleMod('statusViewerList')}
+            />
+            <ModItem
+              icon={<CameraOff size={20} className="text-red-400" />}
+              title="Status Screenshot Detection"
+              desc="Detect status screenshots"
+              active={mods.statusScreenshotDetection}
+              onClick={() => toggleMod('statusScreenshotDetection')}
+            />
+            <ModItem
+              icon={<Lock size={20} className="text-yellow-400" />}
+              title="Status Password Protection"
+              desc="Password protect status"
+              active={mods.statusPasswordProtection}
+              onClick={() => toggleMod('statusPasswordProtection')}
+            />
+            <ModItem
+              icon={<Fingerprint size={20} className="text-purple-400" />}
+              title="Status Fingerprint Protection"
+              desc="Fingerprint protect status"
+              active={mods.statusFingerprintProtection}
+              onClick={() => toggleMod('statusFingerprintProtection')}
+            />
+            <ModItem
+              icon={<Calendar size={20} className="text-green-400" />}
+              title="Status Scheduling"
+              desc="Schedule status updates"
+              active={mods.statusScheduling}
+              onClick={() => toggleMod('statusScheduling')}
+            />
+            <ModItem
+              icon={<Star size={20} className="text-orange-400" />}
+              title="Status Highlights"
+              desc="Create status highlights"
+              active={mods.statusHighlights}
+              onClick={() => toggleMod('statusHighlights')}
+            />
+            <ModItem
+              icon={<Heart size={20} className="text-pink-400" />}
+              title="Status Close Friends"
+              desc="Close friends status"
+              active={mods.statusCloseFriends}
+              onClick={() => toggleMod('statusCloseFriends')}
+            />
+            <ModItem
+              icon={<Sparkles size={20} className="text-blue-400" />}
+              title="Status AI Background"
+              desc="AI-generated backgrounds"
+              active={mods.statusAIBackground}
+              onClick={() => toggleMod('statusAIBackground')}
+            />
+            <ModItem
+              icon={<Bot size={20} className="text-purple-400" />}
+              title="Status AI Caption"
+              desc="AI-generated captions"
+              active={mods.statusAICaption}
+              onClick={() => toggleMod('statusAICaption')}
+            />
+            <ModItem
+              icon={<Wand2 size={20} className="text-cyan-400" />}
+              title="Status AI Filter"
+              desc="AI filters for status"
+              active={mods.statusAIFilter}
+              onClick={() => toggleMod('statusAIFilter')}
+            />
+            <ModItem
+              icon={<Smile size={20} className="text-yellow-400" />}
+              title="Status AI Sticker"
+              desc="AI-generated stickers"
+              active={mods.statusAISticker}
+              onClick={() => toggleMod('statusAISticker')}
             />
           </div>
         </section>
