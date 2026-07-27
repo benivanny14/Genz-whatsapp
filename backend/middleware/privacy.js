@@ -6,34 +6,34 @@ const { applyPrivacyFilter } = require('../utils/privacyHelper');
  * This ensures that sensitive user information is filtered based on the requester's permissions
  */
 
-const privacyMiddleware = (req, res, next) => {
+const privacyMiddleware = async (req, res, next) => {
   // Store the original json method
   const originalJson = res.json;
 
   // Override res.json to apply privacy filtering to user data
-  res.json = function(data) {
+  res.json = async function(data) {
     // Only filter if the response contains user data and has a requester ID
     if (data && (data.user || data.users) && req.user && req.user._id) {
       const requesterId = req.user._id;
       
       // Filter single user
       if (data.user) {
-        data.user = applyPrivacyFilter(data.user, requesterId);
+        data.user = await applyPrivacyFilter(data.user, requesterId);
       }
       
       // Filter array of users
       if (data.users && Array.isArray(data.users)) {
-        data.users = data.users.map(user => applyPrivacyFilter(user, requesterId));
+        data.users = await Promise.all(data.users.map(user => applyPrivacyFilter(user, requesterId)));
       }
       
       // Filter participants in conversations
       if (data.participants && Array.isArray(data.participants)) {
-        data.participants = data.participants.map(user => applyPrivacyFilter(user, requesterId));
+        data.participants = await Promise.all(data.participants.map(user => applyPrivacyFilter(user, requesterId)));
       }
       
       // Filter members in groups
       if (data.members && Array.isArray(data.members)) {
-        data.members = data.members.map(user => applyPrivacyFilter(user, requesterId));
+        data.members = await Promise.all(data.members.map(user => applyPrivacyFilter(user, requesterId)));
       }
     }
     
@@ -48,8 +48,8 @@ const privacyMiddleware = (req, res, next) => {
  * Apply privacy filter to a specific user object
  * This can be used in controllers to manually filter user data
  */
-const filterUserData = (user, requesterId) => {
-  return applyPrivacyFilter(user, requesterId);
+const filterUserData = async (user, requesterId) => {
+  return await applyPrivacyFilter(user, requesterId);
 };
 
 /**

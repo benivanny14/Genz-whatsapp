@@ -2815,6 +2815,51 @@ try {
       } catch (err) { console.error('group:event_created error:', err); }
     });
 
+    // Privacy settings changed - broadcast to all user's connected devices
+    socket.on('privacy:settings_changed', async ({ privacyType, newValue } = {}) => {
+      try {
+        if (!socket.userId || !privacyType) return;
+        
+        // Broadcast to all user's connected sessions
+        io.to(String(socket.userId)).emit('privacy:settings_updated', {
+          userId: socket.userId,
+          privacyType,
+          newValue,
+          timestamp: new Date().toISOString()
+        });
+      } catch (err) { console.error('privacy:settings_changed error:', err); }
+    });
+
+    // Excluded contacts changed - broadcast to all user's connected devices
+    socket.on('privacy:excluded_changed', async ({ privacyType, excludedContacts } = {}) => {
+      try {
+        if (!socket.userId || !privacyType) return;
+        
+        // Broadcast to all user's connected sessions
+        io.to(String(socket.userId)).emit('privacy:excluded_updated', {
+          userId: socket.userId,
+          privacyType,
+          excludedContacts,
+          timestamp: new Date().toISOString()
+        });
+      } catch (err) { console.error('privacy:excluded_changed error:', err); }
+    });
+
+    // Allowed contacts changed - broadcast to all user's connected devices
+    socket.on('privacy:allowed_changed', async ({ privacyType, allowedContacts } = {}) => {
+      try {
+        if (!socket.userId || !privacyType) return;
+        
+        // Broadcast to all user's connected sessions
+        io.to(String(socket.userId)).emit('privacy:allowed_updated', {
+          userId: socket.userId,
+          privacyType,
+          allowedContacts,
+          timestamp: new Date().toISOString()
+        });
+      } catch (err) { console.error('privacy:allowed_changed error:', err); }
+    });
+
     socket.on('disconnect', async () => {
       console.log('User disconnected:', socket.id);
 

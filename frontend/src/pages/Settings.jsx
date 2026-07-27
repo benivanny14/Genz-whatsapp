@@ -15,6 +15,8 @@ import AntiBanPanel from '../components/AntiBanPanel';
 import StatusPrivacyPanel from '../components/StatusPrivacyPanel';
 import StorageManagement from '../components/StorageManagement';
 import AccountSwitcher from '../components/AccountSwitcher';
+import PrivacyPermissionSelector from '../components/PrivacyPermissionSelector';
+import ContactSelectorScreen from '../components/ContactSelectorScreen';
 import { useUser } from '../context/UserContext';
 import { useLanguage } from '../context/LanguageContext';
 import userService from '../services/userService';
@@ -281,6 +283,8 @@ const Settings = () => {
   const [showCatalogue, setShowCatalogue] = useState(false);
   const [showBusinessPanel, setShowBusinessPanel] = useState(false);
   const [showStorage, setShowStorage] = useState(false);
+  const [showContactSelector, setShowContactSelector] = useState(false);
+  const [contactSelectorConfig, setContactSelectorConfig] = useState(null);
 
   const tabs = useMemo(() => ([
     { id: 'profile', label: 'Profile', icon: User },
@@ -446,6 +450,106 @@ const Settings = () => {
     showStatus('success', 'Privacy Checkup applied.');
   };
 
+  const handlePrivacyChange = async (privacyType, value) => {
+    try {
+      const next = {
+        ...settingsData,
+        privacy: {
+          ...settingsData.privacy,
+          [privacyType]: value
+        }
+      };
+      setSettingsData(next);
+      persistSettings(next);
+      
+      // Auto-save to server (WhatsApp behavior)
+      await userService.updateSettings(next);
+      showStatus('success', 'Privacy setting updated.');
+    } catch (error) {
+      showStatus('warning', 'Saved locally. Server sync will retry.');
+    }
+  };
+
+  const handleOnlineChange = async (value) => {
+    await handlePrivacyChange('online', value);
+  };
+
+  const openContactSelector = (privacyType, selectorType) => {
+    setContactSelectorConfig({
+      privacyType,
+      selectorType,
+      initialSelectedContacts: []
+    });
+    setShowContactSelector(true);
+  };
+
+  const handleContactSelectorSave = async (selectedContactIds, selectedContactData) => {
+    const { privacyType, selectorType } = contactSelectorConfig;
+    
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || '';
+      
+      if (selectorType === 'excluded') {
+        // Clear existing and add new
+        await fetch(`${API_URL}/privacy/excluded/type/${privacyType}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        
+        if (selectedContactData.length > 0) {
+          await fetch(`${API_URL}/privacy/excluded/bulk`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+              privacyType,
+              contacts: selectedContactData
+            })
+          });
+        }
+      } else if (selectorType === 'allowed') {
+        // Clear existing and add new
+        await fetch(`${API_URL}/privacy/allowed/type/${privacyType}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        
+        if (selectedContactData.length > 0) {
+          await fetch(`${API_URL}/privacy/allowed/bulk`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+              privacyType,
+              contacts: selectedContactData
+            })
+          });
+        }
+      }
+      
+      showStatus('success', 'Contact list updated.');
+      setShowContactSelector(false);
+    } catch (error) {
+      showStatus('error', 'Failed to update contact list.');
+    }
+  };
+
+  // Make openContactSelector available globally for PrivacyPermissionSelector
+  useEffect(() => {
+    window.openContactSelector = openContactSelector;
+    return () => {
+      delete window.openContactSelector;
+    };
+  }, []);
+
   const requestAccountInfo = () => {
     const next = setPath(settingsData, 'account.requestAccountInfoAt', new Date().toISOString());
     setSettingsData(next);
@@ -572,16 +676,64 @@ const Settings = () => {
       </SettingSection>
 
       <SettingSection title="Who can see my personal info" description="Online, profile photo, about, and status visibility.">
-        <SettingRow icon={Globe2} title="Online" control={<Select value={settingsData.privacy.online} onChange={(value) => updateSetting('privacy.online', value)} options={[['everyone', 'Everyone'], ['same_as_last_seen', 'Same as last seen']]} />} />
-        <SettingRow icon={UserRound} title="Profile photo" control={<Select value={settingsData.privacy.profilePhoto} onChange={(value) => updateSetting('privacy.profilePhoto', value)} options={VISIBILITY_OPTIONS} />} />
-        <SettingRow icon={User} title="About" control={<Select value={settingsData.privacy.about} onChange={(value) => updateSetting('privacy.about', value)} options={VISIBILITY_OPTIONS} />} />
-        <SettingRow icon={Palette} title="Status" control={<Select value={settingsData.privacy.status} onChange={(value) => updateSetting('privacy.status', value)} options={STATUS_OPTIONS} />} />
+        <div className="px-4 py-4 space-y-4">
+          <div>
+            <p className="text-sm font-semibold text-white mb-3">Online</p>
+            <PrivacyPermissionSelector
+              privacyType="online"
+              currentValue={settingsData.privacy.online}
+              options={['everyone', 'same_as_last_seen']}
+              onChange={(value) => handleOnlineChange(value)}
+            />
+          </div>
+          
+          <div>
+            <p className="text-sm font-semibold text-white mb-3">Profile photo</p>
+            <PrivacyPermissionSelector
+              privacyType="profilePhoto"
+              currentValue={settingsData.privacy.profilePhoto}
+              options={['everyone', 'contacts', 'contacts_except', 'nobody']}
+              onChange={(value) => handlePrivacyChange('profilePhoto', value)}
+            />
+          </div>
+          
+          <div>
+            <p className="text-sm font-semibold text-white mb-3">About</p>
+            <PrivacyPermissionSelector
+              privacyType="about"
+              currentValue={settingsData.privacy.about}
+              options={['everyone', 'contacts', 'contacts_except', 'nobody']}
+              onChange={(value) => handlePrivacyChange('about', value)}
+            />
+          </div>
+          
+          <div>
+            <p className="text-sm font-semibold text-white mb-3">Status</p>
+            <PrivacyPermissionSelector
+              privacyType="status"
+              currentValue={settingsData.privacy.status}
+              options={['contacts', 'contacts_except', 'only_share_with', 'nobody']}
+              onChange={(value) => handlePrivacyChange('status', value)}
+            />
+          </div>
+        </div>
+        
         <SettingRow icon={Eye} title="Advanced status privacy" description="Close friends list and per-status privacy level." onClick={() => setShowStatusPrivacyPanel(true)} />
       </SettingSection>
 
       <SettingSection title="Messages, groups, and calls" description="Controls for disappearing messages, group invites, unknown calls, and call privacy.">
         <SettingRow icon={Clock} title="Default message timer" control={<Select value={settingsData.privacy.defaultMessageTimer} onChange={(value) => updateSetting('privacy.defaultMessageTimer', value)} options={TIMER_OPTIONS} />} />
-        <SettingRow icon={Users} title="Groups" description="Who can add you to groups." control={<Select value={settingsData.privacy.groups} onChange={(value) => updateSetting('privacy.groups', value)} options={VISIBILITY_OPTIONS.filter(([value]) => value !== 'nobody')} />} />
+        
+        <div className="px-4 py-4">
+          <p className="text-sm font-semibold text-white mb-3">Groups</p>
+          <PrivacyPermissionSelector
+            privacyType="groups"
+            currentValue={settingsData.privacy.groups}
+            options={['everyone', 'contacts', 'contacts_except']}
+            onChange={(value) => handlePrivacyChange('groups', value)}
+          />
+        </div>
+        
         <SettingRow icon={Phone} title="Silence unknown callers" description="Unknown calls will not ring, but stay visible in calls." control={<Toggle checked={settingsData.privacy.silenceUnknownCallers} onChange={() => toggleSetting('privacy.silenceUnknownCallers')} />} />
         <SettingRow icon={Shield} title="Protect IP address in calls" description="Relay calls for extra call privacy." control={<Toggle checked={settingsData.privacy.protectIpAddressInCalls} onChange={() => toggleSetting('privacy.protectIpAddressInCalls')} />} />
       </SettingSection>
@@ -793,6 +945,16 @@ const Settings = () => {
       {showAntiBanPanel && <AntiBanPanel onClose={() => setShowAntiBanPanel(false)} />}
       {showStatusPrivacyPanel && <StatusPrivacyPanel onClose={() => setShowStatusPrivacyPanel(false)} />}
       {showStorage && <StorageManagement onClose={() => setShowStorage(false)} />}
+      {showContactSelector && contactSelectorConfig && (
+        <ContactSelectorScreen
+          privacyType={contactSelectorConfig.privacyType}
+          selectorType={contactSelectorConfig.selectorType}
+          contacts={user?.contacts || []}
+          initialSelectedContacts={contactSelectorConfig.initialSelectedContacts}
+          onSave={handleContactSelectorSave}
+          onClose={() => setShowContactSelector(false)}
+        />
+      )}
     </div>
   );
 };
