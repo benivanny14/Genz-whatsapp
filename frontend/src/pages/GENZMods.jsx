@@ -10,23 +10,41 @@ const GENZMods = () => {
   const [saving, setSaving] = useState(false);
   const [modsSettings, setModsSettings] = useState({
     antiDelete: false,
-    autoReply: { enabled: false, message: '' },
+    antiDeleteStatus: false,
     ghostMode: {
       hideOnline: false,
       hideTyping: false,
       hideReadReceipts: false,
+      hideRecording: false,
       freezeLastSeen: false
     },
+    hideLastSeen: false,
+    hideSecondTick: false,
+    hideViewStatus: false,
+    hideBlueTickColor: false,
+    autoReply: { enabled: false, message: '', keywords: [] },
+    antiViewOnce: false,
+    voiceEffect: 'none',
+    highResMedia: false,
+    autoDownloadMedia: false,
+    autoSaveMedia: false,
+    chatBackgroundMusic: { enabled: false, track: '' },
     readReceipts: true,
     typingIndicators: true,
     onlineStatus: true,
-    hideSecondTick: false,
-    hideViewStatus: false
+    alwaysOnline: false,
+    spamFilter: false,
+    selfDestruct: false,
+    noForwardLabel: false,
+    linkPreview: true,
+    clientE2EE: false,
+    debugEncryption: false
   });
   const [deletedMessages, setDeletedMessages] = useState([]);
   const [showDeletedMessages, setShowDeletedMessages] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const fileInputRef = React.useRef(null);
 
   useEffect(() => {
     fetchModsSettings();
@@ -480,10 +498,10 @@ const GENZMods = () => {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <Eye className="w-4 h-4 text-gray-500" />
+                <EyeOff className="w-4 h-4 text-gray-500" />
                 <div>
                   <p className="font-medium text-gray-900 dark:text-white">Hide View Status</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Hide your name from status viewers</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Hide status view confirmation</p>
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -496,127 +514,362 @@ const GENZMods = () => {
                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
               </label>
             </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Clock className="w-4 h-4 text-gray-500" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">Hide Last Seen</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Hide your last seen timestamp</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!modsSettings.hideLastSeen}
+                  onChange={(e) => setModsSettings(prev => ({ ...prev, hideLastSeen: e.target.checked }))}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Zap className="w-4 h-4 text-gray-500" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">Always Online</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Always appear online to others</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!modsSettings.alwaysOnline}
+                  onChange={(e) => setModsSettings(prev => ({ ...prev, alwaysOnline: e.target.checked }))}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+              </label>
+            </div>
           </div>
         </div>
+
+        {/* Media Settings */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-start space-x-3 mb-4">
+            <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
+              <Download className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Media Settings</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Control media handling
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Download className="w-4 h-4 text-gray-500" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">Auto Download Media</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Automatically download media files</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!modsSettings.autoDownloadMedia}
+                  onChange={(e) => setModsSettings(prev => ({ ...prev, autoDownloadMedia: e.target.checked }))}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-600"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Shield className="w-4 h-4 text-gray-500" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">Auto Save Media</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Automatically save media to gallery</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!modsSettings.autoSaveMedia}
+                  onChange={(e) => setModsSettings(prev => ({ ...prev, autoSaveMedia: e.target.checked }))}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-600"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Zap className="w-4 h-4 text-gray-500" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">High Resolution Media</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Send and receive high quality media</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!modsSettings.highResMedia}
+                  onChange={(e) => setModsSettings(prev => ({ ...prev, highResMedia: e.target.checked }))}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-600"></div>
+              </label>
+            </div>
+          </div>
         </div>
+
+        {/* Advanced Settings */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-start space-x-3 mb-4">
+            <div className="p-2 bg-indigo-100 dark:bg-indigo-900 rounded-lg">
+              <Settings className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Advanced Settings</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Additional privacy and security features
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Eye className="w-4 h-4 text-gray-500" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">Anti View Once</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">View view-once media multiple times</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!modsSettings.antiViewOnce}
+                  onChange={(e) => setModsSettings(prev => ({ ...prev, antiViewOnce: e.target.checked }))}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Shield className="w-4 h-4 text-gray-500" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">No Forward Label</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Remove forwarded message labels</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!modsSettings.noForwardLabel}
+                  onChange={(e) => setModsSettings(prev => ({ ...prev, noForwardLabel: e.target.checked }))}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Shield className="w-4 h-4 text-gray-500" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">Hide Blue Tick Color</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Hide blue tick color on read receipts</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!modsSettings.hideBlueTickColor}
+                  onChange={(e) => setModsSettings(prev => ({ ...prev, hideBlueTickColor: e.target.checked }))}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Shield className="w-4 h-4 text-gray-500" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">Link Preview</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Show link previews in messages</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!modsSettings.linkPreview}
+                  onChange={(e) => setModsSettings(prev => ({ ...prev, linkPreview: e.target.checked }))}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Shield className="w-4 h-4 text-gray-500" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">Spam Filter</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Filter spam messages automatically</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!modsSettings.spamFilter}
+                  onChange={(e) => setModsSettings(prev => ({ ...prev, spamFilter: e.target.checked }))}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Lock className="w-4 h-4 text-gray-500" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">Client E2EE</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Enable client-side end-to-end encryption</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!modsSettings.clientE2EE}
+                  onChange={(e) => setModsSettings(prev => ({ ...prev, clientE2EE: e.target.checked }))}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Settings className="w-4 h-4 text-gray-500" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">Debug Encryption</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Enable encryption debugging</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!modsSettings.debugEncryption}
+                  onChange={(e) => setModsSettings(prev => ({ ...prev, debugEncryption: e.target.checked }))}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* Anti-Delete Status */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-start space-x-3">
+              <div className="p-2 bg-pink-100 dark:bg-pink-900 rounded-lg">
+                <Trash2 className="w-5 h-5 text-pink-600 dark:text-pink-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Anti-Delete Status</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  See and restore deleted status updates
+                </p>
+              </div>
+            </div>
+            
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!modsSettings.antiDeleteStatus}
+                onChange={(e) => setModsSettings(prev => ({ ...prev, antiDeleteStatus: e.target.checked }))}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-pink-600"></div>
+            </label>
+          </div>
+        </div>
+
+        {/* Import/Export Settings */}
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={importSettings}
+            className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-2"
+          >
+            <Upload size={16} /> Import Settings
+          </button>
+          <button
+            onClick={exportSettings}
+            className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-2"
+          >
+            <Download size={16} /> Export Settings
+          </button>
+        </div>
+
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={importSettings}
+          accept=".json"
+          className="hidden"
+        />
       </div>
 
       {/* Deleted Messages Modal */}
-
-      {/* ── Custom Fonts Section ── */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 mb-4">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center">
-            <span className="text-purple-400 text-lg font-bold">Aa</span>
-          </div>
-          <div>
-            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Custom Fonts</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Change the app font style</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          {[
-            { id: 'default', label: 'Default', preview: 'Hello there!', cssFont: '' },
-            { id: 'serif', label: 'Serif', preview: 'Hello there!', cssFont: "Georgia, serif" },
-            { id: 'mono', label: 'Monospace', preview: 'Hello there!', cssFont: "'Courier New', monospace" },
-            { id: 'rounded', label: 'Rounded', preview: 'Hello there!', cssFont: "'Trebuchet MS', sans-serif" },
-            { id: 'elegant', label: 'Elegant', preview: 'Hello there!', cssFont: "Palatino, serif" },
-            { id: 'bold', label: 'Bold', preview: 'Hello there!', cssFont: "'Arial Black', sans-serif" },
-          ].map(font => {
-            const isActive = (modsSettings?.customFont || 'default') === font.id;
-            return (
+      {showDeletedMessages && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Deleted Messages</h3>
               <button
-                key={font.id}
-                onClick={() => {
-                  const newMods = { ...modsSettings, customFont: font.id };
-                  setModsSettings(newMods);
-                  saveModsSettings();
-                  document.body.style.fontFamily = font.cssFont || '';
-                }}
-                className={`p-3 rounded-xl border-2 text-center transition-all ${isActive ? 'border-purple-500 bg-purple-500/10' : 'border-gray-200 dark:border-gray-600 hover:border-purple-300'}`}
+                onClick={() => setShowDeletedMessages(false)}
+                className="text-gray-400 hover:text-white"
               >
-                <p className="text-sm font-semibold text-gray-900 dark:text-white" style={{ fontFamily: font.cssFont || 'inherit' }}>{font.label}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5" style={{ fontFamily: font.cssFont || 'inherit' }}>{font.preview}</p>
+                <X size={20} />
               </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <AnimatePresence>
-        {showDeletedMessages && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-            onClick={() => setShowDeletedMessages(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Deleted Messages ({deletedMessages.length})
-                  </h2>
-                  <button
-                    onClick={() => setShowDeletedMessages(false)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                   aria-label="Back">
-                    <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                  </button>
-                </div>
-              </div>
-              
-              <div className="overflow-y-auto max-h-[60vh] p-4">
-                {deletedMessages.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Trash2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500 dark:text-gray-400">No deleted messages found</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {deletedMessages.map((message) => (
-                      <div key={message.id} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <span className="font-medium text-gray-900 dark:text-white">
-                                {message.sender?.name || 'Unknown'}
-                              </span>
-                              <span className="text-xs text-gray-500 dark:text-gray-400">
-                                {new Date(message.deletedAt).toLocaleString()}
-                              </span>
-                            </div>
-                            <p className="text-gray-700 dark:text-gray-300">{message.content}</p>
-                            {message.media && (
-                              <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                                📎 Media: {message.media.type}
-                              </div>
-                            )}
-                          </div>
-                          <button
-                            onClick={() => restoreMessage(message.id)}
-                            className="ml-3 p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
-                            title="Restore Message" aria-label="Restore Message"
-                          >
-                            <RefreshCw className="w-4 h-4 text-green-600 dark:text-green-400" />
-                          </button>
-                        </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              {deletedMessages.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">No deleted messages found</p>
+              ) : (
+                <div className="space-y-3">
+                  {deletedMessages.map((msg) => (
+                    <div key={msg.id} className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
+                      <p className="text-sm text-gray-900 dark:text-white mb-2">{msg.content}</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-500">{new Date(msg.timestamp).toLocaleString()}</span>
+                        <button
+                          onClick={() => restoreMessage(msg.id)}
+                          className="text-xs text-blue-600 hover:text-blue-700"
+                        >
+                          Restore
+                        </button>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      </div>
     </div>
   );
 };
