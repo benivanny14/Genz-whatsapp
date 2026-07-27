@@ -474,13 +474,48 @@ const Settings = () => {
     await handlePrivacyChange('online', value);
   };
 
-  const openContactSelector = (privacyType, selectorType) => {
-    setContactSelectorConfig({
-      privacyType,
-      selectorType,
-      initialSelectedContacts: []
-    });
-    setShowContactSelector(true);
+  const openContactSelector = async (privacyType, selectorType) => {
+    try {
+      // Fetch full contact data from API
+      const API_URL = import.meta.env.VITE_API_URL || '';
+      const response = await fetch(`${API_URL}/chat/contacts`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const contacts = data.contacts || data.users || [];
+        
+        setContactSelectorConfig({
+          privacyType,
+          selectorType,
+          initialSelectedContacts: [],
+          contacts: contacts
+        });
+        setShowContactSelector(true);
+      } else {
+        // Fallback to user contacts if API fails
+        setContactSelectorConfig({
+          privacyType,
+          selectorType,
+          initialSelectedContacts: [],
+          contacts: user?.contacts || []
+        });
+        setShowContactSelector(true);
+      }
+    } catch (error) {
+      console.error('Failed to fetch contacts:', error);
+      // Fallback to user contacts
+      setContactSelectorConfig({
+        privacyType,
+        selectorType,
+        initialSelectedContacts: [],
+        contacts: user?.contacts || []
+      });
+      setShowContactSelector(true);
+    }
   };
 
   const handleContactSelectorSave = async (selectedContactIds, selectedContactData) => {

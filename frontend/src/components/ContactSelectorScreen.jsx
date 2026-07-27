@@ -17,7 +17,13 @@ const ContactSelectorScreen = ({
   useEffect(() => {
     // Filter contacts based on search query
     if (!searchQuery.trim()) {
-      setFilteredContacts(contacts);
+      // Sort contacts alphabetically by name
+      const sorted = [...contacts].sort((a, b) => {
+        const nameA = (a.username || a.name || '').toLowerCase();
+        const nameB = (b.username || b.name || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+      setFilteredContacts(sorted);
     } else {
       const query = searchQuery.toLowerCase();
       const filtered = contacts.filter(contact => 
@@ -25,7 +31,13 @@ const ContactSelectorScreen = ({
         contact.phone?.includes(query) ||
         contact.username?.toLowerCase().includes(query)
       );
-      setFilteredContacts(filtered);
+      // Sort filtered contacts alphabetically
+      const sorted = filtered.sort((a, b) => {
+        const nameA = (a.username || a.name || '').toLowerCase();
+        const nameB = (b.username || b.name || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+      setFilteredContacts(sorted);
     }
   }, [searchQuery, contacts]);
 

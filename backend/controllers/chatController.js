@@ -2,6 +2,8 @@ const mongoose = require("mongoose");
 const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
 const User = require("../models/User");
+const PrivacyExcludedContact = require("../models/PrivacyExcludedContact");
+const PrivacyAllowedContact = require("../models/PrivacyAllowedContact");
 const crypto = require("crypto");
 const { applyPrivacyFilter } = require("../utils/privacyHelper");
 const { resolveMessageMentions } = require("../utils/mentions");
@@ -18,6 +20,48 @@ const { ensureUnreadMap, getUnreadCount } = require("../utils/unreadCount");
 const LOCAL_USER_ID = process.env.LOCAL_USER_ID || "60d5ecb8b392cb371c664c12";
 
 const getCurrentUserId = (req) => req.user?._id?.toString() || LOCAL_USER_ID;
+
+// Helper function to apply permission inheritance for new contacts
+const applyPermissionInheritance = async (ownerUserId, newContactId, newContactName, newContactPhone) => {
+  try {
+    // Get owner's privacy settings
+    const owner = await User.findById(ownerUserId).select('settings.privacy');
+    if (!owner || !owner.settings?.privacy) return;
+
+    const privacySettings = owner.settings.privacy;
+    const privacyTypes = ['last_seen', 'profile_photo', 'about', 'status', 'groups', 'calls'];
+
+    // For each privacy type that uses 'contacts_except', add the new contact to excluded list
+    for (const privacyType of privacyTypes) {
+      const settingValue = privacySettings[privacyType];
+      
+      if (settingValue === 'contacts_except') {
+        // Check if there's an existing excluded list for this privacy type
+        const existingExcluded = await PrivacyExcludedContact.findOne({
+          ownerUserId,
+          privacyType,
+          excludedContactId: newContactId
+        });
+
+        if (!existingExcluded) {
+          // Add new contact to excluded list (WhatsApp behavior: new contacts are excluded by default)
+          await PrivacyExcludedContact.create({
+            ownerUserId,
+            privacyType,
+            excludedContactId: newContactId,
+            excludedContactName: newContactName,
+            excludedContactPhone: newContactPhone
+          });
+        }
+      }
+    }
+
+    // For status privacy with 'only_share_with', new contacts are NOT automatically added
+    // User must manually add them to allowed list
+  } catch (error) {
+    console.error('Error applying permission inheritance:', error);
+  }
+};
 
 const includesId = (items = [], id) => {
   if (!Array.isArray(items)) return false;
@@ -1363,9 +1407,12 @@ exports.addContact = async (req, res) => {
     if (!alreadyExists) {
       user.contacts.push({ user: userId, savedName: savedName || contact.username });
       await user.save();
+      
+      // Apply permission inheritance for new contact
+      await applyPermissionInheritance(localUserId, userId, contact.username, contact.phoneNumber);
     }
 
-    const filteredContact = applyPrivacyFilter(contact, localUserId);
+    const filteredContact = await applyPrivacyFilter(contact, localUserId);
 
     res.status(200).json({ success: true, contact: { user: filteredContact, savedName: savedName || contact.username }, message: "Contact added" });
   } catch (error) {
@@ -1402,6 +1449,9 @@ exports.addContactByPhone = async (req, res) => {
 
     currentUser.contacts.push({ user: contactUser._id, savedName });
     await currentUser.save();
+    
+    // Apply permission inheritance for new contact
+    await applyPermissionInheritance(localUserId, contactUser._id, contactUser.username, contactUser.phoneNumber);
 
     let conversation = await Conversation.findOne({
       participants: { $all: [localUserId, contactUser._id] },
