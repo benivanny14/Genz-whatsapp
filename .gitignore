@@ -1,0 +1,16 @@
+node_modules/
+.env
+.env.*
+!.env.example
+dist/
+*.log
+logs/
+uploads/
+backend/uploads/
+Microsoft/
+scripts/render-env-export.txt
+.agents/
+.qodo/
+.sixth/
+frontend/test-results/
+push_to_github.ps1

@@ -1,0 +1,30 @@
+const express = require('express');
+const router = express.Router();
+const { protect } = require('../middleware/auth');
+const {
+  clearAllChats,
+  createPoll,
+  downloadStatus,
+  exportChat,
+  generateAISticker,
+  getQuickActionsSettings,
+  jumpToDate,
+  resetQuickActionsSettings,
+  sendMassMessage,
+  updateQuickActionsSettings,
+} = require('../controllers/quickActionsController');
+
+router.use(protect);
+
+router.get('/settings', getQuickActionsSettings);
+router.post('/settings', updateQuickActionsSettings);
+router.post('/mass-message', sendMassMessage);
+router.post('/ai-sticker', generateAISticker);
+router.post('/export-chat', exportChat);
+router.post('/clear-all-chats', clearAllChats);
+router.post('/jump-to-date', jumpToDate);
+router.post('/create-poll', createPoll);
+router.post('/download-status', downloadStatus);
+router.post('/reset', resetQuickActionsSettings);
+
+module.exports = router;

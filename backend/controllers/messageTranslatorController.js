@@ -1,0 +1,304 @@
+const User = require('../models/User');
+
+const defaultSettings = {
+  autoTranslate: false,
+  targetLanguage: 'en',
+  sourceLanguage: 'auto',
+  showOriginal: true,
+  translateIncoming: false,
+  translateOutgoing: false,
+  supportedLanguages: ['en', 'sw', 'ar', 'fr', 'es', 'de', 'zh', 'hi', 'pt', 'ru']
+};
+
+const getUser = async (req, res) => {
+  const user = await User.findById(req.user?._id);
+  if (!user) {
+    res.status(401).json({ success: false, message: 'Authentication required' });
+    return null;
+  }
+  return user;
+};
+
+const mergeSettings = (settings = {}) => ({
+  ...defaultSettings,
+  ...settings
+});
+
+// @desc    Get message translator settings
+// @route   GET /api/message-translator/settings
+// @access  Private
+exports.getTranslatorSettings = async (req, res) => {
+  try {
+    const user = await getUser(req, res);
+    if (!user) return;
+
+    const settings = mergeSettings(user.translatorSettings?.toObject?.() || user.translatorSettings);
+    res.status(200).json({ success: true, settings });
+  } catch (error) {
+    console.error('Get translator settings error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Update message translator settings
+// @route   POST /api/message-translator/settings
+// @access  Private
+exports.updateTranslatorSettings = async (req, res) => {
+  try {
+    const user = await getUser(req, res);
+    if (!user) return;
+
+    const incoming = req.body.settings || req.body;
+    const existing = user.translatorSettings?.toObject?.() || user.translatorSettings || {};
+    
+    user.translatorSettings = mergeSettings({ ...existing, ...incoming });
+    user.markModified('translatorSettings');
+    await user.save();
+
+    res.status(200).json({ success: true, settings: user.translatorSettings });
+  } catch (error) {
+    console.error('Update translator settings error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Translate message
+// @route   POST /api/message-translator/translate
+// @access  Private
+exports.translateMessage = async (req, res) => {
+  try {
+    const user = await getUser(req, res);
+    if (!user) return;
+
+    const { text, targetLanguage, sourceLanguage } = req.body;
+
+    if (!text) {
+      return res.status(400).json({ success: false, message: 'Text is required' });
+    }
+
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      // Fallback to simple mock translation
+      const mockTranslations = {
+        'sw': { 'hello': 'habari', 'how are you': 'habari gani', 'good': 'nzuri' },
+        'en': { 'habari': 'hello', 'habari gani': 'how are you', 'nzuri': 'good' }
+      };
+
+      const target = targetLanguage || user.translatorSettings?.targetLanguage || 'en';
+      const source = sourceLanguage || user.translatorSettings?.sourceLanguage || 'auto';
+      
+      // Simple mock translation (in real implementation, use Google Translate API or similar)
+      let translatedText = text;
+      if (mockTranslations[target]) {
+        Object.keys(mockTranslations[target]).forEach(key => {
+          if (text.toLowerCase().includes(key)) {
+            translatedText = text.toLowerCase().replace(key, mockTranslations[target][key]);
+          }
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        originalText: text,
+        translatedText,
+        sourceLanguage: source,
+        targetLanguage: target,
+        provider: 'mock'
+      });
+    }
+
+    // Use OpenAI for translation
+    try {
+      const OpenAI = require('openai');
+      const client = new OpenAI({ apiKey });
+      const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+
+      const languageMap = {
+        'en': 'English',
+        'sw': 'Swahili',
+        'ar': 'Arabic',
+        'fr': 'French',
+        'es': 'Spanish',
+        'de': 'German',
+        'zh': 'Chinese',
+        'hi': 'Hindi',
+        'pt': 'Portuguese',
+        'ru': 'Russian'
+      };
+
+      const targetLang = targetLanguage || user.translatorSettings?.targetLanguage || 'en';
+      const targetLangName = languageMap[targetLang] || 'English';
+
+      const completion = await client.chat.completions.create({
+        model,
+        messages: [
+          {
+            role: 'system',
+            content: `You are a professional translator. Translate the given text to ${targetLangName}. Keep the translation natural and accurate. Only return the translated text, no explanations.`
+          },
+          { role: 'user', content: text.slice(0, 4000) }
+        ],
+        max_tokens: 1000,
+        temperature: 0.3
+      });
+
+      const translatedText = completion?.choices?.[0]?.message?.content?.trim() || text;
+
+      res.status(200).json({
+        success: true,
+        originalText: text,
+        translatedText,
+        sourceLanguage: sourceLanguage || 'auto',
+        targetLanguage: targetLang,
+        provider: 'openai'
+      });
+    } catch (aiError) {
+      console.error('AI translation error:', aiError);
+      res.status(500).json({ success: false, message: 'Failed to translate message' });
+    }
+  } catch (error) {
+    console.error('Translate message error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Detect language
+// @route   POST /api/message-translator/detect
+// @access  Private
+exports.detectLanguage = async (req, res) => {
+  try {
+    const user = await getUser(req, res);
+    if (!user) return;
+
+    const { text } = req.body;
+
+    if (!text) {
+      return res.status(400).json({ success: false, message: 'Text is required' });
+    }
+
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      // Simple mock detection
+      const swahiliWords = ['habari', 'jambo', 'asante', 'kwa', 'na', 'la', 'ya', 'wa', 'ni', 'hu'];
+      const arabicWords = ['السلام', 'عليكم', 'شكرا', 'حسن'];
+      
+      let detectedLang = 'en';
+      const lowerText = text.toLowerCase();
+      
+      if (swahiliWords.some(word => lowerText.includes(word))) {
+        detectedLang = 'sw';
+      } else if (arabicWords.some(word => lowerText.includes(word))) {
+        detectedLang = 'ar';
+      }
+
+      return res.status(200).json({
+        success: true,
+        language: detectedLang,
+        confidence: 0.8,
+        provider: 'mock'
+      });
+    }
+
+    try {
+      const OpenAI = require('openai');
+      const client = new OpenAI({ apiKey });
+
+      const completion = await client.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'Detect the language of the given text. Return only the ISO 639-1 language code (e.g., "en", "sw", "ar", "fr", "es", "de", "zh", "hi", "pt", "ru").'
+          },
+          { role: 'user', content: text.slice(0, 500) }
+        ],
+        max_tokens: 10,
+        temperature: 0
+      });
+
+      const language = completion?.choices?.[0]?.message?.content?.trim().toLowerCase() || 'en';
+
+      res.status(200).json({
+        success: true,
+        language,
+        confidence: 0.9,
+        provider: 'openai'
+      });
+    } catch (aiError) {
+      console.error('AI language detection error:', aiError);
+      res.status(500).json({ success: false, message: 'Failed to detect language' });
+    }
+  } catch (error) {
+    console.error('Detect language error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Toggle auto translate
+// @route   POST /api/message-translator/auto-translate
+// @access  Private
+exports.toggleAutoTranslate = async (req, res) => {
+  try {
+    const user = await getUser(req, res);
+    if (!user) return;
+
+    const { enabled } = req.body;
+    const existing = user.translatorSettings?.toObject?.() || user.translatorSettings || {};
+    
+    user.translatorSettings = mergeSettings({
+      ...existing,
+      autoTranslate: enabled !== undefined ? enabled : !existing.autoTranslate
+    });
+    user.markModified('translatorSettings');
+    await user.save();
+
+    res.status(200).json({ success: true, settings: user.translatorSettings });
+  } catch (error) {
+    console.error('Toggle auto translate error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get supported languages
+// @route   GET /api/message-translator/languages
+// @access  Private
+exports.getSupportedLanguages = async (req, res) => {
+  try {
+    const languages = [
+      { code: 'en', name: 'English', native: 'English' },
+      { code: 'sw', name: 'Swahili', native: 'Kiswahili' },
+      { code: 'ar', name: 'Arabic', native: 'العربية' },
+      { code: 'fr', name: 'French', native: 'Français' },
+      { code: 'es', name: 'Spanish', native: 'Español' },
+      { code: 'de', name: 'German', native: 'Deutsch' },
+      { code: 'zh', name: 'Chinese', native: '中文' },
+      { code: 'hi', name: 'Hindi', native: 'हिन्दी' },
+      { code: 'pt', name: 'Portuguese', native: 'Português' },
+      { code: 'ru', name: 'Russian', native: 'Русский' }
+    ];
+
+    res.status(200).json({ success: true, languages });
+  } catch (error) {
+    console.error('Get supported languages error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Reset translator settings to default
+// @route   POST /api/message-translator/reset
+// @access  Private
+exports.resetTranslatorSettings = async (req, res) => {
+  try {
+    const user = await getUser(req, res);
+    if (!user) return;
+
+    user.translatorSettings = mergeSettings({});
+    user.markModified('translatorSettings');
+    await user.save();
+
+    res.status(200).json({ success: true, settings: user.translatorSettings });
+  } catch (error) {
+    console.error('Reset translator settings error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
