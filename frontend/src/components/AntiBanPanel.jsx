@@ -3,7 +3,7 @@ import { ShieldCheck, X, RefreshCw, AlertTriangle } from 'lucide-react';
 import { authFetch } from '../utils/authFetch';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
-const BASE = `${API_URL}/api/anti-ban`;
+const BASE = `${API_URL}/anti-ban`;
 
 const Toggle = ({ checked, onChange, disabled }) => (
   <button
