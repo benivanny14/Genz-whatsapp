@@ -26,17 +26,18 @@ const {
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 const { uploadImage } = require('../middleware/upload');
+const { privacyMiddleware } = require('../middleware/privacy');
 
 router.post('/register', register);
 router.post('/login', login);
 // Refresh uses body.refreshToken only (no Authorization required)
 router.post('/refresh', refreshToken);
-router.get('/me', protect, getMe);
+router.get('/me', protect, privacyMiddleware, getMe);
 router.put('/profile', protect, updateProfile);
 router.post('/profile/picture', protect, uploadImage, uploadProfilePicture);
 router.get('/settings', protect, getSettings);
 router.put('/settings', protect, updateSettings);
-router.get('/blocked', protect, getBlockedUsers);
+router.get('/blocked', protect, privacyMiddleware, getBlockedUsers);
 router.post('/logout', protect, logout);
 router.post('/change-number', protect, changeNumber);
 router.post('/delete-account', protect, deleteAccount);

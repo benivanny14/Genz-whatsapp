@@ -19,7 +19,9 @@ const GENZMods = () => {
     },
     readReceipts: true,
     typingIndicators: true,
-    onlineStatus: true
+    onlineStatus: true,
+    hideSecondTick: false,
+    hideViewStatus: false
   });
   const [deletedMessages, setDeletedMessages] = useState([]);
   const [showDeletedMessages, setShowDeletedMessages] = useState(false);
@@ -451,6 +453,44 @@ const GENZMods = () => {
                   type="checkbox"
                   checked={!!modsSettings.onlineStatus}
                   onChange={(e) => setModsSettings(prev => ({ ...prev, onlineStatus: e.target.checked }))}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <MessageSquare className="w-4 h-4 text-gray-500" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">Hide Second Tick</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Hide message delivery confirmation</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!modsSettings.hideSecondTick}
+                  onChange={(e) => setModsSettings(prev => ({ ...prev, hideSecondTick: e.target.checked }))}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Eye className="w-4 h-4 text-gray-500" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">Hide View Status</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Hide your name from status viewers</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!modsSettings.hideViewStatus}
+                  onChange={(e) => setModsSettings(prev => ({ ...prev, hideViewStatus: e.target.checked }))}
                   className="sr-only peer"
                 />
                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>

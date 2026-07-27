@@ -9,6 +9,8 @@ const defaultSettings = {
   hideOnline: false,
   hideTyping: false,
   hideRecording: false,
+  hideSecondTick: false,
+  hideViewStatus: false,
   autoReply: { enabled: false, message: '', keywords: [] },
   antiViewOnce: false,
   voiceEffect: 'none',

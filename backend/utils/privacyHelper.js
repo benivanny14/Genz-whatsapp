@@ -38,8 +38,10 @@ const applyPrivacyFilter = (user, requesterId) => {
     delete filteredUser.isOnline;
   }
 
-  // Profile pictures are now visible to all users (removed privacy filter)
-  // This allows users to see profile pictures when searching for contacts
+  // Filter Profile Photo
+  if (!isAllowed(privacySettings.profilePhoto)) {
+    delete filteredUser.profilePicture;
+  }
 
   // Filter About
   if (!isAllowed(privacySettings.about)) {

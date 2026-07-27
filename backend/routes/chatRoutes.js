@@ -59,6 +59,7 @@ const {
 } = require("../controllers/chatController");
 const { validateMessage } = require("../middleware/validator");
 const { protect } = require("../middleware/auth");
+const { privacyMiddleware } = require("../middleware/privacy");
 
 router.use(protect);
 
@@ -130,10 +131,10 @@ router.delete("/conversations/:chatId/clear", clearChat);
 router.delete("/conversations/:chatId", deleteChat);
 
 // Contact & user management
-router.get("/users/search", searchUsers);
+router.get("/users/search", privacyMiddleware, searchUsers);
 router.post("/contacts/add", addContactByPhone);
 router.post("/contacts", addContact);
-router.get("/contacts", getContacts);
+router.get("/contacts", privacyMiddleware, getContacts);
 router.post("/users/:id/block", blockUser);
 router.delete("/users/:id/block", unblockUser);
 
