@@ -16,9 +16,11 @@ const ContactSelectorScreen = ({
 
   useEffect(() => {
     // Filter contacts based on search query
+    const validContacts = contacts.filter(c => c && (c._id || c.id));
+    
     if (!searchQuery.trim()) {
       // Sort contacts alphabetically by name
-      const sorted = [...contacts].sort((a, b) => {
+      const sorted = [...validContacts].sort((a, b) => {
         const nameA = (a.username || a.name || '').toLowerCase();
         const nameB = (b.username || b.name || '').toLowerCase();
         return nameA.localeCompare(nameB);
@@ -26,9 +28,10 @@ const ContactSelectorScreen = ({
       setFilteredContacts(sorted);
     } else {
       const query = searchQuery.toLowerCase();
-      const filtered = contacts.filter(contact => 
+      const filtered = validContacts.filter(contact => 
         contact.name?.toLowerCase().includes(query) ||
-        contact.phone?.includes(query) ||
+        contact.phone?.toLowerCase().includes(query) ||
+        contact.phoneNumber?.toLowerCase().includes(query) ||
         contact.username?.toLowerCase().includes(query)
       );
       // Sort filtered contacts alphabetically
@@ -66,7 +69,7 @@ const ContactSelectorScreen = ({
       setSelectedContacts(new Set());
     } else {
       // Select all filtered contacts
-      const allIds = new Set(filteredContacts.map(c => c._id.toString()));
+      const allIds = new Set(filteredContacts.map(c => (c._id || c.id)?.toString()).filter(Boolean));
       setSelectedContacts(allIds);
     }
     setSelectAll(!selectAll);
@@ -74,10 +77,11 @@ const ContactSelectorScreen = ({
 
   const handleSave = () => {
     const selectedContactIds = Array.from(selectedContacts);
-    const selectedContactData = contacts.filter(c => 
-      selectedContacts.has(c._id.toString())
-    ).map(c => ({
-      id: c._id,
+    const selectedContactData = contacts.filter(c => {
+      const contactId = (c._id || c.id)?.toString();
+      return contactId && selectedContacts.has(contactId);
+    }).map(c => ({
+      id: c._id || c.id,
       name: c.username || c.name,
       phone: c.phoneNumber || c.phone
     }));
@@ -170,11 +174,14 @@ const ContactSelectorScreen = ({
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {filteredContacts.map((contact) => {
-              const isSelected = selectedContacts.has(contact._id.toString());
+              const contactId = (contact._id || contact.id)?.toString();
+              if (!contactId) return null;
+              
+              const isSelected = selectedContacts.has(contactId);
               return (
                 <button
-                  key={contact._id}
-                  onClick={() => handleToggleContact(contact._id.toString())}
+                  key={contactId}
+                  onClick={() => handleToggleContact(contactId)}
                   className="w-full px-4 py-3 flex items-center space-x-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                 >
                   {/* Profile Picture */}
