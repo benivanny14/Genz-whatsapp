@@ -984,7 +984,7 @@ const Settings = () => {
         <ContactSelectorScreen
           privacyType={contactSelectorConfig.privacyType}
           selectorType={contactSelectorConfig.selectorType}
-          contacts={user?.contacts || []}
+          contacts={contactSelectorConfig.contacts || user?.contacts || []}
           initialSelectedContacts={contactSelectorConfig.initialSelectedContacts}
           onSave={handleContactSelectorSave}
           onClose={() => setShowContactSelector(false)}
