@@ -299,10 +299,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     navigate('/status');
   };
 
-  const handleViewCalls = () => {
-    navigate('/calls');
-  };
-
   const handleViewChannels = () => {
     navigate('/channels');
   };
@@ -837,20 +833,12 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
 
         {isOpen && (
           <div className="flex flex-col gap-2 mb-4">
-            <div className="flex gap-2 p-1 bg-dark-bg rounded-lg">
-              <button
-                onClick={() => setActiveTab('chats')}
-                className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'chats' ? 'bg-primary-600 text-white shadow-lg' : 'text-dark-textSecondary hover:text-dark-text'}`}
-              >
-                Chats
-              </button>
-              <button
-                onClick={() => setActiveTab('calls')}
-                className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'calls' ? 'bg-primary-600 text-white shadow-lg' : 'text-dark-textSecondary hover:text-dark-text'}`}
-              >
-                Calls
-              </button>
-            </div>
+            <button
+              onClick={() => setActiveTab('chats')}
+              className={`w-full py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'chats' ? 'bg-primary-600 text-white shadow-lg' : 'text-dark-textSecondary hover:text-dark-text'}`}
+            >
+              Chats
+            </button>
             <button
               onClick={() => setActiveTab('status')}
               className={`w-full py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'status' ? 'bg-primary-600 text-white shadow-lg' : 'text-dark-textSecondary hover:text-dark-text'}`}

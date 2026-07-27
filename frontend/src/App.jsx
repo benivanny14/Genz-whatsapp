@@ -38,7 +38,6 @@ const Status = lazy(() => import('./pages/Status'));
 const Broadcast = lazy(() => import('./pages/Broadcast'));
 const Starred = lazy(() => import('./pages/Starred'));
 const Archived = lazy(() => import('./pages/Archived'));
-const Calls = lazy(() => import('./pages/Calls'));
 const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const Admin = lazy(() => import('./pages/Admin'));
@@ -346,7 +345,6 @@ function App() {
             <Route path="/settings/security" element={<ProtectedRoute><SecuritySettings /></ProtectedRoute>} />
             <Route path="/starred" element={<ProtectedRoute><Starred /></ProtectedRoute>} />
             <Route path="/archived" element={<ProtectedRoute><Archived /></ProtectedRoute>} />
-            <Route path="/calls" element={<ProtectedRoute><Calls /></ProtectedRoute>} />
             <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
             <Route path="/admin-setup" element={<AdminProtectedRoute><AdminSetup /></AdminProtectedRoute>} />
             <Route path="/system-control-x7k9" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useChat, applyVoiceEffect } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
-import { ArrowLeft, MoreVertical, Phone, Video, Search, Smile, Paperclip, Send, Mic, Image as ImageIcon, MessageCircle, Ghost, Forward, Square, MapPin, ShieldCheck, Globe, BarChart2, CalendarClock, PhoneOff, MicOff, VideoOff, Info, UserMinus, UserCheck, ShieldAlert, Copy, Link, Pin, X, Edit, Briefcase, Plus, Eye, EyeOff, Clock, Lock, Sticker, Download, FileText, Camera, Headphones, Contact, Trash2, Reply, Share2, Star, Archive, BellOff, Bell, Radio, Users, Languages, Grid3x3, Lock as LockIcon, Unlock, ChevronLeft, Wand2, TrendingUp, Sparkles, AtSign } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Search, Smile, Paperclip, Send, Mic, Image as ImageIcon, MessageCircle, Ghost, Forward, Square, MapPin, ShieldCheck, Globe, BarChart2, CalendarClock, Info, UserMinus, UserCheck, ShieldAlert, Copy, Link, Pin, X, Edit, Briefcase, Plus, Eye, EyeOff, Clock, Lock, Sticker, Download, FileText, Camera, Headphones, Contact, Trash2, Reply, Share2, Star, Archive, BellOff, Bell, Radio, Users, Languages, Grid3x3, Lock as LockIcon, Unlock, ChevronLeft, Wand2, TrendingUp, Sparkles, AtSign } from 'lucide-react';
 import { formatMessageTime, decryptMessage } from '../utils/formatDate';
 import { exportChatAsTxt } from '../utils/chatExporter';
 import SignedMedia from './SignedMedia';
@@ -2295,48 +2295,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         {/* Header right-side action buttons */}
         {!isSearching && (
           <div className="flex items-center gap-0.5 md:gap-1 ml-auto relative flex-shrink-0">
-            {/* Voice call */}
-            <button onClick={() => !isDNDMode && initiateCall('audio', selectedConversation)}
-              title="Voice Call"
-              aria-label="Start voice call"
-              disabled={isDNDMode}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-40 flex items-center justify-center">
-              <Phone size={18} className="text-white/80" />
-            </button>
-            {/* Video call */}
-            <button onClick={() => !isDNDMode && initiateCall('video', selectedConversation)}
-              title="Video Call"
-              aria-label="Start video call"
-              disabled={isDNDMode}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-40 flex items-center justify-center">
-              <Video size={18} className="text-white/80" />
-            </button>
-            {/* Group call - only shown for group conversations */}
-            {selectedConversation?.isGroup && (
-              <button
-                onClick={() => {
-                  if (isDNDMode) return;
-                  const socket = getSocket?.();
-                  if (socket) {
-                    socket.emit('group_call:start', {
-                      conversationId: selectedConversation._id,
-                      callType: 'audio'
-                    });
-                  }
-                  window.dispatchEvent(new CustomEvent('group-call-started', {
-                    detail: {
-                      conversationId: selectedConversation._id,
-                      callType: 'audio',
-                      groupName: selectedConversation.groupName || selectedConversation.name
-                    }
-                  }));
-                }}
-                title="Group Voice Call" aria-label="Group Voice Call"
-                disabled={isDNDMode}
-                className="hidden sm:flex p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-40 items-center justify-center">
-                <Users size={18} className="text-white/80" />
-              </button>
-            )}
             {/* AI Assistant - ask the GENZ AI anything */}
             <button onClick={() => {
               setShowAIAssistant(true);
