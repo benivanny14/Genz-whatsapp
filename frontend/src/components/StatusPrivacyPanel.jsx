@@ -2,15 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Eye, X, RefreshCw, UserPlus, UserMinus, Search } from 'lucide-react';
 import { authFetch } from '../utils/authFetch';
 import userService from '../services/userService';
+import PrivacyPermissionSelector from './PrivacyPermissionSelector';
+import ContactSelectorScreen from './ContactSelectorScreen';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 const BASE = `${API_URL}/status-features`;
-
-const PRIVACY_OPTIONS = [
-  ['everyone', 'Everyone', 'Anyone can see your status updates'],
-  ['contacts', 'My contacts', 'Only people in your contacts'],
-  ['nobody', 'Nobody', "Your status won't be shown to anyone"],
-];
 
 const StatusPrivacyPanel = ({ onClose }) => {
   const [settings, setSettings] = useState(null);
@@ -19,6 +15,8 @@ const StatusPrivacyPanel = ({ onClose }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [showContactSelector, setShowContactSelector] = useState(false);
+  const [contactSelectorConfig, setContactSelectorConfig] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -57,6 +55,148 @@ const StatusPrivacyPanel = ({ onClose }) => {
       setSaving(false);
     }
   };
+
+  const handleStatusPrivacyChange = async (value) => {
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || '';
+      
+      // Update local settings
+      setSettings((prev) => ({ ...prev, statusPrivacy: value }));
+      
+      // Save to server via settings API
+      const response = await fetch(`${API_URL}/settings`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          privacy: {
+            status: value
+          }
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data?.success) {
+          setSettings((prev) => ({ ...prev, statusPrivacy: value }));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to save status privacy:', error);
+    }
+  };
+
+  const openContactSelector = async (selectorType) => {
+    try {
+      // Fetch full contact data from API
+      const API_URL = import.meta.env.VITE_API_URL || '';
+      const response = await fetch(`${API_URL}/chat/contacts`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const contacts = data.contacts || data.users || [];
+        
+        setContactSelectorConfig({
+          privacyType: 'status',
+          selectorType,
+          initialSelectedContacts: [],
+          contacts: contacts
+        });
+        setShowContactSelector(true);
+      } else {
+        // Fallback to existing contacts
+        setContactSelectorConfig({
+          privacyType: 'status',
+          selectorType,
+          initialSelectedContacts: [],
+          contacts: contacts
+        });
+        setShowContactSelector(true);
+      }
+    } catch (error) {
+      console.error('Failed to fetch contacts:', error);
+      // Fallback to existing contacts
+      setContactSelectorConfig({
+        privacyType: 'status',
+        selectorType,
+        initialSelectedContacts: [],
+        contacts: contacts
+      });
+      setShowContactSelector(true);
+    }
+  };
+
+  const handleContactSelectorSave = async (selectedContactIds, selectedContactData) => {
+    const { selectorType } = contactSelectorConfig;
+    
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || '';
+      
+      if (selectorType === 'excluded') {
+        // Clear existing and add new
+        await fetch(`${API_URL}/privacy/excluded/type/status`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        
+        if (selectedContactData.length > 0) {
+          await fetch(`${API_URL}/privacy/excluded/bulk`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+              privacyType: 'status',
+              contacts: selectedContactData
+            })
+          });
+        }
+      } else if (selectorType === 'allowed') {
+        // Clear existing and add new
+        await fetch(`${API_URL}/privacy/allowed/type/status`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        
+        if (selectedContactData.length > 0) {
+          await fetch(`${API_URL}/privacy/allowed/bulk`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+              privacyType: 'status',
+              contacts: selectedContactData
+            })
+          });
+        }
+      }
+      
+      setShowContactSelector(false);
+    } catch (error) {
+      console.error('Failed to update contact list:', error);
+    }
+  };
+
+  // Make openContactSelector available globally for PrivacyPermissionSelector
+  useEffect(() => {
+    window.openContactSelector = openContactSelector;
+    return () => {
+      delete window.openContactSelector;
+    };
+  }, [contacts]);
 
   const toggleCloseFriend = async (userId, isMember) => {
     setSaving(true);
@@ -98,19 +238,14 @@ const StatusPrivacyPanel = ({ onClose }) => {
             <div className="flex justify-center py-8"><RefreshCw className="animate-spin text-[#00a884]" size={24} /></div>
           ) : (
             <>
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <p className="text-gray-400 text-xs uppercase tracking-wide">Who can see my status</p>
-                {PRIVACY_OPTIONS.map(([value, label, desc]) => (
-                  <button
-                    key={value}
-                    onClick={() => setPrivacy(value)}
-                    disabled={saving}
-                    className={`w-full text-left p-3 rounded-lg border ${settings.statusPrivacy === value ? 'border-[#00a884] bg-[#00a884]/10' : 'border-white/10 bg-[#0b141a]'}`}
-                  >
-                    <p className="text-white text-sm font-medium">{label}</p>
-                    <p className="text-gray-400 text-xs">{desc}</p>
-                  </button>
-                ))}
+                <PrivacyPermissionSelector
+                  privacyType="status"
+                  currentValue={settings?.statusPrivacy || 'contacts'}
+                  options={['contacts', 'contacts_except', 'only_share_with', 'nobody']}
+                  onChange={handleStatusPrivacyChange}
+                />
               </div>
 
               <div className="space-y-2">
@@ -150,6 +285,17 @@ const StatusPrivacyPanel = ({ onClose }) => {
           )}
         </div>
       </div>
+      
+      {showContactSelector && contactSelectorConfig && (
+        <ContactSelectorScreen
+          privacyType={contactSelectorConfig.privacyType}
+          selectorType={contactSelectorConfig.selectorType}
+          contacts={contactSelectorConfig.contacts || contacts}
+          initialSelectedContacts={contactSelectorConfig.initialSelectedContacts}
+          onSave={handleContactSelectorSave}
+          onClose={() => setShowContactSelector(false)}
+        />
+      )}
     </div>
   );
 };
