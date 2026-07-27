@@ -5,7 +5,7 @@ import {
   Smartphone, ChevronRight, Database, UserRound, KeyRound, Languages,
   HelpCircle, Download, Trash2, Phone, Wifi, Image as ImageIcon,
   HardDrive, CheckCircle2, EyeOff, Archive, Clock, Mail, FileText, Globe2,
-  RefreshCw, RotateCcw, Palette
+  RefreshCw, RotateCcw, Palette, MessageSquare, MapPin
 } from 'lucide-react';
 import ContactManager from '../components/ContactManager';
 import ProductCatalogue from '../components/ProductCatalogue';
@@ -17,6 +17,8 @@ import StorageManagement from '../components/StorageManagement';
 import AccountSwitcher from '../components/AccountSwitcher';
 import PrivacyPermissionSelector from '../components/PrivacyPermissionSelector';
 import ContactSelectorScreen from '../components/ContactSelectorScreen';
+import FakeChatPanel from '../components/FakeChatPanel';
+import LocationSharingPanel from '../components/LocationSharingPanel';
 import { useUser } from '../context/UserContext';
 import { useLanguage } from '../context/LanguageContext';
 import userService from '../services/userService';
@@ -285,6 +287,8 @@ const Settings = () => {
   const [showStorage, setShowStorage] = useState(false);
   const [showContactSelector, setShowContactSelector] = useState(false);
   const [contactSelectorConfig, setContactSelectorConfig] = useState(null);
+  const [showFakeChat, setShowFakeChat] = useState(false);
+  const [showLocationSharing, setShowLocationSharing] = useState(false);
 
   const tabs = useMemo(() => ([
     { id: 'profile', label: 'Profile', icon: User },
@@ -297,6 +301,8 @@ const Settings = () => {
     { id: 'linked', label: 'Linked devices', icon: Smartphone },
     { id: 'contacts', label: 'Contacts', icon: Users },
     { id: 'business', label: 'Business tools', icon: Package },
+    { id: 'fake-chat', label: 'Fake Chat', icon: MessageSquare },
+    { id: 'location', label: 'Location', icon: MapPin },
     { id: 'help', label: 'Help', icon: HelpCircle }
   ]), []);
 
@@ -863,6 +869,22 @@ const Settings = () => {
     </div>
   );
 
+  const renderFakeChat = () => (
+    <div className="space-y-4">
+      <SettingSection title="Fake Chat & Calls" description="Create fake conversations and call logs for testing.">
+        <SettingRow icon={MessageSquare} title="Fake Chat Settings" description="Manage fake chat and call features." onClick={() => setShowFakeChat(true)} />
+      </SettingSection>
+    </div>
+  );
+
+  const renderLocation = () => (
+    <div className="space-y-4">
+      <SettingSection title="Location Sharing" description="Share your live location or use fake GPS.">
+        <SettingRow icon={MapPin} title="Location Settings" description="Manage location sharing and fake GPS." onClick={() => setShowLocationSharing(true)} />
+      </SettingSection>
+    </div>
+  );
+
   const renderHelp = () => (
     <div className="space-y-4">
       <SettingSection title="Help" description="Support, diagnostics, app info, and account export tools.">
@@ -905,6 +927,8 @@ const Settings = () => {
     if (activeTab === 'linked') return renderLinked();
     if (activeTab === 'contacts') return renderContacts();
     if (activeTab === 'business') return renderBusiness();
+    if (activeTab === 'fake-chat') return renderFakeChat();
+    if (activeTab === 'location') return renderLocation();
     return renderHelp();
   };
 
@@ -980,6 +1004,8 @@ const Settings = () => {
       {showAntiBanPanel && <AntiBanPanel onClose={() => setShowAntiBanPanel(false)} />}
       {showStatusPrivacyPanel && <StatusPrivacyPanel onClose={() => setShowStatusPrivacyPanel(false)} />}
       {showStorage && <StorageManagement onClose={() => setShowStorage(false)} />}
+      {showFakeChat && <FakeChatPanel onClose={() => setShowFakeChat(false)} />}
+      {showLocationSharing && <LocationSharingPanel onClose={() => setShowLocationSharing(false)} />}
       {showContactSelector && contactSelectorConfig && (
         <ContactSelectorScreen
           privacyType={contactSelectorConfig.privacyType}
