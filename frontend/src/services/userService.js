@@ -60,16 +60,16 @@ const userService = {
   },
 
   getSettings: async () => {
-    const res = await authFetch(`${API_URL}/auth/settings`);
+    const res = await authFetch(`${API_URL}/settings`);
     if (!res.ok) throw new Error('Failed to fetch settings');
     return res.json();
   },
 
   updateSettings: async (settings) => {
-    const res = await authFetch(`${API_URL}/auth/settings`, {
+    const res = await authFetch(`${API_URL}/settings`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ settings }),
+      body: JSON.stringify(settings),
     });
     if (!res.ok) throw new Error('Failed to update settings');
     return res.json();

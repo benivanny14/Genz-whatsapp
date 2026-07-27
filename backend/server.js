@@ -643,6 +643,7 @@ const productRoutes = require('./routes/productRoutes');
 const scheduledMessageRoutes = require('./routes/scheduledMessageRoutes');
 const stickerRoutes = require('./routes/stickerRoutes');
 const statusRoutes = require('./routes/status');
+const settingsRoutes = require('./routes/settingsRoutes');
 
 // Newly-wired feature routes (previously orphaned controllers)
 const bulkSenderRoutes = require('./routes/bulk-sender');
@@ -699,6 +700,7 @@ app.use('/api/media', mediaRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/device', deviceRoutes);
 app.use('/api/security', safeMiddleware(authLimiter), securityRoutes);
+app.use('/api/settings', settingsRoutes);
 app.use('/api/genz-mods', genzModsRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/stickers', stickerRoutes);
