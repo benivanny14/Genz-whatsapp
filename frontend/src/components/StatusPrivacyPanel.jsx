@@ -4,7 +4,7 @@ import { authFetch } from '../utils/authFetch';
 import userService from '../services/userService';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
-const BASE = `${API_URL}/api/status-features`;
+const BASE = `${API_URL}/status-features`;
 
 const PRIVACY_OPTIONS = [
   ['everyone', 'Everyone', 'Anyone can see your status updates'],
