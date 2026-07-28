@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Smile, Clock, MapPin, Hash, At, Link as LinkIcon, Music, HelpCircle, Sliders, Timer, Heart, Search } from 'lucide-react';
+import { X, Smile, Clock, MapPin, Hash, AtSign, Link as LinkIcon, Music, HelpCircle, Sliders, Timer, Heart, Search } from 'lucide-react';
 
 const SpecialStickersPanel = ({ onClose, onStickerSelect }) => {
   const [activeCategory, setActiveCategory] = useState('all');
@@ -12,7 +12,7 @@ const SpecialStickersPanel = ({ onClose, onStickerSelect }) => {
     { id: 'weather', icon: Smile, label: 'Weather' },
     { id: 'location', icon: MapPin, label: 'Location' },
     { id: 'hashtag', icon: Hash, label: 'Hashtag' },
-    { id: 'mention', icon: At, label: 'Mention' },
+    { id: 'mention', icon: AtSign, label: 'Mention' },
     { id: 'link', icon: LinkIcon, label: 'Link' },
     { id: 'music', icon: Music, label: 'Music' },
     { id: 'poll', icon: Sliders, label: 'Poll' },
