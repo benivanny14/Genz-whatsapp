@@ -91,6 +91,15 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   const [contextMenu, setContextMenu] = useState(null);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const chatListRef = useRef(null);
+  const [recentSearches, setRecentSearches] = useState(() => {
+    try {
+      const stored = localStorage.getItem('genz_recent_searches');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [showRecentSearches, setShowRecentSearches] = useState(false);
 
   // Scroll to Top FAB
   const handleScrollToTop = () => {
@@ -113,6 +122,26 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
       return () => chatListElement.removeEventListener('scroll', handleScroll);
     }
   }, []);
+
+  // Recent Searches
+  const handleSearchChange = (value) => {
+    setSearchQuery(value);
+    if (value.trim()) {
+      const newRecentSearches = [value.trim(), ...recentSearches.filter(s => s !== value.trim())].slice(0, 10);
+      setRecentSearches(newRecentSearches);
+      localStorage.setItem('genz_recent_searches', JSON.stringify(newRecentSearches));
+    }
+  };
+
+  const handleRecentSearchClick = (search) => {
+    setSearchQuery(search);
+    setShowRecentSearches(false);
+  };
+
+  const clearRecentSearches = () => {
+    setRecentSearches([]);
+    localStorage.removeItem('genz_recent_searches');
+  };
 
   // BUG FIX: the chat-row "..." menu used to be positioned with raw
   // `rect.left - 150` / `e.pageY` coordinates with no bounds checking. On a
@@ -970,9 +999,34 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
               placeholder="Search conversations..."
               aria-label="Search conversations"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              onFocus={() => setShowRecentSearches(recentSearches.length > 0)}
+              onBlur={() => setTimeout(() => setShowRecentSearches(false), 200)}
               className="w-full pl-10 pr-4 py-2 bg-dark-bg border border-dark-border rounded-lg text-dark-text placeholder-dark-textSecondary focus:outline-none focus:border-primary-500 text-base md:text-sm"
             />
+            {showRecentSearches && recentSearches.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-dark-surface border border-dark-border rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto">
+                <div className="flex items-center justify-between px-3 py-2 border-b border-dark-border">
+                  <span className="text-xs font-semibold text-dark-textSecondary uppercase">Recent Searches</span>
+                  <button
+                    onClick={clearRecentSearches}
+                    className="text-xs text-primary-500 hover:text-primary-400"
+                  >
+                    Clear
+                  </button>
+                </div>
+                {recentSearches.map((search, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleRecentSearchClick(search)}
+                    className="w-full px-3 py-2 text-left text-dark-text hover:bg-dark-hover flex items-center gap-2"
+                  >
+                    <Clock size={14} className="text-dark-textSecondary" />
+                    <span className="truncate">{search}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
