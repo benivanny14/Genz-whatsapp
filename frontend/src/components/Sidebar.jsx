@@ -131,6 +131,14 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     archived: false
   });
   const [contactsSortBy, setContactsSortBy] = useState('recent'); // recent, alphabetical, unread
+  const [autoReplySettings, setAutoReplySettings] = useState(() => {
+    try {
+      const stored = localStorage.getItem('genz_auto_reply_settings');
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
 
   // Scroll to Top FAB
   const handleScrollToTop = () => {
@@ -246,6 +254,23 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
       case 'blue': return 'text-blue-500';
       default: return 'text-dark-textSecondary';
     }
+  };
+
+  const handleAutoReply = (chatId) => {
+    const currentReply = autoReplySettings[chatId]?.message || '';
+    const newReply = prompt('Enter auto-reply message:', currentReply);
+    if (newReply !== null) {
+      const newSettings = { ...autoReplySettings, [chatId]: { message: newReply, enabled: !!newReply } };
+      setAutoReplySettings(newSettings);
+      localStorage.setItem('genz_auto_reply_settings', JSON.stringify(newSettings));
+    }
+  };
+
+  const toggleAutoReply = (chatId) => {
+    const current = autoReplySettings[chatId] || { enabled: false, message: '' };
+    const newSettings = { ...autoReplySettings, [chatId]: { ...current, enabled: !current.enabled } };
+    setAutoReplySettings(newSettings);
+    localStorage.setItem('genz_auto_reply_settings', JSON.stringify(newSettings));
   };
 
   // BUG FIX: the chat-row "..." menu used to be positioned with raw
@@ -1490,6 +1515,29 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
               <Archive size={16} />
               <span>{contextMenu.isArchived ? 'Unarchive Chat' : 'Archive Chat'}</span>
             </button>
+            <button
+              onClick={() => { handleAutoReply(contextMenu.chatId); setContextMenu(null); }}
+              className="w-full flex items-center gap-3 px-4 py-2 hover:bg-dark-hover text-dark-text transition-colors"
+            >
+              <Zap size={16} />
+              <span>Set Auto-Reply</span>
+            </button>
+            {autoReplySettings[contextMenu.chatId]?.message && (
+              <button
+                onClick={() => { toggleAutoReply(contextMenu.chatId); setContextMenu(null); }}
+                className="w-full flex items-center justify-between px-4 py-2 hover:bg-dark-hover text-dark-text transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Zap size={16} />
+                  <span>Auto-Reply</span>
+                </div>
+                {autoReplySettings[contextMenu.chatId]?.enabled ? (
+                  <Check size={14} className="text-primary-500" />
+                ) : (
+                  <X size={14} className="text-dark-textSecondary" />
+                )}
+              </button>
+            )}
             <div className="border-t border-dark-border my-1" />
             <div className="px-4 py-1 text-xs font-semibold text-dark-textSecondary uppercase tracking-wider">Assign to Tab</div>
             {chatTabs.filter(t => t !== 'All' && t !== 'Groups').map(tab => {
