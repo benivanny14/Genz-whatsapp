@@ -23,7 +23,20 @@ const Status = () => {
     fontColor: '#ffffff',
     privacy: 'contacts',
     excludedViewers: [],
-    file: null
+    file: null,
+    // New status type fields
+    linkUrl: '',
+    quizQuestion: '',
+    quizOptions: ['', ''],
+    quizCorrectAnswer: 0,
+    questionText: '',
+    countdownDate: '',
+    countdownTime: '',
+    locationData: null,
+    collageImages: [],
+    timerSeconds: 5,
+    musicUrl: '',
+    gifUrl: ''
   });
 
   useEffect(() => {
@@ -75,7 +88,18 @@ const Status = () => {
         backgroundColor: uploadData.backgroundColor,
         textColor: uploadData.fontColor,
         privacy,
-        excludedViewers: privacy === 'contacts_except' ? uploadData.excludedViewers : []
+        excludedViewers: privacy === 'contacts_except' ? uploadData.excludedViewers : [],
+        // New status type fields
+        linkUrl: uploadData.linkUrl || '',
+        quizQuestion: uploadData.quizQuestion || '',
+        quizOptions: uploadData.quizOptions || [],
+        quizCorrectAnswer: uploadData.quizCorrectAnswer || 0,
+        questionText: uploadData.questionText || '',
+        countdownDate: uploadData.countdownDate || '',
+        countdownTime: uploadData.countdownTime || '',
+        locationData: uploadData.locationData || null,
+        collageImages: uploadData.collageImages || [],
+        timerSeconds: uploadData.timerSeconds || 5
       };
 
       const data = await createStatus(payload);
@@ -90,7 +114,19 @@ const Status = () => {
         fontColor: '#ffffff',
         privacy: 'contacts',
         excludedViewers: [],
-        file: null
+        file: null,
+        linkUrl: '',
+        quizQuestion: '',
+        quizOptions: ['', ''],
+        quizCorrectAnswer: 0,
+        questionText: '',
+        countdownDate: '',
+        countdownTime: '',
+        locationData: null,
+        collageImages: [],
+        timerSeconds: 5,
+        musicUrl: '',
+        gifUrl: ''
       });
       setShowAddStatus(false);
       setSuccess('Status uploaded successfully');
@@ -285,7 +321,15 @@ const Status = () => {
                     { value: 'text', icon: <Type className="w-4 h-4" />, label: 'Text' },
                     { value: 'image', icon: <Image className="w-4 h-4" />, label: 'Image' },
                     { value: 'video', icon: <Camera className="w-4 h-4" />, label: 'Video' },
-                    { value: 'audio', icon: <Type className="w-4 h-4" />, label: 'Audio' }
+                    { value: 'audio', icon: <Type className="w-4 h-4" />, label: 'Audio' },
+                    { value: 'gif', icon: <Sparkles className="w-4 h-4" />, label: 'GIF' },
+                    { value: 'link', icon: <Upload className="w-4 h-4" />, label: 'Link' },
+                    { value: 'music', icon: <Type className="w-4 h-4" />, label: 'Music' },
+                    { value: 'quiz', icon: <Type className="w-4 h-4" />, label: 'Quiz' },
+                    { value: 'question', icon: <Type className="w-4 h-4" />, label: 'Question' },
+                    { value: 'countdown', icon: <Clock className="w-4 h-4" />, label: 'Countdown' },
+                    { value: 'location', icon: <Upload className="w-4 h-4" />, label: 'Location' },
+                    { value: 'collage', icon: <Image className="w-4 h-4" />, label: 'Collage' }
                   ].map((type) => (
                     <button
                       key={type.value}
@@ -358,6 +402,168 @@ const Status = () => {
                       className="w-full h-10 border border-gray-300 dark:border-gray-600 rounded-lg"
                     />
                   </div>
+                </div>
+              )}
+
+              {uploadData.type === 'link' && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Link URL
+                  </label>
+                  <input
+                    type="url"
+                    value={uploadData.linkUrl}
+                    onChange={(e) => setUploadData((prev) => ({ ...prev, linkUrl: e.target.value }))}
+                    placeholder="https://example.com"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              )}
+
+              {uploadData.type === 'quiz' && (
+                <>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Quiz Question
+                    </label>
+                    <input
+                      type="text"
+                      value={uploadData.quizQuestion}
+                      onChange={(e) => setUploadData((prev) => ({ ...prev, quizQuestion: e.target.value }))}
+                      placeholder="Enter your question"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Quiz Options (comma separated)
+                    </label>
+                    <input
+                      type="text"
+                      value={uploadData.quizOptions.join(', ')}
+                      onChange={(e) => setUploadData((prev) => ({ ...prev, quizOptions: e.target.value.split(',').map(s => s.trim()) }))}
+                      placeholder="Option 1, Option 2, Option 3, Option 4"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Correct Answer Index (0-3)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="3"
+                      value={uploadData.quizCorrectAnswer}
+                      onChange={(e) => setUploadData((prev) => ({ ...prev, quizCorrectAnswer: parseInt(e.target.value) || 0 }))}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                </>
+              )}
+
+              {uploadData.type === 'question' && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Question Text
+                  </label>
+                  <textarea
+                    value={uploadData.questionText}
+                    onChange={(e) => setUploadData((prev) => ({ ...prev, questionText: e.target.value }))}
+                    placeholder="Ask your followers a question..."
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white resize-none"
+                    rows={3}
+                  />
+                </div>
+              )}
+
+              {uploadData.type === 'countdown' && (
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Date
+                    </label>
+                    <input
+                      type="date"
+                      value={uploadData.countdownDate}
+                      onChange={(e) => setUploadData((prev) => ({ ...prev, countdownDate: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Time
+                    </label>
+                    <input
+                      type="time"
+                      value={uploadData.countdownTime}
+                      onChange={(e) => setUploadData((prev) => ({ ...prev, countdownTime: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {uploadData.type === 'location' && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Location Address
+                  </label>
+                  <input
+                    type="text"
+                    value={uploadData.locationData?.address || ''}
+                    onChange={(e) => setUploadData((prev) => ({ ...prev, locationData: { ...prev.locationData, address: e.target.value, lat: 0, lng: 0 } }))}
+                    placeholder="Enter location address"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              )}
+
+              {uploadData.type === 'collage' && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Upload Images (up to 4)
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files).slice(0, 4);
+                      setUploadData((prev) => ({ ...prev, collageImages: files.map(f => f.name) }));
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              )}
+
+              {uploadData.type === 'music' && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Music URL
+                  </label>
+                  <input
+                    type="url"
+                    value={uploadData.musicUrl}
+                    onChange={(e) => setUploadData((prev) => ({ ...prev, musicUrl: e.target.value }))}
+                    placeholder="https://example.com/music.mp3"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              )}
+
+              {uploadData.type === 'gif' && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    GIF URL
+                  </label>
+                  <input
+                    type="url"
+                    value={uploadData.gifUrl}
+                    onChange={(e) => setUploadData((prev) => ({ ...prev, gifUrl: e.target.value }))}
+                    placeholder="https://giphy.com/..."
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  />
                 </div>
               )}
 

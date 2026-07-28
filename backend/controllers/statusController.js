@@ -12,7 +12,7 @@ exports.createStatus = async (req, res) => {
       linkUrl, quizQuestion, quizOptions, quizCorrectAnswer,
       questionText, countdownDate, countdownTime, locationData,
       collageImages, timerSeconds, caption, collabUserId, collabUsername
-    };
+    } = req.body;
 
     if (!type) return res.status(400).json({ success: false, message: 'Type inahitajika' });
     if (type === 'text' && !content) return res.status(400).json({ success: false, message: 'Content inahitajika kwa text status' });
