@@ -56,6 +56,7 @@ const Channels = lazy(() => import('./pages/Channels'));
 const ChannelView = lazy(() => import('./pages/ChannelView'));
 const Communities = lazy(() => import('./pages/Communities'));
 const JoinGroup = lazy(() => import('./pages/JoinGroup'));
+const Explore = lazy(() => import('./pages/Explore'));
 const CallScreen = lazy(() => import('./components/CallScreen'));
 const GroupCallScreen = lazy(() => import('./components/GroupCallScreen'));
 
@@ -353,6 +354,7 @@ function App() {
             <Route path="/channels" element={<ProtectedRoute><Channels /></ProtectedRoute>} />
             <Route path="/channels/:channelId" element={<ProtectedRoute><ChannelView /></ProtectedRoute>} />
             <Route path="/communities" element={<ProtectedRoute><Communities /></ProtectedRoute>} />
+            <Route path="/explore" element={<ProtectedRoute><Explore /></ProtectedRoute>} />
             <Route path="/join/:groupId/:code" element={<ProtectedRoute><JoinGroup /></ProtectedRoute>} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
