@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Brush, Eraser, Undo, Redo, Square, Circle, ArrowRightUp, Droplet, Layers, Minus, Plus } from 'lucide-react';
+import { X, Brush, Eraser, Undo, Redo, Square, Circle, ArrowUpRight, Droplet, Layers, Minus, Plus } from 'lucide-react';
 
 const DrawingPanel = ({ onClose, image, onSave }) => {
   const canvasRef = useRef(null);
@@ -24,7 +24,7 @@ const DrawingPanel = ({ onClose, image, onSave }) => {
   const shapes = [
     { id: 'rectangle', icon: Square, label: 'Rectangle' },
     { id: 'circle', icon: Circle, label: 'Circle' },
-    { id: 'arrow', icon: ArrowRightUp, label: 'Arrow' }
+    { id: 'arrow', icon: ArrowUpRight, label: 'Arrow' }
   ];
 
   const colors = [

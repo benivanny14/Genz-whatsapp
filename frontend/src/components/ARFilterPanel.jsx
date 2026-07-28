@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Sparkles, Face, Smile, Star, Heart, Flame, Ghost, Crown, Glasses } from 'lucide-react';
+import { X, Sparkles, Smile, Star, Heart, Flame, Ghost, Crown, Glasses, User } from 'lucide-react';
 
 const ARFilterPanel = ({ onClose, image, onSave }) => {
   const canvasRef = useRef(null);
@@ -8,7 +8,7 @@ const ARFilterPanel = ({ onClose, image, onSave }) => {
   const [intensity, setIntensity] = useState(50);
 
   const arFilters = [
-    { id: 'none', icon: Face, label: 'None' },
+    { id: 'none', icon: User, label: 'None' },
     { id: 'glow', icon: Sparkles, label: 'Glow' },
     { id: 'beauty', icon: Smile, label: 'Beauty' },
     { id: 'star', icon: Star, label: 'Star Eyes' },

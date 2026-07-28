@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Hash, MapPin, At, Music, Sparkles, Copy, Plus } from 'lucide-react';
+import { X, Hash, MapPin, AtSign, Music, Sparkles, Copy, Plus } from 'lucide-react';
 
 const AISuggestionsPanel = ({ onClose, content, onApply }) => {
   const [suggestions, setSuggestions] = useState({
