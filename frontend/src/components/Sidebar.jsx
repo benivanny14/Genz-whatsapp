@@ -100,6 +100,12 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     }
   });
   const [showRecentSearches, setShowRecentSearches] = useState(false);
+  const [searchFilters, setSearchFilters] = useState({
+    unread: false,
+    groups: false,
+    personal: false,
+    archived: false
+  });
 
   // Scroll to Top FAB
   const handleScrollToTop = () => {
@@ -141,6 +147,10 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   const clearRecentSearches = () => {
     setRecentSearches([]);
     localStorage.removeItem('genz_recent_searches');
+  };
+
+  const toggleSearchFilter = (filter) => {
+    setSearchFilters(prev => ({ ...prev, [filter]: !prev[filter] }));
   };
 
   // BUG FIX: the chat-row "..." menu used to be positioned with raw
@@ -426,6 +436,12 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
         if (!tabsForChat.includes(activeFolder)) return false;
       }
     }
+
+    // Search filters
+    if (searchFilters.unread && conv.unreadCount === 0) return false;
+    if (searchFilters.groups && !conv.isGroup) return false;
+    if (searchFilters.personal && conv.isGroup) return false;
+    if (searchFilters.archived && !conv.isArchived) return false;
 
     if (conv.isGroup) {
       return conv.groupName?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -1027,6 +1043,52 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Search Filters */}
+        {isOpen && searchQuery && (
+          <div className="px-3 py-2 flex flex-wrap gap-2 border-b border-dark-border">
+            <button
+              onClick={() => toggleSearchFilter('unread')}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                searchFilters.unread
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-dark-bg text-dark-textSecondary hover:bg-dark-hover'
+              }`}
+            >
+              Unread
+            </button>
+            <button
+              onClick={() => toggleSearchFilter('groups')}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                searchFilters.groups
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-dark-bg text-dark-textSecondary hover:bg-dark-hover'
+              }`}
+            >
+              Groups
+            </button>
+            <button
+              onClick={() => toggleSearchFilter('personal')}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                searchFilters.personal
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-dark-bg text-dark-textSecondary hover:bg-dark-hover'
+              }`}
+            >
+              Personal
+            </button>
+            <button
+              onClick={() => toggleSearchFilter('archived')}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                searchFilters.archived
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-dark-bg text-dark-textSecondary hover:bg-dark-hover'
+              }`}
+            >
+              Archived
+            </button>
           </div>
         )}
       </div>
