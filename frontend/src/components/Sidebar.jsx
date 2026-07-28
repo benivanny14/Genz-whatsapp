@@ -49,7 +49,8 @@ import {
   X,
   Tag,
   CheckSquare,
-  Square
+  Square,
+  ChevronUp
 } from 'lucide-react';
 import ProfileEnlarger from './ProfileEnlarger';
 import AccountSwitcher from './AccountSwitcher';
@@ -88,6 +89,30 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   const [showMassSenderModal, setShowMassSenderModal] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
+  const chatListRef = useRef(null);
+
+  // Scroll to Top FAB
+  const handleScrollToTop = () => {
+    if (chatListRef.current) {
+      chatListRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (chatListRef.current) {
+        const scrollTop = chatListRef.current.scrollTop;
+        setShowScrollToTop(scrollTop > 300);
+      }
+    };
+
+    const chatListElement = chatListRef.current;
+    if (chatListElement) {
+      chatListElement.addEventListener('scroll', handleScroll);
+      return () => chatListElement.removeEventListener('scroll', handleScroll);
+    }
+  }, []);
 
   // BUG FIX: the chat-row "..." menu used to be positioned with raw
   // `rect.left - 150` / `e.pageY` coordinates with no bounds checking. On a
@@ -952,7 +977,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
         )}
       </div>
 
-      <div className="relative z-10 flex-1 overflow-y-auto scrollbar-thin bg-dark-surface/70 backdrop-blur-[1px]">
+      <div ref={chatListRef} className="relative z-10 flex-1 overflow-y-auto scrollbar-thin bg-dark-surface/70 backdrop-blur-[1px]">
         {isOpen && activeTab === 'chats' && archivedCount > 0 && (
           <button
             onClick={() => setShowArchivedOnly(!showArchivedOnly)}
@@ -1431,6 +1456,18 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
               </button>
             ))}
           </div>
+        )}
+
+        {/* Scroll to Top FAB */}
+        {showScrollToTop && (
+          <button
+            onClick={handleScrollToTop}
+            className="fixed bottom-24 md:bottom-6 left-4 md:left-84 z-50 w-10 h-10 bg-primary-600 hover:bg-primary-500 text-white rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110"
+            title="Scroll to top"
+            aria-label="Scroll to top"
+          >
+            <ChevronUp size={20} />
+          </button>
         )}
       </div>
 
