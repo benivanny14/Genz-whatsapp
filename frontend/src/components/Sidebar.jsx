@@ -95,6 +95,8 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   const [isPulling, setIsPulling] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
   const [startY, setStartY] = useState(0);
+  const [longPressChatId, setLongPressChatId] = useState(null);
+  const longPressTimerRef = useRef(null);
   const [recentSearches, setRecentSearches] = useState(() => {
     try {
       const stored = localStorage.getItem('genz_recent_searches');
@@ -183,6 +185,32 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     setIsPulling(false);
     setPullDistance(0);
     setStartY(0);
+  };
+
+  // Call Speed Dial - Long Press
+  const handleChatLongPressStart = (chatId) => {
+    setLongPressChatId(chatId);
+    longPressTimerRef.current = setTimeout(() => {
+      // Trigger speed dial call
+      const conv = conversations.find(c => c._id === chatId);
+      if (conv && !conv.isGroup) {
+        const otherUser = conv.participants?.find(p => p._id !== user?.id);
+        if (otherUser) {
+          // Navigate to call or trigger call
+          navigate(`/chat/${chatId}`);
+          // In a real app, you'd trigger the call here
+        }
+      }
+      setLongPressChatId(null);
+    }, 800);
+  };
+
+  const handleChatLongPressEnd = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    setLongPressChatId(null);
   };
 
   // BUG FIX: the chat-row "..." menu used to be positioned with raw
@@ -1173,10 +1201,15 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
               >
                 <button
                   onClick={() => (chatSelectMode ? toggleChatSelected(conv._id) : selectConversation(conv))}
+                  onTouchStart={() => !chatSelectMode && !conv.isGroup && handleChatLongPressStart(conv._id)}
+                  onTouchEnd={handleChatLongPressEnd}
+                  onMouseDown={() => !chatSelectMode && !conv.isGroup && handleChatLongPressStart(conv._id)}
+                  onMouseUp={handleChatLongPressEnd}
+                  onMouseLeave={handleChatLongPressEnd}
                   className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${selectedConversation?._id === conv._id
                     ? 'bg-dark-hover'
                     : 'hover:bg-dark-hover'
-                    } ${chatSelectMode && selectedChatIds.includes(conv._id) ? 'bg-primary-600/10 ring-1 ring-primary-500/40' : ''}`}
+                    } ${chatSelectMode && selectedChatIds.includes(conv._id) ? 'bg-primary-600/10 ring-1 ring-primary-500/40' : ''} ${longPressChatId === conv._id ? 'bg-primary-600/20' : ''}`}
                 >
                   {chatSelectMode && (
                     <div className="shrink-0 text-primary-500">
