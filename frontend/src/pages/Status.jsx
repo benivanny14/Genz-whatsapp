@@ -1,9 +1,37 @@
 import { useState, useEffect } from 'react';
-import { Plus, X, Eye, Clock, Camera, Image, Type, Upload, RefreshCw, Film, Sparkles, Bookmark } from 'lucide-react';
+import { Plus, X, Eye, Clock, Camera, Image, Type, Upload, RefreshCw, Film, Sparkles, Bookmark, Settings } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import StatusScrollFeed from '../components/StatusScrollFeed';
 import StatusReel from '../components/StatusReel';
 import StoryHighlights from '../components/StoryHighlights';
+import CameraControls from '../components/CameraControls';
+import TextEffectsPanel from '../components/TextEffectsPanel';
+import SpecialStickersPanel from '../components/SpecialStickersPanel';
+import DrawingPanel from '../components/DrawingPanel';
+import FiltersPanel from '../components/FiltersPanel';
+import BeautyRetouchPanel from '../components/BeautyRetouchPanel';
+import BackgroundToolsPanel from '../components/BackgroundToolsPanel';
+import VideoToolsPanel from '../components/VideoToolsPanel';
+import ARFilterPanel from '../components/ARFilterPanel';
+import AudioPanel from '../components/AudioPanel';
+import SubtitlesPanel from '../components/SubtitlesPanel';
+import AISuggestionsPanel from '../components/AISuggestionsPanel';
+import MonetizationPanel from '../components/MonetizationPanel';
+import AnalyticsPanel from '../components/AnalyticsPanel';
+import CrossPlatformSharingPanel from '../components/CrossPlatformSharingPanel';
+import AccessibilityPanel from '../components/AccessibilityPanel';
+import BusinessShoppingPanel from '../components/BusinessShoppingPanel';
+import StatusViewingPanel from '../components/StatusViewingPanel';
+import StatusPrivacyPanel from '../components/StatusPrivacyPanel';
+import StatusManagementPanel from '../components/StatusManagementPanel';
+import ChatFeaturesPanel from '../components/ChatFeaturesPanel';
+import CustomUIPanel from '../components/CustomUIPanel';
+import CallFeaturesPanel from '../components/CallFeaturesPanel';
+import ContactsPanel from '../components/ContactsPanel';
+import AdvancedChatFeaturesPanel from '../components/AdvancedChatFeaturesPanel';
+import VoiceFeaturesPanel from '../components/VoiceFeaturesPanel';
+import AccessibilityAdvancedPanel from '../components/AccessibilityAdvancedPanel';
+import DebugFeaturesPanel from '../components/DebugFeaturesPanel';
 
 const Status = () => {
   const { statuses, fetchStatuses, createStatus, uploadStatusMedia, user, contacts } = useChat();
@@ -11,6 +39,8 @@ const Status = () => {
   const [showScrollFeed, setShowScrollFeed] = useState(false);
   const [showReel, setShowReel] = useState(false);
   const [showHighlights, setShowHighlights] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [activePanel, setActivePanel] = useState(null);
   const [feedStartId, setFeedStartId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -194,6 +224,13 @@ const Status = () => {
               className="p-2 hover:bg-white/20 rounded-full transition-colors"
              aria-label="Refresh">
               <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowSettings(true)}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+             aria-label="Settings">
+              <Settings size={20} />
             </button>
           </div>
           <button
@@ -677,6 +714,86 @@ const Status = () => {
             </div>
             <div className="flex-1 overflow-y-auto p-4">
               <StoryHighlights statuses={statuses} />
+            </div>
+          </div>
+        )}
+
+        {/* Settings Panel */}
+        {showSettings && (
+          <div className="fixed inset-0 z-[500] bg-black/80 backdrop-blur-md flex flex-col">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+              <span className="text-white font-bold flex items-center gap-2">
+                <Settings size={18} /> Status Settings
+              </span>
+              <button onClick={() => setShowSettings(false)} className="text-white/60 hover:text-white p-1" aria-label="Close">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              {!activePanel ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  <button onClick={() => setActivePanel('camera')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Camera Controls</button>
+                  <button onClick={() => setActivePanel('textEffects')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Text Effects</button>
+                  <button onClick={() => setActivePanel('stickers')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Special Stickers</button>
+                  <button onClick={() => setActivePanel('drawing')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Drawing Tools</button>
+                  <button onClick={() => setActivePanel('filters')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Filters</button>
+                  <button onClick={() => setActivePanel('beauty')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Beauty Retouch</button>
+                  <button onClick={() => setActivePanel('background')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Background Tools</button>
+                  <button onClick={() => setActivePanel('video')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Video Tools</button>
+                  <button onClick={() => setActivePanel('ar')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">AR Filters</button>
+                  <button onClick={() => setActivePanel('audio')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Audio Panel</button>
+                  <button onClick={() => setActivePanel('subtitles')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Subtitles</button>
+                  <button onClick={() => setActivePanel('ai')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">AI Suggestions</button>
+                  <button onClick={() => setActivePanel('monetization')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Monetization</button>
+                  <button onClick={() => setActivePanel('analytics')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Analytics</button>
+                  <button onClick={() => setActivePanel('sharing')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Cross-Platform Sharing</button>
+                  <button onClick={() => setActivePanel('accessibility')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Accessibility</button>
+                  <button onClick={() => setActivePanel('business')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Business/Shopping</button>
+                  <button onClick={() => setActivePanel('viewing')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Status Viewing</button>
+                  <button onClick={() => setActivePanel('privacy')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Status Privacy</button>
+                  <button onClick={() => setActivePanel('management')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Status Management</button>
+                  <button onClick={() => setActivePanel('chat')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Chat Features</button>
+                  <button onClick={() => setActivePanel('customui')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Custom UI</button>
+                  <button onClick={() => setActivePanel('calls')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Call Features</button>
+                  <button onClick={() => setActivePanel('contacts')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Contacts</button>
+                  <button onClick={() => setActivePanel('advancedChat')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Advanced Chat</button>
+                  <button onClick={() => setActivePanel('voice')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Voice Features</button>
+                  <button onClick={() => setActivePanel('accessibilityAdv')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Accessibility Advanced</button>
+                  <button onClick={() => setActivePanel('debug')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Debug Features</button>
+                </div>
+              ) : (
+                <div>
+                  <button onClick={() => setActivePanel(null)} className="mb-4 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">← Back to Settings</button>
+                  {activePanel === 'camera' && <CameraControls onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'textEffects' && <TextEffectsPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'stickers' && <SpecialStickersPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'drawing' && <DrawingPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'filters' && <FiltersPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'beauty' && <BeautyRetouchPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'background' && <BackgroundToolsPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'video' && <VideoToolsPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'ar' && <ARFilterPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'audio' && <AudioPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'subtitles' && <SubtitlesPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'ai' && <AISuggestionsPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'monetization' && <MonetizationPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'analytics' && <AnalyticsPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'sharing' && <CrossPlatformSharingPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'accessibility' && <AccessibilityPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'business' && <BusinessShoppingPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'viewing' && <StatusViewingPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'privacy' && <StatusPrivacyPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'management' && <StatusManagementPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'chat' && <ChatFeaturesPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'customui' && <CustomUIPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'calls' && <CallFeaturesPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'contacts' && <ContactsPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'advancedChat' && <AdvancedChatFeaturesPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'voice' && <VoiceFeaturesPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'accessibilityAdv' && <AccessibilityAdvancedPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'debug' && <DebugFeaturesPanel onClose={() => setActivePanel(null)} />}
+                </div>
+              )}
             </div>
           </div>
         )}
