@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Eye, Ear, Zap, Contrast, Type, Image as ImageIcon, Volume2, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Eye, Ear, Zap, Contrast, Type, Image as ImageIcon, Volume2, CheckCircle, Palette, Keyboard, Braille } from 'lucide-react';
 
 const AccessibilityPanel = ({ onClose, content, onSave }) => {
   const [altText, setAltText] = useState('');
@@ -9,6 +9,9 @@ const AccessibilityPanel = ({ onClose, content, onSave }) => {
   const [highContrast, setHighContrast] = useState(false);
   const [fontSize, setFontSize] = useState('medium');
   const [captionsEnabled, setCaptionsEnabled] = useState(true);
+  const [colorBlindMode, setColorBlindMode] = useState('none');
+  const [switchAccess, setSwitchAccess] = useState(false);
+  const [brailleSupport, setBrailleSupport] = useState(false);
 
   const fontSizes = [
     { id: 'small', label: 'Small', size: '14px' },
@@ -33,10 +36,37 @@ const AccessibilityPanel = ({ onClose, content, onSave }) => {
         reduceMotion,
         highContrast,
         fontSize,
-        captionsEnabled
+        captionsEnabled,
+        colorBlindMode,
+        switchAccess,
+        brailleSupport
       });
     }
   };
+
+  // Apply color blind mode filter
+  const applyColorBlindMode = (mode) => {
+    const filters = {
+      none: 'none',
+      protanopia: 'url(#protanopia-filter)',
+      deuteranopia: 'url(#deuteranopia-filter)',
+      tritanopia: 'url(#tritanopia-filter)',
+      achromatopsia: 'grayscale(100%)'
+    };
+    
+    // Apply filter to document body
+    document.body.style.filter = filters[mode] || 'none';
+    
+    // Store in localStorage
+    localStorage.setItem('genz_color_blind_mode', mode);
+  };
+
+  // Initialize color blind mode from localStorage
+  useEffect(() => {
+    const savedMode = localStorage.getItem('genz_color_blind_mode') || 'none';
+    setColorBlindMode(savedMode);
+    applyColorBlindMode(savedMode);
+  }, []);
 
   return (
     <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -193,6 +223,81 @@ const AccessibilityPanel = ({ onClose, content, onSave }) => {
                 <div
                   className={`w-5 h-5 bg-white rounded-full transition-transform ${
                     captionsEnabled ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* Color Blind Mode */}
+          <div className="bg-white/5 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Palette size={18} className="text-[#00a884]" />
+              <h3 className="text-white font-medium">Color Blind Mode</h3>
+            </div>
+            <select
+              value={colorBlindMode}
+              onChange={(e) => {
+                setColorBlindMode(e.target.value);
+                applyColorBlindMode(e.target.value);
+              }}
+              className="w-full bg-white/10 text-white p-3 rounded-lg outline-none"
+            >
+              <option value="none">None</option>
+              <option value="protanopia">Protanopia (Red-Blind)</option>
+              <option value="deuteranopia">Deuteranopia (Green-Blind)</option>
+              <option value="tritanopia">Tritanopia (Blue-Blind)</option>
+              <option value="achromatopsia">Achromatopsia (Monochromacy)</option>
+            </select>
+            <p className="text-white/60 text-xs mt-2">
+              Adjusts colors to improve visibility for users with color vision deficiencies.
+            </p>
+          </div>
+
+          {/* Switch Access */}
+          <div className="bg-white/5 rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Keyboard size={18} className="text-[#00a884]" />
+                <div>
+                  <p className="text-white font-medium">Switch Access</p>
+                  <p className="text-white/60 text-sm">Navigate using keyboard or switch devices</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSwitchAccess(!switchAccess)}
+                className={`w-12 h-6 rounded-full transition-colors ${
+                  switchAccess ? 'bg-[#00a884]' : 'bg-gray-600'
+                }`}
+              >
+                <div
+                  className={`w-5 h-5 bg-white rounded-full transition-transform ${
+                    switchAccess ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* Braille Support */}
+          <div className="bg-white/5 rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Braille size={18} className="text-[#00a884]" />
+                <div>
+                  <p className="text-white font-medium">Braille Support</p>
+                  <p className="text-white/60 text-sm">Enable braille display compatibility</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setBrailleSupport(!brailleSupport)}
+                className={`w-12 h-6 rounded-full transition-colors ${
+                  brailleSupport ? 'bg-[#00a884]' : 'bg-gray-600'
+                }`}
+              >
+                <div
+                  className={`w-5 h-5 bg-white rounded-full transition-transform ${
+                    brailleSupport ? 'translate-x-6' : 'translate-x-1'
                   }`}
                 />
               </button>

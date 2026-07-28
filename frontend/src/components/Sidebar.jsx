@@ -51,7 +51,11 @@ import {
   CheckSquare,
   Square,
   ChevronUp,
-  RefreshCw
+  RefreshCw,
+  Mic,
+  Upload,
+  Download,
+  Clock
 } from 'lucide-react';
 import ProfileEnlarger from './ProfileEnlarger';
 import AccountSwitcher from './AccountSwitcher';
@@ -305,6 +309,252 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     setScheduledMessages(newMessages);
     localStorage.setItem('genz_scheduled_messages', JSON.stringify(newMessages));
     alert(`Message scheduled for ${scheduledTime.toLocaleString()}`);
+  };
+
+  // Import Chat from WhatsApp/MODs
+  const handleImportChat = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.txt,.json,.db';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const content = event.target.result;
+          const importedData = JSON.parse(content);
+          
+          // Store imported data in localStorage
+          const existingImports = JSON.parse(localStorage.getItem('genz_imported_chats') || '[]');
+          existingImports.push({
+            id: Date.now().toString(),
+            fileName: file.name,
+            timestamp: new Date().toISOString(),
+            data: importedData
+          });
+          localStorage.setItem('genz_imported_chats', JSON.stringify(existingImports));
+          
+          alert('Chat imported successfully! You can now view it in the imported chats section.');
+        } catch (error) {
+          alert('Failed to import chat. Please ensure the file is in the correct format.');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
+  // Export Chat to HTML/ZIP
+  const handleExportChat = (chatId) => {
+    const conv = conversations.find(c => c._id === chatId);
+    if (!conv) return;
+
+    const format = prompt('Export format (html, txt, json, zip):', 'html');
+    if (!format) return;
+
+    const chatName = getConversationName(conv);
+    const messages = conv.messages || [];
+
+    if (format === 'html') {
+      const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chat Export - ${chatName}</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+    .message { margin: 10px 0; padding: 10px; border-radius: 8px; }
+    .sent { background: #dcf8c6; margin-left: 20%; }
+    .received { background: #fff; margin-right: 20%; }
+    .timestamp { font-size: 12px; color: #666; }
+    .sender { font-weight: bold; margin-bottom: 5px; }
+  </style>
+</head>
+<body>
+  <h1>Chat Export - ${chatName}</h1>
+  <p>Exported on: ${new Date().toLocaleString()}</p>
+  ${messages.map(msg => `
+    <div class="message ${msg.senderId === user?.id ? 'sent' : 'received'}">
+      <div class="sender">${msg.senderName || 'Unknown'}</div>
+      <div>${msg.content || ''}</div>
+      <div class="timestamp">${new Date(msg.createdAt).toLocaleString()}</div>
+    </div>
+  `).join('')}
+</body>
+</html>`;
+      
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `chat_export_${chatName}_${Date.now()}.html`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else if (format === 'txt') {
+      const txtContent = messages.map(msg => 
+        `[${new Date(msg.createdAt).toLocaleString()}] ${msg.senderName || 'Unknown'}: ${msg.content || ''}`
+      ).join('\n');
+      
+      const blob = new Blob([txtContent], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `chat_export_${chatName}_${Date.now()}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else if (format === 'json') {
+      const jsonContent = JSON.stringify({
+        chatName,
+        exportedAt: new Date().toISOString(),
+        messages
+      }, null, 2);
+      
+      const blob = new Blob([jsonContent], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `chat_export_${chatName}_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else if (format === 'zip') {
+      // For ZIP export, we'll use JSZip if available, otherwise alert
+      alert('ZIP export requires JSZip library. Please use HTML, TXT, or JSON format instead.');
+    } else {
+      alert('Invalid format. Please use html, txt, json, or zip.');
+    }
+  };
+
+  // Voice Features
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const recognitionRef = useRef(null);
+
+  // Voice Search (STT)
+  const handleVoiceSearch = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      alert('Voice search is not supported in this browser. Please use Chrome or Edge.');
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (isListening) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsListening(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setSearchQuery(transcript);
+      setIsListening(false);
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+      alert('Voice search failed. Please try again.');
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  // Text-to-Speech (TTS) - Read Messages
+  const handleReadMessage = (message) => {
+    if (!('speechSynthesis' in window)) {
+      alert('Text-to-speech is not supported in this browser.');
+      return;
+    }
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(message.content || '');
+    utterance.lang = 'en-US';
+    utterance.rate = 1;
+    utterance.pitch = 1;
+
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+    };
+
+    utterance.onend = () => {
+      setIsSpeaking(false);
+    };
+
+    utterance.onerror = () => {
+      setIsSpeaking(false);
+    };
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Voice Reply (STT)
+  const handleVoiceReply = (chatId) => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      alert('Voice reply is not supported in this browser. Please use Chrome or Edge.');
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (isListening) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsListening(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      // In a real app, you would send this message to the chat
+      alert(`Voice reply: "${transcript}" - This would be sent to the chat.`);
+      setIsListening(false);
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+      alert('Voice reply failed. Please try again.');
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
   };
 
   // BUG FIX: the chat-row "..." menu used to be positioned with raw
@@ -1196,8 +1446,16 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
               onChange={(e) => handleSearchChange(e.target.value)}
               onFocus={() => setShowRecentSearches(recentSearches.length > 0)}
               onBlur={() => setTimeout(() => setShowRecentSearches(false), 200)}
-              className="w-full pl-10 pr-4 py-2 bg-dark-bg border border-dark-border rounded-lg text-dark-text placeholder-dark-textSecondary focus:outline-none focus:border-primary-500 text-base md:text-sm"
+              className="w-full pl-10 pr-12 py-2 bg-dark-bg border border-dark-border rounded-lg text-dark-text placeholder-dark-textSecondary focus:outline-none focus:border-primary-500 text-base md:text-sm"
             />
+            <button
+              onClick={handleVoiceSearch}
+              className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-colors ${isListening ? 'bg-red-500 text-white' : 'text-dark-textSecondary hover:bg-dark-hover'}`}
+              title="Voice Search"
+              aria-label="Voice Search"
+            >
+              {isListening ? <Square size={16} /> : <Mic size={16} />}
+            </button>
             {showRecentSearches && recentSearches.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-dark-surface border border-dark-border rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto">
                 <div className="flex items-center justify-between px-3 py-2 border-b border-dark-border">
@@ -1578,6 +1836,27 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
             >
               <Clock size={16} />
               <span>Schedule Message</span>
+            </button>
+            <button
+              onClick={() => { handleImportChat(); setContextMenu(null); }}
+              className="w-full flex items-center gap-3 px-4 py-2 hover:bg-dark-hover text-dark-text transition-colors"
+            >
+              <Upload size={16} />
+              <span>Import Chat</span>
+            </button>
+            <button
+              onClick={() => { handleExportChat(contextMenu.chatId); setContextMenu(null); }}
+              className="w-full flex items-center gap-3 px-4 py-2 hover:bg-dark-hover text-dark-text transition-colors"
+            >
+              <Download size={16} />
+              <span>Export Chat</span>
+            </button>
+            <button
+              onClick={() => { handleVoiceReply(contextMenu.chatId); setContextMenu(null); }}
+              className="w-full flex items-center gap-3 px-4 py-2 hover:bg-dark-hover text-dark-text transition-colors"
+            >
+              <Mic size={16} />
+              <span>Voice Reply</span>
             </button>
             <div className="border-t border-dark-border my-1" />
             <div className="px-4 py-1 text-xs font-semibold text-dark-textSecondary uppercase tracking-wider">Assign to Tab</div>

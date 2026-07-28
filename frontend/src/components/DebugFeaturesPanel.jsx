@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Bug, FileText, Network, Database, Settings, AlertTriangle, Trash2 } from 'lucide-react';
 
 const DebugFeaturesPanel = ({ onClose }) => {
@@ -7,6 +7,11 @@ const DebugFeaturesPanel = ({ onClose }) => {
   const [networkLogs, setNetworkLogs] = useState([]);
   const [dbData, setDbData] = useState([]);
   const [sharedPrefs, setSharedPrefs] = useState({});
+  const [localStorageData, setLocalStorageData] = useState({});
+  const [sessionStorageData, setSessionStorageData] = useState({});
+  const originalConsoleLog = useRef(null);
+  const originalConsoleError = useRef(null);
+  const originalConsoleWarn = useRef(null);
 
   const mockLogs = [
     { id: 1, timestamp: '2024-01-15 10:30:45', level: 'INFO', message: 'App initialized successfully' },
@@ -59,6 +64,81 @@ const DebugFeaturesPanel = ({ onClose }) => {
   const handleClearNetworkLogs = () => {
     setNetworkLogs([]);
   };
+
+  // Load localStorage and sessionStorage data
+  const loadStorageData = () => {
+    const localData = {};
+    const sessionData = {};
+    
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      localData[key] = localStorage.getItem(key);
+    }
+    
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i);
+      sessionData[key] = sessionStorage.getItem(key);
+    }
+    
+    setLocalStorageData(localData);
+    setSessionStorageData(sessionData);
+  };
+
+  // Override console functions when debug mode is enabled
+  useEffect(() => {
+    if (debugMode) {
+      originalConsoleLog.current = console.log;
+      originalConsoleError.current = console.error;
+      originalConsoleWarn.current = console.warn;
+
+      console.log = (...args) => {
+        const timestamp = new Date().toISOString();
+        setLogs(prev => [...prev, {
+          id: Date.now(),
+          timestamp,
+          level: 'INFO',
+          message: args.join(' ')
+        }]);
+        originalConsoleLog.current(...args);
+      };
+
+      console.error = (...args) => {
+        const timestamp = new Date().toISOString();
+        setLogs(prev => [...prev, {
+          id: Date.now(),
+          timestamp,
+          level: 'ERROR',
+          message: args.join(' ')
+        }]);
+        originalConsoleError.current(...args);
+      };
+
+      console.warn = (...args) => {
+        const timestamp = new Date().toISOString();
+        setLogs(prev => [...prev, {
+          id: Date.now(),
+          timestamp,
+          level: 'WARN',
+          message: args.join(' ')
+        }]);
+        originalConsoleWarn.current(...args);
+      };
+
+      loadStorageData();
+    } else {
+      // Restore original console functions
+      if (originalConsoleLog.current) console.log = originalConsoleLog.current;
+      if (originalConsoleError.current) console.error = originalConsoleError.current;
+      if (originalConsoleWarn.current) console.warn = originalConsoleWarn.current;
+    }
+
+    return () => {
+      // Cleanup on unmount
+      if (originalConsoleLog.current) console.log = originalConsoleLog.current;
+      if (originalConsoleError.current) console.error = originalConsoleError.current;
+      if (originalConsoleWarn.current) console.warn = originalConsoleWarn.current;
+    };
+  }, [debugMode]);
 
   return (
     <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -220,19 +300,65 @@ const DebugFeaturesPanel = ({ onClose }) => {
             </div>
           </div>
 
-          {/* Shared Preferences Viewer */}
+          {/* LocalStorage Viewer */}
           <div className="bg-white/5 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Settings size={18} className="text-[#00a884]" />
-              <h3 className="text-white font-medium">Shared Preferences</h3>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Database size={18} className="text-[#00a884]" />
+                <h3 className="text-white font-medium">LocalStorage</h3>
+              </div>
+              <button
+                onClick={loadStorageData}
+                className="text-[#00a884] hover:text-[#008f6f] text-sm"
+              >
+                Refresh
+              </button>
             </div>
-            <div className="bg-black/50 rounded-lg p-3 font-mono text-xs">
-              {Object.entries(mockSharedPrefs).map(([key, value]) => (
-                <div key={key} className="mb-1">
-                  <span className="text-[#00a884]">{key}:</span>
-                  <span className="text-white ml-2">{String(value)}</span>
+            <div className="bg-black/50 rounded-lg p-3 h-40 overflow-y-auto font-mono text-xs">
+              {Object.keys(localStorageData).length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-white/40">
+                  <Database size={24} />
+                  <p className="mt-2">No localStorage data</p>
                 </div>
-              ))}
+              ) : (
+                Object.entries(localStorageData).map(([key, value]) => (
+                  <div key={key} className="mb-1">
+                    <span className="text-[#00a884]">{key}:</span>
+                    <span className="text-white ml-2">{String(value).substring(0, 50)}{String(value).length > 50 ? '...' : ''}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* SessionStorage Viewer */}
+          <div className="bg-white/5 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Settings size={18} className="text-[#00a884]" />
+                <h3 className="text-white font-medium">SessionStorage</h3>
+              </div>
+              <button
+                onClick={loadStorageData}
+                className="text-[#00a884] hover:text-[#008f6f] text-sm"
+              >
+                Refresh
+              </button>
+            </div>
+            <div className="bg-black/50 rounded-lg p-3 h-40 overflow-y-auto font-mono text-xs">
+              {Object.keys(sessionStorageData).length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-white/40">
+                  <Settings size={24} />
+                  <p className="mt-2">No sessionStorage data</p>
+                </div>
+              ) : (
+                Object.entries(sessionStorageData).map(([key, value]) => (
+                  <div key={key} className="mb-1">
+                    <span className="text-[#00a884]">{key}:</span>
+                    <span className="text-white ml-2">{String(value).substring(0, 50)}{String(value).length > 50 ? '...' : ''}</span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
