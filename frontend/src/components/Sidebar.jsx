@@ -97,6 +97,24 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   const [startY, setStartY] = useState(0);
   const [longPressChatId, setLongPressChatId] = useState(null);
   const longPressTimerRef = useRef(null);
+  const [iconSettings, setIconSettings] = useState(() => {
+    try {
+      const stored = localStorage.getItem('genz_icon_settings');
+      return stored ? JSON.parse(stored) : {
+        pinIconPosition: 'right',
+        pinIconColor: 'primary',
+        muteIconPosition: 'right',
+        muteIconColor: 'default'
+      };
+    } catch {
+      return {
+        pinIconPosition: 'right',
+        pinIconColor: 'primary',
+        muteIconPosition: 'right',
+        muteIconColor: 'default'
+      };
+    }
+  });
   const [recentSearches, setRecentSearches] = useState(() => {
     try {
       const stored = localStorage.getItem('genz_recent_searches');
@@ -211,6 +229,22 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
       longPressTimerRef.current = null;
     }
     setLongPressChatId(null);
+  };
+
+  const updateIconSettings = (key, value) => {
+    const newSettings = { ...iconSettings, [key]: value };
+    setIconSettings(newSettings);
+    localStorage.setItem('genz_icon_settings', JSON.stringify(newSettings));
+  };
+
+  const getIconColor = (color) => {
+    switch (color) {
+      case 'primary': return 'text-primary-500';
+      case 'red': return 'text-red-500';
+      case 'green': return 'text-green-500';
+      case 'blue': return 'text-blue-500';
+      default: return 'text-dark-textSecondary';
+    }
   };
 
   // BUG FIX: the chat-row "..." menu used to be positioned with raw
@@ -1241,8 +1275,20 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                         {getConversationName(conv)}
                       </h3>
                       <div className="flex items-center gap-2">
-                        {conv.isMuted && <VolumeX size={12} className="text-dark-textSecondary" />}
-                        {isChatPinned(conv) && <Pin size={12} className="text-primary-500 rotate-45" />}
+                        {conv.isMuted && (
+                          <VolumeX
+                            size={12}
+                            className={getIconColor(iconSettings.muteIconColor)}
+                            style={{ order: iconSettings.muteIconPosition === 'left' ? '-1' : '1' }}
+                          />
+                        )}
+                        {isChatPinned(conv) && (
+                          <Pin
+                            size={12}
+                            className={`${getIconColor(iconSettings.pinIconColor)} rotate-45`}
+                            style={{ order: iconSettings.pinIconPosition === 'left' ? '-1' : '1' }}
+                          />
+                        )}
                         {/* Unread count badge */}
                         {conv.unreadCount > 0 ? (
                           <span className="unread-badge">
