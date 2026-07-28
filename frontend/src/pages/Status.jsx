@@ -619,6 +619,58 @@ const Status = () => {
                   <option value="private">Only me</option>
                 </select>
 
+              {(uploadData.type === 'image' || uploadData.type === 'video') && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Edit Status
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setActivePanel('filters')}
+                      className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-gray-700 dark:text-gray-300 text-xs"
+                    >
+                      Filters
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActivePanel('textEffects')}
+                      className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-gray-700 dark:text-gray-300 text-xs"
+                    >
+                      Text Effects
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActivePanel('drawing')}
+                      className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-gray-700 dark:text-gray-300 text-xs"
+                    >
+                      Drawing
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActivePanel('beauty')}
+                      className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-gray-700 dark:text-gray-300 text-xs"
+                    >
+                      Beauty
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActivePanel('background')}
+                      className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-gray-700 dark:text-gray-300 text-xs"
+                    >
+                      Background
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActivePanel('video')}
+                      className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-gray-700 dark:text-gray-300 text-xs"
+                    >
+                      Video Tools
+                    </button>
+                  </div>
+                </div>
+              )}
+
                 {/* FEATURE ADD: WhatsApp-style "hide my status from..." picker.
                     Anyone checked here won't be able to see this status even
                     though they're a contact. */}
