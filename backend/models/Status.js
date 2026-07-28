@@ -26,7 +26,7 @@ const statusSchema = new mongoose.Schema({
   username: { type: String },
   type: {
     type: String,
-    enum: ['text', 'image', 'video', 'voice', 'audio'],
+    enum: ['text', 'image', 'video', 'voice', 'audio', 'gif', 'link', 'music', 'quiz', 'question', 'countdown', 'location', 'collage', 'boomerang', 'livePhoto', 'dualCamera', 'timer'],
     required: true
   },
   content: { type: String, default: '' },
@@ -51,6 +51,23 @@ const statusSchema = new mongoose.Schema({
   reactions: [reactionSchema],
   replies: [replySchema],
   clientStatusId: { type: String },
+  
+  // New status type fields
+  linkUrl: { type: String, default: '' },
+  quizQuestion: { type: String, default: '' },
+  quizOptions: [{ type: String }],
+  quizCorrectAnswer: { type: Number, default: 0 },
+  questionText: { type: String, default: '' },
+  countdownDate: { type: String, default: '' },
+  countdownTime: { type: String, default: '' },
+  locationData: {
+    lat: { type: Number },
+    lng: { type: Number },
+    address: { type: String }
+  },
+  collageImages: [{ type: String }],
+  timerSeconds: { type: Number, default: 5 },
+  
   expiresAt: {
     type: Date,
     default: () => new Date(Date.now() + 24 * 60 * 60 * 1000) // saa 24

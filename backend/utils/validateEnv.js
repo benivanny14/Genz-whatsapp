@@ -182,6 +182,12 @@ const validateEnv = () => {
     });
   }
 
+  // Skip validation in test mode - setup.js handles environment
+  if (process.env.NODE_ENV === 'test') {
+    console.log(`Environment validation skipped (test mode)\n`);
+    return { missingRequired, invalidValues, warnings };
+  }
+
   if (missingRequired.length > 0 || invalidValues.length > 0) {
     console.error('\nCRITICAL: Environment validation failed:\n');
     [...missingRequired, ...invalidValues].forEach(({ key, description }) => {

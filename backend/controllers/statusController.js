@@ -7,11 +7,22 @@ const { isEitherUserBlocked } = require('../utils/messageSendHelpers');
 exports.createStatus = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
-    const { type, content, mediaUrl, duration, backgroundColor, fontStyle } = req.body;
+    const { 
+      type, content, mediaUrl, duration, backgroundColor, fontStyle,
+      linkUrl, quizQuestion, quizOptions, quizCorrectAnswer,
+      questionText, countdownDate, countdownTime, locationData,
+      collageImages, timerSeconds, caption, collabUserId, collabUsername
+    };
 
     if (!type) return res.status(400).json({ success: false, message: 'Type inahitajika' });
     if (type === 'text' && !content) return res.status(400).json({ success: false, message: 'Content inahitajika kwa text status' });
-    if (['image','video','voice'].includes(type) && !mediaUrl) return res.status(400).json({ success: false, message: 'MediaUrl inahitajika' });
+    if (['image','video','voice','gif'].includes(type) && !mediaUrl) return res.status(400).json({ success: false, message: 'MediaUrl inahitajika' });
+    if (type === 'link' && !linkUrl) return res.status(400).json({ success: false, message: 'LinkUrl inahitajika' });
+    if (type === 'quiz' && !quizQuestion) return res.status(400).json({ success: false, message: 'QuizQuestion inahitajika' });
+    if (type === 'question' && !questionText) return res.status(400).json({ success: false, message: 'QuestionText inahitajika' });
+    if (type === 'countdown' && (!countdownDate || !countdownTime)) return res.status(400).json({ success: false, message: 'CountdownDate na CountdownTime zinahitajika' });
+    if (type === 'location' && !locationData) return res.status(400).json({ success: false, message: 'LocationData inahitajika' });
+    if (type === 'collage' && (!collageImages || collageImages.length === 0)) return res.status(400).json({ success: false, message: 'CollageImages inahitajika' });
 
     const status = await Status.create({
       user: userId,
@@ -21,7 +32,21 @@ exports.createStatus = async (req, res) => {
       mediaUrl: mediaUrl || '',
       duration: duration || 0,
       backgroundColor: backgroundColor || '#075E54',
-      fontStyle: fontStyle || 'sans'
+      fontStyle: fontStyle || 'sans',
+      caption: caption || '',
+      collabUserId: collabUserId || '',
+      collabUsername: collabUsername || '',
+      // New status type fields
+      linkUrl: linkUrl || '',
+      quizQuestion: quizQuestion || '',
+      quizOptions: quizOptions || [],
+      quizCorrectAnswer: quizCorrectAnswer || 0,
+      questionText: questionText || '',
+      countdownDate: countdownDate || '',
+      countdownTime: countdownTime || '',
+      locationData: locationData || null,
+      collageImages: collageImages || [],
+      timerSeconds: timerSeconds || 5
     });
 
     const populated = await Status.findById(status._id).populate('user', 'username profilePicture');
@@ -189,6 +214,46 @@ exports.getViewers = async (req, res) => {
       views: status.views,
       reactions: status.reactions,
       viewCount: status.views.length
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// POST /api/status/upload - upload media kwa status
+exports.uploadStatusMedia = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+
+    const mediaUrl = req.file.path || req.file.location || `/uploads/${req.file.filename}`;
+    const mediaType = req.file.mimetype.startsWith('video') ? 'video' : 'image';
+
+    res.json({
+      success: true,
+      fileUrl: mediaUrl,
+      mediaType: mediaType
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// POST /api/status/collage-upload - upload multiple images kwa collage
+exports.uploadCollageImages = async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ success: false, message: 'No files uploaded' });
+    }
+
+    const imageUrls = req.files.map(file => 
+      file.path || file.location || `/uploads/${file.filename}`
+    );
+
+    res.json({
+      success: true,
+      imageUrls: imageUrls
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

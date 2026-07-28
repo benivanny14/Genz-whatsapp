@@ -1,5 +1,4 @@
 const request = require('supertest');
-const { app } = require('../server');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const Subscription = require('../models/Subscription');
@@ -24,6 +23,13 @@ const createMpesaPayload = () => ({
 });
 
 describe('Payment webhooks', () => {
+  let app;
+
+  beforeAll(() => {
+    const { app: serverApp } = require('../server');
+    app = serverApp;
+  });
+
   it('processes duplicate M-Pesa success callbacks only once', async () => {
     const user = await User.create({
       username: 'payuser',

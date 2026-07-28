@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Eye, X, RefreshCw, UserPlus, UserMinus, Search } from 'lucide-react';
+import { Eye, X, RefreshCw, UserPlus, UserMinus, Search, Clock, Shield, Camera, Lock, Fingerprint } from 'lucide-react';
 import { authFetch } from '../utils/authFetch';
 import userService from '../services/userService';
 import PrivacyPermissionSelector from './PrivacyPermissionSelector';
@@ -17,6 +17,13 @@ const StatusPrivacyPanel = ({ onClose }) => {
   const [error, setError] = useState('');
   const [showContactSelector, setShowContactSelector] = useState(false);
   const [contactSelectorConfig, setContactSelectorConfig] = useState(null);
+  const [viewOnce, setViewOnce] = useState(false);
+  const [disappearingAfterView, setDisappearingAfterView] = useState(false);
+  const [passwordProtection, setPasswordProtection] = useState(false);
+  const [pinProtection, setPinProtection] = useState(false);
+  const [fingerprintProtection, setFingerprintProtection] = useState(false);
+  const [screenshotDetection, setScreenshotDetection] = useState(false);
+  const [antiScreenshot, setAntiScreenshot] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -279,6 +286,122 @@ const StatusPrivacyPanel = ({ onClose }) => {
                   {filteredContacts.length === 0 && (
                     <p className="text-gray-500 text-xs text-center py-4">No contacts found</p>
                   )}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <p className="text-gray-400 text-xs uppercase tracking-wide">Advanced Privacy</p>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Eye size={18} className="text-[#00a884]" />
+                    <div>
+                      <p className="text-white text-sm">View Once</p>
+                      <p className="text-white/50 text-xs">Status disappears after first view</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setViewOnce(!viewOnce)}
+                    className={`w-12 h-6 rounded-full transition-colors ${viewOnce ? 'bg-[#00a884]' : 'bg-gray-600'}`}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${viewOnce ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock size={18} className="text-[#00a884]" />
+                    <div>
+                      <p className="text-white text-sm">Disappearing After View</p>
+                      <p className="text-white/50 text-xs">Auto-delete after viewer sees it</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setDisappearingAfterView(!disappearingAfterView)}
+                    className={`w-12 h-6 rounded-full transition-colors ${disappearingAfterView ? 'bg-[#00a884]' : 'bg-gray-600'}`}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${disappearingAfterView ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Lock size={18} className="text-[#00a884]" />
+                    <div>
+                      <p className="text-white text-sm">Password Protection</p>
+                      <p className="text-white/50 text-xs">Require password to view</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setPasswordProtection(!passwordProtection)}
+                    className={`w-12 h-6 rounded-full transition-colors ${passwordProtection ? 'bg-[#00a884]' : 'bg-gray-600'}`}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${passwordProtection ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Shield size={18} className="text-[#00a884]" />
+                    <div>
+                      <p className="text-white text-sm">PIN Protection</p>
+                      <p className="text-white/50 text-xs">Require PIN to view</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setPinProtection(!pinProtection)}
+                    className={`w-12 h-6 rounded-full transition-colors ${pinProtection ? 'bg-[#00a884]' : 'bg-gray-600'}`}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${pinProtection ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Fingerprint size={18} className="text-[#00a884]" />
+                    <div>
+                      <p className="text-white text-sm">Fingerprint Protection</p>
+                      <p className="text-white/50 text-xs">Require biometric authentication</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setFingerprintProtection(!fingerprintProtection)}
+                    className={`w-12 h-6 rounded-full transition-colors ${fingerprintProtection ? 'bg-[#00a884]' : 'bg-gray-600'}`}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${fingerprintProtection ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Camera size={18} className="text-[#00a884]" />
+                    <div>
+                      <p className="text-white text-sm">Screenshot Detection</p>
+                      <p className="text-white/50 text-xs">Get notified when screenshot taken</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setScreenshotDetection(!screenshotDetection)}
+                    className={`w-12 h-6 rounded-full transition-colors ${screenshotDetection ? 'bg-[#00a884]' : 'bg-gray-600'}`}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${screenshotDetection ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Shield size={18} className="text-[#00a884]" />
+                    <div>
+                      <p className="text-white text-sm">Anti-Screenshot</p>
+                      <p className="text-white/50 text-xs">Prevent screenshots (when supported)</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setAntiScreenshot(!antiScreenshot)}
+                    className={`w-12 h-6 rounded-full transition-colors ${antiScreenshot ? 'bg-[#00a884]' : 'bg-gray-600'}`}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${antiScreenshot ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
                 </div>
               </div>
             </>

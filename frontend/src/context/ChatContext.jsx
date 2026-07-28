@@ -2939,6 +2939,29 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
+  const uploadCollageImages = async (files) => {
+    const formData = new FormData();
+    files.forEach((file, index) => {
+      formData.append(`files`, file);
+    });
+
+    try {
+      const response = await authFetch(`${BACKEND_URL}/advanced/status/collage-upload`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json();
+      if (data.success) {
+        return data;
+      } else {
+        throw new Error(data.message || 'Collage upload failed');
+      }
+    } catch (error) {
+      console.error('Error uploading collage images:', error);
+      throw error;
+    }
+  };
+
   const addStatus = (statusDataOrType, contentArg) => {
     // Support both addStatus(obj) and addStatus('text', 'content') call styles
     let statusData;
@@ -4976,7 +4999,7 @@ export const ChatProvider = ({ children }) => {
     activeCall, initiateCall, endCall, acceptCall, rejectCall,
     activeGroupCall, setActiveGroupCall,
     onlineNotification, broadcasts, sendMassMessage, createBroadcastList,
-    statuses, addStatus, uploadStatusMedia, statusViewers, viewStatus,
+    statuses, addStatus, uploadStatusMedia, uploadCollageImages, statusViewers, viewStatus,
     onlineUsers, awayUsers, lastSeenByUser, callLogs, fetchCallLogs, profileVisitors,
     showProfileEditor, setShowProfileEditor,
     contacts, addContact, removeContact, updateContact,

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Phone, X, RefreshCw } from 'lucide-react';
+import { Phone, X, RefreshCw, Zap, FileText, Clock, Plus, Trash2 } from 'lucide-react';
 import { authFetch } from '../utils/authFetch';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -39,6 +39,9 @@ const CallFeaturesPanel = ({ onClose }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [speedDialContacts, setSpeedDialContacts] = useState([]);
+  const [callNotes, setCallNotes] = useState([]);
+  const [callReminders, setCallReminders] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -139,6 +142,91 @@ const CallFeaturesPanel = ({ onClose }) => {
                     onChange={(e) => updateNumber('maxCallDuration', e.target.value)}
                     className="w-full bg-[#0b141a] text-white px-3 py-2 rounded-lg border border-white/10 text-sm mt-1 focus:outline-none focus:border-[#00a884]"
                   />
+                </div>
+              </div>
+
+              {/* Speed Dial */}
+              <div className="pt-4 border-t border-white/10">
+                <div className="flex items-center gap-2 mb-3">
+                  <Zap size={18} className="text-[#00a884]" />
+                  <h3 className="text-white font-medium">Speed Dial</h3>
+                </div>
+                <div className="space-y-2">
+                  {speedDialContacts.length === 0 ? (
+                    <p className="text-white/40 text-xs text-center py-2">No speed dial contacts</p>
+                  ) : (
+                    speedDialContacts.map((contact) => (
+                      <div key={contact.id} className="flex items-center justify-between bg-white/5 rounded-lg p-2">
+                        <span className="text-white text-sm">{contact.name}</span>
+                        <button
+                          onClick={() => setSpeedDialContacts(speedDialContacts.filter(c => c.id !== contact.id))}
+                          className="text-red-400 hover:text-red-300"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                  <button className="w-full px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm flex items-center justify-center gap-2">
+                    <Plus size={14} />
+                    Add Speed Dial Contact
+                  </button>
+                </div>
+              </div>
+
+              {/* Call Notes */}
+              <div className="pt-4 border-t border-white/10">
+                <div className="flex items-center gap-2 mb-3">
+                  <FileText size={18} className="text-[#00a884]" />
+                  <h3 className="text-white font-medium">Call Notes</h3>
+                </div>
+                <div className="space-y-2">
+                  {callNotes.length === 0 ? (
+                    <p className="text-white/40 text-xs text-center py-2">No call notes</p>
+                  ) : (
+                    callNotes.map((note) => (
+                      <div key={note.id} className="bg-white/5 rounded-lg p-2">
+                        <p className="text-white text-sm">{note.text}</p>
+                        <p className="text-white/40 text-xs mt-1">{note.date}</p>
+                      </div>
+                    ))
+                  )}
+                  <button className="w-full px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm flex items-center justify-center gap-2">
+                    <Plus size={14} />
+                    Add Call Note
+                  </button>
+                </div>
+              </div>
+
+              {/* Call Reminders */}
+              <div className="pt-4 border-t border-white/10">
+                <div className="flex items-center gap-2 mb-3">
+                  <Clock size={18} className="text-[#00a884]" />
+                  <h3 className="text-white font-medium">Call Reminders</h3>
+                </div>
+                <div className="space-y-2">
+                  {callReminders.length === 0 ? (
+                    <p className="text-white/40 text-xs text-center py-2">No call reminders</p>
+                  ) : (
+                    callReminders.map((reminder) => (
+                      <div key={reminder.id} className="flex items-center justify-between bg-white/5 rounded-lg p-2">
+                        <div>
+                          <p className="text-white text-sm">{reminder.contact}</p>
+                          <p className="text-white/40 text-xs">{reminder.time}</p>
+                        </div>
+                        <button
+                          onClick={() => setCallReminders(callReminders.filter(r => r.id !== reminder.id))}
+                          className="text-red-400 hover:text-red-300"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                  <button className="w-full px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm flex items-center justify-center gap-2">
+                    <Plus size={14} />
+                    Set Call Reminder
+                  </button>
                 </div>
               </div>
             </>

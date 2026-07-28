@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { X, Send, Type, Palette, Image as ImageIcon, Trash2, Users, Search, Check } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { X, Send, Type, Palette, Image as ImageIcon, Trash2, Users, Search, Check, MapPin, Clock, Music, Link as LinkIcon, HelpCircle, Timer, Camera, Grid, Layers, Sparkles, Mic, Film, Play, Pause, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChat } from '../context/ChatContext';
 
@@ -17,6 +17,24 @@ const FONTS = [
   { name: 'Cursive', class: 'italic' }
 ];
 
+const STATUS_MODES = [
+  { id: 'text', icon: Type, label: 'Text' },
+  { id: 'image', icon: ImageIcon, label: 'Photo' },
+  { id: 'video', icon: Film, label: 'Video' },
+  { id: 'gif', icon: Play, label: 'GIF' },
+  { id: 'link', icon: LinkIcon, label: 'Link' },
+  { id: 'music', icon: Music, label: 'Music' },
+  { id: 'quiz', icon: HelpCircle, label: 'Quiz' },
+  { id: 'question', icon: Sparkles, label: 'Question' },
+  { id: 'countdown', icon: Clock, label: 'Countdown' },
+  { id: 'location', icon: MapPin, label: 'Location' },
+  { id: 'collage', icon: Layers, label: 'Collage' },
+  { id: 'boomerang', icon: RotateCcw, label: 'Boomerang' },
+  { id: 'livePhoto', icon: Camera, label: 'Live Photo' },
+  { id: 'dualCamera', icon: Grid, label: 'Dual Camera' },
+  { id: 'timer', icon: Timer, label: 'Timer' }
+];
+
 const StatusCreator = ({ onClose, onSend, initialMode = 'text', initialMedia = null, enableCollab = false }) => {
   const [mode, setMode] = useState(initialMode);
   const [text, setText] = useState('');
@@ -25,6 +43,21 @@ const StatusCreator = ({ onClose, onSend, initialMode = 'text', initialMedia = n
   const [colorIndex, setColorIndex] = useState(0);
   const [fontIndex, setFontIndex] = useState(0);
   const [isSending, setIsSending] = useState(false);
+  const [showModeSelector, setShowModeSelector] = useState(false);
+
+  // Additional mode-specific states
+  const [linkUrl, setLinkUrl] = useState('');
+  const [quizQuestion, setQuizQuestion] = useState('');
+  const [quizOptions, setQuizOptions] = useState(['', '', '']);
+  const [quizCorrectAnswer, setQuizCorrectAnswer] = useState(0);
+  const [questionText, setQuestionText] = useState('');
+  const [countdownDate, setCountdownDate] = useState('');
+  const [countdownTime, setCountdownTime] = useState('');
+  const [locationData, setLocationData] = useState(null);
+  const [collageImages, setCollageImages] = useState([]);
+  const [timerSeconds, setTimerSeconds] = useState(5);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
 
   // Collab State
   const [showCollabPicker, setShowCollabPicker] = useState(false);
@@ -75,27 +108,65 @@ const StatusCreator = ({ onClose, onSend, initialMode = 'text', initialMedia = n
   const handleSend = async () => {
     if (isSending) return;
     if (mode === 'text' && !text.trim()) return;
-    if (mode === 'media' && !media) return;
+    if ((mode === 'image' || mode === 'video' || mode === 'gif') && !media) return;
+    if (mode === 'link' && !linkUrl.trim()) return;
+    if (mode === 'quiz' && !quizQuestion.trim()) return;
+    if (mode === 'question' && !questionText.trim()) return;
+    if (mode === 'countdown' && (!countdownDate || !countdownTime)) return;
+    if (mode === 'location' && !locationData) return;
+    if (mode === 'collage' && collageImages.filter(img => img).length === 0) return;
 
     setIsSending(true);
     try {
       const collabData = collabUser ? { collabUserId: collabUser._id || collabUser.id, collabUsername: collabUser.username } : {};
-      if (mode === 'text') {
-        await onSend({
-          type: 'text',
-          content: text,
-          bgColor: BG_COLORS[colorIndex],
-          fontClass: FONTS[fontIndex].class,
-          ...collabData
-        });
-      } else if (mode === 'media') {
-        await onSend({
-          type: media.type.startsWith('video') ? 'video' : 'image',
-          mediaFile: media,
-          caption: caption,
-          ...collabData
-        });
+      
+      let payload = {
+        type: mode,
+        bgColor: BG_COLORS[colorIndex],
+        fontClass: FONTS[fontIndex].class,
+        ...collabData
+      };
+
+      switch (mode) {
+        case 'text':
+          payload.content = text;
+          break;
+        case 'image':
+        case 'video':
+        case 'gif':
+          payload.mediaFile = media;
+          payload.caption = caption;
+          break;
+        case 'link':
+          payload.content = text;
+          payload.linkUrl = linkUrl;
+          break;
+        case 'quiz':
+          payload.quizQuestion = quizQuestion;
+          payload.quizOptions = quizOptions;
+          payload.quizCorrectAnswer = quizCorrectAnswer;
+          break;
+        case 'question':
+          payload.content = questionText;
+          break;
+        case 'countdown':
+          payload.countdownDate = countdownDate;
+          payload.countdownTime = countdownTime;
+          break;
+        case 'location':
+          payload.locationData = locationData;
+          break;
+        case 'collage':
+          payload.collageImages = collageImages;
+          break;
+        case 'timer':
+          payload.timerSeconds = timerSeconds;
+          break;
+        default:
+          payload.content = text;
       }
+
+      await onSend(payload);
       onClose();
     } catch (err) {
       console.error('Failed to send status:', err);
@@ -119,6 +190,15 @@ const StatusCreator = ({ onClose, onSend, initialMode = 'text', initialMedia = n
         </button>
 
         <div className="flex items-center gap-2">
+          {/* Mode Selector Button */}
+          <button
+            onClick={() => setShowModeSelector(!showModeSelector)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-black/30 hover:bg-black/50 rounded-full text-white transition-colors font-bold text-sm"
+          >
+            <Sparkles size={16} />
+            {STATUS_MODES.find(m => m.id === mode)?.label || 'Mode'}
+          </button>
+
           {/* Collab Button */}
           {enableCollab && (
             <button
@@ -147,6 +227,36 @@ const StatusCreator = ({ onClose, onSend, initialMode = 'text', initialMedia = n
           )}
         </div>
       </div>
+
+      {/* Mode Selector Modal */}
+      <AnimatePresence>
+        {showModeSelector && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute top-16 left-1/2 -translate-x-1/2 z-20 bg-[#111b21] border border-white/10 rounded-2xl p-4 shadow-2xl"
+          >
+            <div className="grid grid-cols-5 gap-2">
+              {STATUS_MODES.map((modeItem) => {
+                const Icon = modeItem.icon;
+                return (
+                  <button
+                    key={modeItem.id}
+                    onClick={() => { setMode(modeItem.id); setShowModeSelector(false); }}
+                    className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-colors ${
+                      mode === modeItem.id ? 'bg-[#00a884] text-white' : 'bg-white/5 text-white/70 hover:bg-white/10'
+                    }`}
+                  >
+                    <Icon size={20} />
+                    <span className="text-xs">{modeItem.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Collab badge */}
       {collabUser && (
@@ -180,6 +290,153 @@ const StatusCreator = ({ onClose, onSend, initialMode = 'text', initialMedia = n
             rows={5}
             autoFocus
           />
+        </div>
+      ) : mode === 'link' ? (
+        <div className="w-full h-full flex flex-col items-center justify-center p-8" style={{ backgroundColor: BG_COLORS[colorIndex] }}>
+          <input
+            type="url"
+            value={linkUrl}
+            onChange={(e) => setLinkUrl(e.target.value)}
+            placeholder="Enter link URL"
+            className="w-full max-w-md bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-white/50 outline-none focus:border-white/40 mb-4"
+          />
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Add link description"
+            className={`w-full max-w-2xl bg-transparent border-none outline-none text-center text-white placeholder-white/50 resize-none text-3xl ${FONTS[fontIndex].class}`}
+            rows={3}
+          />
+        </div>
+      ) : mode === 'quiz' ? (
+        <div className="w-full h-full flex flex-col items-center justify-center p-8" style={{ backgroundColor: BG_COLORS[colorIndex] }}>
+          <input
+            type="text"
+            value={quizQuestion}
+            onChange={(e) => setQuizQuestion(e.target.value)}
+            placeholder="Quiz question"
+            className="w-full max-w-md bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-white/50 outline-none focus:border-white/40 mb-4"
+          />
+          {quizOptions.map((option, index) => (
+            <div key={index} className="flex items-center gap-2 mb-2">
+              <input
+                type="radio"
+                name="correctAnswer"
+                checked={quizCorrectAnswer === index}
+                onChange={() => setQuizCorrectAnswer(index)}
+                className="w-4 h-4"
+              />
+              <input
+                type="text"
+                value={option}
+                onChange={(e) => {
+                  const newOptions = [...quizOptions];
+                  newOptions[index] = e.target.value;
+                  setQuizOptions(newOptions);
+                }}
+                placeholder={`Option ${index + 1}`}
+                className="w-full max-w-sm bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-white/50 outline-none focus:border-white/40"
+              />
+            </div>
+          ))}
+        </div>
+      ) : mode === 'question' ? (
+        <div className="w-full h-full flex flex-col items-center justify-center p-8" style={{ backgroundColor: BG_COLORS[colorIndex] }}>
+          <textarea
+            value={questionText}
+            onChange={(e) => setQuestionText(e.target.value)}
+            placeholder="Ask a question..."
+            className={`w-full max-w-2xl bg-transparent border-none outline-none text-center text-white placeholder-white/50 resize-none text-3xl ${FONTS[fontIndex].class}`}
+            rows={4}
+          />
+        </div>
+      ) : mode === 'countdown' ? (
+        <div className="w-full h-full flex flex-col items-center justify-center p-8" style={{ backgroundColor: BG_COLORS[colorIndex] }}>
+          <input
+            type="date"
+            value={countdownDate}
+            onChange={(e) => setCountdownDate(e.target.value)}
+            className="w-full max-w-md bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white outline-none focus:border-white/40 mb-4"
+          />
+          <input
+            type="time"
+            value={countdownTime}
+            onChange={(e) => setCountdownTime(e.target.value)}
+            className="w-full max-w-md bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white outline-none focus:border-white/40"
+          />
+        </div>
+      ) : mode === 'location' ? (
+        <div className="w-full h-full flex flex-col items-center justify-center p-8" style={{ backgroundColor: BG_COLORS[colorIndex] }}>
+          <button
+            onClick={() => {
+              if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                  (pos) => {
+                    setLocationData({
+                      lat: pos.coords.latitude,
+                      lng: pos.coords.longitude
+                    });
+                  },
+                  (err) => alert('Failed to get location')
+                );
+              }
+            }}
+            className="flex flex-col items-center gap-2 px-6 py-4 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
+          >
+            <MapPin size={32} />
+            <span className="text-white">Get Current Location</span>
+          </button>
+          {locationData && (
+            <p className="text-white mt-4">Location: {locationData.lat.toFixed(4)}, {locationData.lng.toFixed(4)}</p>
+          )}
+        </div>
+      ) : mode === 'collage' ? (
+        <div className="w-full h-full flex flex-col items-center justify-center p-8" style={{ backgroundColor: BG_COLORS[colorIndex] }}>
+          <div className="grid grid-cols-2 gap-4 max-w-2xl">
+            {[0, 1, 2, 3].map((index) => (
+              <div key={index} className="aspect-square bg-white/10 rounded-lg flex items-center justify-center overflow-hidden">
+                {collageImages[index] ? (
+                  <img src={URL.createObjectURL(collageImages[index])} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <button
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = 'image/*';
+                      input.onchange = (e) => {
+                        const newImages = [...collageImages];
+                        newImages[index] = e.target.files[0];
+                        setCollageImages(newImages);
+                      };
+                      input.click();
+                    }}
+                    className="text-white/50 hover:text-white"
+                  >
+                    <ImageIcon size={32} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : mode === 'timer' ? (
+        <div className="w-full h-full flex flex-col items-center justify-center p-8" style={{ backgroundColor: BG_COLORS[colorIndex] }}>
+          <div className="flex items-center gap-4 mb-8">
+            <button
+              onClick={() => setTimerSeconds(Math.max(1, timerSeconds - 1))}
+              className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20"
+            >
+              -
+            </button>
+            <span className="text-6xl text-white font-bold">{timerSeconds}s</span>
+            <button
+              onClick={() => setTimerSeconds(timerSeconds + 1)}
+              className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20"
+            >
+              +
+            </button>
+          </div>
+          <p className="text-white/70">Auto-capture after timer</p>
         </div>
       ) : (
         <div className="w-full h-full flex flex-col items-center justify-center pt-16 pb-24 px-4">
@@ -232,7 +489,17 @@ const StatusCreator = ({ onClose, onSend, initialMode = 'text', initialMedia = n
 
       {/* Bottom Send Button */}
       <AnimatePresence>
-        {((mode === 'text' && text.trim()) || (mode === 'media' && media)) && (
+        {(
+          (mode === 'text' && text.trim()) ||
+          ((mode === 'image' || mode === 'video' || mode === 'gif') && media) ||
+          (mode === 'link' && linkUrl.trim()) ||
+          (mode === 'quiz' && quizQuestion.trim()) ||
+          (mode === 'question' && questionText.trim()) ||
+          (mode === 'countdown' && countdownDate && countdownTime) ||
+          (mode === 'location' && locationData) ||
+          (mode === 'collage' && collageImages.filter(img => img).length > 0) ||
+          (mode === 'timer' && timerSeconds > 0)
+        ) && (
           <motion.button
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
