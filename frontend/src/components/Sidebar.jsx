@@ -139,6 +139,14 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
       return {};
     }
   });
+  const [scheduledMessages, setScheduledMessages] = useState(() => {
+    try {
+      const stored = localStorage.getItem('genz_scheduled_messages');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
 
   // Scroll to Top FAB
   const handleScrollToTop = () => {
@@ -271,6 +279,32 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     const newSettings = { ...autoReplySettings, [chatId]: { ...current, enabled: !current.enabled } };
     setAutoReplySettings(newSettings);
     localStorage.setItem('genz_auto_reply_settings', JSON.stringify(newSettings));
+  };
+
+  const handleScheduleMessage = (chatId) => {
+    const message = prompt('Enter message to schedule:');
+    if (!message) return;
+    
+    const dateStr = prompt('Enter date and time (YYYY-MM-DD HH:MM):', new Date(Date.now() + 3600000).toISOString().slice(0, 16));
+    if (!dateStr) return;
+    
+    const scheduledTime = new Date(dateStr);
+    if (isNaN(scheduledTime.getTime())) {
+      alert('Invalid date format');
+      return;
+    }
+    
+    const newScheduledMessage = {
+      id: Date.now().toString(),
+      chatId,
+      message,
+      scheduledTime: scheduledTime.toISOString()
+    };
+    
+    const newMessages = [...scheduledMessages, newScheduledMessage];
+    setScheduledMessages(newMessages);
+    localStorage.setItem('genz_scheduled_messages', JSON.stringify(newMessages));
+    alert(`Message scheduled for ${scheduledTime.toLocaleString()}`);
   };
 
   // BUG FIX: the chat-row "..." menu used to be positioned with raw
@@ -1538,6 +1572,13 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                 )}
               </button>
             )}
+            <button
+              onClick={() => { handleScheduleMessage(contextMenu.chatId); setContextMenu(null); }}
+              className="w-full flex items-center gap-3 px-4 py-2 hover:bg-dark-hover text-dark-text transition-colors"
+            >
+              <Clock size={16} />
+              <span>Schedule Message</span>
+            </button>
             <div className="border-t border-dark-border my-1" />
             <div className="px-4 py-1 text-xs font-semibold text-dark-textSecondary uppercase tracking-wider">Assign to Tab</div>
             {chatTabs.filter(t => t !== 'All' && t !== 'Groups').map(tab => {
