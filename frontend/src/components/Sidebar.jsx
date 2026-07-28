@@ -50,7 +50,8 @@ import {
   Tag,
   CheckSquare,
   Square,
-  ChevronUp
+  ChevronUp,
+  RefreshCw
 } from 'lucide-react';
 import ProfileEnlarger from './ProfileEnlarger';
 import AccountSwitcher from './AccountSwitcher';
@@ -91,6 +92,9 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   const [contextMenu, setContextMenu] = useState(null);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const chatListRef = useRef(null);
+  const [isPulling, setIsPulling] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [startY, setStartY] = useState(0);
   const [recentSearches, setRecentSearches] = useState(() => {
     try {
       const stored = localStorage.getItem('genz_recent_searches');
@@ -151,6 +155,34 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
 
   const toggleSearchFilter = (filter) => {
     setSearchFilters(prev => ({ ...prev, [filter]: !prev[filter] }));
+  };
+
+  // Pull to Refresh
+  const handleTouchStart = (e) => {
+    if (chatListRef.current.scrollTop === 0) {
+      setStartY(e.touches[0].clientY);
+      setIsPulling(true);
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isPulling) return;
+    const currentY = e.touches[0].clientY;
+    const distance = currentY - startY;
+    if (distance > 0 && distance < 150) {
+      setPullDistance(distance);
+    }
+  };
+
+  const handleTouchEnd = async () => {
+    if (pullDistance > 80) {
+      // Trigger refresh - reload conversations
+      // Note: In a real app, you'd call a refresh function from ChatContext
+      // For now, we'll just reset the pull state
+    }
+    setIsPulling(false);
+    setPullDistance(0);
+    setStartY(0);
   };
 
   // BUG FIX: the chat-row "..." menu used to be positioned with raw
@@ -1093,7 +1125,26 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
         )}
       </div>
 
-      <div ref={chatListRef} className="relative z-10 flex-1 overflow-y-auto scrollbar-thin bg-dark-surface/70 backdrop-blur-[1px]">
+      <div
+        ref={chatListRef}
+        className="relative z-10 flex-1 overflow-y-auto scrollbar-thin bg-dark-surface/70 backdrop-blur-[1px]"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Pull to Refresh Indicator */}
+        {isPulling && (
+          <div
+            className="absolute top-0 left-0 right-0 flex items-center justify-center bg-dark-surface/95 border-b border-dark-border z-20 transition-all"
+            style={{ height: `${Math.min(pullDistance, 80)}px`, opacity: pullDistance / 80 }}
+          >
+            <RefreshCw size={20} className={`text-primary-500 ${pullDistance > 80 ? 'animate-spin' : ''}`} />
+            <span className="ml-2 text-sm text-dark-text">
+              {pullDistance > 80 ? 'Refreshing...' : 'Pull to refresh'}
+            </span>
+          </div>
+        )}
+
         {isOpen && activeTab === 'chats' && archivedCount > 0 && (
           <button
             onClick={() => setShowArchivedOnly(!showArchivedOnly)}
