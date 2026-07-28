@@ -130,6 +130,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     personal: false,
     archived: false
   });
+  const [contactsSortBy, setContactsSortBy] = useState('recent'); // recent, alphabetical, unread
 
   // Scroll to Top FAB
   const handleScrollToTop = () => {
@@ -442,15 +443,28 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     return conv.isPinned && conv.isPinned[user?._id] === true;
   };
 
-  // GENZ MOD: Sort conversations (Pinned first, then by time)
+  // GENZ MOD: Sort conversations (Pinned first, then by selected sort option)
   const sortedConversations = [...conversations].sort((a, b) => {
     const pinA = isChatPinned(a);
     const pinB = isChatPinned(b);
     if (pinA && !pinB) return -1;
     if (!pinA && pinB) return 1;
-    const timeA = a.lastMessage ? new Date(a.lastMessage.createdAt).getTime() : 0;
-    const timeB = b.lastMessage ? new Date(b.lastMessage.createdAt).getTime() : 0;
-    return timeB - timeA;
+
+    // Sort by selected option
+    if (contactsSortBy === 'alphabetical') {
+      const nameA = getConversationName(a).toLowerCase();
+      const nameB = getConversationName(b).toLowerCase();
+      return nameA.localeCompare(nameB);
+    } else if (contactsSortBy === 'unread') {
+      const unreadA = a.unreadCount || 0;
+      const unreadB = b.unreadCount || 0;
+      return unreadB - unreadA;
+    } else {
+      // Default: sort by recent message time
+      const timeA = a.lastMessage ? new Date(a.lastMessage.createdAt).getTime() : 0;
+      const timeB = b.lastMessage ? new Date(b.lastMessage.createdAt).getTime() : 0;
+      return timeB - timeA;
+    }
   });
 
   const handleViewStatus = () => {
@@ -1077,6 +1091,17 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                 <CheckSquare size={13} />
               </button>
             )}
+            <select
+              value={contactsSortBy}
+              onChange={(e) => setContactsSortBy(e.target.value)}
+              className="flex-shrink-0 text-xs bg-dark-bg border border-dark-border rounded px-2 py-1 text-dark-text focus:outline-none focus:border-primary-500"
+              title="Sort contacts"
+              aria-label="Sort contacts"
+            >
+              <option value="recent">Recent</option>
+              <option value="alphabetical">A-Z</option>
+              <option value="unread">Unread</option>
+            </select>
           </div>
         )}
 
