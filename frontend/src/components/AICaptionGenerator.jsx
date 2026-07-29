@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Wand2, Magic, Zap, RefreshCw, Copy, Check, Download, Image as ImageIcon, Video } from 'lucide-react';
+import { X, Sparkles, Wand2, Laugh, Zap, RefreshCw, Copy, Check, Download, Image as ImageIcon, Video } from 'lucide-react';
 
 const AICaptionGenerator = ({ onClose, media, onCaptionGenerated }) => {
   const [generating, setGenerating] = useState(false);
@@ -16,7 +16,7 @@ const AICaptionGenerator = ({ onClose, media, onCaptionGenerated }) => {
   const styles = [
     { id: 'engaging', label: 'Engaging', icon: Sparkles },
     { id: 'professional', label: 'Professional', icon: Wand2 },
-    { id: 'funny', label: 'Funny', icon: Magic },
+    { id: 'funny', label: 'Funny', icon: Laugh },
     { id: 'minimal', label: 'Minimal', icon: Zap },
     { id: 'story', label: 'Story', icon: ImageIcon }
   ];
