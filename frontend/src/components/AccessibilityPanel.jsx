@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Eye, Ear, Zap, Contrast, Type, Image as ImageIcon, Volume2, CheckCircle, Palette, Keyboard, Braille } from 'lucide-react';
+import { X, Eye, Ear, Zap, Contrast, Type, Image as ImageIcon, Volume2, CheckCircle, Palette, Keyboard, Accessibility } from 'lucide-react';
 
 const AccessibilityPanel = ({ onClose, content, onSave }) => {
   const [altText, setAltText] = useState('');
@@ -283,7 +283,7 @@ const AccessibilityPanel = ({ onClose, content, onSave }) => {
           <div className="bg-white/5 rounded-xl p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Braille size={18} className="text-[#00a884]" />
+                <Accessibility size={18} className="text-[#00a884]" />
                 <div>
                   <p className="text-white font-medium">Braille Support</p>
                   <p className="text-white/60 text-sm">Enable braille display compatibility</p>
