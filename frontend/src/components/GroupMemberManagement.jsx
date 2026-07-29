@@ -8,6 +8,9 @@ const GroupMemberManagement = ({ group, members, contacts, onAddMember, onRemove
   const [selectedContacts, setSelectedContacts] = useState([]);
   const [selectedMembers, setSelectedMembers] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [membersPerPage] = useState(20);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const filteredMembers = members.filter(member =>
     member.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -18,6 +21,29 @@ const GroupMemberManagement = ({ group, members, contacts, onAddMember, onRemove
     contact.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     contact.phone?.includes(searchQuery)
   ).filter(contact => !members.some(m => m._id === contact._id));
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredMembers.length / membersPerPage);
+  const startIndex = (currentPage - 1) * membersPerPage;
+  const endIndex = startIndex + membersPerPage;
+  const paginatedMembers = filteredMembers.slice(startIndex, endIndex);
+
+  const handleLoadMore = () => {
+    if (currentPage < totalPages && !loadingMore) {
+      setLoadingMore(true);
+      setTimeout(() => {
+        setCurrentPage(prev => prev + 1);
+        setLoadingMore(false);
+      }, 500);
+    }
+  };
+
+  const handleScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    if (scrollHeight - scrollTop - clientHeight < 100 && currentPage < totalPages && !loadingMore) {
+      handleLoadMore();
+    }
+  };
 
   const handleToggleMember = (memberId) => {
     setSelectedMembers(prev =>
@@ -58,8 +84,8 @@ const GroupMemberManagement = ({ group, members, contacts, onAddMember, onRemove
     setSelectedMembers([]);
   };
 
-  const admins = filteredMembers.filter(m => m.role === 'admin');
-  const regularMembers = filteredMembers.filter(m => m.role === 'member');
+  const admins = paginatedMembers.filter(m => m.role === 'admin');
+  const regularMembers = paginatedMembers.filter(m => m.role === 'member');
 
   return (
     <motion.div
@@ -131,7 +157,7 @@ const GroupMemberManagement = ({ group, members, contacts, onAddMember, onRemove
         )}
 
         {/* Members List */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4" onScroll={handleScroll}>
           {/* Admins Section */}
           {admins.length > 0 && (
             <div className="mb-6">
@@ -225,6 +251,22 @@ const GroupMemberManagement = ({ group, members, contacts, onAddMember, onRemove
             <div className="text-center py-8">
               <Users className="text-gray-600 mx-auto mb-4" size={32} />
               <p className="text-gray-400">No members found</p>
+            </div>
+          )}
+
+          {/* Load More Indicator */}
+          {currentPage < totalPages && (
+            <div className="text-center py-4">
+              {loadingMore ? (
+                <div className="flex items-center justify-center gap-2 text-gray-400">
+                  <RefreshCw className="animate-spin" size={16} />
+                  <span className="text-sm">Loading more members...</span>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400">
+                  Showing {paginatedMembers.length} of {filteredMembers.length} members
+                </p>
+              )}
             </div>
           )}
         </div>

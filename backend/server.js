@@ -646,6 +646,8 @@ const statusRoutes = require('./routes/status');
 const statusAdvancedRoutes = require('./routes/status-advanced');
 const settingsRoutes = require('./routes/settingsRoutes');
 const privacyContactsRoutes = require('./routes/privacyContactsRoutes');
+const phoneContactsRoutes = require('./routes/phone-contacts');
+const groupInviteRoutes = require('./routes/group-invite');
 
 // Newly-wired feature routes (previously orphaned controllers)
 const bulkSenderRoutes = require('./routes/bulk-sender');
@@ -704,6 +706,8 @@ app.use('/api/device', deviceRoutes);
 app.use('/api/security', safeMiddleware(authLimiter), securityRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/privacy', privacyContactsRoutes);
+app.use('/api/contacts', phoneContactsRoutes);
+app.use('/api/groups', groupInviteRoutes);
 app.use('/api/genz-mods', genzModsRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/stickers', stickerRoutes);

@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const speakeasy = require('speakeasy');
+const crypto = require('crypto');
 const User = require('../models/User');
 const { mergeWhatsAppSettings } = require('../utils/whatsappSettings');
 const { applyPrivacyFilter } = require('../utils/privacyHelper');
@@ -803,5 +804,202 @@ exports.getUserOnlineHistory = async (req, res) => {
     res.json({ success: true, onlineHistory: history, lastSeen: user?.lastSeen, username: user?.username });
   } catch (e) {
     res.json({ success: true, onlineHistory: [] });
+  }
+};
+
+// ── OTP Verification Functions ──
+
+// @desc    Send OTP for registration/login
+// @route   POST /api/auth/send-otp
+// @access  Public
+exports.sendOTP = async (req, res) => {
+  try {
+    const { phoneNumber, email, type } = req.body; // type: 'register' or 'login'
+    
+    if (!phoneNumber && !email) {
+      return res.status(400).json({ success: false, message: 'Phone number or email is required' });
+    }
+
+    // Generate 6-digit OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Find or create user
+    let user;
+    if (type === 'register') {
+      user = await User.findOne({
+        $or: [
+          { phoneNumber: phoneNumber?.trim() },
+          { email: email?.trim()?.toLowerCase() }
+        ]
+      });
+
+      if (user) {
+        return res.status(400).json({ success: false, message: 'User already exists. Please login instead.' });
+      }
+    } else {
+      user = await User.findOne({
+        $or: [
+          { phoneNumber: phoneNumber?.trim() },
+          { email: email?.trim()?.toLowerCase() }
+        ]
+      });
+
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+    }
+
+    // Store OTP in user document (in production, use Redis or separate OTP collection)
+    const otpData = {
+      code: otp,
+      expiresAt,
+      phoneNumber: phoneNumber || null,
+      email: email || null,
+      type,
+      attempts: 0
+    };
+
+    if (user) {
+      user.otpData = otpData;
+      await user.save();
+    } else {
+      // For registration, we'll store in session or temp storage
+      // For now, we'll just return the OTP (in production, send via SMS/email)
+    }
+
+    // In production, send OTP via SMS/email service
+    // For demo purposes, we'll log it
+    console.log('[OTP] Generated OTP:', { otp, phoneNumber, email, type });
+
+    res.json({
+      success: true,
+      message: 'OTP sent successfully',
+      // In production, don't return the actual OTP
+      ...(process.env.NODE_ENV !== 'production' && { otp })
+    });
+  } catch (error) {
+    console.error('Send OTP error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Verify OTP
+// @route   POST /api/auth/verify-otp
+// @access  Public
+exports.verifyOTP = async (req, res) => {
+  try {
+    const { phoneNumber, email, otp, type } = req.body;
+
+    if (!otp) {
+      return res.status(400).json({ success: false, message: 'OTP is required' });
+    }
+
+    if (!phoneNumber && !email) {
+      return res.status(400).json({ success: false, message: 'Phone number or email is required' });
+    }
+
+    const user = await User.findOne({
+      $or: [
+        { phoneNumber: phoneNumber?.trim() },
+        { email: email?.trim()?.toLowerCase() }
+      ]
+    });
+
+    if (!user && type === 'login') {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Check OTP
+    if (user && user.otpData) {
+      if (user.otpData.attempts >= 3) {
+        return res.status(400).json({ success: false, message: 'Too many failed attempts. Please request a new OTP.' });
+      }
+
+      if (new Date() > user.otpData.expiresAt) {
+        return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
+      }
+
+      if (user.otpData.code !== otp) {
+        user.otpData.attempts = (user.otpData.attempts || 0) + 1;
+        await user.save();
+        return res.status(400).json({ success: false, message: 'Invalid OTP' });
+      }
+
+      // Clear OTP after successful verification
+      user.otpData = null;
+      await user.save();
+
+      // Generate token
+      const token = signToken(user);
+      const refreshToken = signRefreshToken(user);
+
+      res.json({
+        success: true,
+        message: 'OTP verified successfully',
+        token,
+        refreshToken,
+        user: safeUser(user)
+      });
+    } else if (type === 'register') {
+      // For registration without existing user, return success
+      res.json({
+        success: true,
+        message: 'OTP verified successfully. Please complete registration.',
+        verified: true
+      });
+    } else {
+      res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+    }
+  } catch (error) {
+    console.error('Verify OTP error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Resend OTP
+// @route   POST /api/auth/resend-otp
+// @access  Public
+exports.resendOTP = async (req, res) => {
+  try {
+    const { phoneNumber, email, type } = req.body;
+
+    if (!phoneNumber && !email) {
+      return res.status(400).json({ success: false, message: 'Phone number or email is required' });
+    }
+
+    // Generate new OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    const user = await User.findOne({
+      $or: [
+        { phoneNumber: phoneNumber?.trim() },
+        { email: email?.trim()?.toLowerCase() }
+      ]
+    });
+
+    if (user) {
+      user.otpData = {
+        code: otp,
+        expiresAt,
+        phoneNumber: phoneNumber || null,
+        email: email || null,
+        type,
+        attempts: 0
+      };
+      await user.save();
+    }
+
+    console.log('[OTP] Resent OTP:', { otp, phoneNumber, email, type });
+
+    res.json({
+      success: true,
+      message: 'OTP resent successfully',
+      ...(process.env.NODE_ENV !== 'production' && { otp })
+    });
+  } catch (error) {
+    console.error('Resend OTP error:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };

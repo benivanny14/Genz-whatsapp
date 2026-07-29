@@ -22,7 +22,10 @@ const {
   getBusinessAnalytics,
   checkAvailability,
   getMyOnlineHistory,
-  getUserOnlineHistory
+  getUserOnlineHistory,
+  sendOTP,
+  verifyOTP,
+  resendOTP
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 const { uploadImage } = require('../middleware/upload');
@@ -54,5 +57,10 @@ router.get('/business-analytics', protect, getBusinessAnalytics);
 router.post('/check-availability', checkAvailability);
 router.get('/users/me/online-history', protect, getMyOnlineHistory);
 router.get('/users/:id/online-history', protect, getUserOnlineHistory);
+
+// OTP routes
+router.post('/send-otp', sendOTP);
+router.post('/verify-otp', verifyOTP);
+router.post('/resend-otp', resendOTP);
 
 module.exports = router;
