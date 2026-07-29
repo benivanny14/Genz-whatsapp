@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, X, Eye, Clock, Camera, Image, Type, Upload, RefreshCw, Film, Sparkles, Bookmark, Settings, Music, Download, Bell } from 'lucide-react';
+import { Plus, X, Eye, Clock, Camera, Image, Type, Upload, RefreshCw, Film, Sparkles, Bookmark, Settings, Music, Download, Bell, Shield, Globe, TrendingUp, BarChart3, Palette, Wand2, Share2, DollarSign, Accessibility, Mic, Archive, Users, Volume2, Zap, Heart, Calendar, MapPin, Video, Cloud, QrCode, AtSign, Hash, Edit, Copy, Pin, Flag, Layout, FileText, Star, History, Zap as BoostIcon, BellOff, Trash2, Forward } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import StatusScrollFeed from '../components/StatusScrollFeed';
 import StatusReel from '../components/StatusReel';
@@ -32,6 +32,49 @@ import AdvancedChatFeaturesPanel from '../components/AdvancedChatFeaturesPanel';
 import VoiceFeaturesPanel from '../components/VoiceFeaturesPanel';
 import AccessibilityAdvancedPanel from '../components/AccessibilityAdvancedPanel';
 import DebugFeaturesPanel from '../components/DebugFeaturesPanel';
+import StatusSecurityPanel from '../components/StatusSecurityPanel';
+import TMPrivacyPanel from '../components/TMPrivacyPanel';
+import MediaUploadEnhanced from '../components/MediaUploadEnhanced';
+import AutoReplySettings from '../components/AutoReplySettings';
+import MessageSchedule from '../components/MessageSchedule';
+import StatusExplore from '../pages/StatusExplore';
+import StatusAnalyticsPanel from '../components/StatusAnalyticsPanel';
+import ThemeStore from '../components/ThemeStore';
+import AICaptionGenerator from '../components/AICaptionGenerator';
+import CrossPlatformSharing from '../components/CrossPlatformSharing';
+import StatusMonetizationPanel from '../components/StatusMonetizationPanel';
+import StatusAccessibilityPanel from '../components/StatusAccessibilityPanel';
+import VoiceChangerPanel from '../components/VoiceChangerPanel';
+import TextToSpeechPanel from '../components/TextToSpeechPanel';
+import StatusCollaborationPanel from '../components/StatusCollaborationPanel';
+import StatusArchivePanel from '../components/StatusArchivePanel';
+import StatusReminderPanel from '../components/StatusReminderPanel';
+import StatusReactionPanel from '../components/StatusReactionPanel';
+import StatusPollPanel from '../components/StatusPollPanel';
+import StatusSchedulerPanel from '../components/StatusSchedulerPanel';
+import LocationTaggingPanel from '../components/LocationTaggingPanel';
+import StatusLivePanel from '../components/StatusLivePanel';
+import StatusBackupPanel from '../components/StatusBackupPanel';
+import StatusQRCodePanel from '../components/StatusQRCodePanel';
+import StatusMentionsPanel from '../components/StatusMentionsPanel';
+import StatusHashtagsPanel from '../components/StatusHashtagsPanel';
+import StatusEditPanel from '../components/StatusEditPanel';
+import StatusDuplicatePanel from '../components/StatusDuplicatePanel';
+import StatusPinPanel from '../components/StatusPinPanel';
+import StatusReportPanel from '../components/StatusReportPanel';
+import StatusTemplatesPanel from '../components/StatusTemplatesPanel';
+import StatusDraftsPanel from '../components/StatusDraftsPanel';
+import StatusFavoritesPanel from '../components/StatusFavoritesPanel';
+import StatusHistoryPanel from '../components/StatusHistoryPanel';
+import StatusInsightsPanel from '../components/StatusInsightsPanel';
+import StatusBoostPanel from '../components/StatusBoostPanel';
+import StatusSharePanel from '../components/StatusSharePanel';
+import StatusDownloadPanel from '../components/StatusDownloadPanel';
+import StatusDeletePanel from '../components/StatusDeletePanel';
+import StatusMutePanel from '../components/StatusMutePanel';
+import StatusBlockPanel from '../components/StatusBlockPanel';
+import StatusSavePanel from '../components/StatusSavePanel';
+import StatusForwardPanel from '../components/StatusForwardPanel';
 
 const Status = () => {
   const { statuses, fetchStatuses, createStatus, uploadStatusMedia, user, contacts } = useChat();
@@ -49,6 +92,50 @@ const Status = () => {
   const [viewedStatuses, setViewedStatuses] = useState([]);
   const [autosaveStatuses, setAutosaveStatuses] = useState(false);
   const [statusNotificationSettings, setStatusNotificationSettings] = useState({});
+  const [showStatusSecurity, setShowStatusSecurity] = useState(false);
+  const [showTMPrivacy, setShowTMPrivacy] = useState(false);
+  const [showMediaUploadEnhanced, setShowMediaUploadEnhanced] = useState(false);
+  const [showAutoReply, setShowAutoReply] = useState(false);
+  const [showMessageSchedule, setShowMessageSchedule] = useState(false);
+  const [showStatusExplore, setShowStatusExplore] = useState(false);
+  const [showStatusAnalytics, setShowStatusAnalytics] = useState(false);
+  const [showThemeStore, setShowThemeStore] = useState(false);
+  const [showAICaption, setShowAICaption] = useState(false);
+  const [showCrossPlatform, setShowCrossPlatform] = useState(false);
+  const [showStatusMonetization, setShowStatusMonetization] = useState(false);
+  const [showStatusAccessibility, setShowStatusAccessibility] = useState(false);
+  const [showVoiceChanger, setShowVoiceChanger] = useState(false);
+  const [showTextToSpeech, setShowTextToSpeech] = useState(false);
+  const [showStatusCollaboration, setShowStatusCollaboration] = useState(false);
+  const [showStatusArchive, setShowStatusArchive] = useState(false);
+  const [showStatusReminder, setShowStatusReminder] = useState(false);
+  const [showStatusReaction, setShowStatusReaction] = useState(false);
+  const [showStatusPoll, setShowStatusPoll] = useState(false);
+  const [showStatusScheduler, setShowStatusScheduler] = useState(false);
+  const [showLocationTagging, setShowLocationTagging] = useState(false);
+  const [showStatusLive, setShowStatusLive] = useState(false);
+  const [showStatusBackup, setShowStatusBackup] = useState(false);
+  const [showStatusQRCode, setShowStatusQRCode] = useState(false);
+  const [showStatusMentions, setShowStatusMentions] = useState(false);
+  const [showStatusHashtags, setShowStatusHashtags] = useState(false);
+  const [showStatusEdit, setShowStatusEdit] = useState(false);
+  const [showStatusDuplicate, setShowStatusDuplicate] = useState(false);
+  const [showStatusPin, setShowStatusPin] = useState(false);
+  const [showStatusReport, setShowStatusReport] = useState(false);
+  const [showStatusTemplates, setShowStatusTemplates] = useState(false);
+  const [showStatusDrafts, setShowStatusDrafts] = useState(false);
+  const [showStatusFavorites, setShowStatusFavorites] = useState(false);
+  const [showStatusHistory, setShowStatusHistory] = useState(false);
+  const [showStatusInsights, setShowStatusInsights] = useState(false);
+  const [showStatusBoost, setShowStatusBoost] = useState(false);
+  const [showStatusShare, setShowStatusShare] = useState(false);
+  const [showStatusDownload, setShowStatusDownload] = useState(false);
+  const [showStatusDelete, setShowStatusDelete] = useState(false);
+  const [showStatusMute, setShowStatusMute] = useState(false);
+  const [showStatusBlock, setShowStatusBlock] = useState(false);
+  const [showStatusSave, setShowStatusSave] = useState(false);
+  const [showStatusForward, setShowStatusForward] = useState(false);
+  const [selectedStatusForPanel, setSelectedStatusForPanel] = useState(null);
   const [uploadData, setUploadData] = useState({
     type: 'text',
     caption: '',
@@ -320,7 +407,7 @@ const Status = () => {
     <div className="h-screen w-screen flex items-center justify-center overflow-hidden font-sans" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0f2440 50%, #0a1628 100%)' }}>
       <div className="w-full h-full md:w-[98%] md:h-[96%] bg-white/5 backdrop-blur-xl shadow-2xl flex flex-col border border-white/10 rounded-2xl">
         <div className="bg-blue-900/50 backdrop-blur-xl text-white p-4 flex items-center justify-between border-b border-white/20">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
               onClick={() => setShowReel(true)}
@@ -336,6 +423,174 @@ const Status = () => {
               title="Story Highlights" aria-label="Story Highlights"
             >
               <Bookmark size={16} /> Highlights
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowStatusExplore(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-full text-sm font-bold hover:opacity-90 transition-all shadow-lg"
+              title="Explore Status" aria-label="Explore Status"
+            >
+              <Globe size={16} /> Explore
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowThemeStore(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-sm font-bold hover:opacity-90 transition-all shadow-lg"
+              title="Theme Store" aria-label="Theme Store"
+            >
+              <Palette size={16} /> Themes
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowTMPrivacy(true)}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              title="TM Privacy" aria-label="TM Privacy"
+            >
+              <Shield size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowMediaUploadEnhanced(true)}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              title="Enhanced Upload" aria-label="Enhanced Upload"
+            >
+              <Upload size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowAutoReply(true)}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              title="Auto Reply" aria-label="Auto Reply"
+            >
+              <Mic size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowVoiceChanger(true)}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              title="Voice Changer" aria-label="Voice Changer"
+            >
+              <Zap size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowTextToSpeech(true)}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              title="Text to Speech" aria-label="Text to Speech"
+            >
+              <Volume2 size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowStatusArchive(true)}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              title="Archive" aria-label="Archive"
+            >
+              <Archive size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowStatusScheduler(true)}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              title="Schedule" aria-label="Schedule"
+            >
+              <Calendar size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowLocationTagging(true)}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              title="Location" aria-label="Location"
+            >
+              <MapPin size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowStatusLive(true)}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              title="Go Live" aria-label="Go Live"
+            >
+              <Video size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowStatusBackup(true)}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              title="Backup" aria-label="Backup"
+            >
+              <Cloud size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowStatusQRCode(true)}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              title="QR Code" aria-label="QR Code"
+            >
+              <QrCode size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowStatusMentions(true)}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              title="Mentions" aria-label="Mentions"
+            >
+              <AtSign size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowStatusHashtags(true)}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              title="Hashtags" aria-label="Hashtags"
+            >
+              <Hash size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowStatusTemplates(true)}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              title="Templates" aria-label="Templates"
+            >
+              <Layout size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowStatusDrafts(true)}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              title="Drafts" aria-label="Drafts"
+            >
+              <FileText size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowStatusFavorites(true)}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              title="Favorites" aria-label="Favorites"
+            >
+              <Star size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowStatusHistory(true)}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              title="History" aria-label="History"
+            >
+              <History size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowStatusInsights(true)}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              title="Insights" aria-label="Insights"
+            >
+              <BarChart3 size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowStatusBoost(true)}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              title="Boost" aria-label="Boost"
+            >
+              <BoostIcon size={20} />
             </button>
             <button
               type="button"
@@ -494,6 +749,234 @@ const Status = () => {
                             title={isStatusNotificationEnabled(status.user?._id || status.user?.id) ? 'Notifications On' : 'Notifications Off'}
                           >
                             <Bell size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedStatusForPanel(status);
+                              setShowStatusAnalytics(true);
+                            }}
+                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
+                            title="Analytics"
+                          >
+                            <BarChart3 size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedStatusForPanel(status);
+                              setShowStatusSecurity(true);
+                            }}
+                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
+                            title="Security"
+                          >
+                            <Shield size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedStatusForPanel(status);
+                              setShowStatusMonetization(true);
+                            }}
+                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
+                            title="Monetization"
+                          >
+                            <DollarSign size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedStatusForPanel(status);
+                              setShowStatusAccessibility(true);
+                            }}
+                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
+                            title="Accessibility"
+                          >
+                            <Accessibility size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedStatusForPanel(status);
+                              setShowCrossPlatform(true);
+                            }}
+                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
+                            title="Share"
+                          >
+                            <Share2 size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedStatusForPanel(status);
+                              setShowStatusCollaboration(true);
+                            }}
+                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
+                            title="Collaborate"
+                          >
+                            <Users size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedStatusForPanel(status);
+                              setShowStatusReminder(true);
+                            }}
+                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
+                            title="Set Reminder"
+                          >
+                            <Bell size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedStatusForPanel(status);
+                              setShowStatusReaction(true);
+                            }}
+                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
+                            title="React"
+                          >
+                            <Heart size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedStatusForPanel(status);
+                              setShowStatusForward(true);
+                            }}
+                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
+                            title="Forward"
+                          >
+                            <Forward size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedStatusForPanel(status);
+                              setShowStatusSave(true);
+                            }}
+                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
+                            title="Save"
+                          >
+                            <Bookmark size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedStatusForPanel(status);
+                              setShowStatusDownload(true);
+                            }}
+                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
+                            title="Download"
+                          >
+                            <Download size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedStatusForPanel(status);
+                              setShowStatusShare(true);
+                            }}
+                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
+                            title="Share"
+                          >
+                            <Share2 size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedStatusForPanel(status);
+                              setShowStatusEdit(true);
+                            }}
+                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
+                            title="Edit"
+                          >
+                            <Edit size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedStatusForPanel(status);
+                              setShowStatusDuplicate(true);
+                            }}
+                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
+                            title="Duplicate"
+                          >
+                            <Copy size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedStatusForPanel(status);
+                              setShowStatusPin(true);
+                            }}
+                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
+                            title="Pin"
+                          >
+                            <Pin size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedStatusForPanel(status);
+                              setShowStatusReport(true);
+                            }}
+                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-red-400 transition-colors"
+                            title="Report"
+                          >
+                            <Flag size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedStatusForPanel(status);
+                              setShowStatusMute(true);
+                            }}
+                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-yellow-400 transition-colors"
+                            title="Mute"
+                          >
+                            <BellOff size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedStatusForPanel(status);
+                              setShowStatusBlock(true);
+                            }}
+                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-red-400 transition-colors"
+                            title="Block"
+                          >
+                            <Shield size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedStatusForPanel(status);
+                              setShowStatusDelete(true);
+                            }}
+                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-red-400 transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 size={14} />
                           </button>
                           <Clock size={14} />
                           <span>{statusTime(status)}</span>
@@ -1048,6 +1531,244 @@ const Status = () => {
               )}
             </div>
           </div>
+        )}
+
+        {/* New Panels */}
+        {showStatusExplore && <StatusExplore onClose={() => setShowStatusExplore(false)} />}
+        {showStatusAnalytics && selectedStatusForPanel && (
+          <StatusAnalyticsPanel 
+            onClose={() => { setShowStatusAnalytics(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+          />
+        )}
+        {showThemeStore && <ThemeStore onClose={() => setShowThemeStore(false)} onApplyTheme={(theme) => console.log('Theme applied:', theme)} />}
+        {showAICaption && (
+          <AICaptionGenerator 
+            onClose={() => setShowAICaption(false)}
+            media={selectedStatusForPanel}
+            onCaptionGenerated={(caption) => console.log('Caption generated:', caption)}
+          />
+        )}
+        {showCrossPlatform && (
+          <CrossPlatformSharing 
+            onClose={() => setShowCrossPlatform(false)}
+            content={selectedStatusForPanel?.caption}
+            mediaUrl={selectedStatusForPanel?.mediaUrl}
+          />
+        )}
+        {showStatusMonetization && selectedStatusForPanel && (
+          <StatusMonetizationPanel 
+            onClose={() => { setShowStatusMonetization(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+          />
+        )}
+        {showStatusAccessibility && selectedStatusForPanel && (
+          <StatusAccessibilityPanel 
+            onClose={() => { setShowStatusAccessibility(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+          />
+        )}
+        {showStatusSecurity && selectedStatusForPanel && (
+          <StatusSecurityPanel 
+            onClose={() => { setShowStatusSecurity(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+          />
+        )}
+        {showTMPrivacy && <TMPrivacyPanel onClose={() => setShowTMPrivacy(false)} onPrivacyUpdate={(settings) => console.log('Privacy updated:', settings)} />}
+        {showMediaUploadEnhanced && <MediaUploadEnhanced onClose={() => setShowMediaUploadEnhanced(false)} onUpload={(files) => console.log('Files uploaded:', files)} />}
+        {showAutoReply && <AutoReplySettings onClose={() => setShowAutoReply(false)} onSave={(settings) => console.log('Auto reply saved:', settings)} />}
+        {showMessageSchedule && <MessageSchedule onClose={() => setShowMessageSchedule(false)} message={{ content: '' }} onSchedule={(data) => console.log('Message scheduled:', data)} />}
+        {showVoiceChanger && <VoiceChangerPanel onClose={() => setShowVoiceChanger(false)} onApplyEffect={(effect) => console.log('Voice effect applied:', effect)} />}
+        {showTextToSpeech && <TextToSpeechPanel onClose={() => setShowTextToSpeech(false)} onGenerateSpeech={(speech) => console.log('Speech generated:', speech)} />}
+        {showStatusCollaboration && selectedStatusForPanel && (
+          <StatusCollaborationPanel 
+            onClose={() => { setShowStatusCollaboration(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+            onCollaborationUpdate={(settings) => console.log('Collaboration updated:', settings)}
+          />
+        )}
+        {showStatusArchive && <StatusArchivePanel onClose={() => setShowStatusArchive(false)} onArchiveAction={(action) => console.log('Archive action:', action)} />}
+        {showStatusReminder && selectedStatusForPanel && (
+          <StatusReminderPanel 
+            onClose={() => { setShowStatusReminder(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+            onReminderSet={(reminder) => console.log('Reminder set:', reminder)}
+          />
+        )}
+        {showStatusReaction && selectedStatusForPanel && (
+          <StatusReactionPanel 
+            onClose={() => { setShowStatusReaction(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+            onReactionAdd={(reaction) => console.log('Reaction added:', reaction)}
+          />
+        )}
+        {showStatusPoll && selectedStatusForPanel && (
+          <StatusPollPanel 
+            onClose={() => { setShowStatusPoll(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+            onPollCreate={(poll) => console.log('Poll created:', poll)}
+          />
+        )}
+        {showStatusScheduler && selectedStatusForPanel && (
+          <StatusSchedulerPanel 
+            onClose={() => { setShowStatusScheduler(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+            onScheduleStatus={(schedule) => console.log('Status scheduled:', schedule)}
+          />
+        )}
+        {showLocationTagging && selectedStatusForPanel && (
+          <LocationTaggingPanel 
+            onClose={() => { setShowLocationTagging(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+            onLocationAdd={(location) => console.log('Location added:', location)}
+          />
+        )}
+        {showStatusLive && (
+          <StatusLivePanel 
+            onClose={() => setShowStatusLive(false)}
+            onStartLive={(liveData) => console.log('Live started:', liveData)}
+          />
+        )}
+        {showStatusBackup && (
+          <StatusBackupPanel 
+            onClose={() => setShowStatusBackup(false)}
+            onBackupAction={(action) => console.log('Backup action:', action)}
+          />
+        )}
+        {showStatusQRCode && selectedStatusForPanel && (
+          <StatusQRCodePanel 
+            onClose={() => { setShowStatusQRCode(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+          />
+        )}
+        {showStatusMentions && selectedStatusForPanel && (
+          <StatusMentionsPanel 
+            onClose={() => { setShowStatusMentions(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+            onMentionsAdd={(mentions) => console.log('Mentions added:', mentions)}
+          />
+        )}
+        {showStatusHashtags && selectedStatusForPanel && (
+          <StatusHashtagsPanel 
+            onClose={() => { setShowStatusHashtags(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+            onHashtagsAdd={(hashtags) => console.log('Hashtags added:', hashtags)}
+          />
+        )}
+        {showStatusEdit && selectedStatusForPanel && (
+          <StatusEditPanel 
+            onClose={() => { setShowStatusEdit(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+            onStatusUpdate={(updated) => console.log('Status updated:', updated)}
+          />
+        )}
+        {showStatusDuplicate && selectedStatusForPanel && (
+          <StatusDuplicatePanel 
+            onClose={() => { setShowStatusDuplicate(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+            onDuplicate={(data) => console.log('Status duplicated:', data)}
+          />
+        )}
+        {showStatusPin && selectedStatusForPanel && (
+          <StatusPinPanel 
+            onClose={() => { setShowStatusPin(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+            onPinAction={(action) => console.log('Pin action:', action)}
+          />
+        )}
+        {showStatusReport && selectedStatusForPanel && (
+          <StatusReportPanel 
+            onClose={() => { setShowStatusReport(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+            onReportSubmit={(report) => console.log('Report submitted:', report)}
+          />
+        )}
+        {showStatusTemplates && (
+          <StatusTemplatesPanel 
+            onClose={() => setShowStatusTemplates(false)}
+            onTemplateSelect={(template) => console.log('Template selected:', template)}
+          />
+        )}
+        {showStatusDrafts && (
+          <StatusDraftsPanel 
+            onClose={() => setShowStatusDrafts(false)}
+            onDraftSelect={(draft) => console.log('Draft selected:', draft)}
+            onDraftDelete={(id) => console.log('Draft deleted:', id)}
+          />
+        )}
+        {showStatusFavorites && (
+          <StatusFavoritesPanel 
+            onClose={() => setShowStatusFavorites(false)}
+            onFavoriteAction={(action) => console.log('Favorite action:', action)}
+          />
+        )}
+        {showStatusHistory && (
+          <StatusHistoryPanel 
+            onClose={() => setShowStatusHistory(false)}
+            status={selectedStatusForPanel}
+          />
+        )}
+        {showStatusInsights && selectedStatusForPanel && (
+          <StatusInsightsPanel 
+            onClose={() => { setShowStatusInsights(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+          />
+        )}
+        {showStatusBoost && selectedStatusForPanel && (
+          <StatusBoostPanel 
+            onClose={() => { setShowStatusBoost(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+            onBoost={(data) => console.log('Status boosted:', data)}
+          />
+        )}
+        {showStatusShare && selectedStatusForPanel && (
+          <StatusSharePanel 
+            onClose={() => { setShowStatusShare(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+            onShare={(data) => console.log('Status shared:', data)}
+          />
+        )}
+        {showStatusDownload && selectedStatusForPanel && (
+          <StatusDownloadPanel 
+            onClose={() => { setShowStatusDownload(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+            onDownload={(data) => console.log('Status downloaded:', data)}
+          />
+        )}
+        {showStatusDelete && selectedStatusForPanel && (
+          <StatusDeletePanel 
+            onClose={() => { setShowStatusDelete(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+            onDelete={(data) => console.log('Status deleted:', data)}
+          />
+        )}
+        {showStatusMute && selectedStatusForPanel && (
+          <StatusMutePanel 
+            onClose={() => { setShowStatusMute(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+            onMute={(data) => console.log('Status muted:', data)}
+          />
+        )}
+        {showStatusBlock && selectedStatusForPanel && (
+          <StatusBlockPanel 
+            onClose={() => { setShowStatusBlock(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+            onBlock={(data) => console.log('User blocked:', data)}
+          />
+        )}
+        {showStatusSave && selectedStatusForPanel && (
+          <StatusSavePanel 
+            onClose={() => { setShowStatusSave(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+            onSave={(data) => console.log('Status saved:', data)}
+          />
+        )}
+        {showStatusForward && selectedStatusForPanel && (
+          <StatusForwardPanel 
+            onClose={() => { setShowStatusForward(false); setSelectedStatusForPanel(null); }}
+            status={selectedStatusForPanel}
+            onForward={(data) => console.log('Status forwarded:', data)}
+          />
         )}
       </div>
     </div>

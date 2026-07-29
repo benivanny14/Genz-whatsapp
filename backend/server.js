@@ -643,6 +643,7 @@ const productRoutes = require('./routes/productRoutes');
 const scheduledMessageRoutes = require('./routes/scheduledMessageRoutes');
 const stickerRoutes = require('./routes/stickerRoutes');
 const statusRoutes = require('./routes/status');
+const statusAdvancedRoutes = require('./routes/status-advanced');
 const settingsRoutes = require('./routes/settingsRoutes');
 const privacyContactsRoutes = require('./routes/privacyContactsRoutes');
 
@@ -715,6 +716,7 @@ app.use('/api/calls', callRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/scheduled-messages', scheduledMessageRoutes);
 app.use('/api/status', statusRoutes);
+app.use('/api/status-advanced', statusAdvancedRoutes);
 app.use('/api/channels', channelRoutes);
 
 // Newly-wired feature routes (previously orphaned controllers)

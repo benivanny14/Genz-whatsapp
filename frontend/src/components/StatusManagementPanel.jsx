@@ -9,6 +9,7 @@ const StatusManagementPanel = ({ onClose, status, onSave }) => {
   const [template, setTemplate] = useState('default');
   const [customColors, setCustomColors] = useState({ primary: '#00a884', secondary: '#075E54' });
   const [closeFriendsBadge, setCloseFriendsBadge] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const tabs = [
     { id: 'edit', icon: Edit3, label: 'Edit' },
@@ -27,16 +28,43 @@ const StatusManagementPanel = ({ onClose, status, onSave }) => {
     { id: 'playful', name: 'Playful', preview: '🎭' }
   ];
 
-  const handleSave = () => {
-    if (onSave) {
-      onSave({
-        editedContent,
-        highlightTitle,
-        highlightCover,
-        template,
-        customColors,
-        closeFriendsBadge
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status/${status?._id || status?.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          content: editedContent,
+          template,
+          customColors,
+          closeFriendsBadge
+        })
       });
+
+      const data = await response.json();
+      if (data.success) {
+        if (onSave) {
+          onSave({
+            editedContent,
+            highlightTitle,
+            highlightCover,
+            template,
+            customColors,
+            closeFriendsBadge
+          });
+        }
+        onClose();
+      }
+    } catch (error) {
+      console.error('Error saving status:', error);
+      alert('Failed to save status. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 

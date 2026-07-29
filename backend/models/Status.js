@@ -68,6 +68,108 @@ const statusSchema = new mongoose.Schema({
   collageImages: [{ type: String }],
   timerSeconds: { type: Number, default: 5 },
   
+  // Advanced status features
+  voiceEffects: {
+    effect: { type: String, default: 'none' },
+    pitch: { type: Number, default: 1 },
+    speed: { type: Number, default: 1 },
+    echo: { type: Boolean, default: false }
+  },
+  ttsSettings: {
+    voice: { type: String, default: 'default' },
+    speed: { type: Number, default: 1 },
+    pitch: { type: Number, default: 1 },
+    enabled: { type: Boolean, default: false }
+  },
+  isCollaborative: { type: Boolean, default: false },
+  isArchived: { type: Boolean, default: false },
+  archivedAt: { type: Date },
+  reminder: {
+    enabled: { type: Boolean, default: false },
+    time: { type: Date },
+    note: { type: String }
+  },
+  poll: {
+    question: { type: String },
+    options: [{
+      id: { type: Number },
+      text: { type: String },
+      votes: { type: Number, default: 0 }
+    }],
+    allowMultiple: { type: Boolean, default: false },
+    expiresAt: { type: Date },
+    totalVotes: { type: Number, default: 0 },
+    voters: [{
+      user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      optionIds: [Number],
+      votedAt: { type: Date }
+    }]
+  },
+  scheduledFor: { type: Date },
+  isScheduled: { type: Boolean, default: false },
+  isLive: { type: Boolean, default: false },
+  liveStreamUrl: { type: String },
+  liveStartedAt: { type: Date },
+  liveEndedAt: { type: Date },
+  liveViewers: { type: Number, default: 0 },
+  isRestored: { type: Boolean, default: false },
+  restoredAt: { type: Date },
+  mentions: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    username: { type: String },
+    mentionedAt: { type: Date }
+  }],
+  hashtags: [{ type: String }],
+  editedAt: { type: Date },
+  isDuplicate: { type: Boolean, default: false },
+  originalStatusId: { type: mongoose.Schema.Types.ObjectId },
+  duplicatedAt: { type: Date },
+  isPinned: { type: Boolean, default: false },
+  pinnedAt: { type: Date },
+  reports: [{
+    reporter: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    reason: { type: String },
+    description: { type: String },
+    reportedAt: { type: Date }
+  }],
+  isTemplate: { type: Boolean, default: false },
+  templateName: { type: String },
+  isDraft: { type: Boolean, default: false },
+  draftSavedAt: { type: Date },
+  favoritedBy: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    favoritedAt: { type: Date }
+  }],
+  boost: {
+    enabled: { type: Boolean, default: false },
+    plan: { type: String },
+    duration: { type: Number },
+    targetAudience: { type: String },
+    boostedAt: { type: Date },
+    expiresAt: { type: Date }
+  },
+  shares: [{
+    sharedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    platform: { type: String },
+    message: { type: String },
+    sharedAt: { type: Date }
+  }],
+  shareCount: { type: Number, default: 0 },
+  downloads: [{
+    downloadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    quality: { type: String },
+    format: { type: String },
+    downloadedAt: { type: Date }
+  }],
+  forwards: [{
+    forwardedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    contacts: [{ type: mongoose.Schema.Types.ObjectId }],
+    groups: [{ type: mongoose.Schema.Types.ObjectId }],
+    message: { type: String },
+    forwardedAt: { type: Date }
+  }],
+  forwardCount: { type: Number, default: 0 },
+  
   expiresAt: {
     type: Date,
     default: () => new Date(Date.now() + 24 * 60 * 60 * 1000) // saa 24
