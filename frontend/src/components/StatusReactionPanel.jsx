@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Heart, ThumbsUp, Laugh, Fire, Star, Smile, Angry, Sad, Zap, TrendingUp } from 'lucide-react';
+import { X, Heart, ThumbsUp, Laugh, Flame, Star, Smile, Angry, Sad, Zap, TrendingUp } from 'lucide-react';
 
 const StatusReactionPanel = ({ onClose, status, onReactionAdd }) => {
   const [selectedReaction, setSelectedReaction] = useState(null);
@@ -11,7 +11,7 @@ const StatusReactionPanel = ({ onClose, status, onReactionAdd }) => {
     { id: 'love', icon: Heart, color: '#ef4444', label: 'Love' },
     { id: 'like', icon: ThumbsUp, color: '#3b82f6', label: 'Like' },
     { id: 'laugh', icon: Laugh, color: '#f59e0b', label: 'Laugh' },
-    { id: 'fire', icon: Fire, color: '#f97316', label: 'Fire' },
+    { id: 'fire', icon: Flame, color: '#f97316', label: 'Fire' },
     { id: 'star', icon: Star, color: '#eab308', label: 'Star' },
     { id: 'smile', icon: Smile, color: '#22c55e', label: 'Smile' },
     { id: 'angry', icon: Angry, color: '#dc2626', label: 'Angry' },

@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const statusAdvancedController = require('../controllers/statusAdvancedController');
-const { authenticate } = require('../middleware/auth');
+const { protect } = require('../middleware/auth');
 
 // Apply authentication to all routes
-router.use(authenticate);
+router.use(protect);
 
 // Voice & Audio Features
 router.post('/:id/voice-changer', statusAdvancedController.applyVoiceChanger);
