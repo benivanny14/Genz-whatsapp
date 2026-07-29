@@ -11,6 +11,8 @@ const API_URL = import.meta.env.VITE_API_URL || '';
 
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [isOnline, setIsOnline] = useState(true);
+  const [onlineContacts, setOnlineContacts] = useState({});
 
   // Function to update user profile and persist to localStorage
   const syncProfileToBackend = async (updates) => {
@@ -157,6 +159,37 @@ export const UserProvider = ({ children }) => {
     setUser(userData);
   }, []);
 
+  // Track online/offline status
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      // Notify contacts that user is online (would need backend integration)
+      console.log('User is now online');
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      // Notify contacts that user is offline (would need backend integration)
+      console.log('User is now offline');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Update contact online status (would be called by WebSocket/real-time updates)
+  const updateContactOnlineStatus = (contactId, status) => {
+    setOnlineContacts(prev => ({
+      ...prev,
+      [contactId]: status
+    }));
+  };
+
   // Save and load user settings
   const saveSettings = (settings) => {
     try {
@@ -168,7 +201,7 @@ export const UserProvider = ({ children }) => {
   };
 
   return (
-    <UserContext.Provider value={{ user, updateUserProfile, saveSettings }}>
+    <UserContext.Provider value={{ user, updateUserProfile, saveSettings, isOnline, onlineContacts, updateContactOnlineStatus }}>
       {children}
     </UserContext.Provider>
   );

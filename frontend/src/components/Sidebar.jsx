@@ -64,7 +64,7 @@ import { getAvatarUrl } from '../utils/avatar';
 import { addConversationTag, removeConversationTag, getAvailableTags, loadConversationTags } from '../utils/conversationTags';
 
 const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added mods prop
-  const { user } = useUser();
+  const { user, onlineContacts } = useUser();
   const navigate = useNavigate();
   
   // Debug: Wrap navigate to log all calls
@@ -101,6 +101,33 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   const [startY, setStartY] = useState(0);
   const [longPressChatId, setLongPressChatId] = useState(null);
   const longPressTimerRef = useRef(null);
+  const [fakeCoverChats, setFakeCoverChats] = useState([]);
+  const [showFakeCoverPanel, setShowFakeCoverPanel] = useState(false);
+
+  // Load fake cover chats from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('genz_fake_cover_chats');
+    if (saved) {
+      setFakeCoverChats(JSON.parse(saved));
+    }
+  }, []);
+
+  // Save fake cover chats to localStorage
+  useEffect(() => {
+    localStorage.setItem('genz_fake_cover_chats', JSON.stringify(fakeCoverChats));
+  }, [fakeCoverChats]);
+
+  // Toggle fake cover for a chat
+  const toggleFakeCover = (chatId) => {
+    setFakeCoverChats(prev =>
+      prev.includes(chatId)
+        ? prev.filter(id => id !== chatId)
+        : [...prev, chatId]
+    );
+  };
+
+  // Check if chat has fake cover enabled
+  const hasFakeCover = (chatId) => fakeCoverChats.includes(chatId);
   const [iconSettings, setIconSettings] = useState(() => {
     try {
       const stored = localStorage.getItem('genz_icon_settings');
@@ -1593,38 +1620,47 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     </div>
                   )}
                   <div className="relative w-12 h-12 flex-shrink-0 cursor-pointer" onClick={(e) => { e.stopPropagation(); if (!chatSelectMode) setEnlargedProfile(conv); }} title="Tap to enlarge profile picture">
-                    <div className="w-12 h-12 rounded-full bg-primary-600 flex items-center justify-center overflow-hidden hover:opacity-80 transition-opacity">
-                      {getConversationAvatar(conv) ? (
-                        <img
-                          src={getConversationAvatar(conv)}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-white font-semibold">
-                          {getConversationName(conv)?.charAt(0)?.toUpperCase() || '?'}
-                        </span>
-                      )}
-                    </div>
+                    {hasFakeCover(conv._id) ? (
+                      <div className="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden hover:opacity-80 transition-opacity">
+                        <Shield size={20} className="text-gray-400" />
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-primary-600 flex items-center justify-center overflow-hidden hover:opacity-80 transition-opacity">
+                        {getConversationAvatar(conv) ? (
+                          <img
+                            src={getConversationAvatar(conv)}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-white font-semibold">
+                            {getConversationName(conv)?.charAt(0)?.toUpperCase() || '?'}
+                          </span>
+                        )}
+                      </div>
+                    )}
                     {/* GENZ MOD: Online Indicator */}
-                    {!conv.isGroup && onlineUsers.includes(conv.participants?.find(p => p._id !== user?.id)?._id) && (
+                    {!conv.isGroup && onlineUsers.includes(conv.participants?.find(p => p._id !== user?.id)?._id) && !hasFakeCover(conv._id) && (
                       <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-[2.5px] border-[#111b21] rounded-full z-10 shadow-sm" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <h3 className="text-dark-text font-medium truncate">
-                        {getConversationName(conv)}
+                        {hasFakeCover(conv._id) ? 'System Update' : getConversationName(conv)}
                       </h3>
                       <div className="flex items-center gap-2">
-                        {conv.isMuted && (
+                        {hasFakeCover(conv._id) && (
+                          <Shield size={12} className="text-yellow-500" />
+                        )}
+                        {conv.isMuted && !hasFakeCover(conv._id) && (
                           <VolumeX
                             size={12}
                             className={getIconColor(iconSettings.muteIconColor)}
                             style={{ order: iconSettings.muteIconPosition === 'left' ? '-1' : '1' }}
                           />
                         )}
-                        {isChatPinned(conv) && (
+                        {isChatPinned(conv) && !hasFakeCover(conv._id) && (
                           <Pin
                             size={12}
                             className={`${getIconColor(iconSettings.pinIconColor)} rotate-45`}
@@ -1632,7 +1668,11 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                           />
                         )}
                         {/* Unread count badge */}
-                        {conv.unreadCount > 0 ? (
+                        {hasFakeCover(conv._id) ? (
+                          <span className="text-xs text-dark-textSecondary">
+                            {formatConversationTime(new Date())}
+                          </span>
+                        ) : conv.unreadCount > 0 ? (
                           <span className="unread-badge">
                             {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
                           </span>
@@ -1681,9 +1721,9 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                           </p>
                         ) : (
                           <p className={`text-sm truncate flex-1 text-left min-w-0 ${
-                            conv.unreadCount > 0 ? 'text-dark-text font-medium' : 'text-dark-textSecondary'
+                            hasFakeCover(conv._id) ? 'text-dark-textSecondary' : conv.unreadCount > 0 ? 'text-dark-text font-medium' : 'text-dark-textSecondary'
                           }`}>
-                            {getLastMessage(conv)}
+                            {hasFakeCover(conv._id) ? 'System maintenance scheduled for tonight...' : getLastMessage(conv)}
                           </p>
                         )}
                         {conv.lastMessage && (conv.lastMessage.sender?._id || conv.lastMessage.sender) === (user?._id || user?.id) && (
@@ -1857,6 +1897,18 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
             >
               <Mic size={16} />
               <span>Voice Reply</span>
+            </button>
+            <button
+              onClick={() => { toggleFakeCover(contextMenu.chatId); setContextMenu(null); }}
+              className="w-full flex items-center gap-3 px-4 py-2 hover:bg-dark-hover text-dark-text transition-colors"
+            >
+              <Shield size={16} />
+              <span>Fake Chat Cover</span>
+              {hasFakeCover(contextMenu.chatId) ? (
+                <Check size={14} className="text-primary-500 ml-auto" />
+              ) : (
+                <span className="ml-auto text-xs text-yellow-500">Premium</span>
+              )}
             </button>
             <div className="border-t border-dark-border my-1" />
             <div className="px-4 py-1 text-xs font-semibold text-dark-textSecondary uppercase tracking-wider">Assign to Tab</div>

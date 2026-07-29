@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Plus, X, Eye, Clock, Camera, Image, Type, Upload, RefreshCw, Film, Sparkles, Bookmark, Settings } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Plus, X, Eye, Clock, Camera, Image, Type, Upload, RefreshCw, Film, Sparkles, Bookmark, Settings, Music } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import StatusScrollFeed from '../components/StatusScrollFeed';
 import StatusReel from '../components/StatusReel';
@@ -46,6 +46,9 @@ const Status = () => {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [viewedStatuses, setViewedStatuses] = useState([]);
+  const [autosaveStatuses, setAutosaveStatuses] = useState(false);
+  const [statusNotificationSettings, setStatusNotificationSettings] = useState({});
   const [uploadData, setUploadData] = useState({
     type: 'text',
     caption: '',
@@ -66,6 +69,7 @@ const Status = () => {
     collageImages: [],
     timerSeconds: 5,
     musicUrl: '',
+    musicFile: null,
     gifUrl: ''
   });
 
@@ -80,6 +84,126 @@ const Status = () => {
       cancelled = true;
     };
   }, [fetchStatuses]);
+
+  // Load viewed statuses from localStorage
+  useEffect(() => {
+    const savedViewed = localStorage.getItem('genz_viewed_statuses');
+    if (savedViewed) {
+      setViewedStatuses(JSON.parse(savedViewed));
+    }
+    const savedAutosave = localStorage.getItem('genz_autosave_statuses');
+    if (savedAutosave) {
+      setAutosaveStatuses(JSON.parse(savedAutosave));
+    }
+    const savedNotifications = localStorage.getItem('genz_status_notifications');
+    if (savedNotifications) {
+      setStatusNotificationSettings(JSON.parse(savedNotifications));
+    }
+  }, []);
+
+  // Save viewed statuses to localStorage
+  useEffect(() => {
+    localStorage.setItem('genz_viewed_statuses', JSON.stringify(viewedStatuses));
+  }, [viewedStatuses]);
+
+  // Save autosave setting to localStorage
+  useEffect(() => {
+    localStorage.setItem('genz_autosave_statuses', JSON.stringify(autosaveStatuses));
+  }, [autosaveStatuses]);
+
+  // Save status notification settings to localStorage
+  useEffect(() => {
+    localStorage.setItem('genz_status_notifications', JSON.stringify(statusNotificationSettings));
+  }, [statusNotificationSettings]);
+
+  // Toggle status notifications for a specific user
+  const toggleStatusNotification = (userId) => {
+    setStatusNotificationSettings(prev => ({
+      ...prev,
+      [userId]: !prev[userId]
+    }));
+  };
+
+  // Check if status notifications are enabled for a user
+  const isStatusNotificationEnabled = (userId) => {
+    return statusNotificationSettings[userId] !== false; // Default is true
+  };
+
+  // Mark status as viewed
+  const markStatusAsViewed = (statusId) => {
+    if (!viewedStatuses.includes(statusId)) {
+      setViewedStatuses(prev => [...prev, statusId]);
+
+      // Autosave status if enabled
+      if (autosaveStatuses) {
+        const status = statuses.find(s => (s._id || s.id) === statusId);
+        if (status && (status.mediaUrl || status.content)) {
+          downloadStatus(status);
+        }
+      }
+    }
+  };
+
+  // Download status media/content
+  const downloadStatus = async (status) => {
+    try {
+      if (status.mediaUrl) {
+        const link = document.createElement('a');
+        link.href = status.mediaUrl;
+        link.download = `status_${status._id || status.id}_${Date.now()}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else if (status.content) {
+        const blob = new Blob([status.content], { type: 'text/plain' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `status_text_${status._id || status.id}_${Date.now()}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (error) {
+      console.error('Failed to download status:', error);
+    }
+  };
+
+  // Get unviewed statuses count
+  const getUnviewedCount = () => {
+    return statuses.filter(status => 
+      !viewedStatuses.includes(status._id || status.id) && 
+      status.user?._id !== user?._id
+    ).length;
+  };
+
+  // Handle music selection from device
+  const handleMusicSelect = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'audio/*';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // Create object URL for the music file
+      const musicUrl = URL.createObjectURL(file);
+      setUploadData(prev => ({
+        ...prev,
+        musicUrl,
+        musicFile: file
+      }));
+    };
+    input.click();
+  };
+
+  // Remove music from status
+  const handleRemoveMusic = () => {
+    setUploadData(prev => ({
+      ...prev,
+      musicUrl: '',
+      musicFile: null
+    }));
+  };
 
   const handleAddStatus = async () => {
     if (uploadData.type === 'text' && !uploadData.caption.trim()) {
@@ -281,18 +405,30 @@ const Status = () => {
             <>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm text-gray-400">Recent updates</h2>
-                {statuses.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFeedStartId(null);
-                      setShowScrollFeed(true);
-                    }}
-                    className="text-primary-400 text-sm hover:text-primary-300 transition-colors"
-                  >
-                    View All
-                  </button>
-                )}
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Download size={14} className="text-gray-400" />
+                    <span className="text-xs text-gray-400">Autosave</span>
+                    <input
+                      type="checkbox"
+                      checked={autosaveStatuses}
+                      onChange={(e) => setAutosaveStatuses(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-primary-600 focus:ring-primary-500"
+                    />
+                  </label>
+                  {statuses.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFeedStartId(null);
+                        setShowScrollFeed(true);
+                      }}
+                      className="text-primary-400 text-sm hover:text-primary-300 transition-colors"
+                    >
+                      View All
+                    </button>
+                  )}
+                </div>
               </div>
               {statuses.length === 0 ? (
                 <div className="text-center text-gray-500 py-8">
@@ -319,14 +455,46 @@ const Status = () => {
                           }
                         }}
                       >
-                        <div className="w-12 h-12 bg-primary-600 rounded-full flex items-center justify-center text-white font-bold border border-white/20">
-                          {status.username?.charAt(0).toUpperCase() || '?'}
+                        <div className="relative">
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold border border-white/20 ${
+                            !viewedStatuses.includes(status._id || status.id) && status.user?._id !== user?._id
+                              ? 'bg-green-500 ring-4 ring-green-500/30'
+                              : 'bg-primary-600'
+                          }`}>
+                            {status.username?.charAt(0).toUpperCase() || '?'}
+                          </div>
+                          {!viewedStatuses.includes(status._id || status.id) && status.user?._id !== user?._id && (
+                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-[#0b141a]"></div>
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-white">{status.username || 'Unknown'}</p>
-                          <p className="text-sm text-gray-400 truncate">{status.content || status.caption || status.type}</p>
+                          <p className={`font-semibold ${
+                            !viewedStatuses.includes(status._id || status.id) && status.user?._id !== user?._id
+                              ? 'text-white'
+                              : 'text-gray-300'
+                          }`}>{status.username || 'Unknown'}</p>
+                          <p className={`text-sm truncate ${
+                            !viewedStatuses.includes(status._id || status.id) && status.user?._id !== user?._id
+                              ? 'text-white'
+                              : 'text-gray-400'
+                          }`}>{status.content || status.caption || status.type}</p>
                         </div>
                         <div className="flex items-center gap-2 text-gray-400 text-sm flex-shrink-0">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleStatusNotification(status.user?._id || status.user?.id);
+                            }}
+                            className={`p-1.5 rounded-full transition-colors ${
+                              isStatusNotificationEnabled(status.user?._id || status.user?.id)
+                                ? 'text-blue-400 hover:bg-blue-400/20'
+                                : 'text-gray-500 hover:bg-gray-500/20'
+                            }`}
+                            title={isStatusNotificationEnabled(status.user?._id || status.user?.id) ? 'Notifications On' : 'Notifications Off'}
+                          >
+                            <Bell size={14} />
+                          </button>
                           <Clock size={14} />
                           <span>{statusTime(status)}</span>
                         </div>
@@ -670,6 +838,38 @@ const Status = () => {
                   </div>
                 </div>
               )}
+
+              {/* Music Selection */}
+              <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Music size={18} className="text-blue-600 dark:text-blue-400" />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Add Music</span>
+                  </div>
+                  {!uploadData.musicUrl ? (
+                    <button
+                      type="button"
+                      onClick={handleMusicSelect}
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors"
+                    >
+                      Select Music
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleRemoveMusic}
+                      className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors"
+                    >
+                      Remove Music
+                    </button>
+                  )}
+                </div>
+                {uploadData.musicUrl && (
+                  <div className="mt-2 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                    <span className="truncate">🎵 {uploadData.musicFile?.name || 'Music selected'}</span>
+                  </div>
+                )}
+              </div>
 
                 {/* FEATURE ADD: WhatsApp-style "hide my status from..." picker.
                     Anyone checked here won't be able to see this status even

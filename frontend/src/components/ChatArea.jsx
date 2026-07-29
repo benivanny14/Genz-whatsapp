@@ -55,6 +55,17 @@ const DISAPPEARING_OPTIONS = [
   { label: '90 days', value: '90d' },
 ];
 
+const FONT_OPTIONS = [
+  { label: 'Default', value: 'default', fontFamily: 'sans-serif' },
+  { label: 'Arial', value: 'arial', fontFamily: 'Arial, sans-serif' },
+  { label: 'Times New Roman', value: 'times', fontFamily: '"Times New Roman", serif' },
+  { label: 'Georgia', value: 'georgia', fontFamily: 'Georgia, serif' },
+  { label: 'Verdana', value: 'verdana', fontFamily: 'Verdana, sans-serif' },
+  { label: 'Courier New', value: 'courier', fontFamily: '"Courier New", monospace' },
+  { label: 'Comic Sans', value: 'comic', fontFamily: '"Comic Sans MS", cursive' },
+  { label: 'Impact', value: 'impact', fontFamily: 'Impact, sans-serif' },
+];
+
 // Header class for modals - consistent styling
 const headerClass = 'bg-dark-surface';
 
@@ -242,6 +253,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   } = useChat();
   const user = chatUser || localUser;
   const [messageInput, setMessageInput] = useState('');
+  const [selectedFont, setSelectedFont] = useState('default');
+  const [showFontPicker, setShowFontPicker] = useState(false);
   const [mentionState, setMentionState] = useState({
     open: false,
     query: '',
@@ -767,9 +780,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       if (selectedMedia) {
         finalOptions.messageType = 'structured';
         finalOptions.structuredContent = [
-          { type: 'text', value: sanitizedMessage },
+          { type: 'text', value: sanitizedMessage, font: selectedFont !== 'default' ? selectedFont : undefined },
           { type: selectedMedia.type, value: selectedMedia.url, meta: selectedMedia.meta }
         ];
+      } else {
+        finalOptions.font = selectedFont !== 'default' ? selectedFont : undefined;
       }
 
       await sendMessage(sanitizedMessage, user?.username || 'Me', finalOptions);
@@ -782,6 +797,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     }
 
     setMessageInput('');
+    setSelectedFont('default');
     setIsViewOnceEnabled(false);
     setMentionState({ open: false, query: '', start: -1, cursor: 0, activeIndex: 0 });
     setShowMediaPanel(false);
@@ -2929,7 +2945,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                         !safeMods?.antiViewOnce &&
                         !message.isConsumed
                       ) && !message.isConsumed && (
-                        <p className="break-words whitespace-pre-wrap">
+                        <p
+                          className="break-words whitespace-pre-wrap"
+                          style={{ fontFamily: message.font ? FONT_OPTIONS.find(f => f.value === message.font)?.fontFamily : undefined }}
+                        >
                           {safeMods?.debugEncryption
                             ? (() => {
                               const txt = plaintextOf(message) || '';
@@ -3511,21 +3530,32 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
           {/* ── Text input — hidden while VoiceRecorder is recording ── */}
           {!voiceRecorderActive && (
-            <input
-              ref={inputRef}
-              type="text"
-              inputMode="text"
-              autoCapitalize="off"
-              autoCorrect="off"
-              spellCheck="false"
-              disabled={adminOnlyMessagingEnabled && !currentUserIsAdmin}
-              value={messageInput}
-              onChange={(e) => handleTyping(e.target.value, e.target.selectionStart)}
-              onKeyDown={handleMentionKeyDown}
-              onBlur={() => window.setTimeout(closeMentionPicker, 120)}
-              placeholder="Type a message..."
-              className="flex-1 min-w-[100px] px-4 py-2.5 bg-dark-bg border border-dark-border rounded-2xl text-dark-text placeholder-dark-textSecondary focus:outline-none focus:border-primary-500 transition-colors text-base md:text-sm"
-            />
+            <div className="flex-1 flex items-center gap-2">
+              <input
+                ref={inputRef}
+                type="text"
+                inputMode="text"
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck="false"
+                disabled={adminOnlyMessagingEnabled && !currentUserIsAdmin}
+                value={messageInput}
+                onChange={(e) => handleTyping(e.target.value, e.target.selectionStart)}
+                onKeyDown={handleMentionKeyDown}
+                onBlur={() => window.setTimeout(closeMentionPicker, 120)}
+                placeholder="Type a message..."
+                style={{ fontFamily: FONT_OPTIONS.find(f => f.value === selectedFont)?.fontFamily || 'sans-serif' }}
+                className="flex-1 min-w-[100px] px-4 py-2.5 bg-dark-bg border border-dark-border rounded-2xl text-dark-text placeholder-dark-textSecondary focus:outline-none focus:border-primary-500 transition-colors text-base md:text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => setShowFontPicker(!showFontPicker)}
+                className="p-2.5 bg-dark-bg border border-dark-border rounded-2xl text-dark-text hover:bg-dark-hover transition-colors"
+                title="Change font"
+              >
+                <Languages size={18} />
+              </button>
+            </div>
           )}
 
           {/* ── TM WhatsApp Voice Recorder ── */}
@@ -3852,6 +3882,40 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
             }}
             onClose={() => setShowAICaption(false)}
           />
+        </div>
+      )}
+
+      {/* ── Font Picker Modal ── */}
+      {showFontPicker && (
+        <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-end justify-center">
+          <div className="w-full max-w-md bg-[#0d1f35] rounded-t-3xl shadow-2xl overflow-hidden border-t border-white/10">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+              <span className="text-white font-bold flex items-center gap-2">
+                <Languages size={18} className="text-blue-400" /> Font Style
+              </span>
+              <button onClick={() => setShowFontPicker(false)} className="text-white/60 hover:text-white p-1" aria-label="Close"><X size={20} /></button>
+            </div>
+            <div className="p-4 grid grid-cols-2 gap-2 max-h-80 overflow-y-auto">
+              {FONT_OPTIONS.map((font) => (
+                <button
+                  key={font.value}
+                  onClick={() => {
+                    setSelectedFont(font.value);
+                    setShowFontPicker(false);
+                    inputRef.current?.focus();
+                  }}
+                  style={{ fontFamily: font.fontFamily }}
+                  className={`p-3 rounded-lg border transition-colors ${
+                    selectedFont === font.value
+                      ? 'bg-primary-600 border-primary-500 text-white'
+                      : 'bg-dark-bg border-dark-border text-dark-text hover:bg-dark-hover'
+                  }`}
+                >
+                  <span className="text-sm">{font.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
