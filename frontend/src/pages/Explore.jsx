@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Search, MapPin, Hash, TrendingUp, Flame, Star, CheckCircle, X, Filter, Grid, List as ListIcon } from 'lucide-react';
 
 const Explore = () => {
@@ -6,6 +6,8 @@ const Explore = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('grid');
   const [selectedFilter, setSelectedFilter] = useState('all');
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationError, setLocationError] = useState(null);
 
   const tabs = [
     { id: 'trending', icon: TrendingUp, label: 'Trending' },
@@ -43,10 +45,108 @@ const Explore = () => {
 
   // Mock data for nearby content
   const nearbyContent = [
-    { id: 1, type: 'status', location: 'Dar es Salaam', distance: '2.5 km', user: { username: 'local_user1' } },
-    { id: 2, type: 'image', location: 'Dar es Salaam', distance: '3.1 km', user: { username: 'local_user2' } },
-    { id: 3, type: 'video', location: 'Dar es Salaam', distance: '4.2 km', user: { username: 'local_user3' } }
+    { id: 1, type: 'status', location: 'Dar es Salaam', distance: '2.5 km', user: { username: 'local_user1' }, lat: -6.7924, lng: 39.2083 },
+    { id: 2, type: 'image', location: 'Dar es Salaam', distance: '3.1 km', user: { username: 'local_user2' }, lat: -6.8100, lng: 39.2200 },
+    { id: 3, type: 'video', location: 'Dar es Salaam', distance: '4.2 km', user: { username: 'local_user3' }, lat: -6.7900, lng: 39.1900 },
+    { id: 4, type: 'status', location: 'Dar es Salaam', distance: '5.8 km', user: { username: 'local_user4' }, lat: -6.8000, lng: 39.2500 },
+    { id: 5, type: 'image', location: 'Dar es Salaam', distance: '7.2 km', user: { username: 'local_user5' }, lat: -6.7700, lng: 39.1800 }
   ];
+
+  // Get user location
+  useEffect(() => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (error) => {
+          setLocationError('Location access denied. Using default location.');
+          console.error('Geolocation error:', error);
+        }
+      );
+    } else {
+      setLocationError('Geolocation not supported by this browser.');
+    }
+  }, []);
+
+  // Calculate distance between two coordinates (Haversine formula)
+  const calculateDistance = (lat1, lng1, lat2, lng2) => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  // Filter content based on search query and selected filter
+  const filteredTrendingContent = useMemo(() => {
+    let filtered = trendingContent;
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(item => 
+        item.user.username.toLowerCase().includes(query) ||
+        item.type.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply type filter
+    if (selectedFilter !== 'all') {
+      filtered = filtered.filter(item => item.type === selectedFilter);
+    }
+
+    return filtered;
+  }, [searchQuery, selectedFilter, trendingContent]);
+
+  // Filter nearby content based on search and location
+  const filteredNearbyContent = useMemo(() => {
+    let filtered = nearbyContent;
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(item => 
+        item.user.username.toLowerCase().includes(query) ||
+        item.location.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply type filter
+    if (selectedFilter !== 'all') {
+      filtered = filtered.filter(item => item.type === selectedFilter);
+    }
+
+    // Sort by distance if user location is available
+    if (userLocation) {
+      filtered = filtered.map(item => ({
+        ...item,
+        calculatedDistance: calculateDistance(
+          userLocation.lat, userLocation.lng,
+          item.lat, item.lng
+        )
+      })).sort((a, b) => a.calculatedDistance - b.calculatedDistance);
+    }
+
+    return filtered;
+  }, [searchQuery, selectedFilter, nearbyContent, userLocation]);
+
+  // Filter creators based on search
+  const filteredCreators = useMemo(() => {
+    if (!searchQuery.trim()) return creators;
+
+    const query = searchQuery.toLowerCase();
+    return creators.filter(creator =>
+      creator.username.toLowerCase().includes(query) ||
+      creator.name.toLowerCase().includes(query)
+    );
+  }, [searchQuery, creators]);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -54,75 +154,101 @@ const Explore = () => {
       case 'foryou':
         return (
           <div className={`grid ${viewMode === 'grid' ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4' : 'grid-cols-1'} gap-4`}>
-            {trendingContent.map((item) => (
-              <div key={item.id} className="bg-white/5 rounded-xl overflow-hidden hover:bg-white/10 transition-colors">
-                <div className="aspect-square bg-gradient-to-br from-[#00a884]/20 to-[#075E54]/20 flex items-center justify-center">
-                  <span className="text-white/40 text-4xl">{item.type === 'video' ? '🎬' : item.type === 'image' ? '📷' : '📱'}</span>
-                </div>
-                <div className="p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-white font-medium text-sm">@{item.user.username}</span>
-                    {item.user.verified && <CheckCircle size={14} className="text-[#00a884]" />}
-                  </div>
-                  <div className="flex items-center gap-4 text-white/60 text-xs">
-                    <span>{item.views} views</span>
-                    <span>{item.likes} likes</span>
-                  </div>
-                </div>
+            {filteredTrendingContent.length === 0 ? (
+              <div className="col-span-full text-center py-12 text-white/40">
+                <Search size={48} className="mx-auto mb-4" />
+                <p>No content found matching your search</p>
               </div>
-            ))}
+            ) : (
+              filteredTrendingContent.map((item) => (
+                <div key={item.id} className="bg-white/5 rounded-xl overflow-hidden hover:bg-white/10 transition-colors">
+                  <div className="aspect-square bg-gradient-to-br from-[#00a884]/20 to-[#075E54]/20 flex items-center justify-center">
+                    <span className="text-white/40 text-4xl">{item.type === 'video' ? '🎬' : item.type === 'image' ? '📷' : '📱'}</span>
+                  </div>
+                  <div className="p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-white font-medium text-sm">@{item.user.username}</span>
+                      {item.user.verified && <CheckCircle size={14} className="text-[#00a884]" />}
+                    </div>
+                    <div className="flex items-center gap-4 text-white/60 text-xs">
+                      <span>{item.views} views</span>
+                      <span>{item.likes} likes</span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         );
 
       case 'nearby':
         return (
           <div className="space-y-4">
-            {nearbyContent.map((item) => (
-              <div key={item.id} className="bg-white/5 rounded-xl p-4 flex items-center gap-4 hover:bg-white/10 transition-colors">
-                <div className="w-20 h-20 bg-gradient-to-br from-[#00a884]/20 to-[#075E54]/20 rounded-lg flex items-center justify-center">
-                  <span className="text-white/40 text-2xl">{item.type === 'video' ? '🎬' : item.type === 'image' ? '📷' : '📱'}</span>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-white font-medium">@{item.user.username}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-white/60 text-sm">
-                    <MapPin size={14} />
-                    <span>{item.location}</span>
-                    <span>•</span>
-                    <span>{item.distance}</span>
-                  </div>
-                </div>
+            {locationError && (
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-yellow-400 text-sm">
+                {locationError}
               </div>
-            ))}
+            )}
+            {filteredNearbyContent.length === 0 ? (
+              <div className="text-center py-12 text-white/40">
+                <MapPin size={48} className="mx-auto mb-4" />
+                <p>No nearby content found</p>
+              </div>
+            ) : (
+              filteredNearbyContent.map((item) => (
+                <div key={item.id} className="bg-white/5 rounded-xl p-4 flex items-center gap-4 hover:bg-white/10 transition-colors">
+                  <div className="w-20 h-20 bg-gradient-to-br from-[#00a884]/20 to-[#075E54]/20 rounded-lg flex items-center justify-center">
+                    <span className="text-white/40 text-2xl">{item.type === 'video' ? '🎬' : item.type === 'image' ? '📷' : '📱'}</span>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-white font-medium">@{item.user.username}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-white/60 text-sm">
+                      <MapPin size={14} />
+                      <span>{item.location}</span>
+                      <span>•</span>
+                      <span>{item.calculatedDistance ? `${item.calculatedDistance.toFixed(1)} km` : item.distance}</span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         );
 
       case 'creators':
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {creators.map((creator) => (
-              <div key={creator.id} className="bg-white/5 rounded-xl p-4 hover:bg-white/10 transition-colors">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#00a884] to-[#075E54] rounded-full flex items-center justify-center">
-                    <span className="text-white font-bold">{creator.name[0]}</span>
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-white font-medium">@{creator.username}</span>
-                      {creator.verified && <CheckCircle size={14} className="text-[#00a884]" />}
-                    </div>
-                    <span className="text-white/60 text-sm">{creator.name}</span>
-                  </div>
-                </div>
-                <div className="text-white/60 text-sm mb-3">
-                  {creator.followers} followers
-                </div>
-                <button className="w-full px-4 py-2 bg-[#00a884] hover:bg-[#008f6f] rounded-lg text-white text-sm font-medium">
-                  Follow
-                </button>
+            {filteredCreators.length === 0 ? (
+              <div className="col-span-full text-center py-12 text-white/40">
+                <Star size={48} className="mx-auto mb-4" />
+                <p>No creators found matching your search</p>
               </div>
-            ))}
+            ) : (
+              filteredCreators.map((creator) => (
+                <div key={creator.id} className="bg-white/5 rounded-xl p-4 hover:bg-white/10 transition-colors">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-[#00a884] to-[#075E54] rounded-full flex items-center justify-center">
+                      <span className="text-white font-bold">{creator.name[0]}</span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-white font-medium">@{creator.username}</span>
+                        {creator.verified && <CheckCircle size={14} className="text-[#00a884]" />}
+                      </div>
+                      <span className="text-white/60 text-sm">{creator.name}</span>
+                    </div>
+                  </div>
+                  <div className="text-white/60 text-sm mb-3">
+                    {creator.followers} followers
+                  </div>
+                  <button className="w-full px-4 py-2 bg-[#00a884] hover:bg-[#008f6f] rounded-lg text-white text-sm font-medium">
+                    Follow
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         );
 
