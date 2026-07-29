@@ -1603,7 +1603,17 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                 }}
               >
                 <button
-                  onClick={() => (chatSelectMode ? toggleChatSelected(conv._id) : selectConversation(conv))}
+                  onClick={(e) => {
+                    console.log('[Sidebar] Chat button clicked:', conv._id, conv.name);
+                    console.log('[Sidebar] chatSelectMode:', chatSelectMode);
+                    if (chatSelectMode) {
+                      console.log('[Sidebar] Toggling chat selection');
+                      toggleChatSelected(conv._id);
+                    } else {
+                      console.log('[Sidebar] Selecting conversation');
+                      selectConversation(conv);
+                    }
+                  }}
                   onTouchStart={() => !chatSelectMode && !conv.isGroup && handleChatLongPressStart(conv._id)}
                   onTouchEnd={handleChatLongPressEnd}
                   onMouseDown={() => !chatSelectMode && !conv.isGroup && handleChatLongPressStart(conv._id)}

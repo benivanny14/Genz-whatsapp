@@ -2376,27 +2376,40 @@ export const ChatProvider = ({ children }) => {
   }, []);
 
   const selectConversation = async (conv) => {
-    setSelectedConversation(conv);
+    console.log('[ChatContext] selectConversation called with:', conv);
+    
     if (!conv) {
+      console.warn('[ChatContext] selectConversation called with null/undefined conversation');
+      setSelectedConversation(null);
       clearStoredSelectedConversationId();
       setMessages([]);
       return;
     }
+
+    console.log('[ChatContext] Setting selected conversation:', conv._id);
+    setSelectedConversation(conv);
+    
     if (conv._id) {
       setStoredSelectedConversationId(conv._id);
     }
+    
     try {
       // Check for demo messages first
       if (ENABLE_DEMO_DATA && DEMO_MESSAGES[conv._id]) {
+        console.log('[ChatContext] Loading demo messages for:', conv._id);
         setMessages(DEMO_MESSAGES[conv._id]);
         return;
       }
 
       const convId = conv._id;
+      console.log('[ChatContext] Loading messages for conversation:', convId);
       let showedCache = false;
 
       if (isMongoObjectId(convId)) {
+        console.log('[ChatContext] Conversation is MongoDB ObjectId, loading from IndexedDB');
         const offlineMsgs = await DB.getMessages(convId);
+        console.log('[ChatContext] Offline messages found:', offlineMsgs?.length || 0);
+        
         if (offlineMsgs?.length) {
           setMessages(await decryptMessagesList(offlineMsgs));
           showedCache = true;
@@ -2404,7 +2417,12 @@ export const ChatProvider = ({ children }) => {
           setMessages([]);
         }
 
-        if (socketRef.current) socketRef.current.emit('join:conversation', convId);
+        if (socketRef.current) {
+          console.log('[ChatContext] Emitting join:conversation for:', convId);
+          socketRef.current.emit('join:conversation', convId);
+        } else {
+          console.warn('[ChatContext] Socket not available for join:conversation');
+        }
 
         // Background sync — keeps chat active without clearing the UI
         apiService.getMessages(convId).then(async (remoteData) => {
@@ -2421,6 +2439,7 @@ export const ChatProvider = ({ children }) => {
         return;
       }
 
+      console.log('[ChatContext] Conversation is not MongoDB ObjectId, loading directly');
       const offlineMsgs = await DB.getMessages(conv._id);
       if (offlineMsgs?.length) {
         setMessages(await decryptMessagesList(offlineMsgs));
@@ -2429,7 +2448,7 @@ export const ChatProvider = ({ children }) => {
       }
       if (socketRef.current) socketRef.current.emit('join:conversation', conv._id);
     } catch (err) {
-      console.error('Error loading messages:', err);
+      console.error('[ChatContext] Error loading messages:', err);
       setMessages([]);
     }
   };
