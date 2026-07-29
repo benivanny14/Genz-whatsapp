@@ -648,6 +648,7 @@ const settingsRoutes = require('./routes/settingsRoutes');
 const privacyContactsRoutes = require('./routes/privacyContactsRoutes');
 const phoneContactsRoutes = require('./routes/phone-contacts');
 const groupInviteRoutes = require('./routes/group-invite');
+const antiRevokeRoutes = require('./routes/anti-revoke');
 
 // Newly-wired feature routes (previously orphaned controllers)
 const bulkSenderRoutes = require('./routes/bulk-sender');
@@ -708,6 +709,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/privacy', privacyContactsRoutes);
 app.use('/api/contacts', phoneContactsRoutes);
 app.use('/api/groups', groupInviteRoutes);
+app.use('/api/anti-revoke', antiRevokeRoutes);
 app.use('/api/genz-mods', genzModsRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/stickers', stickerRoutes);
