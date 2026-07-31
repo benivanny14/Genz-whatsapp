@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const customizationModsController = require('../controllers/customizationModsController');
-const { authenticate } = require('../middleware/auth');
+const { protect } = require('../middleware/auth');
 
 // Apply authentication middleware to all routes
-router.use(authenticate);
+router.use(protect);
 
 // Settings routes
 router.get('/settings', customizationModsController.getCustomizationModsSettings);
