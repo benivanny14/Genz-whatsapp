@@ -76,86 +76,32 @@ exports.translateMessage = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Text is required' });
     }
 
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      // Fallback to simple mock translation
-      const mockTranslations = {
-        'sw': { 'hello': 'habari', 'how are you': 'habari gani', 'good': 'nzuri' },
-        'en': { 'habari': 'hello', 'habari gani': 'how are you', 'nzuri': 'good' }
-      };
+    // Simple offline dictionary translation
+    const mockTranslations = {
+      'sw': { 'hello': 'habari', 'how are you': 'habari gani', 'good': 'nzuri' },
+      'en': { 'habari': 'hello', 'habari gani': 'how are you', 'nzuri': 'good' }
+    };
 
-      const target = targetLanguage || user.translatorSettings?.targetLanguage || 'en';
-      const source = sourceLanguage || user.translatorSettings?.sourceLanguage || 'auto';
-      
-      // Simple mock translation (in real implementation, use Google Translate API or similar)
-      let translatedText = text;
-      if (mockTranslations[target]) {
-        Object.keys(mockTranslations[target]).forEach(key => {
-          if (text.toLowerCase().includes(key)) {
-            translatedText = text.toLowerCase().replace(key, mockTranslations[target][key]);
-          }
-        });
-      }
+    const target = targetLanguage || user.translatorSettings?.targetLanguage || 'en';
+    const source = sourceLanguage || user.translatorSettings?.sourceLanguage || 'auto';
 
-      return res.status(200).json({
-        success: true,
-        originalText: text,
-        translatedText,
-        sourceLanguage: source,
-        targetLanguage: target,
-        provider: 'mock'
+    let translatedText = text;
+    if (mockTranslations[target]) {
+      Object.keys(mockTranslations[target]).forEach(key => {
+        if (text.toLowerCase().includes(key)) {
+          translatedText = text.toLowerCase().replace(key, mockTranslations[target][key]);
+        }
       });
     }
 
-    // Use OpenAI for translation
-    try {
-      const OpenAI = require('openai');
-      const client = new OpenAI({ apiKey });
-      const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
-
-      const languageMap = {
-        'en': 'English',
-        'sw': 'Swahili',
-        'ar': 'Arabic',
-        'fr': 'French',
-        'es': 'Spanish',
-        'de': 'German',
-        'zh': 'Chinese',
-        'hi': 'Hindi',
-        'pt': 'Portuguese',
-        'ru': 'Russian'
-      };
-
-      const targetLang = targetLanguage || user.translatorSettings?.targetLanguage || 'en';
-      const targetLangName = languageMap[targetLang] || 'English';
-
-      const completion = await client.chat.completions.create({
-        model,
-        messages: [
-          {
-            role: 'system',
-            content: `You are a professional translator. Translate the given text to ${targetLangName}. Keep the translation natural and accurate. Only return the translated text, no explanations.`
-          },
-          { role: 'user', content: text.slice(0, 4000) }
-        ],
-        max_tokens: 1000,
-        temperature: 0.3
-      });
-
-      const translatedText = completion?.choices?.[0]?.message?.content?.trim() || text;
-
-      res.status(200).json({
-        success: true,
-        originalText: text,
-        translatedText,
-        sourceLanguage: sourceLanguage || 'auto',
-        targetLanguage: targetLang,
-        provider: 'openai'
-      });
-    } catch (aiError) {
-      console.error('AI translation error:', aiError);
-      res.status(500).json({ success: false, message: 'Failed to translate message' });
-    }
+    return res.status(200).json({
+      success: true,
+      originalText: text,
+      translatedText,
+      sourceLanguage: source,
+      targetLanguage: target,
+      provider: 'mock'
+    });
   } catch (error) {
     console.error('Translate message error:', error);
     res.status(500).json({ success: false, message: error.message });
@@ -176,58 +122,25 @@ exports.detectLanguage = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Text is required' });
     }
 
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      // Simple mock detection
-      const swahiliWords = ['habari', 'jambo', 'asante', 'kwa', 'na', 'la', 'ya', 'wa', 'ni', 'hu'];
-      const arabicWords = ['السلام', 'عليكم', 'شكرا', 'حسن'];
-      
-      let detectedLang = 'en';
-      const lowerText = text.toLowerCase();
-      
-      if (swahiliWords.some(word => lowerText.includes(word))) {
-        detectedLang = 'sw';
-      } else if (arabicWords.some(word => lowerText.includes(word))) {
-        detectedLang = 'ar';
-      }
+    // Simple heuristic detection
+    const swahiliWords = ['habari', 'jambo', 'asante', 'kwa', 'na', 'la', 'ya', 'wa', 'ni', 'hu'];
+    const arabicWords = ['السلام', 'عليكم', 'شكرا', 'حسن'];
 
-      return res.status(200).json({
-        success: true,
-        language: detectedLang,
-        confidence: 0.8,
-        provider: 'mock'
-      });
+    let detectedLang = 'en';
+    const lowerText = text.toLowerCase();
+
+    if (swahiliWords.some(word => lowerText.includes(word))) {
+      detectedLang = 'sw';
+    } else if (arabicWords.some(word => lowerText.includes(word))) {
+      detectedLang = 'ar';
     }
 
-    try {
-      const OpenAI = require('openai');
-      const client = new OpenAI({ apiKey });
-
-      const completion = await client.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'Detect the language of the given text. Return only the ISO 639-1 language code (e.g., "en", "sw", "ar", "fr", "es", "de", "zh", "hi", "pt", "ru").'
-          },
-          { role: 'user', content: text.slice(0, 500) }
-        ],
-        max_tokens: 10,
-        temperature: 0
-      });
-
-      const language = completion?.choices?.[0]?.message?.content?.trim().toLowerCase() || 'en';
-
-      res.status(200).json({
-        success: true,
-        language,
-        confidence: 0.9,
-        provider: 'openai'
-      });
-    } catch (aiError) {
-      console.error('AI language detection error:', aiError);
-      res.status(500).json({ success: false, message: 'Failed to detect language' });
-    }
+    return res.status(200).json({
+      success: true,
+      language: detectedLang,
+      confidence: 0.8,
+      provider: 'heuristic'
+    });
   } catch (error) {
     console.error('Detect language error:', error);
     res.status(500).json({ success: false, message: error.message });

@@ -219,6 +219,7 @@ exports.saveGIF = async (req, res) => {
 
     if (!user.savedGIFs) user.savedGIFs = [];
     user.savedGIFs.push(savedGIF);
+    user.markModified('savedGIFs');
     await user.save();
 
     res.status(200).json({
@@ -252,6 +253,7 @@ exports.deleteSavedGIF = async (req, res) => {
     }
 
     user.savedGIFs.splice(gifIndex, 1);
+    user.markModified('savedGIFs');
     await user.save();
 
     res.status(200).json({ success: true, message: 'GIF deleted' });

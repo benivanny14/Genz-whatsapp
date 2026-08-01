@@ -5,6 +5,8 @@ import { api } from './api';
 // ---------------------------------------------------------------------
 export const getPaymentInfo = () => api.get('/payment/manual/info').then((r) => r.data);
 
+export const getSubscriptionStatus = () => api.get('/payment/manual/subscription').then((r) => r.data);
+
 export const previewSms = (sms) => api.post('/payment/manual/preview', { sms }).then((r) => r.data);
 
 export const submitPayment = (payload) => api.post('/payment/manual/submit', payload).then((r) => r.data);

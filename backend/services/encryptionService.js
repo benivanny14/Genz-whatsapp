@@ -120,7 +120,10 @@ const getUserPublicKeys = async (userId) => {
     }
 
     if (!user.encryptionKeys || !user.encryptionKeys.publicKey) {
-      throw new Error('Encryption keys not found for user');
+      return {
+        publicKey: null,
+        signaturePublicKey: null
+      };
     }
 
     return {

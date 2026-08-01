@@ -105,6 +105,7 @@ exports.createStoryHighlight = async (req, res) => {
 
     if (!user.storyHighlights) user.storyHighlights = [];
     user.storyHighlights.push(highlight);
+    user.markModified('storyHighlights');
     await user.save();
 
     res.status(200).json({ success: true, highlight });
@@ -182,6 +183,7 @@ exports.updateStoryHighlight = async (req, res) => {
     highlights[index].updatedAt = new Date();
 
     user.storyHighlights = highlights;
+    user.markModified('storyHighlights');
     await user.save();
 
     res.status(200).json({ success: true, highlight: highlights[index] });
@@ -210,6 +212,7 @@ exports.deleteStoryHighlight = async (req, res) => {
 
     highlights.splice(index, 1);
     user.storyHighlights = highlights;
+    user.markModified('storyHighlights');
     await user.save();
 
     res.status(200).json({ success: true, message: 'Highlight deleted' });
@@ -247,6 +250,7 @@ exports.addStatusToHighlight = async (req, res) => {
     }
 
     user.storyHighlights = highlights;
+    user.markModified('storyHighlights');
     await user.save();
 
     res.status(200).json({ success: true, highlight: highlights[index] });
@@ -277,6 +281,7 @@ exports.removeStatusFromHighlight = async (req, res) => {
     highlights[index].updatedAt = new Date();
 
     user.storyHighlights = highlights;
+    user.markModified('storyHighlights');
     await user.save();
 
     res.status(200).json({ success: true, highlight: highlights[index] });

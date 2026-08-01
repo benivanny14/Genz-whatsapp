@@ -170,6 +170,7 @@ exports.startLiveLocation = async (req, res) => {
 
     if (!user.liveLocations) user.liveLocations = [];
     user.liveLocations.push(liveLocation);
+    user.markModified('liveLocations');
     await user.save();
 
     res.status(200).json({
@@ -206,6 +207,7 @@ exports.updateLiveLocation = async (req, res) => {
 
     if (liveLocation.expiresAt && new Date() > liveLocation.expiresAt) {
       liveLocation.status = 'expired';
+      user.markModified('liveLocations');
       await user.save();
       return res.status(400).json({ success: false, message: 'Live location session has expired' });
     }
@@ -213,6 +215,7 @@ exports.updateLiveLocation = async (req, res) => {
     // Update location (in real implementation, this would notify participants)
     liveLocation.lastUpdate = new Date();
     liveLocation.currentLocation = { latitude, longitude };
+    user.markModified('liveLocations');
     await user.save();
 
     res.status(200).json({
@@ -235,7 +238,7 @@ exports.stopLiveLocation = async (req, res) => {
     const user = await getUser(req, res);
     if (!user) return;
 
-    const { liveLocationId } = req.body;
+    const liveLocationId = req.params.shareId || req.body.liveLocationId;
 
     if (!liveLocationId) {
       return res.status(400).json({ success: false, message: 'Live location ID is required' });
@@ -248,6 +251,7 @@ exports.stopLiveLocation = async (req, res) => {
 
     user.liveLocations[liveLocationIndex].status = 'stopped';
     user.liveLocations[liveLocationIndex].stoppedAt = new Date();
+    user.markModified('liveLocations');
     await user.save();
 
     res.status(200).json({

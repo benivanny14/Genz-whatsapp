@@ -9,6 +9,7 @@ const ctrl = require('../controllers/manualPaymentController');
 // USER ROUTES — mounted at /api/payment/manual
 // ---------------------------------------------------------------------
 router.get('/info', protect, ctrl.getPaymentInfo);
+router.get('/subscription', protect, ctrl.getSubscriptionStatus);
 router.post('/preview', protect, subscriptionRateLimiter, ctrl.previewSms);
 router.post('/submit', protect, paymentRateLimiter, ctrl.submitPayment);
 router.get('/mine', protect, subscriptionRateLimiter, ctrl.getMyPayments);

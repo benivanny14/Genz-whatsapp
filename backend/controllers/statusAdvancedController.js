@@ -538,6 +538,10 @@ exports.createTemplate = async (req, res) => {
     const userId = req.user._id || req.user.id;
     const { name, type, content, backgroundColor, fontStyle } = req.body;
 
+    if (!type) {
+      return res.status(400).json({ success: false, message: 'type is required' });
+    }
+
     const template = await Status.create({
       user: userId,
       userId: String(userId),
@@ -814,6 +818,7 @@ exports.muteUserStatus = async (req, res) => {
       mutedAt: new Date(),
       expiresAt: duration ? new Date(Date.now() + duration * 60 * 60 * 1000) : null
     });
+    user.markModified('mutedStatusUsers');
     await user.save();
 
     res.json({ success: true, message: 'User amezimwa' });
@@ -845,6 +850,7 @@ exports.blockUserStatus = async (req, res) => {
       reason,
       blockedAt: new Date()
     });
+    user.markModified('blockedStatusUsers');
 
     if (blockChatsToo) {
       if (!user.blockedUsers) user.blockedUsers = [];
@@ -881,6 +887,7 @@ exports.saveToCollection = async (req, res) => {
       location,
       savedAt: new Date()
     });
+    user.markModified('savedStatuses');
     await user.save();
 
     res.json({ success: true, message: 'Status imesave' });

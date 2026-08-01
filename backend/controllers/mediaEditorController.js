@@ -114,7 +114,8 @@ exports.editImage = async (req, res) => {
       if (user.editHistory.length > settings.editHistoryLimit) {
         user.editHistory = user.editHistory.slice(-settings.editHistoryLimit);
       }
-      
+
+      user.markModified('editHistory');
       await user.save();
     }
 
@@ -175,6 +176,7 @@ exports.editVideo = async (req, res) => {
         user.editHistory = user.editHistory.slice(-settings.editHistoryLimit);
       }
       
+      user.markModified('editHistory');
       await user.save();
     }
 
@@ -235,6 +237,7 @@ exports.editAudio = async (req, res) => {
         user.editHistory = user.editHistory.slice(-settings.editHistoryLimit);
       }
       
+      user.markModified('editHistory');
       await user.save();
     }
 

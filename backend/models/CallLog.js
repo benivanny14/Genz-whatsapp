@@ -50,6 +50,19 @@ const CallLogSchema = new mongoose.Schema({
   isGroup: {
     type: Boolean,
     default: false
+  },
+  // Fake calls (simulated call logs)
+  isFake: {
+    type: Boolean,
+    default: false
+  },
+  fakeContactName: {
+    type: String,
+    default: ''
+  },
+  fakeContactPhone: {
+    type: String,
+    default: ''
   }
 }, {
   timestamps: true

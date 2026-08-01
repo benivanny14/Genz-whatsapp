@@ -32,15 +32,15 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://localhost:10000',
+        target: 'http://localhost:5000',
         changeOrigin: true
       },
       '/uploads': {
-        target: 'http://localhost:10000',
+        target: 'http://localhost:5000',
         changeOrigin: true
       },
       '/socket.io': {
-        target: 'http://localhost:10000',
+        target: 'http://localhost:5000',
         changeOrigin: true,
         ws: true,
         configure: (proxy, options) => {
@@ -58,6 +58,6 @@ export default defineConfig({
     }
   },
   preview: {
-    allowedHosts: ['genz-whatsapp-1.onrender.com', 'genz-whatsapp-1-sunu.onrender.com', 'localhost', '127.0.0.1']
+    allowedHosts: ['genz-whatsapp-1.onrender.com', 'localhost', '127.0.0.1']
   }
 })

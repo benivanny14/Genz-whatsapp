@@ -34,6 +34,7 @@ const defaultSettings = {
   homeScreenStyle: 'default',
   conversationEntryStyle: 'default',
   emojiStyle: 'default',
+  legacy2014Mode: false,
   
   // Available Options
   availableFonts: ['Inter', 'Roboto', 'Poppins', 'Comic Neue', 'JetBrains Mono', 'Space Grotesk'],
@@ -284,6 +285,31 @@ exports.toggleThemeEngine = async (req, res) => {
     res.status(200).json({ success: true, settings: user.themeEngineSettings });
   } catch (error) {
     console.error('Toggle theme engine error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Toggle legacy 2014 UI mode
+// @route   POST /api/theme-engine/legacy-2014
+// @access  Private
+exports.toggleLegacy2014 = async (req, res) => {
+  try {
+    const user = await getUser(req, res);
+    if (!user) return;
+
+    const { enabled } = req.body;
+    const existing = user.themeEngineSettings?.toObject?.() || user.themeEngineSettings || {};
+
+    user.themeEngineSettings = mergeSettings({
+      ...existing,
+      legacy2014Mode: enabled !== undefined ? enabled : !existing.legacy2014Mode
+    });
+    user.markModified('themeEngineSettings');
+    await user.save();
+
+    res.status(200).json({ success: true, legacy2014Mode: user.themeEngineSettings.legacy2014Mode });
+  } catch (error) {
+    console.error('Toggle legacy 2014 error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

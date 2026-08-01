@@ -55,6 +55,32 @@ exports.getPaymentInfo = async (req, res) => {
   });
 };
 
+// Current user subscription status (premium flag + expiry from approved manual payments)
+exports.getSubscriptionStatus = async (req, res) => {
+  try {
+    const user = req.user?._id ? await User.findById(req.user._id).select('premium subscriptionExpiresAt') : null;
+    const isUserPremium = Boolean(user?.premium && user?.subscriptionExpiresAt && new Date(user.subscriptionExpiresAt) > new Date());
+    const expiryDate = user?.subscriptionExpiresAt || null;
+
+    let remainingDays = 0;
+    if (expiryDate) {
+      remainingDays = Math.max(0, Math.ceil((new Date(expiryDate) - new Date()) / (1000 * 60 * 60 * 24)));
+    }
+
+    res.json({
+      success: true,
+      isActive: isUserPremium,
+      hasSubscription: Boolean(expiryDate),
+      userPremium: isUserPremium,
+      expiryDate,
+      remainingDays
+    });
+  } catch (error) {
+    console.error('[ManualPayment] getSubscriptionStatus error:', error);
+    res.status(500).json({ success: false, message: 'Failed to load subscription status' });
+  }
+};
+
 // Live-preview parse as the user pastes their SMS (no DB write).
 exports.previewSms = async (req, res) => {
   try {

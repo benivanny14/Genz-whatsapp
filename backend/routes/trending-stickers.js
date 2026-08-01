@@ -20,12 +20,12 @@ router.use(protect);
 router.get('/settings', getTrendingStickersSettings);
 router.post('/settings', updateTrendingStickersSettings);
 router.get('/', getTrendingStickers);
-router.get('/:id', getSticker);
-router.post('/:id/favorite', addStickerToFavorites);
-router.delete('/:id/favorite', removeStickerFromFavorites);
 router.get('/favorites', getFavoriteStickers);
 router.get('/search', searchStickers);
 router.get('/categories', getStickerCategories);
+router.get('/:id', getSticker);
+router.post('/:id/favorite', addStickerToFavorites);
+router.delete('/:id/favorite', removeStickerFromFavorites);
 router.post('/toggle', toggleTrendingStickers);
 router.post('/reset', resetTrendingStickersSettings);
 

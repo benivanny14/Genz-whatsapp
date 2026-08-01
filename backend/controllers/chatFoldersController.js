@@ -102,6 +102,7 @@ exports.createChatFolder = async (req, res) => {
     };
 
     user.chatFolders.push(folder);
+    user.markModified('chatFolders');
     await user.save();
 
     res.status(200).json({ success: true, folder });
@@ -130,7 +131,7 @@ exports.getChatFolders = async (req, res) => {
         }).populate('participants', 'username profilePicture');
         
         return {
-          ...folder.toObject(),
+          ...(folder.toObject ? folder.toObject() : folder),
           conversations,
           chatCount: conversations.length
         };
@@ -167,7 +168,7 @@ exports.getChatFolder = async (req, res) => {
     res.status(200).json({ 
       success: true, 
       folder: {
-        ...folder.toObject(),
+        ...(folder.toObject ? folder.toObject() : folder),
         conversations,
         chatCount: conversations.length
       }
@@ -202,6 +203,7 @@ exports.updateChatFolder = async (req, res) => {
     folders[index].updatedAt = new Date();
 
     user.chatFolders = folders;
+    user.markModified('chatFolders');
     await user.save();
 
     res.status(200).json({ success: true, folder: folders[index] });
@@ -230,6 +232,7 @@ exports.deleteChatFolder = async (req, res) => {
 
     folders.splice(index, 1);
     user.chatFolders = folders;
+    user.markModified('chatFolders');
     await user.save();
 
     res.status(200).json({ success: true, message: 'Folder deleted' });
@@ -287,6 +290,7 @@ exports.addChatToFolder = async (req, res) => {
     }
 
     user.chatFolders = folders;
+    user.markModified('chatFolders');
     await user.save();
 
     res.status(200).json({ success: true, folder: folders[index] });
@@ -317,6 +321,7 @@ exports.removeChatFromFolder = async (req, res) => {
     folders[index].updatedAt = new Date();
 
     user.chatFolders = folders;
+    user.markModified('chatFolders');
     await user.save();
 
     res.status(200).json({ success: true, folder: folders[index] });
@@ -369,6 +374,7 @@ exports.autoOrganizeChats = async (req, res) => {
 
         if (!user.chatFolders) user.chatFolders = [];
         user.chatFolders.push(folder);
+        user.markModified('chatFolders');
       }
     }
 
@@ -385,6 +391,7 @@ exports.autoOrganizeChats = async (req, res) => {
     });
 
     user.chatFolders = folders;
+    user.markModified('chatFolders');
     await user.save();
 
     res.status(200).json({ success: true, folders: user.chatFolders });

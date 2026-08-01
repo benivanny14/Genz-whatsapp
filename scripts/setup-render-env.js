@@ -80,8 +80,8 @@ async function main() {
   const productionDefaults = {
     NODE_ENV: 'production',
     PORT: '5000',
-    FRONTEND_URL: 'https://genz-whatsapp-1-sunu.onrender.com',
-    PUBLIC_API_URL: 'https://genz-whatsapp.onrender.com',
+    FRONTEND_URL: 'https://genz-whatsapp-1.onrender.com',
+    PUBLIC_API_URL: 'https://genz-whatsapp-1.onrender.com',
     ALLOW_ANONYMOUS_DEVICE_AUTH: 'false',
     ALLOW_SOCKET_WITHOUT_AUTH: 'false',
     ALLOW_MOCK_PAYMENTS: 'false'
@@ -94,8 +94,8 @@ async function main() {
   if (!payload.JWT_REFRESH_SECRET && payload.JWT_SECRET) {
     payload.JWT_REFRESH_SECRET = `${payload.JWT_SECRET}-refresh`;
   }
-  if (!payload.FRONTEND_URL) payload.FRONTEND_URL = 'https://genz-whatsapp-1-sunu.onrender.com';
-  if (!payload.PUBLIC_API_URL) payload.PUBLIC_API_URL = 'https://genz-whatsapp.onrender.com';
+  if (!payload.FRONTEND_URL) payload.FRONTEND_URL = 'https://genz-whatsapp-1.onrender.com';
+  if (!payload.PUBLIC_API_URL) payload.PUBLIC_API_URL = 'https://genz-whatsapp-1.onrender.com';
   if (!payload.FRONTEND_URL) payload.FRONTEND_URL = payload.PUBLIC_API_URL;
 
   console.log(`Updating ${Object.keys(payload).length} env vars on service ${serviceId}...`);

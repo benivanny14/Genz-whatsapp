@@ -50,6 +50,10 @@ exports.addExcludedContact = async (req, res) => {
     const { privacyType, contactId, contactName, contactPhone } = req.body;
     const userId = req.user._id;
 
+    if (!privacyType || !contactId) {
+      return res.status(400).json({ success: false, message: 'privacyType and contactId are required' });
+    }
+
     // Check if already excluded
     const existing = await PrivacyExcludedContact.findOne({
       ownerUserId: userId,
@@ -105,6 +109,10 @@ exports.bulkAddExcludedContacts = async (req, res) => {
   try {
     const { privacyType, contacts } = req.body; // contacts: [{ id, name, phone }]
     const userId = req.user._id;
+
+    if (!privacyType || !Array.isArray(contacts) || contacts.length === 0) {
+      return res.status(400).json({ success: false, message: 'privacyType and a non-empty contacts array are required' });
+    }
 
     const operations = contacts.map(contact => ({
       updateOne: {
@@ -189,6 +197,10 @@ exports.addAllowedContact = async (req, res) => {
     const { privacyType, contactId, contactName, contactPhone } = req.body;
     const userId = req.user._id;
 
+    if (!privacyType || !contactId) {
+      return res.status(400).json({ success: false, message: 'privacyType and contactId are required' });
+    }
+
     // Check if already allowed
     const existing = await PrivacyAllowedContact.findOne({
       ownerUserId: userId,
@@ -244,6 +256,10 @@ exports.bulkAddAllowedContacts = async (req, res) => {
   try {
     const { privacyType, contacts } = req.body; // contacts: [{ id, name, phone }]
     const userId = req.user._id;
+
+    if (!privacyType || !Array.isArray(contacts) || contacts.length === 0) {
+      return res.status(400).json({ success: false, message: 'privacyType and a non-empty contacts array are required' });
+    }
 
     const operations = contacts.map(contact => ({
       updateOne: {

@@ -98,6 +98,7 @@ exports.cacheDeletedMessage = async (req, res) => {
       cachedAt: new Date(),
       expiresAt: new Date(Date.now() + settings.cacheRetentionDays * 24 * 60 * 60 * 1000)
     });
+    user.markModified('deletedMessagesCache');
 
     await user.save();
 
@@ -136,6 +137,62 @@ exports.getCachedDeletedMessages = async (req, res) => {
     res.status(200).json({ success: true, cachedMessages });
   } catch (error) {
     console.error('Get cached deleted messages error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Spy view: deleted-messages viewer with sender/conversation details
+// @route   GET /api/anti-revoke/spy-view
+// @access  Private
+exports.spyViewDeletedMessages = async (req, res) => {
+  try {
+    const user = await getUser(req, res);
+    if (!user) return;
+
+    const settings = mergeSettings(user.antiRevokeSettings?.toObject?.() || user.antiRevokeSettings);
+    if (!settings.antiRevokeEnabled || !settings.showDeletedMessages) {
+      return res.status(403).json({ success: false, message: 'Anti-revoke viewer is not enabled' });
+    }
+
+    const now = new Date();
+    const cached = (user.deletedMessagesCache || []).filter(msg => !msg.expiresAt || msg.expiresAt > now);
+
+    // Enrich with sender + conversation details
+    const senderIds = [...new Set(cached.map(m => m.sender).filter(Boolean))];
+    const conversationIds = [...new Set(cached.map(m => m.conversationId).filter(Boolean))];
+
+    const [senders, conversations] = await Promise.all([
+      User.find({ _id: { $in: senderIds } }).select('username phoneNumber profilePicture'),
+      Conversation.find({ _id: { $in: conversationIds } }).select('name isGroup participants')
+    ]);
+
+    const senderMap = new Map(senders.map(s => [String(s._id), s]));
+    const convMap = new Map(conversations.map(c => [String(c._id), c]));
+
+    const messages = cached
+      .sort((a, b) => new Date(b.cachedAt || 0) - new Date(a.cachedAt || 0))
+      .map(msg => {
+        const sender = msg.sender ? senderMap.get(String(msg.sender)) : null;
+        const conv = msg.conversationId ? convMap.get(String(msg.conversationId)) : null;
+        return {
+          messageId: msg.messageId,
+          content: msg.content,
+          messageType: msg.messageType,
+          mediaUrl: msg.mediaUrl,
+          deletedBy: msg.deletedBy,
+          cachedAt: msg.cachedAt,
+          sender: sender ? { _id: sender._id, username: sender.username, phoneNumber: sender.phoneNumber, profilePicture: sender.profilePicture } : null,
+          conversation: conv ? { _id: conv._id, name: conv.name || '', isGroup: conv.isGroup } : null
+        };
+      });
+
+    res.status(200).json({
+      success: true,
+      total: messages.length,
+      messages
+    });
+  } catch (error) {
+    console.error('Spy view deleted messages error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

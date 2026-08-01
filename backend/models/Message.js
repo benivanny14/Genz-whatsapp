@@ -169,6 +169,15 @@ const messageSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  // Fake chat (simulated conversations)
+  isFake: {
+    type: Boolean,
+    default: false
+  },
+  fakeSenderName: {
+    type: String,
+    default: ''
+  },
   originalContent: {
     type: String,
     default: ''
@@ -252,7 +261,7 @@ const messageSchema = new mongoose.Schema({
   },
   clientMessageId: {
     type: String,
-    default: ''
+    default: undefined
   },
   // Anti-screenshot tracking
   allowScreenshot: {

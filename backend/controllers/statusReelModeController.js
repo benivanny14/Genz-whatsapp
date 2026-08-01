@@ -1,5 +1,5 @@
 const User = require('../models/User');
-const Message = require('../models/Message');
+const Status = require('../models/Status');
 
 const defaultSettings = {
   statusReelModeEnabled: true,
@@ -87,15 +87,14 @@ exports.getStatusesInReelMode = async (req, res) => {
 
     // Get user's contacts
     const contacts = user.contacts || [];
-    const contactIds = contacts.map(c => c.userId);
+    const contactIds = contacts.map(c => c.userId || c.user).filter(Boolean);
 
-    // Get recent status messages from contacts
-    const statuses = await Message.find({
-      sender: { $in: contactIds },
-      messageType: 'status',
-      createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } // Last 24 hours
+    // Get recent statuses from contacts
+    const statuses = await Status.find({
+      user: { $in: contactIds },
+      expiresAt: { $gt: new Date() }
     })
-    .populate('sender', 'username profilePicture')
+    .populate('user', 'username profilePicture')
     .sort({ createdAt: -1 })
     .limit(50);
 
@@ -140,7 +139,7 @@ exports.markStatusAsViewed = async (req, res) => {
 
     const { statusId } = req.params;
 
-    const status = await Message.findById(statusId);
+    const status = await Status.findById(statusId);
     if (!status) {
       return res.status(404).json({ success: false, message: 'Status not found' });
     }
@@ -149,6 +148,7 @@ exports.markStatusAsViewed = async (req, res) => {
     
     if (!user.viewedStatuses.includes(statusId)) {
       user.viewedStatuses.push(statusId);
+      user.markModified('viewedStatuses');
       await user.save();
     }
 
@@ -174,7 +174,7 @@ exports.reactToStatus = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Emoji is required' });
     }
 
-    const status = await Message.findById(statusId);
+    const status = await Status.findById(statusId);
     if (!status) {
       return res.status(404).json({ success: false, message: 'Status not found' });
     }
@@ -182,16 +182,15 @@ exports.reactToStatus = async (req, res) => {
     if (!status.reactions) status.reactions = [];
     
     // Check if user already reacted
-    const existingReaction = status.reactions.find(r => r.userId.toString() === user._id.toString());
+    const existingReaction = status.reactions.find(r => String(r.user) === String(user._id));
     if (existingReaction) {
       existingReaction.emoji = emoji;
-      existingReaction.timestamp = new Date();
+      existingReaction.createdAt = new Date();
     } else {
       status.reactions.push({
-        userId: user._id,
-        username: user.username,
+        user: user._id,
         emoji,
-        timestamp: new Date()
+        createdAt: new Date()
       });
     }
 
@@ -217,7 +216,7 @@ exports.getStatusReactions = async (req, res) => {
 
     const { statusId } = req.params;
 
-    const status = await Message.findById(statusId);
+    const status = await Status.findById(statusId);
     if (!status) {
       return res.status(404).json({ success: false, message: 'Status not found' });
     }
@@ -244,26 +243,23 @@ exports.commentOnStatus = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Comment text is required' });
     }
 
-    const status = await Message.findById(statusId);
+    const status = await Status.findById(statusId);
     if (!status) {
       return res.status(404).json({ success: false, message: 'Status not found' });
     }
 
-    if (!status.comments) status.comments = [];
+    if (!status.replies) status.replies = [];
     
-    status.comments.push({
-      userId: user._id,
+    status.replies.push({
+      userId: String(user._id),
       username: user.username,
-      text,
-      timestamp: new Date()
+      content: text,
+      createdAt: new Date()
     });
 
     await status.save();
 
-    // Emit socket event for real-time comment (mock)
-    // io.to(status.sender.toString()).emit('status-comment', { statusId, comment });
-
-    res.status(200).json({ success: true, comment: status.comments[status.comments.length - 1] });
+    res.status(200).json({ success: true, comment: status.replies[status.replies.length - 1] });
   } catch (error) {
     console.error('Comment on status error:', error);
     res.status(500).json({ success: false, message: error.message });
@@ -280,12 +276,12 @@ exports.getStatusComments = async (req, res) => {
 
     const { statusId } = req.params;
 
-    const status = await Message.findById(statusId);
+    const status = await Status.findById(statusId);
     if (!status) {
       return res.status(404).json({ success: false, message: 'Status not found' });
     }
 
-    res.status(200).json({ success: true, comments: status.comments || [] });
+    res.status(200).json({ success: true, comments: status.replies || [] });
   } catch (error) {
     console.error('Get status comments error:', error);
     res.status(500).json({ success: false, message: error.message });

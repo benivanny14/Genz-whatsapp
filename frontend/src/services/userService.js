@@ -123,7 +123,7 @@ const userService = {
 
   // ── Subscription ─────────────────────────────────────────────────
   getSubscriptionStatus: async () => {
-    const res = await authFetch(`${API_URL}/payment/subscription`);
+    const res = await authFetch(`${API_URL}/payment/manual/subscription`);
     if (!res.ok) return { isActive: false, hasSubscription: false };
     return res.json();
   },

@@ -6,7 +6,7 @@ import {
   RefreshCw, Download, Clock, Play, MonitorSmartphone, Monitor, Smartphone,
   LogOut, Info, Mic, Music, UserCircle, Edit3, Camera, Sun, Moon, BellOff,
   BarChart2, Smartphone as SmartphoneIcon, Mail, Forward, Eye, Globe,
-  MessageSquare, Layers, Video, Sparkles, TrendingUp, Star, Wand2,
+  MessageSquare, Layers, Video, Sparkles, TrendingUp, Star,
   Activity, BarChart, Upload
 } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
@@ -22,7 +22,7 @@ import { VOICE_EFFECT_PRESETS, createTestToneBlob, applyVoiceEffect } from '../u
 import { compressImage } from '../utils/imageCompression';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
-const SUBSCRIPTION_AMOUNT = 10000; // Tsh 10,000 kwa miezi 2 (siku 60)
+const SUBSCRIPTION_AMOUNT = 10000; // Tsh 10,000 kwa Premium (siku 30)
 
 const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin }) => {
   const navigate = useNavigate();
@@ -109,8 +109,10 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
     expiryDate: null,
     remainingDays: 0
   });
-  const [paymentMethod, setPaymentMethod] = useState('mpesa');
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('manual');
+  const [manualSms, setManualSms] = useState('');
+  const [manualInfo, setManualInfo] = useState(null);
+  const [myPayments, setMyPayments] = useState([]);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState('');
   const [countdown, setCountdown] = useState(null);
@@ -173,7 +175,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
   useEffect(() => {
     const checkSubscription = async () => {
       try {
-        const response = await authFetch(`${API_URL}/payment/subscription`);
+        const response = await authFetch(`${API_URL}/payment/manual/subscription`);
 
         if (response.ok) {
           const data = await response.json();
@@ -193,6 +195,35 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
 
     return () => clearInterval(interval);
   }, []);
+
+  // Load manual payment info + my payments when the payment modal opens
+  useEffect(() => {
+    if (!showPaymentModal) return;
+
+    const loadManualPayment = async () => {
+      setPaymentLoading(true);
+      setPaymentMessage('');
+      try {
+        const infoRes = await authFetch(`${API_URL}/payment/manual/info`);
+        if (infoRes.ok) {
+          const info = await infoRes.json();
+          setManualInfo(info);
+        }
+
+        const mineRes = await authFetch(`${API_URL}/payment/manual/mine`);
+        if (mineRes.ok) {
+          const mine = await mineRes.json();
+          setMyPayments(mine.payments || []);
+        }
+      } catch (error) {
+        setPaymentMessage('Imeshindikana kupakia taarifa za malipo. Jaribu tena.');
+      } finally {
+        setPaymentLoading(false);
+      }
+    };
+
+    loadManualPayment();
+  }, [showPaymentModal]);
 
   // Countdown timer effect
   useEffect(() => {
@@ -230,255 +261,78 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
     return () => clearInterval(interval);
   }, [subscriptionStatus.expiryDate, subscriptionStatus.isActive]);
 
-  const handleInitiatePayment = async () => {
-    if (!phoneNumber) {
-      setPaymentMessage('Please enter phone number');
+  const handlePreviewSms = async () => {
+    if (!manualSms || !manualSms.trim()) {
+      setPaymentMessage('Tafadhali andika SMS ya kuthibitisha malipo.');
       return;
     }
-
-    // Validate phone number format (exactly 9 digits after stripping 0 or 255)
-    if (phoneNumber.length !== 9 || !/^\d+$/.test(phoneNumber)) {
-      setPaymentMessage('Invalid phone number. Please enter a 9-digit phone number (e.g., 712345678).');
-      return;
-    }
-
     setPaymentLoading(true);
     setPaymentMessage('');
-
     try {
-      const response = await authFetch(`${API_URL}/payment/initiate`, {
+      const response = await authFetch(`${API_URL}/payment/manual/preview`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          paymentMethod,
-          phoneNumber,
-          amount: SUBSCRIPTION_AMOUNT,
-          deviceId: localStorage.getItem('device-id') || 'local-user'
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sms: manualSms })
       });
-
       const data = await response.json();
-
       if (!response.ok || !data.success) {
-        setPaymentMessage(data.message || data.error || 'Payment failed. Please try again.');
-        setPaymentLoading(false);
-        return;
+        setPaymentMessage(data.message || 'Imeshindikana kusoma SMS. Jaribu tena.');
+      } else {
+        const parsed = data.parsed || {};
+        const tx = parsed.transactionId ? ` (Ref: ${parsed.transactionId})` : '';
+        const amount = parsed.amount ? `Kiasi: Tsh ${parsed.amount}` : 'Kiasi: hakijagunduliwa';
+        setPaymentMessage(`✅ SMS imesomwa — ${parsed.operator || 'Operator'}: ${amount}${tx}`);
       }
-
-      // Mock/dev mode completes instantly — no need to poll at all.
-      if (data.paymentStatus === 'completed') {
-        setPaymentMessage('Payment completed!');
-        try {
-          const subResponse = await authFetch(`${API_URL}/payment/subscription`);
-          if (subResponse.ok) {
-            const subData = await subResponse.json();
-            setSubscriptionStatus(subData);
-            setIsPrivacyLocked(!(subData.userPremium || subData.isActive));
-          }
-        } catch (e) { /* handled by the background 30s poller as a fallback */ }
-        setPaymentLoading(false);
-        setTimeout(() => setShowPaymentModal(false), 1200);
-        return;
-      }
-
-      // Real provider flow (M-Pesa/Airtel/Yas/HaloPesa STK push): the user
-      // needs to confirm on their phone, which can take anywhere from a few
-      // seconds to about a minute. Poll the transaction-specific status
-      // endpoint instead of checking exactly once and giving up.
-      setPaymentMessage('Payment started. Please complete on your phone (enter your PIN).');
-      const transactionId = data.transactionId;
-
-      if (!transactionId) {
-        // No transaction id to poll — fall back to a single subscription re-check.
-        setTimeout(async () => {
-          try {
-            const subResponse = await authFetch(`${API_URL}/payment/subscription`);
-            if (subResponse.ok) {
-              const subData = await subResponse.json();
-              setSubscriptionStatus(subData);
-              setIsPrivacyLocked(!(subData.userPremium || subData.isActive));
-              if (subData.isActive) {
-                setShowPaymentModal(false);
-                setPaymentMessage('Payment completed!');
-              }
-            }
-          } catch (error) {
-          } finally {
-            setPaymentLoading(false);
-          }
-        }, 6000);
-        return;
-      }
-
-      const maxAttempts = 20; // ~20 x 4s ≈ 80 seconds, enough for real STK confirmation
-      let attempt = 0;
-
-      const pollStatus = async () => {
-        attempt += 1;
-        try {
-          const statusResponse = await authFetch(`${API_URL}/payment/status/${transactionId}`);
-          const statusData = await statusResponse.json();
-
-          if (statusData.status === 'completed') {
-            const subResponse = await authFetch(`${API_URL}/payment/subscription`);
-            if (subResponse.ok) {
-              const subData = await subResponse.json();
-              setSubscriptionStatus(subData);
-              setIsPrivacyLocked(!(subData.userPremium || subData.isActive));
-            }
-            setPaymentMessage('Payment completed!');
-            setPaymentLoading(false);
-            setTimeout(() => setShowPaymentModal(false), 1200);
-            return;
-          }
-
-          if (statusData.status === 'expired' || statusData.status === 'failed') {
-            setPaymentMessage('Payment did not complete or timed out. Please try again.');
-            setPaymentLoading(false);
-            return;
-          }
-
-          if (attempt >= maxAttempts) {
-            setPaymentMessage('Payment is taking longer than usual. If you have already paid, wait a moment then refresh this page. If you have not paid yet, try again.');
-            setPaymentLoading(false);
-            return;
-          }
-
-          setTimeout(pollStatus, 4000);
-        } catch (error) {
-          if (attempt >= maxAttempts) {
-            setPaymentMessage('Network error. Please check payment status later or try again.');
-            setPaymentLoading(false);
-            return;
-          }
-          setTimeout(pollStatus, 4000);
-        }
-      };
-
-      setTimeout(pollStatus, 4000);
     } catch (error) {
-      setPaymentMessage('Network error. Please try again.');
+      setPaymentMessage('Network error. Jaribu tena.');
+    } finally {
       setPaymentLoading(false);
     }
   };
 
-  const handleRenewSubscription = async () => {
-    if (!phoneNumber) {
-      setPaymentMessage('Please enter phone number');
+  const handleSubmitManualPayment = async () => {
+    if (!manualSms || !manualSms.trim()) {
+      setPaymentMessage('Tafadhali andika SMS ya kuthibitisha malipo.');
       return;
     }
-
-    // Validate phone number format (exactly 9 digits after stripping 0 or 255)
-    if (phoneNumber.length !== 9 || !/^\d+$/.test(phoneNumber)) {
-      setPaymentMessage('Invalid phone number. Please enter a 9-digit phone number (e.g., 712345678).');
-      return;
-    }
-
     setPaymentLoading(true);
     setPaymentMessage('');
-
     try {
-      const response = await authFetch(`${API_URL}/payment/renew`, {
+      const response = await authFetch(`${API_URL}/payment/manual/submit`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ paymentMethod, phoneNumber })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sms: manualSms })
       });
-
       const data = await response.json();
-
       if (!response.ok || !data.success) {
-        setPaymentMessage(data.message || data.error || 'Udhibiti umeshindwa.');
+        setPaymentMessage(data.message || 'Imeshindikana kuwasilisha malipo. Jaribu tena.');
         setPaymentLoading(false);
         return;
       }
-
-      if (data.paymentStatus === 'completed') {
-        setPaymentMessage('Udhibiti umekamilika!');
-        try {
-          const subResponse = await authFetch(`${API_URL}/payment/subscription`);
-          if (subResponse.ok) {
-            const subData = await subResponse.json();
-            setSubscriptionStatus(subData);
-            setIsPrivacyLocked(!(subData.userPremium || subData.isActive));
-          }
-        } catch (e) { /* handled by the background 30s poller as a fallback */ }
-        setPaymentLoading(false);
-        setTimeout(() => setShowPaymentModal(false), 1200);
-        return;
-      }
-
-      setPaymentMessage('Payment control started. Please complete on your phone (enter your PIN).');
-      const transactionId = data.transactionId;
-      const maxAttempts = 20;
-      let attempt = 0;
-
-      const pollRenewStatus = async () => {
-        attempt += 1;
-        try {
-          const statusResponse = await authFetch(`${API_URL}/payment/status/${transactionId}`);
-          const statusData = await statusResponse.json();
-
-          if (statusData.status === 'completed') {
-            const subResponse = await authFetch(`${API_URL}/payment/subscription`);
-            if (subResponse.ok) {
-              const subData = await subResponse.json();
-              setSubscriptionStatus(subData);
-              setIsPrivacyLocked(!(subData.userPremium || subData.isActive));
-            }
-            setPaymentMessage('Payment control completed!');
-            setPaymentLoading(false);
-            setTimeout(() => setShowPaymentModal(false), 1200);
-            return;
-          }
-
-          if (statusData.status === 'expired' || statusData.status === 'failed') {
-            setPaymentMessage('Payment control did not complete or timed out. Please try again.');
-            setPaymentLoading(false);
-            return;
-          }
-
-          if (attempt >= maxAttempts) {
-            setPaymentMessage('Payment control is taking longer than usual. If you have already paid, wait a moment then refresh this page.');
-            setPaymentLoading(false);
-            return;
-          }
-
-          setTimeout(pollRenewStatus, 4000);
-        } catch (error) {
-          if (attempt >= maxAttempts) {
-            setPaymentMessage('Network error. Please check payment status later.');
-            setPaymentLoading(false);
-            return;
-          }
-          setTimeout(pollRenewStatus, 4000);
+      setManualSms('');
+      setPaymentMessage(data.message || 'Malipo yamewasilishwa. Yatakaguliwa hivi karibuni.');
+      try {
+        const mineRes = await authFetch(`${API_URL}/payment/manual/mine`);
+        if (mineRes.ok) {
+          const mine = await mineRes.json();
+          setMyPayments(mine.payments || []);
         }
-      };
-
-      if (transactionId) {
-        setTimeout(pollRenewStatus, 4000);
-      } else {
-        setTimeout(async () => {
-          const subResponse = await authFetch(`${API_URL}/payment/subscription`);
-          if (subResponse.ok) {
-            const subData = await subResponse.json();
-            setSubscriptionStatus(subData);
-            setIsPrivacyLocked(!subData.isActive);
-            if (subData.isActive) {
-              setShowPaymentModal(false);
-              setPaymentMessage('Payment control completed!');
-            }
-          }
-          setPaymentLoading(false);
-        }, 6000);
-      }
+      } catch (e) { /* background poller handles it */ }
+      setPaymentLoading(false);
     } catch (error) {
-      setPaymentMessage('Network error. Please try again.');
+      setPaymentMessage('Network error. Jaribu tena.');
       setPaymentLoading(false);
     }
+  };
+
+  const refreshMyPayments = async () => {
+    try {
+      const mineRes = await authFetch(`${API_URL}/payment/manual/mine`);
+      if (mineRes.ok) {
+        const mine = await mineRes.json();
+        setMyPayments(mine.payments || []);
+      }
+    } catch (e) { /* ignored */ }
   };
 
   const handleFileWallpaper = async (e) => {
@@ -1901,13 +1755,6 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               onClick={() => toggleMod('storyHighlights')}
             />
             <ModItem
-              icon={<Wand2 size={20} className="text-purple-400" />}
-              title="AI Caption Generator"
-              desc="Generate captions for photos/videos using AI"
-              active={mods?.aiCaption}
-              onClick={() => toggleMod('aiCaption')}
-            />
-            <ModItem
               icon={<TrendingUp size={20} className="text-orange-400" />}
               title="Trending Stickers"
               desc="High-quality stickers from East Africa"
@@ -2315,71 +2162,78 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
                 </div>
               </div>
 
-              {/* Step 1 - Payment Method */}
-              <div>
-                <p className="text-white/70 text-sm font-semibold mb-2">1️⃣ Chagua Njia ya Malipo:</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: 'mpesa',        name: 'M-Pesa',       flag: '🟢' },
-                    { id: 'airtel-money', name: 'Airtel Money',  flag: '🔴' },
-                    { id: 'halopesa',     name: 'HaloPesa',      flag: '🟠' },
-                    { id: 'yas',          name: 'Yas Money',     flag: '🔵' },
-                  ].map(method => (
-                    <button
-                      key={method.id}
-                      onClick={() => { setPaymentMethod(method.id); setPaymentMessage(''); }}
-                      className={`p-3 rounded-xl border-2 transition-all text-left ${
-                        paymentMethod === method.id
-                          ? 'border-green-400 bg-green-500/20 shadow-lg shadow-green-500/10'
-                          : 'border-white/10 bg-white/5 hover:bg-white/10'
-                      }`}
-                    >
-                      <div className="text-lg mb-0.5">{method.flag}</div>
-                      <div className="text-white font-bold text-sm">{method.name}</div>
-                    </button>
-                  ))}
+              {/* Step 1 - Manual Payment Instructions */}
+              {manualInfo && (
+                <div className="bg-gradient-to-br from-amber-500/15 to-yellow-500/10 rounded-2xl p-4 border border-amber-500/30">
+                  <p className="text-white/80 text-sm font-bold mb-2">📲 Tuma Malipo kwa:</p>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-white/70">Jina: <span className="text-amber-300 font-semibold">{manualInfo.receiverName}</span></span>
+                    <span className="text-white/70">Namba: <span className="text-amber-300 font-semibold font-mono">{manualInfo.receiverNumber}</span></span>
+                  </div>
+                  <div className="mt-3 space-y-1 text-xs text-white/60">
+                    {(manualInfo.instructions || []).map((inst, i) => (
+                      <div key={i}>➡️ {inst}</div>
+                    ))}
+                  </div>
                 </div>
+              )}
+
+              {/* Step 2 - Paste SMS */}
+              <div>
+                <p className="text-white/70 text-sm font-semibold mb-2">2️⃣ Andika SMS ya Kuthibitisha Malipo:</p>
+                <textarea
+                  value={manualSms}
+                  onChange={(e) => { setManualSms(e.target.value); setPaymentMessage(''); }}
+                  rows={4}
+                  placeholder="Paste the confirmation SMS you received here..."
+                  className="w-full bg-white/5 border border-white/20 rounded-xl p-3 text-white placeholder-white/25 text-sm focus:outline-none focus:border-amber-400/60 focus:bg-white/10 transition-all resize-none"
+                />
+                <button
+                  onClick={handlePreviewSms}
+                  disabled={paymentLoading || !manualSms.trim()}
+                  className="mt-2 text-xs px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 disabled:opacity-40 transition-all"
+                >
+                  {paymentLoading ? 'Inasoma...' : '👁️ Soma SMS (Preview)'}
+                </button>
               </div>
 
-              {/* Step 2 - Phone Number */}
-              <div>
-                <p className="text-white/70 text-sm font-semibold mb-2">2️⃣ Enter Phone Number:</p>
-                <div className="relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-white/50 text-sm font-mono pointer-events-none pr-3 border-r border-white/15">
-                    <span>🇹🇿</span>
-                    <span>+255</span>
+              {/* My payments */}
+              {myPayments.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-white/70 text-sm font-semibold">Malipo Yako:</p>
+                    <button onClick={refreshMyPayments} className="text-white/50 hover:text-white text-[11px] flex items-center gap-1">
+                      <RefreshCw size={11} /> Onyesha upya
+                    </button>
                   </div>
-                  <input
-                    type="tel"
-                    value={phoneNumber}
-                    onChange={e => {
-                      let val = e.target.value.replace(/\D/g, '');
-                      if (val.startsWith('255')) val = val.slice(3);
-                      if (val.startsWith('0')) val = val.slice(1);
-                      setPhoneNumber(val.slice(0, 9));
-                      setPaymentMessage('');
-                    }}
-                    placeholder="712 345 678"
-                    maxLength={9}
-                    className="w-full bg-white/5 border border-white/20 rounded-xl pl-24 pr-4 py-3.5 text-white placeholder-white/25 text-sm font-mono focus:outline-none focus:border-green-400/60 focus:bg-white/10 transition-all"
-                  />
+                  <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
+                    {myPayments.slice(0, 10).map((p) => (
+                      <div key={p._id} className="flex items-center justify-between bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs">
+                        <div>
+                          <div className="text-white font-semibold">Tsh {p.amount}</div>
+                          <div className="text-white/40">{new Date(p.submittedAt).toLocaleString('en-US')}</div>
+                        </div>
+                        <span className={`px-2 py-1 rounded-full font-bold text-[10px] ${
+                          p.status === 'Approved' ? 'bg-green-500/20 text-green-400'
+                          : p.status === 'Rejected' ? 'bg-red-500/20 text-red-400'
+                          : p.status === 'Duplicate' ? 'bg-orange-500/20 text-orange-400'
+                          : p.status === 'Expired' ? 'bg-gray-500/20 text-gray-400'
+                          : 'bg-amber-500/20 text-amber-400'
+                        }`}>{p.status}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <p className="text-white/30 text-xs mt-1.5 ml-1">
-                  {paymentMethod === 'mpesa' && '📱 M-Pesa number (starts with 6 or 7)'}
-                  {paymentMethod === 'airtel-money' && '📱 Airtel Money number (starts with 6 or 7)'}
-                  {paymentMethod === 'halopesa' && '📱 HaloPesa number (starts with 6)'}
-                  {paymentMethod === 'yas' && '📱 Yas Money number (starts with 6 or 7)'}
-                </p>
-              </div>
+              )}
 
               {/* Message feedback */}
               {paymentMessage && (
                 <div className={`p-3 rounded-xl text-sm flex items-start gap-2 ${
-                  paymentMessage.includes('completed') || paymentMessage.includes('Payment started')
+                  paymentMessage.includes('✅')
                     ? 'bg-green-500/15 text-green-400 border border-green-500/20'
                     : 'bg-red-500/15 text-red-400 border border-red-500/20'
                 }`}>
-                  <span>{paymentMessage.includes('completed') || paymentMessage.includes('Payment started') ? '✅' : '⚠️'}</span>
+                  <span>{paymentMessage.includes('✅') ? '✅' : '⚠️'}</span>
                   <span>{paymentMessage}</span>
                 </div>
               )}
@@ -2391,21 +2245,21 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
                 </div>
               )}
 
-              {/* Pay Button */}
+              {/* Submit Button */}
               <button
-                onClick={subscriptionStatus.hasSubscription ? handleRenewSubscription : handleInitiatePayment}
-                disabled={paymentLoading || phoneNumber.length < 6}
+                onClick={handleSubmitManualPayment}
+                disabled={paymentLoading || !manualSms.trim()}
                 className="w-full py-4 bg-gradient-to-r from-[#008069] to-[#25d366] hover:from-[#007a5e] hover:to-[#1ebe5d] text-white font-black text-base rounded-2xl flex items-center justify-center gap-3 transition-all shadow-lg shadow-green-500/20 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
               >
                 {paymentLoading ? (
                   <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Inashughulikia...</>
                 ) : (
-                  <>{subscriptionStatus.hasSubscription ? '🔄 Renew Subscription' : '💳 Lipa Sasa — Tsh 10,000'}</>
+                  <>💳 Wasilisha Malipo — Tsh 10,000</>
                 )}
               </button>
 
               <p className="text-center text-white/25 text-xs pb-1">
-                🔐 Malipo ni salama. Utapata ujumbe wa kuthibitisha simu yako.
+                🔐 Malipo yatakaguliwa na admin na Premium itawashwa baada ya kuidhinishwa.
               </p>
             </div>
           </div>

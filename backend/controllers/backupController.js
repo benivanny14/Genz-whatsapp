@@ -6,7 +6,7 @@ const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const Status = require('../models/Status');
 const Broadcast = require('../models/Broadcast');
-const Subscription = require('../models/Subscription');
+const ManualPayment = require('../models/ManualPayment');
 const User = require('../models/User');
 
 const LOCAL_USER_ID = process.env.LOCAL_USER_ID || '60d5ecb8b392cb371c664c12';
@@ -72,12 +72,12 @@ const decryptBackup = (payload) => {
 };
 
 const generateBackupData = async (userId) => {
-  const [user, conversations, statuses, broadcasts, subscription] = await Promise.all([
+  const [user, conversations, statuses, broadcasts, manualPayments] = await Promise.all([
     User.findById(userId).select('-passwordHash -emailVerificationToken -passwordResetToken -twoFactorSecret'),
     Conversation.find({ participants: userId }).sort({ updatedAt: -1 }),
     Status.find({ userId }).sort({ createdAt: -1 }),
     Broadcast.find({ createdBy: userId }).sort({ createdAt: -1 }),
-    Subscription.findOne({ userId })
+    ManualPayment.find({ userId }).sort({ createdAt: -1 })
   ]);
 
   const conversationIds = conversations.map((conversation) => conversation._id);
@@ -93,14 +93,14 @@ const generateBackupData = async (userId) => {
       messages: messages.map(stripDoc),
       statuses: statuses.map(stripDoc),
       broadcasts: broadcasts.map(stripDoc),
-      subscription: subscription ? stripDoc(subscription) : null
+      manualPayments: manualPayments.map(stripDoc)
     },
     metadata: {
       totalConversations: conversations.length,
       totalMessages: messages.length,
       totalStatuses: statuses.length,
       totalBroadcasts: broadcasts.length,
-      hasSubscription: Boolean(subscription)
+      hasSubscription: manualPayments.some((p) => p.status === 'Approved')
     }
   };
 };
@@ -240,7 +240,7 @@ exports.restoreBackup = async (req, res) => {
       return res.status(403).json({ success: false, message: 'This backup belongs to another user' });
     }
 
-    const { conversations = [], messages = [], statuses = [], broadcasts = [], subscription, user } = backupData.data || {};
+    const { conversations = [], messages = [], statuses = [], broadcasts = [], manualPayments = [], user } = backupData.data || {};
 
     if (user?._id) {
       delete user.passwordHash;
@@ -275,8 +275,10 @@ exports.restoreBackup = async (req, res) => {
       }
     }
 
-    if (subscription?.userId?.toString() === userId) {
-      await Subscription.findOneAndUpdate({ userId }, withoutImmutableId(subscription), { upsert: true, new: true });
+    for (const manualPayment of manualPayments) {
+      if (manualPayment.userId?.toString() === userId) {
+        await ManualPayment.findByIdAndUpdate(manualPayment._id, withoutImmutableId(manualPayment), { upsert: true, new: true });
+      }
     }
 
     res.status(200).json({

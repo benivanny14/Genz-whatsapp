@@ -291,7 +291,7 @@ exports.setGroupAnnouncementsMode = async (req, res) => {
     }
 
     // Check if user is admin
-    if (!conversation.admins.includes(user._id.toString())) {
+    if (!conversation.admins || !conversation.admins.some(a => String(a) === String(user._id))) {
       return res.status(403).json({ success: false, message: 'Only admins can change announcements mode' });
     }
 

@@ -361,8 +361,29 @@ const userSchema = new mongoose.Schema({
   whatsappWebSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
   whatsappWebSessions: { type: mongoose.Schema.Types.Mixed, default: [] },
   suspiciousActivities: { type: mongoose.Schema.Types.Mixed, default: [] },
-  warningLevel: { type: Number, default: 0 },
-  warningUntil: { type: Date, default: null }
+  warningLevel: { type: String, default: 'none' },
+  warningUntil: { type: Date, default: null },
+  blockAlerts: { type: mongoose.Schema.Types.Mixed, default: [] },
+  messageModsSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
+  privacyModsSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
+  securityModsSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
+  antiRevokeSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
+  deletedMessagesCache: { type: mongoose.Schema.Types.Mixed, default: [] },
+  automationModsSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
+  chatListModsSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
+  customizationModsSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
+  groupModsSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
+  mediaModsSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
+  locationSharingSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
+  liveLocations: { type: mongoose.Schema.Types.Mixed, default: [] },
+  lastLocation: { type: mongoose.Schema.Types.Mixed, default: null },
+  awayMessage: { type: mongoose.Schema.Types.Mixed, default: null },
+  businessProfile: { type: mongoose.Schema.Types.Mixed, default: null },
+  otpData: { type: mongoose.Schema.Types.Mixed, default: null },
+  lastSyncAt: { type: Date, default: null },
+  blockedStatusUsers: { type: mongoose.Schema.Types.Mixed, default: [] },
+  mutedStatusUsers: { type: mongoose.Schema.Types.Mixed, default: [] },
+  savedStatuses: { type: mongoose.Schema.Types.Mixed, default: [] }
 });
 
 // Update last seen before saving

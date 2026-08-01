@@ -8,9 +8,14 @@ const defaultSettings = {
   appLockPattern: false,
   appLockPIN: false,
   appLockFingerprint: false,
+  appLockFace: false,
   antiScreenshot: false,
-  screenRecordingDetection: false
+  screenRecordingDetection: false,
+  vpnMode: false,
+  vpnRegion: 'auto'
 };
+
+const availableRegions = ['auto', 'usa', 'europe', 'asia', 'africa', 'middle-east'];
 
 const getUser = async (req, res) => {
   const user = await User.findById(req.user?._id);
@@ -214,6 +219,76 @@ exports.toggleAppLockFingerprint = async (req, res) => {
     res.json({ success: true, appLockFingerprint: newValue });
   } catch (error) {
     console.error('Toggle app lock fingerprint error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Toggle App Lock Face
+// @route   POST /api/security-mods/app-lock-face
+// @access  Private
+exports.toggleAppLockFace = async (req, res) => {
+  try {
+    const user = await getUser(req, res);
+    if (!user) return;
+
+    const existing = user.securityModsSettings?.toObject?.() || user.securityModsSettings || {};
+    const newValue = !existing.appLockFace;
+    
+    user.securityModsSettings = mergeSettings({ ...existing, appLockFace: newValue });
+    user.markModified('securityModsSettings');
+    await user.save();
+
+    res.json({ success: true, appLockFace: newValue });
+  } catch (error) {
+    console.error('Toggle app lock face error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Toggle Inbuilt VPN mode
+// @route   POST /api/security-mods/vpn
+// @access  Private
+exports.toggleVPN = async (req, res) => {
+  try {
+    const user = await getUser(req, res);
+    if (!user) return;
+
+    const { enabled, region } = req.body;
+    const existing = user.securityModsSettings?.toObject?.() || user.securityModsSettings || {};
+    const newEnabled = enabled !== undefined ? enabled : !existing.vpnMode;
+    const newRegion = region && availableRegions.includes(region) ? region : (existing.vpnRegion || 'auto');
+
+    user.securityModsSettings = mergeSettings({ ...existing, vpnMode: newEnabled, vpnRegion: newRegion });
+    user.markModified('securityModsSettings');
+    await user.save();
+
+    res.json({ success: true, vpnMode: user.securityModsSettings.vpnMode, vpnRegion: user.securityModsSettings.vpnRegion });
+  } catch (error) {
+    console.error('Toggle VPN error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get inbuilt VPN status & regions
+// @route   GET /api/security-mods/vpn
+// @access  Private
+exports.getVPNStatus = async (req, res) => {
+  try {
+    const user = await getUser(req, res);
+    if (!user) return;
+
+    const settings = mergeSettings(user.securityModsSettings?.toObject?.() || user.securityModsSettings);
+    res.json({
+      success: true,
+      vpn: {
+        enabled: settings.vpnMode,
+        region: settings.vpnRegion,
+        regions: availableRegions,
+        simulated: true
+      }
+    });
+  } catch (error) {
+    console.error('Get VPN status error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

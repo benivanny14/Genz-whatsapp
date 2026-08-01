@@ -24,5 +24,8 @@ router.post('/auto-download-status', privacyController.toggleAutoDownloadStatus)
 router.post('/language-per-chat', privacyController.toggleLanguagePerChat);
 router.post('/custom-tick-per-contact', privacyController.toggleCustomTickPerContact);
 router.post('/custom-emoji-style', privacyController.toggleCustomEmojiStyle);
+router.post('/block-alerts', privacyController.toggleBlockAlerts);
+router.get('/block-alerts', privacyController.getBlockAlerts);
+router.delete('/block-alerts', privacyController.clearBlockAlerts);
 
 module.exports = router;

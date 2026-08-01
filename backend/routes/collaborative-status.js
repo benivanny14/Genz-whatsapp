@@ -21,12 +21,12 @@ router.get('/settings', getCollaborativeStatusSettings);
 router.post('/settings', updateCollaborativeStatusSettings);
 router.post('/create', createCollaborativeStatus);
 router.get('/', getCollaborativeStatuses);
+router.post('/toggle', toggleCollaborativeStatus);
+router.post('/reset', resetCollaborativeStatusSettings);
 router.get('/:id', getCollaborativeStatus);
 router.post('/:id/accept', acceptCollaborativeStatus);
 router.post('/:id/decline', declineCollaborativeStatus);
 router.post('/:id', updateCollaborativeStatus);
 router.delete('/:id', deleteCollaborativeStatus);
-router.post('/toggle', toggleCollaborativeStatus);
-router.post('/reset', resetCollaborativeStatusSettings);
 
 module.exports = router;

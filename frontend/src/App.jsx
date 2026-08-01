@@ -40,7 +40,6 @@ const Starred = lazy(() => import('./pages/Starred'));
 const Archived = lazy(() => import('./pages/Archived'));
 const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
-const Admin = lazy(() => import('./pages/Admin'));
 const AdminSetup = lazy(() => import('./pages/AdminSetup'));
 const GENZMods = lazy(() => import('./pages/GENZMods'));
 const Login = lazy(() => import('./pages/Login'));
@@ -59,6 +58,8 @@ const JoinGroup = lazy(() => import('./pages/JoinGroup'));
 const Explore = lazy(() => import('./pages/Explore'));
 const CallScreen = lazy(() => import('./components/CallScreen'));
 const GroupCallScreen = lazy(() => import('./components/GroupCallScreen'));
+const SubscriptionPayment = lazy(() => import('./pages/SubscriptionPayment'));
+const AdminPaymentManagement = lazy(() => import('./pages/AdminPaymentManagement'));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -347,6 +348,8 @@ function App() {
             <Route path="/starred" element={<ProtectedRoute><Starred /></ProtectedRoute>} />
             <Route path="/archived" element={<ProtectedRoute><Archived /></ProtectedRoute>} />
             <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
+            <Route path="/admin/manual-payments" element={<AdminProtectedRoute><AdminPaymentManagement /></AdminProtectedRoute>} />
+            <Route path="/payment" element={<ProtectedRoute><SubscriptionPayment /></ProtectedRoute>} />
             <Route path="/admin-setup" element={<AdminProtectedRoute><AdminSetup /></AdminProtectedRoute>} />
             <Route path="/system-control-x7k9" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
             <Route path="/system-control-x7k9/login" element={<AdminLogin />} />

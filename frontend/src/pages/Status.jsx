@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, X, Eye, Clock, Camera, Image, Type, Upload, RefreshCw, Film, Sparkles, Bookmark, Settings, Music, Download, Bell, Shield, Globe, TrendingUp, BarChart3, Palette, Wand2, Share2, DollarSign, Accessibility, Mic, Archive, Users, Volume2, Zap, Heart, Calendar, MapPin, Video, Cloud, QrCode, AtSign, Hash, Edit, Copy, Pin, Flag, Layout, FileText, Star, History, Zap as BoostIcon, BellOff, Trash2, Forward } from 'lucide-react';
+import { Plus, X, Eye, Clock, Camera, Image, Type, Upload, RefreshCw, Film, Sparkles, Bookmark, Settings, Music, Download, Bell, Shield, Globe, TrendingUp, BarChart3, Palette, Share2, DollarSign, Accessibility, Mic, Archive, Users, Volume2, Zap, Heart, Calendar, MapPin, Video, Cloud, QrCode, AtSign, Hash, Edit, Copy, Pin, Flag, Layout, FileText, Star, History, Zap as BoostIcon, BellOff, Trash2, Forward } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import StatusScrollFeed from '../components/StatusScrollFeed';
 import StatusReel from '../components/StatusReel';
@@ -15,7 +15,6 @@ import VideoToolsPanel from '../components/VideoToolsPanel';
 import ARFilterPanel from '../components/ARFilterPanel';
 import AudioPanel from '../components/AudioPanel';
 import SubtitlesPanel from '../components/SubtitlesPanel';
-import AISuggestionsPanel from '../components/AISuggestionsPanel';
 import MonetizationPanel from '../components/MonetizationPanel';
 import AnalyticsPanel from '../components/AnalyticsPanel';
 import CrossPlatformSharingPanel from '../components/CrossPlatformSharingPanel';
@@ -40,7 +39,6 @@ import MessageSchedule from '../components/MessageSchedule';
 import StatusExplore from '../pages/StatusExplore';
 import StatusAnalyticsPanel from '../components/StatusAnalyticsPanel';
 import ThemeStore from '../components/ThemeStore';
-import AICaptionGenerator from '../components/AICaptionGenerator';
 import CrossPlatformSharing from '../components/CrossPlatformSharing';
 import StatusMonetizationPanel from '../components/StatusMonetizationPanel';
 import StatusAccessibilityPanel from '../components/StatusAccessibilityPanel';
@@ -100,7 +98,6 @@ const Status = () => {
   const [showStatusExplore, setShowStatusExplore] = useState(false);
   const [showStatusAnalytics, setShowStatusAnalytics] = useState(false);
   const [showThemeStore, setShowThemeStore] = useState(false);
-  const [showAICaption, setShowAICaption] = useState(false);
   const [showCrossPlatform, setShowCrossPlatform] = useState(false);
   const [showStatusMonetization, setShowStatusMonetization] = useState(false);
   const [showStatusAccessibility, setShowStatusAccessibility] = useState(false);
@@ -1478,7 +1475,6 @@ const Status = () => {
                   <button onClick={() => setActivePanel('ar')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">AR Filters</button>
                   <button onClick={() => setActivePanel('audio')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Audio Panel</button>
                   <button onClick={() => setActivePanel('subtitles')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Subtitles</button>
-                  <button onClick={() => setActivePanel('ai')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">AI Suggestions</button>
                   <button onClick={() => setActivePanel('monetization')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Monetization</button>
                   <button onClick={() => setActivePanel('analytics')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Analytics</button>
                   <button onClick={() => setActivePanel('sharing')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Cross-Platform Sharing</button>
@@ -1510,7 +1506,6 @@ const Status = () => {
                   {activePanel === 'ar' && <ARFilterPanel onClose={() => setActivePanel(null)} />}
                   {activePanel === 'audio' && <AudioPanel onClose={() => setActivePanel(null)} />}
                   {activePanel === 'subtitles' && <SubtitlesPanel onClose={() => setActivePanel(null)} />}
-                  {activePanel === 'ai' && <AISuggestionsPanel onClose={() => setActivePanel(null)} />}
                   {activePanel === 'monetization' && <MonetizationPanel onClose={() => setActivePanel(null)} />}
                   {activePanel === 'analytics' && <AnalyticsPanel onClose={() => setActivePanel(null)} />}
                   {activePanel === 'sharing' && <CrossPlatformSharingPanel onClose={() => setActivePanel(null)} />}
@@ -1542,13 +1537,6 @@ const Status = () => {
           />
         )}
         {showThemeStore && <ThemeStore onClose={() => setShowThemeStore(false)} onApplyTheme={(theme) => console.log('Theme applied:', theme)} />}
-        {showAICaption && (
-          <AICaptionGenerator 
-            onClose={() => setShowAICaption(false)}
-            media={selectedStatusForPanel}
-            onCaptionGenerated={(caption) => console.log('Caption generated:', caption)}
-          />
-        )}
         {showCrossPlatform && (
           <CrossPlatformSharing 
             onClose={() => setShowCrossPlatform(false)}

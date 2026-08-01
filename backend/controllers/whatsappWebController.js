@@ -115,6 +115,7 @@ exports.generateQRCode = async (req, res) => {
 
       if (!user.whatsappWebSessions) user.whatsappWebSessions = [];
       user.whatsappWebSessions.push(sessionInfo);
+      user.markModified('whatsappWebSessions');
       await user.save();
 
       res.status(200).json({
@@ -205,11 +206,13 @@ exports.connectDevice = async (req, res) => {
 
     if (!user.connectedDevices) user.connectedDevices = [];
     user.connectedDevices.push(connectedDevice);
+    user.markModified('connectedDevices');
 
     // Update session status
     const sessionIndex = user.whatsappWebSessions.findIndex(s => s._id.toString() === sessionId);
     if (sessionIndex !== -1) {
       user.whatsappWebSessions[sessionIndex].status = 'connected';
+      user.markModified('whatsappWebSessions');
     }
 
     await user.save();
@@ -246,6 +249,7 @@ exports.disconnectDevice = async (req, res) => {
 
     const device = user.connectedDevices[deviceIndex];
     user.connectedDevices.splice(deviceIndex, 1);
+    user.markModified('connectedDevices');
 
     // Update session status
     const sessionIndex = (user.whatsappWebSessions || []).findIndex(
@@ -253,6 +257,7 @@ exports.disconnectDevice = async (req, res) => {
     );
     if (sessionIndex !== -1) {
       user.whatsappWebSessions[sessionIndex].status = 'disconnected';
+      user.markModified('whatsappWebSessions');
     }
 
     await user.save();
@@ -289,12 +294,14 @@ exports.logoutAllDevices = async (req, res) => {
     if (!user) return;
 
     user.connectedDevices = [];
+    user.markModified('connectedDevices');
     
     // Update all sessions to disconnected
     if (user.whatsappWebSessions) {
       user.whatsappWebSessions.forEach(s => {
         s.status = 'disconnected';
       });
+      user.markModified('whatsappWebSessions');
     }
 
     await user.save();

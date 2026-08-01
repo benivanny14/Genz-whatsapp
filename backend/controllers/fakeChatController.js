@@ -100,7 +100,7 @@ exports.createFakeChat = async (req, res) => {
     const fakeMessages = await Promise.all(
       messages.map(msg => Message.create({
         conversationId: fakeConversation._id,
-        sender: msg.isFromMe ? user._id : null,
+        sender: user._id,
         content: msg.content,
         messageType: msg.messageType || 'text',
         mediaUrl: msg.mediaUrl || null,
@@ -145,8 +145,10 @@ exports.createFakeCall = async (req, res) => {
     const Call = require('../models/CallLog');
     
     const fakeCall = await Call.create({
-      caller: isIncoming ? null : user._id,
-      receiver: isIncoming ? user._id : null,
+      callerId: isIncoming ? user._id : user._id,
+      calleeId: isIncoming ? null : null,
+      participants: [user._id],
+      direction: isIncoming ? 'incoming' : 'outgoing',
       callType,
       duration: duration || 0,
       status: duration > 0 ? 'completed' : 'missed',
@@ -199,8 +201,8 @@ exports.getFakeCalls = async (req, res) => {
     
     const calls = await Call.find({
       $or: [
-        { caller: user._id },
-        { receiver: user._id }
+        { callerId: user._id },
+        { calleeId: user._id }
       ],
       isFake: true
     }).sort({ createdAt: -1 });
@@ -259,7 +261,7 @@ exports.deleteFakeCall = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Fake call not found' });
     }
 
-    if (call.caller?.toString() !== user._id.toString() && call.receiver?.toString() !== user._id.toString()) {
+    if (call.callerId?.toString() !== user._id.toString() && call.calleeId?.toString() !== user._id.toString()) {
       return res.status(403).json({ success: false, message: 'You do not have permission to delete this call' });
     }
 
@@ -325,8 +327,8 @@ exports.clearAllFakeData = async (req, res) => {
     const Call = require('../models/CallLog');
     await Call.deleteMany({
       $or: [
-        { caller: user._id },
-        { receiver: user._id }
+        { callerId: user._id },
+        { calleeId: user._id }
       ],
       isFake: true
     });

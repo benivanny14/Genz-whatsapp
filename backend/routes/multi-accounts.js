@@ -3,6 +3,7 @@ const router = express.Router();
 const { protect } = require('../middleware/auth');
 const {
   addAccount,
+  cloneAccount,
   disableMultiAccounts,
   enableMultiAccounts,
   getAccounts,
@@ -24,6 +25,7 @@ router.post('/disable', disableMultiAccounts);
 router.post('/add', addAccount);
 router.delete('/remove/:id', removeAccount);
 router.post('/switch', switchAccount);
+router.post('/clone', cloneAccount);
 router.post('/update/:id', updateAccount);
 router.get('/accounts', getAccounts);
 router.post('/unified-inbox', toggleUnifiedInbox);

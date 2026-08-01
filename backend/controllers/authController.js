@@ -469,7 +469,7 @@ exports.getBlockedUsers = async (req, res) => {
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
-    const filteredBlocked = (user.blockedUsers || []).map(blockedUser => applyPrivacyFilter(blockedUser, req.user._id));
+    const filteredBlocked = await Promise.all((user.blockedUsers || []).map(blockedUser => applyPrivacyFilter(blockedUser, req.user._id)));
     res.json({ success: true, blockedUsers: filteredBlocked });
   } catch (error) {
     console.error('Get blocked users error:', error);

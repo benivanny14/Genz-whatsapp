@@ -6,7 +6,6 @@ const {
   createPoll,
   downloadStatus,
   exportChat,
-  generateAISticker,
   getQuickActionsSettings,
   jumpToDate,
   resetQuickActionsSettings,
@@ -19,7 +18,6 @@ router.use(protect);
 router.get('/settings', getQuickActionsSettings);
 router.post('/settings', updateQuickActionsSettings);
 router.post('/mass-message', sendMassMessage);
-router.post('/ai-sticker', generateAISticker);
 router.post('/export-chat', exportChat);
 router.post('/clear-all-chats', clearAllChats);
 router.post('/jump-to-date', jumpToDate);

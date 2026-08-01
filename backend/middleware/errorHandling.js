@@ -206,60 +206,22 @@ const detectDuplicateRequest = (req, res, next) => {
 const gracefulWebhookHandler = (handler) => {
   return async (req, res, next) => {
     const transactionId = getWebhookTransactionId(req);
-    let subscriptionStatus = 'unknown';
-    
+
     try {
-      // Get initial subscription status
-      if (transactionId) {
-        const Subscription = require('../models/Subscription');
-        const subscription = await Subscription.findOne({ transactionId });
-        if (subscription) {
-          subscriptionStatus = subscription.status;
-        }
-      }
-      
       // Execute handler
       await handler(req, res, next);
-      
+
     } catch (error) {
-      logger.error('Webhook handler error, attempting graceful recovery', {
+      logger.error('Webhook handler error', {
         transactionId,
-        subscriptionStatus,
         error: error.message,
         stack: error.stack
       });
-      
-      // If subscription was in pending state, mark as failed to prevent stale pending
-      if (subscriptionStatus === 'pending' && transactionId) {
-        try {
-          const Subscription = require('../models/Subscription');
-          await Subscription.findOneAndUpdate(
-            { transactionId },
-            { 
-              status: 'failed',
-              paymentStatus: 'failed',
-              webhookData: {
-                ...req.body,
-                error: error.message,
-                recovered: true
-              }
-            }
-          );
-          logger.info('Marked pending subscription as failed due to webhook error', {
-            transactionId
-          });
-        } catch (updateError) {
-          logger.error('Failed to mark subscription as failed', {
-            transactionId,
-            error: updateError.message
-          });
-        }
-      }
-      
+
       // Return 200 to prevent webhook retries on permanent errors
       // Payment gateway will retry on 5xx, so we return 200 with error info
-      return res.status(200).json({ 
-        success: false, 
+      return res.status(200).json({
+        success: false,
         message: 'Webhook processing failed',
         error: error.message,
         transactionId

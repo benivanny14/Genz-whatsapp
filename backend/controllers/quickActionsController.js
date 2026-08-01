@@ -139,49 +139,6 @@ exports.sendMassMessage = async (req, res) => {
   }
 };
 
-// @desc    Generate AI sticker
-// @route   POST /api/quick-actions/ai-sticker
-// @access  Private
-exports.generateAISticker = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const { prompt, style } = req.body;
-
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      return res.status(400).json({ success: false, message: 'AI features not configured' });
-    }
-
-    try {
-      const OpenAI = require('openai');
-      const client = new OpenAI({ apiKey });
-
-      const response = await client.images.generate({
-        model: 'dall-e-3',
-        prompt: `Create a sticker${style ? ` in ${style} style` : ''}: ${prompt}`,
-        n: 1,
-        size: '1024x1024',
-        quality: 'standard'
-      });
-
-      const imageUrl = response?.data?.[0]?.url;
-      if (!imageUrl) {
-        return res.status(500).json({ success: false, message: 'Failed to generate sticker' });
-      }
-
-      res.status(200).json({ success: true, imageUrl });
-    } catch (aiError) {
-      console.error('AI sticker generation error:', aiError);
-      res.status(500).json({ success: false, message: 'Failed to generate AI sticker' });
-    }
-  } catch (error) {
-    console.error('Generate AI sticker error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
 // @desc    Export chat
 // @route   POST /api/quick-actions/export-chat
 // @access  Private
@@ -335,7 +292,7 @@ exports.createPoll = async (req, res) => {
     const poll = {
       _id: new (require('mongoose').Types.ObjectId)(),
       question,
-      options: options.map(opt => ({ text: opt, votes: 0, voters: [] })),
+      options: options.map(opt => ({ text: opt, votes: [], voters: [] })),
       createdBy: user._id,
       createdAt: new Date(),
       expiresAt: duration ? new Date(Date.now() + duration * 60 * 1000) : null,

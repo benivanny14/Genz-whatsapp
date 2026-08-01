@@ -188,7 +188,7 @@ const setMapValue = (obj, mapField, key, value) => {
   }
 };
 
-const transformConversationForUser = (conversation, userId) => {
+const transformConversationForUser = async (conversation, userId) => {
   const conv = conversation.toObject ? conversation.toObject() : conversation;
 
   // Transform Map values to user-specific booleans
@@ -203,7 +203,9 @@ const transformConversationForUser = (conversation, userId) => {
   conv.unreadCount = conv.unreadCount ? (conv.unreadCount.get ? conv.unreadCount.get(userId) : conv.unreadCount[userId]) : 0;
 
   if (conv.participants && Array.isArray(conv.participants)) {
-    conv.participants = conv.participants.map(p => applyPrivacyFilter(p, userId));
+    conv.participants = await Promise.all(
+      conv.participants.map(p => applyPrivacyFilter(p, userId)),
+    );
   }
 
   return conv;
@@ -245,8 +247,8 @@ exports.getConversations = async (req, res) => {
     );
 
     // Transform conversations for current user
-    conversations = conversations.map((conv) =>
-      transformConversationForUser(conv, userId),
+    conversations = await Promise.all(
+      conversations.map((conv) => transformConversationForUser(conv, userId)),
     );
 
     // Filter archived unless specifically requested
@@ -280,7 +282,7 @@ exports.getConversation = async (req, res) => {
     const populated = await populateConversation(
       Conversation.findById(conversation._id),
     );
-    const transformed = transformConversationForUser(populated, userId);
+    const transformed = await transformConversationForUser(populated, userId);
 
     res.json({ success: true, conversation: transformed });
   } catch (error) {
@@ -867,7 +869,7 @@ exports.sendMessage = async (req, res) => {
       isSelfDestruct: Boolean(isSelfDestruct),
       mentions: mentionData.mentions || [],
       disappearAt,
-      clientMessageId: messageId ? String(messageId) : '',
+      clientMessageId: messageId ? String(messageId) : undefined,
     });
 
     let populatedMessage = null;
@@ -1364,7 +1366,9 @@ exports.searchUsers = async (req, res) => {
       )
       .limit(25);
 
-    const filteredUsers = users.map(user => applyPrivacyFilter(user, localUserId));
+    const filteredUsers = await Promise.all(
+      users.map(user => applyPrivacyFilter(user, localUserId)),
+    );
 
     res.status(200).json({ success: true, users: filteredUsers });
   } catch (error) {
@@ -1485,13 +1489,17 @@ exports.getContacts = async (req, res) => {
       "username phoneNumber email profilePicture about isOnline lastSeen settings contacts",
     );
 
-    const filteredContacts = (user?.contacts || []).map(contact => {
-      if (!contact.user) return null;
-      return {
-        user: applyPrivacyFilter(contact.user, localUserId),
-        savedName: contact.savedName
-      };
-    }).filter(Boolean);
+    const filteredContacts = (
+      await Promise.all(
+        (user?.contacts || []).map(async (contact) => {
+          if (!contact.user) return null;
+          return {
+            user: await applyPrivacyFilter(contact.user, localUserId),
+            savedName: contact.savedName
+          };
+        }),
+      )
+    ).filter(Boolean);
 
     res.status(200).json({ success: true, contacts: filteredContacts });
   } catch (error) {
@@ -1524,6 +1532,28 @@ exports.blockUser = async (req, res) => {
     user.contacts = user.contacts.filter((c) => c.user && c.user.toString() !== targetId);
     await user.save();
 
+    // Block alert kwa user aliyeblockiwa (ikiwa amewasha feature)
+    try {
+      await User.updateOne(
+        { _id: targetId },
+        {
+          $push: {
+            blockAlerts: {
+              $each: [{
+                actorId: localUserId,
+                actorName: user.username || 'Someone',
+                action: 'blocked',
+                timestamp: new Date()
+              }],
+              $slice: -100
+            }
+          }
+        }
+      );
+    } catch (alertErr) {
+      console.warn('[ChatController] Failed to record block alert:', alertErr?.message || alertErr);
+    }
+
     const io = req.app.get("io");
     if (io) {
       io.emit("user:blocked", { blockerId: localUserId, userId: targetId });
@@ -1545,6 +1575,29 @@ exports.unblockUser = async (req, res) => {
       { _id: localUserId },
       { $pull: { blockedUsers: targetId } }
     );
+
+    // Unblock alert kwa user aliyeachiwa
+    try {
+      const blocker = await User.findById(localUserId).select('username');
+      await User.updateOne(
+        { _id: targetId },
+        {
+          $push: {
+            blockAlerts: {
+              $each: [{
+                actorId: localUserId,
+                actorName: blocker?.username || 'Someone',
+                action: 'unblocked',
+                timestamp: new Date()
+              }],
+              $slice: -100
+            }
+          }
+        }
+      );
+    } catch (alertErr) {
+      console.warn('[ChatController] Failed to record unblock alert:', alertErr?.message || alertErr);
+    }
 
     const io = req.app.get("io");
     if (io) {
@@ -1689,9 +1742,11 @@ exports.getArchivedConversations = async (req, res) => {
     );
 
     // Transform and filter archived only
-    conversations = conversations
-      .map((conv) => transformConversationForUser(conv, userId))
-      .filter((c) => c.isArchived);
+    conversations = (
+      await Promise.all(
+        conversations.map((conv) => transformConversationForUser(conv, userId)),
+      )
+    ).filter((c) => c.isArchived);
 
     // Sort by updatedAt
     conversations.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
@@ -1993,7 +2048,7 @@ exports.updateGroupInfo = async (req, res) => {
     } catch (sysErr) { console.error('[Group] system message error:', sysErr); }
 
     const updated = await populateConversation(Conversation.findById(groupId));
-    const transformed = transformConversationForUser(updated, userId);
+    const transformed = await transformConversationForUser(updated, userId);
 
     // Notify every other participant in real time, the same way WhatsApp
     // pushes group setting changes to all members instantly — both to the
@@ -2144,7 +2199,7 @@ exports.reportMessage = async (req, res) => {
 exports.addReaction = async (req, res) => {
   try {
     const userId = getCurrentUserId(req);
-    const { messageId } = req.params;
+    const messageId = req.params.id || req.params.messageId;
     const { emoji } = req.body;
 
     if (!emoji) {

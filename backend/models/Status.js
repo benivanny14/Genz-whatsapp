@@ -136,6 +136,22 @@ const statusSchema = new mongoose.Schema({
   templateName: { type: String },
   isDraft: { type: Boolean, default: false },
   draftSavedAt: { type: Date },
+  likes: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    likedAt: { type: Date }
+  }],
+  likesCount: { type: Number, default: 0 },
+  saves: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    savedAt: { type: Date }
+  }],
+  savesCount: { type: Number, default: 0 },
+  reshares: [{
+    userId: { type: String },
+    username: { type: String },
+    originalStatusId: { type: mongoose.Schema.Types.ObjectId },
+    resharedAt: { type: Date }
+  }],
   favoritedBy: [{
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     favoritedAt: { type: Date }

@@ -24,10 +24,24 @@ exports.createStatus = async (req, res) => {
     if (type === 'location' && !locationData) return res.status(400).json({ success: false, message: 'LocationData inahitajika' });
     if (type === 'collage' && (!collageImages || collageImages.length === 0)) return res.status(400).json({ success: false, message: 'CollageImages inahitajika' });
 
+    // Use the user's configured status duration (default 24h) for expiry
+    let statusHours = 24;
+    try {
+      const currentUser = await User.findById(userId).select('statusFeaturesSettings');
+      const configured = Number(currentUser?.statusFeaturesSettings?.statusDuration);
+      if (Number.isFinite(configured) && configured >= 24 && configured <= 168) {
+        statusHours = configured;
+      }
+    } catch (e) {
+      // fall back to 24h default
+    }
+    const expiresAt = new Date(Date.now() + statusHours * 60 * 60 * 1000);
+
     const status = await Status.create({
       user: userId,
       userId: String(userId),
       type,
+      expiresAt,
       content: content || '',
       mediaUrl: mediaUrl || '',
       duration: duration || 0,

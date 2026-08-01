@@ -5,6 +5,7 @@ const {
   getAvailableOptions,
   getThemeEngineSettings,
   resetThemeEngineSettings,
+  toggleLegacy2014,
   toggleThemeEngine,
   updateCustomColors,
   updateFontSettings,
@@ -23,6 +24,7 @@ router.post('/colors', updateCustomColors);
 router.post('/ui-customization', updateUICustomization);
 router.get('/options', getAvailableOptions);
 router.post('/toggle', toggleThemeEngine);
+router.post('/legacy-2014', toggleLegacy2014);
 router.post('/reset', resetThemeEngineSettings);
 
 module.exports = router;

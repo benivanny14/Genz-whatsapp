@@ -22,13 +22,13 @@ router.get('/settings', getChatFoldersSettings);
 router.post('/settings', updateChatFoldersSettings);
 router.post('/create', createChatFolder);
 router.get('/', getChatFolders);
+router.post('/auto-organize', autoOrganizeChats);
+router.post('/toggle', toggleChatFolders);
+router.post('/reset', resetChatFoldersSettings);
 router.get('/:id', getChatFolder);
 router.post('/:id', updateChatFolder);
 router.delete('/:id', deleteChatFolder);
 router.post('/:folderId/chat', addChatToFolder);
 router.delete('/:folderId/chat/:chatId', removeChatFromFolder);
-router.post('/auto-organize', autoOrganizeChats);
-router.post('/toggle', toggleChatFolders);
-router.post('/reset', resetChatFoldersSettings);
 
 module.exports = router;

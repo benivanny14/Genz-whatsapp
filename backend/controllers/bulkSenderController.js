@@ -114,6 +114,7 @@ exports.sendBulkMessage = async (req, res) => {
 
       if (!user.scheduledBulkMessages) user.scheduledBulkMessages = [];
       user.scheduledBulkMessages.push(scheduledMessage);
+      user.markModified('scheduledBulkMessages');
       await user.save();
 
       return res.status(200).json({
@@ -213,6 +214,7 @@ exports.cancelScheduledBulkMessage = async (req, res) => {
     }
 
     user.scheduledBulkMessages.splice(messageIndex, 1);
+    user.markModified('scheduledBulkMessages');
     await user.save();
 
     res.status(200).json({ success: true, message: 'Scheduled bulk message cancelled' });

@@ -4232,16 +4232,6 @@ export const ChatProvider = ({ children }) => {
       }
     }
   };
-  const transcribeAudio = async (audioBlob) => {
-    try {
-      if (!audioBlob) return '';
-      const formData = new FormData();
-      formData.append('audio', audioBlob, 'voice.webm');
-      const res = await authFetch(`${BACKEND_URL}/advanced/transcribe-audio`, { method: 'POST', body: formData });
-      if (res.ok) { const data = await res.json(); return data?.text || ''; }
-    } catch (e) { console.warn('Transcription failed:', e); }
-    return '';
-  };
   const viewProfile = async (userId) => {
     try {
       const token = localStorage.getItem('token');
@@ -5030,7 +5020,7 @@ export const ChatProvider = ({ children }) => {
     pinMessage, unpinMessage, pinnedMessages,
     presenceHistory, unlockedSessionChats, verifyChatUnlock, toggleChatLock,
     stickerPacks, downloadedStickers, downloadStickerPack, removeStickerPack, sendSticker, addFavoriteSticker, favoriteStickers,
-    toggleStarMessage, toggleMessageLock, transcribeAudio, viewProfile,
+    toggleStarMessage, toggleMessageLock, viewProfile,
     // New WhatsApp features
     searchMessages, getMediaGallery, getMessageInfo, markViewOnceViewed,
     reportMessage, getGroupInfo, regenerateGroupInvite, updateGroupInfo, removeAdmin, makeAdmin, addParticipant, removeParticipant, leaveGroup, refreshConversations, setStoredSelectedConversationId,

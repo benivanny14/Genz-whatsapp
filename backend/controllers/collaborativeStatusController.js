@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
+const Status = require('../models/Status');
 
 const defaultSettings = {
   collaborativeStatusEnabled: true,
@@ -94,8 +95,9 @@ exports.createCollaborativeStatus = async (req, res) => {
     }
 
     // Verify original status exists and belongs to user
-    const originalStatus = await Message.findById(originalStatusId);
-    if (!originalStatus || originalStatus.sender.toString() !== user._id.toString()) {
+    const originalStatus = await Status.findById(originalStatusId);
+    const owner = String(originalStatus?.user || originalStatus?.userId || '');
+    if (!originalStatus || owner !== String(user._id)) {
       return res.status(404).json({ success: false, message: 'Original status not found or not owned by you' });
     }
 
@@ -122,6 +124,7 @@ exports.createCollaborativeStatus = async (req, res) => {
 
     if (!user.collaborativeStatuses) user.collaborativeStatuses = [];
     user.collaborativeStatuses.push(collaborativeStatus);
+    user.markModified('collaborativeStatuses');
     await user.save();
 
     // Send notifications to collaborators (mock)
@@ -187,7 +190,7 @@ exports.getCollaborativeStatus = async (req, res) => {
     }
 
     // Check if user is a collaborator
-    const ownerUser = await User.findOne({ 'collaborativeStatuses._id': id });
+    const ownerUser = await User.findOne({ 'collaborativeStatuses._id': new (require('mongoose').Types.ObjectId)(id) });
     if (ownerUser) {
       const collabStatus = ownerUser.collaborativeStatuses.find(s => s._id.toString() === id);
       if (collabStatus && collabStatus.collaboratorIds.includes(user._id.toString())) {
@@ -212,7 +215,7 @@ exports.acceptCollaborativeStatus = async (req, res) => {
 
     const { id } = req.params;
 
-    const ownerUser = await User.findOne({ 'collaborativeStatuses._id': id });
+    const ownerUser = await User.findOne({ 'collaborativeStatuses._id': new (require('mongoose').Types.ObjectId)(id) });
     if (!ownerUser) {
       return res.status(404).json({ success: false, message: 'Collaborative status not found' });
     }
@@ -226,7 +229,6 @@ exports.acceptCollaborativeStatus = async (req, res) => {
     if (status.approvals.includes(user._id.toString())) {
       return res.status(400).json({ success: false, message: 'Already accepted' });
     }
-
     status.approvals.push(user._id.toString());
     status.updatedAt = new Date();
 
@@ -255,7 +257,7 @@ exports.declineCollaborativeStatus = async (req, res) => {
 
     const { id } = req.params;
 
-    const ownerUser = await User.findOne({ 'collaborativeStatuses._id': id });
+    const ownerUser = await User.findOne({ 'collaborativeStatuses._id': new (require('mongoose').Types.ObjectId)(id) });
     if (!ownerUser) {
       return res.status(404).json({ success: false, message: 'Collaborative status not found' });
     }

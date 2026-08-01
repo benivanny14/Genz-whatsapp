@@ -165,6 +165,10 @@ const conversationSchema = new mongoose.Schema({
     description: String,
     startTime: Date,
     endTime: Date,
+    date: Date,
+    time: String,
+    location: String,
+    attendees: [String],
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     createdAt: { type: Date, default: Date.now },
     rsvp: [{
@@ -172,6 +176,23 @@ const conversationSchema = new mongoose.Schema({
       status: { type: String, enum: ['going', 'maybe', 'notgoing'], default: 'going' },
     }],
   }],
+  // Group polls
+  polls: [{
+    question: String,
+    options: [{
+      text: String,
+      votes: { type: Number, default: 0 },
+      voters: [String],
+    }],
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    createdAt: { type: Date, default: Date.now },
+    expiresAt: Date,
+    active: { type: Boolean, default: true },
+  }],
+  announcementsOnly: {
+    type: Boolean,
+    default: false
+  },
   // Message spam tracking (per-user last message timestamps)
   spamTracker: {
     type: Map,
@@ -185,6 +206,19 @@ const conversationSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
+  },
+  // Fake chat (simulated conversations)
+  isFake: {
+    type: Boolean,
+    default: false
+  },
+  fakeContactName: {
+    type: String,
+    default: ''
+  },
+  fakeContactPhone: {
+    type: String,
+    default: ''
   }
 });
 

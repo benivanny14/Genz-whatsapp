@@ -300,6 +300,64 @@ exports.updateAccount = async (req, res) => {
   }
 };
 
+// @desc    Clone an existing account (account cloning)
+// @route   POST /api/multi-accounts/clone
+// @access  Private
+exports.cloneAccount = async (req, res) => {
+  try {
+    const user = await getUser(req, res);
+    if (!user) return;
+
+    const { accountId, newName } = req.body;
+
+    const existing = user.multiAccountsSettings?.toObject?.() || user.multiAccountsSettings || {};
+
+    if (!existing.multiAccountsEnabled) {
+      return res.status(403).json({ success: false, message: 'Multi accounts is not enabled' });
+    }
+
+    if (!existing.currentAccounts || existing.currentAccounts.length === 0) {
+      return res.status(404).json({ success: false, message: 'No accounts found to clone' });
+    }
+
+    const source = accountId
+      ? existing.currentAccounts.find(acc => acc._id.toString() === accountId)
+      : existing.currentAccounts[0];
+
+    if (!source) {
+      return res.status(404).json({ success: false, message: 'Source account not found' });
+    }
+
+    if (existing.currentAccounts.length >= existing.maxAccounts) {
+      return res.status(400).json({
+        success: false,
+        message: `Maximum ${existing.maxAccounts} accounts allowed`
+      });
+    }
+
+    const clonedAccount = {
+      _id: new (require('mongoose').Types.ObjectId)(),
+      name: newName || `${source.name} (Clone)`,
+      phoneNumber: source.phoneNumber,
+      profilePicture: source.profilePicture || '',
+      clonedFrom: source._id,
+      isActive: false,
+      createdAt: new Date()
+    };
+
+    existing.currentAccounts.push(clonedAccount);
+
+    user.multiAccountsSettings = mergeSettings({ ...existing });
+    user.markModified('multiAccountsSettings');
+    await user.save();
+
+    res.status(200).json({ success: true, account: clonedAccount, accounts: user.multiAccountsSettings.currentAccounts });
+  } catch (error) {
+    console.error('Clone account error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // @desc    Get all accounts
 // @route   GET /api/multi-accounts/accounts
 // @access  Private

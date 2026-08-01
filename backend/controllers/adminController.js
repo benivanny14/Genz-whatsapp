@@ -3,8 +3,7 @@ const mongoose = require('mongoose');
 const User = require('../models/User');
 const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
-const Subscription = require('../models/Subscription');
-const Transaction = require('../models/Transaction');
+const ManualPayment = require('../models/ManualPayment');
 const Status = require('../models/Status');
 const Device = require('../models/Device');
 const AuditLog = require('../models/AuditLog');
@@ -46,8 +45,8 @@ const timingSafeTokenEqual = (provided = '', expected = '') => {
   return crypto.timingSafeEqual(providedBuffer, expectedBuffer);
 };
 
-const getRevenueAggregate = () => Subscription.aggregate([
-  { $match: { paymentStatus: 'completed' } },
+const getRevenueAggregate = () => ManualPayment.aggregate([
+  { $match: { status: 'Approved' } },
   { $group: { _id: null, totalRevenue: { $sum: '$amount' } } }
 ]);
 
@@ -197,13 +196,13 @@ exports.getOverview = async (req, res) => {
       Conversation.countDocuments({ isGroup: true }),
       Status.countDocuments({ expiresAt: { $gt: now } }),
       Device.countDocuments({ isActive: true }),
-      Subscription.countDocuments(),
-      Subscription.countDocuments({ paymentStatus: 'completed' }),
-      Subscription.countDocuments({ paymentStatus: 'pending' }),
-      Subscription.countDocuments({ status: 'active', expiryDate: { $gt: now } }),
+      ManualPayment.countDocuments(),
+      ManualPayment.countDocuments({ status: 'Approved' }),
+      ManualPayment.countDocuments({ status: 'Pending' }),
+      ManualPayment.countDocuments({ status: 'Approved', expiresAt: { $gt: now } }),
       getRevenueAggregate(),
       User.find().select(safeUserProjection).sort({ createdAt: -1 }).limit(8).lean(),
-      Subscription.find().sort({ updatedAt: -1 }).limit(10).lean(),
+      ManualPayment.find().sort({ createdAt: -1 }).limit(10).lean(),
       AuditLog.find().sort({ timestamp: -1 }).limit(10).lean()
     ]);
 
@@ -391,8 +390,7 @@ exports.getSecurityReport = async (req, res) => {
         environment: {
           nodeEnv: process.env.NODE_ENV || 'development',
           anonymousDeviceAuthEnabled: process.env.ALLOW_ANONYMOUS_DEVICE_AUTH === 'true',
-          mockPaymentsEnabled: process.env.ALLOW_MOCK_PAYMENTS === 'true',
-          realPaymentProvidersEnabled: process.env.ALLOW_REAL_PAYMENT_PROVIDERS === 'true',
+          manualPaymentsEnabled: true,
           jwtRefreshSecretDistinct: Boolean(process.env.JWT_REFRESH_SECRET && process.env.JWT_REFRESH_SECRET !== process.env.JWT_SECRET),
           frontendUsesHttps: /^https:\/\//i.test(process.env.FRONTEND_URL || ''),
           publicApiUsesHttps: /^https:\/\//i.test(process.env.PUBLIC_API_URL || '')

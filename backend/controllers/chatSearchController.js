@@ -176,6 +176,7 @@ exports.searchConversations = async (req, res) => {
         user.searchHistory = user.searchHistory.slice(0, settings.maxHistoryItems);
       }
 
+      user.markModified('searchHistory');
       await user.save();
     }
 

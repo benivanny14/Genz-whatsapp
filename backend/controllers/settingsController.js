@@ -1,5 +1,5 @@
 const User = require('../models/User');
-const { createDefaultWhatsAppSettings } = require('../utils/whatsappSettings');
+const { createDefaultWhatsAppSettings, mergeWhatsAppSettings } = require('../utils/whatsappSettings');
 
 /**
  * Get user settings
@@ -47,12 +47,9 @@ exports.updateSettings = async (req, res) => {
       });
     }
 
-    // Merge incoming settings with existing settings
+    // Merge incoming settings with existing settings (deep merge + option validation)
     const currentSettings = user.settings || createDefaultWhatsAppSettings();
-    const updatedSettings = {
-      ...currentSettings,
-      ...req.body
-    };
+    const updatedSettings = mergeWhatsAppSettings(currentSettings, req.body);
 
     user.settings = updatedSettings;
     user.markModified('settings');

@@ -28,8 +28,6 @@
     }
   },
   "dependencies": {
-    "@google-cloud/speech": "^6.1.0",
-    "@google-cloud/translate": "^8.0.2",
     "@sentry/node": "^8.0.0",
     "@sentry/profiling-node": "^8.0.0",
     "@socket.io/redis-adapter": "^8.3.0",
@@ -53,7 +51,6 @@
     "multer-storage-cloudinary": "^4.0.0",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.7",
-    "openai": "^4.24.1",
     "otpauth": "^9.2.3",
     "qrcode": "^1.5.3",
     "qrcode-reader": "^1.0.4",

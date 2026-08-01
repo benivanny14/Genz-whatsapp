@@ -12,8 +12,8 @@ const OUT_PATH = path.join(__dirname, 'render-env-export.txt');
 const PRODUCTION_OVERRIDES = {
   NODE_ENV: 'production',
   PORT: '5000',
-  FRONTEND_URL: 'https://genz-whatsapp-1-sunu.onrender.com',
-  PUBLIC_API_URL: 'https://genz-whatsapp.onrender.com',
+  FRONTEND_URL: 'https://genz-whatsapp-1.onrender.com',
+  PUBLIC_API_URL: 'https://genz-whatsapp-1.onrender.com',
   ALLOW_ANONYMOUS_DEVICE_AUTH: 'false',
   ALLOW_SOCKET_WITHOUT_AUTH: 'false',
   ALLOW_MOCK_PAYMENTS: 'false'

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useChat, applyVoiceEffect } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
-import { ArrowLeft, MoreVertical, Search, Smile, Paperclip, Send, Mic, Image as ImageIcon, MessageCircle, Ghost, Forward, Square, MapPin, ShieldCheck, Globe, BarChart2, CalendarClock, Info, UserMinus, UserCheck, ShieldAlert, Copy, Link, Pin, X, Edit, Briefcase, Plus, Eye, EyeOff, Clock, Lock, Sticker, Download, FileText, Camera, Headphones, Contact, Trash2, Reply, Share2, Star, Archive, BellOff, Bell, Radio, Users, Languages, Grid3x3, Lock as LockIcon, Unlock, ChevronLeft, Wand2, TrendingUp, Sparkles, AtSign } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Search, Smile, Paperclip, Send, Mic, Image as ImageIcon, MessageCircle, Ghost, Forward, Square, MapPin, ShieldCheck, Globe, BarChart2, CalendarClock, Info, UserMinus, UserCheck, ShieldAlert, Copy, Link, Pin, X, Edit, Briefcase, Plus, Eye, EyeOff, Clock, Lock, Sticker, Download, FileText, Camera, Headphones, Contact, Trash2, Reply, Share2, Star, Archive, BellOff, Bell, Radio, Users, Languages, Grid3x3, Lock as LockIcon, Unlock, ChevronLeft, TrendingUp, Sparkles, AtSign } from 'lucide-react';
 import { formatMessageTime, decryptMessage } from '../utils/formatDate';
 import { exportChatAsTxt } from '../utils/chatExporter';
 import SignedMedia from './SignedMedia';
@@ -26,7 +26,6 @@ import VoiceRecorder from './VoiceRecorder';
 import AudioPlayer from './AudioPlayer';
 import LiveReactions from './LiveReactions';
 import MediaPickerPanel from './MediaPickerPanel';
-import AICaption from './AICaption';
 import ChunkedUploader from './ChunkedUploader';
 import ContactInfo from './ContactInfo';
 import GroupInfo from './GroupInfo';
@@ -248,7 +247,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     createPoll, votePoll, scheduleMessage, scheduledMessages, cancelScheduledMessage,
     initiateCall, endCall,
     updateGroupMember, joinGroup, updateDisappearingMessages, toggleAdminOnlyMessaging, updateGroupPermission, createCustomRole, assignRole, viewProfile,
-    pinMessage, unpinMessage, pinnedMessages, presenceHistory, unlockedSessionChats, verifyChatUnlock, toggleChatLock, stickerPacks, downloadedStickers, downloadStickerPack, sendSticker, addFavoriteSticker, toggleStarMessage, toggleMessageLock, toggleMuteChat, toggleArchiveChat, transcribeAudio, markAsRead, markViewOnceViewed, getUserStatusWithGhostMode,
+    pinMessage, unpinMessage, pinnedMessages, presenceHistory, unlockedSessionChats, verifyChatUnlock, toggleChatLock, stickerPacks, downloadedStickers, downloadStickerPack, sendSticker, addFavoriteSticker, toggleStarMessage, toggleMessageLock, toggleMuteChat, toggleArchiveChat, markAsRead, markViewOnceViewed, getUserStatusWithGhostMode,
     isDNDMode, toggleDNDMode, selectConversation, setMods
   } = useChat();
   const user = chatUser || localUser;
@@ -412,19 +411,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [scheduleDateTime, setScheduleDateTime] = useState('');
   const [showLiveReactions, setShowLiveReactions] = useState(false);
   const [showTrendingStickers, setShowTrendingStickers] = useState(false);
-  const [showAICaption, setShowAICaption] = useState(false);
   const [showChunkedUploader, setShowChunkedUploader] = useState(false);
   const [e2eePlain, setE2eePlain] = useState({});
   const [visibleCount, setVisibleCount] = useState(50);
   const [showMessageInfoModal, setShowMessageInfoModal] = useState(false);
   const [messageInfoId, setMessageInfoId] = useState(null);
-  const [aiWritingLoading, setAiWritingLoading] = useState(false);
-  const [aiWritingSuggestion, setAiWritingSuggestion] = useState('');
-  const [showAIWritingHelp, setShowAIWritingHelp] = useState(false);
-  const [showAIAssistant, setShowAIAssistant] = useState(false);
-  const [aiAssistantQuestion, setAiAssistantQuestion] = useState('');
-  const [aiAssistantAnswer, setAiAssistantAnswer] = useState('');
-  const [aiAssistantLoading, setAiAssistantLoading] = useState(false);
 
   // Custom role state variables
   const [showRoleForm, setShowRoleForm] = useState(false);
@@ -826,53 +817,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         clearTimeout(typingTimeoutRef.current);
       }
       typingTimeoutRef.current = setTimeout(() => sendTypingStatus(false), 2000); // Stop typing after 2s of inactivity
-    }
-  };
-
-  const handleAIWritingHelp = async () => {
-    if (!selectedConversation) return;
-    setAiWritingLoading(true);
-    setShowAIWritingHelp(true);
-    setAiWritingSuggestion('');
-
-    const recentContext = (messages || [])
-      .slice(-8)
-      .map((message) => {
-        const senderName = message.sender?.username || (message.senderId === user?.id ? user?.username : 'User');
-        return `${senderName}: ${plaintextOf(message)}`;
-      })
-      .join('\n');
-
-    try {
-      const response = await authFetch(`${API_URL}/advanced/ai-assistant`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: [
-            'Write exactly one concise ready-to-send WhatsApp-style message.',
-            'Match the language and tone of the chat. Do not add explanations.',
-            messageInput.trim()
-              ? `Improve this draft without changing its meaning:\n${messageInput.trim()}`
-              : `Suggest a helpful reply using this recent context:\n${recentContext || 'No context available.'}`
-          ].join('\n\n'),
-          conversationId: selectedConversation._id
-        })
-      });
-      const data = await response.json();
-      const suggestion = (data?.response || '').trim();
-      if (!response.ok || !suggestion) {
-        throw new Error(data?.message || 'AI writing help failed');
-      }
-      setAiWritingSuggestion(suggestion);
-    } catch (error) {
-      console.error('AI writing help error:', error);
-      const fallback = messageInput.trim()
-        ? messageInput.trim().replace(/\s+/g, ' ')
-        : 'Sawa, nimekupata. Nitakujibu vizuri muda si mrefu.';
-      setAiWritingSuggestion(fallback);
-      toast.error('AI helper used an offline fallback');
-    } finally {
-      setAiWritingLoading(false);
     }
   };
 
@@ -1914,30 +1858,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     setReplyingTo(null);
   };
 
-  const handleAskAIAssistant = async () => {
-    const question = aiAssistantQuestion.trim();
-    if (!question || aiAssistantLoading) return;
-    setAiAssistantLoading(true);
-    setAiAssistantAnswer('');
-    try {
-      const response = await authFetch(`${API_URL}/advanced/ai-assistant`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: question })
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data?.message || 'AI assistant failed');
-      }
-      setAiAssistantAnswer((data?.response || '').trim() || 'No response from AI assistant.');
-    } catch (error) {
-      console.error('AI assistant error:', error);
-      setAiAssistantAnswer('⚠️ AI assistant is unavailable right now. Please try again later.');
-    } finally {
-      setAiAssistantLoading(false);
-    }
-  };
-
   const handleReaction = (messageId, emoji) => {
     addReaction(messageId, emoji);
     setSelectedMessage(null);
@@ -2311,15 +2231,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         {/* Header right-side action buttons */}
         {!isSearching && (
           <div className="flex items-center gap-0.5 md:gap-1 ml-auto relative flex-shrink-0">
-            {/* AI Assistant - ask the GENZ AI anything */}
-            <button onClick={() => {
-              setShowAIAssistant(true);
-              setAiAssistantAnswer('');
-              setAiAssistantQuestion('');
-            }} title="AI Assistant" aria-label="AI Assistant"
-              className="hidden sm:flex p-2 hover:bg-white/10 rounded-lg transition-colors items-center justify-center">
-              <Sparkles size={18} className="text-purple-400" />
-            </button>
             {/* Search in chat */}
             <button onClick={() => setShowSearchMessages(true)} title="Search messages" aria-label="Search messages"
               className="hidden sm:flex p-2 hover:bg-white/10 rounded-lg transition-colors items-center justify-center">
@@ -2379,19 +2290,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                   >
                     <Search size={16} className="text-white/60" />
                     <span>Search Messages</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowAIAssistant(true);
-                      setAiAssistantAnswer('');
-                      setAiAssistantQuestion('');
-                      setShowHeaderMenu(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
-                  >
-                    <Sparkles size={16} className="text-purple-400" />
-                    <span>AI Assistant</span>
                   </button>
 
                   <button
@@ -3399,15 +3297,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               >
                 <CalendarClock className="w-5 h-5 text-dark-text" />
               </button>
-              <button
-                disabled={adminOnlyMessagingEnabled && !currentUserIsAdmin}
-                type="button"
-                onClick={handleAIWritingHelp}
-                className={`p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center ${showAIWritingHelp ? 'bg-yellow-500/20 text-yellow-300' : 'hover:bg-dark-hover text-dark-text'}`}
-                title="AI Writing Help" aria-label="AI Writing Help"
-              >
-                <Sparkles className="w-5 h-5" />
-              </button>
             </div>
           )}
           {showAttachmentMenu && (
@@ -3432,62 +3321,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               {safeMods?.trendingStickers && (
                 <AttachmentIcon icon={<TrendingUp className="text-pink-500" />} label="Stickers" onClick={() => { setShowTrendingStickers(true); setShowAttachmentMenu(false); }} />
               )}
-              {safeMods?.aiCaption && (
-                <AttachmentIcon icon={<Wand2 className="text-purple-400" />} label="AI Caption" onClick={() => { setShowAICaption(true); setShowAttachmentMenu(false); }} />
-              )}
               <AttachmentIcon icon={<Sparkles className="text-yellow-400" />} label="Big File" onClick={() => { setShowChunkedUploader(true); setShowAttachmentMenu(false); }} />
             </div>
           )}
-          {showAIWritingHelp && (
-            <div className="absolute bottom-16 left-2 right-2 md:left-40 md:right-16 bg-dark-surface border border-yellow-500/30 rounded-xl shadow-2xl p-3 z-50" style={{ maxHeight: 'calc(100vh - 250px)' }}>
-              <div className="flex items-center justify-between gap-3 mb-2">
-                <div className="flex items-center gap-2 text-yellow-300 text-xs font-bold">
-                  <Sparkles size={14} />
-                  AI Writing Help
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowAIWritingHelp(false)}
-                  className="text-dark-textSecondary hover:text-dark-text"
-                  aria-label="Close AI writing help"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-              {aiWritingLoading ? (
-                <p className="text-xs text-dark-textSecondary">Preparing suggestion...</p>
-              ) : (
-                <>
-                  <p className="text-sm text-dark-text leading-relaxed bg-black/20 rounded-lg p-2 max-h-28 overflow-y-auto">
-                    {aiWritingSuggestion || 'No suggestion yet'}
-                  </p>
-                  <div className="flex justify-end gap-2 mt-3">
-                    <button
-                      type="button"
-                      onClick={handleAIWritingHelp}
-                      className="px-3 py-1.5 rounded-lg bg-white/10 text-dark-text text-xs hover:bg-white/15"
-                    >
-                      Regenerate
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMessageInput(aiWritingSuggestion);
-                        setShowAIWritingHelp(false);
-                        inputRef.current?.focus();
-                      }}
-                      disabled={!aiWritingSuggestion}
-                      className="px-3 py-1.5 rounded-lg bg-primary-600 text-white text-xs hover:bg-primary-500 disabled:opacity-50"
-                    >
-                      Use
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
           {/* Quick emoji feature removed as requested */}
-          {mentionState.open && mentionSuggestions.length > 0 && !showAttachmentMenu && !showAIWritingHelp && (
+          {mentionState.open && mentionSuggestions.length > 0 && !showAttachmentMenu && (
             <div className="absolute bottom-16 left-2 right-2 md:left-40 md:right-auto md:w-80 bg-dark-surface border border-dark-border rounded-xl shadow-xl p-2 z-50" style={{ maxHeight: 'calc(var(--app-height, 100vh) - 250px)' }}>
               <div className="flex items-center gap-2 px-2 pb-2 text-[10px] uppercase tracking-wide text-dark-textSecondary">
                 <AtSign size={12} />
@@ -3627,56 +3465,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           conversationId={selectedConversation?._id}
           onClose={() => setShowMediaGallery(false)}
         />
-      )}
-
-      {/* AI Assistant Q&A panel */}
-      {showAIAssistant && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowAIAssistant(false)}>
-          <div
-            className="bg-dark-surface border border-purple-500/30 rounded-xl shadow-2xl w-full max-w-md p-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2 text-purple-300 font-bold">
-                <Sparkles size={18} />
-                GENZ AI Assistant
-              </div>
-              <button type="button" onClick={() => setShowAIAssistant(false)} className="text-dark-textSecondary hover:text-dark-text" aria-label="Close AI assistant">
-                <X size={18} />
-              </button>
-            </div>
-
-            {aiAssistantAnswer && (
-              <div className="mb-3 max-h-56 overflow-y-auto text-sm text-dark-text bg-black/20 rounded-lg p-3 whitespace-pre-wrap">
-                {aiAssistantAnswer}
-              </div>
-            )}
-
-            <div className="flex items-end gap-2">
-              <textarea
-                value={aiAssistantQuestion}
-                onChange={(e) => setAiAssistantQuestion(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleAskAIAssistant();
-                  }
-                }}
-                placeholder="Ask the AI assistant anything..."
-                rows={2}
-                className="flex-1 bg-black/20 border border-dark-border rounded-lg p-2 text-sm text-dark-text resize-none outline-none focus:border-purple-400"
-              />
-              <button
-                type="button"
-                onClick={handleAskAIAssistant}
-                disabled={aiAssistantLoading || !aiAssistantQuestion.trim()}
-                className="px-3 py-2 rounded-lg bg-purple-600 text-white text-sm hover:bg-purple-500 disabled:opacity-50 shrink-0"
-              >
-                {aiAssistantLoading ? '...' : 'Ask'}
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* Message context menu (right-click) */}
@@ -3869,19 +3657,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               onClose={() => setShowTrendingStickers(false)}
             />
           </div>
-        </div>
-      )}
-
-      {/* ── GENZ Ultra: AI Caption Modal ── */}
-      {showAICaption && (
-        <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <AICaption
-            onSelect={(caption) => {
-              setMessageInput(prev => prev ? `${prev} ${caption}` : caption);
-              setShowAICaption(false);
-            }}
-            onClose={() => setShowAICaption(false)}
-          />
         </div>
       )}
 

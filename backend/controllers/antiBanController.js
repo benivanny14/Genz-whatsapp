@@ -281,6 +281,7 @@ exports.recordSuspiciousActivity = async (req, res) => {
 
     if (!user.suspiciousActivities) user.suspiciousActivities = [];
     user.suspiciousActivities.push(suspiciousActivity);
+    user.markModified('suspiciousActivities');
 
     // Check if threshold reached
     const recentActivities = user.suspiciousActivities.filter(

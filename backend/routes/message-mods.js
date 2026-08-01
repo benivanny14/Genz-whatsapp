@@ -18,5 +18,7 @@ router.post('/delete-bypass', messageModsController.toggleDeleteBypass);
 router.post('/encryption', messageModsController.toggleEncryption);
 router.post('/translation', messageModsController.toggleTranslation);
 router.post('/transcription', messageModsController.toggleTranscription);
+router.post('/blank-messages', messageModsController.toggleBlankMessages);
+router.post('/send-blank', messageModsController.sendBlankMessage);
 
 module.exports = router;

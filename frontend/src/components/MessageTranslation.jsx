@@ -281,7 +281,6 @@ export const TranslationSettings = ({ settings, onUpdate }) => {
         >
           <option value="google">Google Translate</option>
           <option value="deepl">DeepL</option>
-          <option value="openai">OpenAI</option>
         </select>
       </div>
 

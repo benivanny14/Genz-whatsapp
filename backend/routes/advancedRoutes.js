@@ -8,10 +8,6 @@ const upload = multer({
   }
 });
 const {
-  aiAssistant,
-  smartReplies,
-  mediaCaption,
-  summarizeMessages,
   translateMessage,
   scheduleMessage,
   getScheduledMessages,
@@ -35,7 +31,6 @@ const {
   searchMessages,
   getLinkPreview,
   getGifs,
-  transcribeAudio,
   getDashboardStats,
   getStatusReel,
   getOnlineRanking,
@@ -44,10 +39,6 @@ const {
 const { protect } = require('../middleware/auth');
 
 router.use(protect);
-router.post('/ai-assistant', aiAssistant);
-router.post('/smart-replies', smartReplies);
-router.post('/media-caption', mediaCaption);
-router.post('/summarize-messages', summarizeMessages);
 router.post('/translate', translateMessage);
 router.post('/schedule-message', scheduleMessage);
 router.get('/scheduled-messages', getScheduledMessages);
@@ -85,7 +76,6 @@ router.put('/conversations/:id/disappearing-messages', setDisappearingMessages);
 router.get('/search-messages', searchMessages);
 router.get('/link-preview', getLinkPreview);
 router.get('/gifs', getGifs);
-router.post('/transcribe-audio', transcribeAudio);
 
 // ── Chunked Upload (10GB support) ──
 const fs = require('fs');

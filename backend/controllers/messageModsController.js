@@ -1,4 +1,6 @@
 const User = require('../models/User');
+const Conversation = require('../models/Conversation');
+const Message = require('../models/Message');
 
 const defaultSettings = {
   sendAnyFileType: false,
@@ -7,7 +9,8 @@ const defaultSettings = {
   deleteForEveryoneBypass: false,
   messageEncryptionToggle: false,
   messageTranslation: false,
-  messageTranscription: false
+  messageTranscription: false,
+  blankMessages: false
 };
 
 const getUser = async (req, res) => {
@@ -212,6 +215,70 @@ exports.toggleTranscription = async (req, res) => {
     res.json({ success: true, messageTranscription: newValue });
   } catch (error) {
     console.error('Toggle transcription error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Toggle Blank (empty) Messages
+// @route   POST /api/message-mods/blank-messages
+// @access  Private
+exports.toggleBlankMessages = async (req, res) => {
+  try {
+    const user = await getUser(req, res);
+    if (!user) return;
+
+    const existing = user.messageModsSettings?.toObject?.() || user.messageModsSettings || {};
+    const newValue = !existing.blankMessages;
+
+    user.messageModsSettings = mergeSettings({ ...existing, blankMessages: newValue });
+    user.markModified('messageModsSettings');
+    await user.save();
+
+    res.json({ success: true, blankMessages: newValue });
+  } catch (error) {
+    console.error('Toggle blank messages error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Send an empty (blank) message to a conversation
+// @route   POST /api/message-mods/send-blank
+// @access  Private
+exports.sendBlankMessage = async (req, res) => {
+  try {
+    const user = await getUser(req, res);
+    if (!user) return;
+
+    const settings = mergeSettings(user.messageModsSettings?.toObject?.() || user.messageModsSettings);
+    if (!settings.blankMessages) {
+      return res.status(403).json({ success: false, message: 'Blank messages mod is not enabled' });
+    }
+
+    const { conversationId } = req.body;
+    if (!conversationId || !String(conversationId).match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ success: false, message: 'A valid conversationId is required' });
+    }
+
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ success: false, message: 'Conversation not found' });
+    }
+
+    const isParticipant = conversation.participants?.some(p => String(p) === String(user._id));
+    if (!isParticipant) {
+      return res.status(403).json({ success: false, message: 'Not a participant of this conversation' });
+    }
+
+    const message = await Message.create({
+      conversationId: conversation._id,
+      sender: user._id,
+      content: '\u200B',
+      messageType: 'text'
+    });
+
+    res.status(201).json({ success: true, message });
+  } catch (error) {
+    console.error('Send blank message error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

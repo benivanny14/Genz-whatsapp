@@ -267,8 +267,17 @@ const PaymentsSection = ({ statusFilter = 'All', title = 'Payment Management' })
   useEffect(() => { load(); }, [load]);
 
   const act = async (id, action) => {
+    let body = {};
+    if (action === 'reject') {
+      const reason = window.prompt('Sababu ya kukataa (required):');
+      if (!reason || !reason.trim()) {
+        toast.error('Sababu inahitajika kukataa malipo');
+        return;
+      }
+      body = { reason: reason.trim() };
+    }
     try {
-      await adminApi.post(`/admin/manual-payments/${id}/${action}`);
+      await adminApi.post(`/admin/manual-payments/${id}/${action}`, body);
       toast.success(action === 'approve' ? 'Imekubaliwa' : 'Imekataliwa');
       load();
     } catch {

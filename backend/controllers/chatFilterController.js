@@ -190,6 +190,7 @@ exports.saveFilterPreference = async (req, res) => {
     };
 
     user.savedFilterPreferences.push(savedPreference);
+    user.markModified('savedFilterPreferences');
     await user.save();
 
     res.status(200).json({ success: true, savedPreference });

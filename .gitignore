@@ -14,3 +14,4 @@ scripts/render-env-export.txt
 .sixth/
 frontend/test-results/
 push_to_github.ps1
+backend/backups/

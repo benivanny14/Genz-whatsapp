@@ -57,24 +57,7 @@ const getProductionRequirements = () => {
   ];
 
   if (process.env.ALLOW_REAL_PAYMENT_PROVIDERS === 'true') {
-    requirements.push(
-      ['MPESA_CONSUMER_KEY', 'M-Pesa Consumer Key'],
-      ['MPESA_CONSUMER_SECRET', 'M-Pesa Consumer Secret'],
-      ['MPESA_PASSKEY', 'M-Pesa Passkey'],
-      ['MPESA_SHORTCODE', 'M-Pesa Shortcode'],
-      ['MPESA_WEBHOOK_SECRET', 'M-Pesa Webhook Secret'],
-      ['AIRTEL_CLIENT_ID', 'Airtel Client ID'],
-      ['AIRTEL_CLIENT_SECRET', 'Airtel Client Secret'],
-      ['AIRTEL_WEBHOOK_SECRET', 'Airtel Webhook Secret'],
-      ['YAS_API_KEY', 'Yas API Key'],
-      ['YAS_MERCHANT_ID', 'Yas Merchant ID'],
-      ['YAS_SECRET_KEY', 'Yas Secret Key'],
-      ['YAS_WEBHOOK_SECRET', 'Yas Webhook Secret'],
-      ['HALOPESA_API_KEY', 'HaloPesa API Key'],
-      ['HALOPESA_MERCHANT_ID', 'HaloPesa Merchant ID'],
-      ['HALOPESA_SECRET_KEY', 'HaloPesa Secret Key'],
-      ['HALOPESA_WEBHOOK_SECRET', 'HaloPesa Webhook Secret']
-    );
+    // Legacy flag kept for compatibility, but only manual payments are supported.
   }
 
   return requirements;

@@ -192,8 +192,7 @@ if (!isTestEnvironment && process.env.REDIS_URL) {
 const Message = require('./models/Message');
 const Conversation = require('./models/Conversation');
 const User = require('./models/User');
-const { startExpiryChecker, stopExpiryChecker } = require('./utils/subscriptionExpiryChecker');
-const { checkPaymentTimeouts } = require('./utils/paymentTimeout');
+const { runExpiryCheck } = require('./controllers/manualPaymentController');
 
 const ensureLocalUser = async () => {
   try {
@@ -221,7 +220,7 @@ const ensureLocalUser = async () => {
 };
 
 let scheduledMessageInterval = null;
-let paymentTimeoutInterval = null;
+let manualPaymentExpiryInterval = null;
 let expiredMessageCleanupInterval = null;
 
 const startScheduledMessageDispatcher = (ioInstance) => {
@@ -355,20 +354,17 @@ const startBackgroundServices = async (ioInstance) => {
   startScheduledMessageDispatcher(ioInstance);
   startExpiredMessageCleanup(ioInstance);
 
-  // Start subscription expiry checker
-  startExpiryChecker();
-
-  // Start payment timeout checker (runs every 15 minutes)
-  if (!paymentTimeoutInterval) {
-    paymentTimeoutInterval = setInterval(async () => {
+  // Start manual payment expiry checker (marks expired subscriptions, runs every 6 hours)
+  if (!manualPaymentExpiryInterval) {
+    manualPaymentExpiryInterval = setInterval(async () => {
       try {
-        logger.info('Running payment timeout check');
-        const result = await checkPaymentTimeouts();
-        logger.info('Payment timeout check completed', { processed: result.processed });
+        logger.info('Running manual payment expiry check');
+        const result = await runExpiryCheck(ioInstance);
+        logger.info('Manual payment expiry check completed', { processed: result });
       } catch (error) {
-        logger.error('Payment timeout check failed', { message: error.message });
+        logger.error('Manual payment expiry check failed', { message: error.message });
       }
-    }, 15 * 60 * 1000);
+    }, 6 * 60 * 60 * 1000);
   }
 };
 
@@ -413,7 +409,7 @@ const corsOptions = {
       process.env.FRONTEND_URL,
       process.env.PUBLIC_API_URL,
       // Allow only the specific Render URL
-      'https://genz-whatsapp-1-sunu.onrender.com',
+      'https://genz-whatsapp-1.onrender.com',
       // Development origins
       'http://localhost:3000',
       'http://localhost:5173',
@@ -622,7 +618,7 @@ app.use('/uploads', secureUploads, (req, res) => {
 // Import Routes
 const chatRoutes = require('./routes/chatRoutes');
 const advancedRoutes = require('./routes/advancedRoutes');
-const paymentRoutes = require('./routes/paymentRoutes');
+const { userRoutes: manualPaymentUserRoutes, adminRoutes: manualPaymentAdminRoutes } = require('./routes/manualPaymentRoutes');
 const deviceRoutes = require('./routes/deviceRoutes');
 const channelRoutes = require('./routes/channelRoutes');
 const securityRoutes = require('./routes/securityRoutes');
@@ -690,6 +686,7 @@ const themeEngineRoutes = require('./routes/theme-engine');
 const trendingStickersRoutes = require('./routes/trending-stickers');
 const whatsappWebRoutes = require('./routes/whatsapp-web');
 const antiBanRoutes = require('./routes/anti-ban');
+const locationSharingRoutes = require('./routes/location-sharing');
 
 // Mount Routes
 app.use('/api/auth', safeMiddleware(authLimiter), authRoutes);
@@ -710,7 +707,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/advanced', advancedRoutes);
 app.use('/api/media', mediaRoutes);
-app.use('/api/payment', paymentRoutes);
+app.use('/api/payment/manual', manualPaymentUserRoutes);
+app.use('/api/admin/manual-payments', manualPaymentAdminRoutes);
 app.use('/api/device', deviceRoutes);
 app.use('/api/security', safeMiddleware(authLimiter), securityRoutes);
 app.use('/api/settings', settingsRoutes);
@@ -773,6 +771,7 @@ app.use('/api/theme-engine', themeEngineRoutes);
 app.use('/api/trending-stickers', trendingStickersRoutes);
 app.use('/api/whatsapp-web', whatsappWebRoutes);
 app.use('/api/anti-ban', antiBanRoutes);
+app.use('/api/location-sharing', locationSharingRoutes);
 
 // File upload route
 app.post('/api/upload', upload.single('file'), async (req, res) => {
@@ -870,7 +869,7 @@ app.use('/api', (req, res) => {
   });
 });
 
-// Serve built frontend when deployed as a single service (e.g. genz-whatsapp.onrender.com)
+// Serve built frontend when deployed as a single service (e.g. genz-whatsapp-1.onrender.com)
 const frontendDistPath = path.resolve(__dirname, '../frontend/dist');
 const frontendIndexPath = path.join(frontendDistPath, 'index.html');
 if (fs.existsSync(frontendIndexPath)) {
@@ -895,7 +894,7 @@ const socketCorsOrigins = [
   'http://127.0.0.1:5175',
   ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
   ...(process.env.PUBLIC_API_URL ? [process.env.PUBLIC_API_URL] : []),
-  'https://genz-whatsapp-1-sunu.onrender.com'
+  'https://genz-whatsapp-1.onrender.com'
 ];
 
 const ioConfig = {
@@ -1022,9 +1021,8 @@ const gracefulShutdown = async (signal) => {
   logger.info('Graceful shutdown started', { signal });
 
   if (scheduledMessageInterval) clearInterval(scheduledMessageInterval);
-  if (paymentTimeoutInterval) clearInterval(paymentTimeoutInterval);
+  if (manualPaymentExpiryInterval) clearInterval(manualPaymentExpiryInterval);
   if (expiredMessageCleanupInterval) clearInterval(expiredMessageCleanupInterval);
-  stopExpiryChecker();
 
   await new Promise((resolve) => {
     server.close(() => resolve());
@@ -1084,15 +1082,14 @@ const stopBackgroundServices = () => {
     clearInterval(scheduledMessageInterval);
     scheduledMessageInterval = null;
   }
-  if (paymentTimeoutInterval) {
-    clearInterval(paymentTimeoutInterval);
-    paymentTimeoutInterval = null;
+  if (manualPaymentExpiryInterval) {
+    clearInterval(manualPaymentExpiryInterval);
+    manualPaymentExpiryInterval = null;
   }
   if (expiredMessageCleanupInterval) {
     clearInterval(expiredMessageCleanupInterval);
     expiredMessageCleanupInterval = null;
   }
-  stopExpiryChecker();
 };
 
 module.exports = {

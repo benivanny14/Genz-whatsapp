@@ -39,7 +39,7 @@ exports.createScheduledMessage = async (req, res) => {
       });
     }
 
-    const isParticipant = conversation.participants.some(p => p.userId?.toString() === sender);
+    const isParticipant = conversation.participants.some(p => p?.toString() === sender);
     if (!isParticipant) {
       return res.status(403).json({
         success: false,

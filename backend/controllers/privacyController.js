@@ -13,7 +13,8 @@ const defaultSettings = {
   autoDownloadStatus: false,
   languagePerChat: false,
   customTickPerContact: false,
-  customEmojiStyle: false
+  customEmojiStyle: false,
+  blockAlerts: false
 };
 
 const getUser = async (req, res) => {
@@ -350,6 +351,62 @@ exports.toggleCustomEmojiStyle = async (req, res) => {
     res.json({ success: true, customEmojiStyle: newValue });
   } catch (error) {
     console.error('Toggle custom emoji style error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Toggle Block/Unblock Alerts
+// @route   POST /api/privacy-mods/block-alerts
+// @access  Private
+exports.toggleBlockAlerts = async (req, res) => {
+  try {
+    const user = await getUser(req, res);
+    if (!user) return;
+
+    const existing = user.privacyModsSettings?.toObject?.() || user.privacyModsSettings || {};
+    const newValue = !existing.blockAlerts;
+
+    user.privacyModsSettings = mergeSettings({ ...existing, blockAlerts: newValue });
+    user.markModified('privacyModsSettings');
+    await user.save();
+
+    res.json({ success: true, blockAlerts: newValue });
+  } catch (error) {
+    console.error('Toggle block alerts error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get block/unblock alerts for current user
+// @route   GET /api/privacy-mods/block-alerts
+// @access  Private
+exports.getBlockAlerts = async (req, res) => {
+  try {
+    const user = await getUser(req, res);
+    if (!user) return;
+
+    const alerts = (user.blockAlerts || []).slice(-100).reverse();
+    res.json({ success: true, alerts });
+  } catch (error) {
+    console.error('Get block alerts error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Clear block/unblock alerts
+// @route   DELETE /api/privacy-mods/block-alerts
+// @access  Private
+exports.clearBlockAlerts = async (req, res) => {
+  try {
+    const user = await getUser(req, res);
+    if (!user) return;
+
+    user.blockAlerts = [];
+    await user.save();
+
+    res.json({ success: true, message: 'Block alerts cleared' });
+  } catch (error) {
+    console.error('Clear block alerts error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

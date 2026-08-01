@@ -201,6 +201,7 @@ exports.addStickerToFavorites = async (req, res) => {
     
     if (!user.favoriteStickers.includes(id)) {
       user.favoriteStickers.push(id);
+      user.markModified('favoriteStickers');
       await user.save();
     }
 
@@ -224,6 +225,7 @@ exports.removeStickerFromFavorites = async (req, res) => {
     if (!user.favoriteStickers) user.favoriteStickers = [];
     
     user.favoriteStickers = user.favoriteStickers.filter(sId => sId !== id);
+    user.markModified('favoriteStickers');
     await user.save();
 
     res.status(200).json({ success: true, message: 'Sticker removed from favorites' });
