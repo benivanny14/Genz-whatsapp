@@ -2696,42 +2696,67 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                         </div>
                       </div>
                     )}
-                    {message.messageType === 'location' && (() => {
-                      const isLive = Boolean(message.isLiveLocation) &&
-                        (!message.liveLocationExpiresAt || new Date(message.liveLocationExpiresAt) > new Date());
-                      const mapsUrl = (typeof message.latitude === 'number' && typeof message.longitude === 'number')
-                        ? `https://www.google.com/maps?q=${message.latitude},${message.longitude}&layer=c`
-                        : (plaintextOf(message).match(/https?:\/\/\S+/) || [null])[0];
-                      return (
-                        <div className="mb-1 w-[260px] rounded-lg overflow-hidden border border-white/10 bg-[#e5e5e5] shadow-sm relative group cursor-pointer" onClick={() => { if (mapsUrl) window.open(mapsUrl, '_blank'); }}>
-                          {/* Map Pattern/Grid Simulation */}
-                          <div className="relative h-48 bg-dark-surface flex items-center justify-center" style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, #1a3a2a 0%, #0d1f35 100%)' }}>
-                            {/* Map Pin Area */}
-                            <div className="relative flex flex-col items-center z-10">
-                              {isLive ? (
-                                <div className="relative flex items-center justify-center">
-                                  <div className="absolute rounded-full border-[3px] border-red-500 w-14 h-14 animate-ping opacity-60" />
-                                  <div className="w-10 h-10 rounded-full border-[3px] border-red-500 shadow-xl overflow-hidden z-10 bg-white">
-                                    <img src={getConversationAvatar() || ''} className="w-full h-full object-cover" />
-                                  </div>
-                                </div>
-                              ) : (
-                                <MapPin className="w-10 h-10 text-red-500 drop-shadow-md z-10" fill="#ef4444" stroke="white" strokeWidth={1.5} />
-                              )}
-                            </div>
-                          </div>
-                          {/* Bottom Bar Info */}
-                          <div className="bg-white p-3 flex flex-col border-t border-black/10">
-                            <p className="text-sm font-bold text-gray-800 truncate">
-                              {isLive ? 'Live location' : 'Location'}
-                            </p>
-                            <span className="text-xs text-blue-500 mt-0.5 truncate hover:underline">
-                              View on Google Maps
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })()}
+{message.messageType === 'location' && (() => {
+                       const isLive = Boolean(message.isLiveLocation) &&
+                         (!message.liveLocationExpiresAt || new Date(message.liveLocationExpiresAt) > new Date());
+                       const lat = typeof message.latitude === 'number' ? message.latitude : null;
+                       const lng = typeof message.longitude === 'number' ? message.longitude : null;
+                       const staticMapUrl = lat && lng
+                         ? `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=15&size=400x300&marker=${lat},${lng}&marker=shadow`
+                         : null;
+                       const mapsUrl = lat && lng
+                         ? `https://www.google.com/maps?q=${lat},${lng}&layer=c`
+                         : (plaintextOf(message).match(/https?:\/\/\S+/) || [null])[0];
+                       const addressText = message.caption || (lat && lng ? `${lat.toFixed(4)}, ${lng.toFixed(4)}` : '');
+                       const timeRemaining = isLive && message.liveLocationExpiresAt
+                         ? (() => { const diff = new Date(message.liveLocationExpiresAt) - new Date(); const h = Math.floor(diff / 3600000); const m = Math.floor((diff % 3600000) / 60000); return h > 0 ? `${h}h ${m}m` : `${m}m`; })()
+                         : null;
+                       return (
+                         <div className="mb-1 w-[260px] rounded-lg overflow-hidden border border-white/10 bg-[#e5e5e5] shadow-sm relative group cursor-pointer" onClick={() => { if (mapsUrl) window.open(mapsUrl, '_blank'); }}>
+                           {/* Real Map Preview */}
+                           <div className="relative h-48 bg-[#0d1f35] flex items-center justify-center overflow-hidden">
+                             {staticMapUrl ? (
+                               <img src={staticMapUrl} alt="Map" className="w-full h-full object-cover" loading="lazy" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.style.backgroundImage = 'radial-gradient(circle at 50% 50%, #1a3a2a 0%, #0d1f35 100%)'; }} />
+                             ) : (
+                               <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, #1a3a2a 0%, #0d1f35 100%)' }} />
+                             )}
+                             {/* Pulsing Location Dot */}
+                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                               {isLive ? (
+                                 <div className="relative flex items-center justify-center">
+                                   <div className="absolute rounded-full border-[3px] border-red-500 w-14 h-14 animate-ping opacity-60" />
+                                   <div className="w-10 h-10 rounded-full border-[3px] border-red-500 shadow-xl overflow-hidden z-10 bg-white flex items-center justify-center">
+                                     <MapPin className="w-6 h-6 text-red-500 fill-current" />
+                                   </div>
+                                 </div>
+                               ) : (
+                                 <div className="w-10 h-10 rounded-full bg-white/90 shadow-xl flex items-center justify-center">
+                                   <MapPin className="w-6 h-6 text-red-500 fill-current" />
+                                 </div>
+                               )}
+                             </div>
+                             {/* Live Timer Badge */}
+                             {timeRemaining && (
+                               <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm text-white text-xs font-semibold px-2 py-1 rounded-full flex items-center gap-1">
+                                 <Clock size={10} /> {timeRemaining}
+                               </div>
+                             )}
+                           </div>
+                           {/* Bottom Bar Info */}
+                           <div className="bg-white p-3 flex flex-col border-t border-black/10">
+                             <p className="text-sm font-bold text-gray-800 truncate">
+                               {isLive ? 'Live location' : 'Location'}
+                             </p>
+                             {addressText && (
+                               <p className="text-xs text-gray-500 truncate mt-0.5">{addressText}</p>
+                             )}
+                             <span className="text-xs text-blue-500 mt-1 truncate hover:underline">
+                               Open in Maps
+                             </span>
+                           </div>
+                         </div>
+                       );
+                     })()}
                     {(message.messageType === 'audio' || message.messageType === 'voice') && (() => {
                       // Find sender info for avatar
                       const sender = selectedConversation?.participants?.find(
