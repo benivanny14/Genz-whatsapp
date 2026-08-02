@@ -26,6 +26,7 @@ import VoiceRecorder from './VoiceRecorder';
 import AudioPlayer from './AudioPlayer';
 import LiveReactions from './LiveReactions';
 import MediaPickerPanel from './MediaPickerPanel';
+import DrawingPanel from './DrawingPanel';
 import ChunkedUploader from './ChunkedUploader';
 import ContactInfo from './ContactInfo';
 import GroupInfo from './GroupInfo';
@@ -386,6 +387,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [viewOnceModalOpen, setViewOnceModalOpen] = useState(false);
   const [viewOnceMessageData, setViewOnceMessageData] = useState(null);
+  const [showDrawingEditor, setShowDrawingEditor] = useState(false);
+  const [drawingImageUrl, setDrawingImageUrl] = useState('');
+  const [pendingImageFile, setPendingImageFile] = useState(null);
 
   // Debug showScheduleModal state
   useEffect(() => {
@@ -1339,8 +1343,33 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       return;
     }
 
-    // GENZ MOD: Ask for caption if it's an image or video
-    const caption = (file.type.startsWith('image/') || file.type.startsWith('video/')) ? window.prompt("Add a caption (optional):") : null;
+    // TM WhatsApp feature: Edit/doodle on images before sending
+    if (file.type.startsWith('image/') && !forcedType) {
+      const caption = window.prompt("Add a caption (optional):", "");
+      const blobUrl = URL.createObjectURL(file);
+      setDrawingImageUrl(blobUrl);
+      setPendingImageFile({ file, caption: caption || '', opts: { isViewOnce, forcedType: null } });
+      setShowDrawingEditor(true);
+      if (e?.target) e.target.value = '';
+      return;
+    }
+
+    uploadAndSendFile(file, null, isViewOnce, forcedType, e);
+  };
+
+  // Upload the (possibly edited) media file and send it as a message
+  const uploadAndSendFile = async (file, caption, isViewOnce, forcedType, originalEvent) => {
+    const maxSize = (safeMods?.highResMedia ? 50 : 10) * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error(`GENZ WhatsApp: File too large (max ${safeMods?.highResMedia ? 50 : 10}MB)`);
+      return;
+    }
+
+    const resolvedCaption = caption ?? (
+      (file.type.startsWith('image/') || file.type.startsWith('video/'))
+        ? window.prompt("Add a caption (optional):", "")
+        : null
+    );
 
     const formData = new FormData();
     formData.append('file', file);
@@ -1364,14 +1393,14 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           else if (file.type.startsWith('audio/')) type = 'audio';
         }
 
-        const mediaContent = caption?.trim()
+        const mediaContent = resolvedCaption?.trim()
           || (type === 'image' ? 'Photo' : type === 'video' ? 'Video' : type === 'audio' ? 'Audio' : file.name || 'Document');
 
         await sendMessage(mediaContent, user?.username, {
           messageType: type,
           mediaUrl: uploadedUrl,
           fileName: file.name,
-          caption: caption,
+          caption: resolvedCaption,
           isViewOnce: isViewOnce,
           chatId: selectedConversation._id,
           isGroup: selectedConversation.isGroup,
@@ -1386,7 +1415,26 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         toast.error("GENZ WhatsApp: Failed to upload file. Please try again.");
     }
     setIsViewOnceEnabled(false);
-    if (e?.target) e.target.value = '';
+    if (originalEvent?.target) originalEvent.target.value = '';
+  };
+
+  // TM WhatsApp feature: handle saving edited/doodled image from DrawingPanel
+  const handleDrawingSave = async (editedBlob) => {
+    setShowDrawingEditor(false);
+    if (drawingImageUrl) URL.revokeObjectURL(drawingImageUrl);
+    setDrawingImageUrl('');
+    if (!pendingImageFile) return;
+
+    const { file, caption, opts } = pendingImageFile;
+    setPendingImageFile(null);
+
+    // Convert the edited blob back to a File
+    const editedFile = new File([editedBlob], file.name, {
+      type: 'image/png',
+      lastModified: Date.now()
+    });
+
+    await uploadAndSendFile(editedFile, caption, opts.isViewOnce, opts.forcedType, null);
   };
 
   // FEATURE ADD: view-once media had zero screenshot/recording protection —
@@ -3666,6 +3714,20 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
             setShowStickerPacks(false);
           }}
           onClose={() => setShowStickerPacks(false)}
+        />
+      )}
+
+      {/* ── Drawing / Doodle Editor for chat media ── */}
+      {showDrawingEditor && drawingImageUrl && (
+        <DrawingPanel
+          image={drawingImageUrl}
+          onClose={() => {
+            setShowDrawingEditor(false);
+            URL.revokeObjectURL(drawingImageUrl);
+            setDrawingImageUrl('');
+            setPendingImageFile(null);
+          }}
+          onSave={handleDrawingSave}
         />
       )}
 
