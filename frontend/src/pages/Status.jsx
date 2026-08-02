@@ -154,8 +154,30 @@ const Status = () => {
     timerSeconds: 5,
     musicUrl: '',
     musicFile: null,
-    gifUrl: ''
+    gifUrl: '',
+    // Editor state
+    textEffects: {},
+    selectedSticker: null
   });
+  const [editImageUrl, setEditImageUrl] = useState(null);
+  const [editVideoUrl, setEditVideoUrl] = useState(null);
+
+  // Update edit URLs when uploadData.file changes
+  useEffect(() => {
+    if (uploadData.file) {
+      const url = URL.createObjectURL(uploadData.file);
+      if (uploadData.type === 'video') {
+        setEditVideoUrl(url);
+        setEditImageUrl(null);
+      } else {
+        setEditImageUrl(url);
+        setEditVideoUrl(null);
+      }
+    } else {
+      setEditImageUrl(null);
+      setEditVideoUrl(null);
+    }
+  }, [uploadData.file, uploadData.type]);
 
   useEffect(() => {
     let cancelled = false;
@@ -440,6 +462,59 @@ const Status = () => {
       else if (file.type.startsWith('audio/')) type = 'audio';
       return { ...prev, file, type };
     });
+  };
+
+  // Editor panel handlers
+  const openEditorPanel = (panel) => {
+    setActivePanel(panel);
+    setShowSettings(true);
+  };
+
+  const handleEditorSaveImage = (blob) => {
+    if (!blob) return;
+    const file = new File([blob], `edited-status-${Date.now()}.png`, { type: blob.type || 'image/png' });
+    setUploadData((prev) => ({ ...prev, file, type: prev.type === 'video' ? 'video' : 'image' }));
+    setActivePanel(null);
+    setShowSettings(false);
+  };
+
+  const handleCameraCapture = (blob) => {
+    if (!blob) return;
+    const file = new File([blob], `camera-status-${Date.now()}.png`, { type: 'image/png' });
+    setUploadData((prev) => ({ ...prev, file, type: 'image' }));
+    setActivePanel(null);
+    setShowSettings(false);
+  };
+
+  const handleTextEffectsChange = (effects) => {
+    setUploadData((prev) => ({ ...prev, textEffects: { ...(prev.textEffects || {}), ...effects } }));
+  };
+
+  const handleStickerSelect = (sticker) => {
+    setUploadData((prev) => ({ ...prev, selectedSticker: sticker }));
+    setActivePanel(null);
+    setShowSettings(false);
+  };
+
+  const handleEditorSaveVideo = (video) => {
+    if (!video) return;
+    setUploadData((prev) => ({ ...prev, file: video }));
+    setActivePanel(null);
+    setShowSettings(false);
+  };
+
+  const handleAudioSave = (audioData) => {
+    if (!audioData) return;
+    setUploadData((prev) => ({ ...prev, ...audioData }));
+    setActivePanel(null);
+    setShowSettings(false);
+  };
+
+  const handleSubtitlesSave = (subtitlesData) => {
+    if (!subtitlesData) return;
+    setUploadData((prev) => ({ ...prev, subtitles: subtitlesData }));
+    setActivePanel(null);
+    setShowSettings(false);
   };
 
   const statusTime = (s) => {
@@ -1327,52 +1402,66 @@ const Status = () => {
                   <div className="grid grid-cols-3 gap-2">
                     <button
                       type="button"
-                      onClick={() => setActivePanel('filters')}
+                      onClick={() => openEditorPanel('filters')}
                       className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-gray-700 dark:text-gray-300 text-xs"
                     >
                       Filters
                     </button>
                     <button
                       type="button"
-                      onClick={() => setActivePanel('textEffects')}
+                      onClick={() => openEditorPanel('textEffects')}
                       className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-gray-700 dark:text-gray-300 text-xs"
                     >
                       Text Effects
                     </button>
                     <button
                       type="button"
-                      onClick={() => setActivePanel('drawing')}
+                      onClick={() => openEditorPanel('drawing')}
                       className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-gray-700 dark:text-gray-300 text-xs"
                     >
                       Drawing
                     </button>
                     <button
                       type="button"
-                      onClick={() => setActivePanel('beauty')}
+                      onClick={() => openEditorPanel('beauty')}
                       className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-gray-700 dark:text-gray-300 text-xs"
                     >
                       Beauty
                     </button>
                     <button
                       type="button"
-                      onClick={() => setActivePanel('background')}
+                      onClick={() => openEditorPanel('background')}
                       className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-gray-700 dark:text-gray-300 text-xs"
                     >
                       Background
                     </button>
                     <button
                       type="button"
-                      onClick={() => setActivePanel('video')}
+                      onClick={() => openEditorPanel('video')}
                       className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-gray-700 dark:text-gray-300 text-xs"
                     >
                       Video Tools
                     </button>
                     <button
                       type="button"
-                      onClick={() => setActivePanel('ar')}
+                      onClick={() => openEditorPanel('ar')}
                       className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-gray-700 dark:text-gray-300 text-xs"
                     >
                       AR Filters
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openEditorPanel('audio')}
+                      className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-gray-700 dark:text-gray-300 text-xs"
+                    >
+                      Audio
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openEditorPanel('subtitles')}
+                      className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-gray-700 dark:text-gray-300 text-xs"
+                    >
+                      Subtitles
                     </button>
                   </div>
                 </div>
@@ -1554,17 +1643,17 @@ const Status = () => {
               ) : (
                 <div>
                   <button onClick={() => setActivePanel(null)} className="mb-4 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">← Back to Settings</button>
-                  {activePanel === 'camera' && <CameraControls onClose={() => setActivePanel(null)} />}
-                  {activePanel === 'textEffects' && <TextEffectsPanel onClose={() => setActivePanel(null)} />}
-                  {activePanel === 'stickers' && <SpecialStickersPanel onClose={() => setActivePanel(null)} />}
-                  {activePanel === 'drawing' && <DrawingPanel onClose={() => setActivePanel(null)} />}
-                  {activePanel === 'filters' && <FiltersPanel onClose={() => setActivePanel(null)} />}
-                  {activePanel === 'beauty' && <BeautyRetouchPanel onClose={() => setActivePanel(null)} />}
-                  {activePanel === 'background' && <BackgroundToolsPanel onClose={() => setActivePanel(null)} />}
-                  {activePanel === 'video' && <VideoToolsPanel onClose={() => setActivePanel(null)} />}
-                  {activePanel === 'ar' && <ARFilterPanel onClose={() => setActivePanel(null)} />}
-                  {activePanel === 'audio' && <AudioPanel onClose={() => setActivePanel(null)} />}
-                  {activePanel === 'subtitles' && <SubtitlesPanel onClose={() => setActivePanel(null)} />}
+{activePanel === 'camera' && <CameraControls onClose={() => setActivePanel(null)} onCapture={handleCameraCapture} />}
+                    {activePanel === 'textEffects' && <TextEffectsPanel onClose={() => setActivePanel(null)} onEffectChange={handleTextEffectsChange} currentEffects={uploadData.textEffects} />}
+                    {activePanel === 'stickers' && <SpecialStickersPanel onClose={() => setActivePanel(null)} onStickerSelect={handleStickerSelect} />}
+                    {activePanel === 'drawing' && <DrawingPanel onClose={() => setActivePanel(null)} image={editImageUrl} onSave={handleEditorSaveImage} />}
+                    {activePanel === 'filters' && <FiltersPanel onClose={() => setActivePanel(null)} image={editImageUrl} onSave={handleEditorSaveImage} />}
+                    {activePanel === 'beauty' && <BeautyRetouchPanel onClose={() => setActivePanel(null)} image={editImageUrl} onSave={handleEditorSaveImage} />}
+                    {activePanel === 'background' && <BackgroundToolsPanel onClose={() => setActivePanel(null)} image={editImageUrl} onSave={handleEditorSaveImage} />}
+                    {activePanel === 'video' && <VideoToolsPanel onClose={() => setActivePanel(null)} video={editVideoUrl} onSave={handleEditorSaveVideo} />}
+                    {activePanel === 'ar' && <ARFilterPanel onClose={() => setActivePanel(null)} image={editImageUrl} onSave={handleEditorSaveImage} />}
+                    {activePanel === 'audio' && <AudioPanel onClose={() => setActivePanel(null)} onSave={handleAudioSave} />}
+                    {activePanel === 'subtitles' && <SubtitlesPanel onClose={() => setActivePanel(null)} video={editVideoUrl} onSave={handleSubtitlesSave} />}
                   {activePanel === 'monetization' && <MonetizationPanel onClose={() => setActivePanel(null)} />}
                   {activePanel === 'analytics' && <AnalyticsPanel onClose={() => setActivePanel(null)} />}
                   {activePanel === 'sharing' && <CrossPlatformSharingPanel onClose={() => setActivePanel(null)} />}
