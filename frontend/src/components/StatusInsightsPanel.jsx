@@ -183,11 +183,11 @@ const StatusInsightsPanel = ({ onClose, status }) => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-white/60 text-xs mb-1">Best Time</p>
-                <p className="text-white font-medium">{mockInsights.peakTime}</p>
+                <p className="text-white font-medium">{displayInsights.peakTime}</p>
               </div>
               <div>
                 <p className="text-white/60 text-xs mb-1">Best Day</p>
-                <p className="text-white font-medium">{mockInsights.topDay}</p>
+                <p className="text-white font-medium">{displayInsights.topDay}</p>
               </div>
             </div>
           </div>
