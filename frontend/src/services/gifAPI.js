@@ -1,10 +1,9 @@
 import { authFetch } from '../utils/authFetch';
-
-const API_BASE = import.meta.env.VITE_API_URL || '';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
 const fetchGifs = async (params) => {
   const qs = new URLSearchParams(params);
-  const response = await authFetch(`${API_BASE}/api/advanced/gifs?${qs.toString()}`);
+  const response = await authFetch(`${resolveApiBase()}/advanced/gifs?${qs.toString()}`);
   if (!response.ok) {
     return { success: false, gifs: [], fallback: true };
   }

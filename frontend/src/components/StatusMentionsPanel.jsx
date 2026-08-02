@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, AtSign, UserPlus, Search, CheckCircle, XCircle } from 'lucide-react';
 
 const StatusMentionsPanel = ({ onClose, status, onMentionsAdd }) => {
@@ -26,7 +27,7 @@ const StatusMentionsPanel = ({ onClose, status, onMentionsAdd }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/users`, {
+      const response = await fetch(`${resolveApiBase()}/users`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -62,7 +63,7 @@ const StatusMentionsPanel = ({ onClose, status, onMentionsAdd }) => {
   const handleConfirm = async () => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${status?._id || status?.id}/mentions`, {
+      await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/mentions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

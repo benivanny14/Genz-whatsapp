@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Accessibility, Eye, Type, Volume2, Keyboard, Zap, CheckCircle, AlertCircle, Sparkles, Mic } from 'lucide-react';
 
 const StatusAccessibilityPanel = ({ onClose, status, onAccessibilityUpdate }) => {
@@ -26,7 +27,7 @@ const StatusAccessibilityPanel = ({ onClose, status, onAccessibilityUpdate }) =>
       setLoading(true);
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${status?._id || status?.id}/accessibility`, {
+        const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/accessibility`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -93,7 +94,7 @@ const StatusAccessibilityPanel = ({ onClose, status, onAccessibilityUpdate }) =>
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${statusId}/accessibility`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/${statusId}/accessibility`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -130,7 +131,7 @@ const StatusAccessibilityPanel = ({ onClose, status, onAccessibilityUpdate }) =>
   const generateAutoAltText = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${status?._id || status?.id}/alt-text`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/alt-text`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -152,7 +153,7 @@ const StatusAccessibilityPanel = ({ onClose, status, onAccessibilityUpdate }) =>
   const generateAutoCaptions = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${status?._id || status?.id}/captions`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/captions`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

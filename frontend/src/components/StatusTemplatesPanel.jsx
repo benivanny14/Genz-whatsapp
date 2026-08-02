@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Layout, Sparkles, Star, Clock, TrendingUp, Heart } from 'lucide-react';
 
 const StatusTemplatesPanel = ({ onClose, status, onTemplateSelect }) => {
@@ -29,7 +30,7 @@ const StatusTemplatesPanel = ({ onClose, status, onTemplateSelect }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/templates`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/templates`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

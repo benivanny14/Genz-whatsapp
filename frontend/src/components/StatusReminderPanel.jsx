@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Bell, Clock, Calendar, Plus, Trash2, CheckCircle, AlertCircle } from 'lucide-react';
 
 const StatusReminderPanel = ({ onClose, status, onReminderSet }) => {
@@ -18,7 +19,7 @@ const StatusReminderPanel = ({ onClose, status, onReminderSet }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${status?._id || status?.id}/reminder`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/reminder`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -52,7 +53,7 @@ const StatusReminderPanel = ({ onClose, status, onReminderSet }) => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${status?._id || status?.id}/reminder`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/reminder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

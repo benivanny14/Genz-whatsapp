@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Flag, AlertTriangle, CheckCircle, MessageSquare } from 'lucide-react';
 
 const StatusReportPanel = ({ onClose, status, onReportSubmit }) => {
@@ -25,7 +26,7 @@ const StatusReportPanel = ({ onClose, status, onReportSubmit }) => {
     setIsSubmitting(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${status?._id || status?.id}/report`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/report`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

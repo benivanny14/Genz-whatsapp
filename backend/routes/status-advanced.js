@@ -21,6 +21,7 @@ router.get('/archived', statusAdvancedController.getArchivedStatuses);
 router.post('/:id/reminder', statusAdvancedController.setReminder);
 
 // Reactions
+router.get('/:id/reactions', statusAdvancedController.getReactions);
 router.post('/:id/react', statusAdvancedController.addReaction);
 
 // Polls

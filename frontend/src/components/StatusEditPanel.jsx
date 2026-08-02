@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Edit, Type, Palette, Image, Video, Music, MapPin, Save, Trash2, RotateCcw } from 'lucide-react';
 
 const StatusEditPanel = ({ onClose, status, onStatusUpdate }) => {
@@ -37,7 +38,7 @@ const StatusEditPanel = ({ onClose, status, onStatusUpdate }) => {
     setIsSaving(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status/${status?._id || status?.id}`, {
+      const response = await fetch(`${resolveApiBase()}/status/${status?._id || status?.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -80,7 +81,7 @@ const StatusEditPanel = ({ onClose, status, onStatusUpdate }) => {
     if (confirm('Are you sure you want to delete this status?')) {
       try {
         const token = localStorage.getItem('token');
-        await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status/${status?._id || status?.id}`, {
+        await fetch(`${resolveApiBase()}/status/${status?._id || status?.id}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`

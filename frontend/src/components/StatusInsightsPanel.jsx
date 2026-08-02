@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, TrendingUp, Users, Eye, Heart, Share2, Clock, BarChart3, Calendar } from 'lucide-react';
 
 const StatusInsightsPanel = ({ onClose, status }) => {
@@ -16,7 +17,7 @@ const StatusInsightsPanel = ({ onClose, status }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${status?._id || status?.id}/insights`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/insights`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

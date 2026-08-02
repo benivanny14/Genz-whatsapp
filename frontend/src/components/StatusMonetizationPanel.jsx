@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, DollarSign, TrendingUp, Target, Users, Clock, CheckCircle, AlertCircle, Zap, Crown, Gift, CreditCard, BarChart3 } from 'lucide-react';
 
 const StatusMonetizationPanel = ({ onClose, status, onMonetizationUpdate }) => {
@@ -61,7 +62,7 @@ const StatusMonetizationPanel = ({ onClose, status, onMonetizationUpdate }) => {
       setLoading(true);
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${status?._id || status?.id}/monetization`, {
+        const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/monetization`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -131,7 +132,7 @@ const StatusMonetizationPanel = ({ onClose, status, onMonetizationUpdate }) => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${statusId}/monetization`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/${statusId}/monetization`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

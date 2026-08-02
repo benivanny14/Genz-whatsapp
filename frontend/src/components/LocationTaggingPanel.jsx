@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, MapPin, Navigation, Search, Star, Clock, CheckCircle, Plus } from 'lucide-react';
 
 const LocationTaggingPanel = ({ onClose, status, onLocationAdd }) => {
@@ -92,7 +93,7 @@ const LocationTaggingPanel = ({ onClose, status, onLocationAdd }) => {
 
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${status?._id || status?.id}/location`, {
+      await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/location`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

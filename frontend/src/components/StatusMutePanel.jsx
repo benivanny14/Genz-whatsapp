@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, BellOff, Bell, CheckCircle, Clock } from 'lucide-react';
 
 const StatusMutePanel = ({ onClose, status, onMute }) => {
@@ -19,7 +20,7 @@ const StatusMutePanel = ({ onClose, status, onMute }) => {
     setIsMuting(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${status?._id || status?.id}/mute`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/mute`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

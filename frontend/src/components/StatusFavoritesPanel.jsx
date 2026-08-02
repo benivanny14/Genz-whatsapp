@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Heart, Star, Clock, Trash2, Share2, Filter } from 'lucide-react';
 
 const StatusFavoritesPanel = ({ onClose, status, onFavoriteAction }) => {
@@ -14,7 +15,7 @@ const StatusFavoritesPanel = ({ onClose, status, onFavoriteAction }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/favorites`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/favorites`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -40,7 +41,7 @@ const StatusFavoritesPanel = ({ onClose, status, onFavoriteAction }) => {
   const handleRemoveFavorite = async (favId) => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${favId}/favorite`, {
+      await fetch(`${resolveApiBase()}/status-advanced/${favId}/favorite`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

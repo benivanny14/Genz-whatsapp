@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, MapPin, Clock, CheckCircle, Trash2 } from 'lucide-react';
 
 const StatusPinPanel = ({ onClose, status, onPinAction }) => {
@@ -15,7 +16,7 @@ const StatusPinPanel = ({ onClose, status, onPinAction }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/pinned`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/pinned`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -48,7 +49,7 @@ const StatusPinPanel = ({ onClose, status, onPinAction }) => {
 
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${statusId}/pin`, {
+      await fetch(`${resolveApiBase()}/status-advanced/${statusId}/pin`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -84,7 +85,7 @@ const StatusPinPanel = ({ onClose, status, onPinAction }) => {
 
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${statusId}/pin`, {
+      await fetch(`${resolveApiBase()}/status-advanced/${statusId}/pin`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

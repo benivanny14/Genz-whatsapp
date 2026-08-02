@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Download, Image, Video, FileText, Music, CheckCircle, AlertCircle } from 'lucide-react';
 
 const StatusDownloadPanel = ({ onClose, status, onDownload }) => {
@@ -29,7 +30,7 @@ const StatusDownloadPanel = ({ onClose, status, onDownload }) => {
       const token = localStorage.getItem('token');
       
       // Call backend to record download
-      await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${status?._id || status?.id}/download`, {
+      await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/download`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

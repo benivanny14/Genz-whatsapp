@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Video, Users, Heart, MessageCircle, Share2, MoreVertical, Eye, Clock, Zap, Ban } from 'lucide-react';
 
 const StatusLivePanel = ({ onClose, onStartLive }) => {
@@ -39,7 +40,7 @@ const StatusLivePanel = ({ onClose, onStartLive }) => {
     setIsStarting(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/live`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/live`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

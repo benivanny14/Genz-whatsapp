@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Calendar, Clock, Repeat, Bell, CheckCircle, AlertCircle, Zap } from 'lucide-react';
 
 const StatusSchedulerPanel = ({ onClose, status, onScheduleStatus }) => {
@@ -38,7 +39,7 @@ const StatusSchedulerPanel = ({ onClose, status, onScheduleStatus }) => {
     setIsScheduling(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${status?._id || status?.id}/schedule`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/schedule`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

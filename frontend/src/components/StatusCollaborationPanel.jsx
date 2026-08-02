@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Users, Plus, UserPlus, Share2, Lock, Unlock, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 
 const StatusCollaborationPanel = ({ onClose, status, onCollaborationUpdate }) => {
@@ -23,7 +24,7 @@ const StatusCollaborationPanel = ({ onClose, status, onCollaborationUpdate }) =>
       setLoading(true);
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${status?._id || status?.id}/collaboration`, {
+        const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/collaboration`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -93,7 +94,7 @@ const StatusCollaborationPanel = ({ onClose, status, onCollaborationUpdate }) =>
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${statusId}/collaboration`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/${statusId}/collaboration`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

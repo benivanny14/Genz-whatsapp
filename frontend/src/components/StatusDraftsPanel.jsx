@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, FileText, Clock, Trash2, Edit, Send, Plus } from 'lucide-react';
 
 const StatusDraftsPanel = ({ onClose, onDraftSelect, onDraftDelete }) => {
@@ -15,7 +16,7 @@ const StatusDraftsPanel = ({ onClose, onDraftSelect, onDraftDelete }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/drafts`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/drafts`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -43,7 +44,7 @@ const StatusDraftsPanel = ({ onClose, onDraftSelect, onDraftDelete }) => {
 
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/draft`, {
+      await fetch(`${resolveApiBase()}/status-advanced/draft`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -78,7 +79,7 @@ const StatusDraftsPanel = ({ onClose, onDraftSelect, onDraftDelete }) => {
   const handleDeleteDraft = async (draftId) => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${draftId}`, {
+      await fetch(`${resolveApiBase()}/status-advanced/${draftId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

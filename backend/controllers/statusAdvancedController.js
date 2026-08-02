@@ -84,13 +84,14 @@ exports.addCollaborator = async (req, res) => {
 exports.archiveStatus = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
+    const { isArchived = true } = req.body;
     const status = await Status.findById(req.params.id);
     
     if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
     if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
 
-    status.isArchived = true;
-    status.archivedAt = new Date();
+    status.isArchived = isArchived;
+    status.archivedAt = isArchived ? new Date() : null;
     await status.save();
 
     res.json({ success: true, status });
@@ -140,21 +141,42 @@ exports.setReminder = async (req, res) => {
   }
 };
 
+// GET /api/status/:id/reactions - Get reaction counts for status
+exports.getReactions = async (req, res) => {
+  try {
+    const status = await Status.findById(req.params.id);
+
+    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+
+    const counts = {};
+    status.reactions.forEach(r => {
+      const key = r.emoji || r.reactionId || 'unknown';
+      counts[key] = (counts[key] || 0) + 1;
+    });
+
+    res.json({ success: true, reactions: counts });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 // POST /api/status/:id/react - Add reaction to status
 exports.addReaction = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
-    const { emoji } = req.body;
+    const { emoji, reactionId } = req.body;
     const status = await Status.findById(req.params.id);
     
     if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+
+    const key = emoji || reactionId;
 
     // Remove existing reaction from user
     status.reactions = status.reactions.filter(r => String(r.user) !== String(userId));
     
     // Add new reaction
-    if (emoji) {
-      status.reactions.push({ user: userId, emoji, createdAt: new Date() });
+    if (key) {
+      status.reactions.push({ user: userId, emoji: key, createdAt: new Date() });
     }
     await status.save();
 

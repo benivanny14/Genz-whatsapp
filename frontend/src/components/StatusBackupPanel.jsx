@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Download, Upload, Cloud, HardDrive, RefreshCw, CheckCircle, AlertCircle, Calendar } from 'lucide-react';
 
 const StatusBackupPanel = ({ onClose, onBackupAction }) => {
@@ -18,7 +19,7 @@ const StatusBackupPanel = ({ onClose, onBackupAction }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/backup`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/backup`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -53,7 +54,7 @@ const StatusBackupPanel = ({ onClose, onBackupAction }) => {
     setIsBackingUp(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/backup`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/backup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -108,7 +109,7 @@ const StatusBackupPanel = ({ onClose, onBackupAction }) => {
     setIsBackingUp(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/restore`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/restore`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Hash, TrendingUp, Plus, XCircle, Search, CheckCircle } from 'lucide-react';
 
 const StatusHashtagsPanel = ({ onClose, status, onHashtagsAdd }) => {
@@ -29,7 +30,7 @@ const StatusHashtagsPanel = ({ onClose, status, onHashtagsAdd }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/hashtags/trending`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/hashtags/trending`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -71,7 +72,7 @@ const StatusHashtagsPanel = ({ onClose, status, onHashtagsAdd }) => {
   const handleConfirm = async () => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${status?._id || status?.id}/hashtags`, {
+      await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/hashtags`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

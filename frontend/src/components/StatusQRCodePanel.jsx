@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, QrCode, Download, Share2, Copy, Link, Scan } from 'lucide-react';
 
 const StatusQRCodePanel = ({ onClose, status }) => {
@@ -36,7 +37,7 @@ const StatusQRCodePanel = ({ onClose, status }) => {
       const token = localStorage.getItem('token');
       const statusUrl = customUrl || `${window.location.origin}/status/${status?._id || status?.id}`;
       
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${status?._id || status?.id}/qrcode`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/qrcode`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

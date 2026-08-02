@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Archive, Calendar, Search, Filter, Download, Trash2, Eye, Clock, Tag } from 'lucide-react';
 
 const StatusArchivePanel = ({ onClose, onArchiveAction }) => {
@@ -17,7 +18,7 @@ const StatusArchivePanel = ({ onClose, onArchiveAction }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/archived`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/archived`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -43,7 +44,7 @@ const StatusArchivePanel = ({ onClose, onArchiveAction }) => {
   const handleDelete = async (statusId) => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status/${statusId}`, {
+      await fetch(`${resolveApiBase()}/status/${statusId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -62,7 +63,7 @@ const StatusArchivePanel = ({ onClose, onArchiveAction }) => {
   const handleRestore = async (statusId) => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${statusId}/archive`, {
+      await fetch(`${resolveApiBase()}/status-advanced/${statusId}/archive`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

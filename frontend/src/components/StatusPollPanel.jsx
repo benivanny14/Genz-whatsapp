@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, BarChart3, Plus, Trash2, CheckCircle, Clock, Users } from 'lucide-react';
 
 const StatusPollPanel = ({ onClose, status, onPollCreate }) => {
@@ -49,7 +50,7 @@ const StatusPollPanel = ({ onClose, status, onPollCreate }) => {
     setIsCreating(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${status?._id || status?.id}/poll`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/poll`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

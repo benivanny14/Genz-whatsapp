@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Heart, ThumbsUp, Laugh, Flame, Star, Smile, Angry, Frown, Zap, TrendingUp } from 'lucide-react';
 
 const StatusReactionPanel = ({ onClose, status, onReactionAdd }) => {
@@ -28,7 +29,7 @@ const StatusReactionPanel = ({ onClose, status, onReactionAdd }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${status?._id || status?.id}/reactions`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/reactions`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -60,7 +61,7 @@ const StatusReactionPanel = ({ onClose, status, onReactionAdd }) => {
 
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${statusId}/react`, {
+      await fetch(`${resolveApiBase()}/status-advanced/${statusId}/react`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

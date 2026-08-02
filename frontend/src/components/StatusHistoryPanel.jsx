@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, History, Clock, Calendar, BarChart3, Eye, Download, Filter, Search } from 'lucide-react';
 
 const StatusHistoryPanel = ({ onClose, status }) => {
@@ -15,7 +16,7 @@ const StatusHistoryPanel = ({ onClose, status }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/history`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/history`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

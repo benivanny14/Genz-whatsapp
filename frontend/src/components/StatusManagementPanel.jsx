@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Edit3, Share2, BarChart3, Star, Bookmark, Layout, Palette, Crown, Copy, Trash2, Save } from 'lucide-react';
 
 const StatusManagementPanel = ({ onClose, status, onSave }) => {
@@ -32,7 +33,7 @@ const StatusManagementPanel = ({ onClose, status, onSave }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status/${status?._id || status?.id}`, {
+      const response = await fetch(`${resolveApiBase()}/status/${status?._id || status?.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

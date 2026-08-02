@@ -28,7 +28,7 @@ const GroupQRCode = ({ groupId, groupName, onClose }) => {
       
       // Use a QR code generation library or API
       // For this implementation, we'll use a public QR code API
-      const inviteUrl = `${process.env.REACT_APP_FRONTEND_URL || window.location.origin}/invite/${groupId}`;
+      const inviteUrl = `${import.meta.env.VITE_FRONTEND_URL || window.location.origin}/invite/${groupId}`;
       const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(inviteUrl)}`;
       
       setQrCode(qrApiUrl);

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { QrCode, Smartphone, Laptop, Tablet, Trash2, Check, X, RefreshCw } from 'lucide-react';
+import { resolveApiBase } from '../utils/resolveApiBase';
+import { authFetch } from '../utils/authFetch';
 
 const DeviceLinking = ({ onLinkDevice, onUnlinkDevice, linkedDevices = [] }) => {
   const [showQRModal, setShowQRModal] = useState(false);
@@ -30,11 +32,7 @@ const DeviceLinking = ({ onLinkDevice, onUnlinkDevice, linkedDevices = [] }) => 
   const generateQRCode = async () => {
     setIsGenerating(true);
     try {
-      const token = localStorage.getItem('token');
-      const API = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${API}/api/devices/generate-qr`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      });
+      const res = await authFetch(`${resolveApiBase()}/device/generate-qr`);
       const data = await res.json();
       if (data.qrCode) {
         setQrCode(data.qrCode);

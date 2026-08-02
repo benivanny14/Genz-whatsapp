@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Share2, Link, MessageCircle, Mail, Copy, CheckCircle, Download, Instagram, Facebook, Twitter, Send } from 'lucide-react';
 
 const StatusSharePanel = ({ onClose, status, onShare }) => {
@@ -39,7 +40,7 @@ const StatusSharePanel = ({ onClose, status, onShare }) => {
     try {
       // Call backend API to record share
       const token = localStorage.getItem('token');
-      await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${status?._id || status?.id}/share`, {
+      await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/share`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

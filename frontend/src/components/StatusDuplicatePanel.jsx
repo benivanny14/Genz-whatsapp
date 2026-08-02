@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Copy, CheckCircle, Clock, Calendar } from 'lucide-react';
 
 const StatusDuplicatePanel = ({ onClose, status, onDuplicate }) => {
@@ -12,7 +13,7 @@ const StatusDuplicatePanel = ({ onClose, status, onDuplicate }) => {
     setIsDuplicating(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/status-advanced/${status?._id || status?.id}/duplicate`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/duplicate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
