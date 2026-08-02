@@ -185,6 +185,62 @@ const statusSchema = new mongoose.Schema({
     forwardedAt: { type: Date }
   }],
   forwardCount: { type: Number, default: 0 },
+  monetization: {
+    monetizationEnabled: { type: Boolean, default: false },
+    adType: { type: String, default: 'none' },
+    sponsoredContent: { type: Boolean, default: false },
+    affiliateLinks: { type: Boolean, default: false },
+    donationEnabled: { type: Boolean, default: false },
+    subscriptionEnabled: { type: Boolean, default: false },
+    exclusiveContent: { type: Boolean, default: false },
+    tipJarEnabled: { type: Boolean, default: false },
+    fundraiserEnabled: { type: Boolean, default: false },
+    adSettings: {
+      placement: { type: String, default: 'bottom' },
+      frequency: { type: String, default: 'low' },
+      targetAudience: { type: String, default: 'all' }
+    },
+    earnings: {
+      total: { type: Number, default: 0 },
+      thisMonth: { type: Number, default: 0 },
+      lastMonth: { type: Number, default: 0 },
+      adRevenue: { type: Number, default: 0 },
+      donations: { type: Number, default: 0 },
+      subscriptions: { type: Number, default: 0 },
+      tips: { type: Number, default: 0 }
+    }
+  },
+  accessibility: {
+    altText: { type: String, default: '' },
+    autoAltText: { type: Boolean, default: false },
+    captions: { type: String, default: '' },
+    autoCaptions: { type: Boolean, default: false },
+    audioDescription: { type: String, default: '' },
+    colorContrast: { type: String, default: 'normal' },
+    textToSpeech: { type: Boolean, default: false },
+    reduceMotion: { type: Boolean, default: false },
+    highContrast: { type: Boolean, default: false },
+    largeText: { type: Boolean, default: false }
+  },
+  altText: { type: String, default: '' },
+  captions: { type: String, default: '' },
+  analytics: {
+    totalViews: { type: Number, default: 0 },
+    uniqueViewers: { type: Number, default: 0 },
+    engagementRate: { type: Number, default: 0 },
+    shareCount: { type: Number, default: 0 },
+    saveCount: { type: Number, default: 0 },
+    peakTime: { type: String, default: '' },
+    topDay: { type: String, default: '' },
+    demographics: {
+      age: [{ range: { type: String }, percentage: { type: Number } }],
+      gender: [{ gender: { type: String }, percentage: { type: Number } }]
+    },
+    viewsByTime: [{ time: { type: String }, views: { type: Number } }],
+    viewsByDevice: [{ device: { type: String }, views: { type: Number }, percentage: { type: Number } }],
+    viewsByLocation: [{ location: { type: String }, views: { type: Number } }],
+    dropOffPoints: [{ step: { type: String }, percentage: { type: Number } }]
+  },
   
   expiresAt: {
     type: Date,

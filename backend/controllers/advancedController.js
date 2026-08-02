@@ -1708,3 +1708,210 @@ exports.getGifs = async (req, res) => {
     });
   }
 };
+
+// @desc    Get monetization settings for a status
+// @route   GET /api/advanced/status-advanced/:id/monetization
+// @access  Private
+exports.getMonetization = async (req, res) => {
+  try {
+    const statusId = req.params.id;
+    const status = await Status.findById(statusId);
+    if (!status) {
+      return res.status(404).json({ success: false, message: 'Status not found' });
+    }
+    res.status(200).json({ success: true, monetization: status.monetization || {} });
+  } catch (error) {
+    console.error('Error getting monetization:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Update monetization settings for a status
+// @route   POST /api/advanced/status-advanced/:id/monetization
+// @access  Private
+exports.updateMonetization = async (req, res) => {
+  try {
+    const currentUserId = getCurrentUserId(req);
+    const statusId = req.params.id;
+    const monetization = req.body;
+
+    const status = await Status.findById(statusId);
+    if (!status) {
+      return res.status(404).json({ success: false, message: 'Status not found' });
+    }
+    if (String(status.userId || status.user) !== String(currentUserId)) {
+      return res.status(403).json({ success: false, message: 'You can only update your own statuses' });
+    }
+
+    status.monetization = { ...status.monetization, ...monetization };
+    await status.save();
+
+    res.status(200).json({ success: true, monetization: status.monetization });
+  } catch (error) {
+    console.error('Error updating monetization:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get accessibility settings for a status
+// @route   GET /api/advanced/status-advanced/:id/accessibility
+// @access  Private
+exports.getAccessibility = async (req, res) => {
+  try {
+    const statusId = req.params.id;
+    const status = await Status.findById(statusId);
+    if (!status) {
+      return res.status(404).json({ success: false, message: 'Status not found' });
+    }
+    res.status(200).json({ success: true, accessibility: status.accessibility || {} });
+  } catch (error) {
+    console.error('Error getting accessibility:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Update accessibility settings for a status
+// @route   POST /api/advanced/status-advanced/:id/accessibility
+// @access  Private
+exports.updateAccessibility = async (req, res) => {
+  try {
+    const currentUserId = getCurrentUserId(req);
+    const statusId = req.params.id;
+    const accessibility = req.body;
+
+    const status = await Status.findById(statusId);
+    if (!status) {
+      return res.status(404).json({ success: false, message: 'Status not found' });
+    }
+    if (String(status.userId || status.user) !== String(currentUserId)) {
+      return res.status(403).json({ success: false, message: 'You can only update your own statuses' });
+    }
+
+    status.accessibility = { ...status.accessibility, ...accessibility };
+    await status.save();
+
+    res.status(200).json({ success: true, accessibility: status.accessibility });
+  } catch (error) {
+    console.error('Error updating accessibility:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Generate alt text for a status
+// @route   POST /api/advanced/status-advanced/:id/alt-text
+// @access  Private
+exports.generateAltText = async (req, res) => {
+  try {
+    const currentUserId = getCurrentUserId(req);
+    const statusId = req.params.id;
+    const { altText } = req.body;
+
+    const status = await Status.findById(statusId);
+    if (!status) {
+      return res.status(404).json({ success: false, message: 'Status not found' });
+    }
+    if (String(status.userId || status.user) !== String(currentUserId)) {
+      return res.status(403).json({ success: false, message: 'You can only update your own statuses' });
+    }
+
+    status.altText = altText || '';
+    if (status.accessibility) {
+      status.accessibility.altText = altText || '';
+      status.accessibility.autoAltText = true;
+    }
+    await status.save();
+
+    res.status(200).json({ success: true, altText: status.altText });
+  } catch (error) {
+    console.error('Error generating alt text:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Generate captions for a status
+// @route   POST /api/advanced/status-advanced/:id/captions
+// @access  Private
+exports.generateCaptions = async (req, res) => {
+  try {
+    const currentUserId = getCurrentUserId(req);
+    const statusId = req.params.id;
+    const { captions } = req.body;
+
+    const status = await Status.findById(statusId);
+    if (!status) {
+      return res.status(404).json({ success: false, message: 'Status not found' });
+    }
+    if (String(status.userId || status.user) !== String(currentUserId)) {
+      return res.status(403).json({ success: false, message: 'You can only update your own statuses' });
+    }
+
+    status.captions = captions || '';
+    if (status.accessibility) {
+      status.accessibility.captions = captions || '';
+      status.accessibility.autoCaptions = true;
+    }
+    await status.save();
+
+    res.status(200).json({ success: true, captions: status.captions });
+  } catch (error) {
+    console.error('Error generating captions:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get analytics for a status
+// @route   GET /api/advanced/status-advanced/:id/analytics
+// @access  Private
+exports.getAnalytics = async (req, res) => {
+  try {
+    const statusId = req.params.id;
+    const status = await Status.findById(statusId);
+    if (!status) {
+      return res.status(404).json({ success: false, message: 'Status not found' });
+    }
+
+    const analytics = status.analytics || {
+      totalViews: status.viewsCount || 0,
+      uniqueViewers: (status.views || []).length,
+      engagementRate: 0,
+      shareCount: 0,
+      saveCount: 0,
+      peakTime: '',
+      topDay: '',
+      demographics: { age: [], gender: [] },
+      viewsByTime: [],
+      viewsByDevice: [],
+      viewsByLocation: [],
+      dropOffPoints: []
+    };
+
+    res.status(200).json({ success: true, analytics });
+  } catch (error) {
+    console.error('Error getting analytics:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get reactions for a status
+// @route   GET /api/advanced/status-advanced/:id/reactions
+// @access  Private
+exports.getReactions = async (req, res) => {
+  try {
+    const statusId = req.params.id;
+    const status = await Status.findById(statusId);
+    if (!status) {
+      return res.status(404).json({ success: false, message: 'Status not found' });
+    }
+
+    const reactionCounts = {};
+    (status.reactions || []).forEach((r) => {
+      const emoji = r.emoji || 'like';
+      reactionCounts[emoji] = (reactionCounts[emoji] || 0) + 1;
+    });
+
+    res.status(200).json({ success: true, reactions: reactionCounts });
+  } catch (error) {
+    console.error('Error getting reactions:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
