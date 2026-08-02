@@ -24,6 +24,16 @@ router.post('/:id/reminder', statusAdvancedController.setReminder);
 router.get('/:id/reactions', statusAdvancedController.getReactions);
 router.post('/:id/react', statusAdvancedController.addReaction);
 
+// Monetization
+router.get('/:id/monetization', statusAdvancedController.getMonetization);
+router.post('/:id/monetization', statusAdvancedController.updateMonetization);
+
+// Accessibility
+router.get('/:id/accessibility', statusAdvancedController.getAccessibility);
+router.post('/:id/accessibility', statusAdvancedController.updateAccessibility);
+router.post('/:id/alt-text', statusAdvancedController.generateAltText);
+router.post('/:id/captions', statusAdvancedController.generateCaptions);
+
 // Polls
 router.post('/:id/poll', statusAdvancedController.createPoll);
 router.post('/:id/poll/vote', statusAdvancedController.votePoll);
@@ -81,6 +91,7 @@ router.get('/history', statusAdvancedController.getHistory);
 
 // Insights
 router.get('/:id/insights', statusAdvancedController.getInsights);
+router.get('/:id/analytics', statusAdvancedController.getAnalytics);
 
 // Boost
 router.post('/:id/boost', statusAdvancedController.boostStatus);

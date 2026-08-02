@@ -1367,6 +1367,13 @@ const Status = () => {
                     >
                       Video Tools
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setActivePanel('ar')}
+                      className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-gray-700 dark:text-gray-300 text-xs"
+                    >
+                      AR Filters
+                    </button>
                   </div>
                 </div>
               )}

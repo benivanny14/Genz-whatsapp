@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, BarChart3, TrendingUp, Users, Eye, Heart, Share, ArrowUp, ArrowDown, Calendar, MapPin, Smartphone, Monitor } from 'lucide-react';
+import { X, BarChart3, TrendingUp, Users, Eye, Heart, Share2, ArrowUp, ArrowDown, Calendar, MapPin, Smartphone, Monitor } from 'lucide-react';
 
 const AnalyticsPanel = ({ onClose, statusData }) => {
   const [timeRange, setTimeRange] = useState('7d');
