@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageSquare, X, Send, Heart, Laugh, ThumbsUp, Wow, Sad, Angry, Smile } from 'lucide-react';
+import { MessageSquare, X, Send, Heart, Laugh, ThumbsUp, Sparkles, Frown, Angry, Smile } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const StatusReplies = ({ status, onReply, onClose }) => {
@@ -10,8 +10,8 @@ const StatusReplies = ({ status, onReply, onClose }) => {
     { id: 'love', icon: Heart, color: 'text-red-500' },
     { id: 'like', icon: ThumbsUp, color: 'text-blue-500' },
     { id: 'laugh', icon: Laugh, color: 'text-yellow-500' },
-    { id: 'wow', icon: Wow, color: 'text-purple-500' },
-    { id: 'sad', icon: Sad, color: 'text-gray-400' },
+    { id: 'wow', icon: Sparkles, color: 'text-purple-500' },
+    { id: 'sad', icon: Frown, color: 'text-gray-400' },
     { id: 'angry', icon: Angry, color: 'text-orange-500' },
   ];
 
@@ -164,8 +164,8 @@ export const StatusReplyDisplay = ({ reply }) => {
     love: Heart,
     like: ThumbsUp,
     laugh: Laugh,
-    wow: Wow,
-    sad: Sad,
+    wow: Sparkles,
+    sad: Frown,
     angry: Angry,
   };
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, ThumbsUp, Laugh, Wow, Sad, Angry, MoreHorizontal, X } from 'lucide-react';
+import { Heart, ThumbsUp, Laugh, Sparkles, Frown, Angry, MoreHorizontal, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const MessageReactions = ({ message, onReact, onRemoveReaction, onClose }) => {
@@ -9,8 +9,8 @@ const MessageReactions = ({ message, onReact, onRemoveReaction, onClose }) => {
     { id: 'love', icon: Heart, color: 'text-red-500', label: 'Love' },
     { id: 'like', icon: ThumbsUp, color: 'text-blue-500', label: 'Like' },
     { id: 'laugh', icon: Laugh, color: 'text-yellow-500', label: 'Laugh' },
-    { id: 'wow', icon: Wow, color: 'text-purple-500', label: 'Wow' },
-    { id: 'sad', icon: Sad, color: 'text-gray-400', label: 'Sad' },
+    { id: 'wow', icon: Sparkles, color: 'text-purple-500', label: 'Sparkles' },
+    { id: 'sad', icon: Frown, color: 'text-gray-400', label: 'Frown' },
     { id: 'angry', icon: Angry, color: 'text-orange-500', label: 'Angry' },
   ];
 
@@ -108,8 +108,8 @@ export const MessageReactionDisplay = ({ reactions, onRemoveReaction }) => {
     love: Heart,
     like: ThumbsUp,
     laugh: Laugh,
-    wow: Wow,
-    sad: Sad,
+    wow: Sparkles,
+    sad: Frown,
     angry: Angry,
   };
 
@@ -270,8 +270,8 @@ export const ReactionNotification = ({ reaction, onView, onDismiss }) => {
     love: Heart,
     like: ThumbsUp,
     laugh: Laugh,
-    wow: Wow,
-    sad: Sad,
+    wow: Sparkles,
+    sad: Frown,
     angry: Angry,
   };
 

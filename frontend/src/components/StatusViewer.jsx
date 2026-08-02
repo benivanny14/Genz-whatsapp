@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { X, Clock, Eye, ChevronUp, ChevronLeft, ChevronRight, Pause, Play, Users, MessageCircle, Trash2, Share2, MoreVertical, Download, Heart, Send, Search, Check } from 'lucide-react';
+import { X, Clock, Eye, ChevronUp, ChevronLeft, ChevronRight, Pause, Play, Users, MessageCircle, Trash2, Share2, MoreVertical, Download, Heart, Send, Search, Check, Smile, ThumbsUp, Laugh, Sparkles, Frown, Angry } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChat } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
 import { getSocket } from '../services/socket';
 import statusService from '../services/statusService';
 import { chatAPI } from '../services/api';
+import { StatusRepliesList, StatusReplyDisplay } from './StatusReplies';
 
 const sid = (s) => String(s?._id || '');
 
@@ -38,6 +39,9 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
   const [isPaused, setIsPaused] = useState(false);
   const [detailedViewers, setDetailedViewers] = useState([]);
   const [loadingViewers, setLoadingViewers] = useState(false);
+  const [statusReplies, setStatusReplies] = useState([]);
+  const [showReplies, setShowReplies] = useState(false);
+  const [loadingReplies, setLoadingReplies] = useState(false);
   const previousStatusIdRef = useRef(null);
   const replyInputRef = useRef(null);
   const timerRef = useRef(null);
@@ -209,6 +213,25 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
       setReplySending(false);
     }
   }, [replyText, replySending, replyToStatus, currentId]);
+
+  const fetchStatusReplies = useCallback(async (statusId) => {
+    if (!statusId) return;
+    setLoadingReplies(true);
+    try {
+      const data = await statusService.getStatusReplies(statusId);
+      setStatusReplies(data?.replies || []);
+    } catch (error) {
+      console.error('Error fetching status replies:', error);
+      setStatusReplies([]);
+    } finally {
+      setLoadingReplies(false);
+    }
+  }, []);
+
+  const handleViewReplies = useCallback(async () => {
+    setShowReplies(true);
+    await fetchStatusReplies(currentId);
+  }, [currentId, fetchStatusReplies]);
 
   const handleDelete = useCallback(async () => {
     if (!currentStatus || !isOwnStatus) return;
@@ -602,20 +625,36 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
 
       {/* ── Bottom Controls ── */}
       {isOwnStatus ? (
-        <div className="absolute bottom-6 left-0 right-0 flex justify-center z-50">
+        <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-3 z-50">
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setShowViewers(true); setIsPaused(true); }}
-            className="flex items-center gap-2 bg-[#1f2c34]/80 backdrop-blur-md px-6 py-2 rounded-full text-white/90 hover:bg-[#202c33] transition-all"
+            className="flex items-center gap-2 bg-[#1f2c34]/80 backdrop-blur-md px-4 py-2 rounded-full text-white/90 hover:bg-[#202c33] transition-all"
           >
             <Eye size={20} />
             <span className="font-medium">{displayViewCount}</span>
             <ChevronUp size={20} className="ml-1" />
           </button>
+          {currentStatus.replies && currentStatus.replies.length > 0 && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); handleViewReplies(); setIsPaused(true); }}
+              className="flex items-center gap-2 bg-[#1f2c34]/80 backdrop-blur-md px-4 py-2 rounded-full text-white/90 hover:bg-[#202c33] transition-all"
+            >
+              <MessageCircle size={20} />
+              <span className="font-medium">{currentStatus.replies.length}</span>
+              <ChevronUp size={20} className="ml-1" />
+            </button>
+          )}
         </div>
       ) : (
         <div className="absolute bottom-10 left-0 right-0 flex flex-col items-center gap-2 z-50">
           <div className="flex items-center gap-6 bg-black/40 backdrop-blur-md px-6 py-3 rounded-full">
+            <button type="button" onClick={handleViewReplies}
+              className="flex flex-col items-center text-white/80 hover:text-white transition-all active:scale-90">
+              <MessageCircle size={24} />
+              <span className="text-[10px] mt-1">Replies</span>
+            </button>
             <button type="button" onClick={handleReply}
               className="flex flex-col items-center text-white/80 hover:text-white transition-all active:scale-90">
               <MessageCircle size={24} />
@@ -720,6 +759,38 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
                     </div>
                   );
                 })
+              )}
+            </div>
+         </motion.div>
+       )}
+       </AnimatePresence>
+
+      {/* ── Status Replies List ── */}
+      <AnimatePresence>
+        {showReplies && (
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            className="absolute inset-x-0 bottom-0 h-1/2 bg-[#1f2c34] rounded-t-3xl z-[60] p-4 shadow-2xl border-t border-white/10 flex flex-col"
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-white font-semibold flex items-center gap-2">
+                <MessageCircle size={18} className="text-[#00a884]" /> Replies ({statusReplies.length})
+              </h3>
+              <button type="button" onClick={() => { setShowReplies(false); setIsPaused(false); }} className="text-white/70 hover:text-white transition-all" aria-label="Close">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-1 pr-2">
+              {loadingReplies ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                </div>
+              ) : statusReplies.length === 0 ? (
+                <div className="text-white/50 text-center mt-10 text-sm">No replies yet</div>
+              ) : (
+                <StatusRepliesList replies={statusReplies} onReply={() => {}} />
               )}
             </div>
           </motion.div>
