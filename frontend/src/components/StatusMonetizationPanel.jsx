@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
-import { X, DollarSign, TrendingUp, Target, Users, Clock, CheckCircle, AlertCircle, Zap, Crown, Gift, CreditCard, BarChart3 } from 'lucide-react';
+import { X, DollarSign, TrendingUp, Target, Users, Clock, CheckCircle, AlertCircle, Zap, Crown, Gift, CreditCard, BarChart3, Play } from 'lucide-react';
 
 const StatusMonetizationPanel = ({ onClose, status, onMonetizationUpdate }) => {
   const [monetizationEnabled, setMonetizationEnabled] = useState(false);

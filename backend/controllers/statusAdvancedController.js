@@ -118,6 +118,17 @@ exports.getArchivedStatuses = async (req, res) => {
   }
 };
 
+// GET /api/status/:id/reminder - Get reminder for status
+exports.getReminder = async (req, res) => {
+  try {
+    const status = await Status.findById(req.params.id);
+    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+    res.json({ success: true, reminder: status.reminder || null });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 // POST /api/status/:id/reminder - Set reminder for status
 exports.setReminder = async (req, res) => {
   try {

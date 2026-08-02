@@ -18,6 +18,7 @@ router.post('/:id/archive', statusAdvancedController.archiveStatus);
 router.get('/archived', statusAdvancedController.getArchivedStatuses);
 
 // Reminder
+router.get('/:id/reminder', statusAdvancedController.getReminder);
 router.post('/:id/reminder', statusAdvancedController.setReminder);
 
 // Reactions

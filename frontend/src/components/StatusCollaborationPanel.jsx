@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
-import { X, Users, Plus, UserPlus, Share2, Lock, Unlock, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { X, Users, Plus, UserPlus, Share2, Lock, Unlock, Clock, CheckCircle, AlertCircle, Eye } from 'lucide-react';
 
 const StatusCollaborationPanel = ({ onClose, status, onCollaborationUpdate }) => {
   const [collaborators, setCollaborators] = useState([]);
