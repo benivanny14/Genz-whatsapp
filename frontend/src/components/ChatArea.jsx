@@ -2591,19 +2591,21 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       )
                     )}
 
-                    {/* ── Sticker Message (with optional caption, TikTok-style) ── */}
+                    {/* ── Sticker Message (TikTok-style: sticker + caption inline in bubble) ── */}
                     {message.messageType === 'sticker' && (
-                      <div className="mb-1">
-                        <img
-                          src={message.content || message.mediaUrl}
-                          alt={typeof message.content === 'string' ? message.content : 'Sticker'}
-                          className="w-24 h-24 object-contain cursor-pointer"
-                          loading="lazy"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedMedia(message);
-                          }}
-                        />
+                      <div className="mb-1" style={{ animation: 'stickerBounce 0.4s ease-out' }}>
+                        <div className="relative">
+                          <img
+                            src={message.content || message.mediaUrl}
+                            alt={typeof message.content === 'string' ? message.content : 'Sticker'}
+                            className="w-full max-w-[200px] h-auto object-contain cursor-pointer rounded-lg"
+                            loading="lazy"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedMedia(message);
+                            }}
+                          />
+                        </div>
                         {message.caption && (
                           <p className="text-sm mt-1 whitespace-pre-wrap break-words">{message.caption}</p>
                         )}
