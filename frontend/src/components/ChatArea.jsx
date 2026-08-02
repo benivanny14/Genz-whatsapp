@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useChat, applyVoiceEffect } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
-import { ArrowLeft, MoreVertical, Search, Smile, Paperclip, Send, Mic, Image as ImageIcon, MessageCircle, Ghost, Forward, Square, MapPin, ShieldCheck, Globe, BarChart2, CalendarClock, Info, UserMinus, UserCheck, ShieldAlert, Copy, Link, Pin, X, Edit, Briefcase, Plus, Eye, EyeOff, Clock, Lock, Sticker, Download, FileText, Camera, Headphones, Contact, Trash2, Reply, Share2, Star, Archive, BellOff, Bell, Radio, Users, Languages, Grid3x3, Lock as LockIcon, Unlock, ChevronLeft, AtSign } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Search, Smile, Paperclip, Send, Mic, Image as ImageIcon, MessageCircle, Ghost, Forward, Square, MapPin, ShieldCheck, Globe, BarChart2, CalendarClock, Info, UserMinus, UserCheck, ShieldAlert, Copy, Link, Pin, X, Edit, Briefcase, Plus, Eye, EyeOff, Clock, Lock, Sticker, Download, FileText, Camera, Headphones, Contact, Trash2, Reply, Share2, Star, Archive, BellOff, Bell, Radio, Users, Languages, Grid3x3, Lock as LockIcon, Unlock, ChevronLeft, AtSign, DollarSign } from 'lucide-react';
 import { formatMessageTime, decryptMessage } from '../utils/formatDate';
 import { exportChatAsTxt } from '../utils/chatExporter';
 import SignedMedia from './SignedMedia';
@@ -27,6 +27,7 @@ import AudioPlayer from './AudioPlayer';
 import LiveReactions from './LiveReactions';
 import MediaPickerPanel from './MediaPickerPanel';
 import DrawingPanel from './DrawingPanel';
+import PaymentRequestModal, { PaymentRequestsPanel } from './PaymentRequestModal';
 import ChunkedUploader from './ChunkedUploader';
 import ContactInfo from './ContactInfo';
 import GroupInfo from './GroupInfo';
@@ -390,6 +391,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [showDrawingEditor, setShowDrawingEditor] = useState(false);
   const [drawingImageUrl, setDrawingImageUrl] = useState('');
   const [pendingImageFile, setPendingImageFile] = useState(null);
+  // showPaymentModal already declared above at line 329 (original) for subscription payments
+
 
   // Debug showScheduleModal state
   useEffect(() => {
@@ -3390,7 +3393,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               <AttachmentIcon icon={<BarChart2 className="text-yellow-600" />} label="Poll" disabled={!canCreatePolls && !currentUserIsAdmin} onClick={() => setShowPollModal(true)} />
               <AttachmentIcon icon={<Clock className="text-purple-600" />} label="Disappear" onClick={() => handleSetDisappearingMessages()} disabled={!selectedConversation} />
               {/* GENZ Ultra Attachments */}
-              <AttachmentIcon icon={<Grid3x3 className="text-pink-400" />} label="Stickers" onClick={() => { setShowStickerPacks(true); setShowAttachmentMenu(false); }} />
+               <AttachmentIcon icon={<Grid3x3 className="text-pink-400" />} label="Stickers" onClick={() => { setShowStickerPacks(true); setShowAttachmentMenu(false); }} />
+               <AttachmentIcon icon={<DollarSign className="text-green-500" />} label="Pay" onClick={() => { setShowPaymentModal(true); setShowAttachmentMenu(false); }} disabled={!selectedConversation} title="TM WhatsApp Pay" />
             </div>
           )}
           {/* Quick emoji feature removed as requested */}
@@ -3717,7 +3721,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         />
       )}
 
-      {/* ── Drawing / Doodle Editor for chat media ── */}
+       {/* ── Drawing / Doodle Editor for chat media ── */}
       {showDrawingEditor && drawingImageUrl && (
         <DrawingPanel
           image={drawingImageUrl}
@@ -3728,6 +3732,17 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
             setPendingImageFile(null);
           }}
           onSave={handleDrawingSave}
+        />
+      )}
+
+      {/* ── TM WhatsApp Pay: Payment Request Modal ── */}
+      {showPaymentModal && selectedConversation && (
+        <PaymentRequestModal
+          conversation={selectedConversation}
+          onClose={() => setShowPaymentModal(false)}
+          onPaymentSent={(request) => {
+            setShowPaymentModal(false);
+          }}
         />
       )}
 
