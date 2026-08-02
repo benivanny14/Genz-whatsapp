@@ -445,14 +445,19 @@ exports.createStatus = async (req, res) => {
 
     // Set expiration to the user's configured status duration (default 24 hours)
     let statusHours = 24;
+    let userDefaultPrivacy = 'contacts';
     try {
-      const currentUser = await User.findById(currentUserId).select('statusFeaturesSettings');
+      const currentUser = await User.findById(currentUserId).select('statusFeaturesSettings settings');
       const configured = Number(currentUser?.statusFeaturesSettings?.statusDuration);
       if (Number.isFinite(configured) && configured >= 24 && configured <= 168) {
         statusHours = configured;
       }
+      const savedPrivacy = currentUser?.settings?.privacy?.status;
+      if (savedPrivacy && ['everyone', 'contacts', 'contacts_except', 'only_share_with', 'only_me', 'nobody'].includes(savedPrivacy)) {
+        userDefaultPrivacy = savedPrivacy;
+      }
     } catch (e) {
-      // fall back to 24h default
+      // fall back to 24h default and contacts privacy
     }
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + statusHours);
@@ -469,7 +474,7 @@ exports.createStatus = async (req, res) => {
       backgroundColor: backgroundColor || '#00a884',
       textColor: textColor || '#ffffff',
       font: font || 'sans-serif',
-      privacy: privacy || 'contacts',
+      privacy: privacy || userDefaultPrivacy,
       excludedViewers: Array.isArray(excludedViewers) ? excludedViewers : [],
       includedViewers: Array.isArray(includedViewers) ? includedViewers : [],
       collabUserId: collabUserId || '',
