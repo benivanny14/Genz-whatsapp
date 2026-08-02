@@ -31,16 +31,18 @@ const isEitherUserBlocked = async (userIdA, userIdB) => {
   return aBlocked || bBlocked;
 };
 
+// WhatsApp semantics: the blocker can still message the blocked user; only the
+// blocked user is prevented from messaging back. So we check one direction only:
+// is the SENDER in any RECEIVER's blockedUsers list?
 const isConversationBlocked = async (conversation, senderId) => {
   if (!conversation?.participants?.length) return false;
   const sender = String(senderId);
   const others = conversation.participants
     .map((p) => String(p?._id || p))
     .filter((id) => id && id !== sender);
-  for (const otherId of others) {
-    if (await isEitherUserBlocked(sender, otherId)) return true;
-  }
-  return false;
+  if (!others.length) return false;
+  const receivers = await User.find({ _id: { $in: others } }).select('blockedUsers').lean();
+  return receivers.some((r) => (r?.blockedUsers || []).some((id) => String(id) === sender));
 };
 
 module.exports = {

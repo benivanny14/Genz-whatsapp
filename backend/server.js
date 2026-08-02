@@ -479,7 +479,7 @@ const apiLimiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 30 : 50, // Increased limit for recovery
+  max: process.env.NODE_ENV === 'production' ? 30 : (process.env.NODE_ENV === 'test' ? 100000 : 50), // Increased limit for recovery; unlimited in tests
   message: {
     success: false,
     error: 'Too many authentication attempts, please try again later.'
@@ -643,6 +643,8 @@ const statusAdvancedRoutes = require('./routes/status-advanced');
 const settingsRoutes = require('./routes/settingsRoutes');
 const privacyContactsRoutes = require('./routes/privacyContactsRoutes');
 const phoneContactsRoutes = require('./routes/phone-contacts');
+const communityRoutes = require('./routes/communities');
+const exploreRoutes = require('./routes/explore');
 const groupInviteRoutes = require('./routes/group-invite');
 const antiRevokeRoutes = require('./routes/anti-revoke');
 const privacyModsRoutes = require('./routes/privacy-mods');
@@ -714,6 +716,8 @@ app.use('/api/security', safeMiddleware(authLimiter), securityRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/privacy', privacyContactsRoutes);
 app.use('/api/contacts', phoneContactsRoutes);
+app.use('/api/communities', communityRoutes);
+app.use('/api/explore', exploreRoutes);
 app.use('/api/groups', groupInviteRoutes);
 app.use('/api/anti-revoke', antiRevokeRoutes);
 app.use('/api/privacy-mods', privacyModsRoutes);

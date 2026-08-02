@@ -3,8 +3,9 @@
  * Handles all user-related API calls: profile, contacts, status, blocking
  */
 import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = resolveApiBase();
 
 const userService = {
   // ── Profile ──────────────────────────────────────────────────────

@@ -51,6 +51,12 @@ exports.updateSettings = async (req, res) => {
     const currentSettings = user.settings || createDefaultWhatsAppSettings();
     const updatedSettings = mergeWhatsAppSettings(currentSettings, req.body);
 
+    // Sync account.email into the top-level user email so both stay in lockstep.
+    const accountEmail = updatedSettings?.account?.email;
+    if (accountEmail !== undefined && accountEmail !== null && String(accountEmail).trim() !== '') {
+      user.email = String(accountEmail).trim().toLowerCase();
+    }
+
     user.settings = updatedSettings;
     user.markModified('settings');
     await user.save();

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, X, Star, Trash2, Edit3 } from 'lucide-react';
 import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = resolveApiBase();
 
 const HIGHLIGHT_COLORS = [
   'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)',
@@ -132,7 +133,7 @@ const StoryHighlights = ({ statuses = [], onSaveHighlight, compact = false }) =>
     let cancelled = false;
     (async () => {
       try {
-        const res = await authFetch(`${API_URL}/api/story-highlights`);
+        const res = await authFetch(`${API_URL}/story-highlights`);
         const data = await res.json();
         if (!cancelled && data?.success) {
           setHighlights((data.highlights || []).map((h) => normalize(h)));
@@ -149,7 +150,7 @@ const StoryHighlights = ({ statuses = [], onSaveHighlight, compact = false }) =>
   const createHighlight = async () => {
     if (!newName.trim() || selectedStatuses.length === 0) return;
     try {
-      const res = await authFetch(`${API_URL}/api/story-highlights/create`, {
+      const res = await authFetch(`${API_URL}/story-highlights/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -176,7 +177,7 @@ const StoryHighlights = ({ statuses = [], onSaveHighlight, compact = false }) =>
   const deleteHighlight = async (id) => {
     setHighlights((prev) => prev.filter((h) => h.id !== id));
     try {
-      await authFetch(`${API_URL}/api/story-highlights/${id}`, { method: 'DELETE' });
+      await authFetch(`${API_URL}/story-highlights/${id}`, { method: 'DELETE' });
     } catch (err) {
       console.warn('Failed to delete story highlight:', err);
     }
@@ -186,7 +187,7 @@ const StoryHighlights = ({ statuses = [], onSaveHighlight, compact = false }) =>
     setViewHighlight(h);
     if (h.statuses && h.statuses.length > 0) return; // already have full status objects (just created)
     try {
-      const res = await authFetch(`${API_URL}/api/story-highlights/${h.id}`);
+      const res = await authFetch(`${API_URL}/story-highlights/${h.id}`);
       const data = await res.json();
       if (data?.success) {
         setViewHighlight({ ...h, statuses: data.statusMessages || [] });

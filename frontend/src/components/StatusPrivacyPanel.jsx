@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Eye, X, RefreshCw, UserPlus, UserMinus, Search, Clock, Shield, Camera, Lock, Fingerprint } from 'lucide-react';
 import { authFetch } from '../utils/authFetch';
 import userService from '../services/userService';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import PrivacyPermissionSelector from './PrivacyPermissionSelector';
 import ContactSelectorScreen from './ContactSelectorScreen';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
-const BASE = `${API_URL}/status-features`;
+const BASE = `${resolveApiBase()}/status-features`;
 
 const StatusPrivacyPanel = ({ onClose }) => {
   const [settings, setSettings] = useState(null);
@@ -17,24 +17,21 @@ const StatusPrivacyPanel = ({ onClose }) => {
   const [error, setError] = useState('');
   const [showContactSelector, setShowContactSelector] = useState(false);
   const [contactSelectorConfig, setContactSelectorConfig] = useState(null);
-  const [viewOnce, setViewOnce] = useState(false);
-  const [disappearingAfterView, setDisappearingAfterView] = useState(false);
-  const [passwordProtection, setPasswordProtection] = useState(false);
-  const [pinProtection, setPinProtection] = useState(false);
-  const [fingerprintProtection, setFingerprintProtection] = useState(false);
-  const [screenshotDetection, setScreenshotDetection] = useState(false);
-  const [antiScreenshot, setAntiScreenshot] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
-        const [sRes, contactList] = await Promise.all([
+        const [sRes, genericRes, contactList] = await Promise.all([
           authFetch(`${BASE}/settings`),
+          userService.getSettings().catch(() => null),
           userService.getContacts().catch(() => [])
         ]);
         const sData = await sRes.json();
         if (sData?.success) setSettings(sData.settings);
         else setError(sData?.message || 'Failed to load status settings');
+        if (genericRes?.success && genericRes.settings?.privacy?.status) {
+          setSettings((prev) => ({ ...prev, statusPrivacy: genericRes.settings.privacy.status }));
+        }
         setContacts(Array.isArray(contactList) ? contactList : (contactList?.contacts || []));
       } catch {
         setError('Could not reach the server.');
@@ -63,42 +60,43 @@ const StatusPrivacyPanel = ({ onClose }) => {
     }
   };
 
+  const toggleAdvancedSetting = async (key) => {
+    const next = { ...settings, [key]: !settings[key] };
+    setSettings(next);
+    setSaving(true);
+    try {
+      const res = await authFetch(`${BASE}/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings: { [key]: next[key] } })
+      });
+      const data = await res.json();
+      if (data?.success) setSettings(data.settings);
+      else setError(data?.message || 'Failed to save');
+    } catch {
+      setError('Could not reach the server.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleStatusPrivacyChange = async (value) => {
     try {
-      const API_URL = import.meta.env.VITE_API_URL || '';
-      
       // Update local settings
       setSettings((prev) => ({ ...prev, statusPrivacy: value }));
-      
-      // Save to server via settings API
-      const response = await fetch(`${API_URL}/settings`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          privacy: {
-            status: value
-          }
-        })
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data?.success) {
-          setSettings((prev) => ({ ...prev, statusPrivacy: value }));
-        }
-      }
+
+      // Save to server via the generic settings API (supports contacts_except / only_share_with)
+      await userService.updateSettings({ privacy: { status: value } });
     } catch (error) {
       console.error('Failed to save status privacy:', error);
+      setError('Failed to save status privacy.');
     }
   };
 
   const openContactSelector = async (selectorType) => {
     try {
       // Fetch full contact data from API
-      const API_URL = import.meta.env.VITE_API_URL || '';
+      const API_URL = resolveApiBase();
       const response = await fetch(`${API_URL}/chat/contacts`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -107,7 +105,18 @@ const StatusPrivacyPanel = ({ onClose }) => {
       
       if (response.ok) {
         const data = await response.json();
-        const contacts = data.contacts || data.users || [];
+        const contacts = (data.contacts || data.users || []).map((c) =>
+          c.user
+            ? {
+                _id: c.user._id,
+                username: c.savedName || c.user.username || c.user.name,
+                name: c.savedName || c.user.username || c.user.name,
+                phoneNumber: c.user.phoneNumber || c.user.phone,
+                phone: c.user.phoneNumber || c.user.phone,
+                profilePicture: c.user.profilePicture
+              }
+            : c
+        );
         
         setContactSelectorConfig({
           privacyType: 'status',
@@ -143,7 +152,7 @@ const StatusPrivacyPanel = ({ onClose }) => {
     const { selectorType } = contactSelectorConfig;
     
     try {
-      const API_URL = import.meta.env.VITE_API_URL || '';
+      const API_URL = resolveApiBase();
       
       if (selectorType === 'excluded') {
         // Clear existing and add new
@@ -301,10 +310,10 @@ const StatusPrivacyPanel = ({ onClose }) => {
                     </div>
                   </div>
                   <button
-                    onClick={() => setViewOnce(!viewOnce)}
-                    className={`w-12 h-6 rounded-full transition-colors ${viewOnce ? 'bg-[#00a884]' : 'bg-gray-600'}`}
+                    onClick={() => toggleAdvancedSetting('statusViewOnce')}
+                    className={`w-12 h-6 rounded-full transition-colors ${settings.statusViewOnce ? 'bg-[#00a884]' : 'bg-gray-600'}`}
                   >
-                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${viewOnce ? 'translate-x-6' : 'translate-x-1'}`} />
+                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${settings.statusViewOnce ? 'translate-x-6' : 'translate-x-1'}`} />
                   </button>
                 </div>
 
@@ -317,10 +326,10 @@ const StatusPrivacyPanel = ({ onClose }) => {
                     </div>
                   </div>
                   <button
-                    onClick={() => setDisappearingAfterView(!disappearingAfterView)}
-                    className={`w-12 h-6 rounded-full transition-colors ${disappearingAfterView ? 'bg-[#00a884]' : 'bg-gray-600'}`}
+                    onClick={() => toggleAdvancedSetting('statusDisappearingAfterView')}
+                    className={`w-12 h-6 rounded-full transition-colors ${settings.statusDisappearingAfterView ? 'bg-[#00a884]' : 'bg-gray-600'}`}
                   >
-                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${disappearingAfterView ? 'translate-x-6' : 'translate-x-1'}`} />
+                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${settings.statusDisappearingAfterView ? 'translate-x-6' : 'translate-x-1'}`} />
                   </button>
                 </div>
 
@@ -333,10 +342,10 @@ const StatusPrivacyPanel = ({ onClose }) => {
                     </div>
                   </div>
                   <button
-                    onClick={() => setPasswordProtection(!passwordProtection)}
-                    className={`w-12 h-6 rounded-full transition-colors ${passwordProtection ? 'bg-[#00a884]' : 'bg-gray-600'}`}
+                    onClick={() => toggleAdvancedSetting('statusPasswordProtection')}
+                    className={`w-12 h-6 rounded-full transition-colors ${settings.statusPasswordProtection ? 'bg-[#00a884]' : 'bg-gray-600'}`}
                   >
-                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${passwordProtection ? 'translate-x-6' : 'translate-x-1'}`} />
+                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${settings.statusPasswordProtection ? 'translate-x-6' : 'translate-x-1'}`} />
                   </button>
                 </div>
 
@@ -349,10 +358,10 @@ const StatusPrivacyPanel = ({ onClose }) => {
                     </div>
                   </div>
                   <button
-                    onClick={() => setPinProtection(!pinProtection)}
-                    className={`w-12 h-6 rounded-full transition-colors ${pinProtection ? 'bg-[#00a884]' : 'bg-gray-600'}`}
+                    onClick={() => toggleAdvancedSetting('statusPinProtection')}
+                    className={`w-12 h-6 rounded-full transition-colors ${settings.statusPinProtection ? 'bg-[#00a884]' : 'bg-gray-600'}`}
                   >
-                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${pinProtection ? 'translate-x-6' : 'translate-x-1'}`} />
+                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${settings.statusPinProtection ? 'translate-x-6' : 'translate-x-1'}`} />
                   </button>
                 </div>
 
@@ -365,10 +374,10 @@ const StatusPrivacyPanel = ({ onClose }) => {
                     </div>
                   </div>
                   <button
-                    onClick={() => setFingerprintProtection(!fingerprintProtection)}
-                    className={`w-12 h-6 rounded-full transition-colors ${fingerprintProtection ? 'bg-[#00a884]' : 'bg-gray-600'}`}
+                    onClick={() => toggleAdvancedSetting('statusFingerprintProtection')}
+                    className={`w-12 h-6 rounded-full transition-colors ${settings.statusFingerprintProtection ? 'bg-[#00a884]' : 'bg-gray-600'}`}
                   >
-                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${fingerprintProtection ? 'translate-x-6' : 'translate-x-1'}`} />
+                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${settings.statusFingerprintProtection ? 'translate-x-6' : 'translate-x-1'}`} />
                   </button>
                 </div>
 
@@ -381,10 +390,10 @@ const StatusPrivacyPanel = ({ onClose }) => {
                     </div>
                   </div>
                   <button
-                    onClick={() => setScreenshotDetection(!screenshotDetection)}
-                    className={`w-12 h-6 rounded-full transition-colors ${screenshotDetection ? 'bg-[#00a884]' : 'bg-gray-600'}`}
+                    onClick={() => toggleAdvancedSetting('statusScreenshotDetection')}
+                    className={`w-12 h-6 rounded-full transition-colors ${settings.statusScreenshotDetection ? 'bg-[#00a884]' : 'bg-gray-600'}`}
                   >
-                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${screenshotDetection ? 'translate-x-6' : 'translate-x-1'}`} />
+                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${settings.statusScreenshotDetection ? 'translate-x-6' : 'translate-x-1'}`} />
                   </button>
                 </div>
 
@@ -397,10 +406,10 @@ const StatusPrivacyPanel = ({ onClose }) => {
                     </div>
                   </div>
                   <button
-                    onClick={() => setAntiScreenshot(!antiScreenshot)}
-                    className={`w-12 h-6 rounded-full transition-colors ${antiScreenshot ? 'bg-[#00a884]' : 'bg-gray-600'}`}
+                    onClick={() => toggleAdvancedSetting('statusAntiScreenshot')}
+                    className={`w-12 h-6 rounded-full transition-colors ${settings.statusAntiScreenshot ? 'bg-[#00a884]' : 'bg-gray-600'}`}
                   >
-                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${antiScreenshot ? 'translate-x-6' : 'translate-x-1'}`} />
+                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${settings.statusAntiScreenshot ? 'translate-x-6' : 'translate-x-1'}`} />
                   </button>
                 </div>
               </div>

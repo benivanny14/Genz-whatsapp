@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Phone, X, RefreshCw, Zap, FileText, Clock, Plus, Trash2 } from 'lucide-react';
 import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
-const BASE = `${API_URL}/api/call-features`;
+const BASE = `${resolveApiBase()}/call-features`;
 
 const Toggle = ({ checked, onChange, disabled }) => (
   <button

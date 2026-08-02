@@ -362,7 +362,9 @@ exports.updateSettings = async (req, res) => {
     user.settings = mergeWhatsAppSettings(user.settings || {}, incoming);
 
     if (incoming?.account?.email !== undefined) {
-      user.email = String(incoming.account.email || '').trim().toLowerCase();
+      const normalizedEmail = String(incoming.account.email || '').trim().toLowerCase();
+      user.email = normalizedEmail;
+      user.settings.account.email = normalizedEmail;
       if (!user.email) {
         user.emailVerified = false;
       }

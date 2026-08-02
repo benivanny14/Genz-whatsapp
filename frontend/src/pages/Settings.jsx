@@ -23,6 +23,7 @@ import { useUser } from '../context/UserContext';
 import { useLanguage } from '../context/LanguageContext';
 import userService from '../services/userService';
 import { checkForUpdate } from '../utils/appUpdate';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
 const SETTINGS_KEY = 'genz_user_settings';
 
@@ -37,10 +38,12 @@ const DEFAULT_SETTINGS = {
     deleteAccountGuard: true
   },
   privacy: {
+    lastSeen: 'everyone',
     online: 'same_as_last_seen',
     profilePhoto: 'everyone',
     about: 'everyone',
     status: 'contacts',
+    readReceipts: true,
     defaultMessageTimer: 'off',
     groups: 'everyone',
     blockedUsers: [],
@@ -48,9 +51,43 @@ const DEFAULT_SETTINGS = {
     protectIpAddressInCalls: false,
     disableLinkPreviews: false,
     blockUnknownAccountMessages: false,
+    appLock: {
+      enabled: false,
+      lockAfter: 'immediately',
+      requireBiometric: false
+    },
+    chatLock: {
+      enabled: false,
+      secretCodeEnabled: false,
+      hideLockedChats: false
+    },
     advancedChatPrivacy: false,
     privacyCheckupCompleted: false,
     privacyCheckupCompletedAt: null
+  },
+  chats: {
+    theme: 'system',
+    wallpaper: '',
+    wallpaperDimming: 0,
+    chatColor: '#00a884',
+    fontSize: 'medium',
+    enterIsSend: false,
+    mediaVisibility: true,
+    keepChatsArchived: true,
+    archiveMutedChats: true,
+    backup: {
+      enabled: false,
+      frequency: 'manual',
+      account: '',
+      includeVideos: false,
+      endToEndEncrypted: false,
+      passkeyEncrypted: false,
+      lastBackupAt: null
+    },
+    history: {
+      exportFormat: 'json',
+      clearCacheOnLogout: false
+    }
   },
   notifications: {
     messages: true,
@@ -62,9 +99,15 @@ const DEFAULT_SETTINGS = {
     highPriority: true,
     reactionNotifications: true,
     reminders: true,
+    messageTone: 'default',
+    groupTone: 'default',
+    callRingtone: 'default',
     vibration: 'default'
   },
   storageData: {
+    mobileAutoDownload: ['photos'],
+    wifiAutoDownload: ['photos', 'audio', 'videos', 'documents'],
+    roamingAutoDownload: [],
     photoUploadQuality: 'standard',
     videoUploadQuality: 'standard',
     useLessDataForCalls: false,
@@ -432,7 +475,7 @@ const Settings = () => {
     }
   };
 
-  const runPrivacyCheckup = () => {
+  const runPrivacyCheckup = async () => {
     const next = {
       ...settingsData,
       privacy: {
@@ -453,7 +496,12 @@ const Settings = () => {
     };
     setSettingsData(next);
     persistSettings(next);
-    showStatus('success', 'Privacy Checkup applied.');
+    try {
+      await userService.updateSettings(next);
+      showStatus('success', 'Privacy Checkup applied.');
+    } catch (error) {
+      showStatus('warning', 'Privacy Checkup saved locally. Server sync will retry.');
+    }
   };
 
   const handlePrivacyChange = async (privacyType, value) => {
@@ -483,7 +531,7 @@ const Settings = () => {
   const openContactSelector = async (privacyType, selectorType) => {
     try {
       // Fetch full contact data from API
-      const API_URL = import.meta.env.VITE_API_URL || '';
+      const API_URL = resolveApiBase();
       const response = await fetch(`${API_URL}/chat/contacts`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -492,7 +540,18 @@ const Settings = () => {
       
       if (response.ok) {
         const data = await response.json();
-        const contacts = data.contacts || data.users || [];
+        const contacts = (data.contacts || data.users || []).map((c) =>
+          c.user
+            ? {
+                _id: c.user._id,
+                username: c.savedName || c.user.username || c.user.name,
+                name: c.savedName || c.user.username || c.user.name,
+                phoneNumber: c.user.phoneNumber || c.user.phone,
+                phone: c.user.phoneNumber || c.user.phone,
+                profilePicture: c.user.profilePicture
+              }
+            : c
+        );
         
         setContactSelectorConfig({
           privacyType,
@@ -528,7 +587,7 @@ const Settings = () => {
     const { privacyType, selectorType } = contactSelectorConfig;
     
     try {
-      const API_URL = import.meta.env.VITE_API_URL || '';
+      const API_URL = resolveApiBase();
       
       if (selectorType === 'excluded') {
         // Clear existing and add new

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, QrCode, Smartphone, RefreshCw, LogOut, Users, Shield } from 'lucide-react';
+import { ArrowLeft, Plus, QrCode, Smartphone, RefreshCw, LogOut, Users, Shield, KeyRound } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import DeviceCard from '../components/DeviceCard';
@@ -13,6 +13,10 @@ const LinkedDevices = () => {
   const [qrData, setQrData] = useState(null);
   const [qrLoading, setQrLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showPairingModal, setShowPairingModal] = useState(false);
+  const [pairingCode, setPairingCode] = useState('');
+  const [pairingLoading, setPairingLoading] = useState(false);
+  const [pairingMessage, setPairingMessage] = useState(null);
 
   useEffect(() => {
     fetchDevices();
@@ -71,6 +75,31 @@ const LinkedDevices = () => {
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
+  };
+
+  const handlePairWithCode = async () => {
+    const code = pairingCode.trim();
+    if (!code) {
+      setPairingMessage({ type: 'error', text: 'Enter the pairing code from your phone.' });
+      return;
+    }
+    setPairingLoading(true);
+    setPairingMessage(null);
+    try {
+      const data = await deviceService.pairDevice(code);
+      if (data && data.success) {
+        setPairingCode('');
+        setPairingMessage({ type: 'success', text: 'Device paired successfully!' });
+        await fetchDevices();
+        setTimeout(() => setPairingMessage(null), 3000);
+      } else {
+        setPairingMessage({ type: 'error', text: data?.message || 'Failed to pair device. Code may be invalid or expired.' });
+      }
+    } catch (error) {
+      setPairingMessage({ type: 'error', text: 'Failed to pair device. Code may be invalid or expired.' });
+    } finally {
+      setPairingLoading(false);
+    }
   };
 
   const getQrImageSource = (qr) => {
@@ -160,14 +189,23 @@ const LinkedDevices = () => {
         </div>
 
         {/* Add Device Button */}
-        <button
-          onClick={handleGenerateQR}
-          disabled={qrLoading}
-          className="w-full md:w-auto mb-6 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
-        >
-          <QrCode className="w-5 h-5" />
-          <span>{qrLoading ? 'Generating...' : 'Link New Device'}</span>
-        </button>
+        <div className="flex flex-wrap gap-2 mb-6">
+          <button
+            onClick={handleGenerateQR}
+            disabled={qrLoading}
+            className="px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
+          >
+            <QrCode className="w-5 h-5" />
+            <span>{qrLoading ? 'Generating...' : 'Link New Device'}</span>
+          </button>
+          <button
+            onClick={() => { setShowPairingModal(true); setPairingMessage(null); }}
+            className="px-4 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
+          >
+            <KeyRound className="w-5 h-5" />
+            <span>Pair with Code</span>
+          </button>
+        </div>
 
         {/* Error Message */}
         {error && (
@@ -274,15 +312,15 @@ const LinkedDevices = () => {
                     Scan this QR code with your GENZ WhatsApp mobile app
                   </p>
                   
-                  {qrData.code && (
+                  {(qrData.pairingToken || qrData.code) && (
                     <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Or enter this code:</p>
                       <div className="flex items-center justify-center space-x-2">
-                        <code className="font-mono text-lg font-semibold text-gray-900 dark:text-white">
-                          {qrData.code}
+                        <code className="font-mono text-lg font-semibold text-gray-900 dark:text-white break-all">
+                          {qrData.pairingToken || qrData.code}
                         </code>
                         <button
-                          onClick={() => copyToClipboard(qrData.code)}
+                          onClick={() => copyToClipboard(qrData.pairingToken || qrData.code)}
                           className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
                           title="Copy code" aria-label="Copy code"
                         >
@@ -295,7 +333,7 @@ const LinkedDevices = () => {
                   )}
 
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    This QR code will expire in 10 minutes
+                    This QR code will expire in 5 minutes
                   </p>
                 </div>
               </div>
@@ -318,6 +356,55 @@ const LinkedDevices = () => {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Manual Pairing Modal */}
+      <AnimatePresence>
+        {showPairingModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Pair with code</h2>
+                <button
+                  onClick={() => { setShowPairingModal(false); setPairingCode(''); setPairingMessage(null); }}
+                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  aria-label="Close"
+                >
+                  <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Enter the code shown on your other device under Linked Devices.
+              </p>
+              {pairingMessage && (
+                <div className={`mb-4 p-3 rounded-lg text-sm ${pairingMessage.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'}`}>
+                  {pairingMessage.text}
+                </div>
+              )}
+              <input
+                value={pairingCode}
+                onChange={(e) => setPairingCode(e.target.value)}
+                placeholder="Paste the pairing code"
+                className="w-full px-3 py-2 mb-4 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 font-mono"
+              />
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => { setShowPairingModal(false); setPairingCode(''); setPairingMessage(null); }}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handlePairWithCode}
+                  disabled={pairingLoading}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-colors"
+                >
+                  {pairingLoading ? 'Pairing...' : 'Pair Device'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </AnimatePresence>
     </div>

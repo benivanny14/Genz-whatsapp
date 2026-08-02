@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { Mail, X, CheckCircle, AlertCircle, RefreshCw, Send } from 'lucide-react';
-import { useChat } from '../context/ChatContext';
+import securityService from '../services/securityService';
 
 const EmailVerification = ({ onClose, email: initialEmail }) => {
-  const { sendEmailVerification, verifyEmail, resendEmailVerification } = useChat();
   const [email, setEmail] = useState(initialEmail || '');
   const [verificationCode, setVerificationCode] = useState('');
   const [step, setStep] = useState('enter'); // enter, verify, success
@@ -19,7 +18,7 @@ const EmailVerification = ({ onClose, email: initialEmail }) => {
     setLoading(true);
     setError('');
     try {
-      const result = await sendEmailVerification(email);
+      const result = await securityService.sendEmailVerification(email);
       if (result.success) {
         setStep('verify');
         startCountdown(60);
@@ -41,7 +40,7 @@ const EmailVerification = ({ onClose, email: initialEmail }) => {
     setLoading(true);
     setError('');
     try {
-      const result = await verifyEmail(verificationCode);
+      const result = await securityService.verifyEmail(verificationCode);
       if (result.success) {
         setStep('success');
       } else {
@@ -59,7 +58,7 @@ const EmailVerification = ({ onClose, email: initialEmail }) => {
     setLoading(true);
     setError('');
     try {
-      const result = await resendEmailVerification(email);
+      const result = await securityService.resendEmailVerification(email);
       if (result.success) {
         startCountdown(60);
       } else {

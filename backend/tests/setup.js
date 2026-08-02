@@ -9,6 +9,7 @@ process.env.MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/
 process.env.BACKUP_ENCRYPTION_KEY = process.env.BACKUP_ENCRYPTION_KEY || 'test-backup-key-with-enough-length';
 process.env.ALLOW_REAL_PAYMENT_PROVIDERS = 'false';
 process.env.ALLOW_MOCK_PAYMENTS = 'true';
+process.env.SENTRY_DSN = '';
 process.env.MONGOMS_DOWNLOAD_DIR = process.env.MONGOMS_DOWNLOAD_DIR || path.join(__dirname, '..', 'node_modules', '.cache', 'mongodb-memory-server');
 process.env.MONGOMS_PREFER_GLOBAL_PATH = process.env.MONGOMS_PREFER_GLOBAL_PATH || 'false';
 
@@ -75,6 +76,26 @@ afterAll(async () => {
     ]);
   }
 }, 30000);
+
+beforeEach(async () => {
+  if (mongoose.connection.readyState !== 1) {
+    return;
+  }
+
+  // Drop stale unique email index if present. The current User schema does NOT
+  // declare email as unique; a leftover unique index from an older schema would
+  // otherwise reject multiple users sharing an empty-string email.
+  try {
+    const usersCollection = mongoose.connection.collection('users');
+    const indexes = await usersCollection.indexes();
+    const hasEmailIndex = indexes.some((idx) => idx.name === 'email_1' && idx.unique);
+    if (hasEmailIndex) {
+      await usersCollection.dropIndex('email_1');
+    }
+  } catch (error) {
+    // Collection or index may not exist yet; ignore.
+  }
+});
 
 afterEach(async () => {
   if (mongoose.connection.readyState !== 1) {

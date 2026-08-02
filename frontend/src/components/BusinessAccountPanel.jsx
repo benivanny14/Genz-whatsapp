@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Building2, Clock, MessageSquare, Moon, Plus, Trash2, X, RefreshCw } from 'lucide-react';
 import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
-const BASE = `${API_URL}/api/business-account`;
+const BASE = `${resolveApiBase()}/business-account`;
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const DAY_LABELS = { monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun' };

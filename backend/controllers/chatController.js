@@ -10,8 +10,7 @@ const { resolveMessageMentions } = require("../utils/mentions");
 const {
   normalizeReplyToId,
   getSelfDestructExpiry,
-  isConversationBlocked,
-  isEitherUserBlocked
+  isConversationBlocked
 } = require("../utils/messageSendHelpers");
 const { serializeOutgoingMessage } = require("../utils/messageSerializer");
 const { sendMentionNotification, sendNewMessageNotification } = require("../services/notificationService");
@@ -958,8 +957,9 @@ exports.sendMessage = async (req, res) => {
             String(safeContent || 'New message').slice(0, 120);
           for (const participantId of conversation.participants) {
             if (String(participantId) === String(localUserId)) continue;
-            const blocked = await isEitherUserBlocked(localUserId, participantId);
-            if (blocked) continue;
+            // WhatsApp: the blocker's message IS delivered to the blocked user;
+            // only the reverse direction (recipient blocked the sender) is
+            // rejected, and that case already returned 403 above.
             const recipientId = String(participantId);
             io.to(recipientId).emit("message:received", plainMessage);
             if (updatedConversation) {

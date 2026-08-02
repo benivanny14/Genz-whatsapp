@@ -268,3 +268,119 @@ exports.getTwoFactorStatus = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+const generateEmailToken = () => crypto.randomBytes(20).toString('hex');
+
+exports.getEmailVerificationStatus = async (req, res) => {
+  try {
+    const user = await requireUser(req, res);
+    if (!user) return;
+
+    res.json({
+      success: true,
+      verified: !!user.emailVerified,
+      email: user.email || ''
+    });
+  } catch (error) {
+    console.error('Get email verification status error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const createEmailVerificationToken = async (user) => {
+  const token = generateEmailToken();
+  user.emailVerificationToken = hashToken(token);
+  user.emailVerificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  await user.save();
+
+  const verifyUrl = `${FRONTEND_URL}/verify-email?token=${token}`;
+  await sendMail({
+    to: user.email,
+    subject: 'Verify your email - GENZ WhatsApp',
+    text: `Click this link to verify your email: ${verifyUrl}`,
+    html: `<p>Click <a href="${verifyUrl}">here</a> to verify your email address.</p>`
+  });
+
+  return token;
+};
+
+exports.sendEmailVerification = async (req, res) => {
+  try {
+    const user = await requireUser(req, res);
+    if (!user) return;
+
+    const email = normalizeEmail(req.body?.email) || user.email;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required' });
+    }
+
+    user.email = email;
+    user.emailVerified = false;
+    await user.save();
+
+    const token = await createEmailVerificationToken(user);
+
+    res.json({
+      success: true,
+      message: 'Verification email sent',
+      ...publicTokenPayload('token', token)
+    });
+  } catch (error) {
+    console.error('Send email verification error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.verifyEmail = async (req, res) => {
+  try {
+    const token = req.body?.token;
+    if (!token) {
+      return res.status(400).json({ success: false, message: 'Verification token is required' });
+    }
+
+    const hashed = hashToken(token);
+    const user = await User.findOne({
+      emailVerificationToken: hashed,
+      emailVerificationExpiresAt: { $gt: new Date() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired verification token' });
+    }
+
+    user.emailVerified = true;
+    user.emailVerificationToken = null;
+    user.emailVerificationExpiresAt = null;
+    await user.save();
+
+    res.json({ success: true, message: 'Email verified successfully', email: user.email });
+  } catch (error) {
+    console.error('Verify email error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.resendEmailVerification = async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'No account found with that email' });
+    }
+
+    if (user.emailVerified) {
+      return res.json({ success: true, message: 'Email is already verified' });
+    }
+
+    await createEmailVerificationToken(user);
+
+    res.json({ success: true, message: 'Verification email sent' });
+  } catch (error) {
+    console.error('Resend email verification error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

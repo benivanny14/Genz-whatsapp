@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Edit3, Share2, BarChart3, Star, Bookmark, Layout, Palette, Crown, Copy, Trash2 } from 'lucide-react';
+import { X, Edit3, Share2, BarChart3, Star, Bookmark, Layout, Palette, Crown, Copy, Trash2, Save } from 'lucide-react';
 
 const StatusManagementPanel = ({ onClose, status, onSave }) => {
   const [activeTab, setActiveTab] = useState('edit');

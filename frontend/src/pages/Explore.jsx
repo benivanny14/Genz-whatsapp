@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, MapPin, Hash, TrendingUp, Flame, Star, CheckCircle, X, Filter, Grid, List as ListIcon } from 'lucide-react';
+import { Search, MapPin, Hash, TrendingUp, Flame, Star, CheckCircle, X, Filter, Grid, List as ListIcon, RefreshCw, Users } from 'lucide-react';
+import exploreService from '../services/exploreService';
 
 const Explore = () => {
   const [activeTab, setActiveTab] = useState('trending');
@@ -8,6 +9,12 @@ const Explore = () => {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
+  const [trending, setTrending] = useState([]);
+  const [forYou, setForYou] = useState([]);
+  const [nearby, setNearby] = useState([]);
+  const [creators, setCreators] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const tabs = [
     { id: 'trending', icon: TrendingUp, label: 'Trending' },
@@ -24,35 +31,28 @@ const Explore = () => {
     { id: 'music', label: 'Music' }
   ];
 
-  // Mock data for trending content
-  const trendingContent = [
-    { id: 1, type: 'video', thumbnail: '', user: { username: 'creator1', verified: true }, views: '1.2M', likes: '45K' },
-    { id: 2, type: 'image', thumbnail: '', user: { username: 'creator2', verified: false }, views: '890K', likes: '32K' },
-    { id: 3, type: 'status', thumbnail: '', user: { username: 'creator3', verified: true }, views: '750K', likes: '28K' },
-    { id: 4, type: 'video', thumbnail: '', user: { username: 'creator4', verified: false }, views: '620K', likes: '25K' },
-    { id: 5, type: 'image', thumbnail: '', user: { username: 'creator5', verified: true }, views: '580K', likes: '22K' },
-    { id: 6, type: 'video', thumbnail: '', user: { username: 'creator6', verified: false }, views: '510K', likes: '19K' }
-  ];
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await exploreService.getExplore();
+        if (!active) return;
+        setTrending(data.trending || []);
+        setForYou(data.forYou || []);
+        setNearby(data.nearby || []);
+        setCreators(data.creators || []);
+      } catch (err) {
+        if (active) setError('Failed to load explore data. Pull to refresh.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    load();
+    return () => { active = false; };
+  }, []);
 
-  // Mock data for creators
-  const creators = [
-    { id: 1, username: 'top_creator', name: 'Top Creator', verified: true, followers: '2.5M', avatar: '' },
-    { id: 2, username: 'influencer_x', name: 'Influencer X', verified: true, followers: '1.8M', avatar: '' },
-    { id: 3, username: 'artist_pro', name: 'Artist Pro', verified: false, followers: '950K', avatar: '' },
-    { id: 4, username: 'music_star', name: 'Music Star', verified: true, followers: '1.2M', avatar: '' },
-    { id: 5, username: 'comedy_king', name: 'Comedy King', verified: false, followers: '890K', avatar: '' }
-  ];
-
-  // Mock data for nearby content
-  const nearbyContent = [
-    { id: 1, type: 'status', location: 'Dar es Salaam', distance: '2.5 km', user: { username: 'local_user1' }, lat: -6.7924, lng: 39.2083 },
-    { id: 2, type: 'image', location: 'Dar es Salaam', distance: '3.1 km', user: { username: 'local_user2' }, lat: -6.8100, lng: 39.2200 },
-    { id: 3, type: 'video', location: 'Dar es Salaam', distance: '4.2 km', user: { username: 'local_user3' }, lat: -6.7900, lng: 39.1900 },
-    { id: 4, type: 'status', location: 'Dar es Salaam', distance: '5.8 km', user: { username: 'local_user4' }, lat: -6.8000, lng: 39.2500 },
-    { id: 5, type: 'image', location: 'Dar es Salaam', distance: '7.2 km', user: { username: 'local_user5' }, lat: -6.7700, lng: 39.1800 }
-  ];
-
-  // Get user location
   useEffect(() => {
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
@@ -72,9 +72,8 @@ const Explore = () => {
     }
   }, []);
 
-  // Calculate distance between two coordinates (Haversine formula)
   const calculateDistance = (lat1, lng1, lat2, lng2) => {
-    const R = 6371; // Earth's radius in km
+    const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLng = (lng2 - lng1) * Math.PI / 180;
     const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -84,185 +83,231 @@ const Explore = () => {
     return R * c;
   };
 
-  // Filter content based on search query and selected filter
-  const filteredTrendingContent = useMemo(() => {
-    let filtered = trendingContent;
+  const searchable = useMemo(() => {
+    return { trending, forYou, nearby, creators };
+  }, [trending, forYou, nearby, creators]);
 
-    // Apply search filter
+  const filteredTrending = useMemo(() => {
+    let items = activeTab === 'foryou' ? forYou : trending;
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(item => 
-        item.user.username.toLowerCase().includes(query) ||
-        item.type.toLowerCase().includes(query)
+      items = items.filter((item) =>
+        (item.username || '').toLowerCase().includes(query) ||
+        (item.caption || '').toLowerCase().includes(query) ||
+        (item.hashtags || []).some((t) => t.toLowerCase().includes(query))
       );
     }
-
-    // Apply type filter
     if (selectedFilter !== 'all') {
-      filtered = filtered.filter(item => item.type === selectedFilter);
+      items = items.filter((item) => item.type === selectedFilter);
     }
+    return items;
+  }, [activeTab, forYou, trending, searchQuery, selectedFilter]);
 
-    return filtered;
-  }, [searchQuery, selectedFilter, trendingContent]);
-
-  // Filter nearby content based on search and location
-  const filteredNearbyContent = useMemo(() => {
-    let filtered = nearbyContent;
-
-    // Apply search filter
+  const filteredNearby = useMemo(() => {
+    let items = nearby;
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(item => 
-        item.user.username.toLowerCase().includes(query) ||
-        item.location.toLowerCase().includes(query)
+      items = items.filter((item) =>
+        (item.user?.username || '').toLowerCase().includes(query) ||
+        (item.location || '').toLowerCase().includes(query)
       );
     }
-
-    // Apply type filter
     if (selectedFilter !== 'all') {
-      filtered = filtered.filter(item => item.type === selectedFilter);
+      items = items.filter((item) => item.type === selectedFilter);
     }
-
-    // Sort by distance if user location is available
     if (userLocation) {
-      filtered = filtered.map(item => ({
+      items = items.map((item) => ({
         ...item,
-        calculatedDistance: calculateDistance(
-          userLocation.lat, userLocation.lng,
-          item.lat, item.lng
-        )
+        calculatedDistance: calculateDistance(userLocation.lat, userLocation.lng, item.lat, item.lng)
       })).sort((a, b) => a.calculatedDistance - b.calculatedDistance);
     }
+    return items;
+  }, [nearby, searchQuery, selectedFilter, userLocation]);
 
-    return filtered;
-  }, [searchQuery, selectedFilter, nearbyContent, userLocation]);
-
-  // Filter creators based on search
   const filteredCreators = useMemo(() => {
     if (!searchQuery.trim()) return creators;
-
     const query = searchQuery.toLowerCase();
-    return creators.filter(creator =>
+    return creators.filter((creator) =>
       creator.username.toLowerCase().includes(query) ||
       creator.name.toLowerCase().includes(query)
     );
   }, [searchQuery, creators]);
 
+  const formatCount = (n) => {
+    const num = Number(n) || 0;
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+    return String(num);
+  };
+
+  const contentIcon = (type) => {
+    const t = String(type || '').toLowerCase();
+    if (t === 'video' || t === 'livePhoto' || t === 'boomerang') return '🎬';
+    if (t === 'image' || t === 'collage') return '📷';
+    if (t === 'music' || t === 'audio' || t === 'voice') return '🎵';
+    return '📱';
+  };
+
   const renderContent = () => {
-    switch (activeTab) {
-      case 'trending':
-      case 'foryou':
-        return (
-          <div className={`grid ${viewMode === 'grid' ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4' : 'grid-cols-1'} gap-4`}>
-            {filteredTrendingContent.length === 0 ? (
-              <div className="col-span-full text-center py-12 text-white/40">
-                <Search size={48} className="mx-auto mb-4" />
-                <p>No content found matching your search</p>
-              </div>
-            ) : (
-              filteredTrendingContent.map((item) => (
-                <div key={item.id} className="bg-white/5 rounded-xl overflow-hidden hover:bg-white/10 transition-colors">
-                  <div className="aspect-square bg-gradient-to-br from-[#00a884]/20 to-[#075E54]/20 flex items-center justify-center">
-                    <span className="text-white/40 text-4xl">{item.type === 'video' ? '🎬' : item.type === 'image' ? '📷' : '📱'}</span>
-                  </div>
-                  <div className="p-3">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-white font-medium text-sm">@{item.user.username}</span>
-                      {item.user.verified && <CheckCircle size={14} className="text-[#00a884]" />}
-                    </div>
-                    <div className="flex items-center gap-4 text-white/60 text-xs">
-                      <span>{item.views} views</span>
-                      <span>{item.likes} likes</span>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        );
-
-      case 'nearby':
-        return (
-          <div className="space-y-4">
-            {locationError && (
-              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-yellow-400 text-sm">
-                {locationError}
-              </div>
-            )}
-            {filteredNearbyContent.length === 0 ? (
-              <div className="text-center py-12 text-white/40">
-                <MapPin size={48} className="mx-auto mb-4" />
-                <p>No nearby content found</p>
-              </div>
-            ) : (
-              filteredNearbyContent.map((item) => (
-                <div key={item.id} className="bg-white/5 rounded-xl p-4 flex items-center gap-4 hover:bg-white/10 transition-colors">
-                  <div className="w-20 h-20 bg-gradient-to-br from-[#00a884]/20 to-[#075E54]/20 rounded-lg flex items-center justify-center">
-                    <span className="text-white/40 text-2xl">{item.type === 'video' ? '🎬' : item.type === 'image' ? '📷' : '📱'}</span>
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-white font-medium">@{item.user.username}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-white/60 text-sm">
-                      <MapPin size={14} />
-                      <span>{item.location}</span>
-                      <span>•</span>
-                      <span>{item.calculatedDistance ? `${item.calculatedDistance.toFixed(1)} km` : item.distance}</span>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        );
-
-      case 'creators':
-        return (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredCreators.length === 0 ? (
-              <div className="col-span-full text-center py-12 text-white/40">
-                <Star size={48} className="mx-auto mb-4" />
-                <p>No creators found matching your search</p>
-              </div>
-            ) : (
-              filteredCreators.map((creator) => (
-                <div key={creator.id} className="bg-white/5 rounded-xl p-4 hover:bg-white/10 transition-colors">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-[#00a884] to-[#075E54] rounded-full flex items-center justify-center">
+    if (activeTab === 'creators') {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredCreators.length === 0 ? (
+            <div className="col-span-full text-center py-12 text-white/40">
+              <Star size={48} className="mx-auto mb-4" />
+              <p>No creators found matching your search</p>
+            </div>
+          ) : (
+            filteredCreators.map((creator) => (
+              <div key={creator.id} className="bg-white/5 rounded-xl p-4 hover:bg-white/10 transition-colors">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-[#00a884] to-[#075E54] rounded-full flex items-center justify-center overflow-hidden">
+                    {creator.avatar ? (
+                      <img src={creator.avatar} alt={creator.name} className="w-full h-full object-cover" />
+                    ) : (
                       <span className="text-white font-bold">{creator.name[0]}</span>
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-white font-medium">@{creator.username}</span>
-                        {creator.verified && <CheckCircle size={14} className="text-[#00a884]" />}
-                      </div>
-                      <span className="text-white/60 text-sm">{creator.name}</span>
-                    </div>
+                    )}
                   </div>
-                  <div className="text-white/60 text-sm mb-3">
-                    {creator.followers} followers
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-white font-medium truncate">@{creator.username}</span>
+                      {creator.verified && <CheckCircle size={14} className="text-[#00a884] flex-shrink-0" />}
+                    </div>
+                    <span className="text-white/60 text-sm block truncate">{creator.name}</span>
                   </div>
-                  <button className="w-full px-4 py-2 bg-[#00a884] hover:bg-[#008f6f] rounded-lg text-white text-sm font-medium">
-                    Follow
-                  </button>
                 </div>
-              ))
-            )}
-          </div>
-        );
-
-      default:
-        return null;
+                <div className="flex items-center gap-1 text-white/60 text-sm mb-3">
+                  <Users size={14} />
+                  <span>{formatCount(creator.followers)} followers</span>
+                </div>
+                {creator.description && <p className="text-white/50 text-sm mb-3 line-clamp-2">{creator.description}</p>}
+                <button className="w-full px-4 py-2 bg-[#00a884] hover:bg-[#008f6f] rounded-lg text-white text-sm font-medium">
+                  Follow
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      );
     }
+
+    if (activeTab === 'nearby') {
+      return (
+        <div className="space-y-4">
+          {locationError && (
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-yellow-400 text-sm">
+              {locationError}
+            </div>
+          )}
+          {filteredNearby.length === 0 ? (
+            <div className="text-center py-12 text-white/40">
+              <MapPin size={48} className="mx-auto mb-4" />
+              <p>No nearby content found</p>
+            </div>
+          ) : (
+            filteredNearby.map((item) => (
+              <div key={item.id} className="bg-white/5 rounded-xl p-4 flex items-center gap-4 hover:bg-white/10 transition-colors">
+                <div className="w-20 h-20 bg-gradient-to-br from-[#00a884]/20 to-[#075E54]/20 rounded-lg flex items-center justify-center">
+                  <span className="text-white/40 text-2xl">{contentIcon(item.type)}</span>
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-white font-medium">@{item.user?.username}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-white/60 text-sm">
+                    <MapPin size={14} />
+                    <span>{item.location}</span>
+                    {item.calculatedDistance != null && (
+                      <>
+                        <span>•</span>
+                        <span>{item.calculatedDistance.toFixed(1)} km</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      );
+    }
+
+    // trending / foryou
+    return (
+      <div className={`grid ${viewMode === 'grid' ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4' : 'grid-cols-1'} gap-4`}>
+        {filteredTrending.length === 0 ? (
+          <div className="col-span-full text-center py-12 text-white/40">
+            <Search size={48} className="mx-auto mb-4" />
+            <p>No content found matching your search</p>
+          </div>
+        ) : (
+          filteredTrending.map((item) => (
+            <div key={item.id} className="bg-white/5 rounded-xl overflow-hidden hover:bg-white/10 transition-colors">
+              {item.mediaUrl ? (
+                <div className="aspect-square bg-black flex items-center justify-center overflow-hidden">
+                  {item.type === 'video' ? (
+                    <video src={item.mediaUrl} className="w-full h-full object-cover" muted loop preload="metadata" />
+                  ) : (
+                    <img src={item.mediaUrl} alt={item.caption} className="w-full h-full object-cover" />
+                  )}
+                </div>
+              ) : (
+                <div className="aspect-square bg-gradient-to-br from-[#00a884]/20 to-[#075E54]/20 flex items-center justify-center">
+                  <span className="text-white/40 text-4xl">{contentIcon(item.type)}</span>
+                </div>
+              )}
+              <div className="p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-white font-medium text-sm truncate">@{item.username}</span>
+                  {item.verified && <CheckCircle size={14} className="text-[#00a884] flex-shrink-0" />}
+                </div>
+                {item.caption && <p className="text-white/60 text-xs mb-2 line-clamp-2">{item.caption}</p>}
+                <div className="flex items-center gap-4 text-white/60 text-xs">
+                  <span>{formatCount(item.views)} views</span>
+                  <span>{formatCount(item.likes)} likes</span>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    );
   };
 
   return (
     <div className="min-h-screen bg-[#0b141a]">
       {/* Header */}
       <div className="bg-[#1a2e35] p-4 sticky top-0 z-10 border-b border-white/10">
-        <h1 className="text-white text-2xl font-bold mb-4">Explore</h1>
-        
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-white text-2xl font-bold">Explore</h1>
+          {loading ? (
+            <RefreshCw size={20} className="animate-spin text-[#00a884]" />
+          ) : (
+            <button
+              onClick={() => {
+                setLoading(true);
+                exploreService.getExplore().then((data) => {
+                  setTrending(data.trending || []);
+                  setForYou(data.forYou || []);
+                  setNearby(data.nearby || []);
+                  setCreators(data.creators || []);
+                }).catch(() => setError('Failed to refresh.')).finally(() => setLoading(false));
+              }}
+              className="text-[#00a884] hover:text-white transition-colors"
+              title="Refresh"
+              aria-label="Refresh"
+            >
+              <RefreshCw size={20} />
+            </button>
+          )}
+        </div>
+
+        {error && (
+          <div className="mb-4 bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-300 text-sm">
+            {error}
+          </div>
+        )}
+
         {/* Search Bar */}
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={20} />

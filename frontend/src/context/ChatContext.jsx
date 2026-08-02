@@ -3999,7 +3999,7 @@ export const ChatProvider = ({ children }) => {
       const token = localStorage.getItem('token');
       const apiUrl = BACKEND_URL;
       if (token && apiUrl) {
-        fetch(`${apiUrl}/api/chat/conversations/${chatId}/pin`, {
+        fetch(`${apiUrl}/chat/conversations/${chatId}/pin`, {
           method: 'PUT',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({})
@@ -4042,7 +4042,7 @@ export const ChatProvider = ({ children }) => {
       const token = localStorage.getItem('token');
       const apiUrl = BACKEND_URL;
       if (token && apiUrl) {
-        fetch(`${apiUrl}/api/chat/conversations/${chatId}/archive`, {
+        fetch(`${apiUrl}/chat/conversations/${chatId}/archive`, {
           method: 'PUT',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({})

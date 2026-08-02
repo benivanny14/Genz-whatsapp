@@ -8,19 +8,22 @@ const ContactManager = ({ onClose }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newContact, setNewContact] = useState({ name: '', phone: '', email: '' });
 
-  const filteredContacts = (contacts || []).filter(c =>
+  const filteredContacts = (contacts || []).map((c) => {
+    const user = c.user || c;
+    return {
+      _id: user._id,
+      name: c.savedName || user.username || user.name,
+      phone: user.phoneNumber || user.phone,
+      email: user.email
+    };
+  }).filter(c => c._id).filter(c =>
     c.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.phone?.includes(searchQuery)
   );
 
   const handleAddContact = () => {
-    if (newContact.name) {
-      addContact({
-        _id: 'c' + Date.now(),
-        name: newContact.name,
-        phone: newContact.phone,
-        email: newContact.email
-      });
+    if (newContact.name && newContact.phone) {
+      addContact(newContact.phone, newContact.name);
       setNewContact({ name: '', phone: '', email: '' });
       setShowAddForm(false);
     }

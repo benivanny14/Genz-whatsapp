@@ -64,17 +64,14 @@ exports.uploadPhoneContacts = async (req, res) => {
     if (!user.contacts) user.contacts = [];
     
     // Add new contacts (avoid duplicates)
-    const existingPhoneNumbers = user.contacts.map(c => c.phone);
-    const newContacts = matchedContacts.filter(c => c.matched && !existingPhoneNumbers.includes(c.phone));
+    const existingUserIds = user.contacts.map(c => String(c.user || c.userId));
+    const newContacts = matchedContacts.filter(c => c.matched && !existingUserIds.includes(String(c.userId)));
     
     user.contacts = [
       ...user.contacts,
       ...newContacts.map(c => ({
-        userId: c.userId,
-        name: c.name,
-        phone: c.phone,
-        email: c.email,
-        addedAt: new Date()
+        user: c.userId,
+        savedName: c.name || c.username
       }))
     ];
     
@@ -99,7 +96,7 @@ exports.uploadPhoneContacts = async (req, res) => {
 exports.getMatchedContacts = async (req, res) => {
   try {
     const userId = req.user._id;
-    const user = await User.findById(userId).populate('contacts.userId', 'username phoneNumber email profilePicture about isOnline lastSeen');
+    const user = await User.findById(userId).populate('contacts.user', 'username phoneNumber email profilePicture about isOnline lastSeen');
 
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
@@ -174,17 +171,14 @@ exports.syncContacts = async (req, res) => {
     const user = await User.findById(userId);
     if (!user.contacts) user.contacts = [];
     
-    const existingPhoneNumbers = user.contacts.map(c => c.phone);
-    const newContacts = matchedContacts.filter(c => c.matched && !existingPhoneNumbers.includes(c.phone));
+    const existingUserIds = user.contacts.map(c => String(c.user || c.userId));
+    const newContacts = matchedContacts.filter(c => c.matched && !existingUserIds.includes(String(c.userId)));
     
     user.contacts = [
       ...user.contacts,
       ...newContacts.map(c => ({
-        userId: c.userId,
-        name: c.name,
-        phone: c.phone,
-        email: c.email,
-        addedAt: new Date()
+        user: c.userId,
+        savedName: c.name || c.username
       }))
     ];
     
@@ -216,7 +210,7 @@ exports.removeContact = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    user.contacts = user.contacts.filter(c => c.userId.toString() !== contactId);
+    user.contacts = user.contacts.filter(c => String(c.user || c.userId) !== contactId);
     await user.save();
 
     res.json({ success: true, message: 'Contact removed successfully' });
@@ -240,9 +234,9 @@ exports.updateContactName = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    const contact = user.contacts.find(c => c.userId.toString() === contactId);
+    const contact = user.contacts.find(c => String(c.user || c.userId) === contactId);
     if (contact) {
-      contact.name = name;
+      contact.savedName = name;
       await user.save();
     }
 
@@ -265,7 +259,7 @@ exports.getContactSuggestions = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    const contactIds = (user.contacts || []).map(c => c.userId.toString());
+    const contactIds = (user.contacts || []).map(c => String(c.user || c.userId));
 
     // Get users who are not in contacts and not the current user
     const suggestions = await User.find({

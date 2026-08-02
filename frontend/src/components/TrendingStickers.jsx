@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles, Star, Download, X, TrendingUp, Loader2 } from 'lucide-react';
 import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = resolveApiBase();
 
 const TrendingStickers = ({ onStickerSelect, onClose, replyTo, messageInput }) => {
   const [activePack, setActivePack] = useState(null);
@@ -21,7 +22,7 @@ const TrendingStickers = ({ onStickerSelect, onClose, replyTo, messageInput }) =
     const fetchPacks = async () => {
       try {
         setLoading(true);
-        const response = await authFetch(`${API_URL}/api/stickers/packs`);
+        const response = await authFetch(`${API_URL}/stickers/packs`);
         const data = await response.json();
         if (data?.success) {
           setStickerPacks(data.packs || []);
@@ -57,7 +58,7 @@ const TrendingStickers = ({ onStickerSelect, onClose, replyTo, messageInput }) =
   const handleDownloadPack = async (packId) => {
     try {
       setDownloading(packId);
-      const response = await authFetch(`${API_URL}/api/stickers/packs/${packId}/download`, {
+      const response = await authFetch(`${API_URL}/stickers/packs/${packId}/download`, {
         method: 'POST'
       });
       const data = await response.json();

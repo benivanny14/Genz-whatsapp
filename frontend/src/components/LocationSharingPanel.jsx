@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Navigation, RefreshCw, X, Shield, Bell, Clock } from 'lucide-react';
 import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
-const BASE = `${API_URL}/location-sharing`;
+const BASE = `${resolveApiBase()}/location-sharing`;
 
 const LocationSharingPanel = ({ onClose }) => {
   const [settings, setSettings] = useState(null);
@@ -33,7 +33,7 @@ const LocationSharingPanel = ({ onClose }) => {
     try {
       const res = await authFetch(`${BASE}/active`);
       const data = await res.json();
-      if (data?.success) setActiveShares(data.shares || []);
+      if (data?.success) setActiveShares(data.activeLocations || []);
     } catch (err) {}
   };
 

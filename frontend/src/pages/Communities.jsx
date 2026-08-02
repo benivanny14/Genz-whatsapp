@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Globe2, Lock, Plus, Search, Settings, UserPlus, UsersRound } from 'lucide-react';
+import { ArrowLeft, Globe2, Lock, Plus, Search, Settings, UserPlus, UsersRound, Trash2, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-const STORAGE_KEY = 'genz_communities_page';
+import communityService from '../services/communityService';
 
 const DEFAULT_COMMUNITIES = [
   {
@@ -34,30 +33,37 @@ const DEFAULT_COMMUNITIES = [
   },
 ];
 
-const readCommunities = () => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    const parsed = stored ? JSON.parse(stored) : null;
-    return Array.isArray(parsed) && parsed.length ? parsed : DEFAULT_COMMUNITIES;
-  } catch {
-    return DEFAULT_COMMUNITIES;
-  }
-};
-
 const Communities = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('joined');
   const [query, setQuery] = useState('');
-  const [communities, setCommunities] = useState(readCommunities);
+  const [communities, setCommunities] = useState([]);
   const [draft, setDraft] = useState({ name: '', description: '', public: true });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState(null);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(communities));
-    } catch {
-      // Best-effort local persistence.
-    }
-  }, [communities]);
+    let active = true;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const data = await communityService.getCommunities();
+        if (active) setCommunities(data);
+      } catch (err) {
+        if (active) setCommunities(DEFAULT_COMMUNITIES);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    load();
+    return () => { active = false; };
+  }, []);
+
+  const showNotice = (type, text) => {
+    setNotice({ type, text });
+    window.setTimeout(() => setNotice(null), 3200);
+  };
 
   const filtered = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -74,43 +80,65 @@ const Communities = () => {
     });
   }, [activeTab, communities, query]);
 
-  const createCommunity = () => {
+  const createCommunity = async () => {
     const name = draft.name.trim();
     if (!name) return;
 
-    const community = {
-      id: `community-${Date.now()}`,
-      name,
-      description: draft.description.trim() || 'Community description',
-      members: 1,
-      groups: 1,
-      public: draft.public,
-      joined: true,
-    };
-
-    setCommunities((current) => [community, ...current]);
-    setDraft({ name: '', description: '', public: true });
-    setActiveTab('joined');
+    setSaving(true);
+    try {
+      const community = await communityService.createCommunity({
+        name,
+        description: draft.description.trim() || 'Community description',
+        public: draft.public
+      });
+      setCommunities((current) => [community, ...current]);
+      setDraft({ name: '', description: '', public: true });
+      setActiveTab('joined');
+      showNotice('success', 'Community created.');
+    } catch (err) {
+      showNotice('error', err.message || 'Failed to create community.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const joinCommunity = (communityId) => {
-    setCommunities((current) =>
-      current.map((community) =>
-        community.id === communityId
-          ? { ...community, joined: true, members: community.members + 1 }
-          : community
-      )
-    );
+  const joinCommunity = async (communityId) => {
+    try {
+      const updated = await communityService.joinCommunity(communityId);
+      setCommunities((current) =>
+        current.map((community) =>
+          community.id === communityId ? { ...community, ...updated } : community
+        )
+      );
+      showNotice('success', 'Joined community.');
+    } catch (err) {
+      showNotice('error', err.message || 'Failed to join community.');
+    }
   };
 
-  const leaveCommunity = (communityId) => {
-    setCommunities((current) =>
-      current.map((community) =>
-        community.id === communityId
-          ? { ...community, joined: false, members: Math.max(0, community.members - 1) }
-          : community
-      )
-    );
+  const leaveCommunity = async (communityId) => {
+    try {
+      const updated = await communityService.leaveCommunity(communityId);
+      setCommunities((current) =>
+        current.map((community) =>
+          community.id === communityId ? { ...community, ...updated } : community
+        )
+      );
+      showNotice('success', 'Left community.');
+    } catch (err) {
+      showNotice('error', err.message || 'Failed to leave community.');
+    }
+  };
+
+  const deleteCommunity = async (communityId) => {
+    if (!window.confirm('Delete this community permanently?')) return;
+    try {
+      await communityService.deleteCommunity(communityId);
+      setCommunities((current) => current.filter((community) => community.id !== communityId));
+      showNotice('success', 'Community deleted.');
+    } catch (err) {
+      showNotice('error', err.message || 'Failed to delete community.');
+    }
   };
 
   return (
@@ -132,6 +160,17 @@ const Communities = () => {
 
       <main className="min-h-0 flex-1 overflow-y-auto px-4 py-4 pb-24 md:pb-6">
         <div className="mx-auto flex max-w-4xl flex-col gap-4">
+          {notice && (
+            <div className={`rounded-xl border px-4 py-3 text-sm ${notice.type === 'success' ? 'border-[#25d366]/40 bg-[#25d366]/10 text-[#25d366]' : 'border-red-500/40 bg-red-500/10 text-red-300'}`}>
+              {notice.text}
+            </div>
+          )}
+          {loading && (
+            <div className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-6 text-sm text-white/55">
+              <RefreshCw size={16} className="animate-spin" /> Loading communities...
+            </div>
+          )}
+
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35" size={18} />
             <input
@@ -202,10 +241,10 @@ const Communities = () => {
                 <button
                   type="button"
                   onClick={createCommunity}
-                  disabled={!draft.name.trim()}
+                  disabled={!draft.name.trim() || saving}
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#008069] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#007a5e] disabled:cursor-not-allowed disabled:opacity-45"
                 >
-                  <Plus size={18} /> Create Community
+                  <Plus size={18} /> {saving ? 'Creating...' : 'Create Community'}
                 </button>
               </div>
             </section>
@@ -242,6 +281,14 @@ const Communities = () => {
                         <>
                           <button type="button" className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-2.5 text-sm font-semibold text-white hover:bg-white/15">
                             <Settings size={16} /> Manage
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteCommunity(community.id)}
+                            title="Delete community"
+                            className="rounded-xl px-3 py-2.5 text-sm font-semibold text-red-200 hover:bg-red-500/15"
+                          >
+                            <Trash2 size={16} />
                           </button>
                           <button
                             type="button"

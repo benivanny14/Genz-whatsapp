@@ -177,12 +177,40 @@ exports.getFakeChats = async (req, res) => {
     const user = await getUser(req, res);
     if (!user) return;
 
+    const settings = mergeSettings(user.fakeChatSettings?.toObject?.() || user.fakeChatSettings);
+
+    // Enforce "auto delete fake" — purge fake data older than retention window.
+    if (settings.autoDeleteFake) {
+      const cutoff = Date.now() - (Number(settings.fakeRetentionDays) || 7) * 24 * 60 * 60 * 1000;
+      const stale = await Conversation.find({
+        participants: user._id,
+        isFake: true,
+        createdAt: { $lt: cutoff }
+      });
+      for (const conv of stale) {
+        await Message.deleteMany({ conversationId: conv._id });
+      }
+      await Conversation.deleteMany({
+        participants: user._id,
+        isFake: true,
+        createdAt: { $lt: cutoff }
+      });
+    }
+
     const conversations = await Conversation.find({
       participants: user._id,
       isFake: true
-    }).sort({ createdAt: -1 });
+    })
+      .populate('lastMessage', 'content messageType mediaUrl isFromMe')
+      .sort({ createdAt: -1 });
 
-    res.status(200).json({ success: true, fakeChats: conversations });
+    const fakeChats = conversations.map((conv) => ({
+      ...conv.toObject(),
+      contactName: conv.fakeContactName || 'Unknown Contact',
+      lastMessageText: conv.lastMessage?.content || ''
+    }));
+
+    res.status(200).json({ success: true, fakeChats });
   } catch (error) {
     console.error('Get fake chats error:', error);
     res.status(500).json({ success: false, message: error.message });
@@ -198,6 +226,21 @@ exports.getFakeCalls = async (req, res) => {
     if (!user) return;
 
     const Call = require('../models/CallLog');
+
+    const settings = mergeSettings(user.fakeChatSettings?.toObject?.() || user.fakeChatSettings);
+
+    // Enforce "auto delete fake" — purge fake calls older than retention window.
+    if (settings.autoDeleteFake) {
+      const cutoff = Date.now() - (Number(settings.fakeRetentionDays) || 7) * 24 * 60 * 60 * 1000;
+      await Call.deleteMany({
+        $or: [
+          { callerId: user._id },
+          { calleeId: user._id }
+        ],
+        isFake: true,
+        createdAt: { $lt: cutoff }
+      });
+    }
     
     const calls = await Call.find({
       $or: [
@@ -207,7 +250,16 @@ exports.getFakeCalls = async (req, res) => {
       isFake: true
     }).sort({ createdAt: -1 });
 
-    res.status(200).json({ success: true, fakeCalls: calls });
+    const fakeCalls = calls.map((call) => {
+      const obj = call.toObject ? call.toObject() : call;
+      return {
+        ...obj,
+        contactName: obj.fakeContactName || 'Unknown Contact',
+        type: obj.direction || 'incoming'
+      };
+    });
+
+    res.status(200).json({ success: true, fakeCalls });
   } catch (error) {
     console.error('Get fake calls error:', error);
     res.status(500).json({ success: false, message: error.message });
