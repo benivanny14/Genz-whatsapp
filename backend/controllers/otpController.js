@@ -2,19 +2,22 @@ const smsService = require('../services/smsService');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const speakeasy = require('speakeasy');
+const { getRequestDeviceId, registerDevice } = require('../utils/deviceSession');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'genz-development-secret-change-me';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
-const signToken = (user) => jwt.sign(
-  {
+const signToken = (user, deviceId) => {
+  const payload = {
     id: user._id.toString(),
     role: user.role || (user.isAdmin ? 'admin' : 'user'),
     typ: 'access'
-  },
-  JWT_SECRET,
-  { expiresIn: JWT_EXPIRES_IN }
-);
+  };
+  if (deviceId) {
+    payload.deviceId = String(deviceId);
+  }
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+};
 
 /**
  * Request OTP for registration
@@ -122,8 +125,11 @@ exports.verifyRegisterOTP = async (req, res) => {
     await user.setPassword(password);
     await user.save();
 
+    const deviceId = getRequestDeviceId(req);
+    await registerDevice(req, user._id);
+
     // Generate JWT token
-    const token = signToken(user);
+    const token = signToken(user, deviceId);
 
     console.log(`[OTP] User registered successfully: ${user._id}`);
 
@@ -296,8 +302,11 @@ exports.verifyLoginOTP = async (req, res) => {
     user.lastSeen = new Date();
     await user.save();
 
+    const deviceId = getRequestDeviceId(req);
+    await registerDevice(req, user._id);
+
     // Generate JWT token
-    const token = signToken(user);
+    const token = signToken(user, deviceId);
 
     console.log(`[OTP] User logged in successfully: ${user._id}`);
 

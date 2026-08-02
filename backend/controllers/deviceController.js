@@ -1,6 +1,7 @@
 const Device = require('../models/Device');
 const crypto = require('crypto');
 const QRCode = require('qrcode');
+const { getRequestDeviceId, registerDevice } = require('../utils/deviceSession');
 
 const LOCAL_USER_ID = process.env.LOCAL_USER_ID || '60d5ecb8b392cb371c664c12';
 const getCurrentUserId = (req) => req.user?._id?.toString() || LOCAL_USER_ID;
@@ -131,11 +132,23 @@ exports.pairDevice = async (req, res) => {
     device.deviceType = deviceType || device.deviceType;
     device.platform = platform || device.platform;
     device.browser = browser || device.browser;
-    device.pairingToken = undefined; // Remove token after pairing (single-use)
-    device.isActive = true;
-    device.lastActive = Date.now();
 
-    await device.save();
+    // The device that scanned/entered the code is the one actually signing in.
+    // Point the linked record at its real X-Device-ID so the token it receives
+    // stays valid against the device-scoped auth check.
+    const scannerDeviceId = getRequestDeviceId(req);
+    let linkedDeviceId = device.deviceId;
+    if (scannerDeviceId) {
+      linkedDeviceId = scannerDeviceId;
+      // The pairing placeholder is replaced by the scanner's real device record.
+      await Device.deleteOne({ _id: device._id });
+      await registerDevice(req, account._id);
+    } else {
+      device.pairingToken = undefined; // Remove token after pairing (single-use)
+      device.isActive = true;
+      device.lastActive = Date.now();
+      await device.save();
+    }
 
     // Issue real login tokens so the new device is actually signed in —
     // this is what a QR "pairing" is supposed to do (like WhatsApp Web/Desktop).
@@ -143,7 +156,7 @@ exports.pairDevice = async (req, res) => {
     const JWT_SECRET = process.env.JWT_SECRET || 'genz-development-secret-change-me';
     const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || JWT_SECRET;
     const accessToken = jwt.sign(
-      { id: account._id.toString(), role: account.role || (account.isAdmin ? 'admin' : 'user'), typ: 'access' },
+      { id: account._id.toString(), role: account.role || (account.isAdmin ? 'admin' : 'user'), typ: 'access', deviceId: linkedDeviceId },
       JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || process.env.JWT_EXPIRE || '7d' }
     );
@@ -190,9 +203,20 @@ exports.getDevices = async (req, res) => {
       // Return empty array if DB is down
       return res.status(200).json({ success: true, devices: [] });
     }
+
+    // Ensure the browser/device making this request is represented so the
+    // "Current" badge shows and the user can't accidentally remove the device
+    // they are actively using.
+    if (currentDeviceId && !(devices || []).some((d) => d.deviceId === currentDeviceId)) {
+      await registerDevice(req, currentUserId);
+      devices = await Device.find({
+        localUserId: currentUserId
+      }).sort({ lastActive: -1 });
+    }
     
     res.status(200).json({ 
       success: true, 
+      currentDeviceId: currentDeviceId || undefined,
       devices: (devices || []).map((device) => serializeDevice(device, currentDeviceId))
     });
   } catch (error) {
@@ -213,23 +237,19 @@ exports.unlinkDevice = async (req, res) => {
     const device = await Device.findOneAndDelete({
       deviceId: id,
       localUserId: currentUserId
-    }).catch(err => {
-      console.error('Device delete error:', err);
-      return null;
     });
     
-    // Return success even if device not found to prevent UI crashes
+    if (!device) {
+      return res.status(404).json({ success: false, message: 'Device not found' });
+    }
+
     res.status(200).json({ 
       success: true, 
-      message: device ? 'Device unlinked successfully' : 'Device removed' 
+      message: 'Device unlinked successfully'
     });
   } catch (error) {
     console.error('Unlink device error:', error);
-    // Return success to prevent UI crashes
-    res.status(200).json({ 
-      success: true, 
-      message: 'Device operation completed' 
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -242,21 +262,23 @@ exports.updateDeviceActive = async (req, res) => {
     const { id } = req.params;
     const isActive = req.body.isActive ?? req.body.active;
     
-    await Device.findOneAndUpdate(
+    const device = await Device.findOneAndUpdate(
       { deviceId: id, localUserId: currentUserId },
       { 
         isActive: isActive !== undefined ? isActive : true,
         lastActive: Date.now()
       },
       { new: true }
-    ).catch(err => {
-      console.error('Device update error:', err);
-    });
+    );
     
+    if (!device) {
+      return res.status(404).json({ success: false, message: 'Device not found' });
+    }
+
     res.status(200).json({ success: true, message: 'Device status updated' });
   } catch (error) {
     console.error('Update device active error:', error);
-    res.status(200).json({ success: true, message: 'Device status update completed' });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -266,7 +288,7 @@ exports.updateDeviceActive = async (req, res) => {
 exports.logoutAllDevices = async (req, res) => {
   try {
     const currentUserId = getCurrentUserId(req);
-    const { currentDeviceId } = req.body;
+    const currentDeviceId = req.body.currentDeviceId || req.headers['x-device-id'] || '';
     
     // Deactivate all devices except current
     const result = await Device.updateMany(
@@ -275,22 +297,20 @@ exports.logoutAllDevices = async (req, res) => {
         deviceId: { $ne: currentDeviceId }
       },
       { isActive: false }
-    ).catch(err => {
-      console.error('Logout all devices error:', err);
-      return { modifiedCount: 0 };
-    });
+    );
     
     res.status(200).json({ 
       success: true, 
+      currentDeviceId: currentDeviceId || undefined,
       loggedOutCount: result?.modifiedCount || 0,
-      message: `Logged out ${result?.modifiedCount || 0} devices`
+      message: `Logged out ${result?.modifiedCount || 0} device(s)`
     });
   } catch (error) {
     console.error('Logout all devices error:', error);
-    res.status(200).json({ 
-      success: true, 
+    res.status(500).json({ 
+      success: false, 
       loggedOutCount: 0,
-      message: 'Logout operation completed'
+      message: error.message
     });
   }
 };
@@ -306,20 +326,58 @@ exports.updateDeviceCapabilities = async (req, res) => {
       { deviceId: id, localUserId: currentUserId },
       { capabilities },
       { new: true }
-    ).catch(err => {
-      console.error('Update device capabilities error:', err);
-      return null;
-    });
+    );
     
+    if (!device) {
+      return res.status(404).json({ success: false, message: 'Device not found' });
+    }
+
     res.status(200).json({ 
       success: true, 
-      message: device ? 'Device capabilities updated' : 'Device capabilities update completed'
+      message: 'Device capabilities updated'
     });
   } catch (error) {
     console.error('Update device capabilities error:', error);
-    res.status(200).json({ 
-      success: true, 
-      message: 'Device capabilities update completed' 
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
     });
+  }
+};
+
+// @desc    Rename a linked device
+// @route   PUT /api/device/:id
+// @access  Protected
+exports.renameDevice = async (req, res) => {
+  try {
+    const currentUserId = getCurrentUserId(req);
+    const { id } = req.params;
+    const deviceName = (req.body.deviceName || req.body.name || '').trim();
+
+    if (!deviceName) {
+      return res.status(400).json({ success: false, message: 'Device name is required' });
+    }
+    if (deviceName.length > 50) {
+      return res.status(400).json({ success: false, message: 'Device name must be 50 characters or less' });
+    }
+
+    const device = await Device.findOneAndUpdate(
+      { deviceId: id, localUserId: currentUserId },
+      { deviceName, lastActive: Date.now() },
+      { new: true }
+    );
+
+    if (!device) {
+      return res.status(404).json({ success: false, message: 'Device not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Device renamed successfully',
+      device: serializeDevice(device)
+    });
+  } catch (error) {
+    console.error('Rename device error:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };

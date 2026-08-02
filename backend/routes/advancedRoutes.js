@@ -34,7 +34,11 @@ const {
   getDashboardStats,
   getStatusReel,
   getOnlineRanking,
-  getStatusViewers
+  getStatusViewers,
+  getStatusDetails,
+  getStatusReplies,
+  updateStatusPrivacy,
+  getStatusStats
 } = require('../controllers/advancedController');
 const { protect } = require('../middleware/auth');
 
@@ -54,9 +58,13 @@ const { buildSignedUploadPath } = require('../utils/mediaAccess');
 router.post('/status', createStatus);
 router.post('/status/upload', upload.single('file'), validateFileContent, uploadStatusMedia);
 router.get('/status/reel', getStatusReel);
+router.get('/status/stats', getStatusStats);
 router.get('/status', getStatuses);
+router.get('/status/:id', getStatusDetails);
+router.get('/status/:id/replies', getStatusReplies);
 router.post('/status/:id/view', viewStatus);
 router.get('/status/:id/viewers', getStatusViewers);
+router.patch('/status/:id/privacy', updateStatusPrivacy);
 router.delete('/status/:id', deleteStatus);
 router.post('/status/:id/reply', replyToStatus);
 router.post('/status/reply/:id', replyToStatus);

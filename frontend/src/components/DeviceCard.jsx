@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Smartphone, Monitor, Tablet, Clock, Trash2, Power, Wifi, WifiOff } from 'lucide-react';
+import { Smartphone, Monitor, Tablet, Clock, Trash2, Power, Wifi, WifiOff, Pencil, Check, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import deviceService from '../services/deviceService';
 
 const DeviceCard = ({ device, onDeviceUpdate, onDeviceRemove }) => {
   const [loading, setLoading] = useState(false);
   const [showActions, setShowActions] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [newName, setNewName] = useState('');
 
   const getDeviceIcon = (deviceType) => {
     switch (deviceType?.toLowerCase()) {
@@ -67,6 +69,30 @@ const DeviceCard = ({ device, onDeviceUpdate, onDeviceRemove }) => {
 
   const isCurrentDevice = device.current || device.id === 'current-device';
 
+  const startRename = () => {
+    setNewName(device.name || '');
+    setRenaming(true);
+  };
+
+  const handleRename = async () => {
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === device.name) {
+      setRenaming(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await deviceService.renameDevice(device.id, trimmed);
+      onDeviceUpdate && onDeviceUpdate();
+    } catch (error) {
+      console.error('Error renaming device:', error);
+    } finally {
+      setLoading(false);
+      setRenaming(false);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -87,16 +113,50 @@ const DeviceCard = ({ device, onDeviceUpdate, onDeviceRemove }) => {
           </div>
           
           <div className="flex-1 min-w-0">
-            <div className="flex items-center space-x-2">
-              <h3 className="font-medium text-gray-900 dark:text-white truncate">
-                {device.name || 'Unknown Device'}
-              </h3>
-              {isCurrentDevice && (
-                <span className="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 rounded-full">
-                  Current
-                </span>
-              )}
-            </div>
+            {renaming ? (
+              <div className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleRename();
+                    if (e.key === 'Escape') setRenaming(false);
+                  }}
+                  autoFocus
+                  maxLength={50}
+                  className="flex-1 px-2 py-1 text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Device name"
+                />
+                <button
+                  onClick={handleRename}
+                  disabled={loading || !newName.trim()}
+                  className="p-1.5 rounded-lg bg-green-100 dark:bg-green-900 hover:bg-green-200 dark:hover:bg-green-800 text-green-600 dark:text-green-400 transition-colors disabled:opacity-50"
+                  title="Save" aria-label="Save"
+                >
+                  <Check className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setRenaming(false)}
+                  disabled={loading}
+                  className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 transition-colors"
+                  title="Cancel" aria-label="Cancel"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <h3 className="font-medium text-gray-900 dark:text-white truncate">
+                  {device.name || 'Unknown Device'}
+                </h3>
+                {isCurrentDevice && (
+                  <span className="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 rounded-full">
+                    Current
+                  </span>
+                )}
+              </div>
+            )}
             
             <div className="mt-1 space-y-1">
               <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
@@ -132,6 +192,15 @@ const DeviceCard = ({ device, onDeviceUpdate, onDeviceRemove }) => {
         }`}>
           {!isCurrentDevice && (
             <>
+              <button
+                onClick={startRename}
+                disabled={loading}
+                className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900 hover:bg-blue-200 dark:hover:bg-blue-800 text-blue-600 dark:text-blue-400 transition-colors"
+                title="Rename Device" aria-label="Rename Device"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+
               <button
                 onClick={handleToggleActive}
                 disabled={loading}

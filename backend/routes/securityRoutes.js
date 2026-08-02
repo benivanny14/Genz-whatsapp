@@ -11,7 +11,9 @@ const {
   getEmailVerificationStatus,
   sendEmailVerification,
   verifyEmail,
-  resendEmailVerification
+  resendEmailVerification,
+  sendPasswordReset,
+  resetPassword
 } = require('../controllers/securityController');
 const { protect } = require('../middleware/auth');
 
@@ -32,5 +34,9 @@ router.post('/email/resend-verification', resendEmailVerification);
 // Account Security Settings
 router.get('/settings', protect, getSecuritySettings);
 router.put('/settings', protect, updateSecuritySettings);
+
+// Password Reset (public — user is not authenticated when resetting)
+router.post('/password/send-reset', sendPasswordReset);
+router.post('/password/reset', resetPassword);
 
 module.exports = router;

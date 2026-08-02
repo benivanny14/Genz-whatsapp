@@ -169,6 +169,31 @@ const deviceService = {
       console.error('Error setting device active status:', error);
       throw error;
     }
+  },
+
+  // Rename a linked device
+  renameDevice: async (deviceId, deviceName) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await authFetch(`${API_URL}/device/${deviceId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ deviceName })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error renaming device:', error);
+      throw error;
+    }
   }
 };
 

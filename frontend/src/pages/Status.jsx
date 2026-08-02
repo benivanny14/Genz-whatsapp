@@ -295,8 +295,39 @@ const Status = () => {
       return;
     }
 
-    if (uploadData.type !== 'text' && !uploadData.file) {
+    if (uploadData.type === 'link' && !uploadData.linkUrl.trim()) {
+      setError('Please enter a link URL for your status');
+      return;
+    }
+
+    if (uploadData.type === 'quiz' && !uploadData.quizQuestion.trim()) {
+      setError('Please enter a quiz question');
+      return;
+    }
+
+    if (uploadData.type === 'question' && !uploadData.questionText.trim()) {
+      setError('Please enter a question');
+      return;
+    }
+
+    if (uploadData.type === 'countdown' && !uploadData.countdownDate) {
+      setError('Please select a countdown date');
+      return;
+    }
+
+    if (uploadData.type === 'location' && !(uploadData.locationData && uploadData.locationData.address)) {
+      setError('Please enter a location address');
+      return;
+    }
+
+    const mediaFileTypes = ['image', 'video', 'audio'];
+    if (mediaFileTypes.includes(uploadData.type) && !uploadData.file) {
       setError('Please select a file to upload');
+      return;
+    }
+
+    if (uploadData.type === 'collage' && (!uploadData.collageImages || uploadData.collageImages.length === 0)) {
+      setError('Please select at least one image for your collage');
       return;
     }
 
@@ -307,10 +338,29 @@ const Status = () => {
       let mediaUrl = '';
       let mediaType = uploadData.type;
 
-      if (uploadData.type !== 'text' && uploadData.file) {
+      if (mediaFileTypes.includes(uploadData.type) && uploadData.file) {
         const up = await uploadStatusMedia(uploadData.file);
         mediaUrl = up.fileUrl || '';
         mediaType = up.mediaType || uploadData.type;
+      }
+
+      if (uploadData.type === 'gif' && uploadData.gifUrl) {
+        mediaUrl = uploadData.gifUrl;
+      }
+
+      if (uploadData.type === 'music' && uploadData.musicUrl) {
+        mediaUrl = uploadData.musicUrl;
+      }
+
+      let collageImages = uploadData.collageImages || [];
+      if (uploadData.type === 'collage' && collageImages.length > 0) {
+        const urls = [];
+        for (const file of collageImages) {
+          if (typeof file === 'string') { urls.push(file); continue; }
+          const up = await uploadStatusMedia(file);
+          if (up.fileUrl) urls.push(up.fileUrl);
+        }
+        collageImages = urls;
       }
 
       const privacy =
@@ -336,8 +386,10 @@ const Status = () => {
         countdownDate: uploadData.countdownDate || '',
         countdownTime: uploadData.countdownTime || '',
         locationData: uploadData.locationData || null,
-        collageImages: uploadData.collageImages || [],
-        timerSeconds: uploadData.timerSeconds || 5
+        collageImages,
+        timerSeconds: uploadData.timerSeconds || 5,
+        musicUrl: uploadData.musicUrl || '',
+        gifUrl: uploadData.gifUrl || ''
       };
 
       const data = await createStatus(payload);
@@ -1034,7 +1086,7 @@ const Status = () => {
                 </div>
               </div>
 
-              {uploadData.type !== 'text' && (
+              {['image', 'video', 'audio'].includes(uploadData.type) && (
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Upload File
@@ -1215,7 +1267,7 @@ const Status = () => {
                     multiple
                     onChange={(e) => {
                       const files = Array.from(e.target.files).slice(0, 4);
-                      setUploadData((prev) => ({ ...prev, collageImages: files.map(f => f.name) }));
+                      setUploadData((prev) => ({ ...prev, collageImages: files }));
                     }}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                   />

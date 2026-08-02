@@ -13,6 +13,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
+const { isDeviceAllowed } = require('./utils/deviceSession');
 const connectDB = require('./config/db');
 const { encrypt, decrypt } = require("./utils/encryption");
 const multer = require("multer");
@@ -949,6 +950,10 @@ io.use(async (socket, next) => {
         }
         const user = await User.findById(decoded.id).select('-passwordHash -twoFactorSecret');
         if (user && !user.isBlocked) {
+          const deviceAllowed = await isDeviceAllowed(decoded);
+          if (!deviceAllowed) {
+            return next(new Error('Session has been logged out on this device'));
+          }
           socket.userId = user._id.toString();
           socket.user = user;
           return next();

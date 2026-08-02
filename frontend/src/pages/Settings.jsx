@@ -5,9 +5,10 @@ import {
   Smartphone, ChevronRight, Database, UserRound, KeyRound, Languages,
   HelpCircle, Download, Trash2, Phone, Wifi, Image as ImageIcon,
   HardDrive, CheckCircle2, EyeOff, Archive, Clock, Mail, FileText, Globe2,
-  RefreshCw, RotateCcw, Palette, MessageSquare, MapPin
+  RefreshCw, RotateCcw, Palette, MessageSquare, MapPin, X
 } from 'lucide-react';
 import ContactManager from '../components/ContactManager';
+import { BlockedUsersList } from '../components/BlockUnblock';
 import ProductCatalogue from '../components/ProductCatalogue';
 import BusinessAccountPanel from '../components/BusinessAccountPanel';
 import CallFeaturesPanel from '../components/CallFeaturesPanel';
@@ -325,6 +326,8 @@ const Settings = () => {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
   const [showContacts, setShowContacts] = useState(false);
+  const [showBlocked, setShowBlocked] = useState(false);
+  const [blockedUsers, setBlockedUsers] = useState([]);
   const [showCatalogue, setShowCatalogue] = useState(false);
   const [showBusinessPanel, setShowBusinessPanel] = useState(false);
   const [showStorage, setShowStorage] = useState(false);
@@ -381,6 +384,35 @@ const Settings = () => {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    const loadBlocked = async () => {
+      try {
+        const data = await userService.getBlockedUsers();
+        if (!active) return;
+        setBlockedUsers((data.blockedUsers || []).map((b) => ({
+          _id: b._id || b.userId,
+          name: b.name || b.username || 'Unknown',
+          phone: b.phone || b.phoneNumber || ''
+        })));
+      } catch (error) {
+        if (active) setBlockedUsers([]);
+      }
+    };
+    loadBlocked();
+    return () => { active = false; };
+  }, []);
+
+  const handleUnblock = async (userId) => {
+    try {
+      await userService.unblockUser(userId);
+      setBlockedUsers((prev) => prev.filter((b) => b._id !== userId));
+      showStatus('success', 'User unblocked.');
+    } catch (error) {
+      showStatus('warning', 'Failed to unblock user.');
+    }
+  };
 
   useEffect(() => {
     applyRuntimeSettings(settingsData);
@@ -532,44 +564,53 @@ const Settings = () => {
     try {
       // Fetch full contact data from API
       const API_URL = resolveApiBase();
-      const response = await fetch(`${API_URL}/chat/contacts`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      const token = localStorage.getItem('token');
+      const [contactsRes, savedRes] = await Promise.all([
+        fetch(`${API_URL}/chat/contacts`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }),
+        fetch(`${API_URL}/privacy/${selectorType}/${privacyType}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+      ]);
       
-      if (response.ok) {
-        const data = await response.json();
-        const contacts = (data.contacts || data.users || []).map((c) =>
-          c.user
-            ? {
-                _id: c.user._id,
-                username: c.savedName || c.user.username || c.user.name,
-                name: c.savedName || c.user.username || c.user.name,
-                phoneNumber: c.user.phoneNumber || c.user.phone,
-                phone: c.user.phoneNumber || c.user.phone,
-                profilePicture: c.user.profilePicture
-              }
-            : c
-        );
-        
-        setContactSelectorConfig({
-          privacyType,
-          selectorType,
-          initialSelectedContacts: [],
-          contacts: contacts
-        });
-        setShowContactSelector(true);
-      } else {
-        // Fallback to user contacts if API fails
-        setContactSelectorConfig({
-          privacyType,
-          selectorType,
-          initialSelectedContacts: [],
-          contacts: user?.contacts || []
-        });
-        setShowContactSelector(true);
+      const data = contactsRes.ok ? await contactsRes.json() : {};
+      const contacts = (data.contacts || data.users || []).map((c) =>
+        c.user
+          ? {
+              _id: c.user._id,
+              username: c.savedName || c.user.username || c.user.name,
+              name: c.savedName || c.user.username || c.user.name,
+              phoneNumber: c.user.phoneNumber || c.user.phone,
+              phone: c.user.phoneNumber || c.user.phone,
+              profilePicture: c.user.profilePicture
+            }
+          : c
+      );
+
+      // Reload the currently-saved selection so reopening the selector
+      // shows what is actually saved, not an empty list.
+      let initialSelectedContacts = [];
+      if (savedRes.ok) {
+        const savedData = await savedRes.json();
+        const key = selectorType === 'excluded' ? 'excludedContacts' : 'allowedContacts';
+        const idKey = selectorType === 'excluded' ? 'excludedContactId' : 'allowedContactId';
+        initialSelectedContacts = (savedData[key] || [])
+          .map((item) => item[idKey])
+          .filter(Boolean);
       }
+      
+      setContactSelectorConfig({
+        privacyType,
+        selectorType,
+        initialSelectedContacts: initialSelectedContacts,
+        contacts: contacts.length > 0 ? contacts : (user?.contacts || [])
+      });
+      setShowContactSelector(true);
     } catch (error) {
       console.error('Failed to fetch contacts:', error);
       // Fallback to user contacts
@@ -914,7 +955,7 @@ const Settings = () => {
     <div className="space-y-4">
       <SettingSection title="Contacts" description="Contacts and blocked users are part of WhatsApp privacy and account settings.">
         <SettingRow icon={Users} title="Contact manager" description="Search, add, and manage contacts." onClick={() => setShowContacts(true)} />
-        <SettingRow icon={Shield} title="Blocked contacts" description={`${settingsData.privacy.blockedUsers.length} locally tracked blocked contacts.`} onClick={() => setShowContacts(true)} />
+        <SettingRow icon={Shield} title="Blocked contacts" description={`${blockedUsers.length} blocked ${blockedUsers.length === 1 ? 'contact' : 'contacts'}.`} onClick={() => setShowBlocked(true)} />
       </SettingSection>
     </div>
   );
@@ -1057,6 +1098,23 @@ const Settings = () => {
       </div>
 
       {showContacts && <ContactManager onClose={() => setShowContacts(false)} />}
+      {showBlocked && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md max-h-[80vh] overflow-y-auto bg-[#111b21] rounded-xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-white font-semibold">Blocked contacts</h2>
+              <button
+                onClick={() => setShowBlocked(false)}
+                className="p-2 rounded-lg hover:bg-white/10 text-gray-400"
+                title="Close" aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <BlockedUsersList blockedUsers={blockedUsers} onUnblock={handleUnblock} />
+          </div>
+        </div>
+      )}
       {showCatalogue && <ProductCatalogue onClose={() => setShowCatalogue(false)} onSendProduct={() => setShowCatalogue(false)} />}
       {showBusinessPanel && <BusinessAccountPanel onClose={() => setShowBusinessPanel(false)} />}
       {showCallsPanel && <CallFeaturesPanel onClose={() => setShowCallsPanel(false)} />}

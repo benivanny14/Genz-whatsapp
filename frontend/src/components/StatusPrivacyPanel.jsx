@@ -97,44 +97,52 @@ const StatusPrivacyPanel = ({ onClose }) => {
     try {
       // Fetch full contact data from API
       const API_URL = resolveApiBase();
-      const response = await fetch(`${API_URL}/chat/contacts`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      const token = localStorage.getItem('token');
+      const [contactsRes, savedRes] = await Promise.all([
+        fetch(`${API_URL}/chat/contacts`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }),
+        fetch(`${API_URL}/privacy/${selectorType}/status`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+      ]);
       
-      if (response.ok) {
-        const data = await response.json();
-        const contacts = (data.contacts || data.users || []).map((c) =>
-          c.user
-            ? {
-                _id: c.user._id,
-                username: c.savedName || c.user.username || c.user.name,
-                name: c.savedName || c.user.username || c.user.name,
-                phoneNumber: c.user.phoneNumber || c.user.phone,
-                phone: c.user.phoneNumber || c.user.phone,
-                profilePicture: c.user.profilePicture
-              }
-            : c
-        );
-        
-        setContactSelectorConfig({
-          privacyType: 'status',
-          selectorType,
-          initialSelectedContacts: [],
-          contacts: contacts
-        });
-        setShowContactSelector(true);
-      } else {
-        // Fallback to existing contacts
-        setContactSelectorConfig({
-          privacyType: 'status',
-          selectorType,
-          initialSelectedContacts: [],
-          contacts: contacts
-        });
-        setShowContactSelector(true);
+      const data = contactsRes.ok ? await contactsRes.json() : {};
+      const contacts = (data.contacts || data.users || []).map((c) =>
+        c.user
+          ? {
+              _id: c.user._id,
+              username: c.savedName || c.user.username || c.user.name,
+              name: c.savedName || c.user.username || c.user.name,
+              phoneNumber: c.user.phoneNumber || c.user.phone,
+              phone: c.user.phoneNumber || c.user.phone,
+              profilePicture: c.user.profilePicture
+            }
+          : c
+      );
+
+      // Reload the saved selection so reopening shows what is actually saved.
+      let initialSelectedContacts = [];
+      if (savedRes.ok) {
+        const savedData = await savedRes.json();
+        const key = selectorType === 'excluded' ? 'excludedContacts' : 'allowedContacts';
+        const idKey = selectorType === 'excluded' ? 'excludedContactId' : 'allowedContactId';
+        initialSelectedContacts = (savedData[key] || [])
+          .map((item) => item[idKey])
+          .filter(Boolean);
       }
+
+      setContactSelectorConfig({
+        privacyType: 'status',
+        selectorType,
+        initialSelectedContacts,
+        contacts: contacts.length > 0 ? contacts : (contacts || [])
+      });
+      setShowContactSelector(true);
     } catch (error) {
       console.error('Failed to fetch contacts:', error);
       // Fallback to existing contacts
@@ -142,7 +150,7 @@ const StatusPrivacyPanel = ({ onClose }) => {
         privacyType: 'status',
         selectorType,
         initialSelectedContacts: [],
-        contacts: contacts
+        contacts: contacts || []
       });
       setShowContactSelector(true);
     }

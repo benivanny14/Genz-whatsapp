@@ -162,18 +162,19 @@ const statusService = {
     return data;
   },
 
-  muteStatusUpdates: async (userId, mute) => {
-    const response = await authFetch(apiUrl(`/advanced/status/mute/${encodeURIComponent(userId)}`), {
+  muteStatusUpdates: async (statusId, mute) => {
+    const id = encodeURIComponent(statusId.replace('status-', ''));
+    const response = await authFetch(apiUrl(`/status-advanced/${id}/mute`), {
       method: 'POST',
       headers: jsonHeaders(),
-      body: JSON.stringify({ mute })
+      body: JSON.stringify({ duration: mute ? undefined : 0 })
     });
     return parseJsonSafe(response);
   },
 
   archiveStatus: async (statusId) => {
     const id = encodeURIComponent(statusId.replace('status-', ''));
-    const response = await authFetch(apiUrl(`/advanced/status/${id}/archive`), {
+    const response = await authFetch(apiUrl(`/status-advanced/${id}/archive`), {
       method: 'POST',
       headers: jsonHeaders()
     });
@@ -181,7 +182,7 @@ const statusService = {
   },
 
   getArchivedStatuses: async () => {
-    const response = await authFetch(apiUrl('/advanced/status/archived'), {
+    const response = await authFetch(apiUrl('/status-advanced/archived'), {
       headers: jsonHeaders()
     });
     return parseJsonSafe(response);
@@ -189,7 +190,7 @@ const statusService = {
 
   reportStatus: async (statusId, reason) => {
     const id = encodeURIComponent(statusId.replace('status-', ''));
-    const response = await authFetch(apiUrl(`/advanced/status/${id}/report`), {
+    const response = await authFetch(apiUrl(`/status-advanced/${id}/report`), {
       method: 'POST',
       headers: jsonHeaders(),
       body: JSON.stringify({ reason })

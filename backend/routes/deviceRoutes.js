@@ -7,7 +7,8 @@ const {
   unlinkDevice,
   updateDeviceActive,
   logoutAllDevices,
-  updateDeviceCapabilities
+  updateDeviceCapabilities,
+  renameDevice
 } = require('../controllers/deviceController');
 const { protect } = require('../middleware/auth');
 
@@ -23,6 +24,7 @@ router.use(protect);
 router.post('/generate-qr', generateQRCode);
 router.get('/', getDevices);
 router.delete('/:id', unlinkDevice);
+router.put('/:id', renameDevice);
 router.put('/:id/active', updateDeviceActive);
 router.post('/logout-all', logoutAllDevices);
 router.put('/:id/capabilities', updateDeviceCapabilities);

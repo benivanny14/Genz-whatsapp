@@ -401,17 +401,46 @@ exports.cancelScheduledMessage = async (req, res) => {
 exports.createStatus = async (req, res) => {
   try {
     const currentUserId = getCurrentUserId(req);
-    const { type, content, mediaUrl, mediaType, caption, backgroundColor, textColor, font, privacy, collabUserId, collabUsername, excludedViewers, includedViewers } = req.body;
+    const {
+      type, content, mediaUrl, mediaType, caption, backgroundColor, textColor, font,
+      privacy, collabUserId, collabUsername, excludedViewers, includedViewers,
+      linkUrl, quizQuestion, quizOptions, quizCorrectAnswer, questionText,
+      countdownDate, countdownTime, locationData, collageImages, timerSeconds,
+      musicUrl, gifUrl
+    } = req.body;
 
     // Validate status type
-    const validTypes = ['text', 'image', 'video', 'audio'];
+    const validTypes = ['text', 'image', 'video', 'audio', 'gif', 'link', 'music', 'quiz', 'question', 'countdown', 'location', 'collage'];
     if (!validTypes.includes(type)) {
       return res.status(400).json({ message: 'Invalid status type' });
     }
 
-    // For media statuses, mediaUrl is required
-    if ((type === 'image' || type === 'video' || type === 'audio') && !mediaUrl) {
+    // For media statuses, mediaUrl is required. gif/music may come as a URL
+    // field (gifUrl/musicUrl) instead of an uploaded file.
+    const mediaFileTypes = ['image', 'video', 'audio'];
+    const resolvedMediaUrl = mediaUrl
+      || (type === 'gif' ? gifUrl : '')
+      || (type === 'music' ? musicUrl : '');
+
+    if (mediaFileTypes.includes(type) && !resolvedMediaUrl) {
       return res.status(400).json({ message: 'Media URL is required for this status type' });
+    }
+
+    // Type-specific content requirements
+    if (type === 'link' && !linkUrl) {
+      return res.status(400).json({ message: 'Link URL is required for a link status' });
+    }
+    if (type === 'quiz' && !quizQuestion) {
+      return res.status(400).json({ message: 'Quiz question is required for a quiz status' });
+    }
+    if (type === 'question' && !questionText) {
+      return res.status(400).json({ message: 'Question text is required for a question status' });
+    }
+    if (type === 'countdown' && !countdownDate) {
+      return res.status(400).json({ message: 'Countdown date is required for a countdown status' });
+    }
+    if (type === 'collage' && (!Array.isArray(collageImages) || collageImages.length === 0)) {
+      return res.status(400).json({ message: 'At least one image is required for a collage status' });
     }
 
     // Set expiration to the user's configured status duration (default 24 hours)
@@ -433,9 +462,9 @@ exports.createStatus = async (req, res) => {
       userId: String(currentUserId),
       username: getCurrentUsername(req),
       type,
-      content: content || caption || `${type} status`,
-      mediaUrl: mediaUrl || '',
-      mediaType: mediaType || type,
+      content: content || caption || linkUrl || questionText || `${type} status`,
+      mediaUrl: resolvedMediaUrl || '',
+      mediaType: mediaType || (type === 'music' ? 'audio' : type),
       caption: caption || '',
       backgroundColor: backgroundColor || '#00a884',
       textColor: textColor || '#ffffff',
@@ -445,6 +474,16 @@ exports.createStatus = async (req, res) => {
       includedViewers: Array.isArray(includedViewers) ? includedViewers : [],
       collabUserId: collabUserId || '',
       collabUsername: collabUsername || '',
+      linkUrl: linkUrl || '',
+      quizQuestion: quizQuestion || '',
+      quizOptions: Array.isArray(quizOptions) ? quizOptions : [],
+      quizCorrectAnswer: quizCorrectAnswer || 0,
+      questionText: questionText || '',
+      countdownDate: countdownDate || '',
+      countdownTime: countdownTime || '',
+      locationData: locationData || null,
+      collageImages: Array.isArray(collageImages) ? collageImages : [],
+      timerSeconds: timerSeconds || 5,
       expiresAt,
       views: [],
       viewsCount: 0
@@ -606,6 +645,145 @@ exports.viewStatus = async (req, res) => {
     res.status(200).json({ success: true, status: updatedStatus });
   } catch (error) {
     console.error('Error viewing status:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get status viewers
+// @route   GET /api/advanced/status/:id/viewers
+// @access  Private
+exports.getStatusDetails = async (req, res) => {
+  try {
+    const currentUserId = getCurrentUserId(req);
+    const status = await Status.findById(req.params.id)
+      .populate('user', 'username profilePicture');
+
+    if (!status) {
+      return res.status(404).json({ message: 'Status not found or expired' });
+    }
+
+    const isOwn = String(status.userId || status.user) === String(currentUserId);
+    if (!isOwn) {
+      const statusPrivacy = status.privacy || 'contacts';
+      if (statusPrivacy === 'only_me' || statusPrivacy === 'nobody') {
+        return res.status(403).json({ message: 'You cannot view this status' });
+      }
+      const posterId = status.userId || status.user;
+      if (await isEitherUserBlocked(currentUserId, posterId)) {
+        return res.status(403).json({ message: 'You cannot view this status' });
+      }
+      if (statusPrivacy === 'only_share_with') {
+        const isIncluded = (status.includedViewers || []).some((id) => String(id) === String(currentUserId));
+        if (!isIncluded) {
+          return res.status(403).json({ message: 'You cannot view this status' });
+        }
+      } else if (statusPrivacy !== 'everyone') {
+        const poster = await User.findById(posterId).select('contacts');
+        const posterContacts = poster?.contacts || [];
+        const viewerIsContact = posterContacts.some((c) => {
+          const contactUserId = c?.user ? String(c.user) : String(c);
+          return contactUserId === String(currentUserId);
+        });
+        if (!viewerIsContact) {
+          return res.status(403).json({ message: 'You cannot view this status' });
+        }
+        if (statusPrivacy === 'contacts_except') {
+          const isExcluded = (status.excludedViewers || []).some((id) => String(id) === String(currentUserId));
+          if (isExcluded) {
+            return res.status(403).json({ message: 'You cannot view this status' });
+          }
+        }
+      }
+    }
+
+    res.status(200).json({ success: true, status });
+  } catch (error) {
+    console.error('Error fetching status details:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get status replies
+// @route   GET /api/advanced/status/:id/replies
+// @access  Private
+exports.getStatusReplies = async (req, res) => {
+  try {
+    const status = await Status.findById(req.params.id).select('replies');
+    if (!status) {
+      return res.status(404).json({ success: true, replies: [] });
+    }
+    res.status(200).json({ success: true, replies: status.replies || [] });
+  } catch (error) {
+    console.error('Error fetching status replies:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Update a single status's privacy
+// @route   PATCH /api/advanced/status/:id/privacy
+// @access  Private
+exports.updateStatusPrivacy = async (req, res) => {
+  try {
+    const currentUserId = getCurrentUserId(req);
+    const { privacy, excludedViewers, includedViewers } = req.body;
+
+    const status = await Status.findById(req.params.id);
+    if (!status) {
+      return res.status(404).json({ message: 'Status not found or expired' });
+    }
+
+    const isOwn = String(status.userId || status.user) === String(currentUserId);
+    if (!isOwn) {
+      return res.status(403).json({ message: 'You can only update your own statuses' });
+    }
+
+    const allowed = ['everyone', 'contacts', 'contacts_except', 'only_share_with', 'only_me', 'nobody'];
+    if (privacy && allowed.includes(privacy)) {
+      status.privacy = privacy;
+    }
+    if (Array.isArray(excludedViewers)) status.excludedViewers = excludedViewers;
+    if (Array.isArray(includedViewers)) status.includedViewers = includedViewers;
+    await status.save();
+
+    res.status(200).json({ success: true, status });
+  } catch (error) {
+    console.error('Error updating status privacy:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get status stats for the current user
+// @route   GET /api/advanced/status/stats
+// @access  Private
+exports.getStatusStats = async (req, res) => {
+  try {
+    const currentUserId = getCurrentUserId(req);
+    const match = { userId: currentUserId };
+
+    const [total, active, totalViews, totalReplies, expired] = await Promise.all([
+      Status.countDocuments(match),
+      Status.countDocuments({ ...match, expiresAt: { $gt: new Date() } }),
+      Status.aggregate([
+        { $match: match },
+        { $group: { _id: null, views: { $sum: '$viewsCount' }, replies: { $sum: { $size: { $ifNull: ['$replies', []] } } } } }
+      ]),
+      Status.aggregate([{ $match: match }, { $group: { _id: null, replies: { $sum: { $size: { $ifNull: ['$replies', []] } } } } }]),
+      Status.countDocuments({ ...match, expiresAt: { $lte: new Date() } })
+    ]);
+
+    const agg = totalViews[0] || { views: 0, replies: 0 };
+    res.status(200).json({
+      success: true,
+      stats: {
+        total,
+        active,
+        expired,
+        totalViews: agg.views || 0,
+        totalReplies: (totalReplies[0]?.replies || 0)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching status stats:', error);
     res.status(500).json({ message: error.message });
   }
 };

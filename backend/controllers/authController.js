@@ -5,6 +5,7 @@ const User = require('../models/User');
 const { mergeWhatsAppSettings } = require('../utils/whatsappSettings');
 const { applyPrivacyFilter } = require('../utils/privacyHelper');
 const { resolvePublicBaseUrl } = require('../utils/publicBaseUrl');
+const { getRequestDeviceId, registerDevice, isDeviceAllowed } = require('../utils/deviceSession');
 
 // CRITICAL: JWT secrets must be set in environment variables
 // System will fail to start if not configured in production
@@ -24,15 +25,17 @@ if (process.env.NODE_ENV === 'production' && JWT_SECRET === 'genz-development-se
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || process.env.JWT_EXPIRE || '7d';
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '30d';
 
-const signToken = (user) => jwt.sign(
-  {
+const signToken = (user, deviceId) => {
+  const payload = {
     id: user._id.toString(),
     role: user.role || (user.isAdmin ? 'admin' : 'user'),
     typ: 'access'
-  },
-  JWT_SECRET,
-  { expiresIn: JWT_EXPIRES_IN }
-);
+  };
+  if (deviceId) {
+    payload.deviceId = String(deviceId);
+  }
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+};
 
 const signRefreshToken = (user) => jwt.sign(
   {
@@ -108,7 +111,10 @@ exports.register = async (req, res) => {
     await user.setPassword(password);
     await user.save();
 
-    const token = signToken(user);
+    const deviceId = getRequestDeviceId(req);
+    await registerDevice(req, user._id);
+
+    const token = signToken(user, deviceId);
     const refreshToken = signRefreshToken(user);
 
     console.log('[Auth] Registration successful:', { userId: user._id, username: user.username });
@@ -237,7 +243,10 @@ exports.login = async (req, res) => {
     user.lastSeen = new Date();
     await user.save();
 
-    const token = signToken(user);
+    const deviceId = getRequestDeviceId(req);
+    await registerDevice(req, user._id);
+
+    const token = signToken(user, deviceId);
     const refreshToken = signRefreshToken(user);
 
     console.log('[Auth] Login successful:', { userId: user._id, username: user.username });
@@ -519,7 +528,20 @@ exports.refreshToken = async (req, res) => {
       });
     }
 
-    const token = signToken(user);
+    const deviceId = getRequestDeviceId(req);
+    if (deviceId) {
+      const allowed = await isDeviceAllowed({ id: decoded.id, deviceId });
+      if (!allowed) {
+        console.warn('[Auth] Refresh rejected: device no longer active', { id: decoded.id, deviceId });
+        return res.status(401).json({
+          success: false,
+          message: 'Session has been logged out on this device'
+        });
+      }
+    }
+    await registerDevice(req, user._id);
+
+    const token = signToken(user, deviceId);
     const refreshToken = signRefreshToken(user);
 
     console.log('[Auth] Token refreshed for user:', user._id);

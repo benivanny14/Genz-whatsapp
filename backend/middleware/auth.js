@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { isDeviceAllowed } = require('../utils/deviceSession');
 
 // CRITICAL: JWT secret must be set in environment variables
 // System will fail to start if not configured in production
@@ -77,6 +78,14 @@ const protect = async (req, res, next) => {
 
         if (user.isBlocked) {
           return res.status(401).json({ success: false, message: 'User not authorized' });
+        }
+
+        // Device-scoped tokens are invalid once their device is deactivated
+        // (logout all devices, unlink, admin revoke).
+        const deviceAllowed = await isDeviceAllowed(decoded);
+        if (!deviceAllowed) {
+          console.error('[Auth] Token rejected: device no longer active', { id: decoded.id, deviceId: decoded.deviceId });
+          return res.status(401).json({ success: false, message: 'Session has been logged out on this device' });
         }
 
         req.user = user;

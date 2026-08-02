@@ -10,6 +10,7 @@ const ForgotPassword = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [devToken, setDevToken] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,7 +23,12 @@ const ForgotPassword = () => {
     try {
       setLoading(true);
       setError('');
-      await securityService.sendPasswordReset(email);
+      const data = await securityService.sendPasswordReset(email);
+      // In development (no SMTP configured) the backend returns the token so
+      // the reset flow can be completed without a real email.
+      if (data?.token) {
+        setDevToken(data.token);
+      }
       setSuccess(true);
     } catch (error) {
       console.error('Error sending password reset:', error);
@@ -51,6 +57,14 @@ const ForgotPassword = () => {
             </p>
             
             <div className="space-y-3">
+              {devToken && (
+                <button
+                  onClick={() => navigate(`/reset-password?token=${devToken}`)}
+                  className="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors"
+                >
+                  Continue to Reset Password
+                </button>
+              )}
               <button
                 onClick={() => navigate('/login')}
                 className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
@@ -61,6 +75,7 @@ const ForgotPassword = () => {
                 onClick={() => {
                   setSuccess(false);
                   setEmail('');
+                  setDevToken('');
                 }}
                 className="w-full px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >

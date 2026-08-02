@@ -384,3 +384,73 @@ exports.resendEmailVerification = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+const PASSWORD_RESET_TOKEN_TTL_MS = 30 * 60 * 1000;
+
+exports.sendPasswordReset = async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      // Do not reveal whether the account exists.
+      return res.json({ success: true, message: 'If that email is registered, a reset link has been sent.' });
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    user.passwordResetToken = hashToken(token);
+    user.passwordResetExpiresAt = new Date(Date.now() + PASSWORD_RESET_TOKEN_TTL_MS);
+    await user.save();
+
+    const resetUrl = `${FRONTEND_URL}/reset-password?token=${token}`;
+    await sendMail({
+      to: user.email,
+      subject: 'Reset your password - GENZ WhatsApp',
+      text: `Click this link to reset your password: ${resetUrl}. It expires in 30 minutes.`,
+      html: `<p>Click <a href="${resetUrl}">here</a> to reset your password. This link expires in 30 minutes.</p>`
+    });
+
+    res.json({
+      success: true,
+      message: 'Password reset link sent',
+      ...publicTokenPayload('token', token)
+    });
+  } catch (error) {
+    console.error('Send password reset error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const token = req.body?.token;
+    const newPassword = req.body?.password || req.body?.newPassword;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Token and new password are required' });
+    }
+
+    const user = await User.findOne({
+      passwordResetToken: hashToken(token),
+      passwordResetExpiresAt: { $gt: new Date() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired reset token' });
+    }
+
+    await user.setPassword(newPassword);
+    user.passwordResetToken = null;
+    user.passwordResetExpiresAt = null;
+    user.passwordChangedAt = new Date();
+    await user.save();
+
+    res.json({ success: true, message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
