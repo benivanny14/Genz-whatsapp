@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useChat, applyVoiceEffect } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
-import { ArrowLeft, MoreVertical, Search, Smile, Paperclip, Send, Mic, Image as ImageIcon, MessageCircle, Ghost, Forward, Square, MapPin, ShieldCheck, Globe, BarChart2, CalendarClock, Info, UserMinus, UserCheck, ShieldAlert, Copy, Link, Pin, X, Edit, Briefcase, Plus, Eye, EyeOff, Clock, Lock, Sticker, Download, FileText, Camera, Headphones, Contact, Trash2, Reply, Share2, Star, Archive, BellOff, Bell, Radio, Users, Languages, Grid3x3, Lock as LockIcon, Unlock, ChevronLeft, TrendingUp, Sparkles, AtSign } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Search, Smile, Paperclip, Send, Mic, Image as ImageIcon, MessageCircle, Ghost, Forward, Square, MapPin, ShieldCheck, Globe, BarChart2, CalendarClock, Info, UserMinus, UserCheck, ShieldAlert, Copy, Link, Pin, X, Edit, Briefcase, Plus, Eye, EyeOff, Clock, Lock, Sticker, Download, FileText, Camera, Headphones, Contact, Trash2, Reply, Share2, Star, Archive, BellOff, Bell, Radio, Users, Languages, Grid3x3, Lock as LockIcon, Unlock, ChevronLeft, AtSign } from 'lucide-react';
 import { formatMessageTime, decryptMessage } from '../utils/formatDate';
 import { exportChatAsTxt } from '../utils/chatExporter';
 import SignedMedia from './SignedMedia';
@@ -29,6 +29,7 @@ import MediaPickerPanel from './MediaPickerPanel';
 import ChunkedUploader from './ChunkedUploader';
 import ContactInfo from './ContactInfo';
 import GroupInfo from './GroupInfo';
+import StickerPackBrowser from './StickerPackBrowser';
 import { uploadVoiceNote, getAudioDuration, analyzeAudioForWaveform } from '../services/voiceService';
 import toast from 'react-hot-toast';
 import { authFetch } from '../utils/authFetch';
@@ -410,7 +411,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
   const [scheduleDateTime, setScheduleDateTime] = useState('');
   const [showLiveReactions, setShowLiveReactions] = useState(false);
-  const [showTrendingStickers, setShowTrendingStickers] = useState(false);
+  const [showStickerPacks, setShowStickerPacks] = useState(false);
   const [showChunkedUploader, setShowChunkedUploader] = useState(false);
   const [e2eePlain, setE2eePlain] = useState({});
   const [visibleCount, setVisibleCount] = useState(50);
@@ -1232,7 +1233,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const confirmShareCurrentLocation = () => {
     if (!currentLocationCoords) return;
     const { latitude, longitude } = currentLocationCoords;
-    const locationUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+    const locationUrl = `https://www.google.com/maps?q=${latitude},${longitude}&layer=c`;
     const msgText = currentLocationComment
       ? `${currentLocationComment}\n\n📍 Current Location\n${locationUrl}`
       : `📍 Current Location\n${locationUrl}`;
@@ -1257,7 +1258,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     navigator.geolocation.getCurrentPosition(
       async (startPos) => {
         const { latitude, longitude } = startPos.coords;
-        const locationUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+        const locationUrl = `https://www.google.com/maps?q=${latitude},${longitude}&layer=c`;
         const msgText = liveLocationComment ? `${liveLocationComment}\n\n📍 Live Location Sharing Started\n${locationUrl}` : `📍 Live Location Sharing Started\n${locationUrl}`;
         const expiresAt = new Date(Date.now() + liveLocationDuration * 60 * 1000).toISOString();
         const result = await sendMessage(
@@ -2699,16 +2700,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       const isLive = Boolean(message.isLiveLocation) &&
                         (!message.liveLocationExpiresAt || new Date(message.liveLocationExpiresAt) > new Date());
                       const mapsUrl = (typeof message.latitude === 'number' && typeof message.longitude === 'number')
-                        ? `https://www.google.com/maps?q=${message.latitude},${message.longitude}`
+                        ? `https://www.google.com/maps?q=${message.latitude},${message.longitude}&layer=c`
                         : (plaintextOf(message).match(/https?:\/\/\S+/) || [null])[0];
                       return (
                         <div className="mb-1 w-[260px] rounded-lg overflow-hidden border border-white/10 bg-[#e5e5e5] shadow-sm relative group cursor-pointer" onClick={() => { if (mapsUrl) window.open(mapsUrl, '_blank'); }}>
                           {/* Map Pattern/Grid Simulation */}
-                          <div className="h-[140px] relative w-full flex items-center justify-center opacity-80" style={{
-                            backgroundImage: `radial-gradient(#c8d2d9 2px, transparent 2px)`,
-                            backgroundSize: '20px 20px',
-                            backgroundColor: '#e0e7ec'
-                          }}>
+                          <div className="relative h-48 bg-dark-surface flex items-center justify-center" style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, #1a3a2a 0%, #0d1f35 100%)' }}>
                             {/* Map Pin Area */}
                             <div className="relative flex flex-col items-center z-10">
                               {isLive ? (
@@ -3318,10 +3315,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               <AttachmentIcon icon={<BarChart2 className="text-yellow-600" />} label="Poll" disabled={!canCreatePolls && !currentUserIsAdmin} onClick={() => setShowPollModal(true)} />
               <AttachmentIcon icon={<Clock className="text-purple-600" />} label="Disappear" onClick={() => handleSetDisappearingMessages()} disabled={!selectedConversation} />
               {/* GENZ Ultra Attachments */}
-              {safeMods?.trendingStickers && (
-                <AttachmentIcon icon={<TrendingUp className="text-pink-500" />} label="Stickers" onClick={() => { setShowTrendingStickers(true); setShowAttachmentMenu(false); }} />
-              )}
-              <AttachmentIcon icon={<Sparkles className="text-yellow-400" />} label="Big File" onClick={() => { setShowChunkedUploader(true); setShowAttachmentMenu(false); }} />
+              <AttachmentIcon icon={<Grid3x3 className="text-pink-400" />} label="Stickers" onClick={() => { setShowStickerPacks(true); setShowAttachmentMenu(false); }} />
             </div>
           )}
           {/* Quick emoji feature removed as requested */}
@@ -3637,27 +3631,15 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         )
       }
 
-      {/* ── GENZ Ultra: Trending Stickers Modal ── */}
-      {showTrendingStickers && (
-        <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-end justify-center">
-          <div className="w-full max-w-lg bg-[#0d1f35] rounded-t-3xl shadow-2xl overflow-hidden border-t border-white/10">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-              <span className="text-white font-bold flex items-center gap-2">
-                <TrendingUp size={18} className="text-pink-400" /> Stickers
-              </span>
-              <button onClick={() => setShowTrendingStickers(false)} className="text-white/60 hover:text-white p-1" aria-label="Close"><X size={20} /></button>
-            </div>
-            <TrendingStickers
-              replyTo={replyingTo}
-              messageInput={messageInput}
-              onStickerSelect={(stickerUrl, options) => {
-                handleSendStickerWithCaption(stickerUrl, options);
-                setShowTrendingStickers(false);
-              }}
-              onClose={() => setShowTrendingStickers(false)}
-            />
-          </div>
-        </div>
+      {/* ── Sticker Packs Modal ── */}
+      {showStickerPacks && (
+        <StickerPackBrowser
+          onStickerSelect={(stickerUrl, options) => {
+            handleSendStickerWithCaption(stickerUrl, options);
+            setShowStickerPacks(false);
+          }}
+          onClose={() => setShowStickerPacks(false)}
+        />
       )}
 
       {/* ── Font Picker Modal ── */}

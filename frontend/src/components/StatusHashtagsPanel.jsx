@@ -13,8 +13,7 @@ const StatusHashtagsPanel = ({ onClose, status, onHashtagsAdd }) => {
     { id: 1, tag: '#viral', count: 50000 },
     { id: 2, tag: '#trending', count: 45000 },
     { id: 3, tag: '#fyp', count: 40000 },
-    { id: 4, tag: '#explore', count: 35000 },
-    { id: 5, tag: '#status', count: 30000 },
+    { id: 4, tag: '#status', count: 30000 },
     { id: 6, tag: '#genz', count: 25000 },
     { id: 7, tag: '#whatsapp', count: 20000 },
     { id: 8, tag: '#mood', count: 15000 },
@@ -211,7 +210,7 @@ const StatusHashtagsPanel = ({ onClose, status, onHashtagsAdd }) => {
             <div>
               <p className="text-white/60 text-xs mb-2 uppercase">Suggested</p>
               <div className="flex flex-wrap gap-2">
-                {['#explore', '#fyp', '#viral', '#trending', '#status'].map((tag) => (
+                {['#fyp', '#viral', '#trending', '#status'].map((tag) => (
                   <button
                     key={tag}
                     onClick={() => handleAddHashtag(tag)}

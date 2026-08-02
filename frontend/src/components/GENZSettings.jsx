@@ -1754,16 +1754,9 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               active={mods?.storyHighlights}
               onClick={() => toggleMod('storyHighlights')}
             />
-            <ModItem
-              icon={<TrendingUp size={20} className="text-orange-400" />}
-              title="Trending Stickers"
-              desc="High-quality stickers from East Africa"
-              active={mods?.trendingStickers}
-              onClick={() => toggleMod('trendingStickers')}
-            />
-            <ModItem
-              icon={<Activity size={20} className="text-pink-400" />}
-              title="Live Reactions"
+<ModItem
+               icon={<Activity size={20} className="text-pink-400" />}
+               title="Live Reactions"
               desc="Send floating emoji reactions during chat"
               active={mods?.liveReactions}
               onClick={() => toggleMod('liveReactions')}

@@ -356,7 +356,6 @@ const userSchema = new mongoose.Schema({
   storyHighlightsSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
   textRepeaterSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
   themeEngineSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
-  trendingStickersSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
   favoriteStickers: { type: mongoose.Schema.Types.Mixed, default: [] },
   whatsappWebSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
   whatsappWebSessions: { type: mongoose.Schema.Types.Mixed, default: [] },

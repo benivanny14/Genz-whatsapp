@@ -10,7 +10,6 @@ import store from './src/store';
 import ChatListScreen from './src/screens/ChatListScreen';
 import StatusScreen from './src/screens/StatusScreen';
 import CallsScreen from './src/screens/CallsScreen';
-import ExploreScreen from './src/screens/ExploreScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import ChatDetailScreen from './src/screens/ChatDetailScreen';
 import StatusDetailScreen from './src/screens/StatusDetailScreen';
@@ -55,18 +54,9 @@ const TabNavigator = () => {
             <Icon name="call" color={color} size={size} />
           )
         }}
-      />
-      <Tab.Screen
-        name="Explore"
-        component={ExploreScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="explore" color={color} size={size} />
-          )
-        }}
-      />
-      <Tab.Screen
-        name="Profile"
+/>
+       <Tab.Screen
+         name="Profile"
         component={ProfileScreen}
         options={{
           tabBarIcon: ({ color, size }) => (

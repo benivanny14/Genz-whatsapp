@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, X, Eye, Clock, Camera, Image, Type, Upload, RefreshCw, Film, Sparkles, Bookmark, Settings, Music, Download, Bell, Shield, Globe, TrendingUp, BarChart3, Palette, Share2, DollarSign, Accessibility, Mic, Archive, Users, Volume2, Zap, Heart, Calendar, MapPin, Video, Cloud, QrCode, AtSign, Hash, Edit, Copy, Pin, Flag, Layout, FileText, Star, History, Zap as BoostIcon, BellOff, Trash2, Forward } from 'lucide-react';
+import { Plus, X, Eye, Clock, Camera, Image, Type, Upload, RefreshCw, Film, Sparkles, Bookmark, Settings, Music, Download, Bell, Shield, TrendingUp, BarChart3, Palette, Share2, DollarSign, Accessibility, Mic, Archive, Users, Volume2, Zap, Heart, Calendar, MapPin, Video, Cloud, QrCode, AtSign, Hash, Edit, Copy, Pin, Flag, Layout, FileText, Star, History, Zap as BoostIcon, BellOff, Trash2, Forward } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import StatusScrollFeed from '../components/StatusScrollFeed';
 import StatusReel from '../components/StatusReel';
@@ -36,7 +36,6 @@ import TMPrivacyPanel from '../components/TMPrivacyPanel';
 import MediaUploadEnhanced from '../components/MediaUploadEnhanced';
 import AutoReplySettings from '../components/AutoReplySettings';
 import MessageSchedule from '../components/MessageSchedule';
-import StatusExplore from '../pages/StatusExplore';
 import StatusAnalyticsPanel from '../components/StatusAnalyticsPanel';
 import ThemeStore from '../components/ThemeStore';
 import CrossPlatformSharing from '../components/CrossPlatformSharing';
@@ -95,7 +94,6 @@ const Status = () => {
   const [showMediaUploadEnhanced, setShowMediaUploadEnhanced] = useState(false);
   const [showAutoReply, setShowAutoReply] = useState(false);
   const [showMessageSchedule, setShowMessageSchedule] = useState(false);
-  const [showStatusExplore, setShowStatusExplore] = useState(false);
   const [showStatusAnalytics, setShowStatusAnalytics] = useState(false);
   const [showThemeStore, setShowThemeStore] = useState(false);
   const [showCrossPlatform, setShowCrossPlatform] = useState(false);
@@ -547,14 +545,6 @@ const Status = () => {
               title="Story Highlights" aria-label="Story Highlights"
             >
               <Bookmark size={16} /> Highlights
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowStatusExplore(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-full text-sm font-bold hover:opacity-90 transition-all shadow-lg"
-              title="Explore Status" aria-label="Explore Status"
-            >
-              <Globe size={16} /> Explore
             </button>
             <button
               type="button"
@@ -1677,7 +1667,6 @@ const Status = () => {
         )}
 
         {/* New Panels */}
-        {showStatusExplore && <StatusExplore onClose={() => setShowStatusExplore(false)} />}
         {showStatusAnalytics && selectedStatusForPanel && (
           <StatusAnalyticsPanel 
             onClose={() => { setShowStatusAnalytics(false); setSelectedStatusForPanel(null); }}

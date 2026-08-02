@@ -1181,33 +1181,6 @@ body {
   }
 }
 
-/* Trending stickers */
-.trending-stickers {
-  position: absolute;
-  bottom: 70px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #233138;
-  border-radius: 12px;
-  padding: 12px;
-  display: flex;
-  gap: 8px;
-  z-index: 100;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-}
-
-.trending-sticker {
-  width: 48px;
-  height: 48px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.trending-sticker:hover {
-  transform: scale(1.1);
-}
-
 /* AI Caption */
 .ai-caption-modal {
   position: fixed;
@@ -1883,21 +1856,6 @@ body {
   flex-direction: column-reverse;
   gap: 8px;
   pointer-events: none;
-}
-
-/* Trending stickers component */
-.trending-stickers-component {
-  position: absolute;
-  bottom: 70px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #233138;
-  border-radius: 12px;
-  padding: 12px;
-  display: flex;
-  gap: 8px;
-  z-index: 100;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
 /* AI caption component */
