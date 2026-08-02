@@ -16,6 +16,7 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
   const [isMuted, setIsMuted] = useState(true);
   const containerRef = useRef(null);
   const videoRefs = useRef({});
+  const isShareInProgressRef = useRef(false);
 
   const likeUserId = currentUserId || 'local-user';
 
@@ -110,7 +111,7 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
   // Handle share with API call
   const handleShare = useCallback(async (e, status) => {
     e.stopPropagation();
-    if (!status) return;
+    if (!status || isShareInProgressRef.current) return;
 
     try {
       const statusId = (status.id || status._id).replace('status-', '');
@@ -121,29 +122,23 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
       });
       const data = await response.json();
       if (data.success) {
-        // Use native share if available
         if (navigator.share) {
-          await navigator.share({
-            title: 'Status',
-            text: status.caption || status.content,
-            url: status.mediaUrl
-          });
+          isShareInProgressRef.current = true;
+          try {
+            await navigator.share({
+              title: 'Status',
+              text: status.caption || status.content,
+              url: status.mediaUrl
+            });
+          } catch (shareError) {
+            console.error('Native share error:', shareError);
+          } finally {
+            isShareInProgressRef.current = false;
+          }
         }
       }
     } catch (error) {
       console.error('Share error:', error);
-      // Fallback to native share
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: 'Status',
-            text: status.caption || status.content,
-            url: status.mediaUrl
-          });
-        } catch (shareError) {
-          console.error('Native share failed:', shareError);
-        }
-      }
     }
   }, [likeUserId, statuses]);
   const handleReply = useCallback((e, index) => {
