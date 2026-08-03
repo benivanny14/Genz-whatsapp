@@ -3431,26 +3431,26 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           )}
           {showAttachmentMenu && (
             <div className="absolute bottom-14 left-2 right-2 md:left-0 md:right-auto md:w-max md:max-w-2xl bg-dark-surface border border-dark-border rounded-xl shadow-xl p-3 grid grid-cols-4 gap-2 md:flex md:flex-row md:flex-wrap md:gap-2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
-              <AttachmentIcon icon={<FileText className="text-blue-500" />} label="Document" onClick={() => docInputRef.current?.click()} disabled={!canSendMedia && !currentUserIsAdmin} />
+              <AttachmentIcon icon={<FileText className="text-blue-500" />} label="Document" onClick={() => { setShowAttachmentMenu(false); docInputRef.current?.click(); }} disabled={!canSendMedia && !currentUserIsAdmin} />
               <AttachmentIcon
                 icon={<Camera className="text-pink-500" />}
                 label="Camera"
-                onClick={openCamera}
+                onClick={() => { setShowAttachmentMenu(false); openCamera(); }}
                 disabled={!canSendMedia && !currentUserIsAdmin}
                 title="Camera (Emulator may need permission)"
               />
-              <AttachmentIcon icon={<ImageIcon className="text-purple-500" />} label="Gallery" onClick={() => fileInputRef.current?.click()} disabled={!canSendMedia && !currentUserIsAdmin} />
-              <AttachmentIcon icon={<Headphones className="text-orange-500" />} label="Audio" onClick={openAudioAttachment} disabled={!canSendMedia && !currentUserIsAdmin} title="Audio (Emulator may need permission)" />
-              <AttachmentIcon icon={<MapPin className="text-green-500" />} label="Location" onClick={() => handleShareLocation('current')} disabled={!canSendMedia && !currentUserIsAdmin} />
-              <AttachmentIcon icon={<MapPin className="text-red-500" />} label="Live Loc." onClick={() => handleShareLocation('live')} disabled={!canSendMedia && !currentUserIsAdmin} />
-              <AttachmentIcon icon={<Contact className="text-blue-400" />} label="Contact" onClick={handleContactSimulation} disabled={!canSendMedia && !currentUserIsAdmin} />
+              <AttachmentIcon icon={<ImageIcon className="text-purple-500" />} label="Gallery" onClick={() => { setShowAttachmentMenu(false); fileInputRef.current?.click(); }} disabled={!canSendMedia && !currentUserIsAdmin} />
+              <AttachmentIcon icon={<Headphones className="text-orange-500" />} label="Audio" onClick={() => { setShowAttachmentMenu(false); openAudioAttachment(); }} disabled={!canSendMedia && !currentUserIsAdmin} title="Audio (Emulator may need permission)" />
+              <AttachmentIcon icon={<MapPin className="text-green-500" />} label="Location" onClick={() => { setShowAttachmentMenu(false); handleShareLocation('current'); }} disabled={!canSendMedia && !currentUserIsAdmin} />
+              <AttachmentIcon icon={<MapPin className="text-red-500" />} label="Live Loc." onClick={() => { setShowAttachmentMenu(false); handleShareLocation('live'); }} disabled={!canSendMedia && !currentUserIsAdmin} />
+              <AttachmentIcon icon={<Contact className="text-blue-400" />} label="Contact" onClick={() => { setShowAttachmentMenu(false); handleContactSimulation(); }} disabled={!canSendMedia && !currentUserIsAdmin} />
               <AttachmentIcon icon={<Grid3x3 className="text-pink-400" />} label="GIF" onClick={() => { setShowAttachmentMenu(false); setShowMediaPanel(true); setActiveMediaTab('gif'); }} disabled={!canSendMedia && !currentUserIsAdmin} />
-              <AttachmentIcon icon={<BarChart2 className="text-yellow-600" />} label="Poll" disabled={!canCreatePolls && !currentUserIsAdmin} onClick={() => setShowPollModal(true)} />
-              <AttachmentIcon icon={<Clock className="text-purple-600" />} label="Disappear" onClick={() => handleSetDisappearingMessages()} disabled={!selectedConversation} />
+              <AttachmentIcon icon={<BarChart2 className="text-yellow-600" />} label="Poll" disabled={!canCreatePolls && !currentUserIsAdmin} onClick={() => { setShowAttachmentMenu(false); setShowPollModal(true); }} />
+              <AttachmentIcon icon={<Clock className="text-purple-600" />} label="Disappear" onClick={() => { setShowAttachmentMenu(false); handleSetDisappearingMessages(); }} disabled={!selectedConversation} />
               {/* GENZ Ultra Attachments */}
                 <AttachmentIcon icon={<Grid3x3 className="text-pink-400" />} label={floatingStickerMode ? "Stickers (Float)" : "Stickers"} onClick={() => { setShowStickerPacks(true); setShowAttachmentMenu(false); }} title={floatingStickerMode ? "Floating sticker mode ON" : ""} />
-                <AttachmentIcon icon={<Radio size={16} className={floatingStickerMode ? "text-green-400" : "text-gray-500"} />} label="Float" onClick={() => setFloatingStickerMode(!floatingStickerMode)} title={floatingStickerMode ? "Disable floating stickers" : "Enable floating stickers (TikTok style)"} />
-                <AttachmentIcon icon={<DollarSign className="text-green-500" />} label="Pay" onClick={() => { setShowPaymentModal(true); setShowAttachmentMenu(false); }} disabled={!selectedConversation} title="TM WhatsApp Pay" />
+                <AttachmentIcon icon={<Radio size={16} className={floatingStickerMode ? "text-green-400" : "text-gray-500"} />} label="Float" onClick={() => { setShowAttachmentMenu(false); setFloatingStickerMode(!floatingStickerMode); }} title={floatingStickerMode ? "Disable floating stickers" : "Enable floating stickers (TikTok style)"} />
+                <AttachmentIcon icon={<DollarSign className="text-green-500" />} label="Pay" onClick={() => { setShowAttachmentMenu(false); setShowPaymentModal(true); }} disabled={!selectedConversation} title="TM WhatsApp Pay" />
             </div>
           )}
           {/* Quick emoji feature removed as requested */}
