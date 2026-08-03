@@ -146,7 +146,19 @@ const StickerPanel = ({ onStickerSelect }) => {
     const updated = [stickerUrl, ...recentlyUsed.filter(s => s !== stickerUrl)].slice(0, 12);
     setRecentlyUsed(updated);
     localStorage.setItem('genz_recent_stickers', JSON.stringify(updated));
-    onStickerSelect(stickerUrl);
+    
+    const safeOnStickerSelect = (stickerUrl, options = {}) => {
+      if (typeof onStickerSelect === 'function') {
+        const isCallbackWithOptions = onStickerSelect.length > 1;
+        if (isCallbackWithOptions) {
+          onStickerSelect(stickerUrl, options);
+        } else {
+          onStickerSelect(stickerUrl);
+        }
+      }
+    };
+    
+    safeOnStickerSelect(stickerUrl);
   };
 
   return (
