@@ -27,7 +27,7 @@ import AudioPlayer from './AudioPlayer';
 import LiveReactions from './LiveReactions';
 import MediaPickerPanel from './MediaPickerPanel';
 import DrawingPanel from './DrawingPanel';
-import PaymentRequestModal, { PaymentRequestsPanel } from './PaymentRequestModal';
+import PaymentRequestModal, { PaymentRequestsPanel } from './PaidFeatures/PaymentRequestModal';
 import ChunkedUploader from './ChunkedUploader';
 import ContactInfo from './ContactInfo';
 import GroupInfo from './GroupInfo';

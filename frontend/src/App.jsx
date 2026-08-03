@@ -54,7 +54,7 @@ const Communities = lazy(() => import('./pages/Communities'));
 const JoinGroup = lazy(() => import('./pages/JoinGroup'));
 const CallScreen = lazy(() => import('./components/CallScreen'));
 const GroupCallScreen = lazy(() => import('./components/GroupCallScreen'));
-const SubscriptionPayment = lazy(() => import('./pages/SubscriptionPayment'));
+const SubscriptionPayment = lazy(() => import('./components/PaidFeatures/SubscriptionPayment'));
 const AdminPaymentManagement = lazy(() => import('./pages/AdminPaymentManagement'));
 
 // Loading fallback component
