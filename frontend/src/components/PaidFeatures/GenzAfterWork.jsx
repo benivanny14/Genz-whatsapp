@@ -48,7 +48,6 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
   
   const [filters, setFilters] = useState({
     search: '',
-    category: 'all',
     location: '',
     minPrice: '',
     maxPrice: '',
@@ -63,7 +62,6 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
     price: '',
     maxPrice: '',
     location: '',
-    category: 'Real Estate',
     contactInfo: { phone: '', email: '' },
     tags: [],
     specifications: {},
@@ -74,15 +72,6 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
     status: 'pending'
   });
   
-  const categories = [
-    { value: 'Real Estate', icon: Home, color: 'bg-blue-100 text-blue-600' },
-    { value: 'Services', icon: Wrench, color: 'bg-green-100 text-green-600' },
-    { value: 'Business', icon: Briefcase, color: 'bg-purple-100 text-purple-600' },
-    { value: 'Automotive', icon: Car, color: 'bg-red-100 text-red-600' },
-    { value: 'Jobs', icon: Users, color: 'bg-orange-100 text-orange-600' },
-    { value: 'Electronics', icon: Laptop, color: 'bg-cyan-100 text-cyan-600' },
-    { value: 'Other', icon: Building2, color: 'bg-gray-100 text-gray-600' }
-  ];
   
   const formatPrice = (price) => {
     return new Intl.NumberFormat('en-ZA', {
@@ -101,10 +90,6 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
     if (filters.search && !feature.name.toLowerCase().includes(filters.search.toLowerCase()) &&
         !feature.description.toLowerCase().includes(filters.search.toLowerCase()) &&
         !feature.location.toLowerCase().includes(filters.search.toLowerCase())) {
-      return false;
-    }
-    
-    if (filters.category !== 'all' && feature.category !== filters.category) {
       return false;
     }
     
@@ -310,47 +295,18 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
           </p>
         </div>
         
-        {/* User Info & Actions */}
-        <div className="bg-white rounded-lg shadow-md p-4 mb-8">
-          <div className="flex justify-between items-center">
-            <div>
-              {user ? (
-                <div>
-                  <p className="font-semibold text-gray-900">Welcome, {user.username}</p>
-                  <p className="text-sm text-gray-600">
-                    {user.isAdmin ? 'Administrator' : 'User'}
-                  </p>
-                </div>
-              ) : (
-                <div>
-                  <p className="font-semibold text-gray-900">Welcome, Guest</p>
-                  <p className="text-sm text-gray-600">Please log in to manage features</p>
-                </div>
-              )}
-            </div>
-            
-            <div className="flex gap-4">
-              {user && user.isAdmin && (
-                <button
-                  onClick={() => setShowCreateForm(!showCreateForm)}
-                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg"
-                >
-                  <Plus size={20} />
-                  Create Feature
-                </button>
-              )}
-              
-              {!user && (
-                <button
-                  onClick={() => alert('Please log in to create features')}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Log In
-                </button>
-              )}
-            </div>
+        {/* Create Feature Button - Admin Only */}
+        {user && user.isAdmin && (
+          <div className="bg-white rounded-lg shadow-md p-4 mb-8">
+            <button
+              onClick={() => setShowCreateForm(!showCreateForm)}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg"
+            >
+              <Plus size={20} />
+              Create Feature
+            </button>
           </div>
-        </div>
+        )}
         
         {/* Create Feature Form */}
         {showCreateForm && (
@@ -426,19 +382,6 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                       required
                     />
                   </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                  <select
-                    value={createForm.category}
-                    onChange={(e) => setCreateForm(prev => ({ ...prev, category: e.target.value }))}
-                    className="px-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  >
-                    {categories.map(cat => (
-                      <option key={cat.value} value={cat.value}>{cat.value}</option>
-                    ))}
-                  </select>
                 </div>
                 
                 <div>
@@ -586,20 +529,6 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                     className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
-              </div>
-              
-              <div className="flex-1 min-w-32">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                <select
-                  value={filters.category}
-                  onChange={(e) => handleFilterChange('category', e.target.value)}
-                  className="px-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="all">All Categories</option>
-                  {categories.map(cat => (
-                    <option key={cat.value} value={cat.value}>{cat.value}</option>
-                  ))}
-                </select>
               </div>
               
               <div className="flex-1 min-w-32">
