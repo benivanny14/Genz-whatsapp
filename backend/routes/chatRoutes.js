@@ -28,12 +28,14 @@ const {
   unblockUser,
   toggleStarMessage,
   toggleMessageLock,
+  toggleKeepMessage,
   togglePinConversation,
   toggleArchiveConversation,
   getArchivedConversations,
   searchMessages,
   getMediaGallery,
   getMessageInfo,
+  getMessageEditHistory,
   markViewOnceViewed,
   updateGroupInfo,
   forwardMessage,
@@ -107,10 +109,17 @@ router.post("/messages", validateMessage, sendMessage);
 router.put("/messages/:id", editMessage);
 router.delete("/messages/:id", deleteMessage);
 router.delete("/messages/:id/delete-for-everyone", deleteMessage);
+router.delete("/messages/:id/admin-delete-for-everyone", (req, res, next) => {
+  req.body.forEveryone = true;
+  req.body.adminDelete = true;
+  next();
+}, deleteMessage);
 router.put("/messages/:id/read", markAsRead);
 router.put("/messages/:id/star", toggleStarMessage);
 router.put("/messages/:id/lock", toggleMessageLock);
+router.put("/messages/:id/keep", toggleKeepMessage);
 router.get("/messages/:messageId/info", getMessageInfo);
+router.get("/messages/:messageId/edit-history", getMessageEditHistory);
 router.put("/messages/:messageId/view-once-viewed", markViewOnceViewed);
 router.post("/messages/:messageId/forward", forwardMessage);
 router.post("/messages/:messageId/report", reportMessage);

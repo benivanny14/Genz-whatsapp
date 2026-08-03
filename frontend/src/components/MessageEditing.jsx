@@ -4,18 +4,24 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const MessageEditor = ({ message, onEdit, onCancel }) => {
   const [editedContent, setEditedContent] = useState(message.content);
+  const [editedCaption, setEditedCaption] = useState(message.caption || '');
   const [isSaving, setIsSaving] = useState(false);
 
+  const isMediaMessage = ['image', 'video', 'audio', 'file', 'document', 'voice'].includes(message.messageType);
+  const hasCaption = message.caption && message.caption.trim().length > 0;
+
   const handleSave = async () => {
-    if (!editedContent.trim() || editedContent === message.content) return;
+    const hasChanges = (editedContent !== message.content) || (editedCaption !== (message.caption || ''));
+    if (!hasChanges) return;
 
     setIsSaving(true);
     
-    // Simulate save
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    if (onEdit) {
-      onEdit(message._id, editedContent);
+    try {
+      if (onEdit) {
+        onEdit(message._id, editedContent, editedCaption);
+      }
+    } catch (error) {
+      console.error('Edit failed:', error);
     }
     
     setIsSaving(false);
@@ -95,20 +101,57 @@ const MessageEditor = ({ message, onEdit, onCancel }) => {
         <div>
           <label className="text-gray-400 text-sm mb-2 block">Original Message</label>
           <div className="bg-[#0b141a] rounded-lg p-3 text-gray-400 text-sm">
-            {message.content}
+            {message.content || (isMediaMessage ? `(${message.messageType})` : '')}
           </div>
         </div>
 
-        <div>
-          <label className="text-gray-400 text-sm mb-2 block">Edited Message</label>
-          <textarea
-            value={editedContent}
-            onChange={(e) => setEditedContent(e.target.value)}
-            placeholder="Edit your message..."
-            rows={4}
-            className="w-full bg-[#0b141a] text-white px-4 py-3 rounded-lg border border-[#00a884]/30 focus:border-[#00a884] focus:outline-none resize-none"
-          />
-        </div>
+        {isMediaMessage && hasCaption && (
+          <div>
+            <label className="text-gray-400 text-sm mb-2 block">Original Caption</label>
+            <div className="bg-[#0b141a] rounded-lg p-3 text-gray-400 text-sm">
+              {message.caption}
+            </div>
+          </div>
+        )}
+
+        {isMediaMessage && (
+          <div>
+            <label className="text-gray-400 text-sm mb-2 block">Edit Caption</label>
+            <textarea
+              value={editedCaption}
+              onChange={(e) => setEditedCaption(e.target.value)}
+              placeholder="Edit caption..."
+              rows={3}
+              className="w-full bg-[#0b141a] text-white px-4 py-3 rounded-lg border border-[#00a884]/30 focus:border-[#00a884] focus:outline-none resize-none"
+            />
+          </div>
+        )}
+
+        {!isMediaMessage && (
+          <div>
+            <label className="text-gray-400 text-sm mb-2 block">Edited Message</label>
+            <textarea
+              value={editedContent}
+              onChange={(e) => setEditedContent(e.target.value)}
+              placeholder="Edit your message..."
+              rows={4}
+              className="w-full bg-[#0b141a] text-white px-4 py-3 rounded-lg border border-[#00a884]/30 focus:border-[#00a884] focus:outline-none resize-none"
+            />
+          </div>
+        )}
+
+        {isMediaMessage && !hasCaption && editedContent !== message.content && (
+          <div>
+            <label className="text-gray-400 text-sm mb-2 block">Add Caption</label>
+            <textarea
+              value={editedCaption}
+              onChange={(e) => setEditedCaption(e.target.value)}
+              placeholder="Add caption..."
+              rows={3}
+              className="w-full bg-[#0b141a] text-white px-4 py-3 rounded-lg border border-[#00a884]/30 focus:border-[#00a884] focus:outline-none resize-none"
+            />
+          </div>
+        )}
 
         <div className="flex items-center gap-2 text-xs text-gray-500">
           <Clock size={14} />
@@ -178,8 +221,8 @@ export const EditButton = ({ message, onEdit }) => {
           >
             <MessageEditor
               message={message}
-              onEdit={(messageId, content) => {
-                onEdit(messageId, content);
+              onEdit={(messageId, content, caption) => {
+                onEdit(messageId, content, caption);
                 setShowEditor(false);
               }}
               onCancel={() => setShowEditor(false)}

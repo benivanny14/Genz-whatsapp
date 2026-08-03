@@ -1773,9 +1773,51 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       console.error('Edit error:', err);
       toast.error('Could not edit message');
     }
+   };
+
+   const handleReplyPrivately = async (message) => {
+    try {
+      const sender = message?.sender?._id || message?.senderId || message?.sender;
+      if (sender && sender.toString() === (user?.id || user?._id)) return;
+
+      // Find or create a direct conversation with the message sender
+      const { authFetch } = await import('../utils/authFetch');
+      const { resolveApiBase } = await import('../utils/resolveApiBase');
+      const API_URL = resolveApiBase();
+
+      // Check if a direct conversation exists
+      const checkRes = await authFetch(`${API_URL}/conversations/direct/${sender}`);
+      const checkData = await checkRes.json();
+
+      let conversationId;
+      if (checkData.success && checkData.conversation?.exists) {
+        conversationId = checkData.conversation._id;
+      } else {
+        // Create a new direct message conversation
+        const createRes = await authFetch(`${API_URL}/conversations/direct`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ participantId: sender })
+        });
+        const createData = await createRes.json();
+        conversationId = createData.conversation?._id || createData.conversation?.id;
+      }
+
+      if (conversationId) {
+        // Open the DM conversation and set reply context
+        setActiveConversation(conversationId);
+        setReplyingTo({
+          ...message,
+          conversationId: conversationId
+        });
+      }
+    } catch (err) {
+      console.error('Reply privately error:', err);
+    }
+    setMessageContextMenu(null);
   };
 
-  const handleDoubleClick = (messageId) => {
+   const handleDoubleClick = (messageId) => {
     // GENZ MOD: Quick reaction on double click
     addReaction(messageId, '❤️');
   };
@@ -3569,9 +3611,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
             }
             setMessageContextMenu(null);
           }}
-          onReaction={(messageId, emoji) => addReaction(messageId, emoji)}
-          onTranslate={(msg) => handleTranslate(msg._id || msg.id, plaintextOf(msg))}
-          onClose={() => setMessageContextMenu(null)}
+           onReaction={(messageId, emoji) => addReaction(messageId, emoji)}
+           onTranslate={(msg) => handleTranslate(msg._id || msg.id, plaintextOf(msg))}
+           onReplyPrivately={(msg) => handleReplyPrivately(msg)}
+           isGroupChat={selectedConversation?.isGroup}
+           conversation={selectedConversation}
+           onClose={() => setMessageContextMenu(null)}
         />
       )}
 

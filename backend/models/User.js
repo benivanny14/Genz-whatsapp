@@ -186,6 +186,15 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
+  // Passkeys (WebAuthn / FIDO2 passwordless authentication)
+  passkeys: [{
+    credentialId: { type: String, required: true },
+    publicKey: { type: String, required: true },
+    counter: { type: Number, default: 0 },
+    deviceType: { type: String, default: 'platform' },
+    deviceName: { type: String, default: '' },
+    createdAt: { type: Date, default: Date.now }
+  }],
   // Sticker system: which packs the user has "added" (WhatsApp-style, packs
   // live in a shared catalog and each user just keeps a list of pack IDs
   // they've downloaded) and any individual stickers they've favorited.
@@ -382,7 +391,8 @@ const userSchema = new mongoose.Schema({
   lastSyncAt: { type: Date, default: null },
   blockedStatusUsers: { type: mongoose.Schema.Types.Mixed, default: [] },
   mutedStatusUsers: { type: mongoose.Schema.Types.Mixed, default: [] },
-  savedStatuses: { type: mongoose.Schema.Types.Mixed, default: [] }
+  savedStatuses: { type: mongoose.Schema.Types.Mixed, default: [] },
+  callLinkSettings: { type: mongoose.Schema.Types.Mixed, default: { links: [] } }
 });
 
 // Update last seen before saving
@@ -428,6 +438,7 @@ userSchema.methods.toSafeJSON = function() {
   delete user.lastFailedLoginAt;
   delete user.activeSessions;
   delete user.emailVerificationToken;
+  delete user.passkeys;
   return user;
 };
 

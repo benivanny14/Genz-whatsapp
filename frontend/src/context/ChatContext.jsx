@@ -2469,9 +2469,17 @@ export const ChatProvider = ({ children }) => {
     window.history.replaceState({}, '', window.location.pathname);
   }, [conversations, selectedConversation?._id]);
 
-  const editMessage = async (id, newContent) => {
-    setMessages(prev => prev.map(m => m._id === id ? { ...m, content: newContent, editedAt: new Date(), isEdited: true } : m));
-    emitSafe('message:edit', { messageId: id, content: newContent });
+  const editMessage = async (id, newContent, newCaption) => {
+    setMessages(prev => prev.map(m => {
+      if (m._id === id) {
+        const updated = { ...m, editedAt: new Date(), isEdited: true };
+        if (newContent !== undefined) updated.content = newContent;
+        if (newCaption !== undefined) updated.caption = newCaption;
+        return updated;
+      }
+      return m;
+    }));
+    emitSafe('message:edit', { messageId: id, content: newContent, caption: newCaption });
   };
 
   const deleteMessage = async (id) => {

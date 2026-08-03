@@ -10,6 +10,9 @@ import {
   Edit2 as FiEdit2,
   Pin as FiPin,
   Smile as FiSmile,
+  Bookmark as FiBookmark,
+  Shield as FiShield,
+  Lock as FiLock,
 } from 'lucide-react';
 import MessageInfo from './MessageInfo';
 import ForwardDialog from './ForwardDialog';
@@ -23,10 +26,13 @@ const MessageContextMenu = ({
   onDelete,
   onEdit,
   onReply,
+  onReplyPrivately,
   onToggleStar,
   onPin,
   onReaction,
   currentUserId,
+  isGroupChat = false,
+  conversation = {},
 }) => {
   const [showMessageInfo, setShowMessageInfo] = useState(false);
   const [showForwardDialog, setShowForwardDialog] = useState(false);
@@ -91,6 +97,17 @@ const MessageContextMenu = ({
       color: 'text-cyan-400',
     },
 
+    // Reply privately (group chats only, not own message)
+    isGroupChat && !isOwnMessage && {
+      icon: <FiShield size={18} />,
+      label: 'Reply Privately',
+      onClick: () => {
+        onReplyPrivately?.(message);
+        onClose?.();
+      },
+      color: 'text-indigo-400',
+    },
+
     // Owner actions
     isOwnMessage && {
       icon: <FiEdit2 size={18} />,
@@ -104,6 +121,50 @@ const MessageContextMenu = ({
       label: 'Delete',
       onClick: onDelete,
       color: 'text-red-400',
+    },
+
+    // Admin delete for everyone (group chats)
+    isGroupChat && !isOwnMessage && (conversation?.isGroup || isGroupChat) && {
+      icon: <FiLock size={18} />,
+      label: 'Delete for Everyone',
+      onClick: async () => {
+        const { authFetch } = await import('../utils/authFetch');
+        const { resolveApiBase } = await import('../utils/resolveApiBase');
+        const API_URL = resolveApiBase();
+        try {
+          await authFetch(`${API_URL}/messages/${message._id || message.id}/admin-delete-for-everyone`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ forEveryone: true })
+          });
+        } catch (error) {
+          console.error('Admin delete failed:', error);
+        }
+        onClose?.();
+      },
+      color: 'text-red-400',
+    },
+
+    // Keep in chat for disappearing messages
+    isOwnMessage && message.disappearAt && {
+      icon: <FiBookmark size={18} />,
+      label: message.keptBy && message.keptBy.length > 0 ? 'Unkeep' : 'Keep in chat',
+      onClick: async () => {
+        try {
+          const { authFetch } = await import('../utils/authFetch');
+          const { resolveApiBase } = await import('../utils/resolveApiBase');
+          const API_URL = resolveApiBase();
+          await authFetch(`${API_URL}/messages/${message._id || message.id}/keep`, {
+            method: 'PUT',
+          });
+          // Refresh will be handled by socket event
+        } catch (error) {
+          console.error('Keep/unkeep failed:', error);
+        }
+        onClose?.();
+      },
+      color: (message.keptBy && message.keptBy.length > 0) ? 'text-yellow-400' : 'text-green-400',
+      show: true,
     },
 
     // Pin message (for admins or own messages)

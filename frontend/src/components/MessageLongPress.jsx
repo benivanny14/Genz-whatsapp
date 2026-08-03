@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { MoreVertical, Reply, Forward, Copy, Star, Archive, Trash2, Pin, Info, Check, X } from 'lucide-react';
+import { MoreVertical, Reply, Forward, Copy, Star, Archive, Trash2, Pin, Info, Check, X, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const MessageLongPress = ({ message, onAction, children }) => {
@@ -10,6 +10,7 @@ const MessageLongPress = ({ message, onAction, children }) => {
 
   const actions = [
     { id: 'reply', label: 'Reply', icon: Reply },
+    { id: 'reply_privately', label: 'Reply Privately', icon: Shield },
     { id: 'forward', label: 'Forward', icon: Forward },
     { id: 'copy', label: 'Copy', icon: Copy },
     { id: 'star', label: 'Star', icon: Star },

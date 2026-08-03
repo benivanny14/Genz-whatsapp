@@ -1027,3 +1027,368 @@ exports.resendOTP = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// ── Passkey (WebAuthn / FIDO2) Functions ──
+
+// @desc    Check if passkey authentication is available for a user
+// @route   POST /api/auth/passkey/check
+// @access  Public
+exports.checkPasskeyAvailable = async (req, res) => {
+  try {
+    const { phoneNumber, username } = req.body;
+    const identifier = phoneNumber || username;
+
+    if (!identifier) {
+      return res.status(400).json({ success: false, message: 'Phone number or username is required' });
+    }
+
+    const user = await User.findOne({
+      $or: [
+        { phoneNumber: identifier.trim() },
+        { username: identifier.trim() }
+      ]
+    }).select('passkeys username phoneNumber');
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.json({
+      success: true,
+      hasPasskeys: !!(user.passkeys && user.passkeys.length > 0),
+      passkeyCount: user.passkeys ? user.passkeys.length : 0,
+      user: {
+        username: user.username,
+        phoneNumber: user.phoneNumber
+      }
+    });
+  } catch (error) {
+    console.error('Check passkey error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Generate WebAuthn registration options (for creating a new passkey)
+// @route   POST /api/auth/passkey/register/options
+// @access  Private
+exports.passkeyRegisterOptions = async (req, res) => {
+  try {
+    const { deviceName } = req.body;
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const { generateRegistrationOptions } = require('@simplewebauthn/server');
+    const { resolvePublicBaseUrl } = require('../utils/publicBaseUrl');
+
+    const rpName = 'Genz Messages';
+    const rpID = process.env.RP_ID || '';
+    const origin = resolvePublicBaseUrl(req);
+
+    const userId = user._id.toString();
+    const excludeCredentials = user.passkeys.map(pk => ({
+      id: pk.credentialId,
+      type: 'public-key',
+      transports: ['internal', 'hybrid']
+    }));
+
+    const options = generateRegistrationOptions({
+      rp: { name: rpName, id: rpID },
+      user: {
+        id: userId,
+        name: user.username,
+        displayName: user.username
+      },
+      challenge: 'challenge-' + crypto.randomBytes(32).toString('base64'),
+      excludeCredentials,
+      timeout: 60000,
+      attestationType: 'none',
+      supportedAlgorithmIDs: [-7, -257, -37]
+    });
+
+    // Store challenge in session for verification
+    const sessionKey = `passkey:register:${user._id}`;
+    req.app.set(sessionKey, options.challenge);
+    setTimeout(() => req.app.set(sessionKey, null), 5 * 60 * 1000);
+
+    res.json({
+      success: true,
+      options,
+      rpID,
+      origin
+    });
+  } catch (error) {
+    console.error('Passkey register options error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Verify and save a new passkey
+// @route   POST /api/auth/passkey/register/verify
+// @access  Private
+exports.passkeyRegisterVerify = async (req, res) => {
+  try {
+    const { response, deviceName } = req.body;
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const { verifyRegistrationResponse } = require('@simplewebauthn/server');
+    const { resolvePublicBaseUrl } = require('../utils/publicBaseUrl');
+
+    const sessionKey = `passkey:register:${user._id}`;
+    const expectedChallenge = req.app.get(sessionKey);
+
+    if (!expectedChallenge) {
+      return res.status(400).json({ success: false, message: 'Registration challenge expired or missing' });
+    }
+
+    const origin = resolvePublicBaseUrl(req);
+
+    const verification = await verifyRegistrationResponse({
+      credential: response,
+      expectedChallenge,
+      origin,
+      rpID: process.env.RP_ID || ''
+    });
+
+    if (!verification.verified) {
+      return res.status(400).json({ success: false, message: 'Passkey verification failed' });
+    }
+
+    const { credentialPublicKey, credentialID, counter } = verification.registrationInfo;
+
+    user.passkeys.push({
+      credentialId: credentialID.toString('base64'),
+      publicKey: Buffer.from(credentialPublicKey).toString('base64'),
+      counter: counter || 0,
+      deviceName: deviceName || 'Unknown device',
+      createdAt: new Date()
+    });
+
+    await user.save();
+
+    req.app.set(sessionKey, null);
+
+    res.json({ success: true, message: 'Passkey registered successfully' });
+  } catch (error) {
+    console.error('Passkey register verify error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Generate WebAuthn login options (for authenticating with a passkey)
+// @route   POST /api/auth/passkey/login/options
+// @access  Public
+exports.passkeyLoginOptions = async (req, res) => {
+  try {
+    const { phoneNumber, username, deviceName } = req.body;
+    const identifier = phoneNumber || username;
+
+    if (!identifier) {
+      return res.status(400).json({ success: false, message: 'Phone number or username is required' });
+    }
+
+    const user = await User.findOne({
+      $or: [
+        { phoneNumber: identifier.trim() },
+        { username: identifier.trim() }
+      ]
+    }).select('passkeys username phoneNumber');
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (!user.passkeys || user.passkeys.length === 0) {
+      return res.status(400).json({ success: false, message: 'No passkeys registered for this user' });
+    }
+
+    const { generateAuthenticationOptions } = require('@simplewebauthn/server');
+
+    const rpID = process.env.RP_ID || '';
+
+    const options = generateAuthenticationOptions({
+      rpID,
+      allowCredentals: user.passkeys.map(pk => ({
+        id: pk.credentialId,
+        type: 'public-key',
+        transports: ['internal', 'hybrid']
+      })),
+      userVerification: 'preferred',
+      timeout: 60000
+    });
+
+    const sessionKey = `passkey:login:${user._id}`;
+    req.app.set(sessionKey, { challenge: options.challenge, userId: user._id });
+    setTimeout(() => req.app.set(sessionKey, null), 5 * 60 * 1000);
+
+    res.json({
+      success: true,
+      options,
+      rpID,
+      user: {
+        username: user.username,
+        phoneNumber: user.phoneNumber
+      }
+    });
+  } catch (error) {
+    console.error('Passkey login options error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Verify passkey authentication and issue token
+// @route   POST /api/auth/passkey/login/verify
+// @access  Public
+exports.passkeyLoginVerify = async (req, res) => {
+  try {
+    const { response, deviceName } = req.body;
+    const userId = req.app.get('passkeyLoginUserId');
+
+    // We need to find the session - this is a simplified approach
+    // In production, use proper session management
+    const sessionKey = `passkey:login:${req.body.userId}`;
+    let session = req.app.get(sessionKey);
+
+    if (!session) {
+      // Try to get session from app settings
+      const keys = Object.keys(req.app.settings || {}).filter(k => k.startsWith('passkey:login:'));
+      for (const key of keys) {
+        const s = req.app.get(key);
+        if (s && s.userId) {
+          session = s;
+          break;
+        }
+      }
+    }
+
+    if (!session) {
+      return res.status(400).json({ success: false, message: 'Login challenge expired or missing' });
+    }
+
+    const { verifyAuthenticationResponse } = require('@simplewebauthn/server');
+
+    const user = await User.findById(session.userId).select('passkeys username phoneNumber isBlocked');
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.isBlocked) {
+      return res.status(403).json({ success: false, message: 'This account is blocked' });
+    }
+
+    const { resolvePublicBaseUrl } = require('../utils/publicBaseUrl');
+    const origin = resolvePublicBaseUrl(req);
+
+    const credential = user.passkeys.find(pk => pk.credentialId === response.id);
+    if (!credential) {
+      return res.status(400).json({ success: false, message: 'Passkey not found' });
+    }
+
+    const verification = await verifyAuthenticationResponse({
+      credential: response,
+      expectedChallenge: session.challenge,
+      origin,
+      rpID: process.env.RP_ID || '',
+      authenticator: {
+        credentialPublicKey: Buffer.from(credential.publicKey, 'base64'),
+        counter: credential.counter,
+        credentialDeviceType: credential.deviceType || 'singleDevice',
+        credentialBackedUp: false,
+        transports: ['internal', 'hybrid']
+      }
+    });
+
+    if (!verification.verified && verification.authenticationInfo?.result !== 'authStatus:passed') {
+      return res.status(400).json({ success: false, message: 'Passkey authentication failed' });
+    }
+
+    // Update counter
+    credential.counter = verification.authenticationInfo.newCounter;
+
+    // Store the device name if updated
+    if (deviceName) {
+      credential.deviceName = deviceName;
+    }
+
+    await user.save();
+
+    // Issue JWT tokens
+    const deviceId = crypto.randomUUID();
+    const token = signToken(user, deviceId);
+    const refreshToken = signRefreshToken(user);
+
+    user.lastSeen = new Date();
+    user.isOnline = true;
+    await user.save();
+
+    // Clean up session
+    req.app.set(sessionKey, null);
+
+    console.log('[Auth] Passkey login successful:', { userId: user._id, username: user.username });
+
+    res.json({
+      success: true,
+      token,
+      refreshToken,
+      user: safeUser(user)
+    });
+  } catch (error) {
+    console.error('Passkey login verify error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get user's passkeys
+// @route   GET /api/auth/passkey/list
+// @access  Private
+exports.getPasskeys = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('passkeys');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.json({
+      success: true,
+      passkeys: user.passkeys || []
+    });
+  } catch (error) {
+    console.error('Get passkeys error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Delete a passkey
+// @route   DELETE /api/auth/passkey/:id
+// @access  Private
+exports.deletePasskey = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const initialLength = user.passkeys.length;
+    user.passkeys = user.passkeys.filter(pk => pk._id.toString() !== id);
+
+    if (user.passkeys.length === initialLength) {
+      return res.status(404).json({ success: false, message: 'Passkey not found' });
+    }
+
+    await user.save();
+
+    res.json({ success: true, message: 'Passkey deleted successfully' });
+  } catch (error) {
+    console.error('Delete passkey error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

@@ -1034,7 +1034,7 @@ exports.sendMessage = async (req, res) => {
 exports.editMessage = async (req, res) => {
   try {
     const localUserId = getCurrentUserId(req);
-    const { content } = req.body;
+    const { content, caption } = req.body;
     const message = await Message.findById(req.params.id);
 
     if (!message) {
@@ -1047,13 +1047,32 @@ exports.editMessage = async (req, res) => {
         .status(403)
         .json({ success: false, message: "Not authorized" });
     }
-    if (message.messageType !== "text") {
+
+    // Allow editing text messages and captions on media
+    if (message.messageType !== "text" && message.messageType !== "image" && message.messageType !== "video" && message.messageType !== "audio" && message.messageType !== "file") {
       return res
         .status(400)
-        .json({ success: false, message: "Can only edit text messages" });
+        .json({ success: false, message: "Can only edit text messages and media captions" });
     }
 
-    message.content = content;
+    // Save current content to edit history before modifying
+    if (!message.editHistory) message.editHistory = [];
+    message.editHistory.push({
+      content: message.content || '',
+      caption: message.caption || '',
+      editedAt: new Date(),
+      editedBy: localUserId
+    });
+
+    // Update content if provided
+    if (content !== undefined) {
+      message.content = content;
+    }
+    // Update caption if provided (for media messages)
+    if (caption !== undefined) {
+      message.caption = caption;
+    }
+    
     message.isEdited = true;
     message.editedAt = new Date();
     await message.save();
@@ -1061,7 +1080,8 @@ exports.editMessage = async (req, res) => {
     const updatedMessage = await Message.findById(message._id)
       .populate("sender", "username profilePicture")
       .populate({ path: "replyTo", populate: { path: "sender", select: "username profilePicture" } })
-      .populate("mentions.user", "username profilePicture");
+      .populate("mentions.user", "username profilePicture")
+      .populate("editHistory.editedBy", "username");
 
     const io = req.app.get("io");
     if (io) {
@@ -1102,14 +1122,19 @@ exports.deleteMessage = async (req, res) => {
     }
 
     if (forEveryone) {
-      if (message.sender.toString() !== localUserId) {
+      const isAdmin = conversation.isGroup &&
+        (conversation.admins || []).some(adminId => adminId.toString() === localUserId.toString()) ||
+        conversation.createdBy?.toString() === localUserId.toString();
+
+      if (message.sender.toString() !== localUserId && !isAdmin) {
         return res.status(403).json({
           success: false,
-          message: "Only sender can delete for everyone",
+          message: "Only sender or group admin can delete for everyone",
         });
       }
       message.deletedForEveryone = true;
-      message.wasDeletedBySender = true;
+      message.wasDeletedBySender = message.sender.toString() === localUserId.toString();
+      message.deletedByAdmin = !message.wasDeletedBySender;
       message.deletedAt = new Date();
       message.originalContent = message.originalContent || message.content;
     } else if (!includesId(message.deletedFor, localUserId)) {
@@ -1690,6 +1715,70 @@ exports.toggleMessageLock = async (req, res) => {
   }
 };
 
+// Toggle keep in chat for disappearing messages
+exports.toggleKeepMessage = async (req, res) => {
+  try {
+    const userId = getCurrentUserId(req);
+    const messageId = req.params.messageId || req.params.id;
+
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Message not found" });
+    }
+
+    // Only allow keeping messages that have disappearAt set
+    if (!message.disappearAt) {
+      return res
+        .status(400)
+        .json({ success: false, message: "This message is not set to disappear" });
+    }
+
+    // Verify user is in the conversation
+    const conversation = await Conversation.findById(message.conversationId);
+    if (!ensureParticipant(conversation, userId, res)) return;
+
+    // Only the sender can keep/unqueep the message
+    if (message.sender.toString() !== userId) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Only the sender can keep this message" });
+    }
+
+    // Initialize keptBy if not exists
+    if (!message.keptBy) message.keptBy = [];
+
+    // Check if already kept by this user
+    const alreadyKept = message.keptBy.some(k => k.user.toString() === userId);
+
+    if (alreadyKept) {
+      // Unkeep
+      message.keptBy = message.keptBy.filter(k => k.user.toString() !== userId);
+    } else {
+      // Keep
+      message.keptBy.push({ user: userId, keptAt: new Date() });
+    }
+
+    await message.save();
+
+    const updated = await Message.findById(message._id)
+      .populate("sender", "username profilePicture")
+      .populate({ path: "replyTo", populate: { path: "sender", select: "username profilePicture" } })
+      .populate("mentions.user", "username profilePicture")
+      .populate("keptBy.user", "username profilePicture");
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to(message.conversationId.toString()).emit("message:kept", updated);
+    }
+
+    res.json({ success: true, message: updated });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // Toggle pin on conversation
 exports.togglePinConversation = async (req, res) => {
   try {
@@ -1876,6 +1965,38 @@ exports.getMessageInfo = async (req, res) => {
     };
 
     res.json({ success: true, messageInfo: info });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Get message edit history
+exports.getMessageEditHistory = async (req, res) => {
+  try {
+    const userId = getCurrentUserId(req);
+    const { messageId } = req.params;
+
+    const message = await Message.findById(messageId)
+      .populate("editHistory.editedBy", "username profilePicture")
+      .select("editHistory isEdited editedAt content caption");
+
+    if (!message) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Message not found" });
+    }
+
+    const conversation = await Conversation.findById(message.conversationId);
+    if (!ensureParticipant(conversation, userId, res)) return;
+
+    res.json({ 
+      success: true, 
+      editHistory: message.editHistory || [],
+      currentContent: message.content,
+      currentCaption: message.caption,
+      isEdited: message.isEdited,
+      editedAt: message.editedAt
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

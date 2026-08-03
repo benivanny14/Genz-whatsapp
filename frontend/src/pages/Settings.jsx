@@ -5,7 +5,7 @@ import {
   Smartphone, ChevronRight, Database, UserRound, KeyRound, Languages,
   HelpCircle, Download, Trash2, Phone, Wifi, Image as ImageIcon,
   HardDrive, CheckCircle2, EyeOff, Archive, Clock, Mail, FileText, Globe2,
-  RefreshCw, RotateCcw, Palette, MessageSquare, MapPin, X
+  RefreshCw, RotateCcw, Palette, MessageSquare, MapPin, X, Fingerprint
 } from 'lucide-react';
 import ContactManager from '../components/ContactManager';
 import { BlockedUsersList } from '../components/BlockUnblock';
@@ -20,6 +20,7 @@ import PrivacyPermissionSelector from '../components/PrivacyPermissionSelector';
 import ContactSelectorScreen from '../components/ContactSelectorScreen';
 import FakeChatPanel from '../components/FakeChatPanel';
 import LocationSharingPanel from '../components/LocationSharingPanel';
+import PasskeysSettings from '../components/PasskeysSettings';
 import { useUser } from '../context/UserContext';
 import { useLanguage } from '../context/LanguageContext';
 import userService from '../services/userService';
@@ -339,6 +340,7 @@ const Settings = () => {
   const tabs = useMemo(() => ([
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'account', label: 'Account', icon: KeyRound },
+    { id: 'passkeys', label: 'Passkeys', icon: Fingerprint },
     { id: 'privacy', label: 'Privacy', icon: Lock },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'storage', label: 'Storage and data', icon: Database },
@@ -1019,6 +1021,7 @@ const Settings = () => {
   const renderActiveTab = () => {
     if (activeTab === 'profile') return renderProfile();
     if (activeTab === 'account') return renderAccount();
+    if (activeTab === 'passkeys') return <PasskeysSettings />;
     if (activeTab === 'privacy') return renderPrivacy();
     if (activeTab === 'notifications') return renderNotifications();
     if (activeTab === 'storage') return renderStorage();

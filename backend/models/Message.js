@@ -156,7 +156,11 @@ const messageSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
-  deletedForEveryone: {
+   deletedForEveryone: {
+    type: Boolean,
+    default: false
+  },
+  deletedByAdmin: {
     type: Boolean,
     default: false
   },
@@ -197,6 +201,13 @@ const messageSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  // Edit history for "edited" label tap
+  editHistory: [{
+    content: { type: String, required: true },
+    caption: { type: String, default: '' },
+    editedAt: { type: Date, default: Date.now },
+    editedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+  }],
   isStarred: {
     type: Boolean,
     default: false
@@ -229,6 +240,11 @@ const messageSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  // Keep in chat for disappearing messages
+  keptBy: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    keptAt: { type: Date, default: Date.now }
+  }],
   translation: {
     originalLanguage: String,
     translatedText: String,

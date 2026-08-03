@@ -169,3 +169,177 @@ exports.persistCallFromSocket = async ({
   const formatForUser = (userId) => formatCallLog(populated, userId.toString());
   return { log: populated, formatForUser };
 };
+
+// ── Call Link (Shareable link to join group/video call) ──
+
+// @desc    Generate a shareable call link for a group or individual call
+// @route   POST /api/calls/link
+// @access  Private
+exports.generateCallLink = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const { conversationId, callType = 'video', isGroup = false, expiresInHours = 24 } = req.body;
+
+    const crypto = require('crypto');
+    const linkToken = crypto.randomBytes(16).toString('hex');
+
+    const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
+
+    const callLink = {
+      token: linkToken,
+      creatorId: userId,
+      conversationId: conversationId || undefined,
+      callType,
+      isGroup,
+      expiresAt,
+      createdAt: new Date()
+    };
+
+    const User = require('../models/User');
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    user.callLinkSettings = user.callLinkSettings || { links: [] };
+    user.callLinkSettings.links.push(callLink);
+    await user.save();
+
+    const { resolvePublicBaseUrl } = require('../utils/publicBaseUrl');
+    const baseUrl = resolvePublicBaseUrl(req);
+
+    res.json({
+      success: true,
+      callLink: {
+        token: linkToken,
+        url: `${baseUrl}/join-call/${linkToken}`,
+        callType,
+        isGroup,
+        expiresAt,
+        creatorId: userId
+      }
+    });
+  } catch (error) {
+    console.error('generateCallLink error:', error);
+    res.status(500).json({ success: false, message: 'Failed to generate call link' });
+  }
+};
+
+// @desc    Get call link info by token (public endpoint - for joining)
+// @route   GET /api/calls/link/:token
+// @access  Public
+exports.getCallLink = async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    const User = require('../models/User');
+    const users = await User.find({ 'callLinkSettings.links.token': token });
+    if (!users || users.length === 0) {
+      return res.status(404).json({ success: false, message: 'Call link not found or expired' });
+    }
+
+    let foundLink = null;
+    let foundUser = null;
+    for (const user of users) {
+      const link = user.callLinkSettings.links.find(l => l.token === token);
+      if (link) {
+        foundLink = link;
+        foundUser = user;
+        break;
+      }
+    }
+
+    if (!foundLink) {
+      return res.status(404).json({ success: false, message: 'Call link not found' });
+    }
+
+    if (new Date() > new Date(foundLink.expiresAt)) {
+      return res.status(410).json({ success: false, message: 'Call link has expired' });
+    }
+
+    const Conversation = require('../models/Conversation');
+    let conversation = null;
+    if (foundLink.conversationId) {
+      conversation = await Conversation.findById(foundLink.conversationId)
+        .select('name isGroup participants')
+        .populate('participants', 'username profilePicture isOnline');
+    }
+
+    const creator = {
+      _id: foundUser._id,
+      username: foundUser.username,
+      profilePicture: foundUser.profilePicture
+    };
+
+    res.json({
+      success: true,
+      callLink: {
+        token,
+        callType: foundLink.callType,
+        isGroup: foundLink.isGroup,
+        expiresAt: foundLink.expiresAt,
+        creator,
+        conversation
+      }
+    });
+  } catch (error) {
+    console.error('getCallLink error:', error);
+    res.status(500).json({ success: false, message: 'Failed to get call link' });
+  }
+};
+
+// @desc    Get all active call links for the current user
+// @route   GET /api/calls/links
+// @access  Private
+exports.getCallLinks = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const User = require('../models/User');
+    const user = await User.findById(userId).select('callLinkSettings');
+
+    const links = (user?.callLinkSettings?.links || [])
+      .filter(l => new Date(l.expiresAt) > new Date())
+      .map(l => ({
+        token: l.token,
+        url: `/join-call/${l.token}`,
+        callType: l.callType,
+        isGroup: l.isGroup,
+        expiresAt: l.expiresAt,
+        createdAt: l.createdAt
+      }));
+
+    res.json({
+      success: true,
+      callLinks: links
+    });
+  } catch (error) {
+    console.error('getCallLinks error:', error);
+    res.status(500).json({ success: false, message: 'Failed to load call links' });
+  }
+};
+
+// @desc    Delete (invalidate) a call link
+// @route   DELETE /api/calls/link/:token
+// @access  Private
+exports.deleteCallLink = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const userId = req.user._id || req.user.id;
+    const User = require('../models/User');
+    const user = await User.findById(userId);
+
+    const initialLength = user.callLinkSettings?.links?.length || 0;
+    user.callLinkSettings.links = (user.callLinkSettings.links || [])
+      .filter(l => l.token !== token);
+
+    if (user.callLinkSettings.links.length === initialLength) {
+      return res.status(404).json({ success: false, message: 'Call link not found' });
+    }
+
+    await user.save();
+    res.json({ success: true, message: 'Call link deleted' });
+  } catch (error) {
+    console.error('deleteCallLink error:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete call link' });
+  }
+};

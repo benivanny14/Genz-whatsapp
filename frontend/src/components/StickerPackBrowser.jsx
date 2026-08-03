@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Search, Grid3x3, Heart, Plus, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { X, Search, Grid3x3, Heart, Plus, ChevronLeft, ChevronRight, Sparkles, Wand2 } from 'lucide-react';
+import StickerCreator from './StickerCreator';
 
 const STICKER_PACKS = [
   {
@@ -52,6 +53,13 @@ const STICKER_PACKS = [
 const StickerPackBrowser = ({ onStickerSelect, onClose }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPack, setSelectedPack] = useState(null);
+  const [showCreator, setShowCreator] = useState(false);
+  const [showMine, setShowMine] = useState(false);
+  const [customStickers, setCustomStickers] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('genz_custom_stickers') || '[]');
+    } catch { return []; }
+  });
   const [favorites, setFavorites] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('genz_sticker_favorites') || '[]');
@@ -126,6 +134,42 @@ const StickerPackBrowser = ({ onStickerSelect, onClose }) => {
           </div>
         </div>
 
+        {/* Quick actions: Create + My Stickers */}
+        <div className="flex gap-2 px-4 pt-3">
+          <button
+            onClick={() => setShowCreator(true)}
+            className="flex-1 flex items-center justify-center gap-2 bg-pink-500/20 text-pink-300 border border-pink-500/30 rounded-xl py-2.5 text-sm font-medium hover:bg-pink-500/30 transition-colors"
+          >
+            <Wand2 size={16} /> Create Sticker
+          </button>
+          {customStickers.length > 0 && (
+            <button
+              onClick={() => setShowMine(!showMine)}
+              className="flex-1 flex items-center justify-center gap-2 bg-white/5 text-white/80 border border-white/10 rounded-xl py-2.5 text-sm font-medium hover:bg-white/10 transition-colors"
+            >
+              <Grid3x3 size={16} /> My Stickers ({customStickers.length})
+            </button>
+          )}
+        </div>
+
+        {/* My custom stickers view */}
+        {showMine && customStickers.length > 0 && (
+          <div className="px-4 pt-4">
+            <div className="grid grid-cols-4 gap-2 bg-dark-bg/50 rounded-xl p-3 border border-dark-border/50">
+              {customStickers.map((sticker) => (
+                <button
+                  key={sticker.id}
+                  onClick={() => onStickerSelect(sticker.url, { caption: sticker.name })}
+                  className="flex flex-col items-center gap-1 p-1 rounded-lg hover:bg-white/5 transition-colors"
+                >
+                  <img src={sticker.url} alt={sticker.name} className="w-14 h-14 object-contain" loading="lazy" />
+                  <span className="text-[10px] text-white/50 truncate w-full text-center">{sticker.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="p-4 max-h-[65vh] overflow-y-auto">
           {allStickers ? (
             <div className="grid grid-cols-4 gap-2">
@@ -185,6 +229,22 @@ const StickerPackBrowser = ({ onStickerSelect, onClose }) => {
           )}
         </div>
       </div>
+
+      {/* Sticker Creator Modal */}
+      {showCreator && (
+        <StickerCreator
+          onClose={() => setShowCreator(false)}
+          onStickerCreated={(sticker) => {
+            setCustomStickers(prev => {
+              const updated = [...prev, sticker];
+              localStorage.setItem('genz_custom_stickers', JSON.stringify(updated));
+              return updated;
+            });
+            setShowCreator(false);
+            setShowMine(true);
+          }}
+        />
+      )}
     </div>
   );
 };

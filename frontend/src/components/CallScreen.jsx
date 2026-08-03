@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Phone, Video, Mic, MicOff, Camera, CameraOff, PhoneOff, Volume2, VolumeX, RotateCcw, Wifi, WifiOff, Monitor, MonitorOff } from 'lucide-react';
+import { Phone, Video, Mic, MicOff, Camera, CameraOff, PhoneOff, Volume2, VolumeX, RotateCcw, Wifi, WifiOff, Monitor, MonitorOff, Share2, Link, Copy, Check } from 'lucide-react';
 import webRTCService from '../services/webrtc';
 import { playCallRingtone } from '../utils/soundPlayer';
 import { getSocket } from '../services/socket';
@@ -18,6 +18,9 @@ const CallScreen = ({ call, onEndCall, onAcceptCall, onRejectCall }) => {
   const [errorMsg, setErrorMsg] = useState('');
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [showCallLink, setShowCallLink] = useState(false);
+  const [callLink, setCallLink] = useState('');
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -306,6 +309,41 @@ const CallScreen = ({ call, onEndCall, onAcceptCall, onRejectCall }) => {
     }
   };
 
+  const generateCallLink = async () => {
+    try {
+      const { authFetch } = await import('../utils/authFetch');
+      const { resolveApiBase } = await import('../utils/resolveApiBase');
+      const API_URL = resolveApiBase();
+      const conversationId = call?.conversationId;
+      const isGroup = call?.isGroup || false;
+      const callType = isVideoCall ? 'video' : 'voice';
+
+      const res = await authFetch(`${API_URL}/calls/link`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId, callType, isGroup })
+      });
+      const data = await res.json();
+      if (data.success && data.callLink) {
+        setCallLink(data.callLink.url);
+        setShowCallLink(true);
+        setCopySuccess(false);
+      }
+    } catch (err) {
+      console.error('Generate call link error:', err);
+    }
+  };
+
+  const copyCallLink = async () => {
+    try {
+      await navigator.clipboard.writeText(callLink);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      console.error('Copy failed:', err);
+    }
+  };
+
   const handleMute = () => {
     const next = !isMuted;
     setIsMuted(next);
@@ -462,6 +500,9 @@ const CallScreen = ({ call, onEndCall, onAcceptCall, onRejectCall }) => {
             {isScreenSharing ? <MonitorOff size={22} /> : <Monitor size={22} />}
           </ControlBtn>
         )}
+        <ControlBtn onClick={generateCallLink} title="Share call link">
+          <Share2 size={22} />
+        </ControlBtn>
         <ControlBtn onClick={() => setIsSpeakerOn(p => !p)} active={!isSpeakerOn} title="Speaker">
           {isSpeakerOn ? <Volume2 size={22} /> : <VolumeX size={22} />}
         </ControlBtn>
@@ -475,6 +516,46 @@ const CallScreen = ({ call, onEndCall, onAcceptCall, onRejectCall }) => {
       </div>
     </div>
   );
+
+  // Call Link Modal
+  if (showCallLink) {
+    return (
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        onClick={() => setShowCallLink(false)}>
+        <div className="bg-[#1a2e35] rounded-2xl border border-[#00a884]/20 w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-white font-semibold flex items-center gap-2">
+              <Link className="w-5 h-5 text-[#00a884]" />
+              Call Link
+            </h3>
+            <button onClick={() => setShowCallLink(false)} className="text-gray-400 hover:text-white">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+
+          <p className="text-gray-400 text-sm mb-4">Share this link to let anyone join the call</p>
+
+          <div className="flex gap-2 mb-4">
+            <input
+              type="text"
+              value={callLink}
+              readOnly
+              className="flex-1 bg-[#0b141a] border border-[#00a884]/30 rounded-lg px-4 py-3 text-white text-sm"
+            />
+            <button
+              onClick={copyCallLink}
+              className="px-4 py-3 bg-[#00a884] text-white rounded-lg hover:bg-[#00a884]/90 transition-colors flex items-center gap-2"
+            >
+              {copySuccess ? <Check size={18} /> : <Copy size={18} />}
+              <span className="hidden sm:inline">{copySuccess ? 'Copied!' : 'Copy'}</span>
+            </button>
+          </div>
+
+          <p className="text-gray-500 text-xs text-center">Link expires in 24 hours</p>
+        </div>
+      </div>
+    );
+  }
 };
 
 const ControlBtn = ({ onClick, active, title, children }) => (

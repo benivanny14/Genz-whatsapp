@@ -25,7 +25,14 @@ const {
   getUserOnlineHistory,
   sendOTP,
   verifyOTP,
-  resendOTP
+  resendOTP,
+  checkPasskeyAvailable,
+  passkeyRegisterOptions,
+  passkeyRegisterVerify,
+  passkeyLoginOptions,
+  passkeyLoginVerify,
+  getPasskeys,
+  deletePasskey
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 const { uploadImage } = require('../middleware/upload');
@@ -62,5 +69,14 @@ router.get('/users/:id/online-history', protect, getUserOnlineHistory);
 router.post('/send-otp', sendOTP);
 router.post('/verify-otp', verifyOTP);
 router.post('/resend-otp', resendOTP);
+
+// Passkey (WebAuthn) routes
+router.post('/passkey/check', checkPasskeyAvailable);
+router.post('/passkey/register/options', protect, passkeyRegisterOptions);
+router.post('/passkey/register/verify', protect, passkeyRegisterVerify);
+router.post('/passkey/login/options', passkeyLoginOptions);
+router.post('/passkey/login/verify', passkeyLoginVerify);
+router.get('/passkey/list', protect, getPasskeys);
+router.delete('/passkey/:id', protect, deletePasskey);
 
 module.exports = router;
