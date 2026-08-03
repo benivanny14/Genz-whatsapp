@@ -10,11 +10,11 @@ const STICKER_PACKS = [
     description: 'Stickers maarufu sasa hivi',
     stickers: [
       'https://cdn-icons-png.flaticon.com/512/3532/3532827.png',
-      'https://cdn-icons-png.flaticon.com/512/742/742751.png',
-      'https://cdn-icons-png.flaticon.com/512/3069/3069172.png',
       'https://cdn-icons-png.flaticon.com/512/4457/4457090.png',
+      'https://cdn-icons-png.flaticon.com/512/2584/2584606.png',
+      'https://cdn-icons-png.flaticon.com/512/3003/3003935.png',
+      'https://cdn-icons-png.flaticon.com/512/4213/4213958.png',
       'https://cdn-icons-png.flaticon.com/512/5290/5290058.png',
-      'https://cdn-icons-png.flaticon.com/512/1791/1791961.png',
     ]
   },
   {
@@ -24,9 +24,9 @@ const STICKER_PACKS = [
     stickers: [
       'https://cdn-icons-png.flaticon.com/512/2589/2589175.png',
       'https://cdn-icons-png.flaticon.com/512/833/833472.png',
-      'https://cdn-icons-png.flaticon.com/512/1791/1791330.png',
-      'https://cdn-icons-png.flaticon.com/512/4213/4213958.png',
       'https://cdn-icons-png.flaticon.com/512/3003/3003935.png',
+      'https://cdn-icons-png.flaticon.com/512/4213/4213958.png',
+      'https://cdn-icons-png.flaticon.com/512/5290/5290058.png',
       'https://cdn-icons-png.flaticon.com/512/2248/2248718.png',
     ]
   },
@@ -52,17 +52,7 @@ const MediaPickerPanel = ({
     onStickerSelect,
     onGIFSelect,
     theme = 'dark'
-  }) => {
-  const safeOnStickerSelect = (stickerUrl, options = {}) => {
-    if (typeof onStickerSelect === 'function') {
-      const isCallbackWithOptions = onStickerSelect.length > 1;
-      if (isCallbackWithOptions) {
-        onStickerSelect(stickerUrl, options);
-      } else {
-        onStickerSelect(stickerUrl);
-      }
-    }
-  };
+  }) => {};
   return (
     <div className="flex flex-col h-[350px] w-full bg-[#1a2332] border-t border-gray-700 shadow-2xl z-40 transition-transform duration-300 ease-out origin-bottom transform translate-y-0">
       
