@@ -17,7 +17,8 @@ import {
   Download, 
   Globe, 
   CheckCircle,
-  Smile
+  Smile,
+  DollarSign
 } from 'lucide-react';
 
 const PrivacyModsPanel = ({ onClose }) => {
@@ -274,6 +275,27 @@ const PrivacyModsPanel = ({ onClose }) => {
                 </button>
               );
             })}
+          </div>
+
+          {/* GENZ AFTER WORK - Premium Feature */}
+          <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-800 dark:to-gray-700 rounded-lg p-4 border border-purple-200 dark:border-gray-600">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                  <DollarSign size={20} className="text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900 dark:text-white">GENZ AFTER WORK</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Discover premium features & services</p>
+                </div>
+              </div>
+              <button
+                onClick={() => window.location.href = '/genz-after-work'}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-semibold transition-colors"
+              >
+                Access
+              </button>
+            </div>
           </div>
 
           {/* Info Section */}
