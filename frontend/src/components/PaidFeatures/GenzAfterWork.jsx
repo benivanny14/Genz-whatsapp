@@ -297,7 +297,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
         
         {/* Create Feature Button - Admin Only */}
         {user && user.isAdmin && (
-          <div className="bg-white rounded-lg shadow-md p-4 mb-8">
+          <div className="bg-[#800000] rounded-lg shadow-md p-4 mb-8">
             <button
               onClick={() => setShowCreateForm(!showCreateForm)}
               className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg"
@@ -310,7 +310,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
         
         {/* Create Feature Form */}
         {showCreateForm && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <div className="bg-[#800000] rounded-lg shadow-md p-6 mb-8">
             <h2 className="text-2xl font-semibold mb-6">Create New Feature</h2>
             
             <form onSubmit={handleCreateFeature} className="space-y-6">
@@ -513,7 +513,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
         )}
         
         {/* Main Content */}
-        <div className="bg-white rounded-lg shadow-md">
+        <div className="bg-[#800000] rounded-lg shadow-md">
           {/* Filters */}
           <div className="p-6 border-b border-gray-200">
             <div className="flex flex-wrap gap-4 items-center">
@@ -599,7 +599,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                 {filteredFeatures.map((feature) => (
                   <div
                     key={feature._id}
-                    className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer border border-gray-200"
+                    className="bg-[#800000] rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer border border-gray-200"
                     onClick={() => setSelectedFeature(feature)}
                   >
                     <div className="relative">
@@ -660,7 +660,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
         {/* Feature Detail Modal */}
         {selectedFeature && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-[#800000] rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-start mb-4">
                 <h2 className="text-2xl font-bold">{selectedFeature.name}</h2>
                 <button
@@ -751,7 +751,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
         {/* Inquiry Form Modal */}
         {showInquiryForm && selectedFeature && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <div className="bg-[#800000] rounded-lg p-6 max-w-md w-full">
               <h3 className="text-xl font-semibold mb-4">Submit Inquiry</h3>
               
               <form onSubmit={handleInquirySubmit}>
