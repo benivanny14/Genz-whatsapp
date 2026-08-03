@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Shield, Ghost, MessageSquare, Eye, EyeOff, Clock, Users, Download, Upload, RefreshCw, Trash2, Settings, Zap, Lock } from 'lucide-react';
+import { ArrowLeft, Shield, Ghost, MessageSquare, Eye, EyeOff, Clock, Users, Download, Upload, RefreshCw, Trash2, Settings, Zap, Lock, DollarSign, Star, Search, Plus, MapPin, FileText, Camera, Video, Upload as UploadIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import modsService from '../services/modsService';
@@ -45,6 +45,36 @@ const GENZMods = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const fileInputRef = React.useRef(null);
+  
+  // GENZ AFTER WORK Feature States
+  const [features, setFeatures] = useState([]);
+  const [isLoadingFeatures, setIsLoadingFeatures] = useState(false);
+  const [showCreateFeatureForm, setShowCreateFeatureForm] = useState(false);
+  const [selectedFeature, setSelectedFeature] = useState(null);
+  const [showInquiryForm, setShowInquiryForm] = useState(false);
+  const [inquiryData, setInquiryData] = useState({ message: '', contactEmail: '' });
+  const [createForm, setCreateForm] = useState({
+    name: '',
+    description: '',
+    price: '',
+    maxPrice: '',
+    location: '',
+    category: 'Real Estate',
+    contactInfo: { phone: '', email: '' },
+    tags: [],
+    specifications: {},
+    images: [],
+    videos: [],
+    isPrivate: false,
+    expiresAt: '',
+    status: 'pending'
+  });
+  const [images, setImages] = useState([]);
+  const [videos, setVideos] = useState([]);
+  const [imagePreviewUrls, setImagePreviewUrls] = useState([]);
+  const [videoPreviewUrls, setVideoPreviewUrls] = useState([]);
+  
+  const categories = ['Real Estate', 'Services', 'Business', 'Automotive', 'Jobs', 'Electronics', 'Other'];
 
   useEffect(() => {
     fetchModsSettings();
@@ -146,6 +176,180 @@ const GENZMods = () => {
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       setError('Failed to export settings');
+    }
+  };
+
+  // GENZ AFTER WORK Feature Functions
+  const API_URL = import.meta.env.VITE_API_URL || '';
+
+  const fetchFeatures = async () => {
+    try {
+      setIsLoadingFeatures(true);
+      let url = `${API_URL}/payment-features?status=active&limit=20`;
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data.success) {
+        setFeatures(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching features:', error);
+    } finally {
+      setIsLoadingFeatures(false);
+    }
+  };
+
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('en-ZA', {
+      style: 'currency',
+      currency: 'ZAR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(price);
+  };
+
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    const newImages = files.slice(0, 5 - images.length);
+    setImages(prev => [...prev, ...newImages]);
+    newImages.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => setImagePreviewUrls(prev => [...prev, e.target.result]);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleVideoChange = (e) => {
+    const files = Array.from(e.target.files);
+    const newVideos = files.slice(0, 2 - videos.length);
+    setVideos(prev => [...prev, ...newVideos]);
+    newVideos.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => setVideoPreviewUrls(prev => [...prev, e.target.result]);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (index) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviewUrls(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeVideo = (index) => {
+    setVideos(prev => prev.filter((_, i) => i !== index));
+    setVideoPreviewUrls(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleCreateFeature = async (e) => {
+    e.preventDefault();
+    try {
+      const formData = new FormData();
+      Object.keys(createForm).forEach(key => {
+        if (key === 'contactInfo' || key === 'tags' || key === 'specifications') {
+          formData.append(key, JSON.stringify(createForm[key]));
+        } else {
+          formData.append(key, createForm[key]);
+        }
+      });
+      images.forEach((image, index) => {
+        formData.append(`images[${index}]`, image);
+      });
+      videos.forEach((video, index) => {
+        formData.append(`videos[${index}]`, video);
+      });
+      const response = await fetch(`${API_URL}/payment-features`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert('Feature created successfully!');
+        setShowCreateFeatureForm(false);
+        resetCreateForm();
+        fetchFeatures();
+      } else {
+        alert(`Error: ${data.message}`);
+      }
+    } catch (error) {
+      console.error('Error creating feature:', error);
+      alert('Error creating feature');
+    }
+  };
+
+  const resetCreateForm = () => {
+    setCreateForm({
+      name: '',
+      description: '',
+      price: '',
+      maxPrice: '',
+      location: '',
+      category: 'Real Estate',
+      contactInfo: { phone: '', email: '' },
+      tags: [],
+      specifications: {},
+      isPrivate: false,
+      expiresAt: '',
+      status: 'pending'
+    });
+    setImages([]);
+    setVideos([]);
+    setImagePreviewUrls([]);
+    setVideoPreviewUrls([]);
+  };
+
+  const handleInquirySubmit = async (e) => {
+    e.preventDefault();
+    if (!inquiryData.message.trim()) {
+      alert('Please enter a message');
+      return;
+    }
+    try {
+      const response = await fetch(`${API_URL}/payment-features/${selectedFeature._id}/inquiry`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(inquiryData),
+        credentials: 'include'
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert('Inquiry submitted successfully!');
+        setShowInquiryForm(false);
+        setInquiryData({ message: '', contactEmail: '' });
+        fetchFeatures();
+      } else {
+        alert(`Error: ${data.message}`);
+      }
+    } catch (error) {
+      console.error('Error submitting inquiry:', error);
+      alert('Error submitting inquiry');
+    }
+  };
+
+  const handleFeatureClick = async (featureId) => {
+    try {
+      const response = await fetch(`${API_URL}/payment-features/${featureId}`);
+      const data = await response.json();
+      if (data.success) {
+        setSelectedFeature(data.data);
+        // Increment view count
+        await fetch(`${API_URL}/payment-features/${featureId}/inquiry`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+        fetchFeatures();
+      }
+    } catch (error) {
+      console.error('Error fetching feature details:', error);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'active': return 'bg-green-100 text-green-800 border-green-200';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'featured': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'inactive': return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -571,6 +775,262 @@ const GENZMods = () => {
               </label>
             </div>
           </div>
+        </div>
+
+        {/* GENZ AFTER WORK - Payment Features Management */}
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-lg p-6 border border-blue-200 dark:border-gray-600">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="p-3 bg-blue-600 rounded-lg">
+              <DollarSign className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">GENZ AFTER WORK</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Manage and discover real estate & service features</p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-4 mb-6">
+            <button
+              onClick={() => fetchFeatures()}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            >
+              <RefreshCw size={16} /> Refresh Features
+            </button>
+            <button
+              onClick={() => setShowCreateFeatureForm(!showCreateFeatureForm)}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+            >
+              <Plus size={16} /> Create Feature
+            </button>
+          </div>
+
+          {showCreateFeatureForm && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 mb-6">
+              <h3 className="text-lg font-semibold mb-4">Create New Feature</h3>
+              <form onSubmit={handleCreateFeature} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Feature Name</label>
+                    <input
+                      type="text"
+                      value={createForm.name}
+                      onChange={(e) => setCreateForm(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Category</label>
+                    <select
+                      value={createForm.category}
+                      onChange={(e) => setCreateForm(prev => ({ ...prev, category: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    >
+                      {categories.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Price (ZAR)</label>
+                    <input
+                      type="number"
+                      value={createForm.price}
+                      onChange={(e) => setCreateForm(prev => ({ ...prev, price: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Max Price (ZAR)</label>
+                    <input
+                      type="number"
+                      value={createForm.maxPrice}
+                      onChange={(e) => setCreateForm(prev => ({ ...prev, maxPrice: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      required
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium mb-2">Location</label>
+                    <input
+                      type="text"
+                      value={createForm.location}
+                      onChange={(e) => setCreateForm(prev => ({ ...prev, location: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      required
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium mb-2">Description</label>
+                    <textarea
+                      value={createForm.description}
+                      onChange={(e) => setCreateForm(prev => ({ ...prev, description: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      rows={3}
+                      required
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium mb-2">Images (Max 5)</label>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                        id="image-upload"
+                      />
+                      <label
+                        htmlFor="image-upload"
+                        className="flex flex-col items-center justify-center cursor-pointer"
+                      >
+                        <UploadIcon className="w-10 h-10 text-gray-400 mb-2" />
+                        <span className="text-sm text-gray-600">Click to upload images</span>
+                      </label>
+                    </div>
+                    {imagePreviewUrls.length > 0 && (
+                      <div className="grid grid-cols-3 gap-2 mt-3">
+                        {imagePreviewUrls.map((url, index) => (
+                          <div key={index} className="relative">
+                            <img
+                              src={url}
+                              alt={`Preview ${index + 1}`}
+                              className="w-full h-20 object-cover rounded-lg"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeImage(index)}
+                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium mb-2">Videos (Max 2)</label>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                      <input
+                        type="file"
+                        multiple
+                        accept="video/*"
+                        onChange={handleVideoChange}
+                        className="hidden"
+                        id="video-upload"
+                      />
+                      <label
+                        htmlFor="video-upload"
+                        className="flex flex-col items-center justify-center cursor-pointer"
+                      >
+                        <Video className="w-10 h-10 text-gray-400 mb-2" />
+                        <span className="text-sm text-gray-600">Click to upload videos</span>
+                      </label>
+                    </div>
+                    {videoPreviewUrls.length > 0 && (
+                      <div className="grid grid-cols-2 gap-2 mt-3">
+                        {videoPreviewUrls.map((url, index) => (
+                          <div key={index} className="relative">
+                            <video
+                              src={url}
+                              className="w-full h-20 object-cover rounded-lg bg-gray-100"
+                              controls
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeVideo(index)}
+                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-4">
+                  <button
+                    type="submit"
+                    className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                  >
+                    Create Feature
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateFeatureForm(false)}
+                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {isLoadingFeatures ? (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {features.map((feature) => (
+                <div
+                  key={feature._id}
+                  className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer border border-gray-200 dark:border-gray-700"
+                  onClick={() => handleFeatureClick(feature._id)}
+                >
+                  <div className="relative">
+                    {feature.primaryImage ? (
+                      <img
+                        src={feature.primaryImage}
+                        alt={feature.name}
+                        className="w-full h-48 object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-48 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                        <DollarSign className="w-12 h-12 text-gray-400" />
+                      </div>
+                    )}
+                    {feature.featured && (
+                      <span className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+                        <Star size={14} fill="currentColor" />
+                        Featured
+                      </span>
+                    )}
+                    <span className={`absolute top-2 left-2 px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(feature.status)}`}>n
+                      {feature.status}
+                    </span>
+                  </div>
+                  <div className="p-4">
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2 line-clamp-1">{feature.name}</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">{feature.description}</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-green-600 font-semibold">{formatPrice(feature.price)}</span>
+                      <span className="text-xs text-gray-500">to {formatPrice(feature.maxPrice)}</span>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600 mb-2">
+                      <MapPin size={14} className="mr-1" />
+                      {feature.formattedLocation || feature.location}
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <Eye size={14} />
+                        {feature.views}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Mail size={14} />
+                        {feature.inquiries}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Media Settings */}
