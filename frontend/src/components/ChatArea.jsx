@@ -309,6 +309,16 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     document.addEventListener('mousedown', outsideClick);
     return () => document.removeEventListener('mousedown', outsideClick);
   }, [showHeaderMenu]);
+
+  useEffect(() => {
+    if (!showAttachmentMenu) return;
+    const outsideClick = (event) => {
+      if (attachmentMenuRef.current?.contains(event.target)) return;
+      setShowAttachmentMenu(false);
+    };
+    document.addEventListener('mousedown', outsideClick);
+    return () => document.removeEventListener('mousedown', outsideClick);
+  }, [showAttachmentMenu]);
   const [showPollModal, setShowPollModal] = useState(false);
   const [showForwardModal, setShowForwardModal] = useState(false);
   const [forwardingMessage, setForwardingMessage] = useState(null);
@@ -382,6 +392,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const messageMenuRef = useRef(null);
   const sendButtonRef = useRef(null);
   const headerMenuRef = useRef(null);
+  const attachmentMenuRef = useRef(null);
   const [translatedMessages, setTranslatedMessages] = useState({});
   const liveLocationWatchIdRef = useRef(null);
   const liveLocationIntervalRef = useRef(null);
@@ -1760,7 +1771,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const AttachmentIcon = ({ icon, label, onClick, disabled }) => (
     <button
       type="button"
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation();
+        setShowAttachmentMenu(false);
+        setTimeout(() => onClick?.(), 0);
+      }}
       disabled={disabled}
       className={`p-2 hover:bg-dark-hover rounded-lg cursor-pointer flex flex-col items-center gap-1 transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       title={label}
@@ -3430,7 +3445,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
             </div>
           )}
           {showAttachmentMenu && (
-            <div className="absolute bottom-14 left-2 right-2 md:left-0 md:right-auto md:w-max md:max-w-2xl bg-dark-surface border border-dark-border rounded-xl shadow-xl p-3 grid grid-cols-4 gap-2 md:flex md:flex-row md:flex-wrap md:gap-2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <div ref={attachmentMenuRef} className="absolute bottom-14 left-2 right-2 md:left-0 md:right-auto md:w-max md:max-w-2xl bg-dark-surface border border-dark-border rounded-xl shadow-xl p-3 grid grid-cols-4 gap-2 md:flex md:flex-row md:flex-wrap md:gap-2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
               <AttachmentIcon icon={<FileText className="text-blue-500" />} label="Document" onClick={() => { setShowAttachmentMenu(false); docInputRef.current?.click(); }} disabled={!canSendMedia && !currentUserIsAdmin} />
               <AttachmentIcon
                 icon={<Camera className="text-pink-500" />}
