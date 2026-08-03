@@ -128,7 +128,25 @@ const GENZMods = () => {
     } catch (error) {
       setError('Failed to import settings');
     }
-    event.target.value = '';
+    if (event.target) event.target.value = '';
+  };
+
+  const exportSettings = async () => {
+    try {
+      const data = await modsService.exportModSettings();
+      const settings = data?.settings || data?.data || data || {};
+      const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'genz-mods-settings.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      setSuccess('Settings exported successfully');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      setError('Failed to export settings');
+    }
   };
 
   const updateGhostMode = (key, value) => {
@@ -809,7 +827,7 @@ const GENZMods = () => {
         {/* Import/Export Settings */}
         <div className="flex gap-3 mt-6">
           <button
-            onClick={importSettings}
+            onClick={() => fileInputRef.current?.click()}
             className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-2"
           >
             <Upload size={16} /> Import Settings

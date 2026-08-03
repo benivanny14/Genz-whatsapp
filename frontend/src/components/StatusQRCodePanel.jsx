@@ -37,7 +37,7 @@ const StatusQRCodePanel = ({ onClose, status }) => {
       const token = localStorage.getItem('token');
       const statusUrl = customUrl || `${window.location.origin}/status/${status?._id || status?.id}`;
       
-      const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/qrcode`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/qr`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

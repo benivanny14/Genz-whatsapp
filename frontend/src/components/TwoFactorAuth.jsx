@@ -13,6 +13,7 @@ const TwoFactorAuth = ({ onClose }) => {
   const [secret, setSecret] = useState('');
   const [qrCode, setQrCode] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
+  const [disableCode, setDisableCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
@@ -77,15 +78,17 @@ const TwoFactorAuth = ({ onClose }) => {
   };
 
   const handleDisable2FA = async () => {
-    if (!confirm('Are you sure you want to disable 2FA? Your account will be less secure.')) {
+    if (!disableCode || disableCode.length !== 6) {
+      setError('Please enter a valid 6-digit code');
       return;
     }
     setLoading(true);
     setError('');
     try {
-      const result = await disable2FA();
+      const result = await disable2FA(disableCode);
       if (result.success) {
         setIsEnabled(false);
+        setDisableCode('');
         setStep('check');
       } else {
         setError(result.message || 'Failed to disable 2FA');
@@ -138,13 +141,26 @@ const TwoFactorAuth = ({ onClose }) => {
                   {loading ? 'Generating...' : 'Enable 2FA'}
                 </button>
               ) : (
-                <button
-                  onClick={handleDisable2FA}
-                  disabled={loading}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {loading ? 'Disabling...' : 'Disable 2FA'}
-                </button>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    value={disableCode}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                      setDisableCode(value);
+                    }}
+                    placeholder="Enter 6-digit code"
+                    className="w-full bg-dark-bg border border-dark-border rounded-lg p-4 text-center text-2xl font-mono tracking-widest text-dark-text focus:outline-none focus:border-red-500"
+                    maxLength={6}
+                  />
+                  <button
+                    onClick={handleDisable2FA}
+                    disabled={loading || disableCode.length !== 6}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {loading ? 'Disabling...' : 'Disable 2FA'}
+                  </button>
+                </div>
               )}
             </div>
           )}

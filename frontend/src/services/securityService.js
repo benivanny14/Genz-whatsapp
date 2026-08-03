@@ -101,6 +101,32 @@ const securityService = {
     }
   },
 
+  // Get 2FA status
+  checkTwoFactorStatus: async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await authFetch(`${API_URL}/security/2fa/status`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return {
+        enabled: Boolean(data.twoFactorEnabled),
+        verified: Boolean(data.twoFactorVerified)
+      };
+    } catch (error) {
+      console.error('Error fetching 2FA status:', error);
+      throw error;
+    }
+  },
+
   // Get current security settings
   getSecuritySettings: async () => {
     try {

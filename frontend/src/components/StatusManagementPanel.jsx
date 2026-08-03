@@ -11,6 +11,8 @@ const StatusManagementPanel = ({ onClose, status, onSave }) => {
   const [customColors, setCustomColors] = useState({ primary: '#00a884', secondary: '#075E54' });
   const [closeFriendsBadge, setCloseFriendsBadge] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [repostCaption, setRepostCaption] = useState('');
+  const [highlights, setHighlights] = useState(['Travel', 'Food', 'Memories']);
 
   const tabs = [
     { id: 'edit', icon: Edit3, label: 'Edit' },
@@ -30,6 +32,10 @@ const StatusManagementPanel = ({ onClose, status, onSave }) => {
   ];
 
   const handleSave = async () => {
+    if (!status?._id && !status?.id) {
+      alert('No status selected. Please select a status to manage first.');
+      return;
+    }
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -69,8 +75,59 @@ const StatusManagementPanel = ({ onClose, status, onSave }) => {
     }
   };
 
-  const handleRepost = () => {
-    console.log('Repost functionality - would share status to feed');
+  const handleRepost = async () => {
+    if (!status?._id && !status?.id) {
+      alert('No status selected to repost.');
+      return;
+    }
+    const statusId = status?._id || status?.id;
+    try {
+      const link = `${window.location.origin}/status/${statusId}`;
+      await navigator.clipboard.writeText(link);
+      alert(`Status link copied${repostCaption.trim() ? ` with caption "${repostCaption.trim()}"` : ''}. Share it anywhere to repost!`);
+      if (onSave) onSave({ action: 'repost', id: statusId, caption: repostCaption.trim() });
+    } catch (error) {
+      console.error('Error copying status link:', error);
+      alert('Failed to copy status link.');
+    }
+  };
+
+  const handleAddHighlight = () => {
+    const title = highlightTitle.trim() || `Highlight ${highlights.length + 1}`;
+    const updated = [...new Set([...highlights, title])];
+    setHighlights(updated);
+    setHighlightTitle('');
+    if (onSave) onSave({ action: 'highlight', title, cover: highlightCover, id: status?._id || status?.id });
+    alert(`Added to highlight "${title}".`);
+  };
+
+  const handleDelete = async () => {
+    if (!status?._id && !status?.id) {
+      alert('No status selected. Please select a status to manage first.');
+      return;
+    }
+    if (confirm('Are you sure you want to delete this status?')) {
+      setLoading(true);
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${resolveApiBase()}/status/${status?._id || status?.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success && onSave) {
+          onSave({ action: 'delete', id: status._id || status.id });
+        }
+        onClose();
+      } catch (error) {
+        console.error('Error deleting status:', error);
+        alert('Failed to delete status. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
   return (
@@ -128,11 +185,11 @@ const StatusManagementPanel = ({ onClose, status, onSave }) => {
               <div className="bg-white/5 rounded-xl p-4">
                 <h3 className="text-white font-medium mb-4">Actions</h3>
                 <div className="flex gap-3">
-                  <button className="flex-1 px-4 py-2 bg-[#00a884] hover:bg-[#008f6f] rounded-lg text-white font-medium flex items-center justify-center gap-2">
+                  <button onClick={handleSave} disabled={loading} className="flex-1 px-4 py-2 bg-[#00a884] hover:bg-[#008f6f] rounded-lg text-white font-medium flex items-center justify-center gap-2">
                     <Save size={18} />
                     Save Changes
                   </button>
-                  <button className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-red-400 flex items-center justify-center gap-2">
+                  <button onClick={handleDelete} disabled={loading} className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-red-400 flex items-center justify-center gap-2">
                     <Trash2 size={18} />
                     Delete
                   </button>
@@ -149,6 +206,8 @@ const StatusManagementPanel = ({ onClose, status, onSave }) => {
                   Repost Status
                 </h3>
                 <textarea
+                  value={repostCaption}
+                  onChange={(e) => setRepostCaption(e.target.value)}
                   placeholder="Add a caption for your repost..."
                   className="w-full bg-white/10 text-white p-3 rounded-lg outline-none resize-none h-24 placeholder-white/40 mb-4"
                 />
@@ -245,10 +304,16 @@ const StatusManagementPanel = ({ onClose, status, onSave }) => {
                     <label className="flex flex-col items-center gap-2 p-4 border-2 border-dashed border-white/30 rounded-lg hover:border-white/60 cursor-pointer">
                       <Layout size={24} className="text-white/50" />
                       <span className="text-white/70">Upload Cover</span>
-                      <input type="file" accept="image/*" className="hidden" />
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setHighlightCover(URL.createObjectURL(file));
+                      }} />
                     </label>
                   </div>
-                  <button className="w-full px-4 py-3 bg-[#00a884] hover:bg-[#008f6f] rounded-lg text-white font-medium">
+                  <button
+                    onClick={handleAddHighlight}
+                    className="w-full px-4 py-3 bg-[#00a884] hover:bg-[#008f6f] rounded-lg text-white font-medium"
+                  >
                     Add to Highlights
                   </button>
                 </div>
@@ -257,9 +322,14 @@ const StatusManagementPanel = ({ onClose, status, onSave }) => {
               <div className="bg-white/5 rounded-xl p-4">
                 <h3 className="text-white font-medium mb-3">Existing Highlights</h3>
                 <div className="grid grid-cols-3 gap-3">
-                  {['Travel', 'Food', 'Memories'].map((highlight) => (
-                    <button key={highlight} className="aspect-square bg-white/10 hover:bg-white/20 rounded-lg flex items-center justify-center">
+                  {highlights.map((highlight) => (
+                    <button
+                      key={highlight}
+                      onClick={() => handleAddHighlight()}
+                      className="aspect-square bg-white/10 hover:bg-white/20 rounded-lg flex flex-col items-center justify-center gap-1"
+                    >
                       <span className="text-white text-sm">{highlight}</span>
+                      <span className="text-white/40 text-[10px]">Add status</span>
                     </button>
                   ))}
                 </div>

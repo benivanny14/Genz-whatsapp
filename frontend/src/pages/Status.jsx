@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Plus, X, Eye, Clock, Camera, Image, Type, Upload, RefreshCw, Film, Sparkles, Bookmark, Settings, Music, Download, Bell, Shield, TrendingUp, BarChart3, Palette, Share2, DollarSign, Accessibility, Mic, Archive, Users, Volume2, Zap, Heart, Calendar, MapPin, Video, Cloud, QrCode, AtSign, Hash, Edit, Copy, Pin, Flag, Layout, FileText, Star, History, Zap as BoostIcon, BellOff, Trash2, Forward } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
+import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import StatusScrollFeed from '../components/StatusScrollFeed';
 import StatusReel from '../components/StatusReel';
 import StoryHighlights from '../components/StoryHighlights';
@@ -407,7 +409,18 @@ const Status = () => {
         collageImages,
         timerSeconds: uploadData.timerSeconds || 5,
         musicUrl: uploadData.musicUrl || '',
-        gifUrl: uploadData.gifUrl || ''
+        gifUrl: uploadData.gifUrl || '',
+        textEffects: uploadData.textEffects || null,
+        selectedSticker: uploadData.selectedSticker || null,
+        subtitles: uploadData.subtitles || null,
+        audio: {
+          backgroundMusic: uploadData.backgroundMusic || null,
+          voiceOver: uploadData.voiceOver || null,
+          soundEffects: uploadData.soundEffects || [],
+          musicVolume: uploadData.musicVolume || 0.5,
+          voiceVolume: uploadData.voiceVolume || 0.8,
+          effectsVolume: uploadData.effectsVolume || 0.5
+        }
       };
 
       const data = await createStatus(payload);
@@ -434,7 +447,16 @@ const Status = () => {
         collageImages: [],
         timerSeconds: 5,
         musicUrl: '',
-        gifUrl: ''
+        gifUrl: '',
+        textEffects: null,
+        selectedSticker: null,
+        subtitles: null,
+        backgroundMusic: null,
+        voiceOver: null,
+        soundEffects: [],
+        musicVolume: 0.5,
+        voiceVolume: 0.8,
+        effectsVolume: 0.5
       });
       setShowAddStatus(false);
       setSuccess('Status uploaded successfully');
@@ -509,6 +531,33 @@ const Status = () => {
   const handleSubtitlesSave = (subtitlesData) => {
     if (!subtitlesData) return;
     setUploadData((prev) => ({ ...prev, subtitles: subtitlesData }));
+    setActivePanel(null);
+    setShowSettings(false);
+  };
+
+  const handleStatusManageSave = async () => {
+    setSelectedStatusForPanel(null);
+    await fetchStatuses();
+  };
+
+  const openStatusPanel = (setter) => {
+    const newest = [...statuses].sort((a, b) =>
+      new Date(b.timestamp || b.createdAt || 0) - new Date(a.timestamp || a.createdAt || 0)
+    )[0];
+    setSelectedStatusForPanel(newest || null);
+    setter(true);
+  };
+
+  const handlePanelSave = async (panelKey, data) => {
+    try {
+      await authFetch(`${resolveApiBase()}/status-features/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings: { [panelKey]: data } })
+      });
+    } catch (error) {
+      console.error(`Failed to save ${panelKey} settings:`, error);
+    }
     setActivePanel(null);
     setShowSettings(false);
   };
@@ -602,7 +651,7 @@ const Status = () => {
             </button>
             <button
               type="button"
-              onClick={() => setShowStatusScheduler(true)}
+              onClick={() => openStatusPanel(setShowStatusScheduler)}
               className="p-2 hover:bg-white/20 rounded-full transition-colors"
               title="Schedule" aria-label="Schedule"
             >
@@ -610,7 +659,7 @@ const Status = () => {
             </button>
             <button
               type="button"
-              onClick={() => setShowLocationTagging(true)}
+              onClick={() => openStatusPanel(setShowLocationTagging)}
               className="p-2 hover:bg-white/20 rounded-full transition-colors"
               title="Location" aria-label="Location"
             >
@@ -634,7 +683,7 @@ const Status = () => {
             </button>
             <button
               type="button"
-              onClick={() => setShowStatusQRCode(true)}
+              onClick={() => openStatusPanel(setShowStatusQRCode)}
               className="p-2 hover:bg-white/20 rounded-full transition-colors"
               title="QR Code" aria-label="QR Code"
             >
@@ -642,7 +691,7 @@ const Status = () => {
             </button>
             <button
               type="button"
-              onClick={() => setShowStatusMentions(true)}
+              onClick={() => openStatusPanel(setShowStatusMentions)}
               className="p-2 hover:bg-white/20 rounded-full transition-colors"
               title="Mentions" aria-label="Mentions"
             >
@@ -650,7 +699,7 @@ const Status = () => {
             </button>
             <button
               type="button"
-              onClick={() => setShowStatusHashtags(true)}
+              onClick={() => openStatusPanel(setShowStatusHashtags)}
               className="p-2 hover:bg-white/20 rounded-full transition-colors"
               title="Hashtags" aria-label="Hashtags"
             >
@@ -690,7 +739,7 @@ const Status = () => {
             </button>
             <button
               type="button"
-              onClick={() => setShowStatusInsights(true)}
+              onClick={() => openStatusPanel(setShowStatusInsights)}
               className="p-2 hover:bg-white/20 rounded-full transition-colors"
               title="Insights" aria-label="Insights"
             >
@@ -698,7 +747,7 @@ const Status = () => {
             </button>
             <button
               type="button"
-              onClick={() => setShowStatusBoost(true)}
+              onClick={() => openStatusPanel(setShowStatusBoost)}
               className="p-2 hover:bg-white/20 rounded-full transition-colors"
               title="Boost" aria-label="Boost"
             >
@@ -1640,19 +1689,19 @@ const Status = () => {
                     {activePanel === 'ar' && <ARFilterPanel onClose={() => setActivePanel(null)} image={editImageUrl} onSave={handleEditorSaveImage} />}
                     {activePanel === 'audio' && <AudioPanel onClose={() => setActivePanel(null)} onSave={handleAudioSave} />}
                     {activePanel === 'subtitles' && <SubtitlesPanel onClose={() => setActivePanel(null)} video={editVideoUrl} onSave={handleSubtitlesSave} />}
-                  {activePanel === 'sharing' && <CrossPlatformSharingPanel onClose={() => setActivePanel(null)} />}
-                  {activePanel === 'accessibility' && <AccessibilityPanel onClose={() => setActivePanel(null)} />}
-                  {activePanel === 'business' && <BusinessShoppingPanel onClose={() => setActivePanel(null)} />}
-                  {activePanel === 'viewing' && <StatusViewingPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'sharing' && <CrossPlatformSharingPanel onClose={() => setActivePanel(null)} onShare={(data) => handlePanelSave('crossPlatformSharing', data)} />}
+                  {activePanel === 'accessibility' && <AccessibilityPanel onClose={() => setActivePanel(null)} onSave={(data) => handlePanelSave('accessibility', data)} />}
+                  {activePanel === 'business' && <BusinessShoppingPanel onClose={() => setActivePanel(null)} onSave={(data) => handlePanelSave('businessShopping', data)} />}
+                  {activePanel === 'viewing' && <StatusViewingPanel onClose={() => setActivePanel(null)} video={editVideoUrl} onSave={(data) => handlePanelSave('statusViewing', data)} />}
                   {activePanel === 'privacy' && <StatusPrivacyPanel onClose={() => setActivePanel(null)} />}
-                  {activePanel === 'management' && <StatusManagementPanel onClose={() => setActivePanel(null)} />}
-                  {activePanel === 'chat' && <ChatFeaturesPanel onClose={() => setActivePanel(null)} />}
-                  {activePanel === 'customui' && <CustomUIPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'management' && <StatusManagementPanel onClose={() => setActivePanel(null)} status={selectedStatusForPanel} onSave={handleStatusManageSave} />}
+                  {activePanel === 'chat' && <ChatFeaturesPanel onClose={() => setActivePanel(null)} onSave={(data) => handlePanelSave('chatFeatures', data)} />}
+                  {activePanel === 'customui' && <CustomUIPanel onClose={() => setActivePanel(null)} onSave={(data) => handlePanelSave('customUI', data)} />}
                   {activePanel === 'calls' && <CallFeaturesPanel onClose={() => setActivePanel(null)} />}
-                  {activePanel === 'contacts' && <ContactsPanel onClose={() => setActivePanel(null)} />}
-                  {activePanel === 'advancedChat' && <AdvancedChatFeaturesPanel onClose={() => setActivePanel(null)} />}
-                  {activePanel === 'voice' && <VoiceFeaturesPanel onClose={() => setActivePanel(null)} />}
-                  {activePanel === 'accessibilityAdv' && <AccessibilityAdvancedPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'contacts' && <ContactsPanel onClose={() => setActivePanel(null)} onSave={(data) => handlePanelSave('contacts', data)} />}
+                  {activePanel === 'advancedChat' && <AdvancedChatFeaturesPanel onClose={() => setActivePanel(null)} onSave={(data) => handlePanelSave('advancedChat', data)} />}
+                  {activePanel === 'voice' && <VoiceFeaturesPanel onClose={() => setActivePanel(null)} onSave={(data) => handlePanelSave('voiceFeatures', data)} />}
+                  {activePanel === 'accessibilityAdv' && <AccessibilityAdvancedPanel onClose={() => setActivePanel(null)} onSave={(data) => handlePanelSave('accessibilityAdvanced', data)} />}
                   {activePanel === 'debug' && <DebugFeaturesPanel onClose={() => setActivePanel(null)} />}
                 </div>
               )}

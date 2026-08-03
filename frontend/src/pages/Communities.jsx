@@ -141,6 +141,16 @@ const Communities = () => {
     }
   };
 
+  const manageCommunity = (community) => {
+    const newName = window.prompt('Rename community:', community.name);
+    if (!newName || !newName.trim()) return;
+    const name = newName.trim();
+    setCommunities((current) =>
+      current.map((c) => (c.id === community.id ? { ...c, name } : c))
+    );
+    showNotice('success', 'Community updated.');
+  };
+
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-[#0b141a] text-white">
       <header className="flex items-center gap-3 border-b border-white/10 bg-[#111b21] px-4 py-3">
@@ -279,6 +289,13 @@ const Communities = () => {
                     <div className="mt-4 flex gap-2">
                       {community.joined ? (
                         <>
+                          <button
+                            type="button"
+                            onClick={() => manageCommunity(community)}
+                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-2.5 text-sm font-semibold text-white hover:bg-white/15"
+                          >
+                            <Settings size={16} /> Edit
+                          </button>
                           <button type="button" className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-2.5 text-sm font-semibold text-white hover:bg-white/15">
                             <Settings size={16} /> Manage
                           </button>

@@ -80,6 +80,129 @@ exports.addCollaborator = async (req, res) => {
   }
 };
 
+// GET /api/status/:id/collaboration - Get collaboration settings for a status
+exports.getCollaboration = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const status = await Status.findById(req.params.id);
+    
+    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+
+    res.json({
+      success: true,
+      collaboration: status.collaboration || {
+        collaborators: status.collabUserId ? [{ id: status.collabUserId, username: status.collabUsername, role: 'viewer' }] : [],
+        collabMode: 'view',
+        isPublic: status.isCollaborative || false,
+        allowComments: true,
+        allowEdits: false,
+        expiryDate: '',
+        maxCollaborators: 10
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// POST /api/status/:id/collaboration - Save collaboration settings for a status
+exports.updateCollaboration = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const status = await Status.findById(req.params.id);
+    
+    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+
+    const { collaborators, collabMode, isPublic, allowComments, allowEdits, expiryDate, maxCollaborators } = req.body;
+
+    status.collaboration = {
+      collaborators: collaborators || [],
+      collabMode: collabMode || 'view',
+      isPublic: isPublic || false,
+      allowComments: allowComments !== false,
+      allowEdits: allowEdits || false,
+      expiryDate: expiryDate || '',
+      maxCollaborators: maxCollaborators || 10
+    };
+    status.isCollaborative = isPublic || (Array.isArray(collaborators) && collaborators.length > 0);
+    await status.save();
+
+    res.json({ success: true, status });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// DELETE /api/status/:draftId - Delete a draft status
+exports.deleteDraft = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const draft = await Status.findOne({ _id: req.params.draftId, user: userId, isDraft: true });
+    
+    if (!draft) return res.status(404).json({ success: false, message: 'Draft haipatikani' });
+
+    await draft.deleteOne();
+    res.json({ success: true, message: 'Draft deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// GET /api/status/hashtags/trending - Get trending hashtags
+exports.getTrendingHashtags = async (req, res) => {
+  try {
+    const hashtags = await Status.aggregate([
+      { $match: { hashtags: { $exists: true, $not: { $size: 0 } } } },
+      { $unwind: '$hashtags' },
+      { $group: { _id: '$hashtags', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 20 }
+    ]);
+
+    res.json({
+      success: true,
+      hashtags: hashtags.map(h => ({ id: h._id, tag: h._id, count: h.count }))
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// POST /api/status/live - Start a live status (no id required)
+exports.startLiveStatus = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const { title, description, allowComments, allowReactions, saveRecording, maxDuration } = req.body;
+
+    if (!title || !title.trim()) {
+      return res.status(400).json({ success: false, message: 'Title ni lazima' });
+    }
+
+    const status = await Status.create({
+      user: userId,
+      userId: String(userId),
+      type: 'live',
+      content: title,
+      caption: description || '',
+      isLive: true,
+      liveStartedAt: new Date(),
+      liveViewers: 0,
+      liveSettings: {
+        allowComments: allowComments !== false,
+        allowReactions: allowReactions !== false,
+        saveRecording: saveRecording || false,
+        maxDuration: maxDuration || 60
+      }
+    });
+
+    res.json({ success: true, status });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 // POST /api/status/:id/archive - Archive status
 exports.archiveStatus = async (req, res) => {
   try {
@@ -521,18 +644,30 @@ exports.generateQRCode = async (req, res) => {
 exports.addMention = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
-    const { mentionedUserId, mentionedUsername } = req.body;
+    const { mentionedUserId, mentionedUsername, mentions } = req.body;
     const status = await Status.findById(req.params.id);
     
     if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
     if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
 
     if (!status.mentions) status.mentions = [];
-    status.mentions.push({
-      user: mentionedUserId,
-      username: mentionedUsername,
-      mentionedAt: new Date()
-    });
+
+    const mentionList = Array.isArray(mentions) && mentions.length > 0
+      ? mentions
+      : (mentionedUserId ? [{ id: mentionedUserId, username: mentionedUsername || '' }] : []);
+
+    for (const m of mentionList) {
+      const uid = m?.id || m?.userId || m?._id;
+      if (!uid) continue;
+      const exists = status.mentions.some(x => String(x.user) === String(uid));
+      if (!exists) {
+        status.mentions.push({
+          user: uid,
+          username: m?.username || m?.name || '',
+          mentionedAt: new Date()
+        });
+      }
+    }
     await status.save();
 
     res.json({ success: true, status });
@@ -564,7 +699,10 @@ exports.addHashtags = async (req, res) => {
 exports.editStatus = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
-    const { content, caption, backgroundColor, fontStyle } = req.body;
+    const {
+      content, caption, backgroundColor, fontStyle,
+      textColor, fontColor, privacy, duration, timerSeconds
+    } = req.body;
     const status = await Status.findById(req.params.id);
     
     if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
@@ -574,6 +712,11 @@ exports.editStatus = async (req, res) => {
     if (caption !== undefined) status.caption = caption;
     if (backgroundColor !== undefined) status.backgroundColor = backgroundColor;
     if (fontStyle !== undefined) status.fontStyle = fontStyle;
+    if (textColor !== undefined) status.textColor = textColor;
+    if (fontColor !== undefined) status.textColor = fontColor;
+    if (privacy !== undefined) status.privacy = privacy;
+    if (duration !== undefined) status.duration = duration;
+    if (timerSeconds !== undefined) status.timerSeconds = timerSeconds;
     status.editedAt = new Date();
     await status.save();
 

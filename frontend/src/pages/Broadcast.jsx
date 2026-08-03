@@ -86,30 +86,32 @@ const Broadcast = () => {
               <div className="p-4 max-h-[60vh] overflow-y-auto">
                 <p className="text-sm text-gray-400 mb-4">Select recipients:</p>
                 <div className="space-y-2 max-h-40 overflow-y-auto mb-4">
-                  {(conversations || []).map((conv) => (
-                    <div
-                      key={conv._id}
-                      onClick={() => toggleRecipient(conv._id)}
-                      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors border ${
-                        selectedRecipients.includes(conv._id) 
-                          ? 'bg-white/10 border-white/20' 
-                          : 'bg-white/5 border-white/10 hover:bg-white/10'
-                      }`}
-                    >
-                      <div className="w-10 h-10 bg-primary-600 rounded-full flex items-center justify-center text-white font-bold border border-white/20">
-                        {conv.name?.charAt(0).toUpperCase() || '?'}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-white">{conv.name || 'Unknown'}</p>
-                        <p className="text-xs text-gray-400">{conv.isGroup ? 'Group' : 'Chat'}</p>
-                      </div>
-                      <div className="w-6 h-6 rounded-full border-2 border-primary-600 flex items-center justify-center">
-                        {selectedRecipients.includes(conv._id) && (
-                          <div className="w-3 h-3 bg-primary-600 rounded-full" />
-                        )}
-                      </div>
+                {(conversations || []).filter(conv =>
+                  conv && conv.name && conv._id
+                ).map((conv) => (
+                  <div
+                    key={conv._id}
+                    onClick={() => toggleRecipient(conv._id)}
+                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors border ${
+                      selectedRecipients.includes(conv._id) 
+                        ? 'bg-white/10 border-white/20' 
+                        : 'bg-white/5 border-white/10 hover:bg-white/10'
+                    }`}
+                  >
+                    <div className="w-10 h-10 bg-primary-600 rounded-full flex items-center justify-center text-white font-bold border border-white/20">
+                      {conv.name?.charAt(0).toUpperCase() || '?'}
                     </div>
-                  ))}
+                    <div className="flex-1">
+                      <p className="font-medium text-white">{conv.name || 'Unknown'}</p>
+                      <p className="text-xs text-gray-400">{conv.isGroup ? 'Group' : 'Chat'}</p>
+                    </div>
+                    <div className="w-6 h-6 rounded-full border-2 border-primary-600 flex items-center justify-center">
+                      {selectedRecipients.includes(conv._id) && (
+                        <div className="w-3 h-3 bg-primary-600 rounded-full" />
+                      )}
+                    </div>
+                  </div>
+                ))}
                 </div>
                 
                 <textarea

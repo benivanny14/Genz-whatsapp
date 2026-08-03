@@ -8,18 +8,17 @@ const StatusSavePanel = ({ onClose, status, onSave }) => {
   const [newFolderName, setNewFolderName] = useState('');
   const [selectedFolder, setSelectedFolder] = useState('default');
   const [isSaving, setIsSaving] = useState(false);
+  const [folders, setFolders] = useState([
+    { id: 'default', label: 'Default', count: 12 },
+    { id: 'favorites', label: 'Favorites', count: 8 },
+    { id: 'memories', label: 'Memories', count: 15 },
+    { id: 'work', label: 'Work', count: 5 }
+  ]);
 
   const saveLocations = [
     { id: 'gallery', label: 'Phone Gallery', icon: Bookmark },
     { id: 'device', label: 'Device Storage', icon: Save },
     { id: 'cloud', label: 'Cloud Storage', icon: Folder }
-  ];
-
-  const folders = [
-    { id: 'default', label: 'Default', count: 12 },
-    { id: 'favorites', label: 'Favorites', count: 8 },
-    { id: 'memories', label: 'Memories', count: 15 },
-    { id: 'work', label: 'Work', count: 5 }
   ];
 
   const handleSave = async () => {
@@ -64,7 +63,9 @@ const StatusSavePanel = ({ onClose, status, onSave }) => {
 
   const handleCreateFolder = () => {
     if (newFolderName.trim()) {
-      console.log('Creating folder:', newFolderName);
+      const id = `folder-${Date.now()}`;
+      setFolders(prev => [...prev, { id, label: newFolderName.trim(), count: 0 }]);
+      setSelectedFolder(id);
       setCreateFolder(false);
       setNewFolderName('');
     }

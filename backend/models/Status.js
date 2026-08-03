@@ -67,6 +67,11 @@ const statusSchema = new mongoose.Schema({
   },
   collageImages: [{ type: String }],
   timerSeconds: { type: Number, default: 5 },
+  // Editor data (text effects, stickers, subtitles, audio) attached at creation
+  textEffects: { type: mongoose.Schema.Types.Mixed, default: null },
+  sticker: { type: mongoose.Schema.Types.Mixed, default: null },
+  subtitles: { type: mongoose.Schema.Types.Mixed, default: null },
+  audio: { type: mongoose.Schema.Types.Mixed, default: null },
   
   // Advanced status features
   voiceEffects: {

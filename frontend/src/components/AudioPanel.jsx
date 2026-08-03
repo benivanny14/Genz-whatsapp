@@ -12,24 +12,29 @@ const AudioPanel = ({ onClose, onSave }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordTime, setRecordTime] = useState(0);
   const audioRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const recordChunksRef = useRef([]);
+  const recordTimerRef = useRef(null);
 
   const presetMusic = [
-    { id: 'upbeat', name: 'Upbeat Pop', url: '' },
-    { id: 'chill', name: 'Chill Lo-Fi', url: '' },
-    { id: 'dramatic', name: 'Dramatic', url: '' },
-    { id: 'happy', name: 'Happy', url: '' },
-    { id: 'romantic', name: 'Romantic', url: '' },
-    { id: 'epic', name: 'Epic', url: '' }
+    { id: 'upbeat', name: 'Upbeat Pop', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
+    { id: 'chill', name: 'Chill Lo-Fi', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3' },
+    { id: 'dramatic', name: 'Dramatic', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3' },
+    { id: 'happy', name: 'Happy', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3' },
+    { id: 'romantic', name: 'Romantic', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3' },
+    { id: 'epic', name: 'Epic', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3' }
   ];
 
   const presetEffects = [
-    { id: 'applause', name: 'Applause', url: '' },
-    { id: 'laugh', name: 'Laugh Track', url: '' },
-    { id: 'whoosh', name: 'Whoosh', url: '' },
-    { id: 'ding', name: 'Ding', url: '' },
-    { id: 'pop', name: 'Pop', url: '' },
-    { id: 'click', name: 'Click', url: '' }
+    { id: 'applause', name: 'Applause', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3' },
+    { id: 'laugh', name: 'Laugh Track', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3' },
+    { id: 'whoosh', name: 'Whoosh', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3' },
+    { id: 'ding', name: 'Ding', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3' },
+    { id: 'pop', name: 'Pop', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3' },
+    { id: 'click', name: 'Click', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3' }
   ];
 
   useEffect(() => {
@@ -78,6 +83,47 @@ const AudioPanel = ({ onClose, onSave }) => {
         audioRef.current.play();
       }
       setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleRecordToggle = async () => {
+    if (isRecording) {
+      try {
+        mediaRecorderRef.current?.stop();
+        clearInterval(recordTimerRef.current);
+        setIsRecording(false);
+        setRecordTime(0);
+      } catch (e) {
+        console.error('Failed to stop recording:', e);
+      }
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      recordChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) recordChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        const blob = new Blob(recordChunksRef.current, { type: 'audio/webm' });
+        if (blob.size > 0) {
+          setVoiceOver({ name: `Recording-${Date.now()}.webm`, url: URL.createObjectURL(blob) });
+        }
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordTime(0);
+      recordTimerRef.current = setInterval(() => setRecordTime((t) => t + 1), 1000);
+    } catch (e) {
+      console.error('Failed to start recording:', e);
+      alert('Microphone access is required to record. Please check your permissions.');
     }
   };
 
@@ -299,9 +345,14 @@ const AudioPanel = ({ onClose, onSave }) => {
               {/* Record Voice Note */}
               <div className="bg-white/5 rounded-xl p-4">
                 <p className="text-white/60 text-sm mb-3">Record Voice Note</p>
-                <button className="w-full px-4 py-3 bg-[#00a884] hover:bg-[#008f6f] rounded-lg text-white font-medium flex items-center justify-center gap-2">
-                  <Mic size={18} />
-                  <span>Start Recording</span>
+                <button
+                  onClick={handleRecordToggle}
+                  className={`w-full px-4 py-3 rounded-lg text-white font-medium flex items-center justify-center gap-2 ${
+                    isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-[#00a884] hover:bg-[#008f6f]'
+                  }`}
+                >
+                  {isRecording ? <Pause size={18} /> : <Mic size={18} />}
+                  <span>{isRecording ? `Stop Recording ${Math.floor(recordTime / 60)}:${String(recordTime % 60).padStart(2, '0')}` : 'Start Recording'}</span>
                 </button>
                 <p className="text-white/40 text-xs mt-2">
                   Note: Voice recording requires microphone access and MediaRecorder API

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
-import { X, Users, Plus, UserPlus, Share2, Lock, Unlock, Clock, CheckCircle, AlertCircle, Eye } from 'lucide-react';
+import { X, Users, Plus, UserPlus, Share2, Lock, Unlock, Clock, CheckCircle, AlertCircle, Eye, MessageCircle, Edit, User } from 'lucide-react';
 
 const StatusCollaborationPanel = ({ onClose, status, onCollaborationUpdate }) => {
   const [collaborators, setCollaborators] = useState([]);
@@ -259,7 +259,16 @@ const StatusCollaborationPanel = ({ onClose, status, onCollaborationUpdate }) =>
           <div>
             <div className="flex items-center justify-between mb-3">
               <p className="text-white font-medium">Collaborators ({collaborators.length}/{maxCollaborators})</p>
-              <button className="text-[#00a884] text-sm flex items-center gap-1">
+              <button
+                onClick={() => {
+                  const name = prompt('Enter collaborator username or user ID:');
+                  if (name && name.trim()) {
+                    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+                    handleAddCollaborator({ id, name: name.trim(), role: 'viewer' });
+                  }
+                }}
+                className="text-[#00a884] text-sm flex items-center gap-1"
+              >
                 <UserPlus size={14} />
                 Add
               </button>
@@ -278,7 +287,7 @@ const StatusCollaborationPanel = ({ onClose, status, onCollaborationUpdate }) =>
                         <User size={16} className="text-[#00a884]" />
                       </div>
                       <div>
-                        <p className="text-white text-sm">User {collab.id.slice(0, 8)}</p>
+                        <p className="text-white text-sm">{collab.name || `User ${String(collab.id).slice(0, 8)}`}</p>
                         <p className="text-white/40 text-xs capitalize">{collab.role}</p>
                       </div>
                     </div>
@@ -307,7 +316,17 @@ const StatusCollaborationPanel = ({ onClose, status, onCollaborationUpdate }) =>
                 value={`${window.location.origin}/status/${status?._id || status?.id}`}
                 className="flex-1 bg-white/10 text-white px-3 py-2 rounded-lg border border-white/20 text-sm"
               />
-              <button className="px-3 py-2 bg-[#00a884] rounded-lg text-white text-sm">
+              <button
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(`${window.location.origin}/status/${status?._id || status?.id}`);
+                    alert('Link copied to clipboard');
+                  } catch (err) {
+                    alert('Could not copy link');
+                  }
+                }}
+                className="px-3 py-2 bg-[#00a884] rounded-lg text-white text-sm"
+              >
                 Copy
               </button>
             </div>

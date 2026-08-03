@@ -2147,6 +2147,7 @@ export const ChatProvider = ({ children }) => {
     if (options.isSelfDestruct) {
       options = { ...options, isViewOnce: false };
     }
+    const targetConversationId = options.chatId || selectedConversation?._id;
     const messageType = options.messageType || 'text';
     let outboundContent = content;
 
@@ -2187,7 +2188,7 @@ export const ChatProvider = ({ children }) => {
       messageType: messageType || 'text',
       status: 'sending',
       createdAt: new Date().toISOString(),
-      conversationId: selectedConversation?._id,
+      conversationId: targetConversationId,
       clientMessageId,
       ...(options.mediaPreview ? { localPreview: options.mediaPreview } : {}),
       ...options,
@@ -2198,7 +2199,7 @@ export const ChatProvider = ({ children }) => {
 
     const newMessage = {
       _id: clientMessageId,
-      conversationId: selectedConversation?._id || '1',
+      conversationId: targetConversationId || '1',
       sender: { _id: currentUserId, username: senderName || 'Me' },
       createdAt: new Date(),
       status: 'sent',
@@ -2210,14 +2211,18 @@ export const ChatProvider = ({ children }) => {
       ...(outboundContent !== content ? { isClientE2EE: true } : {}),
     };
 
+    // 1. Kipambele: Hifadhi kwenye DB (local-first, haina kusumbua UI)
     try {
       await DB.saveMessage(newMessage);
-      if (selectedConversation) {
+      if (selectedConversation && String(selectedConversation._id) === String(targetConversationId)) {
         const updatedConv = { ...selectedConversation, lastMessage: newMessage, updatedAt: new Date() };
         setConversations(prev => prev.map(c => c._id === updatedConv._id ? updatedConv : c));
         await DB.saveConversation(updatedConv);
       }
-      const payload = {
+    } catch (dbError) {
+      console.error('Error saving message to DB:', dbError);
+    }
+    const payload = {
         conversationId: newMessage.conversationId,
         content: newMessage.content,
         messageType: newMessage.messageType,
@@ -2334,13 +2339,6 @@ export const ChatProvider = ({ children }) => {
       }
 
       return { ok: messageSent, id: resolvedServerId || clientMessageId, clientMessageId };
-    } catch (err) {
-      console.error('Send message error:', err);
-      setMessages(prev => prev.map(m =>
-        m._id === clientMessageId ? { ...m, status: 'failed' } : m
-      ));
-      return { ok: false, id: clientMessageId, clientMessageId };
-    }
   };
 
   // Push a new GPS fix for an in-progress live location share. Updates the
@@ -2973,7 +2971,7 @@ export const ChatProvider = ({ children }) => {
     });
 
     try {
-      const response = await authFetch(`${BACKEND_URL}/advanced/status/collage-upload`, {
+      const response = await authFetch(`${BACKEND_URL}/status/collage-upload`, {
         method: 'POST',
         body: formData
       });
@@ -3354,10 +3352,12 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
-  const disable2FA = async () => {
+  const disable2FA = async (token) => {
     try {
       const response = await authFetch(`${BACKEND_URL}/security/2fa/disable`, {
-        method: 'POST'
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: token || '' })
       });
       const data = await response.json();
       return data;
@@ -3884,7 +3884,7 @@ export const ChatProvider = ({ children }) => {
   const updateGroupMember = async (groupId, memberId, updates) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${BACKEND_URL}/groups/${groupId}/members/${memberId}`, {
+      const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/admins/${memberId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -4242,22 +4242,12 @@ export const ChatProvider = ({ children }) => {
   };
   const viewProfile = async (userId) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await authFetch(`${BACKEND_URL}/users/${userId}/profile`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+      emitSafe('visit_profile', {
+        visitedUserId: userId,
+        visitorId: currentUserId,
+        visitorName: authUser?.username || localStorage.getItem('username') || 'Someone'
       });
-      const data = await response.json();
-      if (data.success) {
-        emitSafe('visit_profile', {
-          visitedUserId: userId,
-          visitorId: currentUserId,
-          visitorName: authUser?.username || localStorage.getItem('username') || 'Someone'
-        });
-      }
-      return data;
+      return { success: true };
     } catch (err) {
       console.error('View profile error:', err);
       return { success: false };
@@ -4371,7 +4361,7 @@ export const ChatProvider = ({ children }) => {
   const updateUserProfile = async (updates) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${BACKEND_URL}/user/profile`, {
+      const response = await authFetch(`${BACKEND_URL}/auth/profile`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -4639,13 +4629,13 @@ export const ChatProvider = ({ children }) => {
   const banGroupMember = async (groupId, userId, reason = '') => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/ban`, {
+      const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/ban/${userId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ userId, reason })
+        body: JSON.stringify({ reason })
       });
       const data = await response.json();
       return data;
@@ -4657,13 +4647,12 @@ export const ChatProvider = ({ children }) => {
   const unbanGroupMember = async (groupId, userId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/ban`, {
+      const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/ban/${userId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ userId })
+        }
       });
       const data = await response.json();
       return data;
@@ -4760,7 +4749,7 @@ export const ChatProvider = ({ children }) => {
   const updateGroupAntiSpam = async (groupId, settings) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/anti-spam`, {
+      const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/antispam`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

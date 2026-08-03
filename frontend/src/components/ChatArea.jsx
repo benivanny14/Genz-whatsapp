@@ -1785,23 +1785,13 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       const { resolveApiBase } = await import('../utils/resolveApiBase');
       const API_URL = resolveApiBase();
 
-      // Check if a direct conversation exists
-      const checkRes = await authFetch(`${API_URL}/conversations/direct/${sender}`);
-      const checkData = await checkRes.json();
-
-      let conversationId;
-      if (checkData.success && checkData.conversation?.exists) {
-        conversationId = checkData.conversation._id;
-      } else {
-        // Create a new direct message conversation
-        const createRes = await authFetch(`${API_URL}/conversations/direct`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ participantId: sender })
-        });
-        const createData = await createRes.json();
-        conversationId = createData.conversation?._id || createData.conversation?.id;
-      }
+      const createRes = await authFetch(`${API_URL}/chat/conversation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: sender })
+      });
+      const createData = await createRes.json();
+      const conversationId = createData.conversation?._id || createData.conversation?.id;
 
       if (conversationId) {
         // Open the DM conversation and set reply context

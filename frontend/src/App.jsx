@@ -379,7 +379,8 @@ function App() {
         <Suspense fallback={<PageLoader />}>
           <GroupCallScreen 
             call={activeGroupCall} 
-            onEndCall={() => setActiveGroupCall(null)} 
+            onEnd={() => setActiveGroupCall(null)} 
+            currentUser={user}
           />
         </Suspense>
       )}

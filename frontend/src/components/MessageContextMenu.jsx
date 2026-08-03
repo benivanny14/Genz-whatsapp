@@ -132,7 +132,7 @@ const MessageContextMenu = ({
         const { resolveApiBase } = await import('../utils/resolveApiBase');
         const API_URL = resolveApiBase();
         try {
-          await authFetch(`${API_URL}/messages/${message._id || message.id}/admin-delete-for-everyone`, {
+          await authFetch(`${API_URL}/chat/messages/${message._id || message.id}/admin-delete-for-everyone`, {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ forEveryone: true })
@@ -154,7 +154,7 @@ const MessageContextMenu = ({
           const { authFetch } = await import('../utils/authFetch');
           const { resolveApiBase } = await import('../utils/resolveApiBase');
           const API_URL = resolveApiBase();
-          await authFetch(`${API_URL}/messages/${message._id || message.id}/keep`, {
+          await authFetch(`${API_URL}/chat/messages/${message._id || message.id}/keep`, {
             method: 'PUT',
           });
           // Refresh will be handled by socket event

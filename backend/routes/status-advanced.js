@@ -12,6 +12,8 @@ router.post('/:id/text-to-speech', statusAdvancedController.textToSpeech);
 
 // Collaboration
 router.post('/:id/collaborate', statusAdvancedController.addCollaborator);
+router.get('/:id/collaboration', statusAdvancedController.getCollaboration);
+router.post('/:id/collaboration', statusAdvancedController.updateCollaboration);
 
 // Archive
 router.post('/:id/archive', statusAdvancedController.archiveStatus);
@@ -46,6 +48,7 @@ router.post('/:id/schedule', statusAdvancedController.scheduleStatus);
 router.post('/:id/location', statusAdvancedController.addLocation);
 
 // Live
+router.post('/live', statusAdvancedController.startLiveStatus);
 router.post('/:id/live', statusAdvancedController.startLive);
 router.post('/:id/live/end', statusAdvancedController.endLive);
 
@@ -60,6 +63,7 @@ router.post('/:id/qr', statusAdvancedController.generateQRCode);
 router.post('/:id/mention', statusAdvancedController.addMention);
 
 // Hashtags
+router.get('/hashtags/trending', statusAdvancedController.getTrendingHashtags);
 router.post('/:id/hashtags', statusAdvancedController.addHashtags);
 
 // Edit
@@ -80,8 +84,10 @@ router.post('/template', statusAdvancedController.createTemplate);
 router.get('/templates', statusAdvancedController.getTemplates);
 
 // Drafts
+router.post('/draft', statusAdvancedController.saveDraft);
 router.post('/:id/draft', statusAdvancedController.saveDraft);
 router.get('/drafts', statusAdvancedController.getDrafts);
+router.delete('/:draftId', statusAdvancedController.deleteDraft);
 
 // Favorites
 router.post('/:id/favorite', statusAdvancedController.favoriteStatus);

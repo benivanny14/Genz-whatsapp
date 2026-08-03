@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const PaymentRequest = require('../models/PaymentRequest');
 const User = require('../models/User');
 const Conversation = require('../models/Conversation');
-const { logger } = require('../utils/logger');
+const logger = require('../utils/logger');
 
 const getIO = (req) => req.app.get('io');
 const notifyUser = (req, userId, event, payload) => {

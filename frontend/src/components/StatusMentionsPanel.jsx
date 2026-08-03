@@ -27,14 +27,20 @@ const StatusMentionsPanel = ({ onClose, status, onMentionsAdd }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${resolveApiBase()}/users`, {
+      const response = await fetch(`${resolveApiBase()}/chat/contacts`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       const data = await response.json();
-      if (data.success) {
-        setAllUsers(data.users || mockUsers);
+      if (data.success && Array.isArray(data.contacts)) {
+        setAllUsers(data.contacts.map(c => ({
+          id: c.user?._id || c.user?.id,
+          username: c.user?.username || c.savedName || '',
+          name: c.savedName || c.user?.username || 'Contact',
+          avatar: (c.user?.username || 'C').charAt(0).toUpperCase(),
+          profilePicture: c.user?.profilePicture || ''
+        })).filter(u => u.id));
       }
     } catch (error) {
       console.error('Error loading users:', error);
@@ -63,14 +69,14 @@ const StatusMentionsPanel = ({ onClose, status, onMentionsAdd }) => {
   const handleConfirm = async () => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/mentions`, {
+      await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/mention`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          mentions: selectedUsers.map(u => u.id)
+          mentions: selectedUsers.map(u => ({ id: u.id, username: u.username }))
         })
       });
 

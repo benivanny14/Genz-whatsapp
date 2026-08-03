@@ -37,6 +37,9 @@ const StatusLivePanel = ({ onClose, onStartLive }) => {
       return;
     }
 
+    // Reset the save recording flag when starting a new live session
+    setSaveRecording(false);
+
     setIsStarting(true);
     try {
       const token = localStorage.getItem('token');

@@ -26,6 +26,7 @@ import { useLanguage } from '../context/LanguageContext';
 import userService from '../services/userService';
 import { checkForUpdate } from '../utils/appUpdate';
 import { resolveApiBase } from '../utils/resolveApiBase';
+import SettingsHelp from '../components/SettingsHelp';
 
 const SETTINGS_KEY = 'genz_user_settings';
 
@@ -193,6 +194,22 @@ const readStoredSettings = () => {
 
 const persistSettings = (settings) => {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  bridgeNotificationSettings(settings);
+};
+
+const bridgeNotificationSettings = (settings) => {
+  const notifications = settings.notifications;
+  if (!notifications) return;
+  try {
+    localStorage.setItem('genz_notification_settings', JSON.stringify({
+      enabled: Boolean(notifications.messages || notifications.groups || notifications.calls),
+      vibration: String(notifications.vibration || 'default').toLowerCase() !== 'off',
+      sound: notifications.sounds !== false,
+      showPreview: notifications.showPreview !== false
+    }));
+  } catch (e) {
+    console.warn('Failed to bridge notification settings:', e);
+  }
 };
 
 const getPath = (target, path) => (
@@ -335,6 +352,8 @@ const Settings = () => {
   const [contactSelectorConfig, setContactSelectorConfig] = useState(null);
   const [showFakeChat, setShowFakeChat] = useState(false);
   const [showLocationSharing, setShowLocationSharing] = useState(false);
+  const [showHelpCenter, setShowHelpCenter] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
 
   const tabs = useMemo(() => ([
     { id: 'profile', label: 'Profile', icon: User },
@@ -693,9 +712,41 @@ const Settings = () => {
   }, []);
 
   const requestAccountInfo = () => {
+    try {
+      const payload = {
+        generatedAt: new Date().toISOString(),
+        user: {
+          username: profileData?.username || '',
+          phone: profileData?.phone || '',
+          bio: profileData?.bio || ''
+        },
+        settings: settingsData,
+        contactCount: (user?.contacts || []).length
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `genz-account-info-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showStatus('success', 'Account information exported.');
+    } catch (error) {
+      console.error('Failed to export account info:', error);
+      showStatus('error', 'Failed to export account information.');
+    }
     const next = setPath(settingsData, 'account.requestAccountInfoAt', new Date().toISOString());
     setSettingsData(next);
     saveSettings(next);
+  };
+
+  const handleInviteFriends = () => {
+    const inviteText = 'Join me on GENZ WhatsApp — a powerful messaging app!';
+    if (navigator.share) {
+      navigator.share({ title: 'Invite to GENZ', text: inviteText }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(inviteText).then(() => showStatus('success', 'Invite link copied.')).catch(() => {});
+    }
   };
 
 
@@ -931,7 +982,7 @@ const Settings = () => {
     <div className="space-y-4">
       <SettingSection title="App language" description="Match WhatsApp language settings and keep room for future translations.">
         <SettingRow icon={Languages} title="Language" control={<Select value={settingsData.app.language} onChange={(value) => updateSetting('app.language', value)} options={[['system', 'System default'], ['en', 'English'], ['sw', 'Kiswahili'], ['fr', 'Francais'], ['es', 'Espanol'], ['ar', 'Arabic'], ['hi', 'Hindi']]} />} />
-        <SettingRow icon={Users} title="Invite friends" description="Show invite/share entry points." control={<Toggle checked={settingsData.app.inviteFriends} onChange={() => toggleSetting('app.inviteFriends')} />} />
+        <SettingRow icon={Users} title="Invite friends" description="Show invite/share entry points." control={<Toggle checked={settingsData.app.inviteFriends} onChange={() => { toggleSetting('app.inviteFriends'); if (!settingsData.app.inviteFriends) handleInviteFriends(); }} />} />
       </SettingSection>
       <ActionButton onClick={() => saveSettings()} disabled={saving}><Save size={16} /> Save language settings</ActionButton>
     </div>
@@ -984,8 +1035,8 @@ const Settings = () => {
   const renderHelp = () => (
     <div className="space-y-4">
       <SettingSection title="Help" description="Support, diagnostics, app info, and account export tools.">
-        <SettingRow icon={HelpCircle} title="Help center" description="Open GENZ help and support route." onClick={() => showStatus('success', 'Help Center is ready for integration.')} />
-        <SettingRow icon={FileText} title="Terms and Privacy Policy" description="Terms, privacy, and app information entry." onClick={() => showStatus('success', 'Terms and Privacy Policy entry is available.')} />
+        <SettingRow icon={HelpCircle} title="Help center" description="Open GENZ help and support route." onClick={() => setShowHelpCenter(true)} />
+        <SettingRow icon={FileText} title="Terms and Privacy Policy" description="Terms, privacy, and app information entry." onClick={() => setShowTerms(true)} />
         <SettingRow icon={Shield} title="Diagnostics" description="Attach safe diagnostics to support messages." control={<Toggle checked={settingsData.help.diagnostics} onChange={() => toggleSetting('help.diagnostics')} />} />
         <SettingRow
           icon={RefreshCw}
@@ -1128,6 +1179,51 @@ const Settings = () => {
           onSave={handleContactSelectorSave}
           onClose={() => setShowContactSelector(false)}
         />
+      )}
+
+      {showHelpCenter && <SettingsHelp onClose={() => setShowHelpCenter(false)} />}
+
+      {showTerms && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4" onClick={() => setShowTerms(false)}>
+          <div className="w-full max-w-lg max-h-[80vh] overflow-y-auto bg-[#111b21] rounded-xl p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-white font-semibold">Terms and Privacy Policy</h2>
+              <button
+                onClick={() => setShowTerms(false)}
+                className="p-2 rounded-lg hover:bg-white/10 text-gray-400"
+                title="Close" aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="space-y-4 text-sm text-blue-100/80">
+              <section>
+                <h3 className="text-white font-medium mb-1">1. Acceptance of Terms</h3>
+                <p>By accessing or using GENZ WhatsApp, you agree to be bound by these Terms and our Privacy Policy. If you do not agree, please do not use the app.</p>
+              </section>
+              <section>
+                <h3 className="text-white font-medium mb-1">2. Use of the Service</h3>
+                <p>You may use the service for lawful, personal purposes only. You agree not to misuse the service, attempt unauthorized access, or interfere with other users' use.</p>
+              </section>
+              <section>
+                <h3 className="text-white font-medium mb-1">3. Privacy</h3>
+                <p>We collect account and messaging data necessary to operate the service. Messages are stored and synced to provide seamless chat history. See our Privacy Policy for details on data we collect and how you can request your information.</p>
+              </section>
+              <section>
+                <h3 className="text-white font-medium mb-1">4. Account Security</h3>
+                <p>You are responsible for safeguarding your account credentials. Enable two-factor authentication to protect your account.</p>
+              </section>
+              <section>
+                <h3 className="text-white font-medium mb-1">5. Termination</h3>
+                <p>We may suspend or terminate accounts that violate these Terms. You may delete your account at any time from Settings.</p>
+              </section>
+              <section>
+                <h3 className="text-white font-medium mb-1">6. Changes</h3>
+                <p>We may update these Terms from time to time. Continued use of the app after changes constitutes acceptance of the updated Terms.</p>
+              </section>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

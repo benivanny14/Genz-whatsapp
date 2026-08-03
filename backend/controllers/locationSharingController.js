@@ -278,7 +278,45 @@ exports.getActiveLiveLocations = async (req, res) => {
       l => l.status === 'active' && (!l.expiresAt || l.expiresAt > now)
     );
 
-    res.status(200).json({ success: true, activeLocations });
+    const enriched = [];
+    for (const loc of activeLocations) {
+      let contactName = 'Unknown';
+      try {
+        const conversation = await Conversation.findById(loc.conversationId);
+        if (conversation) {
+          if (conversation.isGroup) {
+            contactName = conversation.name || 'Group chat';
+          } else {
+            const otherId = conversation.participants.find(
+              p => p.toString() !== user._id.toString()
+            );
+            if (otherId) {
+              const other = await User.findById(otherId).select('username');
+              contactName = other?.username || 'Contact';
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Enrich live location contact error:', err.message);
+      }
+
+      let duration = 'Live';
+      if (loc.expiresAt) {
+        const remaining = Math.max(0, new Date(loc.expiresAt) - now);
+        const hours = Math.floor(remaining / 3600000);
+        const minutes = Math.floor((remaining % 3600000) / 60000);
+        if (hours > 0) duration = `Ends in ${hours}h ${minutes}m`;
+        else duration = `Ends in ${minutes}m`;
+      }
+
+      enriched.push({
+        ...loc.toObject ? loc.toObject() : loc,
+        contactName,
+        duration
+      });
+    }
+
+    res.status(200).json({ success: true, activeLocations: enriched });
   } catch (error) {
     console.error('Get active live locations error:', error);
     res.status(500).json({ success: false, message: error.message });

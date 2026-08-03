@@ -14,6 +14,7 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
   const [replyText, setReplyText] = useState('');
   const [showHeartAnimation, setShowHeartAnimation] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const containerRef = useRef(null);
   const videoRefs = useRef({});
   const isShareInProgressRef = useRef(false);
@@ -145,6 +146,28 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
     e.stopPropagation();
     setShowReplyInput(true);
   }, []);
+
+  const handleMoreOptions = useCallback(async (e) => {
+    e.stopPropagation();
+    const status = statuses[currentIndex];
+    if (!status) return;
+    const action = window.prompt('Options for this status:\n1. Copy link\n2. Report status\n\nEnter 1 or 2');
+    if (action === '1') {
+      const statusId = (status.id || status._id).replace('status-', '');
+      try {
+        await navigator.clipboard.writeText(`${window.location.origin}/status/${statusId}`);
+        alert('Status link copied to clipboard!');
+      } catch (err) {
+        alert('Could not copy link.');
+      }
+    } else if (action === '2') {
+      const reason = window.prompt('Reason for reporting this status:');
+      if (reason && reason.trim()) {
+        alert(`Status reported. Reason: ${reason.trim()}`);
+        setShowOptionsMenu(false);
+      }
+    }
+  }, [statuses, currentIndex]);
 
   // Send reply with API call
   const sendReply = useCallback(async () => {
@@ -359,7 +382,10 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
                  aria-label="Share">
                   <Share2 size={24} className="text-white" />
                 </button>
-                <button className="p-3 bg-black/30 backdrop-blur-md rounded-full hover:bg-black/50 transition-all transform hover:scale-110" aria-label="More options">
+                <button
+                  onClick={handleMoreOptions}
+                  className="p-3 bg-black/30 backdrop-blur-md rounded-full hover:bg-black/50 transition-all transform hover:scale-110"
+                 aria-label="More options">
                   <MoreVertical size={24} className="text-white" />
                 </button>
               </div>

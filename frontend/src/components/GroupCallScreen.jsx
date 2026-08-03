@@ -192,6 +192,7 @@ const GroupCallScreen = ({ call, onEnd, currentUser }) => {
   };
 
   return (
+    <>
     <div className="fixed inset-0 z-[9999] bg-[#0b141a] flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-12 pb-4 bg-gradient-to-b from-black/60 to-transparent">
@@ -246,12 +247,10 @@ const GroupCallScreen = ({ call, onEnd, currentUser }) => {
         </button>
       </div>
     </div>
-  );
 
-  // Call Link Modal
-  if (showCallLink) {
-    return (
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    {/* Call Link Modal */}
+    {showCallLink && (
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[10000] flex items-center justify-center p-4"
         onClick={() => setShowCallLink(false)}>
         <div className="bg-[#1a2e35] rounded-2xl border border-[#00a884]/20 w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between mb-6">
@@ -285,8 +284,9 @@ const GroupCallScreen = ({ call, onEnd, currentUser }) => {
           <p className="text-gray-500 text-xs text-center">Link expires in 24 hours</p>
         </div>
       </div>
-    );
-  }
+    )}
+    </>
+  );
 };
 
 const CtrlBtn = ({ onClick, active, children }) => (

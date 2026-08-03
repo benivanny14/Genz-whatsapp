@@ -13,8 +13,8 @@ const OnlineHistoryDashboard = ({ onClose, targetUserId }) => {
       try {
         // Fetch own history or target user history
         const endpoint = targetUserId
-          ? `/users/${targetUserId}/online-history`
-          : '/users/me/online-history';
+          ? `/auth/users/${targetUserId}/online-history`
+          : '/auth/users/me/online-history';
         const res = await api.get(endpoint);
         const sessions = res.data?.onlineHistory || [];
         setHistory(sessions);

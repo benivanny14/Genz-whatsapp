@@ -11,7 +11,8 @@ exports.createStatus = async (req, res) => {
       type, content, mediaUrl, duration, backgroundColor, fontStyle,
       linkUrl, quizQuestion, quizOptions, quizCorrectAnswer,
       questionText, countdownDate, countdownTime, locationData,
-      collageImages, timerSeconds, caption, collabUserId, collabUsername
+      collageImages, timerSeconds, caption, collabUserId, collabUsername,
+      textEffects, sticker, selectedSticker, subtitles, audio
     } = req.body;
 
     if (!type) return res.status(400).json({ success: false, message: 'Type inahitajika' });
@@ -60,7 +61,11 @@ exports.createStatus = async (req, res) => {
       countdownTime: countdownTime || '',
       locationData: locationData || null,
       collageImages: collageImages || [],
-      timerSeconds: timerSeconds || 5
+      timerSeconds: timerSeconds || 5,
+      textEffects: textEffects || null,
+      sticker: sticker || selectedSticker || null,
+      subtitles: subtitles || null,
+      audio: audio || null
     });
 
     const populated = await Status.findById(status._id).populate('user', 'username profilePicture');

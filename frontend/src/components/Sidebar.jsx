@@ -76,7 +76,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   };
   
   // Compute total unread count across all conversations
-  const { conversations, selectConversation, selectedConversation, onlineUsers, togglePinChat, toggleMuteChat, toggleArchiveChat, clearChat, deleteChat, callLogs, statuses, addStatus, deleteStatus, uploadStatusMedia, profileVisitors, showProfileEditor, setShowProfileEditor, typingByConversation } = useChat();
+  const { conversations, selectConversation, selectedConversation, onlineUsers, togglePinChat, toggleMuteChat, toggleArchiveChat, clearChat, deleteChat, callLogs, statuses, addStatus, deleteStatus, uploadStatusMedia, profileVisitors, showProfileEditor, setShowProfileEditor, typingByConversation, sendMessage, addContact, removeContact, acceptContact, rejectContact, fetchContacts } = useChat();
   const currentUserId = String(user?._id || user?.id || 'anonymous');
   const defaultChatTabs = ['All', 'Personal', 'Work', 'Groups'];
   const totalUnread = useMemo(() =>
@@ -565,8 +565,11 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
 
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
-      // In a real app, you would send this message to the chat
-      alert(`Voice reply: "${transcript}" - This would be sent to the chat.`);
+      if (chatId && transcript.trim()) {
+        sendMessage(transcript, user?.username || 'Me', { chatId });
+      } else if (transcript.trim()) {
+        alert(`Voice reply: "${transcript}" - No conversation selected.`);
+      }
       setIsListening(false);
     };
 
