@@ -7,7 +7,7 @@ import {
   LogOut, Info, Mic, Music, UserCircle, Edit3, Camera, Sun, Moon, BellOff,
   BarChart2, Smartphone as SmartphoneIcon, Mail, Forward, Eye, Globe,
   MessageSquare, Layers, Video, Sparkles, TrendingUp, Star,
-  Activity, BarChart, Upload
+  Activity, BarChart, Upload, DollarSign, ChevronRight
 } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
@@ -1364,6 +1364,21 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
                 active={mods.debugEncryption}
                 onClick={() => toggleMod('debugEncryption')}
               />
+              <div
+                onClick={() => window.location.href = '/genz-after-work'}
+                className="flex items-center gap-3 p-3 bg-gradient-to-r from-purple-500/10 to-pink-500/10 hover:from-purple-500/20 hover:to-pink-500/20 border border-purple-500/20 rounded-xl cursor-pointer transition-all"
+              >
+                <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                  <DollarSign size={20} className="text-purple-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-white font-semibold text-sm">GENZ AFTER WORK</div>
+                  <div className="text-gray-400 text-xs">Discover premium features & services</div>
+                </div>
+                <div className="text-purple-400">
+                  <ChevronRight size={18} />
+                </div>
+              </div>
               {subscriptionStatus.expiryDate && (
                 <div className="p-3 text-center">
                   <p className="text-xs text-gray-400">
