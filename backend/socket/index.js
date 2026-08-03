@@ -1295,6 +1295,24 @@ try {
       } else {
         socket.broadcast.emit('live_reaction_signal', payload);
       }
+     });
+
+    // ── Floating Sticker Broadcast ──
+    socket.on('sticker:floating', (data = {}) => {
+      const { conversationId, chatId, stickerUrl, senderId, senderName, caption } = data;
+      const chatRoomId = conversationId || chatId || socket.userId;
+      const payload = {
+        conversationId: chatRoomId,
+        stickerUrl: stickerUrl || data.url || data.content,
+        senderId: senderId || socket.userId,
+        senderName: senderName || socket.username,
+        caption: caption || data.caption,
+        createdAt: new Date().toISOString()
+      };
+      // Broadcast to all participants in the chat room, excluding the sender
+      socket.to(chatRoomId).emit('sticker:floating', payload);
+      // Also emit to the sender (so they see their own sticker float)
+      socket.emit('sticker:floating', payload);
     });
 
     // Broadcast create handler

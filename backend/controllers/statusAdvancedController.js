@@ -529,6 +529,20 @@ exports.addLocation = async (req, res) => {
   }
 };
 
+// GET /api/status/:id/location - Get location for status
+exports.getLocation = async (req, res) => {
+  try {
+    const statusId = req.params.id || req.params.statusId;
+    const status = await Status.findById(statusId);
+    
+    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+
+    res.json({ success: true, locationData: status.locationData });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 // POST /api/status/:id/live - Start live status
 exports.startLive = async (req, res) => {
   try {
@@ -671,6 +685,20 @@ exports.addMention = async (req, res) => {
     await status.save();
 
     res.json({ success: true, status });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// GET /api/status/:id/mentions - Get mentions for status
+exports.getMentions = async (req, res) => {
+  try {
+    const statusId = req.params.id || req.params.statusId;
+    const status = await Status.findById(statusId).populate('mentions.user', 'username profilePicture');
+    
+    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+
+    res.json({ success: true, mentions: status.mentions });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

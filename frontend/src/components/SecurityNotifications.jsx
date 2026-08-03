@@ -96,27 +96,7 @@ const SecurityNotifications = ({ settings, onUpdate, onClose }) => {
                 </button>
               </div>
 
-              {/* 2FA Alerts */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-white text-sm">2FA changes</p>
-                  <p className="text-gray-400 text-xs">When 2FA is modified</p>
-                </div>
-                <button
-                  onClick={() => onUpdate({ ...settings, twoFactorAlerts: !settings.twoFactorAlerts })}
-                  className={`w-12 h-6 rounded-full transition-all ${
-                    settings.twoFactorAlerts ? 'bg-[#00a884]' : 'bg-[#0b141a]'
-                  }`}
-                >
-                  <div
-                    className={`w-5 h-5 bg-white rounded-full transition-all ${
-                      settings.twoFactorAlerts ? 'translate-x-6' : 'translate-x-0.5'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {/* Privacy Changes */}
+               {/* Privacy Changes */}
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-white text-sm">Privacy setting changes</p>

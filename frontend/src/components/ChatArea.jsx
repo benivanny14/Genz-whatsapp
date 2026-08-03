@@ -45,6 +45,7 @@ import ReplyMessage from './ReplyMessage';
 import ContactPickerModal from './ContactPickerModal';
 import ProductCatalogue from './ProductCatalogue';
 import AutoRefreshIndicator from './AutoRefreshIndicator';
+import FloatingStickerOverlay from './FloatingStickerOverlay';
 import { getNotificationSettings, vibrateTyping } from '../services/notificationService';
 import { spawnBubbleBurst } from '../utils/bubbleBurst';
 
@@ -250,7 +251,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     createPoll, votePoll, scheduleMessage, scheduledMessages, cancelScheduledMessage,
     initiateCall, endCall,
     updateGroupMember, joinGroup, updateDisappearingMessages, toggleAdminOnlyMessaging, updateGroupPermission, createCustomRole, assignRole, viewProfile,
-    pinMessage, unpinMessage, pinnedMessages, presenceHistory, unlockedSessionChats, verifyChatUnlock, toggleChatLock, stickerPacks, downloadedStickers, downloadStickerPack, sendSticker, addFavoriteSticker, toggleStarMessage, toggleMessageLock, toggleMuteChat, toggleArchiveChat, markAsRead, markViewOnceViewed, getUserStatusWithGhostMode,
+    pinMessage, unpinMessage, pinnedMessages, presenceHistory, unlockedSessionChats, verifyChatUnlock, toggleChatLock,     stickerPacks, downloadedStickers, downloadStickerPack, sendSticker, addFavoriteSticker, toggleStarMessage, toggleMessageLock, toggleMuteChat, toggleArchiveChat, markAsRead, markViewOnceViewed, getUserStatusWithGhostMode,
+    sendFloatingSticker, floatingStickerHandlers, setFloatingStickerHandlers,
     isDNDMode, toggleDNDMode, selectConversation, setMods
   } = useChat();
   const user = chatUser || localUser;
@@ -350,6 +352,13 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     setMessageInput('');
     setReplyingTo(null);
     setShowStickerStore(false);
+    if (options.isFloating && sendFloatingSticker) {
+      sendFloatingSticker(stickerUrl, { 
+        ...options, 
+        caption,
+        chatId: selectedConversation?._id
+      });
+    }
   };
   const [voiceRecorderActive, setVoiceRecorderActive] = useState(false);
   const messagesEndRef = useRef(null);
@@ -419,11 +428,15 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [scheduleDateTime, setScheduleDateTime] = useState('');
   const [showLiveReactions, setShowLiveReactions] = useState(false);
   const [showStickerPacks, setShowStickerPacks] = useState(false);
+  const [floatingStickerMode, setFloatingStickerMode] = useState(false);
   const [showChunkedUploader, setShowChunkedUploader] = useState(false);
   const [e2eePlain, setE2eePlain] = useState({});
   const [visibleCount, setVisibleCount] = useState(50);
   const [showMessageInfoModal, setShowMessageInfoModal] = useState(false);
   const [messageInfoId, setMessageInfoId] = useState(null);
+  const [floatingStickerSpawner, setFloatingStickerSpawner] = useState(null);
+  const [ownFloatingStickers, setOwnFloatingStickers] = useState([]);
+  const [receivedFloatingStickers, setReceivedFloatingStickers] = useState([]);
 
   // Custom role state variables
   const [showRoleForm, setShowRoleForm] = useState(false);
@@ -3425,8 +3438,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               <AttachmentIcon icon={<BarChart2 className="text-yellow-600" />} label="Poll" disabled={!canCreatePolls && !currentUserIsAdmin} onClick={() => setShowPollModal(true)} />
               <AttachmentIcon icon={<Clock className="text-purple-600" />} label="Disappear" onClick={() => handleSetDisappearingMessages()} disabled={!selectedConversation} />
               {/* GENZ Ultra Attachments */}
-               <AttachmentIcon icon={<Grid3x3 className="text-pink-400" />} label="Stickers" onClick={() => { setShowStickerPacks(true); setShowAttachmentMenu(false); }} />
-               <AttachmentIcon icon={<DollarSign className="text-green-500" />} label="Pay" onClick={() => { setShowPaymentModal(true); setShowAttachmentMenu(false); }} disabled={!selectedConversation} title="TM WhatsApp Pay" />
+                <AttachmentIcon icon={<Grid3x3 className="text-pink-400" />} label={floatingStickerMode ? "Stickers (Float)" : "Stickers"} onClick={() => { setShowStickerPacks(true); setShowAttachmentMenu(false); }} title={floatingStickerMode ? "Floating sticker mode ON" : ""} />
+                <AttachmentIcon icon={<Radio size={16} className={floatingStickerMode ? "text-green-400" : "text-gray-500"} />} label="Float" onClick={() => setFloatingStickerMode(!floatingStickerMode)} title={floatingStickerMode ? "Disable floating stickers" : "Enable floating stickers (TikTok style)"} />
+                <AttachmentIcon icon={<DollarSign className="text-green-500" />} label="Pay" onClick={() => { setShowPaymentModal(true); setShowAttachmentMenu(false); }} disabled={!selectedConversation} title="TM WhatsApp Pay" />
             </div>
           )}
           {/* Quick emoji feature removed as requested */}
@@ -3749,7 +3763,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       {showStickerPacks && (
         <StickerPackBrowser
           onStickerSelect={(stickerUrl, options) => {
-            handleSendStickerWithCaption(stickerUrl, options);
+            handleSendStickerWithCaption(stickerUrl, { ...options, isFloating: floatingStickerMode });
             setShowStickerPacks(false);
           }}
           onClose={() => setShowStickerPacks(false)}
@@ -4170,7 +4184,14 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           </div>
         </div>
       )}
-
+      <FloatingStickerOverlay
+        key="floating-stickers"
+        onStickerReceived={(handler) => {
+          if (!floatingStickerHandlers.includes(handler)) {
+            setFloatingStickerHandlers(prev => [...prev, handler]);
+          }
+        }}
+      />
     </div >
   );
 };

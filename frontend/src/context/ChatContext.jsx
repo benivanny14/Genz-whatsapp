@@ -1134,6 +1134,15 @@ export const ChatProvider = ({ children }) => {
         } catch (err) {
           console.error('[ChatContext] message:received handler error:', err);
         }
+       });
+
+      // ── Floating sticker broadcast ──
+      socket.on('sticker:floating', (data) => {
+        // Spawn locally for all clients in this chat
+        setFloatingStickerHandlers(prev => {
+          prev.forEach(h => h(data));
+          return prev;
+        });
       });
 
       // ✅ Badilisha temp message na ile ya kweli kutoka server (TOP-LEVEL, si ndani ya message:received)
@@ -4160,6 +4169,28 @@ export const ChatProvider = ({ children }) => {
   }, [isAuthReady, authLoading, isAuthenticated, fetchStickerPacks]);
 
   const sendSticker = (stickerUrl, options = {}) => { if (stickerUrl) sendMessage(stickerUrl, authUser?.username || 'Me', { messageType: 'sticker', ...options }); };
+  
+  const [floatingStickerHandlers, setFloatingStickerHandlers] = useState([]);
+  
+  const sendFloatingSticker = useCallback((stickerUrl, options = {}) => {
+    if (!stickerUrl) return;
+    const payload = {
+      conversationId: options.chatId || selectedConversation?._id,
+      stickerUrl,
+      senderId: currentUserId,
+      senderName: authUser?.username || 'Me',
+      ...options,
+      createdAt: new Date().toISOString(),
+    };
+    if (socketRef.current?.connected) {
+      emitSafe('sticker:floating', payload);
+    }
+    // Spawn locally for the sender
+    setFloatingStickerHandlers(prev => {
+      prev.forEach(h => h(payload));
+      return prev;
+    });
+  }, [selectedConversation, currentUserId, authUser]);
   const [favoriteStickers, setFavoriteStickers] = useState([]);
   const addFavoriteSticker = useCallback(async (stickerId, url) => {
     const key = stickerId || url;
@@ -5016,7 +5047,8 @@ export const ChatProvider = ({ children }) => {
     togglePinChat, toggleMuteChat, toggleArchiveChat,
     pinMessage, unpinMessage, pinnedMessages,
     presenceHistory, unlockedSessionChats, verifyChatUnlock, toggleChatLock,
-    stickerPacks, downloadedStickers, downloadStickerPack, removeStickerPack, sendSticker, addFavoriteSticker, favoriteStickers,
+    stickerPacks, downloadedStickers, downloadStickerPack, removeStickerPack,     sendSticker, addFavoriteSticker, favoriteStickers,
+    sendFloatingSticker, floatingStickerHandlers, setFloatingStickerHandlers,
     toggleStarMessage, toggleMessageLock, viewProfile,
     // New WhatsApp features
     searchMessages, getMediaGallery, getMessageInfo, markViewOnceViewed,

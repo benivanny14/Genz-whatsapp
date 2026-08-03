@@ -6,14 +6,41 @@ const { protect } = require('../middleware/auth');
 // Apply authentication to all routes
 router.use(protect);
 
-// Voice & Audio Features
-router.post('/:id/voice-changer', statusAdvancedController.applyVoiceChanger);
-router.post('/:id/text-to-speech', statusAdvancedController.textToSpeech);
+// ===== STATIC ROUTES (before /:id params to avoid conflicts) =====
 
-// Collaboration
-router.post('/:id/collaborate', statusAdvancedController.addCollaborator);
-router.get('/:id/collaboration', statusAdvancedController.getCollaboration);
-router.post('/:id/collaboration', statusAdvancedController.updateCollaboration);
+// Backup & Restore
+router.post('/backup', statusAdvancedController.backupStatuses);
+router.post('/restore', statusAdvancedController.restoreStatuses);
+
+// Templates
+router.post('/template', statusAdvancedController.createTemplate);
+router.get('/templates', statusAdvancedController.getTemplates);
+
+// Drafts
+router.post('/draft', statusAdvancedController.saveDraft);
+router.get('/drafts', statusAdvancedController.getDrafts);
+router.delete('/drafts/:draftId', statusAdvancedController.deleteDraft);
+
+// Favorites
+router.post('/favorite', statusAdvancedController.favoriteStatus);
+router.get('/favorites', statusAdvancedController.getFavorites);
+
+// History
+router.get('/history', statusAdvancedController.getHistory);
+
+// Pinned
+router.get('/pinned', statusAdvancedController.getPinnedStatuses);
+
+// Hashtags
+router.get('/hashtags/trending', statusAdvancedController.getTrendingHashtags);
+
+// Live
+router.post('/live', statusAdvancedController.startLiveStatus);
+
+// QR Code
+router.post('/qr', statusAdvancedController.generateQRCode);
+
+// ===== PARAMETERIZED ROUTES =====
 
 // Archive
 router.post('/:id/archive', statusAdvancedController.archiveStatus);
@@ -47,23 +74,17 @@ router.post('/:id/schedule', statusAdvancedController.scheduleStatus);
 // Location
 router.post('/:id/location', statusAdvancedController.addLocation);
 
-// Live
-router.post('/live', statusAdvancedController.startLiveStatus);
+// Live (per-status)
 router.post('/:id/live', statusAdvancedController.startLive);
 router.post('/:id/live/end', statusAdvancedController.endLive);
 
-// Backup & Restore
-router.post('/backup', statusAdvancedController.backupStatuses);
-router.post('/restore', statusAdvancedController.restoreStatuses);
-
-// QR Code
+// QR Code (per-status)
 router.post('/:id/qr', statusAdvancedController.generateQRCode);
 
 // Mentions
 router.post('/:id/mention', statusAdvancedController.addMention);
 
-// Hashtags
-router.get('/hashtags/trending', statusAdvancedController.getTrendingHashtags);
+// Hashtags (per-status)
 router.post('/:id/hashtags', statusAdvancedController.addHashtags);
 
 // Edit
@@ -74,27 +95,15 @@ router.post('/:id/duplicate', statusAdvancedController.duplicateStatus);
 
 // Pin
 router.post('/:id/pin', statusAdvancedController.pinStatus);
-router.get('/pinned', statusAdvancedController.getPinnedStatuses);
 
 // Report
 router.post('/:id/report', statusAdvancedController.reportStatus);
 
-// Templates
-router.post('/template', statusAdvancedController.createTemplate);
-router.get('/templates', statusAdvancedController.getTemplates);
-
-// Drafts
-router.post('/draft', statusAdvancedController.saveDraft);
+// Drafts (per-status)
 router.post('/:id/draft', statusAdvancedController.saveDraft);
-router.get('/drafts', statusAdvancedController.getDrafts);
-router.delete('/:draftId', statusAdvancedController.deleteDraft);
 
-// Favorites
+// Favorites (per-status)
 router.post('/:id/favorite', statusAdvancedController.favoriteStatus);
-router.get('/favorites', statusAdvancedController.getFavorites);
-
-// History
-router.get('/history', statusAdvancedController.getHistory);
 
 // Insights
 router.get('/:id/insights', statusAdvancedController.getInsights);
@@ -103,22 +112,19 @@ router.get('/:id/analytics', statusAdvancedController.getAnalytics);
 // Boost
 router.post('/:id/boost', statusAdvancedController.boostStatus);
 
-// Share
-router.post('/:id/share', statusAdvancedController.shareStatus);
+// Voice & Audio
+router.post('/:id/voice-changer', statusAdvancedController.applyVoiceChanger);
+router.post('/:id/text-to-speech', statusAdvancedController.textToSpeech);
 
-// Download
-router.post('/:id/download', statusAdvancedController.downloadStatus);
+// Collaboration
+router.post('/:id/collaborate', statusAdvancedController.addCollaborator);
+router.get('/:id/collaboration', statusAdvancedController.getCollaboration);
+router.post('/:id/collaboration', statusAdvancedController.updateCollaboration);
 
-// Mute
-router.post('/:id/mute', statusAdvancedController.muteUserStatus);
+// Mentions (read)
+router.get('/:id/mentions', statusAdvancedController.getMentions);
 
-// Block
-router.post('/:id/block', statusAdvancedController.blockUserStatus);
-
-// Save to Collection
-router.post('/:id/save', statusAdvancedController.saveToCollection);
-
-// Forward
-router.post('/:id/forward', statusAdvancedController.forwardStatus);
+// Location (read)
+router.get('/:id/location', statusAdvancedController.getLocation);
 
 module.exports = router;

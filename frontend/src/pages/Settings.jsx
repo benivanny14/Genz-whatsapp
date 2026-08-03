@@ -32,7 +32,6 @@ const SETTINGS_KEY = 'genz_user_settings';
 
 const DEFAULT_SETTINGS = {
   account: {
-    twoStepVerification: false,
     passkeys: false,
     securityNotifications: true,
     changeNumberGuard: true,
@@ -828,7 +827,6 @@ const Settings = () => {
   const renderAccount = () => (
     <div className="space-y-4">
       <SettingSection title="Account" description="Security, passkeys, account information, and account actions.">
-        <SettingRow icon={Shield} title="Two-step verification" description="Open the full 2FA setup flow." onClick={() => navigate('/settings/security')} />
         <SettingRow icon={KeyRound} title="Passkeys" description="Store passkey preference for secure sign-in and backups." control={
           <Toggle checked={settingsData.account.passkeys} onChange={() => toggleSetting('account.passkeys')} />
         } />

@@ -1254,7 +1254,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate('/settings/security');
+                      navigate('/settings');
                       setShowMenu(false);
                     }}
                     className="w-full flex items-center gap-3 px-4 py-2 hover:bg-dark-hover text-dark-text"

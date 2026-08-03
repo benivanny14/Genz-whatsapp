@@ -25,8 +25,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showOTP, setShowOTP] = useState(false);
-  const [step, setStep] = useState('credentials'); // 'credentials', 'otp', 'twoFactor'
-  const [twoFactorToken, setTwoFactorToken] = useState('');
+  const [step, setStep] = useState('credentials'); // 'credentials', 'otp'
 
   const validatePhoneNumber = (phone) => {
     // Tanzanian phone number format
@@ -98,16 +97,7 @@ const Login = () => {
       
       const data = await login({ identifier: phoneNumber, password });
 
-      if (data?.requiresTwoFactor) {
-        // BUG FIX: this used to just show an error message ("Use OTP login
-        // or verify 2FA") with no actual way to enter the 2FA code —
-        // anyone with 2FA enabled could never log in with their password.
-        setError('');
-        setStep('twoFactor');
-        return;
-      }
-
-      if (data?.success !== false && data?.token) {
+       if (data?.success !== false && data?.token) {
         toast.success('Login successful!');
         navigate(redirectTarget, { replace: true });
       } else {
@@ -117,34 +107,6 @@ const Login = () => {
     } catch (err) {
       setError('Network error. Please check your connection.');
       console.error('Login error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleTwoFactorSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-
-    if (!/^\d{6}$/.test(twoFactorToken.trim())) {
-      setError('Weka namba 6 za app yako ya 2FA (mfano Google Authenticator).');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const data = await login({ identifier: phoneNumber, password, twoFactorToken: twoFactorToken.trim() });
-
-      if (data?.success !== false && data?.token) {
-        toast.success('Login successful!');
-        navigate(redirectTarget, { replace: true });
-      } else {
-        setError(data?.message || 'Namba ya 2FA si sahihi. Jaribu tena.');
-        setTwoFactorToken('');
-      }
-    } catch (err) {
-      setError('Network error. Please check your connection.');
-      console.error('2FA verify error:', err);
     } finally {
       setLoading(false);
     }
@@ -169,66 +131,9 @@ const Login = () => {
   const handleBackToLogin = () => {
     setStep('credentials');
     setShowOTP(false);
-    setTwoFactorToken('');
     setError('');
     localStorage.removeItem('tempPassword');
   };
-
-  if (step === 'twoFactor') {
-    return (
-      <div className="min-h-screen bg-[#0b141a] flex items-center justify-center px-4">
-        <form onSubmit={handleTwoFactorSubmit} className="w-full max-w-md bg-[#111b21] border border-white/10 rounded-lg p-6 shadow-2xl">
-          <div className="mb-6">
-            <h1 className="text-2xl font-semibold text-white">Uthibitisho wa hatua mbili (2FA)</h1>
-            <p className="text-sm text-slate-400 mt-1">
-              Fungua app yako ya uthibitisho (mfano Google Authenticator) na weka namba 6 zinazoonekana hapo.
-            </p>
-          </div>
-
-          {error && (
-            <div className="mb-4 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-              {error}
-            </div>
-          )}
-
-          <label className="block text-sm text-slate-300 mb-2">Namba 6 za 2FA</label>
-          <div className="mb-6 flex items-center gap-2 rounded-md bg-[#202c33] border border-white/10 px-3">
-            <Lock size={18} className="text-[#00a884]" />
-            <input
-              value={twoFactorToken}
-              onChange={(event) => setTwoFactorToken(event.target.value.replace(/\D/g, '').slice(0, 6))}
-              className="w-full bg-transparent py-3 text-white outline-none tracking-[0.4em] text-center text-lg"
-              placeholder="000000"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              autoFocus
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 rounded-md bg-[#00a884] hover:bg-[#008f6f] py-3 font-semibold text-[#0b141a] transition-colors disabled:opacity-60"
-          >
-            <LogIn size={18} />
-            {loading ? 'Inathibitisha...' : 'Thibitisha na ingia'}
-          </button>
-
-          <div className="mt-4 text-center">
-            <button
-              type="button"
-              onClick={handleBackToLogin}
-              className="text-sm text-gray-400 hover:text-white transition-colors"
-            >
-              ← Rudi kwenye login
-            </button>
-          </div>
-        </form>
-      </div>
-    );
-  }
 
   if (showOTP) {
     return (
