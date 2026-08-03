@@ -5,7 +5,8 @@ import {
   Smartphone, ChevronRight, Database, UserRound, KeyRound, Languages,
   HelpCircle, Download, Trash2, Phone, Wifi, Image as ImageIcon,
   HardDrive, CheckCircle2, EyeOff, Archive, Clock, FileText, Globe2,
-  RefreshCw, RotateCcw, Palette, MessageSquare, MapPin, X, Fingerprint
+  RefreshCw, RotateCcw, Palette, MessageSquare, MapPin, X, Fingerprint,
+  DollarSign, Star, Search, Plus, Camera, Video, Upload as UploadIcon, Mail, Crown
 } from 'lucide-react';
 import ContactManager from '../components/ContactManager';
 import { BlockedUsersList } from '../components/BlockUnblock';
@@ -353,6 +354,36 @@ const Settings = () => {
   const [showLocationSharing, setShowLocationSharing] = useState(false);
   const [showHelpCenter, setShowHelpCenter] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+
+  // GENZ AFTER WORK Feature States
+  const [features, setFeatures] = useState([]);
+  const [isLoadingFeatures, setIsLoadingFeatures] = useState(false);
+  const [showCreateFeatureForm, setShowCreateFeatureForm] = useState(false);
+  const [selectedFeature, setSelectedFeature] = useState(null);
+  const [showInquiryForm, setShowInquiryForm] = useState(false);
+  const [inquiryData, setInquiryData] = useState({ message: '', contactEmail: '' });
+  const [createForm, setCreateForm] = useState({
+    name: '',
+    description: '',
+    price: '',
+    maxPrice: '',
+    location: '',
+    category: 'Real Estate',
+    contactInfo: { phone: '', email: '' },
+    tags: [],
+    specifications: {},
+    images: [],
+    videos: [],
+    isPrivate: false,
+    expiresAt: '',
+    status: 'pending'
+  });
+  const [images, setImages] = useState([]);
+  const [videos, setVideos] = useState([]);
+  const [imagePreviewUrls, setImagePreviewUrls] = useState([]);
+  const [videoPreviewUrls, setVideoPreviewUrls] = useState([]);
+
+  const categories = ['Real Estate', 'Services', 'Business', 'Automotive', 'Jobs', 'Electronics', 'Other'];
 
   const tabs = useMemo(() => ([
     { id: 'profile', label: 'Profile', icon: User },
