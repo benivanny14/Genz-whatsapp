@@ -52,7 +52,7 @@ const MediaPickerPanel = ({
     onStickerSelect,
     onGIFSelect,
     theme = 'dark'
-  }) => {};
+  }) => {
   return (
     <div className="flex flex-col h-[350px] w-full bg-[#1a2332] border-t border-gray-700 shadow-2xl z-40 transition-transform duration-300 ease-out origin-bottom transform translate-y-0">
       
@@ -118,7 +118,7 @@ const MediaPickerPanel = ({
           <FileImage size={20} />
         </button>
       </div>
-    </div>
+</div>
   );
 };
 
