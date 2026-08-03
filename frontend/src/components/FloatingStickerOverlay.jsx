@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const FloatingStickerOverlay = ({ onStickerReceived }) => {
+const FloatingStickerOverlay = ({ onStickerReceived, isMobile }) => {
   const [floatingStickers, setFloatingStickers] = useState([]);
 
-  const spawnSticker = useCallback((stickerData, isOwn = true) => {
+  const spawnSticker = useCallback((stickerData, own = true) => {
     const id = `fstick-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const stick = {
       id,
       ...stickerData,
-      left: 10 + Math.random() * 70,
-      right: 10 + Math.random() * 70,
-      size: isOwn ? 80 : 60,
+      left: 5 + Math.random() * 80,
+      right: 5 + Math.random() * 80,
+      size: isMobile ? 60 : (own ? 80 : 60),
+      baseY: isMobile ? -80 : -120,
+      amplitude: isMobile ? 60 : 80,
       lifetime: 2000 + Math.random() * 1000,
     };
     setFloatingStickers(prev => [...prev, stick]);
@@ -19,36 +21,35 @@ const FloatingStickerOverlay = ({ onStickerReceived }) => {
     setTimeout(() => {
       setFloatingStickers(prev => prev.filter(s => s.id !== id));
     }, stick.lifetime);
-  }, []);
+  }, [isMobile]);
 
   useEffect(() => {
     if (!onStickerReceived) return;
-    const handler = (stickerData) => {
-      spawnSticker(stickerData, false);
-    };
+    const handler = (stickerData) => spawnSticker(stickerData, false);
     onStickerReceived(handler);
-    return () => {
-      setFloatingStickers([]);
-    };
+    return () => setFloatingStickers([]);
   }, [onStickerReceived, spawnSticker]);
+
+  const bottomOffset = isMobile ? 'calc(100px + 4rem)' : '120px';
 
   return (
     <AnimatePresence>
       {floatingStickers.map((sticker) => (
         <motion.div
           key={sticker.id}
-          className="fixed pointer-events-none z-[160] select-none drop-shadow-lg"
+          className="fixed pointer-events-none z-[160] select-none drop-shadow-xl"
           style={{
-            bottom: '120px',
-            right: `${sticker.right}%`,
-            fontSize: `${sticker.size}px`,
+            bottom: bottomOffset,
+            left: `${sticker.left}%`,
+            width: `${sticker.size}px`,
+            height: `${sticker.size}px`,
           }}
           initial={{ opacity: 0, scale: 0.3, y: 0 }}
           animate={{
             opacity: [0, 1, 1, 0],
             scale: [0.3, 1, 1.2, 0.8],
-            y: [-0, -120, -240, -360],
-            x: [0, sticker.right > 50 ? -20 : 20, sticker.right > 50 ? 10 : -10],
+            y: [0, -sticker.amplitude, -(sticker.amplitude * 2), -(sticker.amplitude * 3)],
+            x: [0, sticker.left > 50 ? -15 : 15, sticker.left > 50 ? 10 : -10],
           }}
           exit={{ opacity: 0, scale: 0.5 }}
           transition={{
@@ -59,7 +60,7 @@ const FloatingStickerOverlay = ({ onStickerReceived }) => {
           <img
             src={sticker.url || sticker.content}
             alt="floating sticker"
-            className="w-full h-auto object-contain"
+            className="w-full h-full object-contain"
             loading="lazy"
           />
         </motion.div>

@@ -429,6 +429,16 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [showLiveReactions, setShowLiveReactions] = useState(false);
   const [showStickerPacks, setShowStickerPacks] = useState(false);
   const [floatingStickerMode, setFloatingStickerMode] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   const [showChunkedUploader, setShowChunkedUploader] = useState(false);
   const [e2eePlain, setE2eePlain] = useState({});
   const [visibleCount, setVisibleCount] = useState(50);
@@ -4186,9 +4196,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       )}
       <FloatingStickerOverlay
         key="floating-stickers"
+        isMobile={isMobile}
         onStickerReceived={(handler) => {
-          if (!floatingStickerHandlers.includes(handler)) {
-            setFloatingStickerHandlers(prev => [...prev, handler]);
+          if (!floatingStickerHandlers?.includes(handler)) {
+            setFloatingStickerHandlers(prev => [...(prev || []), handler]);
           }
         }}
       />
