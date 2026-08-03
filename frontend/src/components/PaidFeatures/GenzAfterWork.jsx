@@ -322,7 +322,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                     value={createForm.name}
                     onChange={(e) => setCreateForm(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="e.g., Luxury Villa with Pool"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-800 text-white"
                     required
                   />
                 </div>
@@ -334,7 +334,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                     onChange={(e) => setCreateForm(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Detailed description of the feature..."
                     rows="4"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-800 text-white"
                     required
                   />
                 </div>
@@ -348,7 +348,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                       value={createForm.price}
                       onChange={(e) => setCreateForm(prev => ({ ...prev, price: e.target.value }))}
                       placeholder="0"
-                      className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-800 text-white"
                       required
                     />
                   </div>
@@ -363,7 +363,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                       value={createForm.maxPrice}
                       onChange={(e) => setCreateForm(prev => ({ ...prev, maxPrice: e.target.value }))}
                       placeholder="0"
-                      className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-800 text-white"
                       required
                     />
                   </div>
@@ -378,7 +378,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                       value={createForm.location}
                       onChange={(e) => setCreateForm(prev => ({ ...prev, location: e.target.value }))}
                       placeholder="e.g., Sandton, Johannesburg"
-                      className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-800 text-white"
                       required
                     />
                   </div>
@@ -389,7 +389,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                   <select
                     value={createForm.status}
                     onChange={(e) => setCreateForm(prev => ({ ...prev, status: e.target.value }))}
-                    className="px-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="px-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-800 text-white"
                   >
                     <option value="pending">Pending</option>
                     <option value="active">Active</option>
@@ -404,7 +404,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                     type="date"
                     value={createForm.expiresAt}
                     onChange={(e) => setCreateForm(prev => ({ ...prev, expiresAt: e.target.value }))}
-                    className="px-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="px-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-800 text-white"
                   />
                 </div>
               </div>
@@ -526,7 +526,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                     value={filters.search}
                     onChange={(e) => handleFilterChange('search', e.target.value)}
                     placeholder="Search features..."
-                    className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-800 text-white"
                   />
                 </div>
               </div>
@@ -536,7 +536,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                 <select
                   value={filters.sortBy}
                   onChange={(e) => handleFilterChange('sortBy', e.target.value)}
-                  className="px-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="px-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-800 text-white"
                 >
                   <option value="featured">Featured First</option>
                   <option value="newest">Newest First</option>
@@ -555,14 +555,14 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                     value={filters.minPrice}
                     onChange={(e) => handleFilterChange('minPrice', e.target.value)}
                     placeholder="Min"
-                    className="px-3 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="px-3 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-800 text-white"
                   />
                   <input
                     type="number"
                     value={filters.maxPrice}
                     onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
                     placeholder="Max"
-                    className="px-3 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="px-3 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-800 text-white"
                   />
                 </div>
               </div>
@@ -572,7 +572,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                 <select
                   value={filters.featured}
                   onChange={(e) => handleFilterChange('featured', e.target.value)}
-                  className="px-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="px-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-800 text-white"
                 >
                   <option value="all">All</option>
                   <option value="true">Featured Only</option>
@@ -762,7 +762,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                     onChange={(e) => setInquiryData(prev => ({ ...prev, message: e.target.value }))}
                     placeholder="I am interested in this feature..."
                     rows="4"
-                    className="px-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="px-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-800 text-white"
                     required
                   />
                 </div>
@@ -774,7 +774,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                     value={inquiryData.contactEmail}
                     onChange={(e) => setInquiryData(prev => ({ ...prev, contactEmail: e.target.value }))}
                     placeholder="your@email.com"
-                    className="px-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="px-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-800 text-white"
                     required
                   />
                 </div>
