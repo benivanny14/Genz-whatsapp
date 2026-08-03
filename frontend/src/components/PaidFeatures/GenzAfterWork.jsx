@@ -54,7 +54,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
     maxPrice: '',
     featured: 'all',
     status: 'all',
-    sortBy: 'newest'
+    sortBy: 'price-asc'
   });
   
   const [createForm, setCreateForm] = useState({
