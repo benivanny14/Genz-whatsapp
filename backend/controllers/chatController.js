@@ -214,7 +214,7 @@ const populateConversation = (query) =>
   query
     .populate(
       "participants",
-      "username phoneNumber email profilePicture isOnline lastSeen about settings contacts",
+      "username phoneNumber profilePicture isOnline lastSeen about settings contacts",
     )
     .populate("admins", "username profilePicture")
     .populate("lastMessage");
@@ -1384,10 +1384,10 @@ exports.searchUsers = async (req, res) => {
     const users = await User.find({
       _id: { $nin: excludedIds },
       isBlocked: { $ne: true },
-      $or: [{ username: regex }, { phoneNumber: regex }, { email: regex }],
+      $or: [{ username: regex }, { phoneNumber: regex }],
     })
       .select(
-        "username phoneNumber email profilePicture about isOnline lastSeen settings contacts",
+        "username phoneNumber profilePicture about isOnline lastSeen settings contacts",
       )
       .limit(25);
 
@@ -1415,7 +1415,7 @@ exports.addContact = async (req, res) => {
     const [user, contact] = await Promise.all([
       User.findById(localUserId),
       User.findById(userId).select(
-        "username phoneNumber email profilePicture about isOnline lastSeen settings contacts",
+        "username phoneNumber profilePicture about isOnline lastSeen settings contacts",
       ),
     ]);
 
@@ -1511,7 +1511,7 @@ exports.getContacts = async (req, res) => {
     const localUserId = getCurrentUserId(req);
     const user = await User.findById(localUserId).populate(
       "contacts.user",
-      "username phoneNumber email profilePicture about isOnline lastSeen settings contacts",
+      "username phoneNumber profilePicture about isOnline lastSeen settings contacts",
     );
 
     const filteredContacts = (

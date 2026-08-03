@@ -144,24 +144,21 @@ describe('Settings API audit', () => {
   });
 
   describe('PUT /api/auth/settings (legacy auth route)', () => {
-    it('should merge and sync email when provided', async () => {
+    it('should merge and persist settings', async () => {
       const res = await request(app)
         .put('/api/auth/settings')
         .set('Authorization', `Bearer ${alice.token}`)
         .send({
           settings: {
-            account: { email: 'NEW@Example.com' },
             privacy: { lastSeen: 'contacts' }
           }
         });
 
       expect(res.statusCode).toBe(200);
-      expect(res.body.settings.account.email).toBe('new@example.com');
       expect(res.body.settings.privacy.lastSeen).toBe('contacts');
 
       const persisted = await User.findById(alice.user._id);
-      expect(persisted.email).toBe('new@example.com');
-      expect(persisted.emailVerified).toBe(false);
+      expect(persisted.settings.privacy.lastSeen).toBe('contacts');
     });
 
     it('should record requestAccountInfoAt when requested', async () => {

@@ -200,23 +200,20 @@ const AccountDelete = ({ onDeleteAccount, onClose }) => {
 const AccountLinking = ({ linkedAccounts, onLinkAccount, onUnlinkAccount, onClose }) => {
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [accountType, setAccountType] = useState('');
-  const [accountEmail, setAccountEmail] = useState('');
   const [accountPhone, setAccountPhone] = useState('');
 
   const accountTypes = [
-    { id: 'email', name: 'Email', icon: '📧' },
     { id: 'phone', name: 'Phone', icon: '📱' },
     { id: 'facebook', name: 'Facebook', icon: '📘' },
     { id: 'google', name: 'Google', icon: '🔵' },
   ];
 
   const handleLink = () => {
-    if (!accountType || (!accountEmail && !accountPhone)) return;
+    if (!accountType || !accountPhone) return;
 
     const newAccount = {
       id: Date.now(),
       type: accountType,
-      email: accountEmail,
       phone: accountPhone,
       linkedAt: Date.now()
     };
@@ -227,7 +224,6 @@ const AccountLinking = ({ linkedAccounts, onLinkAccount, onUnlinkAccount, onClos
 
     setShowLinkModal(false);
     setAccountType('');
-    setAccountEmail('');
     setAccountPhone('');
   };
 
@@ -262,7 +258,7 @@ const AccountLinking = ({ linkedAccounts, onLinkAccount, onUnlinkAccount, onClos
                 </div>
                 <div>
                   <p className="text-white font-medium">{accountTypes.find(t => t.id === account.type)?.name}</p>
-                  <p className="text-gray-400 text-sm">{account.email || account.phone}</p>
+                  <p className="text-gray-400 text-sm">{account.phone}</p>
                 </div>
               </div>
               <button
@@ -307,19 +303,6 @@ const AccountLinking = ({ linkedAccounts, onLinkAccount, onUnlinkAccount, onClos
               </select>
             </div>
 
-            {accountType === 'email' && (
-              <div>
-                <label className="text-gray-400 text-xs mb-1 block">Email</label>
-                <input
-                  type="email"
-                  value={accountEmail}
-                  onChange={(e) => setAccountEmail(e.target.value)}
-                  placeholder="Enter email"
-                  className="w-full bg-[#0b141a] text-white px-3 py-2 rounded-lg border border-[#00a884]/30 focus:border-[#00a884] focus:outline-none"
-                />
-              </div>
-            )}
-
             {accountType === 'phone' && (
               <div>
                 <label className="text-gray-400 text-xs mb-1 block">Phone Number</label>
@@ -342,7 +325,7 @@ const AccountLinking = ({ linkedAccounts, onLinkAccount, onUnlinkAccount, onClos
               </button>
               <button
                 onClick={handleLink}
-                disabled={!accountType || (!accountEmail && !accountPhone)}
+                disabled={!accountType || !accountPhone}
                 className="flex-1 bg-[#00a884] text-white py-3 rounded-lg font-medium hover:bg-[#008f72] transition-colors disabled:bg-[#0b141a] disabled:text-gray-500 disabled:cursor-not-allowed"
               >
                 Link

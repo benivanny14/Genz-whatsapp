@@ -20,8 +20,6 @@ const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g,
 const safeUserProjection = [
   'username',
   'phoneNumber',
-  'email',
-  'emailVerified',
   'role',
   'isAdmin',
   'isBlocked',
@@ -58,8 +56,7 @@ const buildUserFilter = ({ search, status }) => {
     const pattern = new RegExp(escapeRegex(search), 'i');
     and.push({ $or: [
       { username: pattern },
-      { phoneNumber: pattern },
-      { email: pattern }
+      { phoneNumber: pattern }
     ] });
   }
 

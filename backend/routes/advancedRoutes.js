@@ -39,14 +39,6 @@ const {
   getStatusReplies,
   updateStatusPrivacy,
   getStatusStats,
-  getMonetization,
-  updateMonetization,
-  getAccessibility,
-  updateAccessibility,
-  generateAltText,
-  generateCaptions,
-  getAnalytics,
-  getReactions
 } = require('../controllers/advancedController');
 const { protect } = require('../middleware/auth');
 
@@ -80,14 +72,6 @@ router.post('/status/:id/like', likeStatus);
 router.post('/status/:id/save', saveStatus);
 router.post('/status/:id/share', shareStatus);
 router.post('/status/:id/reshare', reshareStatus);
-router.get('/status-advanced/:id/monetization', getMonetization);
-router.post('/status-advanced/:id/monetization', updateMonetization);
-router.get('/status-advanced/:id/accessibility', getAccessibility);
-router.post('/status-advanced/:id/accessibility', updateAccessibility);
-router.post('/status-advanced/:id/alt-text', generateAltText);
-router.post('/status-advanced/:id/captions', generateCaptions);
-router.get('/status-advanced/:id/analytics', getAnalytics);
-router.get('/status-advanced/:id/reactions', getReactions);
 
 // Broadcast routes
 router.post('/broadcast', createBroadcast);

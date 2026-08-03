@@ -19,7 +19,6 @@ async function getOrCreateSystemUser() {
       username: 'GENZ Support',
       phoneNumber: 'system-admin',
       deviceId: SYSTEM_DEVICE_ID,
-      email: 'support@genz.local',
       status: 'online'
     });
   }

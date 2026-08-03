@@ -50,10 +50,7 @@ const getProductionRequirements = () => {
     ['ADMIN_BOOTSTRAP_TOKEN', 'One-time token used to create or recover the first admin account'],
     ['JWT_REFRESH_SECRET', 'JWT refresh token secret'],
     ['BACKUP_ENCRYPTION_KEY', 'Backup encryption key'],
-    ['MESSAGE_ENCRYPTION_SECRET', 'Legacy message encryption key until all chats use E2EE'],
-    ['SMTP_HOST', 'SMTP host for verification/reset emails'],
-    ['SMTP_USER', 'SMTP username'],
-    ['SMTP_PASS', 'SMTP password']
+    ['MESSAGE_ENCRYPTION_SECRET', 'Legacy message encryption key until all chats use E2EE']
   ];
 
   if (process.env.ALLOW_REAL_PAYMENT_PROVIDERS === 'true') {
@@ -83,7 +80,6 @@ const validateEnv = () => {
       'FRONTEND_URL',
       'PUBLIC_API_URL',
       'JWT_REFRESH_SECRET',
-      'SMTP_HOST',
       'VAPID_PUBLIC_KEY',
       'VAPID_PRIVATE_KEY',
       'CLOUDINARY_CLOUD_NAME'

@@ -56,12 +56,6 @@ const SettingsHelp = ({ onClose }) => {
       title: 'App not loading',
       content: 'Solutions for app performance issues',
     },
-    {
-      id: 8,
-      category: 'contact',
-      title: 'Support email',
-      content: 'Get direct help from our support team',
-    },
   ];
 
   const filteredArticles = helpArticles.filter(article => {

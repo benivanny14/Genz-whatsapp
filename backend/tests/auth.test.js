@@ -34,7 +34,6 @@ describe('Auth Endpoints', () => {
     beforeEach(async () => {
       const user = new User({
         username: 'testuser',
-        email: 'test@example.com',
         phoneNumber: '255700000001'
       });
       await user.setPassword('Password123!');

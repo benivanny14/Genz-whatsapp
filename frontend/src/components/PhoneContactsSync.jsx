@@ -172,7 +172,6 @@ const PhoneContactsSync = () => {
     return (
       contact.name?.toLowerCase().includes(query) ||
       contact.phone?.includes(query) ||
-      contact.email?.toLowerCase().includes(query) ||
       contact.username?.toLowerCase().includes(query)
     );
   });
@@ -309,7 +308,7 @@ const PhoneContactsSync = () => {
                 </div>
                 <div>
                   <p className="font-medium text-gray-800">{contact.name}</p>
-                  <p className="text-sm text-gray-500">{contact.phone || contact.email}</p>
+                  <p className="text-sm text-gray-500">{contact.phone}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -360,9 +359,9 @@ const PhoneContactsSync = () => {
                   onClick={() => {
                     // Simulate reading contacts from device
                     const demoContacts = [
-                      { name: 'John Doe', phone: '+1234567890', email: 'john@example.com' },
-                      { name: 'Jane Smith', phone: '+0987654321', email: 'jane@example.com' },
-                      { name: 'Bob Wilson', phone: '+1122334455', email: 'bob@example.com' }
+                      { name: 'John Doe', phone: '+1234567890' },
+                      { name: 'Jane Smith', phone: '+0987654321' },
+                      { name: 'Bob Wilson', phone: '+1122334455' }
                     ];
                     handleUploadContacts(demoContacts);
                   }}

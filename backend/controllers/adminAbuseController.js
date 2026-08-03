@@ -62,8 +62,8 @@ exports.listAbuseReports = async (req, res) => {
 exports.getAbuseReport = async (req, res) => {
   try {
     const report = await AbuseReport.findById(req.params.id)
-      .populate('reporterId', 'username phoneNumber email')
-      .populate('reportedUserId', 'username phoneNumber email isBlocked')
+      .populate('reporterId', 'username phoneNumber')
+      .populate('reportedUserId', 'username phoneNumber isBlocked')
       .populate('resolvedBy', 'username')
       .lean();
     

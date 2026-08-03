@@ -73,7 +73,7 @@ const decryptBackup = (payload) => {
 
 const generateBackupData = async (userId) => {
   const [user, conversations, statuses, broadcasts, manualPayments] = await Promise.all([
-    User.findById(userId).select('-passwordHash -emailVerificationToken -passwordResetToken -twoFactorSecret'),
+    User.findById(userId).select('-passwordHash -twoFactorSecret'),
     Conversation.find({ participants: userId }).sort({ updatedAt: -1 }),
     Status.find({ userId }).sort({ createdAt: -1 }),
     Broadcast.find({ createdBy: userId }).sort({ createdAt: -1 }),
@@ -244,8 +244,6 @@ exports.restoreBackup = async (req, res) => {
 
     if (user?._id) {
       delete user.passwordHash;
-      delete user.emailVerificationToken;
-      delete user.passwordResetToken;
       delete user.twoFactorSecret;
       await User.findByIdAndUpdate(userId, withoutImmutableId(user), { upsert: true, new: true });
     }

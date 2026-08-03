@@ -78,7 +78,6 @@ const BusinessAccountPanel = ({ onClose }) => {
     await call('/enable', {
       businessName: settings.businessName,
       businessCategory: settings.businessCategory,
-      businessEmail: settings.businessEmail,
       businessPhone: settings.businessPhone
     });
   };
@@ -89,7 +88,6 @@ const BusinessAccountPanel = ({ onClose }) => {
         businessName: settings.businessName,
         businessCategory: settings.businessCategory,
         businessDescription: settings.businessDescription,
-        businessEmail: settings.businessEmail,
         businessPhone: settings.businessPhone,
         businessAddress: settings.businessAddress
       }
@@ -195,7 +193,6 @@ const BusinessAccountPanel = ({ onClose }) => {
               className="w-full bg-[#0b141a] text-white px-3 py-2 rounded-lg border border-white/10 text-sm focus:outline-none focus:border-[#00a884] resize-none"
             />
             <div className="grid grid-cols-2 gap-2">
-              <input value={settings.businessEmail || ''} onChange={(e) => setSettings({ ...settings, businessEmail: e.target.value })} placeholder="Email" className="bg-[#0b141a] text-white px-3 py-2 rounded-lg border border-white/10 text-sm focus:outline-none focus:border-[#00a884]" />
               <input value={settings.businessPhone || ''} onChange={(e) => setSettings({ ...settings, businessPhone: e.target.value })} placeholder="Phone" className="bg-[#0b141a] text-white px-3 py-2 rounded-lg border border-white/10 text-sm focus:outline-none focus:border-[#00a884]" />
             </div>
             <input

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Store, Package, ShoppingCart, Star, Clock, MapPin, Phone, Mail, Globe, Edit, Plus, Trash2, Settings, TrendingUp, Users, CreditCard, BarChart3, CheckCircle, XCircle } from 'lucide-react';
+import { Building2, Store, Package, ShoppingCart, Star, Clock, MapPin, Phone, Globe, Edit, Plus, Trash2, Settings, TrendingUp, Users, CreditCard, BarChart3, CheckCircle, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const BusinessProfileManager = ({ businessProfile, onUpdate, onClose }) => {
@@ -9,7 +9,6 @@ const BusinessProfileManager = ({ businessProfile, onUpdate, onClose }) => {
     category: businessProfile?.category || '',
     description: businessProfile?.description || '',
     address: businessProfile?.address || '',
-    email: businessProfile?.email || '',
     phone: businessProfile?.phone || '',
     website: businessProfile?.website || '',
     hours: businessProfile?.hours || '',
@@ -159,18 +158,6 @@ const BusinessProfileManager = ({ businessProfile, onUpdate, onClose }) => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-white text-sm font-medium mb-2 block flex items-center gap-2">
-                    <Mail size={16} />
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full bg-[#0b141a] text-white px-4 py-3 rounded-lg border border-[#00a884]/30 focus:border-[#00a884] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-white text-sm font-medium mb-2 block flex items-center gap-2">
                     <Globe size={16} />
                     Website
                   </label>
@@ -250,15 +237,6 @@ const BusinessProfileManager = ({ businessProfile, onUpdate, onClose }) => {
                     <div>
                       <p className="text-gray-400 text-xs">Phone</p>
                       <p className="text-white text-sm">{formData.phone}</p>
-                    </div>
-                  </div>
-                )}
-                {formData.email && (
-                  <div className="bg-[#0b141a] rounded-lg p-4 flex items-center gap-3">
-                    <Mail className="text-[#00a884]" size={20} />
-                    <div>
-                      <p className="text-gray-400 text-xs">Email</p>
-                      <p className="text-white text-sm">{formData.email}</p>
                     </div>
                   </div>
                 )}

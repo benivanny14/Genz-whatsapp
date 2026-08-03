@@ -44,9 +44,6 @@ const AdminSetup = lazy(() => import('./pages/AdminSetup'));
 const GENZMods = lazy(() => import('./pages/GENZMods'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
-const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
-const ResetPassword = lazy(() => import('./pages/ResetPassword'));
-const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 const LinkedDevices = lazy(() => import('./pages/LinkedDevices'));
 const PairDevice = lazy(() => import('./pages/PairDevice'));
 const Broadcasts = lazy(() => import('./pages/Broadcasts'));
@@ -359,9 +356,6 @@ function App() {
             <Route path="/join/:groupId/:code" element={<ProtectedRoute><JoinGroup /></ProtectedRoute>} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/" element={<Navigate to="/chat" replace />} />
             <Route path="*" element={<Navigate to="/chat" replace />} />
           </Routes>

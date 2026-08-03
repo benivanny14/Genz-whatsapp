@@ -1428,7 +1428,7 @@ try {
 
           if (isNewConv) {
             const populatedConv = await Conversation.findById(conversation._id)
-              .populate('participants', 'username phoneNumber email profilePicture isOnline lastSeen about')
+              .populate('participants', 'username phoneNumber profilePicture isOnline lastSeen about')
               .populate('admins', 'username profilePicture')
               .populate('lastMessage');
 

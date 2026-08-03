@@ -19,24 +19,6 @@ const userSchema = new mongoose.Schema({
     unique: true,
     trim: true
   },
-  email: {
-    type: String,
-    trim: true,
-    lowercase: true,
-    default: ''
-  },
-  emailVerified: {
-    type: Boolean,
-    default: false
-  },
-  emailVerificationToken: {
-    type: String,
-    default: null
-  },
-  emailVerificationExpiresAt: {
-    type: Date,
-    default: null
-  },
 
   passwordHash: {
     type: String,
@@ -54,14 +36,6 @@ const userSchema = new mongoose.Schema({
     default: 'user'
   },
 
-  passwordResetToken: {
-    type: String,
-    default: null
-  },
-  passwordResetExpiresAt: {
-    type: Date,
-    default: null
-  },
   passwordChangedAt: {
     type: Date,
     default: null
@@ -234,10 +208,6 @@ const userSchema = new mongoose.Schema({
       default: 'other'
     },
     businessAddress: {
-      type: String,
-      default: ''
-    },
-    businessEmail: {
       type: String,
       default: ''
     },
@@ -432,12 +402,10 @@ userSchema.methods.toSafeJSON = function() {
   const user = this.toObject();
   delete user.passwordHash;
   delete user.twoFactorSecret;
-  delete user.passwordResetToken;
   delete user.failedLoginAttempts;
   delete user.lockUntil;
   delete user.lastFailedLoginAt;
   delete user.activeSessions;
-  delete user.emailVerificationToken;
   delete user.passkeys;
   return user;
 };

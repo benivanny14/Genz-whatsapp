@@ -6,15 +6,14 @@ const ContactManager = ({ onClose }) => {
   const { contacts, addContact, removeContact, updateContact } = useChat();
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newContact, setNewContact] = useState({ name: '', phone: '', email: '' });
+  const [newContact, setNewContact] = useState({ name: '', phone: '' });
 
   const filteredContacts = (contacts || []).map((c) => {
     const user = c.user || c;
     return {
       _id: user._id,
       name: c.savedName || user.username || user.name,
-      phone: user.phoneNumber || user.phone,
-      email: user.email
+      phone: user.phoneNumber || user.phone
     };
   }).filter(c => c._id).filter(c =>
     c.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -24,7 +23,7 @@ const ContactManager = ({ onClose }) => {
   const handleAddContact = () => {
     if (newContact.name && newContact.phone) {
       addContact(newContact.phone, newContact.name);
-      setNewContact({ name: '', phone: '', email: '' });
+      setNewContact({ name: '', phone: '' });
       setShowAddForm(false);
     }
   };
@@ -75,13 +74,6 @@ const ContactManager = ({ onClose }) => {
                 onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
                 className="w-full bg-dark-surface border border-dark-border rounded-lg p-2 text-dark-text"
               />
-              <input
-                type="email"
-                placeholder="Email"
-                value={newContact.email}
-                onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
-                className="w-full bg-dark-surface border border-dark-border rounded-lg p-2 text-dark-text"
-              />
               <div className="flex gap-2">
                 <button onClick={handleAddContact} className="flex-1 bg-primary-600 text-white py-2 rounded-lg">Add</button>
                 <button onClick={() => setShowAddForm(false)} className="flex-1 bg-dark-bg text-dark-text py-2 rounded-lg">Cancel</button>
@@ -98,7 +90,7 @@ const ContactManager = ({ onClose }) => {
                   </div>
                   <div>
                     <p className="text-dark-text font-medium">{contact.name}</p>
-                    <p className="text-xs text-dark-textSecondary">{contact.phone || contact.email}</p>
+                    <p className="text-xs text-dark-textSecondary">{contact.phone}</p>
                   </div>
                 </div>
                 <div className="flex gap-2">

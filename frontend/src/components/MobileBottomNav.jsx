@@ -12,9 +12,6 @@ const NAV_ITEMS = [
 const HIDDEN_PREFIXES = [
   '/login',
   '/register',
-  '/forgot-password',
-  '/reset-password',
-  '/verify-email',
   '/pair-device',
   '/admin',
   '/admin-setup',

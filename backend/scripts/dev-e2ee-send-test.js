@@ -18,16 +18,16 @@ async function ensureConversationBetween(aId, bId) {
 async function run() {
   await connectDB();
 
-  const senderEmail = process.env.E2EE_SENDER_EMAIL || 'dev-sender@local';
-  const recipientEmail = process.env.E2EE_TEST_EMAIL || 'dev-e2ee@local';
+  const senderPhone = process.env.E2EE_SENDER_PHONE || '1111111111';
+  const recipientPhone = process.env.E2EE_TEST_PHONE || '1111111112';
 
-  let sender = await User.findOne({ email: senderEmail });
+  let sender = await User.findOne({ phoneNumber: senderPhone });
   if (!sender) {
-    sender = await User.create({ username: 'dev-sender', email: senderEmail, phoneNumber: '1111111111' });
+    sender = await User.create({ username: 'dev-sender', phoneNumber: senderPhone });
     console.log('Created sender:', sender._id.toString());
   }
 
-  const recipient = await User.findOne({ email: recipientEmail });
+  const recipient = await User.findOne({ phoneNumber: recipientPhone });
   if (!recipient) {
     console.error('Recipient not found. Run dev-register-public-key.js first.');
     process.exit(2);

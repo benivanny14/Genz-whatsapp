@@ -24,7 +24,7 @@ const getCurrentAccount = () => {
     const refreshToken = localStorage.getItem('refreshToken');
     if (!user || !token) return null;
     return {
-      id: user._id || user.id || user.email || user.username,
+      id: user._id || user.id || user.username,
       user,
       token,
       refreshToken,
@@ -127,8 +127,8 @@ const AccountSwitcher = () => {
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-white font-semibold truncate">{account.user?.username || account.user?.email || 'Saved account'}</p>
-                  <p className="text-blue-200/70 text-xs truncate">{account.user?.email || account.user?.phoneNumber || account.id}</p>
+                  <p className="text-white font-semibold truncate">{account.user?.username || 'Saved account'}</p>
+                  <p className="text-blue-200/70 text-xs truncate">{account.user?.phoneNumber || account.id}</p>
                 </div>
                 {active ? (
                   <span className="text-xs bg-green-400/15 text-green-200 px-2 py-1 rounded-full">Active</span>

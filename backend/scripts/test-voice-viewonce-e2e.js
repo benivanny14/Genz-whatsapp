@@ -1,7 +1,7 @@
 /**
  * E2E: media upload (voice) + view-once text message via HTTP API.
  * Usage:
- *   TEST_EMAIL=... TEST_PASSWORD=... node backend/scripts/test-voice-viewonce-e2e.js
+ *   TEST_PHONE=... TEST_PASSWORD=... node backend/scripts/test-voice-viewonce-e2e.js
  */
 const fs = require('fs');
 const path = require('path');
@@ -46,15 +46,15 @@ async function jsonFetch(url, options = {}) {
 }
 
 async function login() {
-  const email = process.env.TEST_EMAIL;
+  const phoneNumber = process.env.TEST_PHONE;
   const password = process.env.TEST_PASSWORD;
-  if (!email || !password) {
-    throw new Error('Set TEST_EMAIL and TEST_PASSWORD env vars');
+  if (!phoneNumber || !password) {
+    throw new Error('Set TEST_PHONE and TEST_PASSWORD env vars');
   }
   const { ok, status, body } = await jsonFetch(`${API_BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ phoneNumber, password })
   });
   if (!ok || !body.token) {
     throw new Error(`Login failed (${status}): ${JSON.stringify(body)}`);

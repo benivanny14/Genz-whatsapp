@@ -2,7 +2,6 @@ const clone = (value) => JSON.parse(JSON.stringify(value));
 
 const DEFAULT_WHATSAPP_SETTINGS = {
   account: {
-    email: '',
     twoStepVerification: false,
     passkeys: false,
     securityNotifications: true,

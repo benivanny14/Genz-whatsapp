@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Shield, Mail, Key, Copy, Check, AlertCircle, Loader2, QrCode, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Shield, Key, Copy, Check, AlertCircle, Loader2, QrCode, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import securityService from '../services/securityService';
@@ -10,7 +10,6 @@ const SecuritySettings = () => {
   const [loading, setLoading] = useState(true);
   const [securitySettings, setSecuritySettings] = useState(null);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-  const [emailVerified, setEmailVerified] = useState(false);
   
   // 2FA Setup States
   const [show2FAModal, setShow2FAModal] = useState(false);
@@ -21,11 +20,6 @@ const SecuritySettings = () => {
   const [disableCode, setDisableCode] = useState('');
   const [copiedSecret, setCopiedSecret] = useState(false);
   const [setupLoading, setSetupLoading] = useState(false);
-  
-  // Email Verification States
-  const [showEmailModal, setShowEmailModal] = useState(false);
-  const [emailLoading, setEmailLoading] = useState(false);
-  const [verificationEmail, setVerificationEmail] = useState('');
 
   useEffect(() => {
     fetchSecuritySettings();
@@ -34,16 +28,13 @@ const SecuritySettings = () => {
   const fetchSecuritySettings = async () => {
     try {
       setLoading(true);
-      const [settings, twoFactorStatus, emailStatus] = await Promise.all([
+      const [settings, twoFactorStatus] = await Promise.all([
         securityService.getSecuritySettings(),
-        securityService.checkTwoFactorStatus(),
-        securityService.checkEmailVerification()
+        securityService.checkTwoFactorStatus()
       ]);
       
       setSecuritySettings(settings);
       setTwoFactorEnabled(twoFactorStatus.enabled);
-      setEmailVerified(emailStatus.verified);
-      setVerificationEmail(emailStatus.email);
     } catch (error) {
     } finally {
       setLoading(false);
@@ -88,18 +79,6 @@ const SecuritySettings = () => {
     } catch (error) {
     } finally {
       setSetupLoading(false);
-    }
-  };
-
-  const handleSendEmailVerification = async () => {
-    try {
-      if (!verificationEmail) return;
-      setEmailLoading(true);
-      await securityService.sendEmailVerification(verificationEmail);
-      setShowEmailModal(true);
-    } catch (error) {
-    } finally {
-      setEmailLoading(false);
     }
   };
 
@@ -191,64 +170,6 @@ const SecuritySettings = () => {
           </div>
         </div>
 
-        {/* Email Verification */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start space-x-3">
-              <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-                <Mail className="w-5 h-5 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Email Verification</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  Verify your email address to secure your account
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                emailVerified
-                  ? 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400'
-                  : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-400'
-              }`}>
-                {emailVerified ? 'Verified' : 'Not Verified'}
-              </span>
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex-1 mr-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                  {emailVerified 
-                    ? `Email verified: ${verificationEmail}`
-                    : 'Verify your email to enable account recovery and security notifications.'
-                  }
-                </p>
-                {!emailVerified && (
-                  <input
-                    type="email"
-                    value={verificationEmail || ''}
-                    onChange={(e) => setVerificationEmail(e.target.value)}
-                    placeholder="Enter your email address"
-                    className="w-full px-3 py-2 mt-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                  />
-                )}
-              </div>
-              {!emailVerified && (
-                <button
-                  onClick={handleSendEmailVerification}
-                  disabled={emailLoading || !verificationEmail}
-                  className="px-4 py-2 mt-8 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
-                >
-                  {emailLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verify Email'}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
         {/* Security Tips */}
         <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
           <div className="flex items-start space-x-3">
@@ -258,7 +179,6 @@ const SecuritySettings = () => {
               <ul className="mt-2 space-y-1 text-sm text-blue-800 dark:text-blue-200">
                 <li>• Use a strong, unique password for your account</li>
                 <li>• Enable 2FA for maximum security</li>
-                <li>• Keep your recovery email up to date</li>
                 <li>• Never share your verification codes with anyone</li>
               </ul>
             </div>
@@ -419,44 +339,6 @@ const SecuritySettings = () => {
                   className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg transition-colors"
                 >
                   {setupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Disable 2FA'}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Email Verification Modal */}
-      <AnimatePresence>
-        {showEmailModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-            onClick={() => setShowEmailModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="text-center">
-                <div className="p-3 bg-green-100 dark:bg-green-900 rounded-full w-12 h-12 mx-auto mb-4">
-                  <Mail className="w-6 h-6 text-green-600 dark:text-green-400" />
-                </div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Check Your Email</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  We've sent a verification email to <strong>{verificationEmail}</strong>. 
-                  Click the link in the email to verify your account.
-                </p>
-                <button
-                  onClick={() => setShowEmailModal(false)}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                >
-                  Got it
                 </button>
               </div>
             </motion.div>

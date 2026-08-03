@@ -235,12 +235,6 @@ export const ContactVCard = ({ contact, onCopy }) => {
               <Phone size={14} />
               <span>{contact.phone}</span>
             </div>
-            {contact.email && (
-              <div className="flex items-center gap-2 text-gray-400 text-sm">
-                <Mail size={14} />
-                <span>{contact.email}</span>
-              </div>
-            )}
           </div>
         </div>
         <button
@@ -323,25 +317,6 @@ export const ContactSharingSettings = ({ settings, onUpdate }) => {
               <div
                 className={`w-5 h-5 bg-white rounded-full transition-all ${
                   settings.includePhone ? 'translate-x-6' : 'translate-x-0.5'
-                }`}
-              />
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-white text-sm">Include email</p>
-              <p className="text-gray-400 text-xs">Share email in vCard</p>
-            </div>
-            <button
-              onClick={() => onUpdate({ ...settings, includeEmail: !settings.includeEmail })}
-              className={`w-12 h-6 rounded-full transition-all ${
-                settings.includeEmail ? 'bg-[#00a884]' : 'bg-[#0b141a]'
-              }`}
-            >
-              <div
-                className={`w-5 h-5 bg-white rounded-full transition-all ${
-                  settings.includeEmail ? 'translate-x-6' : 'translate-x-0.5'
                 }`}
               />
             </button>

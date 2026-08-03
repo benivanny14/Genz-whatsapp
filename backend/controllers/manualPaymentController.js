@@ -363,7 +363,7 @@ exports.getPaymentDetails = async (req, res) => {
     const payment = await ManualPayment.findById(req.params.id);
     if (!payment) return res.status(404).json({ success: false, message: 'Payment not found' });
 
-    const user = await User.findById(payment.userId).select('-passwordHash -passwordResetToken -emailVerificationToken');
+    const user = await User.findById(payment.userId).select('-passwordHash');
     const paymentHistory = await ManualPayment.find({ userId: payment.userId }).sort({ createdAt: -1 });
 
     let duplicateOf = null;
@@ -399,7 +399,7 @@ exports.getPaymentDetails = async (req, res) => {
 
 exports.getUserProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.params.userId).select('-passwordHash -passwordResetToken -emailVerificationToken');
+    const user = await User.findById(req.params.userId).select('-passwordHash');
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
     const paymentHistory = await ManualPayment.find({ userId: user._id }).sort({ createdAt: -1 });

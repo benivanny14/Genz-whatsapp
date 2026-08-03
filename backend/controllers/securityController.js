@@ -1,53 +1,6 @@
-const crypto = require('crypto');
-const nodemailer = require('nodemailer');
 const QRCode = require('qrcode');
 const speakeasy = require('speakeasy');
 const User = require('../models/User');
-
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
-
-const normalizeEmail = (email) => (email ? email.trim().toLowerCase() : null);
-const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
-
-const publicTokenPayload = (key, token) => {
-  if (process.env.NODE_ENV === 'production' && process.env.SMTP_HOST) {
-    return {};
-  }
-  return { [key]: token };
-};
-
-const getMailer = () => {
-  if (!process.env.SMTP_HOST) {
-    return null;
-  }
-
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: process.env.SMTP_USER && process.env.SMTP_PASS ? {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
-    } : undefined
-  });
-};
-
-const sendMail = async ({ to, subject, text, html }) => {
-  const mailer = getMailer();
-  if (!mailer) {
-    return { sent: false, reason: 'SMTP not configured' };
-  }
-
-  await mailer.sendMail({
-    from: process.env.MAIL_FROM || process.env.SMTP_USER || 'no-reply@genz.local',
-    to,
-    subject,
-    text,
-    html
-  });
-
-  return { sent: true };
-};
 
 const requireUser = async (req, res) => {
   if (!req.user?._id) {
@@ -70,7 +23,7 @@ exports.generateTwoFactorSecret = async (req, res) => {
     if (!user) return;
 
     const secret = speakeasy.generateSecret({
-      name: `GENZ (${user.email || user.phoneNumber || user.username})`,
+      name: `GENZ (${user.phoneNumber || user.username})`,
       issuer: 'GENZ WhatsApp'
     });
 
@@ -172,18 +125,16 @@ exports.disableTwoFactor = async (req, res) => {
 
 exports.verifyTwoFactorLogin = async (req, res) => {
   try {
-    const { userId, email, token } = req.body;
+    const { userId, token } = req.body;
 
-    if (!token || (!userId && !email)) {
+    if (!token || !userId) {
       return res.status(400).json({
         success: false,
         message: 'User identifier and 2FA token are required'
       });
     }
 
-    const user = userId
-      ? await User.findById(userId)
-      : await User.findOne({ email: normalizeEmail(email) });
+    const user = await User.findById(userId);
 
     if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
       return res.status(404).json({ success: false, message: '2FA is not enabled for this user' });
@@ -212,7 +163,6 @@ exports.getSecuritySettings = async (req, res) => {
     res.json({
       success: true,
       settings: {
-        emailVerified: user.emailVerified,
         twoFactorEnabled: user.twoFactorEnabled,
         securitySettings: user.securitySettings,
         passwordChangedAt: user.passwordChangedAt
@@ -241,7 +191,6 @@ exports.updateSecuritySettings = async (req, res) => {
     res.json({
       success: true,
       settings: {
-        emailVerified: user.emailVerified,
         twoFactorEnabled: user.twoFactorEnabled,
         securitySettings: user.securitySettings
       }
@@ -265,192 +214,6 @@ exports.getTwoFactorStatus = async (req, res) => {
     });
   } catch (error) {
     console.error('Get 2FA status error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-const generateEmailToken = () => crypto.randomBytes(20).toString('hex');
-
-exports.getEmailVerificationStatus = async (req, res) => {
-  try {
-    const user = await requireUser(req, res);
-    if (!user) return;
-
-    res.json({
-      success: true,
-      verified: !!user.emailVerified,
-      email: user.email || ''
-    });
-  } catch (error) {
-    console.error('Get email verification status error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-const createEmailVerificationToken = async (user) => {
-  const token = generateEmailToken();
-  user.emailVerificationToken = hashToken(token);
-  user.emailVerificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  await user.save();
-
-  const verifyUrl = `${FRONTEND_URL}/verify-email?token=${token}`;
-  await sendMail({
-    to: user.email,
-    subject: 'Verify your email - GENZ WhatsApp',
-    text: `Click this link to verify your email: ${verifyUrl}`,
-    html: `<p>Click <a href="${verifyUrl}">here</a> to verify your email address.</p>`
-  });
-
-  return token;
-};
-
-exports.sendEmailVerification = async (req, res) => {
-  try {
-    const user = await requireUser(req, res);
-    if (!user) return;
-
-    const email = normalizeEmail(req.body?.email) || user.email;
-    if (!email) {
-      return res.status(400).json({ success: false, message: 'Email is required' });
-    }
-
-    user.email = email;
-    user.emailVerified = false;
-    await user.save();
-
-    const token = await createEmailVerificationToken(user);
-
-    res.json({
-      success: true,
-      message: 'Verification email sent',
-      ...publicTokenPayload('token', token)
-    });
-  } catch (error) {
-    console.error('Send email verification error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-exports.verifyEmail = async (req, res) => {
-  try {
-    const token = req.body?.token;
-    if (!token) {
-      return res.status(400).json({ success: false, message: 'Verification token is required' });
-    }
-
-    const hashed = hashToken(token);
-    const user = await User.findOne({
-      emailVerificationToken: hashed,
-      emailVerificationExpiresAt: { $gt: new Date() }
-    });
-
-    if (!user) {
-      return res.status(400).json({ success: false, message: 'Invalid or expired verification token' });
-    }
-
-    user.emailVerified = true;
-    user.emailVerificationToken = null;
-    user.emailVerificationExpiresAt = null;
-    await user.save();
-
-    res.json({ success: true, message: 'Email verified successfully', email: user.email });
-  } catch (error) {
-    console.error('Verify email error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-exports.resendEmailVerification = async (req, res) => {
-  try {
-    const email = normalizeEmail(req.body?.email);
-    if (!email) {
-      return res.status(400).json({ success: false, message: 'Email is required' });
-    }
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'No account found with that email' });
-    }
-
-    if (user.emailVerified) {
-      return res.json({ success: true, message: 'Email is already verified' });
-    }
-
-    await createEmailVerificationToken(user);
-
-    res.json({ success: true, message: 'Verification email sent' });
-  } catch (error) {
-    console.error('Resend email verification error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-const PASSWORD_RESET_TOKEN_TTL_MS = 30 * 60 * 1000;
-
-exports.sendPasswordReset = async (req, res) => {
-  try {
-    const email = normalizeEmail(req.body?.email);
-    if (!email) {
-      return res.status(400).json({ success: false, message: 'Email is required' });
-    }
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      // Do not reveal whether the account exists.
-      return res.json({ success: true, message: 'If that email is registered, a reset link has been sent.' });
-    }
-
-    const token = crypto.randomBytes(32).toString('hex');
-    user.passwordResetToken = hashToken(token);
-    user.passwordResetExpiresAt = new Date(Date.now() + PASSWORD_RESET_TOKEN_TTL_MS);
-    await user.save();
-
-    const resetUrl = `${FRONTEND_URL}/reset-password?token=${token}`;
-    await sendMail({
-      to: user.email,
-      subject: 'Reset your password - GENZ WhatsApp',
-      text: `Click this link to reset your password: ${resetUrl}. It expires in 30 minutes.`,
-      html: `<p>Click <a href="${resetUrl}">here</a> to reset your password. This link expires in 30 minutes.</p>`
-    });
-
-    res.json({
-      success: true,
-      message: 'Password reset link sent',
-      ...publicTokenPayload('token', token)
-    });
-  } catch (error) {
-    console.error('Send password reset error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-exports.resetPassword = async (req, res) => {
-  try {
-    const token = req.body?.token;
-    const newPassword = req.body?.password || req.body?.newPassword;
-
-    if (!token || !newPassword) {
-      return res.status(400).json({ success: false, message: 'Token and new password are required' });
-    }
-
-    const user = await User.findOne({
-      passwordResetToken: hashToken(token),
-      passwordResetExpiresAt: { $gt: new Date() }
-    });
-
-    if (!user) {
-      return res.status(400).json({ success: false, message: 'Invalid or expired reset token' });
-    }
-
-    await user.setPassword(newPassword);
-    user.passwordResetToken = null;
-    user.passwordResetExpiresAt = null;
-    user.passwordChangedAt = new Date();
-    await user.save();
-
-    res.json({ success: true, message: 'Password reset successfully' });
-  } catch (error) {
-    console.error('Reset password error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

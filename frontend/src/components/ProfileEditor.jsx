@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useUser } from '../context/UserContext';
-import { X, User, Mail, Camera, Save, Check } from 'lucide-react';
+import { X, User, Camera, Save, Check } from 'lucide-react';
 import userService from '../services/userService';
 import toast from 'react-hot-toast';
 
@@ -8,7 +8,6 @@ const ProfileEditor = ({ onClose }) => {
   const { user, updateUserProfile } = useUser();
   const [formData, setFormData] = useState({
     username: user?.username || '',
-    email: user?.email || '',
     bio: user?.bio || '',
     profilePicture: user?.profilePicture || ''
   });
@@ -83,7 +82,6 @@ const ProfileEditor = ({ onClose }) => {
       await userService.updateProfile({
         username: formData.username,
         bio: formData.bio,
-        email: formData.email,
         profilePicture: profilePictureForSave
       });
 
@@ -92,7 +90,6 @@ const ProfileEditor = ({ onClose }) => {
         updateUserProfile({
           username: formData.username,
           bio: formData.bio,
-          email: formData.email,
           profilePicture: profilePictureForSave,
           avatar: profilePictureForSave
         });
@@ -152,21 +149,6 @@ const ProfileEditor = ({ onClose }) => {
               className="w-full bg-dark-bg border border-dark-border rounded-lg p-3 text-dark-text focus:outline-none focus:border-primary-500"
               placeholder="Enter username"
             />
-          </div>
-
-          <div>
-            <label className="text-xs text-dark-textSecondary uppercase font-bold mb-2 block">Email</label>
-            <div className="relative">
-              <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-textSecondary" />
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="w-full bg-dark-bg border border-dark-border rounded-lg p-3 pl-10 text-dark-text focus:outline-none focus:border-primary-500"
-                placeholder="Enter email"
-              />
-            </div>
           </div>
 
           <div>

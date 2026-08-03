@@ -450,7 +450,7 @@ const ContactInfo = ({
   const systemName = contact?.username || 'Unknown';
   const displayName = savedName || systemName;
   const profilePicture = contact?.profilePicture || '';
-  const phoneNumber = contact?.phoneNumber || contact?.email || '';
+  const phoneNumber = contact?.phoneNumber || '';
   const aboutText = contact?.about || 'Hey there! I am using GENZ.';
   const isOnline = contact?.isOnline;
   // FEATURE ADD: shows "away" instead of "Online" when the contact has been

@@ -1389,36 +1389,6 @@ body {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
-/* Email verification */
-.email-verification {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: #233138;
-  border-radius: 16px;
-  padding: 24px;
-  z-index: 9998;
-  min-width: 400px;
-  max-width: 90vw;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-}
-
-/* Password reset */
-.password-reset {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: #233138;
-  border-radius: 16px;
-  padding: 24px;
-  z-index: 9998;
-  min-width: 400px;
-  max-width: 90vw;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-}
-
 /* Two factor auth */
 .two-factor-auth {
   position: fixed;
@@ -2091,24 +2061,6 @@ body {
 
 /* Add register page */
 .register-page {
-  min-height: 100vh;
-  background: #111b21;
-}
-
-/* Add forgot password page */
-.forgot-password-page {
-  min-height: 100vh;
-  background: #111b21;
-}
-
-/* Add reset password page */
-.reset-password-page {
-  min-height: 100vh;
-  background: #111b21;
-}
-
-/* Add verify email page */
-.verify-email-page {
   min-height: 100vh;
   background: #111b21;
 }

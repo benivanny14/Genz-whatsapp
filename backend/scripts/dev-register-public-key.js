@@ -7,10 +7,10 @@ const { registerClientPublicKeys } = require('../services/encryptionService');
 async function run() {
   await connectDB();
 
-  const TEST_EMAIL = process.env.E2EE_TEST_EMAIL || 'dev-e2ee@local';
-  let user = await User.findOne({ email: TEST_EMAIL });
+  const TEST_PHONE = process.env.E2EE_TEST_PHONE || '1111111112';
+  let user = await User.findOne({ phoneNumber: TEST_PHONE });
   if (!user) {
-    user = await User.create({ username: 'dev-e2ee', email: TEST_EMAIL, phoneNumber: '0000000000' });
+    user = await User.create({ username: 'dev-e2ee', phoneNumber: TEST_PHONE });
     console.log('Created test user:', user._id.toString());
   } else {
     console.log('Found test user:', user._id.toString());

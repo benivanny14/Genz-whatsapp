@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
-import { X, Share2, Link, MessageCircle, Mail, Copy, CheckCircle, Download, Instagram, Facebook, Twitter, Send } from 'lucide-react';
+import { X, Share2, Link, MessageCircle, Copy, CheckCircle, Download, Instagram, Facebook, Twitter, Send } from 'lucide-react';
 
 const StatusSharePanel = ({ onClose, status, onShare }) => {
   const [shareUrl, setShareUrl] = useState('');
@@ -13,8 +13,7 @@ const StatusSharePanel = ({ onClose, status, onShare }) => {
     { id: 'instagram', name: 'Instagram', icon: Instagram, color: 'bg-gradient-to-r from-purple-500 to-pink-500' },
     { id: 'facebook', name: 'Facebook', icon: Facebook, color: 'bg-blue-600' },
     { id: 'twitter', name: 'Twitter', icon: Twitter, color: 'bg-sky-500' },
-    { id: 'telegram', name: 'Telegram', icon: Send, color: 'bg-blue-500' },
-    { id: 'email', name: 'Email', icon: Mail, color: 'bg-gray-600' }
+    { id: 'telegram', name: 'Telegram', icon: Send, color: 'bg-blue-500' }
   ];
 
   useEffect(() => {
@@ -63,8 +62,6 @@ const StatusSharePanel = ({ onClose, status, onShare }) => {
         window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank');
       } else if (platform === 'twitter') {
         window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(customMessage)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
-      } else if (platform === 'email') {
-        window.location.href = `mailto:?subject=Check out this status&body=${encodeURIComponent(customMessage + '\n\n' + shareUrl)}`;
       }
     } catch (error) {
       console.error('Share error:', error);

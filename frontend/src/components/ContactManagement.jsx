@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserPlus, X, Edit, Trash2, Search, Phone, Mail, MoreVertical, Check, Filter, Star } from 'lucide-react';
+import { UserPlus, X, Edit, Trash2, Search, Phone, MoreVertical, Check, Filter, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const ContactManagement = ({ contacts, onCreateContact, onUpdateContact, onDeleteContact, onFavoriteContact, onClose }) => {
@@ -8,7 +8,6 @@ const ContactManagement = ({ contacts, onCreateContact, onUpdateContact, onDelet
   const [newContact, setNewContact] = useState({
     name: '',
     phone: '',
-    email: '',
     notes: ''
   });
   const [searchQuery, setSearchQuery] = useState('');
@@ -16,8 +15,7 @@ const ContactManagement = ({ contacts, onCreateContact, onUpdateContact, onDelet
 
   const filteredContacts = contacts.filter(contact => {
     const matchesSearch = contact.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         contact.phone?.includes(searchQuery) ||
-                         contact.email?.toLowerCase().includes(searchQuery.toLowerCase());
+                         contact.phone?.includes(searchQuery);
     
     const matchesFilter = filterType === 'all' ||
                          (filterType === 'favorites' && contact.isFavorite) ||
@@ -38,7 +36,7 @@ const ContactManagement = ({ contacts, onCreateContact, onUpdateContact, onDelet
     };
 
     onCreateContact(contact);
-    setNewContact({ name: '', phone: '', email: '', notes: '' });
+    setNewContact({ name: '', phone: '', notes: '' });
     setShowCreateModal(false);
   };
 
@@ -47,7 +45,6 @@ const ContactManagement = ({ contacts, onCreateContact, onUpdateContact, onDelet
     setNewContact({
       name: contact.name,
       phone: contact.phone,
-      email: contact.email || '',
       notes: contact.notes || ''
     });
     setShowCreateModal(true);
@@ -61,7 +58,7 @@ const ContactManagement = ({ contacts, onCreateContact, onUpdateContact, onDelet
 
     onUpdateContact(updatedContact);
     setEditingContact(null);
-    setNewContact({ name: '', phone: '', email: '', notes: '' });
+    setNewContact({ name: '', phone: '', notes: '' });
     setShowCreateModal(false);
   };
 
@@ -165,12 +162,6 @@ const ContactManagement = ({ contacts, onCreateContact, onUpdateContact, onDelet
                         <Phone size={14} />
                         <span>{contact.phone}</span>
                       </div>
-                      {contact.email && (
-                        <div className="flex items-center gap-2">
-                          <Mail size={14} />
-                          <span className="truncate">{contact.email}</span>
-                        </div>
-                      )}
                     </div>
                     {contact.notes && (
                       <p className="text-gray-500 text-xs mt-2 line-clamp-1">{contact.notes}</p>
@@ -218,7 +209,7 @@ const ContactManagement = ({ contacts, onCreateContact, onUpdateContact, onDelet
           <button
             onClick={() => {
               setEditingContact(null);
-              setNewContact({ name: '', phone: '', email: '', notes: '' });
+              setNewContact({ name: '', phone: '', notes: '' });
               setShowCreateModal(true);
             }}
             className="w-full bg-[#00a884] text-white py-3 rounded-lg font-medium hover:bg-[#008f72] transition-colors flex items-center justify-center gap-2"
@@ -247,7 +238,7 @@ const ContactManagement = ({ contacts, onCreateContact, onUpdateContact, onDelet
                   onClick={() => {
                     setShowCreateModal(false);
                     setEditingContact(null);
-                    setNewContact({ name: '', phone: '', email: '', notes: '' });
+                    setNewContact({ name: '', phone: '', notes: '' });
                   }}
                   className="text-gray-400 hover:text-white transition-colors"
                 >
@@ -274,17 +265,6 @@ const ContactManagement = ({ contacts, onCreateContact, onUpdateContact, onDelet
                     value={newContact.phone}
                     onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
                     placeholder="Phone number"
-                    className="w-full bg-[#0b141a] text-white px-4 py-3 rounded-lg border border-[#00a884]/30 focus:border-[#00a884] focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-gray-400 text-sm mb-1 block">Email (optional)</label>
-                  <input
-                    type="email"
-                    value={newContact.email}
-                    onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
-                    placeholder="Email address"
                     className="w-full bg-[#0b141a] text-white px-4 py-3 rounded-lg border border-[#00a884]/30 focus:border-[#00a884] focus:outline-none"
                   />
                 </div>

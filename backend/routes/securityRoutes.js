@@ -7,13 +7,7 @@ const {
   verifyTwoFactorLogin,
   getSecuritySettings,
   updateSecuritySettings,
-  getTwoFactorStatus,
-  getEmailVerificationStatus,
-  sendEmailVerification,
-  verifyEmail,
-  resendEmailVerification,
-  sendPasswordReset,
-  resetPassword
+  getTwoFactorStatus
 } = require('../controllers/securityController');
 const { protect } = require('../middleware/auth');
 
@@ -25,18 +19,8 @@ router.post('/2fa/disable', protect, disableTwoFactor);
 router.post('/2fa/login-verify', verifyTwoFactorLogin);
 router.get('/2fa/status', protect, getTwoFactorStatus);
 
-// Email Verification Routes
-router.get('/email/status', protect, getEmailVerificationStatus);
-router.post('/email/send-verification', protect, sendEmailVerification);
-router.post('/email/verify', verifyEmail);
-router.post('/email/resend-verification', resendEmailVerification);
-
 // Account Security Settings
 router.get('/settings', protect, getSecuritySettings);
 router.put('/settings', protect, updateSecuritySettings);
-
-// Password Reset (public — user is not authenticated when resetting)
-router.post('/password/send-reset', sendPasswordReset);
-router.post('/password/reset', resetPassword);
 
 module.exports = router;

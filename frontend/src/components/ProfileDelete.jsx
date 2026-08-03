@@ -78,7 +78,7 @@ const ProfileDelete = ({ user, onDeleteAccount, onClose }) => {
                 </div>
                 <div>
                   <p className="text-white font-medium">{user?.name || 'Unknown'}</p>
-                  <p className="text-gray-400 text-sm">{user?.email || user?.phone}</p>
+                  <p className="text-gray-400 text-sm">{user?.phone}</p>
                 </div>
               </div>
             </div>

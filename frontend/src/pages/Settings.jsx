@@ -4,7 +4,7 @@ import {
   ArrowLeft, Save, User, Lock, Bell, Shield, ShieldCheck, Users, Package, Building2, PhoneCall, Eye,
   Smartphone, ChevronRight, Database, UserRound, KeyRound, Languages,
   HelpCircle, Download, Trash2, Phone, Wifi, Image as ImageIcon,
-  HardDrive, CheckCircle2, EyeOff, Archive, Clock, Mail, FileText, Globe2,
+  HardDrive, CheckCircle2, EyeOff, Archive, Clock, FileText, Globe2,
   RefreshCw, RotateCcw, Palette, MessageSquare, MapPin, X, Fingerprint
 } from 'lucide-react';
 import ContactManager from '../components/ContactManager';
@@ -31,7 +31,6 @@ const SETTINGS_KEY = 'genz_user_settings';
 
 const DEFAULT_SETTINGS = {
   account: {
-    email: '',
     twoStepVerification: false,
     passkeys: false,
     securityNotifications: true,
@@ -778,11 +777,6 @@ const Settings = () => {
   const renderAccount = () => (
     <div className="space-y-4">
       <SettingSection title="Account" description="Security, passkeys, account information, and account actions.">
-        <SettingRow icon={Mail} title="Email address" description="Used for verification and recovery." control={
-          <div className="w-56">
-            <TextInput value={settingsData.account.email} onChange={(value) => updateSetting('account.email', value)} placeholder="name@example.com" type="email" />
-          </div>
-        } />
         <SettingRow icon={Shield} title="Two-step verification" description="Open the full 2FA setup flow." onClick={() => navigate('/settings/security')} />
         <SettingRow icon={KeyRound} title="Passkeys" description="Store passkey preference for secure sign-in and backups." control={
           <Toggle checked={settingsData.account.passkeys} onChange={() => toggleSetting('account.passkeys')} />
@@ -991,7 +985,6 @@ const Settings = () => {
     <div className="space-y-4">
       <SettingSection title="Help" description="Support, diagnostics, app info, and account export tools.">
         <SettingRow icon={HelpCircle} title="Help center" description="Open GENZ help and support route." onClick={() => showStatus('success', 'Help Center is ready for integration.')} />
-        <SettingRow icon={Mail} title="Contact us" description="Prepare support email." onClick={() => { window.location.href = 'mailto:support@genz.local?subject=GENZ%20WhatsApp%20Support'; }} />
         <SettingRow icon={FileText} title="Terms and Privacy Policy" description="Terms, privacy, and app information entry." onClick={() => showStatus('success', 'Terms and Privacy Policy entry is available.')} />
         <SettingRow icon={Shield} title="Diagnostics" description="Attach safe diagnostics to support messages." control={<Toggle checked={settingsData.help.diagnostics} onChange={() => toggleSetting('help.diagnostics')} />} />
         <SettingRow

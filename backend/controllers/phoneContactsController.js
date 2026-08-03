@@ -6,7 +6,7 @@ const Conversation = require('../models/Conversation');
 // @access  Private
 exports.uploadPhoneContacts = async (req, res) => {
   try {
-    const { contacts } = req.body; // contacts: [{ name, phone, email }]
+    const { contacts } = req.body; // contacts: [{ name, phone }]
     const userId = req.user._id;
 
     if (!Array.isArray(contacts) || contacts.length === 0) {
@@ -16,32 +16,26 @@ exports.uploadPhoneContacts = async (req, res) => {
     // Normalize phone numbers (remove spaces, dashes, etc.)
     const normalizedContacts = contacts.map(contact => ({
       name: contact.name || '',
-      phone: contact.phone ? contact.phone.replace(/[\s\-\(\)]/g, '') : '',
-      email: contact.email || ''
+      phone: contact.phone ? contact.phone.replace(/[\s\-\(\)]/g, '') : ''
     }));
 
     // Find matching users on the server
     const phoneNumbers = normalizedContacts.map(c => c.phone).filter(p => p);
-    const emails = normalizedContacts.map(c => c.email).filter(e => e);
 
     const matchedUsers = await User.find({
-      $or: [
-        { phoneNumber: { $in: phoneNumbers } },
-        { email: { $in: emails } }
-      ],
+      phoneNumber: { $in: phoneNumbers },
       _id: { $ne: userId }
-    }).select('username phoneNumber email profilePicture about isOnline lastSeen');
+    }).select('username phoneNumber profilePicture about isOnline lastSeen');
 
     // Create a map for quick lookup
     const userMap = {};
     matchedUsers.forEach(user => {
       if (user.phoneNumber) userMap[user.phoneNumber] = user;
-      if (user.email) userMap[user.email] = user;
     });
 
     // Match contacts with server users
     const matchedContacts = normalizedContacts.map(contact => {
-      const matchedUser = userMap[contact.phone] || userMap[contact.email];
+      const matchedUser = userMap[contact.phone];
       if (matchedUser) {
         return {
           ...contact,
@@ -96,7 +90,7 @@ exports.uploadPhoneContacts = async (req, res) => {
 exports.getMatchedContacts = async (req, res) => {
   try {
     const userId = req.user._id;
-    const user = await User.findById(userId).populate('contacts.user', 'username phoneNumber email profilePicture about isOnline lastSeen');
+    const user = await User.findById(userId).populate('contacts.user', 'username phoneNumber profilePicture about isOnline lastSeen');
 
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
@@ -127,29 +121,23 @@ exports.syncContacts = async (req, res) => {
     // Normalize and match contacts (same logic as upload)
     const normalizedContacts = contacts.map(contact => ({
       name: contact.name || '',
-      phone: contact.phone ? contact.phone.replace(/[\s\-\(\)]/g, '') : '',
-      email: contact.email || ''
+      phone: contact.phone ? contact.phone.replace(/[\s\-\(\)]/g, '') : ''
     }));
 
     const phoneNumbers = normalizedContacts.map(c => c.phone).filter(p => p);
-    const emails = normalizedContacts.map(c => c.email).filter(e => e);
 
     const matchedUsers = await User.find({
-      $or: [
-        { phoneNumber: { $in: phoneNumbers } },
-        { email: { $in: emails } }
-      ],
+      phoneNumber: { $in: phoneNumbers },
       _id: { $ne: userId }
-    }).select('username phoneNumber email profilePicture about isOnline lastSeen');
+    }).select('username phoneNumber profilePicture about isOnline lastSeen');
 
     const userMap = {};
     matchedUsers.forEach(user => {
       if (user.phoneNumber) userMap[user.phoneNumber] = user;
-      if (user.email) userMap[user.email] = user;
     });
 
     const matchedContacts = normalizedContacts.map(contact => {
-      const matchedUser = userMap[contact.phone] || userMap[contact.email];
+      const matchedUser = userMap[contact.phone];
       if (matchedUser) {
         return {
           ...contact,
@@ -266,7 +254,7 @@ exports.getContactSuggestions = async (req, res) => {
       _id: { $ne: userId, $nin: contactIds },
       isBlocked: false
     })
-    .select('username phoneNumber email profilePicture about isOnline lastSeen')
+    .select('username phoneNumber profilePicture about isOnline lastSeen')
     .limit(20);
 
     res.json({ success: true, suggestions });

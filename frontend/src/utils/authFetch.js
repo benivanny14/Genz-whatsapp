@@ -57,8 +57,7 @@ export async function authFetch(input, init = {}) {
     }
     if (
       urlString.includes('/api/auth/login') ||
-      urlString.includes('/api/auth/register') ||
-      urlString.includes('/api/auth/forgot-password')
+      urlString.includes('/api/auth/register')
     ) {
       return response;
     }

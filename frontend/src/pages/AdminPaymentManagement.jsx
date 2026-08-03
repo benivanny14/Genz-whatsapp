@@ -340,7 +340,7 @@ function PaymentDetailModal({ paymentId, onClose, onChanged }) {
                 </div>
                 <div className="min-w-0">
                   <p className="font-bold truncate">{data.user?.username}</p>
-                  <p className="text-xs text-white/50 truncate">{data.user?.email || 'No email'} · {data.user?.phoneNumber}</p>
+                  <p className="text-xs text-white/50 truncate">{data.user?.phoneNumber}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs pt-2 text-white/60">

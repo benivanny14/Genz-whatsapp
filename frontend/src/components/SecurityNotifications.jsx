@@ -238,25 +238,6 @@ export const SecurityNotificationSettings = ({ settings, onUpdate }) => {
               />
             </button>
           </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-white text-sm">Email alerts</p>
-              <p className="text-gray-400 text-xs">Send to email</p>
-            </div>
-            <button
-              onClick={() => onUpdate({ ...settings, securityEmailAlerts: !settings.securityEmailAlerts })}
-              className={`w-12 h-6 rounded-full transition-all ${
-                settings.securityEmailAlerts ? 'bg-[#00a884]' : 'bg-[#0b141a]'
-              }`}
-            >
-              <div
-                className={`w-5 h-5 bg-white rounded-full transition-all ${
-                  settings.securityEmailAlerts ? 'translate-x-6' : 'translate-x-0.5'
-                }`}
-              />
-            </button>
-          </div>
         </div>
       )}
     </div>

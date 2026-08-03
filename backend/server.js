@@ -208,7 +208,6 @@ const ensureLocalUser = async () => {
           _id: DEFAULT_LOCAL_USER_ID,
           username: 'GENZ User',
           phoneNumber: 'local-web-device',
-          email: 'local-web-device@device.genz.local',
           deviceId: 'local-web-device',
           status: 'offline'
         }
@@ -668,7 +667,6 @@ const chatFilterRoutes = require('./routes/chat-filter');
 const chatFoldersRoutes = require('./routes/chat-folders');
 const chatSearchRoutes = require('./routes/chat-search');
 const chatSortRoutes = require('./routes/chat-sort');
-const collaborativeStatusRoutes = require('./routes/collaborative-status');
 const dataUsageRoutes = require('./routes/data-usage');
 const fakeChatRoutes = require('./routes/fake-chat');
 const fileManagerRoutes = require('./routes/file-manager');
@@ -753,7 +751,6 @@ app.use('/api/chat-filter', chatFilterRoutes);
 app.use('/api/chat-folders', chatFoldersRoutes);
 app.use('/api/chat-search', chatSearchRoutes);
 app.use('/api/chat-sort', chatSortRoutes);
-app.use('/api/collaborative-status', collaborativeStatusRoutes);
 app.use('/api/data-usage', dataUsageRoutes);
 app.use('/api/fake-chat', fakeChatRoutes);
 app.use('/api/file-manager', fileManagerRoutes);

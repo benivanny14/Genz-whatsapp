@@ -38,12 +38,10 @@ const createOrFindDeviceUser = async (deviceId) => {
   let user = await User.findOne({ deviceId });
 
   if (!user) {
-    const safeDeviceId = String(deviceId).toLowerCase().replace(/[^a-z0-9._-]/g, '-');
     const userData = {
       deviceId,
       username: `GENZ User ${deviceId.substring(0, 8)}`,
       phoneNumber: deviceId,
-      email: `${safeDeviceId}@device.genz.local`,
       status: 'offline'
     };
 

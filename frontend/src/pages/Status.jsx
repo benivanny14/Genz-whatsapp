@@ -15,8 +15,6 @@ import VideoToolsPanel from '../components/VideoToolsPanel';
 import ARFilterPanel from '../components/ARFilterPanel';
 import AudioPanel from '../components/AudioPanel';
 import SubtitlesPanel from '../components/SubtitlesPanel';
-import MonetizationPanel from '../components/MonetizationPanel';
-import AnalyticsPanel from '../components/AnalyticsPanel';
 import CrossPlatformSharingPanel from '../components/CrossPlatformSharingPanel';
 import AccessibilityPanel from '../components/AccessibilityPanel';
 import BusinessShoppingPanel from '../components/BusinessShoppingPanel';
@@ -1613,8 +1611,6 @@ const Status = () => {
                   <button onClick={() => setActivePanel('ar')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">AR Filters</button>
                   <button onClick={() => setActivePanel('audio')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Audio Panel</button>
                   <button onClick={() => setActivePanel('subtitles')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Subtitles</button>
-                  <button onClick={() => setActivePanel('monetization')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Monetization</button>
-                  <button onClick={() => setActivePanel('analytics')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Analytics</button>
                   <button onClick={() => setActivePanel('sharing')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Cross-Platform Sharing</button>
                   <button onClick={() => setActivePanel('accessibility')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Accessibility</button>
                   <button onClick={() => setActivePanel('business')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Business/Shopping</button>
@@ -1644,8 +1640,6 @@ const Status = () => {
                     {activePanel === 'ar' && <ARFilterPanel onClose={() => setActivePanel(null)} image={editImageUrl} onSave={handleEditorSaveImage} />}
                     {activePanel === 'audio' && <AudioPanel onClose={() => setActivePanel(null)} onSave={handleAudioSave} />}
                     {activePanel === 'subtitles' && <SubtitlesPanel onClose={() => setActivePanel(null)} video={editVideoUrl} onSave={handleSubtitlesSave} />}
-                  {activePanel === 'monetization' && <MonetizationPanel onClose={() => setActivePanel(null)} />}
-                  {activePanel === 'analytics' && <AnalyticsPanel onClose={() => setActivePanel(null)} />}
                   {activePanel === 'sharing' && <CrossPlatformSharingPanel onClose={() => setActivePanel(null)} />}
                   {activePanel === 'accessibility' && <AccessibilityPanel onClose={() => setActivePanel(null)} />}
                   {activePanel === 'business' && <BusinessShoppingPanel onClose={() => setActivePanel(null)} />}

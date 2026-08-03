@@ -129,7 +129,7 @@ exports.register = async (req, res) => {
     console.error('[Auth] Registration error:', error.message);
     if (error.code === 11000 || error.name === 'MongoServerError') {
       const field = Object.keys(error.keyPattern || {})[0] || 'field';
-      const label = field === 'phoneNumber' ? 'Phone number' : field === 'email' ? 'Email' : field === 'username' ? 'Username' : 'This value';
+      const label = field === 'phoneNumber' ? 'Phone number' : field === 'username' ? 'Username' : 'This value';
       return res.status(409).json({ success: false, message: `${label} is already registered. Please login instead.` });
     }
     if (error.name === 'ValidationError') {
@@ -370,15 +370,6 @@ exports.updateSettings = async (req, res) => {
 
     user.settings = mergeWhatsAppSettings(user.settings || {}, incoming);
 
-    if (incoming?.account?.email !== undefined) {
-      const normalizedEmail = String(incoming.account.email || '').trim().toLowerCase();
-      user.email = normalizedEmail;
-      user.settings.account.email = normalizedEmail;
-      if (!user.email) {
-        user.emailVerified = false;
-      }
-    }
-
     if (incoming?.account?.requestAccountInfoAt !== undefined && !user.settings.account.requestAccountInfoAt) {
       user.settings.account.requestAccountInfoAt = new Date().toISOString();
     }
@@ -476,7 +467,7 @@ exports.deleteAccount = async (req, res) => {
 
 exports.getBlockedUsers = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).populate('blockedUsers', 'username phoneNumber email profilePicture about isOnline lastSeen settings contacts');
+    const user = await User.findById(req.user._id).populate('blockedUsers', 'username phoneNumber profilePicture about isOnline lastSeen settings contacts');
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
@@ -569,7 +560,7 @@ exports.refreshToken = async (req, res) => {
 exports.updateBusinessProfile = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { businessName, businessCategory, businessAddress, businessEmail, businessWebsite, businessDescription, businessHours } = req.body;
+    const { businessName, businessCategory, businessAddress, businessWebsite, businessDescription, businessHours } = req.body;
 
     const user = await User.findById(userId);
     if (!user) {
@@ -581,7 +572,6 @@ exports.updateBusinessProfile = async (req, res) => {
       businessName: businessName || '',
       businessCategory: businessCategory || 'other',
       businessAddress: businessAddress || '',
-      businessEmail: businessEmail || '',
       businessWebsite: businessWebsite || '',
       businessDescription: businessDescription || '',
       businessHours: businessHours || ''
@@ -838,10 +828,10 @@ exports.getUserOnlineHistory = async (req, res) => {
 // @access  Public
 exports.sendOTP = async (req, res) => {
   try {
-    const { phoneNumber, email, type } = req.body; // type: 'register' or 'login'
+    const { phoneNumber, type } = req.body; // type: 'register' or 'login'
     
-    if (!phoneNumber && !email) {
-      return res.status(400).json({ success: false, message: 'Phone number or email is required' });
+    if (!phoneNumber) {
+      return res.status(400).json({ success: false, message: 'Phone number is required' });
     }
 
     // Generate 6-digit OTP
@@ -851,23 +841,13 @@ exports.sendOTP = async (req, res) => {
     // Find or create user
     let user;
     if (type === 'register') {
-      user = await User.findOne({
-        $or: [
-          { phoneNumber: phoneNumber?.trim() },
-          { email: email?.trim()?.toLowerCase() }
-        ]
-      });
+      user = await User.findOne({ phoneNumber: phoneNumber.trim() });
 
       if (user) {
         return res.status(400).json({ success: false, message: 'User already exists. Please login instead.' });
       }
     } else {
-      user = await User.findOne({
-        $or: [
-          { phoneNumber: phoneNumber?.trim() },
-          { email: email?.trim()?.toLowerCase() }
-        ]
-      });
+      user = await User.findOne({ phoneNumber: phoneNumber.trim() });
 
       if (!user) {
         return res.status(404).json({ success: false, message: 'User not found' });
@@ -879,7 +859,6 @@ exports.sendOTP = async (req, res) => {
       code: otp,
       expiresAt,
       phoneNumber: phoneNumber || null,
-      email: email || null,
       type,
       attempts: 0
     };
@@ -889,12 +868,12 @@ exports.sendOTP = async (req, res) => {
       await user.save();
     } else {
       // For registration, we'll store in session or temp storage
-      // For now, we'll just return the OTP (in production, send via SMS/email)
+      // For now, we'll just return the OTP (in production, send via SMS)
     }
 
-    // In production, send OTP via SMS/email service
+    // In production, send OTP via SMS service
     // For demo purposes, we'll log it
-    console.log('[OTP] Generated OTP:', { otp, phoneNumber, email, type });
+    console.log('[OTP] Generated OTP:', { otp, phoneNumber, type });
 
     res.json({
       success: true,
@@ -913,22 +892,17 @@ exports.sendOTP = async (req, res) => {
 // @access  Public
 exports.verifyOTP = async (req, res) => {
   try {
-    const { phoneNumber, email, otp, type } = req.body;
+    const { phoneNumber, otp, type } = req.body;
 
     if (!otp) {
       return res.status(400).json({ success: false, message: 'OTP is required' });
     }
 
-    if (!phoneNumber && !email) {
-      return res.status(400).json({ success: false, message: 'Phone number or email is required' });
+    if (!phoneNumber) {
+      return res.status(400).json({ success: false, message: 'Phone number is required' });
     }
 
-    const user = await User.findOne({
-      $or: [
-        { phoneNumber: phoneNumber?.trim() },
-        { email: email?.trim()?.toLowerCase() }
-      ]
-    });
+    const user = await User.findOne({ phoneNumber: phoneNumber.trim() });
 
     if (!user && type === 'login') {
       return res.status(404).json({ success: false, message: 'User not found' });
@@ -986,36 +960,30 @@ exports.verifyOTP = async (req, res) => {
 // @access  Public
 exports.resendOTP = async (req, res) => {
   try {
-    const { phoneNumber, email, type } = req.body;
+    const { phoneNumber, type } = req.body;
 
-    if (!phoneNumber && !email) {
-      return res.status(400).json({ success: false, message: 'Phone number or email is required' });
+    if (!phoneNumber) {
+      return res.status(400).json({ success: false, message: 'Phone number is required' });
     }
 
     // Generate new OTP
     const otp = crypto.randomInt(100000, 999999).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    const user = await User.findOne({
-      $or: [
-        { phoneNumber: phoneNumber?.trim() },
-        { email: email?.trim()?.toLowerCase() }
-      ]
-    });
+    const user = await User.findOne({ phoneNumber: phoneNumber.trim() });
 
     if (user) {
       user.otpData = {
         code: otp,
         expiresAt,
         phoneNumber: phoneNumber || null,
-        email: email || null,
         type,
         attempts: 0
       };
       await user.save();
     }
 
-    console.log('[OTP] Resent OTP:', { otp, phoneNumber, email, type });
+    console.log('[OTP] Resent OTP:', { otp, phoneNumber, type });
 
     res.json({
       success: true,

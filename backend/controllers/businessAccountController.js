@@ -5,7 +5,6 @@ const defaultSettings = {
   businessName: '',
   businessCategory: '',
   businessDescription: '',
-  businessEmail: '',
   businessPhone: '',
   businessAddress: '',
   businessHours: {
@@ -89,7 +88,7 @@ exports.enableBusinessAccount = async (req, res) => {
     const user = await getUser(req, res);
     if (!user) return;
 
-    const { businessName, businessCategory, businessEmail, businessPhone } = req.body;
+    const { businessName, businessCategory, businessPhone } = req.body;
 
     if (!businessName || !businessCategory) {
       return res.status(400).json({ success: false, message: 'Business name and category are required' });
@@ -102,7 +101,6 @@ exports.enableBusinessAccount = async (req, res) => {
       businessAccountEnabled: true,
       businessName,
       businessCategory,
-      businessEmail: businessEmail || existing.businessEmail,
       businessPhone: businessPhone || existing.businessPhone
     });
     user.markModified('businessAccountSettings');

@@ -51,7 +51,6 @@
     "multer": "^1.4.5-lts.1",
     "multer-storage-cloudinary": "^4.0.0",
     "node-cron": "^3.0.3",
-    "nodemailer": "^6.9.7",
     "otpauth": "^9.2.3",
     "qrcode": "^1.5.3",
     "qrcode-reader": "^1.0.4",
