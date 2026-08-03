@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Crown, Copy, CheckCircle2, XCircle, Clock, AlertTriangle,
-  Loader2, Phone, User as UserIcon, Send, MessageCircle, RefreshCw
+  Loader2, Phone, User as UserIcon, Send, MessageCircle, RefreshCw, DollarSign
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -352,6 +352,27 @@ export default function SubscriptionPayment() {
             Submit Payment
           </button>
         </form>
+
+        {/* GENZ AFTER WORK - Premium Feature */}
+        <div className="rounded-xl border border-purple-500/30 bg-purple-500/10 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                <DollarSign size={20} className="text-purple-300" />
+              </div>
+              <div>
+                <p className="font-bold text-white">GENZ AFTER WORK</p>
+                <p className="text-xs text-white/60">Discover premium features & services</p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/genz-after-work')}
+              className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-semibold transition-colors"
+            >
+              Access
+            </button>
+          </div>
+        </div>
 
         {/* Payment history */}
         <div className="space-y-2">

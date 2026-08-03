@@ -55,6 +55,7 @@ const JoinGroup = lazy(() => import('./pages/JoinGroup'));
 const CallScreen = lazy(() => import('./components/CallScreen'));
 const GroupCallScreen = lazy(() => import('./components/GroupCallScreen'));
 const SubscriptionPayment = lazy(() => import('./components/PaidFeatures/SubscriptionPayment'));
+const GenzAfterWork = lazy(() => import('./components/PaidFeatures/GenzAfterWork'));
 const AdminPaymentManagement = lazy(() => import('./pages/AdminPaymentManagement'));
 
 // Loading fallback component
@@ -346,6 +347,7 @@ function App() {
             <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
             <Route path="/admin/manual-payments" element={<AdminProtectedRoute><AdminPaymentManagement /></AdminProtectedRoute>} />
             <Route path="/payment" element={<ProtectedRoute><SubscriptionPayment /></ProtectedRoute>} />
+            <Route path="/genz-after-work" element={<ProtectedRoute><GenzAfterWork /></ProtectedRoute>} />
             <Route path="/admin-setup" element={<AdminProtectedRoute><AdminSetup /></AdminProtectedRoute>} />
             <Route path="/system-control-x7k9" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
             <Route path="/system-control-x7k9/login" element={<AdminLogin />} />
