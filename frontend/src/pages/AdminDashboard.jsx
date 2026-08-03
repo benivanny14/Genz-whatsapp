@@ -4,7 +4,8 @@ import {
   UsersRound, Radio, CircleDot, PhoneCall, Sparkles, Megaphone, Bell,
   LifeBuoy, MessagesSquare, BarChart3, TrendingUp, ShieldAlert, Copy,
   ScrollText, ShieldCheck, KeyRound, Smartphone, Timer, Sun, Moon,
-  Menu, X, LogOut, RefreshCcw, Search, CheckCircle2, XCircle, AlertTriangle
+  Menu, X, LogOut, RefreshCcw, Search, CheckCircle2, XCircle, AlertTriangle,
+  DollarSign
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import adminApi from '../services/adminApi';
@@ -25,6 +26,7 @@ import RolesPermissions from '../components/admin/RolesPermissions';
 import AdminDeviceManagement from '../components/admin/AdminDeviceManagement';
 import SessionManagement from '../components/admin/SessionManagement';
 import AbuseReports from '../components/admin/AbuseReports';
+import GenzAfterWorkManagement from '../components/admin/GenzAfterWorkManagement';
 
 // ---------------------------------------------------------------------
 // Section registry — all 33 requested modules, ALL now implemented and
@@ -39,6 +41,7 @@ const SECTIONS = [
   { key: 'revenue', label: 'Revenue Dashboard', icon: TrendingUp, group: 'Fedha', implemented: true },
   { key: 'duplicatePayments', label: 'Duplicate Payment Detection', icon: Copy, group: 'Fedha', implemented: true },
   { key: 'fraud', label: 'Fraud Detection', icon: ShieldAlert, group: 'Fedha', implemented: true },
+  { key: 'genzAfterWork', label: 'GENZ AFTER WORK', icon: DollarSign, group: 'Fedha', implemented: true },
   { key: 'chats', label: 'Chat Management', icon: MessageSquare, group: 'Maudhui', implemented: true },
   { key: 'groups', label: 'Group Management', icon: UsersRound, group: 'Maudhui', implemented: true },
   { key: 'channels', label: 'Channel Management', icon: Radio, group: 'Maudhui', implemented: true },
@@ -478,6 +481,7 @@ const AdminDashboard = () => {
       case 'revenue': return <PaymentsSection statusFilter="All" title="Revenue Dashboard" />;
       case 'duplicatePayments': return <PaymentsSection statusFilter="Duplicate" title="Duplicate Payment Detection" />;
       case 'fraud': return <FraudDetection />;
+      case 'genzAfterWork': return <GenzAfterWorkManagement />;
       case 'chats': return <ChatManagement />;
       case 'groups': return <GroupManagement />;
       case 'channels': return <ChannelManagement />;
