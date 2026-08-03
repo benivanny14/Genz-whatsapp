@@ -46,13 +46,23 @@ const STICKER_PACKS = [
 ];
 
 const MediaPickerPanel = ({
-  activeTab = 'emoji',
-  onTabChange,
-  onEmojiSelect,
-  onStickerSelect,
-  onGIFSelect,
-  theme = 'dark'
-}) => {
+    activeTab = 'emoji',
+    onTabChange,
+    onEmojiSelect,
+    onStickerSelect,
+    onGIFSelect,
+    theme = 'dark'
+  }) => {
+  const safeOnStickerSelect = (stickerUrl, options = {}) => {
+    if (typeof onStickerSelect === 'function') {
+      const isCallbackWithOptions = onStickerSelect.length > 1;
+      if (isCallbackWithOptions) {
+        onStickerSelect(stickerUrl, options);
+      } else {
+        onStickerSelect(stickerUrl);
+      }
+    }
+  };
   return (
     <div className="flex flex-col h-[350px] w-full bg-[#1a2332] border-t border-gray-700 shadow-2xl z-40 transition-transform duration-300 ease-out origin-bottom transform translate-y-0">
       

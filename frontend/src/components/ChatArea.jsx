@@ -3371,9 +3371,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               activeTab={activeMediaTab}
               onTabChange={setActiveMediaTab}
               onEmojiSelect={handleEmojiClick}
-              onStickerSelect={(url) => {
-                setSelectedMedia({ type: 'sticker', url });
+              onStickerSelect={(stickerUrl, options = {}) => {
+                setSelectedMedia({ type: 'sticker', url: stickerUrl, options });
                 setShowMediaPanel(false);
+                handleSendMessage(stickerUrl, { sticker: { type: 'sticker', url: stickerUrl, ...options } }, selectedConversation?._id);
               }}
               onGIFSelect={(gif) => {
                 setSelectedMedia({ type: 'gif', url: gif.images.fixed_height.url, meta: gif });
