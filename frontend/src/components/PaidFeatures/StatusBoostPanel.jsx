@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { resolveApiBase } from '../utils/resolveApiBase';
+import { resolveApiBase } from '../../utils/resolveApiBase';
 import { X, Zap, TrendingUp, Users, Eye, CheckCircle, CreditCard } from 'lucide-react';
 
 const StatusBoostPanel = ({ onClose, status, onBoost }) => {

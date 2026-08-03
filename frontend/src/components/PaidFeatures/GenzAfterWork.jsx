@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { authFetch } from '../utils/authFetch';
-import { API_URL } from '../config';
+import { authFetch } from '../../utils/authFetch';
+import { API_URL } from '../../config';
 import { 
   DollarSign, 
   MapPin, 
@@ -215,7 +215,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
   const resetCreateForm = () => {
     setCreateForm({
       name: '',
-      description: '',',
+      description: '',
       price: '',
       maxPrice: '',
       location: '',

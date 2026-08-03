@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Send, MessageCircle, DollarSign, Users, Check, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { authFetch } from '../utils/authFetch';
-import { resolveApiBase } from '../utils/resolveApiBase';
-import { useChat } from '../context/ChatContext';
-import { useUser } from '../context/UserContext';
+import { authFetch } from '../../utils/authFetch';
+import { resolveApiBase } from '../../utils/resolveApiBase';
+import { useChat } from '../../context/ChatContext';
+import { useUser } from '../../context/UserContext';
 
 const API_URL = resolveApiBase();
 

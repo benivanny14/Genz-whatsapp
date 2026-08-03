@@ -4,11 +4,11 @@ import {
   ArrowLeft, Crown, Copy, CheckCircle2, XCircle, Clock, AlertTriangle,
   Loader2, Phone, User as UserIcon, Send, MessageCircle, RefreshCw
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import {
   getPaymentInfo, previewSms, submitPayment, getMyPayments, sendUserReply
-} from '../services/manualPaymentService';
-import { getSocket } from '../services/socket';
+} from '../../services/manualPaymentService';
+import { getSocket } from '../../services/socket';
 
 const STATUS_META = {
   Pending: { color: 'text-yellow-300 bg-yellow-500/10 border-yellow-500/30', icon: Clock, label: 'Pending review' },
