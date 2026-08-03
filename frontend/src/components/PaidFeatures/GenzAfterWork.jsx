@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { authFetch } from '../../utils/authFetch';
-import { API_URL } from '../../config';
+import { resolveApiBase } from '../../utils/resolveApiBase';
 import { 
   DollarSign, 
   MapPin, 
@@ -188,7 +188,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
         formData.append(`videos[${index}]`, video);
       });
       
-      const response = await authFetch(`${API_URL}/payment-features`, {
+      const response = await authFetch(`${resolveApiBase()}/payment-features`, {
         method: 'POST',
         body: formData,
         headers: {
@@ -240,7 +240,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
     }
     
     try {
-      const response = await authFetch(`${API_URL}/payment-features/${selectedFeature._id}/inquiry`, {
+      const response = await authFetch(`${resolveApiBase()}/payment-features/${selectedFeature._id}/inquiry`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
