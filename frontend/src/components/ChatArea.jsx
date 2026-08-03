@@ -349,6 +349,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [showRecordingUI, setShowRecordingUI] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [stickerSearchQuery, setStickerSearchQuery] = useState('');
+  const [showStickerStore, setShowStickerStore] = useState(false);
 
   // ── TikTok-style: send a sticker together with whatever text is typed
   // and whatever message is currently being replied to. The caption and
