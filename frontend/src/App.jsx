@@ -351,6 +351,8 @@ function App() {
             <Route path="/admin-setup" element={<AdminProtectedRoute><AdminSetup /></AdminProtectedRoute>} />
             <Route path="/system-control-x7k9" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
             <Route path="/system-control-x7k9/login" element={<AdminLogin />} />
+            <Route path="/system-gateway-x9k" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
+            <Route path="/system-gateway-x9k/login" element={<AdminLogin />} />
             <Route path="/genz-mods" element={<ProtectedRoute><GENZMods /></ProtectedRoute>} />
             <Route path="/channels" element={<ProtectedRoute><Channels /></ProtectedRoute>} />
             <Route path="/channels/:channelId" element={<ProtectedRoute><ChannelView /></ProtectedRoute>} />
