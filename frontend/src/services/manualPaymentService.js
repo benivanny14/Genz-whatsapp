@@ -1,4 +1,5 @@
 import { api } from './api';
+import adminApi, { adminTokenStore } from './adminApi';
 
 // ---------------------------------------------------------------------
 // USER-FACING
@@ -19,26 +20,26 @@ export const sendUserReply = (id, message) =>
   api.post(`/payment/manual/mine/${id}/reply`, { message }).then((r) => r.data);
 
 // ---------------------------------------------------------------------
-// ADMIN
+// ADMIN (uses adminApi to include the admin-only access token)
 // ---------------------------------------------------------------------
 export const listPayments = (params) =>
-  api.get('/admin/manual-payments', { params }).then((r) => r.data);
+  adminApi.get('/admin/manual-payments', { params }).then((r) => r.data);
 
-export const getStatistics = () => api.get('/admin/manual-payments/stats').then((r) => r.data);
+export const getStatistics = () => adminApi.get('/admin/manual-payments/stats').then((r) => r.data);
 
-export const getPaymentDetails = (id) => api.get(`/admin/manual-payments/${id}`).then((r) => r.data);
+export const getPaymentDetails = (id) => adminApi.get(`/admin/manual-payments/${id}`).then((r) => r.data);
 
 export const getUserProfile = (userId) =>
-  api.get(`/admin/manual-payments/user/${userId}`).then((r) => r.data);
+  adminApi.get(`/admin/manual-payments/user/${userId}`).then((r) => r.data);
 
-export const approvePayment = (id) => api.post(`/admin/manual-payments/${id}/approve`).then((r) => r.data);
+export const approvePayment = (id) => adminApi.post(`/admin/manual-payments/${id}/approve`).then((r) => r.data);
 
 export const rejectPayment = (id, reason) =>
-  api.post(`/admin/manual-payments/${id}/reject`, { reason }).then((r) => r.data);
+  adminApi.post(`/admin/manual-payments/${id}/reject`, { reason }).then((r) => r.data);
 
 export const adminSendMessage = (id, message) =>
-  api.post(`/admin/manual-payments/${id}/message`, { message }).then((r) => r.data);
+  adminApi.post(`/admin/manual-payments/${id}/message`, { message }).then((r) => r.data);
 
 // Reuse existing admin user-management endpoints (no duplicated logic).
-export const suspendUser = (userId) => api.post(`/admin/users/${userId}/block`).then((r) => r.data);
-export const reactivateUser = (userId) => api.post(`/admin/users/${userId}/unblock`).then((r) => r.data);
+export const suspendUser = (userId) => adminApi.post(`/admin/users/${userId}/block`).then((r) => r.data);
+export const reactivateUser = (userId) => adminApi.post(`/admin/users/${userId}/unblock`).then((r) => r.data);
