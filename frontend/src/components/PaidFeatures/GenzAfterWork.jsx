@@ -283,21 +283,21 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
   };
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+    <div className="min-h-screen bg-black">
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          <h1 className="text-4xl font-bold text-white mb-2">
             GENZ AFTER WORK
           </h1>
-          <p className="text-xl text-gray-600">
+          <p className="text-xl text-gray-300">
             Discover Amazing Features for Real Estate, Services & Businesses
           </p>
         </div>
         
         {/* Create Feature Button - Admin Only */}
         {user && user.isAdmin && (
-          <div className="bg-[#800000] rounded-lg shadow-md p-4 mb-8">
+          <div className="bg-black rounded-lg shadow-md p-4 mb-8">
             <button
               onClick={() => setShowCreateForm(!showCreateForm)}
               className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg"
@@ -310,13 +310,13 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
         
         {/* Create Feature Form */}
         {showCreateForm && (
-          <div className="bg-[#800000] rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-2xl font-semibold mb-6">Create New Feature</h2>
+          <div className="bg-black rounded-lg shadow-md p-6 mb-8">
+            <h2 className="text-2xl font-semibold mb-6 text-white">Create New Feature</h2>
             
             <form onSubmit={handleCreateFeature} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Feature Name</label>
+                  <label className="block text-sm font-medium text-white mb-2">Feature Name</label>
                   <input
                     type="text"
                     value={createForm.name}
@@ -328,7 +328,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                 </div>
                 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                  <label className="block text-sm font-medium text-white mb-2">Description</label>
                   <textarea
                     value={createForm.description}
                     onChange={(e) => setCreateForm(prev => ({ ...prev, description: e.target.value }))}
@@ -340,7 +340,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Starting Price (ZAR)</label>
+                  <label className="block text-sm font-medium text-white mb-2">Price (ZAR)</label>
                   <div className="relative">
                     <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                     <input
@@ -355,7 +355,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Maximum Price (ZAR)</label>
+                  <label className="block text-sm font-medium text-white mb-2">Maximum Price (ZAR)</label>
                   <div className="relative">
                     <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                     <input
@@ -370,7 +370,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                  <label className="block text-sm font-medium text-white mb-2">Location</label>
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                     <input
@@ -385,7 +385,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <label className="block text-sm font-medium text-white mb-2">Status</label>
                   <select
                     value={createForm.status}
                     onChange={(e) => setCreateForm(prev => ({ ...prev, status: e.target.value }))}
@@ -399,7 +399,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Expires At</label>
+                  <label className="block text-sm font-medium text-white mb-2">Expires At</label>
                   <input
                     type="date"
                     value={createForm.expiresAt}
@@ -411,7 +411,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Images (Max 5)</label>
+                  <label className="block text-sm font-medium text-white mb-2">Images (Max 5)</label>
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
                     <input
                       type="file"
@@ -426,7 +426,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                       className="flex flex-col items-center justify-center cursor-pointer"
                     >
                       <Upload className="w-12 h-12 text-gray-400 mb-2" />
-                      <span className="text-sm text-gray-600">Click to upload images</span>
+                      <span className="text-sm text-white">Click to upload images</span>
                     </label>
                   </div>
                   {createForm.images.length > 0 && (
@@ -452,7 +452,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Videos (Max 2)</label>
+                  <label className="block text-sm font-medium text-white mb-2">Videos (Max 3)</label>
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
                     <input
                       type="file"
@@ -467,7 +467,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                       className="flex flex-col items-center justify-center cursor-pointer"
                     >
                       <Video className="w-12 h-12 text-gray-400 mb-2" />
-                      <span className="text-sm text-gray-600">Click to upload videos</span>
+                      <span className="text-sm text-white">Click to upload videos</span>
                     </label>
                   </div>
                   {createForm.videos.length > 0 && (
@@ -513,12 +513,12 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
         )}
         
         {/* Main Content */}
-        <div className="bg-[#800000] rounded-lg shadow-md">
+        <div className="bg-black rounded-lg shadow-md">
           {/* Filters */}
           <div className="p-6 border-b border-gray-200">
             <div className="flex flex-wrap gap-4 items-center">
               <div className="flex-1 min-w-48">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                <label className="block text-sm font-medium text-white mb-2">Search</label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                   <input
@@ -532,7 +532,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
               </div>
               
               <div className="flex-1 min-w-32">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+                <label className="block text-sm font-medium text-white mb-2">Sort By</label>
                 <select
                   value={filters.sortBy}
                   onChange={(e) => handleFilterChange('sortBy', e.target.value)}
@@ -548,7 +548,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
               </div>
               
               <div className="flex-1 min-w-32">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Price Range (ZAR)</label>
+                <label className="block text-sm font-medium text-white mb-2">Price Range (ZAR)</label>
                 <div className="flex gap-2">
                   <input
                     type="number"
@@ -568,7 +568,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
               </div>
               
               <div className="flex-1 min-w-32">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Featured</label>
+                <label className="block text-sm font-medium text-white mb-2">Featured</label>
                 <select
                   value={filters.featured}
                   onChange={(e) => handleFilterChange('featured', e.target.value)}
@@ -591,15 +591,15 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
             ) : filteredFeatures.length === 0 ? (
               <div className="text-center py-12">
                 <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No features found</h3>
-                <p className="mt-1 text-sm text-gray-500">Try adjusting your search filters</p>
+                <h3 className="mt-2 text-sm font-medium text-white">No features found</h3>
+                <p className="mt-1 text-sm text-gray-400">Try adjusting your search filters</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredFeatures.map((feature) => (
                   <div
                     key={feature._id}
-                    className="bg-[#800000] rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer border border-gray-200"
+                    className="bg-black rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer border border-gray-200"
                     onClick={() => setSelectedFeature(feature)}
                   >
                     <div className="relative">
@@ -626,20 +626,20 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                     </div>
                     
                     <div className="p-4">
-                      <h3 className="text-lg font-semibold mb-2 line-clamp-1">{feature.name}</h3>
-                      <p className="text-gray-600 text-sm mb-3 line-clamp-2">{feature.description}</p>
+                      <h3 className="text-lg font-semibold mb-2 line-clamp-1 text-white">{feature.name}</h3>
+                      <p className="text-gray-300 text-sm mb-3 line-clamp-2">{feature.description}</p>
                       
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-green-600 font-semibold">{formatPrice(feature.price)}</span>
                         <span className="text-xs text-gray-500">to {formatPrice(feature.maxPrice)}</span>
                       </div>
                       
-                      <div className="flex items-center text-sm text-gray-600 mb-2">
+                      <div className="flex items-center text-sm text-gray-300 mb-2">
                         <MapPin size={14} className="mr-1" />
                         {feature.formattedLocation}
                       </div>
                       
-                      <div className="flex items-center justify-between text-xs text-gray-500">
+                      <div className="flex items-center justify-between text-xs text-gray-400">
                         <span className="flex items-center gap-1">
                           <Eye size={14} />
                           {feature.views}
@@ -660,12 +660,12 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
         {/* Feature Detail Modal */}
         {selectedFeature && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-[#800000] rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-black rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-start mb-4">
-                <h2 className="text-2xl font-bold">{selectedFeature.name}</h2>
+                <h2 className="text-2xl font-bold text-white">{selectedFeature.name}</h2>
                 <button
                   onClick={() => setSelectedFeature(null)}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-gray-400 hover:text-white"
                 >
                   <X size={24} />
                 </button>
@@ -751,12 +751,12 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
         {/* Inquiry Form Modal */}
         {showInquiryForm && selectedFeature && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-[#800000] rounded-lg p-6 max-w-md w-full">
-              <h3 className="text-xl font-semibold mb-4">Submit Inquiry</h3>
+            <div className="bg-black rounded-lg p-6 max-w-md w-full">
+              <h3 className="text-xl font-semibold mb-4 text-white">Submit Inquiry</h3>
               
               <form onSubmit={handleInquirySubmit}>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
+                  <label className="block text-sm font-medium text-white mb-2">Message</label>
                   <textarea
                     value={inquiryData.message}
                     onChange={(e) => setInquiryData(prev => ({ ...prev, message: e.target.value }))}
@@ -768,7 +768,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
                 </div>
                 
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Your Email</label>
+                  <label className="block text-sm font-medium text-white mb-2">Contact Email</label>
                   <input
                     type="email"
                     value={inquiryData.contactEmail}

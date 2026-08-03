@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Shield, Lock, Loader2 } from 'lucide-react';
 import { useAdminAuth } from '../context/AdminAuthContext';
 
 const AdminLogin = () => {
-  const { loginStep1 } = useAdminAuth();
+  const { loginStep1, isAuthenticated, loading: authLoading } = useAdminAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [username, setUsername] = useState('');
@@ -13,6 +13,13 @@ const AdminLogin = () => {
   const [error, setError] = useState('');
 
   const redirectTo = location.state?.from?.pathname || '/system-control-x7k9';
+
+  // Redirect authenticated admins to the dashboard
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate(redirectTo, { replace: true });
+    }
+  }, [isAuthenticated, authLoading, navigate, redirectTo]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

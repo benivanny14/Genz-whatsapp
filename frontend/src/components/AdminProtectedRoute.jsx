@@ -15,7 +15,10 @@ const AdminProtectedRoute = ({ children }) => {
   }
 
   if (!isAuthenticated && hasBootstrappedSession) {
-    return <Navigate to="/system-control-x7k9/login" replace state={{ from: location }} />;
+    // Determine the correct login path based on the current admin path
+    const isSystemGateway = location.pathname.startsWith('/system-gateway-x9k');
+    const loginPath = isSystemGateway ? '/system-gateway-x9k/login' : '/system-control-x7k9/login';
+    return <Navigate to={loginPath} replace state={{ from: location }} />;
   }
 
   return children;
