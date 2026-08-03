@@ -330,7 +330,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
             </div>
             
             <div className="flex gap-4">
-              {user && (
+              {user && user.isAdmin && (
                 <button
                   onClick={() => setShowCreateForm(!showCreateForm)}
                   className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg"
