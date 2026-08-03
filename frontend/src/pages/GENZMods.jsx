@@ -78,6 +78,7 @@ const GENZMods = () => {
 
   useEffect(() => {
     fetchModsSettings();
+    fetchFeatures();
   }, []);
 
   const fetchModsSettings = async () => {
