@@ -1,7 +1,5 @@
 const mongoose = require('mongoose');
 
-const mongoose = require('mongoose');
-
 const PaymentFeatureSchema = new mongoose.Schema(
   {
     name: {
