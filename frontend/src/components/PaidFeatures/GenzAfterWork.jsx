@@ -290,7 +290,7 @@ const GenzAfterWork = ({ user, onFeatureCreated }) => {
                         <img
                           src={feature.primaryImage}
                           alt={feature.name}
-                          className="w-full h-48 object-cover"
+                          className="w-full h-auto object-contain"
                         />
                       ) : (
                         <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
@@ -360,7 +360,7 @@ const GenzAfterWork = ({ user, onFeatureCreated }) => {
                     <img
                       src={selectedFeature.primaryImage}
                       alt={selectedFeature.name}
-                      className="w-full h-64 object-cover rounded-lg mb-4"
+                      className="w-full h-auto object-contain rounded-lg mb-4"
                     />
                   )}
                   

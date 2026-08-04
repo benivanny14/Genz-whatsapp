@@ -324,7 +324,7 @@ const GenzAfterWorkManagement = () => {
                         <img
                           src={URL.createObjectURL(image)}
                           alt={`Preview ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg"
+                          className="w-full h-auto object-contain rounded-lg"
                         />
                         <button
                           type="button"
@@ -364,7 +364,7 @@ const GenzAfterWorkManagement = () => {
                       <div key={index} className="relative">
                         <video
                           src={URL.createObjectURL(video)}
-                          className="w-full h-24 object-cover rounded-lg bg-gray-100 dark:bg-gray-800"
+                          className="w-full h-auto object-contain rounded-lg bg-gray-100 dark:bg-gray-800"
                           controls
                         />
                         <button
@@ -437,7 +437,7 @@ const GenzAfterWorkManagement = () => {
                   <img
                     src={feature.primaryImage}
                     alt={feature.name}
-                    className="w-full h-48 object-cover"
+                    className="w-full h-auto object-contain"
                   />
                 ) : (
                   <div className="w-full h-48 bg-gray-200 dark:bg-gray-800 flex items-center justify-center">
