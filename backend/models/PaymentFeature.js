@@ -142,7 +142,7 @@ PaymentFeatureSchema.index({ 'contactInfo.email': 1 });
 
 // Virtual for price range display
 PaymentFeatureSchema.virtual('priceRange').get(function() {
-  return `ZAR ${this.price.toLocaleString()} - ZAR ${this.maxPrice.toLocaleString()}`;
+  return `TZS ${this.price.toLocaleString()} - TZS ${this.maxPrice.toLocaleString()}`;
 });
 
 // Virtual for formatted location

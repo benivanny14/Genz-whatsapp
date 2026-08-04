@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const PaymentFeature = require('../models/PaymentFeature');
 const { superAdminAuth } = require('../middleware/superAdminAuth');
-const { uploadToCloudinary, deleteFromCloudinary } = require('../config/cloudinary');
+const { uploadFile, deleteFile } = require('../config/cloudinary');
 const { validateFile } = require('../middleware/fileValidation');
 
 const path = require('path');

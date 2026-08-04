@@ -237,25 +237,25 @@ const GenzAfterWorkManagement = () => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Price (ZAR)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Price (TZS)</label>
                 <input
                   type="number"
                   value={createForm.price}
                   onChange={(e) => setCreateForm(prev => ({ ...prev, price: e.target.value }))}
-                  placeholder="0"
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder="50000"
                   required
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Maximum Price (ZAR)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Maximum Price (TZS)</label>
                 <input
                   type="number"
                   value={createForm.maxPrice}
                   onChange={(e) => setCreateForm(prev => ({ ...prev, maxPrice: e.target.value }))}
                   placeholder="0"
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   required
                 />
               </div>

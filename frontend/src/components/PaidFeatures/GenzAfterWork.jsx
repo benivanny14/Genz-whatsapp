@@ -210,7 +210,7 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
               </div>
               
               <div className="flex-1 min-w-32">
-                <label className="block text-sm font-medium text-white mb-2">Price Range (ZAR)</label>
+                <label className="block text-sm font-medium text-white mb-2">Price Range (TZS)</label>
                 <div className="flex gap-2">
                   <input
                     type="number"
