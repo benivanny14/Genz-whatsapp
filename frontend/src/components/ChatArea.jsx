@@ -3328,6 +3328,15 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               </button>
               <button
                 type="button"
+                onClick={() => setShowStickerPacks(true)}
+                className={`p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center ${showStickerPacks ? 'bg-primary-600 text-white' : 'hover:bg-dark-hover text-dark-text'}`}
+                title="Stickers (send with text)"
+                aria-label="Open sticker picker"
+              >
+                <Square className="w-5 h-5" />
+              </button>
+              <button
+                type="button"
                 onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
                 className={`p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center ${showAttachmentMenu ? 'bg-primary-600 text-white' : 'hover:bg-dark-hover text-dark-text'}`}
                 title="Attachments"
