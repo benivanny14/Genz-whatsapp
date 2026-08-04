@@ -1,12 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const PaymentFeature = require('../models/PaymentFeature');
-const auth = require('../middleware/auth');
-const admin = require('../middleware/admin');
+const { protect, isAdmin } = require('../middleware/auth');
 const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary');
 
 // Create new payment feature (admin only)
-router.post('/', auth, admin, async (req, res) => {
+router.post('/', protect, isAdmin, async (req, res) => {
   try {
     const { name, description, price, location, category, maxPrice, status, contactInfo, tags, specifications, isPrivate, expiresAt } = req.body;
 
@@ -166,7 +165,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Update payment feature (admin or owner)
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', protect, async (req, res) => {
   try {
     let paymentFeature = await PaymentFeature.findById(req.params.id);
 
@@ -230,7 +229,7 @@ router.put('/:id', auth, async (req, res) => {
 });
 
 // Delete payment feature (admin only)
-router.delete('/:id', auth, admin, async (req, res) => {
+router.delete('/:id', protect, isAdmin, async (req, res) => {
   try {
     const paymentFeature = await PaymentFeature.findById(req.params.id);
 
@@ -272,7 +271,7 @@ router.delete('/:id', auth, admin, async (req, res) => {
 });
 
 // Toggle featured status (admin only)
-router.patch('/:id/toggle-featured', auth, admin, async (req, res) => {
+router.patch('/:id/toggle-featured', protect, isAdmin, async (req, res) => {
   try {
     const paymentFeature = await PaymentFeature.findById(req.params.id);
 
