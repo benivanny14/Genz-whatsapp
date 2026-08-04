@@ -157,4 +157,237 @@ router.get('/:id', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching payment feature:', error);
-    res.status(500).json({\n      success: false,\n      message: 'Hitilafu wakati wa kupata feature',\n      error: error.message\n    });\n  }\n});\n\n// Update payment feature (admin or owner)\nrouter.put('/:id', auth, async (req, res) => {\n  try {\n    let paymentFeature = await PaymentFeature.findById(req.params.id);\n\n    if (!paymentFeature) {\n      return res.status(404).json({\n        success: false,\n        message: 'Feature haijakutwa'\n      });\n    }\n\n    if (paymentFeature.createdBy.toString() !== req.user._id && !req.user.isAdmin) {\n      return res.status(403).json({\n        success: false,\n        message: 'Hakuna ruhusa kugeuza feature hii'\n      });\n    }\n\n    const updateData = { ...req.body };\n\n    if (req.body.price) updateData.price = parseFloat(req.body.price);\n    if (req.body.maxPrice) updateData.maxPrice = parseFloat(req.body.maxPrice);\n    if (req.body.expiresAt) updateData.expiresAt = new Date(req.body.expiresAt);\n    if (req.body.status) {\n      updateData.status = req.body.status;\n      if (req.body.status === 'active' && req.user.isAdmin) {\n        updateData.approvedBy = req.user._id;\n        updateData.approvalDate = new Date();\n      }\n    }\n\n    if (req.body.images) {\n      const newImages = JSON.parse(req.body.images);\n      updateData.images = [...(paymentFeature.images || []), ...newImages];\n    }\n\n    if (req.body.videos) {\n      const newVideos = JSON.parse(req.body.videos);\n      updateData.videos = [...(paymentFeature.videos || []), ...newVideos];\n    }\n\n    paymentFeature = await PaymentFeature.findByIdAndUpdate(\n      req.params.id,\n      updateData,\n      { new: true, runValidators: true }\n    );\n\n    res.json({\n      success: true,\n      message: 'Feature ya kulipa imesasishwa kikamilifu',\n      data: paymentFeature\n    });\n\n  } catch (error) {\n    console.error('Error updating payment feature:', error);\n    res.status(500).json({\n      success: false,\n      message: 'Hitilafu wakati wa kusasisha feature',\n      error: error.message\n    });\n  }\n});\n\n// Delete payment feature (admin only)\nrouter.delete('/:id', auth, admin, async (req, res) => {\n  try {\n    const paymentFeature = await PaymentFeature.findById(req.params.id);\n\n    if (!paymentFeature) {\n      return res.status(404).json({\n        success: false,\n        message: 'Feature haijakutwa'\n      });\n    }\n\n    for (const image of paymentFeature.images || []) {\n      if (image.publicId) {\n        await deleteFromCloudinary(image.publicId);\n      }\n    }\n\n    for (const video of paymentFeature.videos || []) {\n      if (video.publicId) {\n        await deleteFromCloudinary(video.publicId);\n      }\n    }\n\n    await PaymentFeature.findByIdAndDelete(req.params.id);\n\n    res.json({\n      success: true,\n      message: 'Feature ya kulipa imefanikiwa kufuta',\n      data: paymentFeature\n    });\n\n  } catch (error) {\n    console.error('Error deleting payment feature:', error);\n    res.status(500).json({\n      success: false,\n      message: 'Hitilafu wakati wa kufuta feature',\n      error: error.message\n    });\n  }\n});\n\n// Toggle featured status (admin only)\nrouter.patch('/:id/toggle-featured', auth, admin, async (req, res) => {\n  try {\n    const paymentFeature = await PaymentFeature.findById(req.params.id);\n\n    if (!paymentFeature) {\n      return res.status(404).json({\n        success: false,\n        message: 'Feature haijakutwa'\n      });\n    }\n\n    paymentFeature.featured = !paymentFeature.featured;\n    await paymentFeature.save();\n\n    res.json({\n      success: true,\n      message: paymentFeature.featured ? 'Feature imewekwa kwenye vipindi vya muhimu' : 'Feature imeson shu gpia vipindi vya muhimu',\n      data: paymentFeature\n    });\n\n  } catch (error) {\n    console.error('Error toggling featured status:', error);\n    res.status(500).json({\n      success: false,\n      message: 'Hitilafu wakati wa kubadili vipindi vya muhimu',\n      error: error.message\n    });\n  }\n});\n\n// Increment inquiry count\nrouter.post('/:id/inquiry', async (req, res) => {\n  try {\n    const paymentFeature = await PaymentFeature.findById(req.params.id);\n\n    if (!paymentFeature) {\n      return res.status(404).json({\n        success: false,\n        message: 'Feature haijakutwa'\n      });\n    }\n\n    await paymentFeature.incrementInquiry();\n\n    res.json({\n      success: true,\n      message: 'Ombi lako limesongezwa',\n      data: paymentFeature\n    });\n\n  } catch (error) {\n    console.error('Error incrementing inquiry:', error);\n    res.status(500).json({\n      success: false,\n      message: 'Hitilafu wakati wa kuongeza maombi',\n      error: error.message\n    });\n  }\n});\n\n// Search payment features\nrouter.get('/search/advanced', async (req, res) => {\n  try {\n    const { query, location, category, minPrice, maxPrice, featured } = req.query;\n\n    let filter = { status: 'active' };\n\n    if (featured === 'true') {\n      filter.featured = true;\n    }\n\n    if (query) {\n      filter.$or = [\n        { name: { $regex: query, $options: 'i' } },\n        { description: { $regex: query, $options: 'i' } },\n        { location: { $regex: query, $options: 'i' } },\n        { tags: { $in: [new RegExp(query, 'i')] } }\n      ];\n    }\n\n    if (location) {\n      filter.location = { $regex: location, $options: 'i' };\n    }\n\n    if (category) {\n      filter.category = category;\n    }\n\n    if (minPrice) {\n      filter.price = { $gte: parseFloat(minPrice) };\n      if (maxPrice) {\n        filter.price.$lte = parseFloat(maxPrice);\n      }\n    } else if (maxPrice) {\n      filter.price = { $lte: parseFloat(maxPrice) };\n    }\n\n    const paymentFeatures = await PaymentFeature.find(filter)\n      .populate('createdBy', 'username profilePicture')\n      .sort({ featured: -1, createdAt: -1 })\n      .limit(50);\n\n    res.json({\n      success: true,\n      count: paymentFeatures.length,\n      data: paymentFeatures\n    });\n\n  } catch (error) {\n    console.error('Error searching payment features:', error);\n    res.status(500).json({\n      success: false,\n      message: 'Hitilafu wakati wa utafutaji',\n      error: error.message\n    });\n  }\n});\n\nmodule.exports = router;
+    res.status(500).json({
+      success: false,
+      message: 'Hitilafu wakati wa kupata feature',
+      error: error.message
+    });
+  }
+});
+
+// Update payment feature (admin or owner)
+router.put('/:id', auth, async (req, res) => {
+  try {
+    let paymentFeature = await PaymentFeature.findById(req.params.id);
+
+    if (!paymentFeature) {
+      return res.status(404).json({
+        success: false,
+        message: 'Feature haijakutwa'
+      });
+    }
+
+    if (paymentFeature.createdBy.toString() !== req.user._id && !req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Hakuna ruhusa kugeuza feature hii'
+      });
+    }
+
+    const updateData = { ...req.body };
+
+    if (req.body.price) updateData.price = parseFloat(req.body.price);
+    if (req.body.maxPrice) updateData.maxPrice = parseFloat(req.body.maxPrice);
+    if (req.body.expiresAt) updateData.expiresAt = new Date(req.body.expiresAt);
+    if (req.body.status) {
+      updateData.status = req.body.status;
+      if (req.body.status === 'active' && req.user.isAdmin) {
+        updateData.approvedBy = req.user._id;
+        updateData.approvalDate = new Date();
+      }
+    }
+
+    if (req.body.images) {
+      const newImages = JSON.parse(req.body.images);
+      updateData.images = [...(paymentFeature.images || []), ...newImages];
+    }
+
+    if (req.body.videos) {
+      const newVideos = JSON.parse(req.body.videos);
+      updateData.videos = [...(paymentFeature.videos || []), ...newVideos];
+    }
+
+    paymentFeature = await PaymentFeature.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    res.json({
+      success: true,
+      message: 'Feature ya kulipa imesasishwa kikamilifu',
+      data: paymentFeature
+    });
+
+  } catch (error) {
+    console.error('Error updating payment feature:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Hitilafu wakati wa kusasisha feature',
+      error: error.message
+    });
+  }
+});
+
+// Delete payment feature (admin only)
+router.delete('/:id', auth, admin, async (req, res) => {
+  try {
+    const paymentFeature = await PaymentFeature.findById(req.params.id);
+
+    if (!paymentFeature) {
+      return res.status(404).json({
+        success: false,
+        message: 'Feature haijakutwa'
+      });
+    }
+
+    for (const image of paymentFeature.images || []) {
+      if (image.publicId) {
+        await deleteFromCloudinary(image.publicId);
+      }
+    }
+
+    for (const video of paymentFeature.videos || []) {
+      if (video.publicId) {
+        await deleteFromCloudinary(video.publicId);
+      }
+    }
+
+    await PaymentFeature.findByIdAndDelete(req.params.id);
+
+    res.json({
+      success: true,
+      message: 'Feature ya kulipa imefanikiwa kufuta',
+      data: paymentFeature
+    });
+
+  } catch (error) {
+    console.error('Error deleting payment feature:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Hitilafu wakati wa kufuta feature',
+      error: error.message
+    });
+  }
+});
+
+// Toggle featured status (admin only)
+router.patch('/:id/toggle-featured', auth, admin, async (req, res) => {
+  try {
+    const paymentFeature = await PaymentFeature.findById(req.params.id);
+
+    if (!paymentFeature) {
+      return res.status(404).json({
+        success: false,
+        message: 'Feature haijakutwa'
+      });
+    }
+
+    paymentFeature.featured = !paymentFeature.featured;
+    await paymentFeature.save();
+
+    res.json({
+      success: true,
+      message: paymentFeature.featured ? 'Feature imewekwa kwenye vipindi vya muhimu' : 'Feature imeson shu gpia vipindi vya muhimu',
+      data: paymentFeature
+    });
+
+  } catch (error) {
+    console.error('Error toggling featured status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Hitilafu wakati wa kubadili vipindi vya muhimu',
+      error: error.message
+    });
+  }
+});
+
+// Increment inquiry count
+router.post('/:id/inquiry', async (req, res) => {
+  try {
+    const paymentFeature = await PaymentFeature.findById(req.params.id);
+
+    if (!paymentFeature) {
+      return res.status(404).json({
+        success: false,
+        message: 'Feature haijakutwa'
+      });
+    }
+
+    await paymentFeature.incrementInquiry();
+
+    res.json({
+      success: true,
+      message: 'Ombi lako limesongezwa',
+      data: paymentFeature
+    });
+
+  } catch (error) {
+    console.error('Error incrementing inquiry:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Hitilafu wakati wa kuongeza maombi',
+      error: error.message
+    });
+  }
+});
+
+// Search payment features
+router.get('/search/advanced', async (req, res) => {
+  try {
+    const { query, location, category, minPrice, maxPrice, featured } = req.query;
+
+    let filter = { status: 'active' };
+
+    if (featured === 'true') {
+      filter.featured = true;
+    }
+
+    if (query) {
+      filter.$or = [
+        { name: { $regex: query, $options: 'i' } },
+        { description: { $regex: query, $options: 'i' } },
+        { location: { $regex: query, $options: 'i' } },
+        { tags: { $in: [new RegExp(query, 'i')] } }
+      ];
+    }
+
+    if (location) {
+      filter.location = { $regex: location, $options: 'i' };
+    }
+
+    if (category) {
+      filter.category = category;
+    }
+
+    if (minPrice) {
+      filter.price = { $gte: parseFloat(minPrice) };
+      if (maxPrice) {
+        filter.price.$lte = parseFloat(maxPrice);
+      }
+    } else if (maxPrice) {
+      filter.price = { $lte: parseFloat(maxPrice) };
+    }
+
+    const paymentFeatures = await PaymentFeature.find(filter)
+      .populate('createdBy', 'username profilePicture')
+      .sort({ featured: -1, createdAt: -1 })
+      .limit(50);
+
+    res.json({
+      success: true,
+      count: paymentFeatures.length,
+      data: paymentFeatures
+    });
+
+  } catch (error) {
+    console.error('Error searching payment features:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Hitilafu wakati wa utafutaji',
+      error: error.message
+    });
+  }
+});
+
+module.exports = router;
