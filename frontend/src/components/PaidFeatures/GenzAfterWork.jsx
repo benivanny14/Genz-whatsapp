@@ -39,10 +39,12 @@ import {
   Droplets
 } from 'lucide-react';
 
-const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = false }) => {
+const GenzAfterWork = ({ user, onFeatureCreated }) => {
   const [selectedFeature, setSelectedFeature] = useState(null);
   const [showInquiryForm, setShowInquiryForm] = useState(false);
   const [inquiryData, setInquiryData] = useState({ message: '', contactEmail: '' });
+  const [features, setFeatures] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   const [filters, setFilters] = useState({
     search: '',
@@ -63,6 +65,25 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
       maximumFractionDigits: 0
     }).format(price);
   };
+
+  const loadFeatures = async () => {
+    setIsLoading(true);
+    try {
+      const response = await authFetch(`${resolveApiBase()}/payment-features`);
+      if (response.ok) {
+        const data = await response.json();
+        setFeatures(data.data || data.features || []);
+      }
+    } catch (error) {
+      console.error('Error loading features:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadFeatures();
+  }, []);
   
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
