@@ -56,9 +56,9 @@ const GenzAfterWork = ({ user, onFeatureCreated, features = [], isLoading = fals
   
   
   const formatPrice = (price) => {
-    return new Intl.NumberFormat('en-ZA', {
+    return new Intl.NumberFormat('en-TZ', {
       style: 'currency',
-      currency: 'ZAR',
+      currency: 'TZS',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(price);
