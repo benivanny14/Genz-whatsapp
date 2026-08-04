@@ -111,7 +111,13 @@
 html, body, #root {
   height: 100%;
   width: 100%;
-  overflow: hidden;
+}
+
+/* Allow scrolling for specific pages */
+.genz-after-work-page {
+  overflow-y: auto !important;
+  height: auto !important;
+  min-height: 100vh;
 }
 
 #root {
