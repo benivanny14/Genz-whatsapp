@@ -6,11 +6,8 @@ import { useUser } from '../context/UserContext';
 import BroadcastModal from './BroadcastModal';
 import MassSenderModal from './MassSenderModal';
 
-import StatusViewer from './StatusViewer';
-import StatusCreator from './StatusCreator';
 import ProfileEditor from './ProfileEditor';
 import StoryHighlights from './StoryHighlights';
-import StatusScrollFeed from './StatusScrollFeed';
 import { AnimatePresence } from 'framer-motion';
 import { decryptMessage } from '../utils/formatDate';
 import { isClientE2EEMessageContent } from '../utils/e2eeContent';
@@ -92,7 +89,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   const [activeFolder, setActiveFolder] = useState('All');
   const [showBroadcastModal, setShowBroadcastModal] = useState(false);
   const [showMassSenderModal, setShowMassSenderModal] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const chatListRef = useRef(null);
@@ -661,9 +657,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   const [newTagName, setNewTagName] = useState('');
   const [tagMenuChatId, setTagMenuChatId] = useState(null);
   const [tagMenuPosition, setTagMenuPosition] = useState({ x: 0, y: 0 });
-  const [statusUploading, setStatusUploading] = useState(false);
-  const [showStatusCreator, setShowStatusCreator] = useState(false);
-  const [statusCreatorMode, setStatusCreatorMode] = useState('text'); // 'text' or 'media'
   const [conversationTags, setConversationTags] = useState(() => loadConversationTags(currentUserId));
   const [availableTags, setAvailableTags] = useState(() => getAvailableTags(currentUserId));
   // Removed unnecessary forceUpdate logic that was causing re-render loops
@@ -743,40 +736,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     setTagMenuChatId(null);
   }, [selectedConversation?._id]);
 
-  // Handler for when StatusCreator finishes
-  const handleStatusSend = async (statusData) => {
-    setStatusUploading(true);
-    try {
-      const collabFields = statusData.collabUserId
-        ? { collabUserId: statusData.collabUserId, collabUsername: statusData.collabUsername }
-        : {};
-
-      if (statusData.type === 'text') {
-        await addStatus({
-          type: 'text',
-          content: statusData.content,
-          backgroundColor: statusData.bgColor,
-          font: statusData.fontClass,
-          ...collabFields
-        });
-      } else {
-        const uploadResult = await uploadStatusMedia(statusData.mediaFile);
-        await addStatus({
-          type: uploadResult.mediaType || statusData.type,
-          content: statusData.caption || '',
-          caption: statusData.caption || '',
-          mediaUrl: uploadResult.fileUrl,
-          ...collabFields
-        });
-      }
-    } catch (error) {
-      console.error('Failed to send status:', error);
-      alert('Failed to send status');
-    } finally {
-      setStatusUploading(false);
-    }
-  };
-
   const isChatPinned = (conv) => {
     if (conv.isPinned === true) return true;
     return conv.isPinned && conv.isPinned[user?._id] === true;
@@ -805,10 +764,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
       return timeB - timeA;
     }
   });
-
-  const handleViewStatus = () => {
-    navigate('/status');
-  };
 
   const handleViewChannels = () => {
     navigate('/channels');
@@ -1127,13 +1082,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
               <Plus className="w-5 h-5 text-dark-text" />
             </button>
             <button
-              onClick={handleViewStatus}
-              className="p-2 hover:bg-dark-hover rounded-lg transition-colors"
-              title="Status" aria-label="Status"
-            >
-              <CircleUserRound className="w-5 h-5 text-dark-text" />
-            </button>
-            <button
               onClick={handleViewChannels}
               className="p-2 hover:bg-dark-hover rounded-lg transition-colors"
               title="Channels"
@@ -1355,12 +1303,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
               className={`w-full py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'chats' ? 'bg-primary-600 text-white shadow-lg' : 'text-dark-textSecondary hover:text-dark-text'}`}
             >
               Chats
-            </button>
-            <button
-              onClick={() => setActiveTab('status')}
-              className={`w-full py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'status' ? 'bg-primary-600 text-white shadow-lg' : 'text-dark-textSecondary hover:text-dark-text'}`}
-            >
-              Status
             </button>
             <button
               onClick={() => setActiveTab('visitors')}
@@ -2011,122 +1953,8 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     Visited {new Date(visitor.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
-                {/* Add a button to view their profile or chat */}
-                <button className="text-primary-600 hover:text-primary-700" aria-label="Message"><MessageCircle size={18} /></button>
               </div>
             ))}
-          </div>
-        )}
-        {isOpen && activeTab === 'status' && (
-          <div className="p-2 space-y-4 relative h-full flex flex-col">
-            {/* My Status */}
-            <div
-              className="flex items-center gap-3 p-3 hover:bg-dark-hover rounded-lg transition-colors cursor-pointer group"
-              onClick={() => {
-                const myStatuses = (statuses || []).filter(s => 
-                  String(s.userId) === String(user?.id) || 
-                  String(s.userId) === String(user?._id) ||
-                  (s.username && user?.username && s.username === user.username)
-                );
-                if (myStatuses.length > 0) {
-                  setSelectedStatus(myStatuses[myStatuses.length - 1]); // Show latest
-                } else {
-                  setStatusCreatorMode('media');
-                  setShowStatusCreator(true);
-                }
-              }}
-            >
-              <div className="relative w-12 h-12 rounded-full border-2 border-primary-600 flex items-center justify-center overflow-hidden flex-shrink-0">
-                <img src={getAvatarUrl(user)} alt="My Status" className="w-full h-full object-cover" loading="lazy" />
-                <div className="absolute bottom-0 right-0 bg-primary-600 rounded-full p-0.5 border border-dark-bg">
-                  {statusUploading ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <PlusCircle size={16} className="text-white bg-primary-600 rounded-full" />
-                  )}
-                </div>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-dark-text font-medium">My Status</h3>
-                <p className="text-xs text-dark-textSecondary">
-                  {statusUploading ? 'Sending...' : ((statuses || []).some(s => String(s.userId) === String(user?.id) || String(s.userId) === String(user?._id)) ? 'Tap to view your status' : 'Tap to add status update')}
-                </p>
-              </div>
-              {/* Delete latest status button */}
-              {(statuses || []).filter(s => String(s.userId) === String(user?.id) || String(s.userId) === String(user?._id)).length > 0 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const myStatuses = (statuses || []).filter(s => String(s.userId) === String(user?.id) || String(s.userId) === String(user?._id));
-                    if (myStatuses.length > 0) {
-                      deleteStatus(myStatuses[myStatuses.length - 1]._id || myStatuses[myStatuses.length - 1].id);
-                    }
-                  }}
-                  className="p-2 text-dark-textSecondary hover:text-red-500 rounded-full hover:bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Delete Status"
-                >
-                  <Trash2 size={18} />
-                </button>
-              )}
-            </div>
-
-            {/* GENZ Ultra: Story Highlights */}
-            {mods?.storyHighlights && (
-              <StoryHighlights statuses={(statuses || []).filter(s => String(s.userId) === String(user?.id) || String(s.userId) === String(user?._id))} />
-            )}
-
-            {/* Friends' Statuses */}
-            <div className="space-y-2">
-              <h4 className="text-xs text-dark-textSecondary uppercase font-bold px-3">Recent updates</h4>
-              {(statuses || []).filter(s => String(s.userId) !== String(user?.id) && String(s.userId) !== String(user?._id)).map((status, index) => (
-                <div
-                  key={status.id || status._id || `status-${index}`}
-                  className="flex items-center gap-3 p-3 hover:bg-dark-hover rounded-lg transition-colors cursor-pointer"
-                  onClick={() => setSelectedStatus(status)}
-                >
-                  <div className="w-12 h-12 rounded-full border-2 border-green-500 flex items-center justify-center overflow-hidden">
-                    {status.type === 'image' ? (
-                      <img src={status.mediaUrl} alt="Status" className="w-full h-full object-cover" loading="lazy" />
-                    ) : (
-                      <span className="text-white font-semibold bg-gray-500 w-full h-full flex items-center justify-center">{status.username?.charAt(0) || '?'}</span>
-                    )}
-                    {status.wasDeletedByOwner && mods?.antiDeleteStatus && (
-                      <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center">
-                        <Trash2 size={16} className="text-red-500 drop-shadow-md" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-dark-text font-medium">{status.username}</h3>
-                    <p className="text-xs text-dark-textSecondary">{status?.content ? status.content.substring(0, 30) + '...' : ''}</p>
-                  </div>
-                  <span className="text-xs text-dark-textSecondary">{formatConversationTime(status.timestamp)}</span>
-                </div>
-              ))}
-            </div>
-            {/* TM WhatsApp Style Floating Action Buttons */}
-            <div className="absolute bottom-6 right-4 flex flex-col gap-3">
-              <button
-                onClick={() => {
-                  setStatusCreatorMode('text');
-                  setShowStatusCreator(true);
-                }}
-                className="w-10 h-10 bg-dark-surface border border-dark-border hover:bg-dark-hover rounded-full flex items-center justify-center text-primary-500 shadow-lg transition-transform hover:scale-110"
-                title="Text Status" aria-label="Text Status"
-              >
-                <Pencil size={18} />
-              </button>
-              <button
-                onClick={() => {
-                  setStatusCreatorMode('media');
-                  setShowStatusCreator(true);
-                }}
-                className="w-14 h-14 bg-primary-600 hover:bg-primary-700 rounded-full flex items-center justify-center text-white shadow-xl transition-transform hover:scale-110"
-                title="Camera/Media Status" aria-label="Camera/Media Status"
-              >
-                <Camera size={24} />
-              </button>
-            </div>
           </div>
         )}
         {!isOpen && ( // Collapsed sidebar view
@@ -2225,35 +2053,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
           </div>
         </div>
       )}
-
-      <AnimatePresence>
-        {showStatusCreator && (
-          <StatusCreator
-            onClose={() => setShowStatusCreator(false)}
-            onSend={handleStatusSend}
-            initialMode={statusCreatorMode}
-            enableCollab={mods?.collabStatus}
-          />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {selectedStatus && (
-          mods?.reelMode ? (
-            <StatusScrollFeed
-              statuses={statuses}
-              initialStatusId={selectedStatus._id || selectedStatus.id}
-              currentUserId={user?.id}
-              onClose={() => setSelectedStatus(null)}
-            />
-          ) : (
-            <StatusViewer
-              status={selectedStatus}
-              onClose={() => setSelectedStatus(null)}
-            />
-          )
-        )}
-      </AnimatePresence>
 
       {showAccountSwitcher && (
         <AccountSwitcher onClose={() => setShowAccountSwitcher(false)} />
