@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { authFetch } from '../../utils/authFetch';
-import { resolveApiBase } from '../../utils/resolveApiBase';
+import { adminApi } from '../../services/adminApi';
 import {
   DollarSign,
   MapPin,
@@ -56,11 +55,8 @@ const GenzAfterWorkManagement = () => {
   const loadFeatures = async () => {
     setLoading(true);
     try {
-      const response = await authFetch(`${resolveApiBase()}/payment-features`);
-      if (response.ok) {
-        const data = await response.json();
-        setFeatures(data.features || []);
-      }
+      const { data } = await adminApi.get('/payment-features');
+      setFeatures(data.features || []);
     } catch (error) {
       console.error('Error loading features:', error);
     } finally {
@@ -129,12 +125,13 @@ const GenzAfterWorkManagement = () => {
     });
 
     try {
-      const response = await authFetch(`${resolveApiBase()}/payment-features`, {
-        method: 'POST',
-        body: formData
+      const { data } = await adminApi.post('/payment-features', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
 
-      if (response.ok) {
+      if (data.success) {
         alert('Feature created successfully');
         setShowCreateForm(false);
         setCreateForm({
@@ -166,11 +163,8 @@ const GenzAfterWorkManagement = () => {
     if (!confirm('Are you sure you want to delete this feature?')) return;
 
     try {
-      const response = await authFetch(`${resolveApiBase()}/payment-features/${featureId}`, {
-        method: 'DELETE'
-      });
-
-      if (response.ok) {
+      const { data } = await adminApi.delete(`/payment-features/${featureId}`);
+      if (data.success) {
         alert('Feature deleted successfully');
         loadFeatures();
       } else {
