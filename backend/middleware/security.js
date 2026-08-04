@@ -95,6 +95,41 @@ const strictRateLimiter = createRateLimiter({
 const xssProtection = xss();
 
 /**
+ * CSRF defense via Origin validation (OWASP recommendation for token-based
+ * APIs, no session store required). Browsers always attach an Origin header to
+ * state-changing requests (fetch/XHR). If that Origin is not one of the
+ * application's own origins, the request is rejected before it can act on the
+ * authenticated session/cookie. Requests without an Origin header (mobile
+ * apps, curl, PWA installs) are allowed through; SameSite=strict auth cookies
+ * plus Bearer headers protect those channels.
+ */
+const validateOrigin = (allowedOrigins = []) => {
+  const allowed = allowedOrigins.filter(Boolean);
+  const isAllowed = (origin) => {
+    if (!origin) return true;
+    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) return true;
+    return allowed.includes(origin);
+  };
+  return (req, res, next) => {
+    if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return next();
+    const origin = req.headers.origin;
+    if (!origin) return next();
+    if (!isAllowed(origin)) {
+      console.warn('[CSRF] Blocked cross-origin state-changing request', {
+        origin,
+        method: req.method,
+        path: req.originalUrl
+      });
+      return res.status(403).json({
+        success: false,
+        error: 'Cross-origin request blocked'
+      });
+    }
+    next();
+  };
+};
+
+/**
  * CSRF token validation middleware
  */
 const validateCSRF = (req, res, next) => {
@@ -211,6 +246,7 @@ module.exports = {
   apiRateLimiter,
   strictRateLimiter,
   xssProtection,
+  validateOrigin,
   validateCSRF,
   sanitizeInput,
   securityHeaders,

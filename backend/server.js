@@ -79,7 +79,8 @@ const {
   strictRateLimiter,
   xssProtection,
   sanitizeInput,
-  securityHeaders
+  securityHeaders,
+  validateOrigin
 } = require('./middleware/security');
 const mongoSanitize = require('express-mongo-sanitize');
 const setupSocket = require('./socket');
@@ -95,6 +96,31 @@ const { resolvePublicBaseUrl } = require('./utils/publicBaseUrl');
 const getPublicBaseUrl = (req) => resolvePublicBaseUrl(req);
 const publicApiOrigin = (process.env.PUBLIC_API_URL || process.env.BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '');
 const frontendOrigin = process.env.FRONTEND_URL?.replace(/\/$/, '');
+
+// Shared allowlist of application origins, used by both CORS and the CSRF
+// Origin guard so the two policies can never drift apart.
+const appOrigins = [
+  process.env.FRONTEND_URL,
+  process.env.PUBLIC_API_URL,
+  // Allow only the specific Render URL
+  'https://genz-whatsapp-1.onrender.com',
+  // Development origins
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
+  'http://127.0.0.1:5175'
+].filter(Boolean);
+
+const isAllowedAppOrigin = (origin) => {
+  if (!origin) return true;
+  if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) return true;
+  return appOrigins.includes(origin);
+};
+
 const cspConnectSources = ["'self'", "https:", publicApiOrigin, "http://localhost:5000", ...(frontendOrigin ? [frontendOrigin] : [])];
 
 // Validate environment variables on startup
@@ -394,29 +420,7 @@ const corsOptions = {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    // Always allow both Render URLs regardless of NODE_ENV
-    const allowedOrigins = [
-      process.env.FRONTEND_URL,
-      process.env.PUBLIC_API_URL,
-      // Allow only the specific Render URL
-      'https://genz-whatsapp-1.onrender.com',
-      // Development origins
-      'http://localhost:3000',
-      'http://localhost:5173',
-      'http://localhost:5174',
-      'http://localhost:5175',
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:5173',
-      'http://127.0.0.1:5174',
-      'http://127.0.0.1:5175'
-    ].filter(Boolean);
-    
-    // Allow any localhost origin in development
-    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
-      return callback(null, true);
-    }
-    
-    if (allowedOrigins.includes(origin)) {
+    if (isAllowedAppOrigin(origin)) {
       return callback(null, true);
     } else {
       console.warn('[CORS] Blocked origin:', origin);
@@ -433,6 +437,8 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(securityHeaders);
+// CSRF defense-in-depth: reject state-changing requests from unlisted origins
+app.use(validateOrigin(appOrigins));
 
 // Security headers for production
 app.use(helmet({
@@ -683,17 +689,10 @@ const locationSharingRoutes = require('./routes/location-sharing');
 app.use('/api/auth', safeMiddleware(authLimiter), authRoutes);
 app.use('/api/otp', otpRoutes);
 
-// Admin auth routes with secret base path
+// Admin auth routes with a single secret base path
 const ADMIN_BASE_PATH = process.env.ADMIN_BASE_PATH || '/api/system-gateway-x9k';
-const ADMIN_COMPATIBILITY_BASE_PATHS = [
-  ADMIN_BASE_PATH,
-  '/api/system-gateway-x9k2',
-  '/api/x7f2-owner-gate-9k'
-];
 
-ADMIN_COMPATIBILITY_BASE_PATHS.forEach((basePath) => {
-  app.use(`${basePath}/auth`, adminAuthRoutes);
-});
+app.use(`${ADMIN_BASE_PATH}/auth`, adminAuthRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/advanced', advancedRoutes);

@@ -37,9 +37,17 @@ const {
 const { protect } = require('../middleware/auth');
 const { uploadImage } = require('../middleware/upload');
 const { privacyMiddleware } = require('../middleware/privacy');
+const {
+  registerValidators,
+  loginValidators,
+  sendOtpValidators,
+  verifyOtpValidators,
+  resendOtpValidators,
+  checkAvailabilityValidators
+} = require('../middleware/validators');
 
-router.post('/register', register);
-router.post('/login', login);
+router.post('/register', registerValidators, register);
+router.post('/login', loginValidators, login);
 // Refresh uses body.refreshToken only (no Authorization required)
 router.post('/refresh', refreshToken);
 router.get('/me', protect, privacyMiddleware, getMe);
@@ -61,14 +69,14 @@ router.delete('/quick-replies/:id', protect, removeQuickReply);
 router.put('/away-message', protect, updateAwayMessage);
 router.get('/business-analytics', protect, getBusinessAnalytics);
 
-router.post('/check-availability', checkAvailability);
+router.post('/check-availability', checkAvailabilityValidators, checkAvailability);
 router.get('/users/me/online-history', protect, getMyOnlineHistory);
 router.get('/users/:id/online-history', protect, getUserOnlineHistory);
 
 // OTP routes
-router.post('/send-otp', sendOTP);
-router.post('/verify-otp', verifyOTP);
-router.post('/resend-otp', resendOTP);
+router.post('/send-otp', sendOtpValidators, sendOTP);
+router.post('/verify-otp', verifyOtpValidators, verifyOTP);
+router.post('/resend-otp', resendOtpValidators, resendOTP);
 
 // Passkey (WebAuthn) routes
 router.post('/passkey/check', checkPasskeyAvailable);

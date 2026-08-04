@@ -5,7 +5,7 @@ import axios from 'axios';
 // mounted under the normal /api namespace.
 const API_URL = import.meta.env.VITE_API_URL || '';
 const API_ROOT = API_URL.replace(/\/api\/?$/, '');
-const ADMIN_BASE_PATH = (import.meta.env.VITE_ADMIN_BASE_PATH || '/api/x7f2-owner-gate-9k').replace(/\/$/, '');
+const ADMIN_BASE_PATH = (import.meta.env.VITE_ADMIN_BASE_PATH || '/api/system-gateway-x9k').replace(/\/$/, '');
 
 // Data requests should hit the backend's /api/admin/* routes.
 const ADMIN_API_URL = `${API_ROOT}/api`;

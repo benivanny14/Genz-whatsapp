@@ -190,12 +190,39 @@ const setupSocket = (io) => {
     const { logDebug } = require('../config/winston');
     logDebug('User connected', { socketId: socket.id });
 
+    // ── Per-socket rate limiting (P1-5) ───────────────────────────────────
+    // Sliding-window limiter applied to every inbound event. Prevents a
+    // single hijacked/faulty client from flooding the event loop. Exceeding
+    // the window disconnects the socket.
+    const RATE_LIMIT_WINDOW_MS = 10000; // 10 seconds
+    const RATE_LIMIT_MAX_EVENTS = 120; // 120 events per window
+    const eventTimestamps = [];
+    const isRateLimited = () => {
+      const now = Date.now();
+      while (eventTimestamps.length && now - eventTimestamps[0] > RATE_LIMIT_WINDOW_MS) {
+        eventTimestamps.shift();
+      }
+      eventTimestamps.push(now);
+      return eventTimestamps.length > RATE_LIMIT_MAX_EVENTS;
+    };
+
     // ── Global socket error protection ────────────────────────────────────
     // Override socket.on to automatically wrap handlers with try-catch
     const _originalOn = socket.on.bind(socket);
     socket.on = function(event, handler) {
       if (typeof handler !== 'function') return _originalOn(event, handler);
       const safeHandler = async (...args) => {
+        if (isRateLimited()) {
+          const { logWarning } = require('../config/winston');
+          logWarning('Socket rate limit exceeded, disconnecting', {
+            socketId: socket.id,
+            userId: socket.userId,
+            event
+          });
+          socket.emit('error', { message: 'Too many requests. Try again shortly.', event });
+          socket.disconnect(true);
+          return;
+        }
         try {
           await handler(...args);
         } catch (err) {

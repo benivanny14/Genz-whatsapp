@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const { protect } = require('../middleware/auth');
+const { safeFilename } = require('../utils/safeFilename');
 const {
   createStatus, getStatuses, viewStatus,
   reactToStatus, deleteStatus, getViewers,
@@ -16,7 +17,7 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
+    cb(null, uniqueSuffix + '-' + safeFilename(file.originalname));
   }
 });
 
