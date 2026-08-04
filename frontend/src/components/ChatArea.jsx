@@ -2761,45 +2761,45 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                          ? (() => { const diff = new Date(message.liveLocationExpiresAt) - new Date(); const h = Math.floor(diff / 3600000); const m = Math.floor((diff % 3600000) / 60000); return h > 0 ? `${h}h ${m}m` : `${m}m`; })()
                          : null;
                        return (
-                         <div className="mb-1 w-[260px] rounded-lg overflow-hidden border border-white/10 bg-[#e5e5e5] shadow-sm relative group cursor-pointer" onClick={() => { if (mapsUrl) window.open(mapsUrl, '_blank'); }}>
+                         <div className="mb-1 w-[260px] rounded-lg overflow-hidden bg-[#0b141a] shadow-sm relative group cursor-pointer" onClick={() => { if (mapsUrl) window.open(mapsUrl, '_blank'); }}>
                            {/* Real Map Preview */}
-                           <div className="relative h-48 bg-[#0d1f35] flex items-center justify-center overflow-hidden">
+                           <div className="relative h-48 bg-[#202c33] flex items-center justify-center overflow-hidden">
                              {staticMapUrl ? (
-                               <img src={staticMapUrl} alt="Map" className="w-full h-full object-cover" loading="lazy" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.style.backgroundImage = 'radial-gradient(circle at 50% 50%, #1a3a2a 0%, #0d1f35 100%)'; }} />
+                               <img src={staticMapUrl} alt="Map" className="w-full h-full object-cover" loading="lazy" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.style.backgroundImage = 'radial-gradient(circle at 50% 50%, #202c33 0%, #0b141a 100%)'; }} />
                              ) : (
-                               <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, #1a3a2a 0%, #0d1f35 100%)' }} />
+                               <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, #202c33 0%, #0b141a 100%)' }} />
                              )}
                              {/* Pulsing Location Dot */}
                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                {isLive ? (
                                  <div className="relative flex items-center justify-center">
-                                   <div className="absolute rounded-full border-[3px] border-red-500 w-14 h-14 animate-ping opacity-60" />
-                                   <div className="w-10 h-10 rounded-full border-[3px] border-red-500 shadow-xl overflow-hidden z-10 bg-white flex items-center justify-center">
-                                     <MapPin className="w-6 h-6 text-red-500 fill-current" />
+                                   <div className="absolute rounded-full border-[3px] border-[#00a884] w-14 h-14 animate-ping opacity-60" />
+                                   <div className="w-10 h-10 rounded-full border-[3px] border-[#00a884] shadow-xl overflow-hidden z-10 bg-[#202c33] flex items-center justify-center">
+                                     <MapPin className="w-6 h-6 text-[#00a884] fill-current" />
                                    </div>
                                  </div>
                                ) : (
-                                 <div className="w-10 h-10 rounded-full bg-white/90 shadow-xl flex items-center justify-center">
-                                   <MapPin className="w-6 h-6 text-red-500 fill-current" />
+                                 <div className="w-10 h-10 rounded-full bg-[#202c33] shadow-xl flex items-center justify-center">
+                                   <MapPin className="w-6 h-6 text-[#00a884] fill-current" />
                                  </div>
                                )}
                              </div>
                              {/* Live Timer Badge */}
                              {timeRemaining && (
-                               <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm text-white text-xs font-semibold px-2 py-1 rounded-full flex items-center gap-1">
+                               <div className="absolute top-2 right-2 bg-[#00a884] text-white text-xs font-semibold px-2 py-1 rounded-full flex items-center gap-1">
                                  <Clock size={10} /> {timeRemaining}
                                </div>
                              )}
                            </div>
                            {/* Bottom Bar Info */}
-                           <div className="bg-white p-3 flex flex-col border-t border-black/10">
-                             <p className="text-sm font-bold text-gray-800 truncate">
+                           <div className="bg-[#111b21] p-3 flex flex-col border-t border-[#2a3942]">
+                             <p className="text-sm font-bold text-white truncate">
                                {isLive ? 'Live location' : 'Location'}
                              </p>
                              {addressText && (
-                               <p className="text-xs text-gray-500 truncate mt-0.5">{addressText}</p>
+                               <p className="text-xs text-[#8696a0] truncate mt-0.5">{addressText}</p>
                              )}
-                             <span className="text-xs text-blue-500 mt-1 truncate hover:underline">
+                             <span className="text-xs text-[#00a884] mt-1 truncate hover:underline">
                                Open in Maps
                              </span>
                            </div>
@@ -3880,28 +3880,28 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
       {showLiveLocationModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className={`${headerClass} rounded-2xl w-full max-w-sm overflow-hidden flex flex-col shadow-2xl border border-white/10`}>
-            <div className="p-4 border-b border-white/10 flex justify-between items-center">
+          <div className="bg-[#111b21] rounded-lg w-full max-w-sm overflow-hidden flex flex-col shadow-2xl">
+            <div className="p-4 border-b border-[#2a3942] flex justify-between items-center">
               <h3 className="text-white font-medium text-lg">Share live location</h3>
-              <button onClick={() => setShowLiveLocationModal(false)} className="text-gray-400 hover:text-white" aria-label="Close">
+              <button onClick={() => setShowLiveLocationModal(false)} className="text-[#8696a0] hover:text-white" aria-label="Close">
                 <X size={20} />
               </button>
             </div>
-            <div className="relative h-48 bg-[#e0e7ec]" style={{ backgroundImage: 'radial-gradient(#c8d2d9 2px, transparent 2px)', backgroundSize: '20px 20px' }}>
+            <div className="relative h-56 bg-[#0b141a]">
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-14 h-14 rounded-full border-[3px] border-red-500 overflow-hidden shadow-lg z-10 bg-white">
+                <div className="w-16 h-16 rounded-full border-[3px] border-[#00a884] overflow-hidden shadow-lg z-10 bg-[#202c33]">
                   <img src={user?.profilePicture || `https://ui-avatars.com/api/?name=${user?.username}`} className="w-full h-full object-cover" alt="Me" />
                 </div>
-                <div className="absolute rounded-full border-4 border-red-500/30 w-24 h-24 animate-ping"></div>
+                <div className="absolute rounded-full border-4 border-[#00a884]/30 w-28 h-28 animate-ping"></div>
               </div>
-              <div className="absolute bottom-3 left-3 right-3 bg-white/95 backdrop-blur text-xs px-3 py-2 rounded-lg text-center font-medium text-gray-800 shadow-md">
-                Participants in this chat will see your location in real-time. This feature shares your location for the duration you choose.
+              <div className="absolute bottom-4 left-4 right-4 bg-[#00a884] text-white text-xs px-3 py-2 rounded-lg text-center font-medium shadow-md">
+                Participants in this chat will see your location in real-time
               </div>
             </div>
-            <div className="p-4 flex flex-col gap-4 bg-dark-bg">
+            <div className="p-4 flex flex-col gap-4 bg-[#111b21]">
               <div>
-                <label className="text-xs text-gray-400 font-medium mb-2 block">Share for</label>
-                <div className="flex bg-white/5 rounded-xl p-1 gap-1 border border-white/10">
+                <label className="text-xs text-[#8696a0] font-medium mb-2 block">Share for</label>
+                <div className="flex bg-[#202c33] rounded-lg p-1 gap-1">
                   {[
                     { id: 15, label: '15 minutes' },
                     { id: 60, label: '1 hour' },
@@ -3910,7 +3910,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                     <button
                       key={opt.id}
                       onClick={() => setLiveLocationDuration(opt.id)}
-                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${liveLocationDuration === opt.id ? 'bg-primary-500 text-white shadow' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                      className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${liveLocationDuration === opt.id ? 'bg-[#00a884] text-white' : 'text-[#8696a0] hover:text-white'}`}
                     >
                       {opt.label}
                     </button>
@@ -3922,11 +3922,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                 value={liveLocationComment}
                 onChange={(e) => setLiveLocationComment(e.target.value)}
                 placeholder="Add comment"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-primary-500"
+                className="w-full bg-[#202c33] border border-[#2a3942] rounded-lg px-4 py-3 text-white placeholder-[#8696a0] text-sm focus:outline-none focus:border-[#00a884]"
               />
               <div className="flex justify-end mt-2">
-                <button onClick={confirmShareLiveLocation} className="bg-primary-500 hover:bg-primary-600 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-[0_0_15px_rgba(34,197,94,0.4)] transition-transform hover:scale-105 active:scale-95" aria-label="Send">
-                  <Send size={20} className="ml-1" />
+                <button onClick={confirmShareLiveLocation} className="bg-[#00a884] hover:bg-[#008f6f] text-white rounded-lg px-6 py-2.5 flex items-center justify-center" aria-label="Send">
+                  <Send size={18} className="mr-2" /> Share live location
                 </button>
               </div>
             </div>
@@ -3936,40 +3936,40 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
       {showCurrentLocationModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className={`${headerClass} rounded-2xl w-full max-w-sm overflow-hidden flex flex-col shadow-2xl border border-white/10`}>
-            <div className="p-4 border-b border-white/10 flex justify-between items-center">
+          <div className="bg-[#111b21] rounded-lg w-full max-w-sm overflow-hidden flex flex-col shadow-2xl">
+            <div className="p-4 border-b border-[#2a3942] flex justify-between items-center">
               <h3 className="text-white font-medium text-lg">Send current location</h3>
-              <button onClick={() => setShowCurrentLocationModal(false)} className="text-gray-400 hover:text-white" aria-label="Close">
+              <button onClick={() => setShowCurrentLocationModal(false)} className="text-[#8696a0] hover:text-white" aria-label="Close">
                 <X size={20} />
               </button>
             </div>
-            <div className="relative h-48 bg-[#d8f3dc]/30" style={{ backgroundImage: 'radial-gradient(#b7e4c7 2px, transparent 2px)', backgroundSize: '20px 20px' }}>
+            <div className="relative h-56 bg-[#0b141a]">
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-14 h-14 rounded-full border-[3px] border-emerald-500 overflow-hidden shadow-lg z-10 bg-white">
+                <div className="w-16 h-16 rounded-full border-[3px] border-[#00a884] overflow-hidden shadow-lg z-10 bg-[#202c33]">
                   <img src={user?.profilePicture || `https://ui-avatars.com/api/?name=${user?.username}`} className="w-full h-full object-cover" alt="Me" />
                 </div>
-                <div className="absolute rounded-full border-4 border-emerald-500/30 w-20 h-20 animate-pulse"></div>
+                <div className="absolute rounded-full border-4 border-[#00a884]/30 w-28 h-28 animate-pulse"></div>
               </div>
-              <div className="absolute bottom-3 left-3 right-3 bg-white/95 backdrop-blur text-xs px-3 py-2 rounded-lg text-center font-medium text-gray-800 shadow-md flex flex-col gap-0.5">
-                <span className="text-emerald-700 font-bold">📍 Send this location</span>
+              <div className="absolute bottom-4 left-4 right-4 bg-[#00a884] text-white text-xs px-3 py-2 rounded-lg text-center font-medium shadow-md flex flex-col gap-0.5">
+                <span className="font-bold">📍 Send this location</span>
                 {currentLocationCoords && (
-                  <span className="text-gray-600">
-                    Accurate to {Math.round(currentLocationCoords.accuracy || 15)} meters • Lat: {currentLocationCoords.latitude.toFixed(5)}, Lng: {currentLocationCoords.longitude.toFixed(5)}
+                  <span className="text-white/90">
+                    Accurate to {Math.round(currentLocationCoords.accuracy || 15)} meters
                   </span>
                 )}
               </div>
             </div>
-            <div className="p-4 flex flex-col gap-4 bg-dark-bg">
+            <div className="p-4 flex flex-col gap-4 bg-[#111b21]">
               <input
                 type="text"
                 value={currentLocationComment}
                 onChange={(e) => setCurrentLocationComment(e.target.value)}
                 placeholder="Add caption"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-emerald-500"
+                className="w-full bg-[#202c33] border border-[#2a3942] rounded-lg px-4 py-3 text-white placeholder-[#8696a0] text-sm focus:outline-none focus:border-[#00a884]"
               />
               <div className="flex justify-end">
-                <button onClick={confirmShareCurrentLocation} className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-transform hover:scale-105 active:scale-95" aria-label="Send">
-                  <Send size={20} className="ml-1" />
+                <button onClick={confirmShareCurrentLocation} className="bg-[#00a884] hover:bg-[#008f6f] text-white rounded-lg px-6 py-2.5 flex items-center justify-center" aria-label="Send">
+                  <Send size={18} className="mr-2" /> Send current location
                 </button>
               </div>
             </div>
