@@ -1,11 +1,53 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const PaymentFeature = require('../models/PaymentFeature');
 const { protect, isAdmin } = require('../middleware/auth');
-const { uploadToCloudinary, deleteFromCloudinary } = require('../config/cloudinary');
+const { uploadFile, deleteFile, validateFile } = require('../config/cloudinary');
+
+const paymentUploadDir = path.join(__dirname, '../uploads/payment-features');
+if (!fs.existsSync(paymentUploadDir)) {
+  fs.mkdirSync(paymentUploadDir, { recursive: true });
+}
+
+const paymentUpload = multer({
+  storage: multer.diskStorage({
+    destination: paymentUploadDir,
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname || '');
+      cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 9)}${ext}`);
+    }
+  }),
+  fileFilter: (req, file, cb) => {
+    const validation = validateFile(file);
+    if (!validation.valid) {
+      return cb(new Error(validation.error), false);
+    }
+    cb(null, true);
+  },
+  limits: {
+    fileSize: 100 * 1024 * 1024,
+    files: 8
+  }
+}).fields([
+  { name: 'images', maxCount: 5 },
+  { name: 'videos', maxCount: 3 }
+]);
+
+// Wrap multer so upload errors are returned as 400 JSON responses
+const runPaymentUpload = (req, res, next) => {
+  paymentUpload(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ success: false, message: err.message || 'Upload error' });
+    }
+    next();
+  });
+};
 
 // Create new payment feature (admin only)
-router.post('/', protect, isAdmin, async (req, res) => {
+router.post('/', protect, isAdmin, runPaymentUpload, async (req, res) => {
   try {
     const { name, description, price, location, category, maxPrice, status, contactInfo, tags, specifications, isPrivate, expiresAt } = req.body;
 
@@ -19,13 +61,13 @@ router.post('/', protect, isAdmin, async (req, res) => {
     let images = [];
     if (req.files && req.files.images) {
       for (const file of req.files.images) {
-        const result = await uploadToCloudinary(file.path, {
+        const result = await uploadFile(file.path, 'image', {
           folder: 'payment-features/images',
           transformation: [{ width: 1200, quality: 'auto' }]
         });
         images.push({
-          url: result.secure_url,
-          publicId: result.public_id,
+          url: result.url,
+          publicId: result.publicId,
           alt: name
         });
       }
@@ -34,14 +76,13 @@ router.post('/', protect, isAdmin, async (req, res) => {
     let videos = [];
     if (req.files && req.files.videos) {
       for (const file of req.files.videos) {
-        const result = await uploadToCloudinary(file.path, {
+        const result = await uploadFile(file.path, 'video', {
           folder: 'payment-features/videos',
-          resource_type: 'video',
           transformation: [{ quality: 'auto', duration: 30 }]
         });
         videos.push({
-          url: result.secure_url,
-          publicId: result.public_id,
+          url: result.url,
+          publicId: result.publicId,
           title: name
         });
       }
@@ -94,7 +135,12 @@ router.get('/', async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const filter = { status: 'active' };
+    const filter = {};
+    if (req.query.status && req.query.status !== 'all') {
+      filter.status = req.query.status;
+    } else if (!req.query.status) {
+      filter.status = 'active';
+    }
     
     if (req.query.featured === 'true') {
       filter.featured = true;
@@ -242,13 +288,13 @@ router.delete('/:id', protect, isAdmin, async (req, res) => {
 
     for (const image of paymentFeature.images || []) {
       if (image.publicId) {
-        await deleteFromCloudinary(image.publicId);
+        await deleteFile(image.publicId, 'image');
       }
     }
 
     for (const video of paymentFeature.videos || []) {
       if (video.publicId) {
-        await deleteFromCloudinary(video.publicId);
+        await deleteFile(video.publicId, 'video');
       }
     }
 

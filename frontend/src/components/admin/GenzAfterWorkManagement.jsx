@@ -40,7 +40,7 @@ const GenzAfterWorkManagement = () => {
     videos: [],
     isPrivate: false,
     expiresAt: '',
-    status: 'pending'
+    status: 'active'
   });
 
   const formatPrice = (price) => {
@@ -55,8 +55,8 @@ const GenzAfterWorkManagement = () => {
   const loadFeatures = async () => {
     setLoading(true);
     try {
-      const { data } = await adminApi.get('/payment-features');
-      setFeatures(data.features || []);
+      const { data } = await adminApi.get('/payment-features?status=all');
+      setFeatures(data.data || []);
     } catch (error) {
       console.error('Error loading features:', error);
     } finally {
@@ -147,7 +147,7 @@ const GenzAfterWorkManagement = () => {
           videos: [],
           isPrivate: false,
           expiresAt: '',
-          status: 'pending'
+          status: 'active'
         });
         loadFeatures();
       } else {
