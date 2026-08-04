@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Trash2, AlertTriangle, CheckCircle } from 'lucide-react';
@@ -22,7 +23,7 @@ const StatusDeletePanel = ({ onClose, status, onDelete }) => {
 
     setIsDeleting(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       await fetch(`${resolveApiBase()}/status/${status?._id || status?.id}`, {
         method: 'DELETE',
         headers: {

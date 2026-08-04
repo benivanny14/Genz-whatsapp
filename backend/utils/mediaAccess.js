@@ -1,11 +1,11 @@
 const crypto = require('crypto');
+const { JWT_SECRET } = require('../config/secrets');
 
 const DEFAULT_TTL_SECONDS = Number(process.env.MEDIA_URL_TTL_SECONDS || 7 * 24 * 60 * 60);
 
 const getMediaSecret = () =>
   process.env.MEDIA_ACCESS_SECRET ||
-  process.env.JWT_SECRET ||
-  'genz-development-secret-change-me';
+  JWT_SECRET;
 
 const normalizeRelativePath = (input = '') => {
   const decoded = decodeURIComponent(String(input).trim());

@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Share2, Link, MessageCircle, Copy, CheckCircle, Download, Instagram, Facebook, Twitter, Send } from 'lucide-react';
@@ -38,7 +39,7 @@ const StatusSharePanel = ({ onClose, status, onShare }) => {
     setIsSharing(true);
     try {
       // Call backend API to record share
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/share`, {
         method: 'POST',
         headers: {

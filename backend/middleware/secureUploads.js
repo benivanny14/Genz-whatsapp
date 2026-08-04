@@ -1,27 +1,16 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { JWT_SECRET } = require('../config/secrets');
 const {
   normalizeRelativePath,
   verifyMediaSignature,
   isMediaSignatureRequired
 } = require('../utils/mediaAccess');
 
-// CRITICAL: JWT secret must be set in environment variables
-// System will fail to start if not configured in production
-if (!process.env.JWT_SECRET) {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('FATAL: JWT_SECRET environment variable is required in production');
-  }
-  console.warn('[SECURITY] JWT_SECRET not set, using development-only default. DO NOT USE IN PRODUCTION!');
-}
-
-const JWT_SECRET = process.env.JWT_SECRET || 'genz-development-secret-change-me';
-
-if (process.env.NODE_ENV === 'production' && JWT_SECRET === 'genz-development-secret-change-me') {
-  throw new Error('FATAL: Default JWT secret detected in production. Set JWT_SECRET environment variable.');
-}
-
 const getBearerToken = (req) => {
+  if (req.cookies?.token) {
+    return req.cookies.token;
+  }
   const header = req.headers.authorization || '';
   if (!header.startsWith('Bearer ')) return null;
   const token = header.slice(7).trim();

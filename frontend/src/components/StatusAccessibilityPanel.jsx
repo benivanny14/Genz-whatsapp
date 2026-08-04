@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Accessibility, Eye, Type, Volume2, Keyboard, Zap, CheckCircle, AlertCircle, Sparkles, Mic } from 'lucide-react';
@@ -26,7 +27,7 @@ const StatusAccessibilityPanel = ({ onClose, status, onAccessibilityUpdate }) =>
     const loadAccessibilitySettings = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem('token');
+        const token = getAuthToken();
         const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/accessibility`, {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -93,7 +94,7 @@ const StatusAccessibilityPanel = ({ onClose, status, onAccessibilityUpdate }) =>
     };
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${resolveApiBase()}/status-advanced/${statusId}/accessibility`, {
         method: 'POST',
         headers: {
@@ -130,7 +131,7 @@ const StatusAccessibilityPanel = ({ onClose, status, onAccessibilityUpdate }) =>
 
   const generateAutoAltText = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/alt-text`, {
         method: 'POST',
         headers: {
@@ -152,7 +153,7 @@ const StatusAccessibilityPanel = ({ onClose, status, onAccessibilityUpdate }) =>
 
   const generateAutoCaptions = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/captions`, {
         method: 'POST',
         headers: {

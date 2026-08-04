@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Users, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
@@ -26,7 +27,7 @@ const JoinGroup = () => {
         return;
       }
 
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       // FIX: Unauthenticated users hitting a group invite link previously got a
       // generic "invalid link" error (401 from the protected /join route).
       // Instead, send them to log in and resume the join automatically after.

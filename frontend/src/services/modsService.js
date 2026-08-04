@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import { authFetch } from '../utils/authFetch';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -6,7 +7,7 @@ const modsService = {
   // Get GENZ mods settings
   getModsSettings: async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/genz-mods/settings`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -29,7 +30,7 @@ const modsService = {
   // Update GENZ mods settings
   updateModsSettings: async (settings) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/genz-mods/settings`, {
         method: 'PUT',
         headers: {
@@ -54,7 +55,7 @@ const modsService = {
   // Get deleted messages (anti-delete)
   getDeletedMessages: async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/genz-mods/deleted-messages`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -77,7 +78,7 @@ const modsService = {
   // Restore deleted message
   restoreMessage: async (messageId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/genz-mods/restore-message/${messageId}`, {
         method: 'POST',
         headers: {
@@ -101,7 +102,7 @@ const modsService = {
   // Set auto reply
   setAutoReply: async (autoReplySettings) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/genz-mods/auto-reply`, {
         method: 'POST',
         headers: {
@@ -126,7 +127,7 @@ const modsService = {
   // Get auto reply settings
   getAutoReply: async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/genz-mods/auto-reply`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -149,7 +150,7 @@ const modsService = {
   // Get user status with ghost mode
   getUserStatus: async (userId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/genz-mods/user-status/${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -172,7 +173,7 @@ const modsService = {
   // Update ghost mode settings
   updateGhostMode: async (ghostModeSettings) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/genz-mods/ghost-mode`, {
         method: 'PUT',
         headers: {
@@ -197,7 +198,7 @@ const modsService = {
   // Get message tracking info
   getMessageTracking: async (messageId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/genz-mods/message-tracking/${messageId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -220,7 +221,7 @@ const modsService = {
   // Enable/disable read receipts
   updateReadReceipts: async (enabled) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/genz-mods/read-receipts`, {
         method: 'PUT',
         headers: {
@@ -245,7 +246,7 @@ const modsService = {
   // Enable/disable typing indicators
   updateTypingIndicators: async (enabled) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/genz-mods/typing-indicators`, {
         method: 'PUT',
         headers: {
@@ -270,7 +271,7 @@ const modsService = {
   // Update online status visibility
   updateOnlineStatus: async (visible) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/genz-mods/online-status`, {
         method: 'PUT',
         headers: {
@@ -295,7 +296,7 @@ const modsService = {
   // Freeze last seen timestamp
   freezeLastSeen: async (freeze) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/genz-mods/freeze-last-seen`, {
         method: 'PUT',
         headers: {
@@ -320,7 +321,7 @@ const modsService = {
   // Get mod usage statistics
   getModStats: async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/genz-mods/stats`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -343,7 +344,7 @@ const modsService = {
   // Export mod settings
   exportModSettings: async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/genz-mods/export`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -366,7 +367,7 @@ const modsService = {
   // Import mod settings
   importModSettings: async (settings) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/genz-mods/import`, {
         method: 'POST',
         headers: {

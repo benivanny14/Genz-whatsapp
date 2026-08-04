@@ -53,7 +53,6 @@ services:
         value: mailto:admin@genz-whatsapp.com
       - key: ALLOW_ANONYMOUS_DEVICE_AUTH
         value: "false"
-      - key: ALLOW_SOCKET_WITHOUT_AUTH
         value: "false"
       - key: ALLOW_MOCK_PAYMENTS
         value: "false"

@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Layout, Sparkles, Star, Clock, TrendingUp, Heart } from 'lucide-react';
@@ -29,7 +30,7 @@ const StatusTemplatesPanel = ({ onClose, status, onTemplateSelect }) => {
   const loadTemplates = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${resolveApiBase()}/status-advanced/templates`, {
         headers: {
           'Authorization': `Bearer ${token}`

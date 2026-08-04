@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useRef, useCallback } from 'react';
 import { Upload, X, CheckCircle, AlertCircle, File, FileVideo, FileAudio, Image, Loader } from 'lucide-react';
 import { resolveApiBase } from '../utils/resolveApiBase';
@@ -6,7 +7,7 @@ const API_URL = resolveApiBase();
 const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB per chunk
 
 const authHeaders = () => ({
-  'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+  'Authorization': `Bearer ${getAuthToken() || ''}`
 });
 
 const formatBytes = (bytes) => {

@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Hash, TrendingUp, Plus, XCircle, Search, CheckCircle } from 'lucide-react';
@@ -28,7 +29,7 @@ const StatusHashtagsPanel = ({ onClose, status, onHashtagsAdd }) => {
   const loadTrendingHashtags = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${resolveApiBase()}/status-advanced/hashtags/trending`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -70,7 +71,7 @@ const StatusHashtagsPanel = ({ onClose, status, onHashtagsAdd }) => {
 
   const handleConfirm = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/hashtags`, {
         method: 'POST',
         headers: {

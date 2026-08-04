@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, AtSign, UserPlus, Search, CheckCircle, XCircle } from 'lucide-react';
@@ -26,7 +27,7 @@ const StatusMentionsPanel = ({ onClose, status, onMentionsAdd }) => {
   const loadUsers = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${resolveApiBase()}/chat/contacts`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -68,7 +69,7 @@ const StatusMentionsPanel = ({ onClose, status, onMentionsAdd }) => {
 
   const handleConfirm = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/mention`, {
         method: 'POST',
         headers: {

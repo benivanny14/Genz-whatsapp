@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
 
@@ -7,7 +8,7 @@ const securityService = {
   // 2FA Setup
   setupTwoFactor: async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/security/2fa/setup`, {
         method: 'POST',
         headers: {
@@ -31,7 +32,7 @@ const securityService = {
   // Verify 2FA during setup
   verifyTwoFactorSetup: async (token, secret) => {
     try {
-      const authToken = localStorage.getItem('token');
+      const authToken = getAuthToken();
       const response = await authFetch(`${API_URL}/security/2fa/verify`, {
         method: 'POST',
         headers: {
@@ -79,7 +80,7 @@ const securityService = {
   // Disable 2FA
   disableTwoFactor: async (token) => {
     try {
-      const authToken = localStorage.getItem('token');
+      const authToken = getAuthToken();
       const response = await authFetch(`${API_URL}/security/2fa/disable`, {
         method: 'POST',
         headers: {
@@ -104,7 +105,7 @@ const securityService = {
   // Get 2FA status
   checkTwoFactorStatus: async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/security/2fa/status`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -130,7 +131,7 @@ const securityService = {
   // Get current security settings
   getSecuritySettings: async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/security/settings`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -153,7 +154,7 @@ const securityService = {
   // Update security settings
   updateSecuritySettings: async (settings) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/security/settings`, {
         method: 'PUT',
         headers: {

@@ -3,8 +3,9 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const speakeasy = require('speakeasy');
 const { getRequestDeviceId, registerDevice } = require('../utils/deviceSession');
+const { JWT_SECRET } = require('../config/secrets');
+const { setAuthCookies } = require('../utils/authCookies');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'genz-development-secret-change-me';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 const signToken = (user, deviceId) => {

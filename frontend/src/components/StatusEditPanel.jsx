@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Edit, Type, Palette, Image, Video, Music, MapPin, Save, Trash2, RotateCcw } from 'lucide-react';
@@ -37,7 +38,7 @@ const StatusEditPanel = ({ onClose, status, onStatusUpdate }) => {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${resolveApiBase()}/status/${status?._id || status?.id}`, {
         method: 'PUT',
         headers: {
@@ -80,7 +81,7 @@ const StatusEditPanel = ({ onClose, status, onStatusUpdate }) => {
   const handleDelete = async () => {
     if (confirm('Are you sure you want to delete this status?')) {
       try {
-        const token = localStorage.getItem('token');
+        const token = getAuthToken();
         await fetch(`${resolveApiBase()}/status/${status?._id || status?.id}`, {
           method: 'DELETE',
           headers: {

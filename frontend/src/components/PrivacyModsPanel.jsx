@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -47,7 +48,7 @@ const PrivacyModsPanel = ({ onClose }) => {
 
   const fetchSettings = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch('/api/privacy-mods/settings', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -66,7 +67,7 @@ const PrivacyModsPanel = ({ onClose }) => {
     setSuccess('');
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`/api/privacy-mods/${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }

@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Bell, Clock, Calendar, Plus, Trash2, CheckCircle, AlertCircle } from 'lucide-react';
@@ -18,7 +19,7 @@ const StatusReminderPanel = ({ onClose, status, onReminderSet }) => {
   const loadReminders = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/reminder`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -52,7 +53,7 @@ const StatusReminderPanel = ({ onClose, status, onReminderSet }) => {
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/reminder`, {
         method: 'POST',
         headers: {

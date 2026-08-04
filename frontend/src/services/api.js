@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import axios from 'axios';
 import { getDeviceHeaders } from '../utils/deviceIdentity';
 import { resolveApiBase } from '../utils/resolveApiBase';
@@ -10,13 +11,17 @@ if (API_URL !== '/api' && !API_URL.endsWith('/api')) {
 export const api = axios.create({
   baseURL: API_URL,
   headers: { 'Content-Type': 'application/json', ...getDeviceHeaders() },
+  withCredentials: true,
   timeout: 15000,
 });
 
 // ── Request interceptor: attach Bearer token on every request ─────────
+// The primary auth transport is the httpOnly cookie (sent automatically by the
+// browser with withCredentials). We still attach the in-memory token so older
+// flows and cross-origin dev keep working.
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     if (token) config.headers.Authorization = `Bearer ${token}`;
     Object.assign(config.headers, getDeviceHeaders());
     return config;
@@ -30,7 +35,7 @@ api.interceptors.response.use(
   async (error) => {
     // If 401 Unauthorized, clear auth and redirect to login
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
+      clearAuthTokens();
       localStorage.removeItem('user');
       window.location.href = '/login';
       return Promise.reject(error);

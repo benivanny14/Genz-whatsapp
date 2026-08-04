@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -24,7 +25,7 @@ const GroupQRCode = ({ groupId, groupName, onClose }) => {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       
       // Use a QR code generation library or API
       // For this implementation, we'll use a public QR code API

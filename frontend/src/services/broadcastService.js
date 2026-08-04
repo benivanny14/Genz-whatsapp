@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
 
@@ -15,7 +16,7 @@ const broadcastService = {
   // Get all broadcast lists
   getBroadcasts: async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/advanced/broadcast`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -33,7 +34,7 @@ const broadcastService = {
   // Create new broadcast list
   createBroadcast: async (broadcastData) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/advanced/broadcast`, {
         method: 'POST',
         headers: {
@@ -53,7 +54,7 @@ const broadcastService = {
   // Update broadcast list
   updateBroadcast: async (id, broadcastData) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/advanced/broadcast/${id}`, {
         method: 'PUT',
         headers: {
@@ -73,7 +74,7 @@ const broadcastService = {
   // Delete broadcast list
   deleteBroadcast: async (id) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/advanced/broadcast/${id}`, {
         method: 'DELETE',
         headers: {
@@ -92,7 +93,7 @@ const broadcastService = {
   // Send broadcast message
   sendBroadcastMessage: async (id, messageData) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/advanced/broadcast/${id}/send`, {
         method: 'POST',
         headers: {

@@ -28,6 +28,7 @@ import userService from '../services/userService';
 import { checkForUpdate } from '../utils/appUpdate';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import SettingsHelp from '../components/SettingsHelp';
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 
 const SETTINGS_KEY = 'genz_user_settings';
 
@@ -614,7 +615,7 @@ const Settings = () => {
     try {
       // Fetch full contact data from API
       const API_URL = resolveApiBase();
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const [contactsRes, savedRes] = await Promise.all([
         fetch(`${API_URL}/chat/contacts`, {
           headers: {
@@ -685,7 +686,7 @@ const Settings = () => {
         await fetch(`${API_URL}/privacy/excluded/type/${privacyType}`, {
           method: 'DELETE',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${getAuthToken()}`
           }
         });
         
@@ -694,7 +695,7 @@ const Settings = () => {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
+              'Authorization': `Bearer ${getAuthToken()}`
             },
             body: JSON.stringify({
               privacyType,
@@ -707,7 +708,7 @@ const Settings = () => {
         await fetch(`${API_URL}/privacy/allowed/type/${privacyType}`, {
           method: 'DELETE',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${getAuthToken()}`
           }
         });
         
@@ -716,7 +717,7 @@ const Settings = () => {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
+              'Authorization': `Bearer ${getAuthToken()}`
             },
             body: JSON.stringify({
               privacyType,

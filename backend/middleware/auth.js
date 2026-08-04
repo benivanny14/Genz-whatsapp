@@ -1,26 +1,18 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { isDeviceAllowed } = require('../utils/deviceSession');
-
-// CRITICAL: JWT secret must be set in environment variables
-// System will fail to start if not configured in production
-if (!process.env.JWT_SECRET) {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('FATAL: JWT_SECRET environment variable is required in production');
-  }
-  console.warn('[SECURITY] JWT_SECRET not set, using development-only default. DO NOT USE IN PRODUCTION!');
-}
-
-const JWT_SECRET = process.env.JWT_SECRET || 'genz-development-secret-change-me';
-
-if (process.env.NODE_ENV === 'production' && JWT_SECRET === 'genz-development-secret-change-me') {
-  throw new Error('FATAL: Default JWT secret detected in production. Set JWT_SECRET environment variable.');
-}
+const { JWT_SECRET } = require('../config/secrets');
 
 const DEFAULT_DEVICE_ID = process.env.DEFAULT_DEVICE_ID || 'local-web-device';
 const LOCAL_USER_ID = process.env.LOCAL_USER_ID || '60d5ecb8b392cb371c664c12';
 
 const getBearerToken = (req) => {
+  // Prefer the httpOnly cookie (primary auth transport), then fall back to the
+  // Authorization header for backward compatibility with older clients.
+  if (req.cookies?.token) {
+    return req.cookies.token;
+  }
+
   const header = req.headers.authorization || '';
   if (!header.startsWith('Bearer ')) {
     return null;
@@ -114,11 +106,7 @@ const protect = async (req, res, next) => {
 const isAdmin = async (req, res, next) => {
   try {
     const role = req.user?.role;
-    const allowDeviceAdmin =
-      process.env.ALLOW_DEVICE_ADMIN === 'true' &&
-      req.authMode === 'device' &&
-      process.env.NODE_ENV !== 'production';
-    const isUserAdmin = Boolean(req.user?.isAdmin || role === 'admin' || allowDeviceAdmin);
+    const isUserAdmin = Boolean(req.user?.isAdmin || role === 'admin');
 
     if (!isUserAdmin) {
       return res.status(403).json({

@@ -80,13 +80,9 @@ api.interceptors.response.use(
         return Promise.reject(error);
       }
 
-      const refreshToken = localStorage.getItem('refreshToken');
-      if (!refreshToken || refreshToken === 'null') {
-        // Silent clear and redirect when no refresh token
-        clearSessionAndRedirect();
-        return Promise.reject(error);
-      }
-
+      // Try refresh. Token may live in memory, the legacy localStorage
+      // fallback, or the httpOnly refresh cookie (tryRefreshAccessToken
+      // sends no body in that case and the backend reads the cookie).
       const newToken = await tryRefreshAccessToken();
       if (newToken) {
         originalRequest.headers.Authorization = `Bearer ${newToken}`;

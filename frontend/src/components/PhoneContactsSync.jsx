@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -46,7 +47,7 @@ const PhoneContactsSync = () => {
 
   const fetchMatchedContacts = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch('/api/contacts/matched', {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -73,7 +74,7 @@ const PhoneContactsSync = () => {
     setUploadProgress(0);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       
       // Simulate upload progress
       const progressInterval = setInterval(() => {
@@ -118,7 +119,7 @@ const PhoneContactsSync = () => {
     setSuccess(null);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch('/api/contacts/sync', {
         method: 'POST',
         headers: {
@@ -147,7 +148,7 @@ const PhoneContactsSync = () => {
 
   const handleRemoveContact = async (contactId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`/api/contacts/${contactId}`, {
         method: 'DELETE',
         headers: {

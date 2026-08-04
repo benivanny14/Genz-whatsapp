@@ -1,11 +1,14 @@
+import { getAuthToken, setAuthTokens } from '../utils/tokenStore';
 import api from '../utils/axios';
 import { clearAllUserData } from '../utils/authSession';
 
 const authService = {
-  // Save tokens to localStorage with consistent key names
+  // Tokens are held in memory only (the httpOnly cookie is the persistent
+  // session). The public user profile is cached in localStorage.
   saveTokens: (data) => {
-    if (data?.token) localStorage.setItem('token', data.token);
-    if (data?.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
+    if (data?.token || data?.refreshToken) {
+      setAuthTokens({ token: data.token, refreshToken: data.refreshToken });
+    }
     if (data?.user) {
       localStorage.setItem('user', JSON.stringify(data.user));
     }
@@ -69,9 +72,9 @@ const authService = {
     }
   },
 
-  // Restore session from localStorage
+  // Restore session (token from memory/cookie with localStorage fallback)
   restoreSession: () => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const userStr = localStorage.getItem('user');
     
     if (token && userStr) {
@@ -88,7 +91,7 @@ const authService = {
 
   // Check if user is authenticated
   isAuthenticated: () => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     return token && token !== 'null' && token !== 'undefined';
   }
 };

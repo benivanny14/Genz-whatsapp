@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Forward, Search, Users, CheckCircle, Send } from 'lucide-react';
@@ -55,7 +56,7 @@ const StatusForwardPanel = ({ onClose, status, onForward }) => {
 
     setIsForwarding(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/forward`, {
         method: 'POST',
         headers: {

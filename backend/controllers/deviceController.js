@@ -153,8 +153,7 @@ exports.pairDevice = async (req, res) => {
     // Issue real login tokens so the new device is actually signed in —
     // this is what a QR "pairing" is supposed to do (like WhatsApp Web/Desktop).
     const jwt = require('jsonwebtoken');
-    const JWT_SECRET = process.env.JWT_SECRET || 'genz-development-secret-change-me';
-    const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || JWT_SECRET;
+    const { JWT_SECRET, JWT_REFRESH_SECRET } = require('../config/secrets');
     const accessToken = jwt.sign(
       { id: account._id.toString(), role: account.role || (account.isAdmin ? 'admin' : 'user'), typ: 'access', deviceId: linkedDeviceId },
       JWT_SECRET,

@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -30,7 +31,7 @@ const GroupInviteLink = ({ groupId, onClose }) => {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`/api/groups/${groupId}/invite-link`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -53,7 +54,7 @@ const GroupInviteLink = ({ groupId, onClose }) => {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const body = {};
       if (expiresIn !== 'never') {
         const hours = parseInt(expiresIn);
@@ -88,7 +89,7 @@ const GroupInviteLink = ({ groupId, onClose }) => {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const body = {};
       if (expiresIn !== 'never') {
         const hours = parseInt(expiresIn);
@@ -125,7 +126,7 @@ const GroupInviteLink = ({ groupId, onClose }) => {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`/api/groups/${groupId}/invite-link`, {
         method: 'DELETE',
         headers: {

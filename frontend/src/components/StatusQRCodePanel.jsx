@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, QrCode, Download, Share2, Copy, Link, Scan } from 'lucide-react';
@@ -34,7 +35,7 @@ const StatusQRCodePanel = ({ onClose, status }) => {
   const generateQRCode = async () => {
     setIsGenerating(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const statusUrl = customUrl || `${window.location.origin}/status/${status?._id || status?.id}`;
       
       const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/qr`, {

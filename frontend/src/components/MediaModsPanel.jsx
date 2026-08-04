@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -36,7 +37,7 @@ const MediaModsPanel = ({ onClose }) => {
 
   const fetchSettings = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch('/api/media-mods/settings', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -55,7 +56,7 @@ const MediaModsPanel = ({ onClose }) => {
     setSuccess('');
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`/api/media-mods/${endpoint}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }

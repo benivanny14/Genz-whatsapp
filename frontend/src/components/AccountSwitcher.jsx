@@ -1,3 +1,4 @@
+import { getAuthToken, getRefreshToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useMemo, useState } from 'react';
 import { LogIn, Plus, RefreshCw, Trash2, UserRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -20,8 +21,8 @@ const saveAccounts = (accounts) => {
 const getCurrentAccount = () => {
   try {
     const user = JSON.parse(localStorage.getItem('user') || 'null');
-    const token = localStorage.getItem('token');
-    const refreshToken = localStorage.getItem('refreshToken');
+    const token = getAuthToken();
+    const refreshToken = getRefreshToken();
     if (!user || !token) return null;
     return {
       id: user._id || user.id || user.username,

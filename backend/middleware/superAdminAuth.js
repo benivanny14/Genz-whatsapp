@@ -1,17 +1,8 @@
 const jwt = require('jsonwebtoken');
 const AdminOwner = require('../models/AdminOwner');
 const { logAdminAction } = require('../utils/auditLogger');
+const { ADMIN_JWT_SECRET } = require('../config/secrets');
 
-// Admin tokens are signed with a COMPLETELY SEPARATE secret from regular
-// user JWTs (JWT_SECRET). Even if the user-facing secret ever leaked, it
-// could never be used to forge an admin session, and vice versa.
-if (!process.env.ADMIN_JWT_SECRET) {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('FATAL: ADMIN_JWT_SECRET environment variable is required in production');
-  }
-  console.warn('[SECURITY] ADMIN_JWT_SECRET not set — using a dev-only default. DO NOT deploy like this.');
-}
-const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || 'dev-only-admin-secret-change-me';
 const ACCESS_TOKEN_TTL = '15m';
 const PRE_2FA_TOKEN_TTL = '2m';
 const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days

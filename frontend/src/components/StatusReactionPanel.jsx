@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Heart, ThumbsUp, Laugh, Flame, Star, Smile, Angry, Frown, Zap, TrendingUp } from 'lucide-react';
@@ -28,7 +29,7 @@ const StatusReactionPanel = ({ onClose, status, onReactionAdd }) => {
   const loadReactionCount = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/reactions`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -60,7 +61,7 @@ const StatusReactionPanel = ({ onClose, status, onReactionAdd }) => {
     if (!statusId) return;
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       await fetch(`${resolveApiBase()}/status-advanced/${statusId}/react`, {
         method: 'POST',
         headers: {

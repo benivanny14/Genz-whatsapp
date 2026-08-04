@@ -6,22 +6,9 @@ const { mergeWhatsAppSettings } = require('../utils/whatsappSettings');
 const { applyPrivacyFilter } = require('../utils/privacyHelper');
 const { resolvePublicBaseUrl } = require('../utils/publicBaseUrl');
 const { getRequestDeviceId, registerDevice, isDeviceAllowed } = require('../utils/deviceSession');
+const { JWT_SECRET, JWT_REFRESH_SECRET } = require('../config/secrets');
+const { setAuthCookies, clearAuthCookies } = require('../utils/authCookies');
 
-// CRITICAL: JWT secrets must be set in environment variables
-// System will fail to start if not configured in production
-if (!process.env.JWT_SECRET) {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('FATAL: JWT_SECRET environment variable is required in production');
-  }
-  console.warn('[SECURITY] JWT_SECRET not set, using development-only default. DO NOT USE IN PRODUCTION!');
-}
-
-const JWT_SECRET = process.env.JWT_SECRET || 'genz-development-secret-change-me';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET;
-
-if (process.env.NODE_ENV === 'production' && JWT_SECRET === 'genz-development-secret-change-me') {
-  throw new Error('FATAL: Default JWT secret detected in production. Set JWT_SECRET environment variable.');
-}
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || process.env.JWT_EXPIRE || '7d';
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '30d';
 
@@ -118,6 +105,8 @@ exports.register = async (req, res) => {
     const refreshToken = signRefreshToken(user);
 
     console.log('[Auth] Registration successful:', { userId: user._id, username: user.username });
+
+    setAuthCookies(res, { token, refreshToken });
 
     res.status(201).json({
       success: true,
@@ -250,6 +239,8 @@ exports.login = async (req, res) => {
     const refreshToken = signRefreshToken(user);
 
     console.log('[Auth] Login successful:', { userId: user._id, username: user.username });
+
+    setAuthCookies(res, { token, refreshToken });
 
     res.json({
       success: true,
@@ -398,6 +389,8 @@ exports.logout = async (req, res) => {
       });
     }
 
+    clearAuthCookies(res);
+
     res.json({ success: true, message: 'Logged out successfully' });
   } catch (error) {
     console.error('Logout error:', error);
@@ -482,9 +475,11 @@ exports.getBlockedUsers = async (req, res) => {
 exports.refreshToken = async (req, res) => {
   try {
     const { refreshToken: bodyRefresh } = req.body;
+    const cookieRefresh = req.cookies && req.cookies.refreshToken;
+    const presentedToken = bodyRefresh || cookieRefresh;
 
-    if (!bodyRefresh || typeof bodyRefresh !== 'string') {
-      console.warn('[Auth] Refresh rejected: missing refreshToken body');
+    if (!presentedToken || typeof presentedToken !== 'string') {
+      console.warn('[Auth] Refresh rejected: missing refresh token (body or cookie)');
       return res.status(400).json({
         success: false,
         message: 'Refresh token is required'
@@ -493,7 +488,7 @@ exports.refreshToken = async (req, res) => {
 
     let decoded;
     try {
-      decoded = jwt.verify(bodyRefresh, JWT_REFRESH_SECRET);
+      decoded = jwt.verify(presentedToken, JWT_REFRESH_SECRET);
     } catch (e) {
       console.error('[Auth] Refresh JWT invalid or expired:', { message: e.message });
       return res.status(401).json({
@@ -536,6 +531,8 @@ exports.refreshToken = async (req, res) => {
     const refreshToken = signRefreshToken(user);
 
     console.log('[Auth] Token refreshed for user:', user._id);
+
+    setAuthCookies(res, { token, refreshToken });
 
     res.json({
       success: true,
@@ -877,9 +874,7 @@ exports.sendOTP = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'OTP sent successfully',
-      // In production, don't return the actual OTP
-      ...(process.env.NODE_ENV !== 'production' && { otp })
+      message: 'OTP sent successfully'
     });
   } catch (error) {
     console.error('Send OTP error:', error);
@@ -931,6 +926,8 @@ exports.verifyOTP = async (req, res) => {
       // Generate token
       const token = signToken(user);
       const refreshToken = signRefreshToken(user);
+
+      setAuthCookies(res, { token, refreshToken });
 
       res.json({
         success: true,
@@ -987,8 +984,7 @@ exports.resendOTP = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'OTP resent successfully',
-      ...(process.env.NODE_ENV !== 'production' && { otp })
+      message: 'OTP resent successfully'
     });
   } catch (error) {
     console.error('Resend OTP error:', error);
@@ -1300,6 +1296,8 @@ exports.passkeyLoginVerify = async (req, res) => {
     req.app.set(sessionKey, null);
 
     console.log('[Auth] Passkey login successful:', { userId: user._id, username: user.username });
+
+    setAuthCookies(res, { token, refreshToken });
 
     res.json({
       success: true,

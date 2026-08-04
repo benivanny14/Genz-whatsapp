@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -31,7 +32,7 @@ const AntiRevokePanel = ({ onClose }) => {
 
   const fetchSettings = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch('/api/anti-revoke/settings', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -52,7 +53,7 @@ const AntiRevokePanel = ({ onClose }) => {
 
   const fetchCachedMessages = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch('/api/anti-revoke/cached', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -71,7 +72,7 @@ const AntiRevokePanel = ({ onClose }) => {
     setSuccess('');
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch('/api/anti-revoke/settings', {
         method: 'POST',
         headers: {
@@ -106,7 +107,7 @@ const AntiRevokePanel = ({ onClose }) => {
     if (!confirm('Are you sure you want to clear all cached deleted messages?')) return;
     
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch('/api/anti-revoke/cached', {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }

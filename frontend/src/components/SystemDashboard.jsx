@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   MessageSquare, Users, TrendingUp, Activity, Clock, 
@@ -57,7 +58,7 @@ const SystemDashboard = ({ onClose }) => {
   const fetchStats = useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const [statsRes, rankRes] = await Promise.all([
         fetch(`${API_URL}/advanced/dashboard/stats`, { headers }),

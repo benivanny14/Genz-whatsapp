@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   X, Heart, MessageCircle, Share2, Download, Bookmark,
@@ -37,7 +38,7 @@ const StatusReel = ({ onClose, initialStatuses = [] }) => {
     const fetchReel = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem('token');
+        const token = getAuthToken();
         const res = await fetch(`${API_URL}/advanced/status/reel`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {}
         });
@@ -132,7 +133,7 @@ const StatusReel = ({ onClose, initialStatuses = [] }) => {
     const newLiked = !liked[currentId];
     setLiked(prev => ({ ...prev, [currentId]: newLiked }));
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const statusId = currentId.replace('status-', '');
       await fetch(`${API_URL}/advanced/status/${statusId}/like`, {
         method: 'POST',
@@ -145,7 +146,7 @@ const StatusReel = ({ onClose, initialStatuses = [] }) => {
     const newSaved = !saved[currentId];
     setSaved(prev => ({ ...prev, [currentId]: newSaved }));
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const statusId = currentId.replace('status-', '');
       await fetch(`${API_URL}/advanced/status/${statusId}/save`, {
         method: 'POST',
@@ -170,7 +171,7 @@ const StatusReel = ({ onClose, initialStatuses = [] }) => {
   const handleComment = async () => {
     if (!comment.trim()) return;
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const statusId = currentId.replace('status-', '');
       await fetch(`${API_URL}/advanced/status/${statusId}/reply`, {
         method: 'POST',
@@ -502,7 +503,7 @@ const StatusReel = ({ onClose, initialStatuses = [] }) => {
               { icon: <Trash2 size={16} className="text-red-400" />, label: 'Futa (Yako)', action: async () => {
                 if (!window.confirm('Futa status hii?')) return;
                 try {
-                  const token = localStorage.getItem('token');
+                  const token = getAuthToken();
                   const statusId = currentId.replace('status-', '');
                   await fetch(`${API_URL}/advanced/status/${statusId}`, {
                     method: 'DELETE',

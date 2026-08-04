@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import { authFetch } from '../utils/authFetch';
 import { getDeviceId } from '../utils/deviceIdentity';
 import { resolveApiBase } from '../utils/resolveApiBase';
@@ -27,7 +28,7 @@ const deviceService = {
   // Get all linked devices
   getDevices: async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/device`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -50,7 +51,7 @@ const deviceService = {
   // Generate QR code for device pairing
   generateQR: async (deviceInfo = {}) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/device/generate-qr`, {
         method: 'POST',
         headers: {
@@ -75,7 +76,7 @@ const deviceService = {
   // Pair device with code
   pairDevice: async (pairingToken, deviceInfo = {}) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/device/pair`, {
         method: 'POST',
         headers: {
@@ -100,7 +101,7 @@ const deviceService = {
   // Unlink/remove device
   unlinkDevice: async (deviceId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/device/${deviceId}`, {
         method: 'DELETE',
         headers: {
@@ -124,7 +125,7 @@ const deviceService = {
   // Logout from all devices
   logoutAllDevices: async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/device/logout-all`, {
         method: 'POST',
         headers: {
@@ -149,7 +150,7 @@ const deviceService = {
   // Set device active status
   setDeviceActive: async (deviceId, active) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/device/${deviceId}/active`, {
         method: 'PUT',
         headers: {
@@ -174,7 +175,7 @@ const deviceService = {
   // Rename a linked device
   renameDevice: async (deviceId, deviceName) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${API_URL}/device/${deviceId}`, {
         method: 'PUT',
         headers: {

@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Copy, CheckCircle, Clock, Calendar } from 'lucide-react';
@@ -12,7 +13,7 @@ const StatusDuplicatePanel = ({ onClose, status, onDuplicate }) => {
   const handleDuplicate = async () => {
     setIsDuplicating(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/duplicate`, {
         method: 'POST',
         headers: {

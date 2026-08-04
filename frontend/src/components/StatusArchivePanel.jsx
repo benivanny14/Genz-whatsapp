@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Archive, Calendar, Search, Filter, Download, Trash2, Eye, Clock, Tag } from 'lucide-react';
@@ -17,7 +18,7 @@ const StatusArchivePanel = ({ onClose, onArchiveAction }) => {
   const loadArchivedStatuses = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${resolveApiBase()}/status-advanced/archived`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -43,7 +44,7 @@ const StatusArchivePanel = ({ onClose, onArchiveAction }) => {
 
   const handleDelete = async (statusId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       await fetch(`${resolveApiBase()}/status/${statusId}`, {
         method: 'DELETE',
         headers: {
@@ -62,7 +63,7 @@ const StatusArchivePanel = ({ onClose, onArchiveAction }) => {
 
   const handleRestore = async (statusId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       await fetch(`${resolveApiBase()}/status-advanced/${statusId}/archive`, {
         method: 'POST',
         headers: {

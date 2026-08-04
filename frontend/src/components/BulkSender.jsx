@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -35,7 +36,7 @@ const BulkSender = ({ onClose, conversations, user }) => {
 
   const fetchSettings = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch('/api/bulk-sender/settings', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -89,7 +90,7 @@ const BulkSender = ({ onClose, conversations, user }) => {
     setError('');
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch('/api/bulk-sender/send', {
         method: 'POST',
         headers: {

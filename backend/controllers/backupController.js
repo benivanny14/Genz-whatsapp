@@ -25,8 +25,10 @@ const getCurrentUserId = (req) => req.user?._id?.toString() || LOCAL_USER_ID;
 const backupKeyFor = (backupId) => `${S3_PREFIX}/${path.basename(backupId)}`;
 const backupPathFor = (backupId) => path.join(BACKUP_DIR, path.basename(backupId));
 
+const { JWT_SECRET } = require('../config/secrets');
+
 const getEncryptionKey = () => crypto.scryptSync(
-  process.env.BACKUP_ENCRYPTION_KEY || process.env.JWT_SECRET || 'genz-development-backup-key',
+  process.env.BACKUP_ENCRYPTION_KEY || JWT_SECRET,
   'genz-backup-salt',
   32
 );

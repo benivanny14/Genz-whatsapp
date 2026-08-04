@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
@@ -85,7 +86,7 @@ class EncryptionService {
 
   async syncWithBackend() {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       if (!token) return false;
 
       const response = await fetch(`${API_BASE_URL}/encryption/keys/status`, {
@@ -140,7 +141,7 @@ class EncryptionService {
 
   async uploadKeysToBackend(keyData) {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       if (!token) return false;
 
       // Production-critical E2EE rule: only public keys are registered with
@@ -306,7 +307,7 @@ class EncryptionService {
 
   async getUserPublicKeys(userId) {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       if (!token) {
         throw new Error('Not authenticated');
       }
@@ -332,7 +333,7 @@ class EncryptionService {
 
   async batchGetPublicKeys(userIds) {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       if (!token) {
         throw new Error('Not authenticated');
       }

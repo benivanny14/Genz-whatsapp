@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Flag, AlertTriangle, CheckCircle, MessageSquare } from 'lucide-react';
@@ -25,7 +26,7 @@ const StatusReportPanel = ({ onClose, status, onReportSubmit }) => {
 
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/report`, {
         method: 'POST',
         headers: {

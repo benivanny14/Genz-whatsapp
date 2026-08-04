@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Bookmark, Folder, CheckCircle, Save } from 'lucide-react';
@@ -24,7 +25,7 @@ const StatusSavePanel = ({ onClose, status, onSave }) => {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/save`, {
         method: 'POST',
         headers: {

@@ -97,8 +97,24 @@ export const AuthProvider = ({ children }) => {
             clearSession();
           }
         } else {
-          console.log('[AuthContext] No session found');
-          setIsAuthenticated(false);
+          // No token in memory/localStorage. The persistent session is the
+          // httpOnly cookie set by the backend — attempt to restore via the
+          // cookie (getMe sends it automatically with credentials).
+          console.log('[AuthContext] No local token; trying httpOnly cookie session');
+          try {
+            const meData = await authService.getMe();
+            if (meData.success && meData.user) {
+              setUser(meData.user);
+              setIsAuthenticated(true);
+              console.log('[AuthContext] Session restored via httpOnly cookie');
+            } else {
+              console.log('[AuthContext] No valid cookie session found');
+              setIsAuthenticated(false);
+            }
+          } catch (cookieError) {
+            console.log('[AuthContext] Cookie session check failed:', cookieError?.response?.status || cookieError.message);
+            setIsAuthenticated(false);
+          }
         }
       } catch (error) {
         console.error('[AuthContext] Session restoration error:', error);

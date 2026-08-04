@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, FileText, Clock, Trash2, Edit, Send, Plus } from 'lucide-react';
@@ -15,7 +16,7 @@ const StatusDraftsPanel = ({ onClose, onDraftSelect, onDraftDelete }) => {
   const loadDrafts = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${resolveApiBase()}/status-advanced/drafts`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -43,7 +44,7 @@ const StatusDraftsPanel = ({ onClose, onDraftSelect, onDraftDelete }) => {
     if (!newDraftContent.trim()) return;
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       await fetch(`${resolveApiBase()}/status-advanced/draft`, {
         method: 'POST',
         headers: {
@@ -78,7 +79,7 @@ const StatusDraftsPanel = ({ onClose, onDraftSelect, onDraftDelete }) => {
 
   const handleDeleteDraft = async (draftId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       await fetch(`${resolveApiBase()}/status-advanced/${draftId}`, {
         method: 'DELETE',
         headers: {

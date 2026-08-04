@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Users, Plus, UserPlus, Share2, Lock, Unlock, Clock, CheckCircle, AlertCircle, Eye, MessageCircle, Edit, User } from 'lucide-react';
@@ -23,7 +24,7 @@ const StatusCollaborationPanel = ({ onClose, status, onCollaborationUpdate }) =>
     const loadCollaborationSettings = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem('token');
+        const token = getAuthToken();
         const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/collaboration`, {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -93,7 +94,7 @@ const StatusCollaborationPanel = ({ onClose, status, onCollaborationUpdate }) =>
     };
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${resolveApiBase()}/status-advanced/${statusId}/collaboration`, {
         method: 'POST',
         headers: {

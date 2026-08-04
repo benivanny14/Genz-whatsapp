@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -39,7 +40,7 @@ const SecurityModsPanel = ({ onClose }) => {
 
   const fetchSettings = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch('/api/security-mods/settings', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -58,7 +59,7 @@ const SecurityModsPanel = ({ onClose }) => {
     setSuccess('');
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`/api/security-mods/${endpoint}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }

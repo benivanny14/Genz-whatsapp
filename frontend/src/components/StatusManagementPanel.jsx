@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Edit3, Share2, BarChart3, Star, Bookmark, Layout, Palette, Crown, Copy, Trash2, Save } from 'lucide-react';
@@ -38,7 +39,7 @@ const StatusManagementPanel = ({ onClose, status, onSave }) => {
     }
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${resolveApiBase()}/status/${status?._id || status?.id}`, {
         method: 'PUT',
         headers: {
@@ -109,7 +110,7 @@ const StatusManagementPanel = ({ onClose, status, onSave }) => {
     if (confirm('Are you sure you want to delete this status?')) {
       setLoading(true);
       try {
-        const token = localStorage.getItem('token');
+        const token = getAuthToken();
         const response = await fetch(`${resolveApiBase()}/status/${status?._id || status?.id}`, {
           method: 'DELETE',
           headers: {

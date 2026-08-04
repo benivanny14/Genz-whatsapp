@@ -5,6 +5,7 @@ import userService from '../services/userService';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import PrivacyPermissionSelector from './PrivacyPermissionSelector';
 import ContactSelectorScreen from './ContactSelectorScreen';
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 
 const BASE = `${resolveApiBase()}/status-features`;
 
@@ -97,7 +98,7 @@ const StatusPrivacyPanel = ({ onClose }) => {
     try {
       // Fetch full contact data from API
       const API_URL = resolveApiBase();
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const [contactsRes, savedRes] = await Promise.all([
         fetch(`${API_URL}/chat/contacts`, {
           headers: {
@@ -167,7 +168,7 @@ const StatusPrivacyPanel = ({ onClose }) => {
         await fetch(`${API_URL}/privacy/excluded/type/status`, {
           method: 'DELETE',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${getAuthToken()}`
           }
         });
         
@@ -176,7 +177,7 @@ const StatusPrivacyPanel = ({ onClose }) => {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
+              'Authorization': `Bearer ${getAuthToken()}`
             },
             body: JSON.stringify({
               privacyType: 'status',
@@ -189,7 +190,7 @@ const StatusPrivacyPanel = ({ onClose }) => {
         await fetch(`${API_URL}/privacy/allowed/type/status`, {
           method: 'DELETE',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${getAuthToken()}`
           }
         });
         
@@ -198,7 +199,7 @@ const StatusPrivacyPanel = ({ onClose }) => {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
+              'Authorization': `Bearer ${getAuthToken()}`
             },
             body: JSON.stringify({
               privacyType: 'status',

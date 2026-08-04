@@ -12,6 +12,7 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
 const { isDeviceAllowed } = require('./utils/deviceSession');
 const connectDB = require('./config/db');
@@ -85,20 +86,9 @@ const setupSocket = require('./socket');
 const secureUploads = require('./middleware/secureUploads');
 const { buildSignedUploadUrl, signLocalUrlIfNeeded } = require('./utils/mediaAccess');
 
-// CRITICAL: JWT secret must be set in environment variables
-// System will fail to start if not configured in production
-if (!process.env.JWT_SECRET) {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('FATAL: JWT_SECRET environment variable is required in production');
-  }
-  console.warn('[SECURITY] JWT_SECRET not set, using development-only default. DO NOT USE IN PRODUCTION!');
-}
-
-const JWT_SECRET = process.env.JWT_SECRET || 'genz-development-secret-change-me';
-
-if (process.env.NODE_ENV === 'production' && JWT_SECRET === 'genz-development-secret-change-me') {
-  throw new Error('FATAL: Default JWT secret detected in production. Set JWT_SECRET environment variable.');
-}
+// CRITICAL: JWT secret must be set in environment variables.
+// The secrets module throws FATAL at startup if it is missing.
+const { JWT_SECRET } = require('./config/secrets');
 
 const DEFAULT_LOCAL_USER_ID = process.env.LOCAL_USER_ID || '60d5ecb8b392cb371c664c12';
 const { resolvePublicBaseUrl } = require('./utils/publicBaseUrl');
@@ -525,6 +515,7 @@ app.use(express.json({
   }
 }));
 app.use(express.urlencoded({ extended: true, limit: process.env.FORM_BODY_LIMIT || '2mb' }));
+app.use(cookieParser());
 app.use(mongoSanitize({ replaceWith: '_', allowDots: false }));
 app.use(sanitizeInput);
 
@@ -930,67 +921,47 @@ const onlineUsers = new Map();
 global.onlineUsers = onlineUsers;
 app.set('onlineUsers', onlineUsers);
 
-// Socket authentication middleware - JWT required (but allow tokenless fallback for web clients)
+// Socket authentication middleware - JWT required. There is no tokenless
+// fallback: every connection must present a valid access token (via the
+// handshake auth payload or the httpOnly cookie) or it is rejected.
 io.use(async (socket, next) => {
   try {
-    const token = socket.handshake.auth?.token;
-    const userId = socket.handshake.auth?.userId;
+    const authToken = socket.handshake.auth?.token;
+    const headerToken = socket.handshake.headers?.cookie
+      ? socket.handshake.headers.cookie
+          .split(';')
+          .map((part) => part.trim())
+          .find((part) => part.startsWith('token='))
+          ?.slice('token='.length)
+      : undefined;
+    const token = (authToken && authToken !== 'null' && authToken !== 'undefined' && authToken !== 'undefined')
+      ? authToken
+      : headerToken;
 
-    // If a valid JWT token is provided, verify it
-    if (token && token !== 'null' && token !== 'undefined') {
-      try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        if (decoded.typ === 'refresh') {
-          return next(new Error('Invalid token type for socket'));
-        }
-        const user = await User.findById(decoded.id).select('-passwordHash -twoFactorSecret');
-        if (user && !user.isBlocked) {
-          const deviceAllowed = await isDeviceAllowed(decoded);
-          if (!deviceAllowed) {
-            return next(new Error('Session has been logged out on this device'));
-          }
-          socket.userId = user._id.toString();
-          socket.user = user;
-          return next();
-        }
+    if (!token || token === 'null' || token === 'undefined') {
+      return next(new Error('Authentication required'));
+    }
+
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      if (decoded.typ === 'refresh') {
+        return next(new Error('Invalid token type for socket'));
+      }
+      const user = await User.findById(decoded.id).select('-passwordHash -twoFactorSecret');
+      if (!user || user.isBlocked) {
         return next(new Error('User not authorized'));
-      } catch (authError) {
-        logger.warn('Socket JWT auth failed, trying fallback userId:', authError.message);
-        // Fall through to userId-based auth
       }
-    }
-
-    // Fallback: userId-only auth (no proof of identity). This must NEVER be
-    // allowed in production — anyone who knows (or guesses) another user's
-    // ID could connect as them, read their messages, receive their calls,
-    // and impersonate their presence. Restrict it to non-production/dev use
-    // only, same as the explicit dev-mode fallback further below.
-    if (
-      userId && userId !== 'null' && userId !== 'undefined' &&
-      (process.env.NODE_ENV !== 'production' || process.env.ALLOW_SOCKET_WITHOUT_AUTH === 'true')
-    ) {
-      try {
-        const user = await User.findById(userId).select('-passwordHash -twoFactorSecret');
-        if (user && !user.isBlocked) {
-          socket.userId = user._id.toString();
-          socket.user = user;
-          logger.info('Socket connected via userId fallback:', socket.userId);
-          return next();
-        }
-      } catch (lookupError) {
-        logger.warn('User lookup failed for userId:', userId, lookupError.message);
+      const deviceAllowed = await isDeviceAllowed(decoded);
+      if (!deviceAllowed) {
+        return next(new Error('Session has been logged out on this device'));
       }
-    }
-
-    // In development or when REQUIRE_AUTH is false, allow connection with just a userId
-    if (process.env.NODE_ENV !== 'production' || process.env.ALLOW_SOCKET_WITHOUT_AUTH === 'true') {
-      const fallbackUserId = userId || '60d5ecb8b392cb371c664c12';
-      socket.userId = fallbackUserId;
-      logger.info('Socket connected without auth (dev mode):', fallbackUserId);
+      socket.userId = user._id.toString();
+      socket.user = user;
       return next();
+    } catch (authError) {
+      logger.warn('Socket JWT auth failed:', authError.message);
+      return next(new Error('Authentication failed'));
     }
-
-    return next(new Error('Authentication required'));
   } catch (error) {
     logger.error('Socket connection error', { error: error.message });
     next(new Error('Authentication failed'));

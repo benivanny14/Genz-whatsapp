@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, BarChart3, TrendingUp, Users, Eye, Heart, Share2, ArrowUp, ArrowDown, Calendar, MapPin, Smartphone, Monitor } from 'lucide-react';
@@ -14,7 +15,7 @@ const StatusAnalyticsPanel = ({ onClose, status }) => {
   const loadAnalyticsData = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/analytics`, {
         headers: {
           'Authorization': `Bearer ${token}`

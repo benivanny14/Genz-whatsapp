@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Download, Image, Video, FileText, Music, CheckCircle, AlertCircle } from 'lucide-react';
@@ -27,7 +28,7 @@ const StatusDownloadPanel = ({ onClose, status, onDownload }) => {
     setDownloadProgress(0);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       
       // Call backend to record download
       await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/download`, {

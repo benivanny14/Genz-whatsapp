@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Calendar, Clock, Repeat, Bell, CheckCircle, AlertCircle, Zap } from 'lucide-react';
@@ -38,7 +39,7 @@ const StatusSchedulerPanel = ({ onClose, status, onScheduleStatus }) => {
 
     setIsScheduling(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/schedule`, {
         method: 'POST',
         headers: {

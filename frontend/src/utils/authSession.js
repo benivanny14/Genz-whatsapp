@@ -1,3 +1,4 @@
+import { setAuthTokens, clearAuthTokens, getAuthToken, getRefreshToken } from './tokenStore';
 import { getDeviceHeaders } from './deviceIdentity';
 import { resolveApiBase } from './resolveApiBase';
 import db from './indexedDB';
@@ -6,8 +7,12 @@ import { DB } from '../services/db';
 export const API_URL = resolveApiBase() || '/api';
 
 export const persistTokens = (data) => {
-  if (data?.token) localStorage.setItem('token', data.token);
-  if (data?.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
+  // Access/refresh tokens are held in memory only (the httpOnly cookie set by
+  // the backend is the persistent session). The public user profile is still
+  // cached in localStorage for offline display.
+  if (data?.token || data?.refreshToken) {
+    setAuthTokens({ token: data.token, refreshToken: data.refreshToken });
+  }
   if (data?.user) {
     localStorage.setItem('user', JSON.stringify(data.user));
     try {
@@ -27,6 +32,8 @@ export const persistTokens = (data) => {
 };
 
 export const clearAllUserData = async () => {
+  clearAuthTokens();
+
   const keysToKeep = [
     'genz_saved_accounts',
     'genz_device_id',
@@ -89,7 +96,7 @@ export const clearSessionAndRedirect = async () => {
 };
 
 export const readAccessToken = () => {
-  const token = localStorage.getItem('token');
+  const token = getAuthToken();
   if (!token || token === 'null' || token === 'undefined') return null;
   return token;
 };
@@ -99,7 +106,7 @@ export const readAccessToken = () => {
  * @returns {Promise<string|null>} New access JWT or null
  */
 export const tryRefreshAccessToken = async () => {
-  const refreshToken = localStorage.getItem('refreshToken');
+  const refreshToken = getRefreshToken();
   if (!refreshToken || refreshToken === 'null') {
     console.warn('[Auth] No refresh token; cannot renew access');
     return null;
@@ -117,7 +124,7 @@ export const tryRefreshAccessToken = async () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...getDeviceHeaders() },
       credentials: 'include',
-      body: JSON.stringify({ refreshToken }),
+      body: refreshToken ? JSON.stringify({ refreshToken }) : JSON.stringify({}),
       signal: controller.signal
     });
     const data = await res.json().catch(() => ({}));

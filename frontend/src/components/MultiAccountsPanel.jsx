@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -35,7 +36,7 @@ const MultiAccountsPanel = ({ onClose, user }) => {
 
   const fetchSettings = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch('/api/multi-accounts/settings', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -64,7 +65,7 @@ const MultiAccountsPanel = ({ onClose, user }) => {
     setSuccess('');
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch('/api/multi-accounts/settings', {
         method: 'POST',
         headers: {
@@ -102,7 +103,7 @@ const MultiAccountsPanel = ({ onClose, user }) => {
   const handleEnableMultiAccounts = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch('/api/multi-accounts/enable', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }

@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
@@ -878,7 +879,7 @@ export const ChatProvider = ({ children }) => {
 
     let socket;
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       let userId = currentUserId;
       try {
         const u = authUser || JSON.parse(localStorage.getItem('user') || 'null');
@@ -2549,7 +2550,7 @@ export const ChatProvider = ({ children }) => {
 
   const addReaction = async (messageId, emoji) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${BACKEND_URL}/chat/messages/${messageId}/reactions`, {
         method: 'POST',
         headers: {
@@ -3892,7 +3893,7 @@ export const ChatProvider = ({ children }) => {
   // Group
   const updateGroupMember = async (groupId, memberId, updates) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/admins/${memberId}`, {
         method: 'PUT',
         headers: {
@@ -3911,7 +3912,7 @@ export const ChatProvider = ({ children }) => {
 
   const joinGroup = async (groupId, inviteCode) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/join`, {
         method: 'POST',
         headers: {
@@ -4013,7 +4014,7 @@ export const ChatProvider = ({ children }) => {
       setSelectedConversation(prev => prev && prev._id === chatId ? { ...prev, isPinned: !prev.isPinned } : prev);
 
       // API call
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const apiUrl = BACKEND_URL;
       if (token && apiUrl) {
         fetch(`${apiUrl}/chat/conversations/${chatId}/pin`, {
@@ -4056,7 +4057,7 @@ export const ChatProvider = ({ children }) => {
       setSelectedConversation(prev => prev && prev._id === chatId ? { ...prev, isArchived: !prev.isArchived } : prev);
 
       // API call
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const apiUrl = BACKEND_URL;
       if (token && apiUrl) {
         fetch(`${apiUrl}/chat/conversations/${chatId}/archive`, {
@@ -4305,7 +4306,7 @@ export const ChatProvider = ({ children }) => {
 
   const removeContact = async (contactId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${BACKEND_URL}/contacts/${contactId}`, {
         method: 'DELETE',
         headers: {
@@ -4326,7 +4327,7 @@ export const ChatProvider = ({ children }) => {
 
   const updateContact = async (contactId, updates) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${BACKEND_URL}/contacts/${contactId}`, {
         method: 'PUT',
         headers: {
@@ -4347,7 +4348,7 @@ export const ChatProvider = ({ children }) => {
   };
   const blockUser = async (userId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${BACKEND_URL}/chat/users/${userId}/block`, {
         method: 'POST',
         headers: {
@@ -4369,7 +4370,7 @@ export const ChatProvider = ({ children }) => {
 
   const unblockUser = async (userId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${BACKEND_URL}/chat/users/${userId}/block`, {
         method: 'DELETE',
         headers: {
@@ -4391,7 +4392,7 @@ export const ChatProvider = ({ children }) => {
 
   const updateUserProfile = async (updates) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${BACKEND_URL}/auth/profile`, {
         method: 'PUT',
         headers: {
@@ -4416,7 +4417,7 @@ export const ChatProvider = ({ children }) => {
   // ──── NEW WHATSAPP FEATURES ────
   const searchMessages = async (conversationId, query) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${BACKEND_URL}/chat/conversations/${conversationId}/search?query=${encodeURIComponent(query)}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -4449,7 +4450,7 @@ export const ChatProvider = ({ children }) => {
 
   const getMessageInfo = async (messageId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${BACKEND_URL}/chat/messages/${messageId}/info`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -4506,7 +4507,7 @@ export const ChatProvider = ({ children }) => {
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${BACKEND_URL}/chat/messages/${messageIdOrContent}/forward`, {
         method: 'POST',
         headers: {
@@ -4531,7 +4532,7 @@ export const ChatProvider = ({ children }) => {
 
   const reportMessage = async (messageId, reason, details = '') => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${BACKEND_URL}/chat/messages/${messageId}/report`, {
         method: 'POST',
         headers: {
@@ -4550,7 +4551,7 @@ export const ChatProvider = ({ children }) => {
 
   const getGroupInfo = async (groupId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${BACKEND_URL}/chat/groups/${groupId}/info`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -4567,7 +4568,7 @@ export const ChatProvider = ({ children }) => {
 
   const regenerateGroupInvite = async (groupId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${BACKEND_URL}/chat/groups/${groupId}/invite/regenerate`, {
         method: 'POST',
         headers: {
@@ -4584,7 +4585,7 @@ export const ChatProvider = ({ children }) => {
 
   const updateGroupInfo = async (groupId, updates) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${BACKEND_URL}/chat/groups/${groupId}/info`, {
         method: 'PUT',
         headers: {
@@ -4610,7 +4611,7 @@ export const ChatProvider = ({ children }) => {
 
   const removeAdmin = async (groupId, userId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${BACKEND_URL}/chat/groups/${groupId}/admins/${userId}`, {
         method: 'DELETE',
         headers: {
@@ -4631,7 +4632,7 @@ export const ChatProvider = ({ children }) => {
 
   const makeAdmin = async (groupId, userId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${BACKEND_URL}/chat/groups/${groupId}/admins/${userId}`, {
         method: 'PUT',
         headers: {
@@ -4659,7 +4660,7 @@ export const ChatProvider = ({ children }) => {
   // ─── BAN/UNBAN MEMBER ──────────────────────────────────────────────────────
   const banGroupMember = async (groupId, userId, reason = '') => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/ban/${userId}`, {
         method: 'POST',
         headers: {
@@ -4677,7 +4678,7 @@ export const ChatProvider = ({ children }) => {
 
   const unbanGroupMember = async (groupId, userId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/ban/${userId}`, {
         method: 'DELETE',
         headers: {
@@ -4694,7 +4695,7 @@ export const ChatProvider = ({ children }) => {
 
   const getGroupBannedMembers = async (groupId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/banned`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -4710,7 +4711,7 @@ export const ChatProvider = ({ children }) => {
   // ─── TRANSFER OWNERSHIP ────────────────────────────────────────────────────
   const transferGroupOwnership = async (groupId, newOwnerId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/transfer-ownership`, {
         method: 'POST',
         headers: {
@@ -4729,7 +4730,7 @@ export const ChatProvider = ({ children }) => {
   // ─── PENDING JOIN REQUESTS ─────────────────────────────────────────────────
   const getGroupPendingRequests = async (groupId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/pending-requests`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -4744,7 +4745,7 @@ export const ChatProvider = ({ children }) => {
 
   const approveGroupJoinRequest = async (groupId, userId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/pending-requests/${userId}`, {
         method: 'POST',
         headers: {
@@ -4761,7 +4762,7 @@ export const ChatProvider = ({ children }) => {
 
   const rejectGroupJoinRequest = async (groupId, userId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/pending-requests/${userId}`, {
         method: 'DELETE',
         headers: {
@@ -4779,7 +4780,7 @@ export const ChatProvider = ({ children }) => {
   // ─── ANTI-SPAM ─────────────────────────────────────────────────────────────
   const updateGroupAntiSpam = async (groupId, settings) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/antispam`, {
         method: 'PUT',
         headers: {
@@ -4797,7 +4798,7 @@ export const ChatProvider = ({ children }) => {
 
   const updateGroupJoinApproval = async (groupId, requireApproval) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/join-approval`, {
         method: 'PUT',
         headers: {
@@ -4816,7 +4817,7 @@ export const ChatProvider = ({ children }) => {
   // ─── GROUP QR CODE ─────────────────────────────────────────────────────────
   const getGroupQRCode = async (groupId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/qr`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -4832,7 +4833,7 @@ export const ChatProvider = ({ children }) => {
   // ─── GROUP EVENTS ──────────────────────────────────────────────────────────
   const fetchGroupEvents = async (groupId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/events`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -4847,7 +4848,7 @@ export const ChatProvider = ({ children }) => {
 
   const createGroupEventFn = async (groupId, eventData) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/events`, {
         method: 'POST',
         headers: {
@@ -4865,7 +4866,7 @@ export const ChatProvider = ({ children }) => {
 
   const rsvpGroupEventFn = async (groupId, eventId, status) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await authFetch(`${BACKEND_URL}/chat/groups/${groupId}/events/${eventId}/rsvp`, {
         method: 'POST',
         headers: {
@@ -4883,7 +4884,7 @@ export const ChatProvider = ({ children }) => {
 
   const addParticipant = async (groupId, userId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${BACKEND_URL}/chat/groups/${groupId}/participants`, {
         method: 'POST',
         headers: {
@@ -4914,7 +4915,7 @@ export const ChatProvider = ({ children }) => {
 
   const leaveGroup = async (groupId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${BACKEND_URL}/chat/groups/${groupId}/leave`, {
         method: 'DELETE',
         headers: {
@@ -4984,7 +4985,7 @@ export const ChatProvider = ({ children }) => {
 
   const removeParticipant = async (groupId, userId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${BACKEND_URL}/chat/groups/${groupId}/participants/${userId}`, {
         method: 'DELETE',
         headers: {

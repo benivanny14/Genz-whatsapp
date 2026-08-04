@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Shield, AlertTriangle, CheckCircle, UserX } from 'lucide-react';
@@ -24,7 +25,7 @@ const StatusBlockPanel = ({ onClose, status, onBlock }) => {
     setIsBlocking(true);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/block`, {
         method: 'POST',
         headers: {

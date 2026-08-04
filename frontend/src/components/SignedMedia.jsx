@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import { useEffect, useState } from 'react';
 import { Download } from 'lucide-react';
 import { sanitizeMediaUrl, ensureSignedMediaUrl } from '../utils/sanitizeMediaUrl';
@@ -42,7 +43,7 @@ export default function SignedMedia({
       return undefined;
     }
 
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     ensureSignedMediaUrl(clean, token).then((signed) => {
       if (!cancelled && signed) setResolvedSrc(signed);
     });

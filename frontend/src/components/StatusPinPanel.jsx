@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, MapPin, Clock, CheckCircle, Trash2 } from 'lucide-react';
@@ -15,7 +16,7 @@ const StatusPinPanel = ({ onClose, status, onPinAction }) => {
   const loadPinnedStatuses = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${resolveApiBase()}/status-advanced/pinned`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -48,7 +49,7 @@ const StatusPinPanel = ({ onClose, status, onPinAction }) => {
     if (!statusId) return;
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       await fetch(`${resolveApiBase()}/status-advanced/${statusId}/pin`, {
         method: 'POST',
         headers: {
@@ -84,7 +85,7 @@ const StatusPinPanel = ({ onClose, status, onPinAction }) => {
     if (!statusId) return;
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       await fetch(`${resolveApiBase()}/status-advanced/${statusId}/pin`, {
         method: 'POST',
         headers: {

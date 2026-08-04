@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { useChat } from '../context/ChatContext';
 import { Archive, ArrowLeft, Search, MessageCircle, ChevronRight } from 'lucide-react';
@@ -18,7 +19,7 @@ const Archived = () => {
     const fetchArchived = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem('token');
+        const token = getAuthToken();
         if (!token) return;
         
         const res = await fetch(`${API_URL}/chat/conversations/archived`, {

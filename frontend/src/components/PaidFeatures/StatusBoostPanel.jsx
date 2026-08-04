@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../../utils/tokenStore';
 import React, { useState } from 'react';
 import { resolveApiBase } from '../../utils/resolveApiBase';
 import { X, Zap, TrendingUp, Users, Eye, CheckCircle, CreditCard } from 'lucide-react';
@@ -40,7 +41,7 @@ const StatusBoostPanel = ({ onClose, status, onBoost }) => {
 
     setIsBoosting(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/boost`, {
         method: 'POST',
         headers: {

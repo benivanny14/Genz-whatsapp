@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../../utils/resolveApiBase';
 import { X, DollarSign, TrendingUp, Target, Users, Clock, CheckCircle, AlertCircle, Zap, Crown, Gift, CreditCard, BarChart3, Play } from 'lucide-react';
@@ -61,7 +62,7 @@ const StatusMonetizationPanel = ({ onClose, status, onMonetizationUpdate }) => {
     const loadMonetizationSettings = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem('token');
+        const token = getAuthToken();
         const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/monetization`, {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -131,7 +132,7 @@ const StatusMonetizationPanel = ({ onClose, status, onMonetizationUpdate }) => {
     };
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${resolveApiBase()}/status-advanced/${statusId}/monetization`, {
         method: 'POST',
         headers: {

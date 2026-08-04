@@ -1,3 +1,4 @@
+import { getAuthToken } from '../utils/tokenStore';
 import { io } from 'socket.io-client';
 import { resolveSocketOrigin } from '../utils/resolveApiBase';
 
@@ -43,7 +44,7 @@ export const connectSocket = (userId) => {
   }
 
   try {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
 
     const socketConfig = {
       reconnection: true,
@@ -55,6 +56,7 @@ export const connectSocket = (userId) => {
       transports: ['websocket'],
       upgrade: false,
       forceNew: false,
+      withCredentials: true,
       auth: { token, userId: resolvedUserId }
     };
 

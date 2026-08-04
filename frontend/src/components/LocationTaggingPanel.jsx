@@ -1,3 +1,4 @@
+import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, MapPin, Navigation, Search, Star, Clock, CheckCircle, Plus } from 'lucide-react';
@@ -92,7 +93,7 @@ const LocationTaggingPanel = ({ onClose, status, onLocationAdd }) => {
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/location`, {
         method: 'POST',
         headers: {
