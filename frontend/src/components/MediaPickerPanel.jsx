@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import EmojiPicker, { Theme, EmojiStyle } from 'emoji-picker-react';
-import { Smile, Square, FileImage, Search, Clock } from 'lucide-react';
-import { searchGIFs, getTrendingGIFs, getGIFCategories, cacheGIF } from '../services/gifAPI';
+import { Smile, Square, Search, Clock } from 'lucide-react';
 
 const STICKER_PACKS = [
   {
@@ -50,7 +49,6 @@ const MediaPickerPanel = ({
     onTabChange,
     onEmojiSelect,
     onStickerSelect,
-    onGIFSelect,
     theme = 'dark'
   }) => {
   return (
@@ -85,10 +83,6 @@ const MediaPickerPanel = ({
         {activeTab === 'sticker' && (
           <StickerPanel onStickerSelect={onStickerSelect} />
         )}
-
-        {activeTab === 'gif' && (
-          <GIFPanel onGIFSelect={onGIFSelect} />
-        )}
       </div>
 
       {/* Bottom Tabs */}
@@ -108,14 +102,6 @@ const MediaPickerPanel = ({
           }`}
         >
           <Square size={20} />
-        </button>
-        <button
-          onClick={(e) => { e.preventDefault(); onTabChange('gif'); }}
-          className={`flex-1 py-3 flex justify-center items-center gap-2 transition-colors ${
-            activeTab === 'gif' ? 'text-orange-500 bg-white/5' : 'text-gray-400 hover:bg-white/5'
-          }`}
-        >
-          <FileImage size={20} />
         </button>
       </div>
 </div>
@@ -207,95 +193,6 @@ const StickerPanel = ({ onStickerSelect }) => {
             </button>
           ))}
         </div>
-      </div>
-    </div>
-  );
-};
-
-const GIFPanel = ({ onGIFSelect }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [gifs, setGifs] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const categories = getGIFCategories();
-
-  useEffect(() => {
-    loadTrending();
-  }, []);
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (searchQuery.trim()) {
-        searchGIFsHandler(searchQuery);
-      } else {
-        loadTrending();
-      }
-    }, 500);
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
-
-  const loadTrending = async () => {
-    setLoading(true);
-    const result = await getTrendingGIFs(20);
-    setGifs(result.gifs || []);
-    setLoading(false);
-  };
-
-  const searchGIFsHandler = async (query) => {
-    setLoading(true);
-    const result = await searchGIFs(query, 20);
-    setGifs(result.gifs || []);
-    setLoading(false);
-  };
-
-  const handleSelect = async (gif) => {
-    await cacheGIF(gif);
-    onGIFSelect(gif);
-  };
-
-  return (
-    <div className="flex flex-col h-full w-full bg-[#1a2332] animate-fadeIn">
-      {/* Search */}
-      <div className="p-2 border-b border-gray-700">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={16} />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search Tenor"
-            className="w-full bg-gray-800 text-white pl-9 pr-4 py-1.5 rounded-full text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 placeholder-gray-500"
-          />
-        </div>
-      </div>
-
-      {/* Grid */}
-      <div className="flex-1 overflow-y-auto p-1 scrollbar-thin">
-        {loading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-          </div>
-        ) : gifs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-500 text-sm">
-            No GIFs found
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-1 p-1">
-            {gifs.filter(g => g?.images?.fixed_height?.url).map((gif) => (
-              <button
-                key={gif.id}
-                onClick={(e) => { e.preventDefault(); handleSelect(gif); }}
-                className="rounded overflow-hidden hover:opacity-80 transition-opacity bg-gray-800 h-24"
-              >
-                <img
-                  src={gif.images.fixed_height.url}
-                  alt={gif.title}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              </button>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );

@@ -80,36 +80,7 @@ const extractFirstUrl = (text) => {
   return matches ? matches[0] : null;
 };
 
-const EMOJI_STICKER_SUGGESTIONS = {
-  '😂': [
-    'https://media.giphy.com/media/3o6ozvv0zsJskzOCbu/giphy.gif',
-    'https://media.giphy.com/media/10JhviFuU2gWD6/giphy.gif'
-  ],
-  '🤣': [
-    'https://media.giphy.com/media/l0ExayQDzrI2xOb8A/giphy.gif',
-    'https://media.giphy.com/media/3oEjHAUOqG3lSS0f1C/giphy.gif'
-  ],
-  '❤️': [
-    'https://media.giphy.com/media/l0HlNQ03J5JxX6lva/giphy.gif',
-    'https://media.giphy.com/media/26FLdmIp6wJr91JAI/giphy.gif'
-  ],
-  '😍': [
-    'https://media.giphy.com/media/3o7TKMt1VVNkHV2PaE/giphy.gif',
-    'https://media.giphy.com/media/xTiTnMhJTwNHChdTZS/giphy.gif'
-  ],
-  '👍': [
-    'https://media.giphy.com/media/111ebonMs90YLu/giphy.gif',
-    'https://media.giphy.com/media/d2Z9QYzB2pQ5ieHQY/giphy.gif'
-  ],
-  '🙏': [
-    'https://media.giphy.com/media/3oz8xIsloV7zOmt81G/giphy.gif',
-    'https://media.giphy.com/media/26gsjCZpPolPr3sBy/giphy.gif'
-  ],
-  '🔥': [
-    'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif',
-    'https://media.giphy.com/media/3o72FfM5HJydzafgUE/giphy.gif'
-  ]
-};
+const EMOJI_STICKER_SUGGESTIONS = {};
 
 const getEmojiStickerSuggestions = (text = '') => {
   if (!text || typeof text !== 'string') return [];
@@ -737,32 +708,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(otherUser?.username || otherUser?.name || 'User')}&background=random&color=fff`;
   }
 
-  const handleGIFSelect = (gif) => {
-    if (!selectedConversation) return;
-    const gifUrl = gif?.images?.fixed_height?.url || gif?.url;
-    if (!gifUrl) {
-      toast.error('GIF is missing a valid URL');
-      return;
-    }
-
-    const messageData = {
-      content: gifUrl,
-      gifUrl,
-      gifTitle: gif.title || 'GIF',
-      type: 'gif',
-      senderName: user?.username || 'GENZ User',
-      replyTo: replyingTo
-    };
-
-    sendMessage(messageData.content, messageData.senderName, {
-      messageType: 'gif',
-      mediaUrl: gifUrl,
-      gif: { url: gifUrl, title: gif.title || 'GIF' },
-      replyTo: replyingTo
-    });
-
-    setReplyingTo(null);
-  };
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -2652,26 +2597,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                         <Forward size={10} /> Forwarded
                       </div>
                     )}
-                    {/* ── GIF Message ── */}
-                    {message.messageType === 'gif' && (message.gif?.url || message.mediaUrl || message.content) && (
-                      <div className="mb-1">
-                        <img
-                          src={message.gif?.url || message.mediaUrl || message.content}
-                          alt={typeof message.gif?.title === 'string' ? message.gif.title : 'GIF'}
-                          className="max-w-full rounded-lg max-h-48 object-cover cursor-pointer"
-                          loading="lazy"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedMedia({
-                              ...message,
-                              mediaUrl: message.gif?.url || message.mediaUrl || message.content,
-                              messageType: 'gif'
-                            });
-                          }}
-                        />
-                        <p className="text-[10px] text-white/40 mt-0.5">GIF</p>
-                      </div>
-                    )}
 
                     {/* 📽️ Video Message 📽️ */}
                     {message.messageType === 'video' && mediaSourceOf(message) && (
@@ -2962,16 +2887,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                               <img key={idx} src={item.value} alt="Sticker" className="w-32 h-32 object-contain cursor-pointer mx-auto drop-shadow-lg" loading="lazy" />
                             );
                           }
-                          if (item.type === 'gif') {
-                            return (
-                              <img key={idx} src={item.value} alt="GIF" className="max-w-full rounded-lg max-h-48 object-cover cursor-pointer shadow-md" loading="lazy" />
-                            );
-                          }
                           return null;
                         })}
                       </div>
                     )}
-                    {(!['image', 'video', 'location', 'sticker', 'audio', 'gif', 'structured'].includes(message.messageType) ||
+                    {(!['image', 'video', 'location', 'sticker', 'audio', 'structured'].includes(message.messageType) ||
                       (plaintextOf(message) &&
                         plaintextOf(message) !== mediaSourceOf(message) &&
                         plaintextOf(message) !== `${message.messageType} message` &&
@@ -3377,10 +3297,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                 setShowMediaPanel(false);
                 handleSendMessage(stickerUrl, { sticker: { type: 'sticker', url: stickerUrl, ...options } }, selectedConversation?._id);
               }}
-              onGIFSelect={(gif) => {
-                setSelectedMedia({ type: 'gif', url: gif.images.fixed_height.url, meta: gif });
-                setShowMediaPanel(false);
-              }}
             />
           </div>
         )}
@@ -3461,7 +3377,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               <AttachmentIcon icon={<MapPin className="text-green-500" />} label="Location" onClick={() => { setShowAttachmentMenu(false); handleShareLocation('current'); }} disabled={!canSendMedia && !currentUserIsAdmin} />
               <AttachmentIcon icon={<MapPin className="text-red-500" />} label="Live Loc." onClick={() => { setShowAttachmentMenu(false); handleShareLocation('live'); }} disabled={!canSendMedia && !currentUserIsAdmin} />
               <AttachmentIcon icon={<Contact className="text-blue-400" />} label="Contact" onClick={() => { setShowAttachmentMenu(false); handleContactSimulation(); }} disabled={!canSendMedia && !currentUserIsAdmin} />
-              <AttachmentIcon icon={<Grid3x3 className="text-pink-400" />} label="GIF" onClick={() => { setShowAttachmentMenu(false); setShowMediaPanel(true); setActiveMediaTab('gif'); }} disabled={!canSendMedia && !currentUserIsAdmin} />
               <AttachmentIcon icon={<BarChart2 className="text-yellow-600" />} label="Poll" disabled={!canCreatePolls && !currentUserIsAdmin} onClick={() => { setShowAttachmentMenu(false); setShowPollModal(true); }} />
               <AttachmentIcon icon={<Clock className="text-purple-600" />} label="Disappear" onClick={() => { setShowAttachmentMenu(false); handleSetDisappearingMessages(); }} disabled={!selectedConversation} />
               {/* GENZ Ultra Attachments */}
@@ -3679,8 +3594,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       )}
       {selectedMedia && (
         <MediaViewer
-          src={selectedMedia.mediaUrl || selectedMedia.gif?.url || selectedMedia.content}
-          type={selectedMedia.messageType === 'gif' || selectedMedia.messageType === 'sticker' ? 'image' : selectedMedia.messageType}
+          src={selectedMedia.mediaUrl || selectedMedia.content}
+          type={selectedMedia.messageType === 'sticker' ? 'image' : selectedMedia.messageType}
           alt={typeof selectedMedia.content === 'string' ? selectedMedia.content : 'Media'}
           onClose={() => setSelectedMedia(null)}
         />
