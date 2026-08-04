@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
+const PaymentFeature = require('../models/PaymentFeature');
+const { superAdminAuth } = require('../middleware/superAdminAuth');
+const { uploadToCloudinary, deleteFromCloudinary } = require('../config/cloudinary');
+const { validateFile } = require('../middleware/fileValidation');
+
 const path = require('path');
 const fs = require('fs');
-const PaymentFeature = require('../models/PaymentFeature');
-const { protect, isAdmin } = require('../middleware/auth');
-const { uploadFile, deleteFile, validateFile } = require('../config/cloudinary');
 
 const paymentUploadDir = path.join(__dirname, '../uploads/payment-features');
 if (!fs.existsSync(paymentUploadDir)) {
@@ -47,7 +49,7 @@ const runPaymentUpload = (req, res, next) => {
 };
 
 // Create new payment feature (admin only)
-router.post('/', protect, isAdmin, runPaymentUpload, async (req, res) => {
+router.post('/', superAdminAuth, runPaymentUpload, async (req, res) => {
   try {
     const { name, description, price, location, category, maxPrice, status, contactInfo, tags, specifications, isPrivate, expiresAt } = req.body;
 
@@ -211,7 +213,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Update payment feature (admin or owner)
-router.put('/:id', protect, async (req, res) => {
+router.put('/:id', superAdminAuth, async (req, res) => {
   try {
     let paymentFeature = await PaymentFeature.findById(req.params.id);
 
@@ -275,7 +277,7 @@ router.put('/:id', protect, async (req, res) => {
 });
 
 // Delete payment feature (admin only)
-router.delete('/:id', protect, isAdmin, async (req, res) => {
+router.delete('/:id', superAdminAuth, async (req, res) => {
   try {
     const paymentFeature = await PaymentFeature.findById(req.params.id);
 
@@ -317,7 +319,7 @@ router.delete('/:id', protect, isAdmin, async (req, res) => {
 });
 
 // Toggle featured status (admin only)
-router.patch('/:id/toggle-featured', protect, isAdmin, async (req, res) => {
+router.patch('/:id/toggle-featured', superAdminAuth, async (req, res) => {
   try {
     const paymentFeature = await PaymentFeature.findById(req.params.id);
 
