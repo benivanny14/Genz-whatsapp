@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const PaymentFeature = require('../models/PaymentFeature');
 const { protect, isAdmin } = require('../middleware/auth');
-const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary');
+const { uploadToCloudinary, deleteFromCloudinary } = require('../config/cloudinary');
 
 // Create new payment feature (admin only)
 router.post('/', protect, isAdmin, async (req, res) => {
