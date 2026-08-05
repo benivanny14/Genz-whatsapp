@@ -107,9 +107,13 @@ export const readAccessToken = () => {
  */
 export const tryRefreshAccessToken = async () => {
   const refreshToken = getRefreshToken();
-  if (!refreshToken || refreshToken === 'null') {
-    console.warn('[Auth] No refresh token; cannot renew access');
-    return null;
+  const hasLocalRefresh = refreshToken && refreshToken !== 'null';
+  if (!hasLocalRefresh) {
+    // No locally-held refresh token. The httpOnly refresh cookie may still
+    // be valid (fresh page load after the 7-day access cookie expired but
+    // within the 30-day refresh window) — the backend accepts a
+    // cookie-supplied refresh token, so keep trying instead of giving up.
+    console.warn('[Auth] No local refresh token; attempting cookie-based refresh');
   }
   // FIX: bare fetch() has no default timeout — on a slow/unstable mobile
   // connection this could hang indefinitely, which upstream callers
@@ -124,7 +128,7 @@ export const tryRefreshAccessToken = async () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...getDeviceHeaders() },
       credentials: 'include',
-      body: refreshToken ? JSON.stringify({ refreshToken }) : JSON.stringify({}),
+      body: hasLocalRefresh ? JSON.stringify({ refreshToken }) : JSON.stringify({}),
       signal: controller.signal
     });
     const data = await res.json().catch(() => ({}));
