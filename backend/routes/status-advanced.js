@@ -35,7 +35,7 @@ router.get('/pinned', statusAdvancedController.getPinnedStatuses);
 router.get('/hashtags/trending', statusAdvancedController.getTrendingHashtags);
 
 // Live
-router.post('/live', statusAdvancedController.startLiveStatus);
+// (removed: live status streaming was a placeholder with no RTMP/WebRTC infra)
 
 // QR Code
 router.post('/qr', statusAdvancedController.generateQRCode);
@@ -55,8 +55,7 @@ router.get('/:id/reactions', statusAdvancedController.getReactions);
 router.post('/:id/react', statusAdvancedController.addReaction);
 
 // Monetization
-router.get('/:id/monetization', statusAdvancedController.getMonetization);
-router.post('/:id/monetization', statusAdvancedController.updateMonetization);
+// (removed: no real ads/payment system, earnings were always 0)
 
 // Accessibility
 router.get('/:id/accessibility', statusAdvancedController.getAccessibility);
@@ -73,13 +72,6 @@ router.post('/:id/schedule', statusAdvancedController.scheduleStatus);
 
 // Location
 router.post('/:id/location', statusAdvancedController.addLocation);
-
-// Live (per-status)
-router.post('/:id/live', statusAdvancedController.startLive);
-router.post('/:id/live/end', statusAdvancedController.endLive);
-
-// QR Code (per-status)
-router.post('/:id/qr', statusAdvancedController.generateQRCode);
 
 // Mentions
 router.post('/:id/mention', statusAdvancedController.addMention);
@@ -108,9 +100,6 @@ router.post('/:id/favorite', statusAdvancedController.favoriteStatus);
 // Insights
 router.get('/:id/insights', statusAdvancedController.getInsights);
 router.get('/:id/analytics', statusAdvancedController.getAnalytics);
-
-// Boost
-router.post('/:id/boost', statusAdvancedController.boostStatus);
 
 // Voice & Audio
 router.post('/:id/voice-changer', statusAdvancedController.applyVoiceChanger);

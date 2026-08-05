@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Plus, X, Eye, Clock, Camera, Image, Type, Upload, RefreshCw, Film, Sparkles, Bookmark, Settings, Music, Download, Bell, Shield, TrendingUp, BarChart3, Palette, Share2, DollarSign, Accessibility, Mic, Archive, Users, Volume2, Zap, Heart, Calendar, MapPin, Video, Cloud, QrCode, AtSign, Hash, Edit, Copy, Pin, Flag, Layout, FileText, Star, History, Zap as BoostIcon, BellOff, Trash2, Forward } from 'lucide-react';
+import { Plus, X, Eye, Clock, Camera, Image, Type, Upload, RefreshCw, Film, Sparkles, Bookmark, Settings, Music, Download, Bell, Shield, TrendingUp, BarChart3, Palette, Share2, Accessibility, Mic, Archive, Users, Volume2, Zap, Heart, Calendar, MapPin, Cloud, QrCode, AtSign, Hash, Edit, Copy, Pin, Flag, Layout, FileText, Star, History, BellOff, Trash2, Forward } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
@@ -39,7 +39,6 @@ import MessageSchedule from '../components/MessageSchedule';
 import StatusAnalyticsPanel from '../components/StatusAnalyticsPanel';
 import ThemeStore from '../components/PaidFeatures/ThemeStore';
 import CrossPlatformSharing from '../components/CrossPlatformSharing';
-import StatusMonetizationPanel from '../components/PaidFeatures/StatusMonetizationPanel';
 import StatusAccessibilityPanel from '../components/StatusAccessibilityPanel';
 import VoiceChangerPanel from '../components/VoiceChangerPanel';
 import TextToSpeechPanel from '../components/TextToSpeechPanel';
@@ -50,7 +49,6 @@ import StatusReactionPanel from '../components/StatusReactionPanel';
 import StatusPollPanel from '../components/StatusPollPanel';
 import StatusSchedulerPanel from '../components/StatusSchedulerPanel';
 import LocationTaggingPanel from '../components/LocationTaggingPanel';
-import StatusLivePanel from '../components/StatusLivePanel';
 import StatusBackupPanel from '../components/StatusBackupPanel';
 import StatusQRCodePanel from '../components/StatusQRCodePanel';
 import StatusMentionsPanel from '../components/StatusMentionsPanel';
@@ -64,7 +62,6 @@ import StatusDraftsPanel from '../components/StatusDraftsPanel';
 import StatusFavoritesPanel from '../components/StatusFavoritesPanel';
 import StatusHistoryPanel from '../components/StatusHistoryPanel';
 import StatusInsightsPanel from '../components/StatusInsightsPanel';
-import StatusBoostPanel from '../components/PaidFeatures/StatusBoostPanel';
 import StatusSharePanel from '../components/StatusSharePanel';
 import StatusDownloadPanel from '../components/StatusDownloadPanel';
 import StatusDeletePanel from '../components/StatusDeletePanel';
@@ -99,7 +96,6 @@ const Status = () => {
   const [showStatusAnalytics, setShowStatusAnalytics] = useState(false);
   const [showThemeStore, setShowThemeStore] = useState(false);
   const [showCrossPlatform, setShowCrossPlatform] = useState(false);
-  const [showStatusMonetization, setShowStatusMonetization] = useState(false);
   const [showStatusAccessibility, setShowStatusAccessibility] = useState(false);
   const [showVoiceChanger, setShowVoiceChanger] = useState(false);
   const [showTextToSpeech, setShowTextToSpeech] = useState(false);
@@ -110,7 +106,6 @@ const Status = () => {
   const [showStatusPoll, setShowStatusPoll] = useState(false);
   const [showStatusScheduler, setShowStatusScheduler] = useState(false);
   const [showLocationTagging, setShowLocationTagging] = useState(false);
-  const [showStatusLive, setShowStatusLive] = useState(false);
   const [showStatusBackup, setShowStatusBackup] = useState(false);
   const [showStatusQRCode, setShowStatusQRCode] = useState(false);
   const [showStatusMentions, setShowStatusMentions] = useState(false);
@@ -124,7 +119,6 @@ const Status = () => {
   const [showStatusFavorites, setShowStatusFavorites] = useState(false);
   const [showStatusHistory, setShowStatusHistory] = useState(false);
   const [showStatusInsights, setShowStatusInsights] = useState(false);
-  const [showStatusBoost, setShowStatusBoost] = useState(false);
   const [showStatusShare, setShowStatusShare] = useState(false);
   const [showStatusDownload, setShowStatusDownload] = useState(false);
   const [showStatusDelete, setShowStatusDelete] = useState(false);
@@ -806,14 +800,6 @@ const Status = () => {
             </button>
             <button
               type="button"
-              onClick={() => setShowStatusLive(true)}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="Go Live" aria-label="Go Live"
-            >
-              <Video size={20} />
-            </button>
-            <button
-              type="button"
               onClick={() => setShowStatusBackup(true)}
               className="p-2 hover:bg-white/20 rounded-full transition-colors"
               title="Backup" aria-label="Backup"
@@ -883,14 +869,6 @@ const Status = () => {
               title="Insights" aria-label="Insights"
             >
               <BarChart3 size={20} />
-            </button>
-            <button
-              type="button"
-              onClick={() => openStatusPanel(setShowStatusBoost)}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="Boost" aria-label="Boost"
-            >
-              <BoostIcon size={20} />
             </button>
             <button
               type="button"
@@ -1080,18 +1058,6 @@ const Status = () => {
                             title="Security"
                           >
                             <Shield size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedStatusForPanel(status);
-                              setShowStatusMonetization(true);
-                            }}
-                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
-                            title="Monetization"
-                          >
-                            <DollarSign size={14} />
                           </button>
                           <button
                             type="button"
@@ -1966,12 +1932,6 @@ const Status = () => {
             mediaUrl={selectedStatusForPanel?.mediaUrl}
           />
         )}
-        {showStatusMonetization && selectedStatusForPanel && (
-          <StatusMonetizationPanel 
-            onClose={() => { setShowStatusMonetization(false); setSelectedStatusForPanel(null); }}
-            status={selectedStatusForPanel}
-          />
-        )}
         {showStatusAccessibility && selectedStatusForPanel && (
           <StatusAccessibilityPanel 
             onClose={() => { setShowStatusAccessibility(false); setSelectedStatusForPanel(null); }}
@@ -2031,12 +1991,6 @@ const Status = () => {
             onClose={() => { setShowLocationTagging(false); setSelectedStatusForPanel(null); }}
             status={selectedStatusForPanel}
             onLocationAdd={(location) => console.log('Location added:', location)}
-          />
-        )}
-        {showStatusLive && (
-          <StatusLivePanel 
-            onClose={() => setShowStatusLive(false)}
-            onStartLive={(liveData) => console.log('Live started:', liveData)}
           />
         )}
         {showStatusBackup && (
@@ -2122,13 +2076,6 @@ const Status = () => {
           <StatusInsightsPanel 
             onClose={() => { setShowStatusInsights(false); setSelectedStatusForPanel(null); }}
             status={selectedStatusForPanel}
-          />
-        )}
-        {showStatusBoost && selectedStatusForPanel && (
-          <StatusBoostPanel 
-            onClose={() => { setShowStatusBoost(false); setSelectedStatusForPanel(null); }}
-            status={selectedStatusForPanel}
-            onBoost={(data) => console.log('Status boosted:', data)}
           />
         )}
         {showStatusShare && selectedStatusForPanel && (

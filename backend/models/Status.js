@@ -129,11 +129,6 @@ const statusSchema = new mongoose.Schema({
   },
   scheduledFor: { type: Date },
   isScheduled: { type: Boolean, default: false },
-  isLive: { type: Boolean, default: false },
-  liveStreamUrl: { type: String },
-  liveStartedAt: { type: Date },
-  liveEndedAt: { type: Date },
-  liveViewers: { type: Number, default: 0 },
   isRestored: { type: Boolean, default: false },
   restoredAt: { type: Date },
   mentions: [{
@@ -178,14 +173,6 @@ const statusSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     favoritedAt: { type: Date }
   }],
-  boost: {
-    enabled: { type: Boolean, default: false },
-    plan: { type: String },
-    duration: { type: Number },
-    targetAudience: { type: String },
-    boostedAt: { type: Date },
-    expiresAt: { type: Date }
-  },
   shares: [{
     sharedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     platform: { type: String },
@@ -207,31 +194,6 @@ const statusSchema = new mongoose.Schema({
     forwardedAt: { type: Date }
   }],
   forwardCount: { type: Number, default: 0 },
-  monetization: {
-    monetizationEnabled: { type: Boolean, default: false },
-    adType: { type: String, default: 'none' },
-    sponsoredContent: { type: Boolean, default: false },
-    affiliateLinks: { type: Boolean, default: false },
-    donationEnabled: { type: Boolean, default: false },
-    subscriptionEnabled: { type: Boolean, default: false },
-    exclusiveContent: { type: Boolean, default: false },
-    tipJarEnabled: { type: Boolean, default: false },
-    fundraiserEnabled: { type: Boolean, default: false },
-    adSettings: {
-      placement: { type: String, default: 'bottom' },
-      frequency: { type: String, default: 'low' },
-      targetAudience: { type: String, default: 'all' }
-    },
-    earnings: {
-      total: { type: Number, default: 0 },
-      thisMonth: { type: Number, default: 0 },
-      lastMonth: { type: Number, default: 0 },
-      adRevenue: { type: Number, default: 0 },
-      donations: { type: Number, default: 0 },
-      subscriptions: { type: Number, default: 0 },
-      tips: { type: Number, default: 0 }
-    }
-  },
   accessibility: {
     altText: { type: String, default: '' },
     autoAltText: { type: Boolean, default: false },

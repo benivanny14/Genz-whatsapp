@@ -269,39 +269,6 @@ exports.getTrendingHashtags = async (req, res) => {
   }
 };
 
-// POST /api/status/live - Start a live status (no id required)
-exports.startLiveStatus = async (req, res) => {
-  try {
-    const userId = req.user._id || req.user.id;
-    const { title, description, allowComments, allowReactions, saveRecording, maxDuration } = req.body;
-
-    if (!title || !title.trim()) {
-      return res.status(400).json({ success: false, message: 'Title ni lazima' });
-    }
-
-    const status = await Status.create({
-      user: userId,
-      userId: String(userId),
-      type: 'live',
-      content: title,
-      caption: description || '',
-      isLive: true,
-      liveStartedAt: new Date(),
-      liveViewers: 0,
-      liveSettings: {
-        allowComments: allowComments !== false,
-        allowReactions: allowReactions !== false,
-        saveRecording: saveRecording || false,
-        maxDuration: maxDuration || 60
-      }
-    });
-
-    res.json({ success: true, status });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
 // POST /api/status/:id/archive - Archive status
 exports.archiveStatus = async (req, res) => {
   try {
@@ -388,42 +355,6 @@ exports.getReactions = async (req, res) => {
 1;    });
 
     res.json({ success: true, reactions: counts });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-// GET /api/status/:id/monetization - Get monetization settings for status
-exports.getMonetization = async (req, res) => {
-  try {
-    const userId = req.user._id || req.user.id;
-    const status = await Status.findById(req.params.id);
-
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
-
-    const monetization = status.monetization || {};
-
-    res.json({ success: true, monetization });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-// POST /api/status/:id/monetization - Update monetization settings for status
-exports.updateMonetization = async (req, res) => {
-  try {
-    const userId = req.user._id || req.user.id;
-    const status = await Status.findById(req.params.id);
-
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
-
-    const updatedMonetization = req.body;
-    status.monetization = updatedMonetization;
-    await status.save();
-
-    res.json({ success: true, monetization: updatedMonetization });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -641,47 +572,6 @@ exports.getLocation = async (req, res) => {
     if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
 
     res.json({ success: true, locationData: status.locationData });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-// POST /api/status/:id/live - Start live status
-exports.startLive = async (req, res) => {
-  try {
-    const userId = req.user._id || req.user.id;
-    const { streamUrl } = req.body;
-    const status = await Status.findById(req.params.id);
-    
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
-
-    status.isLive = true;
-    status.liveStreamUrl = streamUrl;
-    status.liveStartedAt = new Date();
-    status.liveViewers = 0;
-    await status.save();
-
-    res.json({ success: true, status });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-// POST /api/status/:id/live/end - End live status
-exports.endLive = async (req, res) => {
-  try {
-    const userId = req.user._id || req.user.id;
-    const status = await Status.findById(req.params.id);
-    
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
-
-    status.isLive = false;
-    status.liveEndedAt = new Date();
-    await status.save();
-
-    res.json({ success: true, status });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -1203,32 +1093,6 @@ exports.getInsights = async (req, res) => {
     };
 
     res.json({ success: true, insights, status });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-// POST /api/status/:id/boost - Boost status
-exports.boostStatus = async (req, res) => {
-  try {
-    const userId = req.user._id || req.user.id;
-    const { plan, duration, targetAudience } = req.body;
-    const status = await Status.findById(req.params.id);
-    
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
-
-    status.boost = {
-      enabled: true,
-      plan,
-      duration,
-      targetAudience,
-      boostedAt: new Date(),
-      expiresAt: new Date(Date.now() + duration * 24 * 60 * 60 * 1000)
-    };
-    await status.save();
-
-    res.json({ success: true, status });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
