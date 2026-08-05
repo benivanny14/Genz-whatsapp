@@ -160,6 +160,16 @@ const Status = () => {
   const [editImageUrl, setEditImageUrl] = useState(null);
   const [editVideoUrl, setEditVideoUrl] = useState(null);
 
+  // ── Voice status recording state ──
+  const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [recordPreviewUrl, setRecordPreviewUrl] = useState('');
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const timerRef = useRef(null);
+  const recordStreamRef = useRef(null);
+
   // Update edit URLs when uploadData.file changes
   useEffect(() => {
     if (uploadData.file) {
@@ -340,7 +350,7 @@ const Status = () => {
       return;
     }
 
-    const mediaFileTypes = ['image', 'video', 'audio'];
+    const mediaFileTypes = ['image', 'video', 'audio', 'voice'];
     if (mediaFileTypes.includes(uploadData.type) && !uploadData.file) {
       setError('Please select a file to upload');
       return;
@@ -412,6 +422,7 @@ const Status = () => {
         gifUrl: uploadData.gifUrl || '',
         textEffects: uploadData.textEffects || null,
         selectedSticker: uploadData.selectedSticker || null,
+        duration: uploadData.type === 'voice' ? recordingTime : 0,
         subtitles: uploadData.subtitles || null,
         audio: {
           backgroundMusic: uploadData.backgroundMusic || null,
@@ -458,6 +469,11 @@ const Status = () => {
         voiceVolume: 0.8,
         effectsVolume: 0.5
       });
+      if (recordPreviewUrl) URL.revokeObjectURL(recordPreviewUrl);
+      setRecordPreviewUrl('');
+      setRecordingTime(0);
+      setIsRecording(false);
+      setIsPaused(false);
       setShowAddStatus(false);
       setSuccess('Status uploaded successfully');
       setTimeout(() => setSuccess(''), 3000);
@@ -481,6 +497,105 @@ const Status = () => {
       return { ...prev, file, type };
     });
   };
+
+  // ── Voice status recording ──
+  const startVoiceRecording = async () => {
+    try {
+      setError('');
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recordStreamRef.current = stream;
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+      const mediaRecorder = new MediaRecorder(stream, mimeType === 'audio/webm' ? { mimeType } : undefined);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: mimeType });
+        const file = new File([blob], `voice-status-${Date.now()}.${mimeType.includes('webm') ? 'webm' : 'm4a'}`, { type: mimeType });
+        setUploadData((prev) => ({ ...prev, file, type: 'voice' }));
+        setRecordPreviewUrl(URL.createObjectURL(blob));
+        if (recordStreamRef.current) {
+          recordStreamRef.current.getTracks().forEach((t) => t.stop());
+          recordStreamRef.current = null;
+        }
+        setIsRecording(false);
+        setIsPaused(false);
+      };
+
+      mediaRecorder.onerror = () => {
+        setError('Recording failed. Please try again.');
+      };
+
+      mediaRecorder.start();
+      setRecordingTime(0);
+      setIsRecording(true);
+      setIsPaused(false);
+      timerRef.current = setInterval(() => setRecordingTime((t) => t + 1), 1000);
+    } catch (err) {
+      console.error('Mic error:', err);
+      setError('Microphone not available. Please allow microphone access or check your device.');
+    }
+  };
+
+  const stopVoiceRecording = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  const togglePauseVoiceRecording = () => {
+    const mr = mediaRecorderRef.current;
+    if (!mr) return;
+    if (mr.state === 'recording') {
+      mr.pause();
+      setIsPaused(true);
+    } else if (mr.state === 'paused') {
+      mr.resume();
+      setIsPaused(false);
+    }
+  };
+
+  const clearVoiceRecording = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    if (recordStreamRef.current) {
+      recordStreamRef.current.getTracks().forEach((t) => t.stop());
+      recordStreamRef.current = null;
+    }
+    if (recordPreviewUrl) URL.revokeObjectURL(recordPreviewUrl);
+    setRecordPreviewUrl('');
+    setUploadData((prev) => ({ ...prev, file: null, type: 'voice' }));
+    setIsRecording(false);
+    setIsPaused(false);
+    setRecordingTime(0);
+  };
+
+  const formatRecTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+      if (recordStreamRef.current) {
+        recordStreamRef.current.getTracks().forEach((t) => t.stop());
+      }
+    };
+  }, []);
 
   // Editor panel handlers
   const openEditorPanel = (panel) => {
@@ -1170,6 +1285,7 @@ const Status = () => {
                     { value: 'text', icon: <Type className="w-4 h-4" />, label: 'Text' },
                     { value: 'image', icon: <Image className="w-4 h-4" />, label: 'Image' },
                     { value: 'video', icon: <Camera className="w-4 h-4" />, label: 'Video' },
+                    { value: 'voice', icon: <Mic className="w-4 h-4" />, label: 'Voice' },
                     { value: 'audio', icon: <Type className="w-4 h-4" />, label: 'Audio' },
                     { value: 'gif', icon: <Sparkles className="w-4 h-4" />, label: 'GIF' },
                     { value: 'link', icon: <Upload className="w-4 h-4" />, label: 'Link' },
@@ -1183,7 +1299,26 @@ const Status = () => {
                     <button
                       key={type.value}
                       type="button"
-                      onClick={() => setUploadData((prev) => ({ ...prev, type: type.value }))}
+                      onClick={() => {
+                        if (uploadData.type === 'voice' && type.value !== 'voice') {
+                          if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+                          if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                            mediaRecorderRef.current.stop();
+                          }
+                          if (recordStreamRef.current) {
+                            recordStreamRef.current.getTracks().forEach((t) => t.stop());
+                            recordStreamRef.current = null;
+                          }
+                          if (recordPreviewUrl) URL.revokeObjectURL(recordPreviewUrl);
+                          setRecordPreviewUrl('');
+                          setIsRecording(false);
+                          setIsPaused(false);
+                          setRecordingTime(0);
+                          setUploadData((prev) => ({ ...prev, type: type.value, file: null }));
+                        } else {
+                          setUploadData((prev) => ({ ...prev, type: type.value }));
+                        }
+                      }}
                       className={`p-2 rounded-lg border transition-colors ${uploadData.type === type.value
                         ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                         : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -1209,6 +1344,74 @@ const Status = () => {
                     onChange={handleFileSelect}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                   />
+                </div>
+              )}
+
+              {uploadData.type === 'voice' && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Record Voice Status
+                  </label>
+
+                  {!uploadData.file && (
+                    <div className="rounded-lg border border-gray-300 dark:border-gray-600 p-4 flex flex-col items-center space-y-4">
+                      {isRecording ? (
+                        <>
+                          <div className="flex items-center space-x-2">
+                            <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+                            <span className={`text-sm font-mono ${isPaused ? 'text-gray-500' : 'text-red-500'}`}>
+                              {formatRecTime(recordingTime)}
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <button
+                              type="button"
+                              onClick={togglePauseVoiceRecording}
+                              className="px-4 py-2 rounded-lg bg-yellow-500 text-white text-sm hover:bg-yellow-600"
+                            >
+                              {isPaused ? 'Resume' : 'Pause'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={stopVoiceRecording}
+                              className="px-4 py-2 rounded-lg bg-red-500 text-white text-sm hover:bg-red-600"
+                            >
+                              Stop & Save
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <Mic className="w-8 h-8 text-gray-400" />
+                          <button
+                            type="button"
+                            onClick={startVoiceRecording}
+                            className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700"
+                          >
+                            Start Recording
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {uploadData.file && recordPreviewUrl && (
+                    <div className="rounded-lg border border-gray-300 dark:border-gray-600 p-4 flex flex-col items-center space-y-3">
+                      <audio src={recordPreviewUrl} controls className="w-full" />
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {formatRecTime(recordingTime)} recorded
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <button
+                          type="button"
+                          onClick={clearVoiceRecording}
+                          className="px-4 py-2 rounded-lg bg-gray-500 text-white text-sm hover:bg-gray-600"
+                        >
+                          Re-record
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

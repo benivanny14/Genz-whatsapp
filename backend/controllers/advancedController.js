@@ -406,18 +406,18 @@ exports.createStatus = async (req, res) => {
       privacy, collabUserId, collabUsername, excludedViewers, includedViewers,
       linkUrl, quizQuestion, quizOptions, quizCorrectAnswer, questionText,
       countdownDate, countdownTime, locationData, collageImages, timerSeconds,
-      musicUrl, gifUrl
+      musicUrl, gifUrl, duration
     } = req.body;
 
     // Validate status type
-    const validTypes = ['text', 'image', 'video', 'audio', 'gif', 'link', 'music', 'quiz', 'question', 'countdown', 'location', 'collage'];
+    const validTypes = ['text', 'image', 'video', 'voice', 'audio', 'gif', 'link', 'music', 'quiz', 'question', 'countdown', 'location', 'collage'];
     if (!validTypes.includes(type)) {
       return res.status(400).json({ message: 'Invalid status type' });
     }
 
     // For media statuses, mediaUrl is required. gif/music may come as a URL
     // field (gifUrl/musicUrl) instead of an uploaded file.
-    const mediaFileTypes = ['image', 'video', 'audio'];
+    const mediaFileTypes = ['image', 'video', 'voice', 'audio'];
     const resolvedMediaUrl = mediaUrl
       || (type === 'gif' ? gifUrl : '')
       || (type === 'music' ? musicUrl : '');
@@ -489,6 +489,7 @@ exports.createStatus = async (req, res) => {
       locationData: locationData || null,
       collageImages: Array.isArray(collageImages) ? collageImages : [],
       timerSeconds: timerSeconds || 5,
+      duration: Number.isFinite(Number(duration)) ? Number(duration) : 0,
       expiresAt,
       views: [],
       viewsCount: 0

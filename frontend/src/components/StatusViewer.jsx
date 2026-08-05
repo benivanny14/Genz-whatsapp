@@ -361,7 +361,7 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
         const response = await fetch(mediaUrl, { mode: 'cors' });
         const blob = await response.blob();
         const ext = currentStatus.type === 'video' ? 'mp4'
-          : currentStatus.type === 'audio' ? 'mp3'
+          : (currentStatus.type === 'audio' || currentStatus.type === 'voice') ? 'mp3'
           : 'jpg';
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -386,8 +386,11 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
 
   const getStatusDuration = useCallback(() => {
     if (!currentStatus) return 5000;
+    if (Number.isFinite(Number(currentStatus.duration)) && Number(currentStatus.duration) > 0) {
+      return Math.max(3000, Number(currentStatus.duration) * 1000 + 1000);
+    }
     if (currentStatus.type === 'video') return 15000;
-    if (currentStatus.type === 'audio') return 12000;
+    if (currentStatus.type === 'audio' || currentStatus.type === 'voice') return 12000;
     return 7000;
   }, [currentStatus]);
 
@@ -545,7 +548,7 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
               )}
             </div>
           )}
-          {currentStatus.type === 'audio' && currentStatus.mediaUrl && (
+          {(currentStatus.type === 'audio' || currentStatus.type === 'voice') && currentStatus.mediaUrl && (
             <div className="flex flex-col items-center w-full max-w-lg">
               <div className="w-full h-64 bg-gradient-to-br from-[#008069] to-[#075e54] rounded-3xl flex items-center justify-center shadow-2xl">
                 <div className="w-32 h-32 bg-white/20 rounded-full flex items-center justify-center">
