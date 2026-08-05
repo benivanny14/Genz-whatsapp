@@ -608,15 +608,19 @@ exports.scheduleStatus = async (req, res) => {
 exports.addLocation = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
-    const { latitude, longitude, address, placeName } = req.body;
+    // Accept both lat/lng and latitude/longitude shapes so GPS clients and
+    // picker UIs work. Schema stores lat/lng (matches StatusCreator payloads).
+    const { latitude, longitude, lat, lng, address, placeName } = req.body;
+    const parsedLat = Number.isFinite(Number(latitude)) ? Number(latitude) : Number.isFinite(Number(lat)) ? Number(lat) : undefined;
+    const parsedLng = Number.isFinite(Number(longitude)) ? Number(longitude) : Number.isFinite(Number(lng)) ? Number(lng) : undefined;
     const status = await Status.findById(req.params.id);
     
     if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
     if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
 
     status.locationData = {
-      latitude,
-      longitude,
+      lat: parsedLat,
+      lng: parsedLng,
       address,
       placeName
     };
@@ -997,61 +1001,63 @@ exports.getAnalytics = async (req, res) => {
     if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
     if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
 
+    // Real analytics computed from stored engagement data — no fabricated numbers.
+    const views = status.views || [];
+    const reactions = status.reactions || [];
+    const shares = status.shares || [];
+    const saves = status.saves || [];
+
+    const totalViews = views.length;
+    const uniqueViewers = new Set(views.map(v => String(v.user))).size;
+    const shareCount = Number.isFinite(Number(status.shareCount)) ? Number(status.shareCount) : shares.length;
+    const saveCount = Number.isFinite(Number(status.savesCount)) ? Number(status.savesCount) : saves.length;
+    const engagementRate = totalViews > 0 ? (reactions.length + shares.length + saves.length) / totalViews : 0;
+
+    // Bucket views by hour and by day-of-week from the stored viewedAt timestamps.
+    const hourCounts = {};
+    const dayCounts = {};
+    for (const v of views) {
+      const t = new Date(v.viewedAt || v.createdAt);
+      if (Number.isNaN(t.getTime())) continue;
+      const h = t.getHours();
+      hourCounts[h] = (hourCounts[h] || 0) + 1;
+      const d = t.getDay();
+      dayCounts[d] = (dayCounts[d] || 0) + 1;
+    }
+    const viewsByTime = Object.keys(hourCounts)
+      .map((h) => ({ time: `${String(h).padStart(2, '0')}:00`, views: hourCounts[h] }))
+      .sort((a, b) => a.time.localeCompare(b.time));
+
+    let peakTime = 'N/A';
+    if (viewsByTime.length > 0) {
+      peakTime = viewsByTime.reduce((max, x) => (x.views > max.views ? x : max), viewsByTime[0]).time;
+    }
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    let topDay = 'N/A';
+    if (Object.keys(dayCounts).length > 0) {
+      const top = Object.entries(dayCounts).reduce((max, x) => (x[1] > max[1] ? x : max));
+      topDay = dayNames[Number(top[0])] || 'N/A';
+    }
+
     const analytics = {
-      totalViews: Math.floor(Math.random() * 10000) + 1000,
-      uniqueViewers: Math.floor(Math.random() * 5000) + 500,
-      engagementRate: (Math.floor(Math.random() * 20) + 10) / 100,
-      shareCount: Math.floor(Math.random() * 100) + 10,
-      saveCount: Math.floor(Math.random() * 50) + 5,
-      peakTime: '12:00',
-      topDay: 'Monday',
-      demographics: {
-        age: [
-          { range: '18-24', percentage: 35 },
-          { range: '25-34', percentage: 40 },
-          { range: '35-44', percentage: 15 },
-          { range: '45+', percentage: 10 }
-        ],
-        gender: [
-          { gender: 'Male', percentage: 55 },
-          { gender: 'Female', percentage: 45 }
-        ]
-      },
-      viewsByTime: [],
-      viewsByDevice: [
-        { device: 'Mobile', views: Math.floor(Math.random() * 5000) + 2000, percentage: 65 },
-        { device: 'Desktop', views: Math.floor(Math.random() * 2000) + 500, percentage: 25 },
-        { device: 'Tablet', views: Math.floor(Math.random() * 1000) + 200, percentage: 10 }
-      ],
-      viewsByLocation: [
-        { location: 'Tanzania', views: Math.floor(Math.random() * 3000) + 1000 },
-        { location: 'Kenya', views: Math.floor(Math.random() * 2000) + 500 },
-        { location: 'Uganda', views: Math.floor(Math.random() * 1000) + 200 },
-        { location: 'Nigeria', views: Math.floor(Math.random() * 1500) + 300 },
-        { location: 'South Africa', views: Math.floor(Math.random() * 1000) + 200 }
-      ],
-      audienceDemographics: {
-        age: [
-          { age: '18-24', percentage: 35 },
-          { age: '25-34', percentage: 40 },
-          { age: '35-44', percentage: 15 },
-          { age: '45+', percentage: 10 }
-        ],
-        gender: [
-          { gender: 'Male', percentage: 55 },
-          { gender: 'Female', percentage: 45 }
-        ]
-      },
-      retentionRate: Math.floor(Math.random() * 40) + 40,
-      growthRate: Math.floor(Math.random() * 30) - 10,
-      averageViewTime: Math.floor(Math.random() * 30) + 10,
-      dropOffPoints: [
-        { time: '0-3s', percentage: 20 },
-        { time: '3-6s', percentage: 15 },
-        { time: '6-10s', percentage: 10 },
-        { time: '10-15s', percentage: 8 },
-        { time: '15s+', percentage: 47 }
-      ]
+      totalViews,
+      uniqueViewers,
+      engagementRate: Math.round(engagementRate * 10000) / 10000,
+      shareCount,
+      saveCount,
+      peakTime,
+      topDay,
+      // Demographics / device / location need per-viewer profile data that isn't
+      // collected yet, so return empty instead of inventing numbers.
+      demographics: { age: [], gender: [] },
+      viewsByTime,
+      viewsByDevice: [],
+      viewsByLocation: [],
+      audienceDemographics: { age: [], gender: [] },
+      retentionRate: totalViews > 0 ? Math.round((uniqueViewers / totalViews) * 10000) / 10000 : 0,
+      growthRate: 0,
+      averageViewTime: 0,
+      dropOffPoints: []
     };
 
     res.json({ success: true, analytics });
@@ -1181,7 +1187,7 @@ exports.getInsights = async (req, res) => {
       viewCount: status.views.length,
       reactionCount: status.reactions.length,
       shareCount: status.shareCount || 0,
-      uniqueViewers: status.views.length,
+      uniqueViewers: new Set((status.views || []).map((v) => String(v.user))).size,
       engagementRate: status.views.length > 0 
         ? ((status.reactions.length / status.views.length) * 100).toFixed(2)
         : 0,
@@ -1190,7 +1196,7 @@ exports.getInsights = async (req, res) => {
         return acc;
       }, {}),
       viewsByHour: status.views.reduce((acc, v) => {
-        const hour = new Date(v.createdAt).getHours();
+        const hour = new Date(v.viewedAt || v.createdAt).getHours();
         acc[hour] = (acc[hour] || 0) + 1;
         return acc;
       }, {})

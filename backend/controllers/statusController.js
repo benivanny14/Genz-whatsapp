@@ -2,6 +2,7 @@ const Status = require('../models/Status');
 const User = require('../models/User');
 const mongoose = require('mongoose');
 const { isEitherUserBlocked } = require('../utils/messageSendHelpers');
+const { normalizeLocationData } = require('../utils/locationData');
 
 // POST /api/status - weka status mpya
 exports.createStatus = async (req, res) => {
@@ -59,7 +60,7 @@ exports.createStatus = async (req, res) => {
       questionText: questionText || '',
       countdownDate: countdownDate || '',
       countdownTime: countdownTime || '',
-      locationData: locationData || null,
+      locationData: normalizeLocationData(locationData),
       collageImages: collageImages || [],
       timerSeconds: timerSeconds || 5,
       textEffects: textEffects || null,
@@ -98,28 +99,32 @@ exports.getStatuses = async (req, res) => {
         const blocked = await isEitherUserBlocked(userId, s.user._id);
         if (blocked) continue;
 
-        // FIX: statuses were shown to literally every user on the platform,
-        // ignoring the poster's own privacy.status setting (default in this
-        // app's settings schema is 'contacts', not 'everyone') and ignoring
-        // whether the viewer is actually one of the poster's saved contacts.
-        // This was a real privacy leak on any deployment with more than a
-        // handful of users. Restrict to WhatsApp-style contacts-only unless
-        // the poster explicitly opted into a wider audience.
-        const statusPrivacy = s.user?.settings?.privacy?.status || 'contacts';
-        if (statusPrivacy === 'nobody') continue;
-        if (statusPrivacy === 'contacts' || statusPrivacy === 'contacts_except' || statusPrivacy === 'only_share_with') {
-          // Contact entries are stored as { user, savedName } subdocuments,
-          // not raw ObjectIds — compare against the nested `user` field.
+        // Read the per-status privacy choice (matches the advanced endpoint).
+        // The status's own `privacy` field wins; fall back to contacts-only for
+        // old statuses created before privacy was stored on the status itself.
+        const statusPrivacy = s.privacy || 'contacts';
+        if (statusPrivacy === 'only_me' || statusPrivacy === 'nobody') continue;
+
+        if (statusPrivacy === 'only_share_with') {
+          // Share only with a picked list — viewer must be in includedViewers.
+          const isIncluded = (s.includedViewers || []).some((id) => String(id) === viewerIdStr);
+          if (!isIncluded) continue;
+        } else if (statusPrivacy !== 'everyone') {
+          // Contacts-only or "my contacts except...": viewer must be one of the
+          // poster's saved contacts. Contact entries are stored as { user,
+          // savedName } subdocuments, so compare against the nested `user` field.
           const posterContacts = s.user?.contacts || [];
           const viewerIsContact = posterContacts.some((c) => {
             const contactUserId = c?.user ? String(c.user) : String(c);
             return contactUserId === viewerIdStr;
           });
           if (!viewerIsContact) continue;
-          // NOTE: 'contacts_except' and 'only_share_with' need a stored
-          // exclude/include list to fully match WhatsApp; that list isn't
-          // in the settings schema yet, so both currently fall back to the
-          // safer contacts-only behavior above instead of leaking to everyone.
+
+          if (statusPrivacy === 'contacts_except') {
+            // "My contacts except...": also skip explicitly excluded viewers.
+            const isExcluded = (s.excludedViewers || []).some((id) => String(id) === viewerIdStr);
+            if (isExcluded) continue;
+          }
         }
       }
       filtered.push(s);

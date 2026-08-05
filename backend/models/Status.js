@@ -79,7 +79,8 @@ const statusSchema = new mongoose.Schema({
   locationData: {
     lat: { type: Number },
     lng: { type: Number },
-    address: { type: String }
+    address: { type: String },
+    placeName: { type: String }
   },
   collageImages: [{ type: String }],
   timerSeconds: { type: Number, default: 5 },

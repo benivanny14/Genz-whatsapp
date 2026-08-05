@@ -13,6 +13,7 @@ const { assertSafeExternalUrl } = require('../utils/networkGuard');
 const { serializeOutgoingMessage } = require('../utils/messageSerializer');
 const { isEitherUserBlocked } = require('../utils/messageSendHelpers');
 const { sendNewMessageNotification } = require('../services/notificationService');
+const { normalizeLocationData } = require('../utils/locationData');
 
 const LOCAL_USER_ID = process.env.LOCAL_USER_ID || '60d5ecb8b392cb371c664c12';
 const getCurrentUserId = (req) => req.user?._id?.toString() || LOCAL_USER_ID;
@@ -486,7 +487,7 @@ exports.createStatus = async (req, res) => {
       questionText: questionText || '',
       countdownDate: countdownDate || '',
       countdownTime: countdownTime || '',
-      locationData: locationData || null,
+      locationData: normalizeLocationData(locationData),
       collageImages: Array.isArray(collageImages) ? collageImages : [],
       timerSeconds: timerSeconds || 5,
       duration: Number.isFinite(Number(duration)) ? Number(duration) : 0,

@@ -27,64 +27,25 @@ const StatusAnalyticsPanel = ({ onClose, status }) => {
       }
     } catch (error) {
       console.error('Error loading analytics:', error);
-      // Fallback to mock data
-      const mockData = {
-        totalViews: Math.floor(Math.random() * 10000) + 1000,
-        uniqueViewers: Math.floor(Math.random() * 5000) + 500,
-        engagementRate: (Math.floor(Math.random() * 20) + 10) / 100,
-        shareCount: Math.floor(Math.random() * 100) + 10,
-        saveCount: Math.floor(Math.random() * 50) + 5,
-        peakTime: '12:00',
-        topDay: 'Monday',
-        demographics: {
-          age: [
-            { range: '18-24', percentage: 35 },
-            { range: '25-34', percentage: 40 },
-            { range: '35-44', percentage: 15 },
-            { range: '45+', percentage: 10 }
-          ],
-          gender: [
-            { gender: 'Male', percentage: 55 },
-            { gender: 'Female', percentage: 45 }
-          ]
-        },
+      // Honest fallback: show zeros/empty instead of fabricated numbers.
+      setAnalyticsData({
+        totalViews: 0,
+        uniqueViewers: 0,
+        engagementRate: 0,
+        shareCount: 0,
+        saveCount: 0,
+        peakTime: 'N/A',
+        topDay: 'N/A',
+        demographics: { age: [], gender: [] },
         viewsByTime: [],
-        viewsByDevice: [
-          { device: 'Mobile', views: Math.floor(Math.random() * 5000) + 2000, percentage: 65 },
-          { device: 'Desktop', views: Math.floor(Math.random() * 2000) + 500, percentage: 25 },
-          { device: 'Tablet', views: Math.floor(Math.random() * 1000) + 200, percentage: 10 }
-        ],
-        viewsByLocation: [
-          { location: 'Tanzania', views: Math.floor(Math.random() * 3000) + 1000 },
-          { location: 'Kenya', views: Math.floor(Math.random() * 2000) + 500 },
-          { location: 'Uganda', views: Math.floor(Math.random() * 1000) + 200 },
-          { location: 'Nigeria', views: Math.floor(Math.random() * 1500) + 300 },
-          { location: 'South Africa', views: Math.floor(Math.random() * 1000) + 200 }
-        ],
-        audienceDemographics: {
-          age: [
-            { age: '18-24', percentage: 35 },
-            { age: '25-34', percentage: 40 },
-            { age: '35-44', percentage: 15 },
-            { age: '45+', percentage: 10 }
-          ],
-          gender: [
-            { gender: 'Male', percentage: 55 },
-            { gender: 'Female', percentage: 45 }
-          ]
-        },
-        retentionRate: Math.floor(Math.random() * 40) + 40,
-        growthRate: Math.floor(Math.random() * 30) - 10,
-        averageViewTime: Math.floor(Math.random() * 30) + 10,
-        dropOffPoints: [
-          { time: '0-3s', percentage: 20 },
-          { time: '3-6s', percentage: 15 },
-          { time: '6-10s', percentage: 10 },
-          { time: '10-15s', percentage: 8 },
-          { time: '15s+', percentage: 47 }
-        ]
-      };
-      setAnalyticsData(mockData);
+        viewsByDevice: [],
+        viewsByLocation: [],
+        audienceDemographics: { age: [], gender: [] },
+        retentionRate: 0,
+        growthRate: 0,
+        averageViewTime: 0,
+        dropOffPoints: []
+      });
     } finally {
       setLoading(false);
     }
@@ -127,38 +88,46 @@ const StatusAnalyticsPanel = ({ onClose, status }) => {
           icon={Users}
           label="Unique Viewers"
           value={analyticsData.uniqueViewers}
-          change={Math.floor(Math.random() * 20) - 5}
+          change={0}
           color="#3b82f6"
         />
         <MetricCard
           icon={Heart}
           label="Engagement Rate"
           value={`${analyticsData.engagementRate * 100}%`}
-          change={Math.floor(Math.random() * 10) - 3}
+          change={0}
           color="#ef4444"
         />
         <MetricCard
           icon={Share2}
           label="Share Rate"
-          value={`${(analyticsData.shareCount / analyticsData.totalViews * 100).toFixed(1)}%`}
-          change={Math.floor(Math.random() * 8) - 2}
+          value={`${analyticsData.totalViews > 0 ? (analyticsData.shareCount / analyticsData.totalViews * 100).toFixed(1) : '0.0'}%`}
+          change={0}
           color="#10b981"
         />
       </div>
 
-      {/* Views Graph */}
+      {/* Views Over Time */}
       <div className="bg-white/5 rounded-xl p-4">
         <h3 className="text-white font-medium mb-4">Views Over Time</h3>
         <div className="h-40 flex items-end gap-2">
-          {analyticsData.viewsByDevice.map((item) => (
-            <div key={item.device} className="flex-1 flex flex-col items-center">
-              <div
-                className="w-full bg-[#00a884] rounded-t"
-                style={{ height: `${(item.views / 10000) * 100}%` }}
-              />
-              <span className="text-white/60 text-xs mt-2">{item.device}</span>
-            </div>
-          ))}
+          {analyticsData.viewsByTime.length > 0 ? (
+            analyticsData.viewsByTime.map((item) => {
+              const maxViews = Math.max(...analyticsData.viewsByTime.map((x) => x.views), 1);
+              return (
+                <div key={item.time} className="flex-1 flex flex-col items-center">
+                  <div
+                    className="w-full bg-[#00a884] rounded-t"
+                    style={{ height: `${(item.views / maxViews) * 100}%` }}
+                    title={`${item.views} view${item.views === 1 ? '' : 's'}`}
+                  />
+                  <span className="text-white/60 text-xs mt-2">{item.time}</span>
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-white/40 text-sm">No view data yet</p>
+          )}
         </div>
       </div>
 
@@ -169,15 +138,19 @@ const StatusAnalyticsPanel = ({ onClose, status }) => {
           Top Locations
         </h3>
         <div className="space-y-2">
-          {analyticsData.viewsByLocation.map((data, index) => (
-            <div key={data.location} className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-white/40 w-6">#{index + 1}</span>
-                <span className="text-white">{data.location}</span>
+          {analyticsData.viewsByLocation.length > 0 ? (
+            analyticsData.viewsByLocation.map((data, index) => (
+              <div key={data.location} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-white/40 w-6">#{index + 1}</span>
+                  <span className="text-white">{data.location}</span>
+                </div>
+                <span className="text-white/60">{data.views}</span>
               </div>
-              <span className="text-white/60">{data.views}</span>
-            </div>
-          ))}
+            ))
+          ) : (
+            <p className="text-white/40 text-sm">No location data yet</p>
+          )}
         </div>
       </div>
 
@@ -187,21 +160,29 @@ const StatusAnalyticsPanel = ({ onClose, status }) => {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <h4 className="text-white/60 text-sm mb-2">Age Distribution</h4>
-            {analyticsData.audienceDemographics.age.map((data) => (
-              <div key={data.range} className="flex items-center justify-between mb-1">
-                <span className="text-white">{data.range}</span>
-                <span className="text-white/60">{data.percentage}%</span>
-              </div>
-            ))}
+            {analyticsData.audienceDemographics.age.length > 0 ? (
+              analyticsData.audienceDemographics.age.map((data) => (
+                <div key={data.range} className="flex items-center justify-between mb-1">
+                  <span className="text-white">{data.range}</span>
+                  <span className="text-white/60">{data.percentage}%</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-white/40 text-sm">No age data yet</p>
+            )}
           </div>
           <div>
             <h4 className="text-white/60 text-sm mb-2">Gender Distribution</h4>
-            {analyticsData.audienceDemographics.gender.map((data) => (
-              <div key={data.gender} className="flex items-center justify-between mb-1">
-                <span className="text-white">{data.gender}</span>
-                <span className="text-white/60">{data.percentage}%</span>
-              </div>
-            ))}
+            {analyticsData.audienceDemographics.gender.length > 0 ? (
+              analyticsData.audienceDemographics.gender.map((data) => (
+                <div key={data.gender} className="flex items-center justify-between mb-1">
+                  <span className="text-white">{data.gender}</span>
+                  <span className="text-white/60">{data.percentage}%</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-white/40 text-sm">No gender data yet</p>
+            )}
           </div>
         </div>
       </div>
@@ -213,12 +194,16 @@ const StatusAnalyticsPanel = ({ onClose, status }) => {
           View Drop-off Points
         </h3>
         <div className="space-y-2">
-          {analyticsData.dropOffPoints.map((item) => (
-            <div key={item.time} className="flex items-center justify-between">
-              <span className="text-white">{item.time}</span>
-              <span className="text-white/60">{item.percentage}%</span>
-            </div>
-          ))}
+          {analyticsData.dropOffPoints.length > 0 ? (
+            analyticsData.dropOffPoints.map((item) => (
+              <div key={item.time} className="flex items-center justify-between">
+                <span className="text-white">{item.time}</span>
+                <span className="text-white/60">{item.percentage}%</span>
+              </div>
+            ))
+          ) : (
+            <p className="text-white/40 text-sm">No drop-off data yet</p>
+          )}
         </div>
       </div>
     </div>
