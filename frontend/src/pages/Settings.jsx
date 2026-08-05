@@ -1070,8 +1070,8 @@ const Settings = () => {
         <SettingRow icon={Shield} title="Diagnostics" description="Attach safe diagnostics to support messages." control={<Toggle checked={settingsData.help.diagnostics} onChange={() => toggleSetting('help.diagnostics')} />} />
         <SettingRow
           icon={RefreshCw}
-          title="Angalia Sasisho (Check for Updates)"
-          description="Pata marekebisho mapya ya app papo hapo, bila kusubiri."
+          title="Check for Updates"
+          description="Get real-time updates, without waiting."
           onClick={handleCheckForUpdate}
           control={checkingUpdate ? <RefreshCw size={16} className="animate-spin text-blue-100/60" /> : undefined}
         />

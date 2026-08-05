@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const aiService = require('../services/aiService');
 
 const defaultSettings = {
   autoTranslate: false,
@@ -76,14 +77,34 @@ exports.translateMessage = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Text is required' });
     }
 
-    // Simple offline dictionary translation
+    const target = targetLanguage || user.translatorSettings?.targetLanguage || 'en';
+    const source = sourceLanguage || user.translatorSettings?.sourceLanguage || 'auto';
+
+    if (aiService.isEnabled()) {
+      const system = `You are a professional translator. Translate the user's message into ${target} (from ${source === 'auto' ? 'the detected source language' : source}). Respond with ONLY the translated text, no quotes, no explanation.`;
+      const result = await aiService.completeChat({
+        system,
+        messages: [{ role: 'user', content: text }],
+        maxTokens: 500,
+        temperature: 0.1
+      });
+
+      return res.status(200).json({
+        success: true,
+        originalText: text,
+        translatedText: result.content.trim(),
+        sourceLanguage: source,
+        targetLanguage: target,
+        provider: 'ai',
+        model: result.model
+      });
+    }
+
+    // Simple offline dictionary translation (fallback when AI is not configured)
     const mockTranslations = {
       'sw': { 'hello': 'habari', 'how are you': 'habari gani', 'good': 'nzuri' },
       'en': { 'habari': 'hello', 'habari gani': 'how are you', 'nzuri': 'good' }
     };
-
-    const target = targetLanguage || user.translatorSettings?.targetLanguage || 'en';
-    const source = sourceLanguage || user.translatorSettings?.sourceLanguage || 'auto';
 
     let translatedText = text;
     if (mockTranslations[target]) {
