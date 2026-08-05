@@ -7,9 +7,12 @@ const {
   getFileType,
   isConfigured: isCloudinaryConfigured
 } = require('../config/cloudinary');
-
-const LOCAL_USER_ID = process.env.LOCAL_USER_ID || '60d5ecb8b392cb371c664c12';
-const getCurrentUserId = (req) => req.user?._id?.toString() || LOCAL_USER_ID;
+const getCurrentUserId = (req) => {
+  if (!req.user?._id) {
+    throw new Error('Authentication required');
+  }
+  return req.user._id.toString();
+};
 const { resolvePublicBaseUrl } = require('../utils/publicBaseUrl');
 const getPublicBaseUrl = (req) => resolvePublicBaseUrl(req);
 const toAbsoluteUrl = (req, fileUrl = '') => (

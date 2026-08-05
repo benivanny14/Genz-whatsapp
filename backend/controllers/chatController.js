@@ -16,9 +16,12 @@ const { serializeOutgoingMessage } = require("../utils/messageSerializer");
 const { sendMentionNotification, sendNewMessageNotification } = require("../services/notificationService");
 const { ensureUnreadMap, getUnreadCount } = require("../utils/unreadCount");
 
-const LOCAL_USER_ID = process.env.LOCAL_USER_ID || "60d5ecb8b392cb371c664c12";
-
-const getCurrentUserId = (req) => req.user?._id?.toString() || LOCAL_USER_ID;
+const getCurrentUserId = (req) => {
+  if (!req.user?._id) {
+    throw new Error('Authentication required');
+  }
+  return req.user._id.toString();
+};
 
 // Helper function to apply permission inheritance for new contacts
 const applyPermissionInheritance = async (ownerUserId, newContactId, newContactName, newContactPhone) => {

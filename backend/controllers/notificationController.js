@@ -1,8 +1,11 @@
 const PushSubscription = require('../models/PushSubscription');
 const notificationService = require('../services/notificationService');
-
-const LOCAL_USER_ID = process.env.LOCAL_USER_ID || '60d5ecb8b392cb371c664c12';
-const getCurrentUserId = (req) => req.user?._id?.toString() || LOCAL_USER_ID;
+const getCurrentUserId = (req) => {
+  if (!req.user?._id) {
+    throw new Error('Authentication required');
+  }
+  return req.user._id.toString();
+};
 
 exports.getVapidPublicKey = (req, res) => {
   res.status(200).json({

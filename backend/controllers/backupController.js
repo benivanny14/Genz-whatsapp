@@ -9,7 +9,6 @@ const Broadcast = require('../models/Broadcast');
 const ManualPayment = require('../models/ManualPayment');
 const User = require('../models/User');
 
-const LOCAL_USER_ID = process.env.LOCAL_USER_ID || '60d5ecb8b392cb371c664c12';
 const BUCKET_NAME = process.env.S3_BUCKET_NAME || '';
 const BACKUP_DIR = path.resolve(__dirname, '..', 'backups');
 const S3_PREFIX = 'backups';
@@ -21,7 +20,12 @@ const s3 = s3Enabled ? new AWS.S3({
   region: process.env.AWS_REGION || 'us-east-1'
 }) : null;
 
-const getCurrentUserId = (req) => req.user?._id?.toString() || LOCAL_USER_ID;
+const getCurrentUserId = (req) => {
+  if (!req.user?._id) {
+    throw new Error('Authentication required');
+  }
+  return req.user._id.toString();
+};
 const backupKeyFor = (backupId) => `${S3_PREFIX}/${path.basename(backupId)}`;
 const backupPathFor = (backupId) => path.join(BACKUP_DIR, path.basename(backupId));
 

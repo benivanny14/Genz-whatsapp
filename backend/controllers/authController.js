@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const User = require('../models/User');
 const { mergeWhatsAppSettings } = require('../utils/whatsappSettings');
 const { applyPrivacyFilter } = require('../utils/privacyHelper');
+const { checkPrivacyPermission } = require('../middleware/privacy');
 const { resolvePublicBaseUrl } = require('../utils/publicBaseUrl');
 const { getRequestDeviceId, registerDevice, isDeviceAllowed } = require('../utils/deviceSession');
 const { JWT_SECRET, JWT_REFRESH_SECRET } = require('../config/secrets');
@@ -809,7 +810,19 @@ exports.getMyOnlineHistory = async (req, res) => {
 // @access  Private
 exports.getUserOnlineHistory = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select('onlineHistory lastSeen username');
+    const user = await User.findById(req.params.id).select('onlineHistory lastSeen username settings contacts');
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Respect the owner's last_seen privacy setting before exposing their
+    // online history to any other user.
+    const canView = checkPrivacyPermission(user, req.user._id, 'last_seen');
+    if (!canView) {
+      return res.status(403).json({ success: false, message: 'Cannot view online history' });
+    }
+
     // Only return last 50 sessions for privacy
     const history = (user?.onlineHistory || []).slice(-50);
     res.json({ success: true, onlineHistory: history, lastSeen: user?.lastSeen, username: user?.username });

@@ -2,9 +2,12 @@ const Device = require('../models/Device');
 const crypto = require('crypto');
 const QRCode = require('qrcode');
 const { getRequestDeviceId, registerDevice } = require('../utils/deviceSession');
-
-const LOCAL_USER_ID = process.env.LOCAL_USER_ID || '60d5ecb8b392cb371c664c12';
-const getCurrentUserId = (req) => req.user?._id?.toString() || LOCAL_USER_ID;
+const getCurrentUserId = (req) => {
+  if (!req.user?._id) {
+    throw new Error('Authentication required');
+  }
+  return req.user._id.toString();
+};
 
 const serializeDevice = (device = {}, currentDeviceId = '') => {
   const id = device.deviceId || device.id || device._id?.toString() || 'unknown';
