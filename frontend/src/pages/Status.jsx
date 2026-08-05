@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Plus, X, Eye, Clock, Camera, Image, Type, Upload, RefreshCw, Film, Sparkles, Bookmark, Settings, Music, Download, Bell, Shield, TrendingUp, BarChart3, Palette, Share2, Accessibility, Mic, Archive, Users, Volume2, Zap, Heart, Calendar, MapPin, Cloud, QrCode, AtSign, Hash, Edit, Copy, Pin, Flag, Layout, FileText, Star, History, BellOff, Trash2, Forward } from 'lucide-react';
+import { Plus, X, Eye, Clock, Camera, Image, Type, Upload, RefreshCw, Film, Sparkles, Bookmark, Settings, Music, Download, Bell, Shield, TrendingUp, BarChart3, Palette, Share2, Accessibility, Mic, Archive, Users, Volume2, Zap, Heart, Calendar, MapPin, Cloud, QrCode, AtSign, Hash, Edit, Copy, Pin, Flag, Layout, FileText, Star, History, BellOff, Trash2, Forward, RotateCcw, Grid, Timer } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
@@ -346,7 +346,7 @@ const Status = () => {
       return;
     }
 
-    const mediaFileTypes = ['image', 'video', 'audio', 'voice'];
+    const mediaFileTypes = ['image', 'video', 'audio', 'voice', 'boomerang', 'livePhoto', 'dualCamera'];
     if (mediaFileTypes.includes(uploadData.type) && !uploadData.file) {
       setError('Please select a file to upload');
       return;
@@ -487,9 +487,13 @@ const Status = () => {
     if (!file) return;
     setUploadData((prev) => {
       let type = prev.type;
-      if (file.type.startsWith('image/')) type = 'image';
-      else if (file.type.startsWith('video/')) type = 'video';
-      else if (file.type.startsWith('audio/')) type = 'audio';
+      // Keep explicit special types (boomerang, livePhoto, dualCamera, timer,
+      // gif, music) — only infer image/video/audio for the plain media types.
+      if (!['boomerang', 'livePhoto', 'dualCamera', 'timer', 'gif', 'music'].includes(type)) {
+        if (file.type.startsWith('image/')) type = 'image';
+        else if (file.type.startsWith('video/')) type = 'video';
+        else if (file.type.startsWith('audio/')) type = 'audio';
+      }
       return { ...prev, file, type };
     });
   };
@@ -1291,7 +1295,11 @@ const Status = () => {
                     { value: 'question', icon: <Type className="w-4 h-4" />, label: 'Question' },
                     { value: 'countdown', icon: <Clock className="w-4 h-4" />, label: 'Countdown' },
                     { value: 'location', icon: <Upload className="w-4 h-4" />, label: 'Location' },
-                    { value: 'collage', icon: <Image className="w-4 h-4" />, label: 'Collage' }
+                    { value: 'collage', icon: <Image className="w-4 h-4" />, label: 'Collage' },
+                    { value: 'boomerang', icon: <RotateCcw className="w-4 h-4" />, label: 'Boomerang' },
+                    { value: 'livePhoto', icon: <Camera className="w-4 h-4" />, label: 'Live Photo' },
+                    { value: 'dualCamera', icon: <Grid className="w-4 h-4" />, label: 'Dual Camera' },
+                    { value: 'timer', icon: <Timer className="w-4 h-4" />, label: 'Timer' }
                   ].map((type) => (
                     <button
                       key={type.value}
@@ -1330,14 +1338,20 @@ const Status = () => {
                 </div>
               </div>
 
-              {['image', 'video', 'audio'].includes(uploadData.type) && (
+              {['image', 'video', 'audio', 'boomerang', 'livePhoto', 'dualCamera'].includes(uploadData.type) && (
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Upload File
                   </label>
                   <input
                     type="file"
-                    accept={uploadData.type === 'image' ? 'image/*' : uploadData.type === 'video' ? 'video/*' : 'audio/*'}
+                    accept={
+                      uploadData.type === 'image' || uploadData.type === 'livePhoto' || uploadData.type === 'dualCamera'
+                        ? 'image/*'
+                        : uploadData.type === 'video' || uploadData.type === 'boomerang'
+                          ? 'video/*'
+                          : 'audio/*'
+                    }
                     onChange={handleFileSelect}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                   />
