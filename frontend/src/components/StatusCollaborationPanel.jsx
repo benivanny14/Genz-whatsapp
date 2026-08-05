@@ -1,7 +1,7 @@
 import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
-import { X, Users, Plus, UserPlus, Share2, Lock, Unlock, Clock, CheckCircle, AlertCircle, Eye, MessageCircle, Edit, User } from 'lucide-react';
+import { X, Users, Plus, UserPlus, Share2, Lock, Unlock, Clock, CheckCircle, AlertCircle, Eye, MessageCircle, Edit, User, Image as ImageIcon, Send } from 'lucide-react';
 
 const StatusCollaborationPanel = ({ onClose, status, onCollaborationUpdate }) => {
   const [collaborators, setCollaborators] = useState([]);
@@ -12,6 +12,13 @@ const StatusCollaborationPanel = ({ onClose, status, onCollaborationUpdate }) =>
   const [expiryDate, setExpiryDate] = useState('');
   const [maxCollaborators, setMaxCollaborators] = useState(10);
   const [loading, setLoading] = useState(false);
+  const [addingUser, setAddingUser] = useState(false);
+  const [error, setError] = useState('');
+  const [contributeFile, setContributeFile] = useState(null);
+  const [contributeCaption, setContributeCaption] = useState('');
+  const [contributing, setContributing] = useState(false);
+  const contributeInputRef = useRef(null);
+  const statusId = status?._id || status?.id;
 
   const modes = [
     { id: 'view', label: 'View Only', icon: Eye },
@@ -19,13 +26,21 @@ const StatusCollaborationPanel = ({ onClose, status, onCollaborationUpdate }) =>
     { id: 'edit', label: 'Edit', icon: Edit }
   ];
 
+  const authHeaders = () => {
+    const token = getAuthToken();
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+  };
+
   useEffect(() => {
     // Load collaboration settings for this status
     const loadCollaborationSettings = async () => {
       setLoading(true);
       try {
         const token = getAuthToken();
-        const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/collaboration`, {
+        const response = await fetch(`${resolveApiBase()}/status-advanced/${statusId}/collaboration`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -46,7 +61,6 @@ const StatusCollaborationPanel = ({ onClose, status, onCollaborationUpdate }) =>
         // Fallback to localStorage
         try {
           const settings = JSON.parse(localStorage.getItem('genz_status_collaboration') || '{}');
-          const statusId = status?._id || status?.id;
           if (statusId && settings[statusId]) {
             const statusSettings = settings[statusId];
             setCollaborators(statusSettings.collaborators || []);
@@ -65,22 +79,103 @@ const StatusCollaborationPanel = ({ onClose, status, onCollaborationUpdate }) =>
       }
     };
     loadCollaborationSettings();
-  }, [status]);
+  }, [statusId]);
 
-  const handleAddCollaborator = (userId) => {
+  const handleAddCollaborator = async (username) => {
+    if (!username || !username.trim()) return;
     if (collaborators.length >= maxCollaborators) {
       alert(`Maximum ${maxCollaborators} collaborators allowed`);
       return;
     }
-    setCollaborators([...collaborators, { id: userId, role: 'viewer', joinedAt: new Date() }]);
+    setAddingUser(true);
+    setError('');
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${resolveApiBase()}/status-advanced/${statusId}/collaborate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ collabUsername: username.trim() })
+      });
+      const data = await response.json();
+      if (data.success) {
+        const updated = data.status?.collaborators || [];
+        setCollaborators(updated.map((c) => ({ userId: c.userId || c.user, username: c.username, role: c.role })));
+        alert('Collaborator added');
+      } else {
+        setError(data.message || 'Could not add collaborator');
+        alert(data.message || 'Could not add collaborator');
+      }
+    } catch (err) {
+      console.error('Error adding collaborator:', err);
+      setError('Could not add collaborator');
+    } finally {
+      setAddingUser(false);
+    }
   };
 
   const handleRemoveCollaborator = (userId) => {
-    setCollaborators(collaborators.filter(c => c.id !== userId));
+    setCollaborators(collaborators.filter(c => (c.userId || c.user || c.id) !== userId));
+  };
+
+  const handleContribute = async () => {
+    if (!contributeFile && !contributeCaption.trim()) {
+      setError('Chagua file au andika maandishi');
+      return;
+    }
+    setContributing(true);
+    setError('');
+    try {
+      const token = getAuthToken();
+      let mediaUrl = '';
+      let mediaType = 'text';
+      let type = 'text';
+
+      if (contributeFile) {
+        const formData = new FormData();
+        formData.append('file', contributeFile);
+        const uploadRes = await fetch(`${resolveApiBase()}/advanced/status/upload`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+        const uploadData = await uploadRes.json();
+        if (!uploadData.success) throw new Error(uploadData.message || 'Upload failed');
+        mediaUrl = uploadData.fileUrl || '';
+        mediaType = uploadData.mediaType || 'image';
+        type = mediaType;
+      }
+
+      const response = await fetch(`${resolveApiBase()}/status-advanced/${statusId}/contribute`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          type,
+          mediaUrl,
+          mediaType,
+          caption: contributeCaption.trim()
+        })
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert('Umepost contribution yako kwenye story!');
+        setContributeFile(null);
+        setContributeCaption('');
+        if (contributeInputRef.current) contributeInputRef.current.value = '';
+      } else {
+        setError(data.message || 'Could not contribute');
+      }
+    } catch (err) {
+      console.error('Contribute error:', err);
+      setError(err.message || 'Could not contribute');
+    } finally {
+      setContributing(false);
+    }
   };
 
   const handleSave = async () => {
-    const statusId = status?._id || status?.id;
     if (!statusId) return;
 
     const collaborationSettings = {
@@ -110,6 +205,8 @@ const StatusCollaborationPanel = ({ onClose, status, onCollaborationUpdate }) =>
           onCollaborationUpdate(collaborationSettings);
         }
         onClose();
+      } else {
+        setError(data.message || 'Failed to save collaboration settings');
       }
     } catch (error) {
       console.error('Error saving collaboration settings:', error);
@@ -118,7 +215,7 @@ const StatusCollaborationPanel = ({ onClose, status, onCollaborationUpdate }) =>
         const settings = JSON.parse(localStorage.getItem('genz_status_collaboration') || '{}');
         settings[statusId] = collaborationSettings;
         localStorage.setItem('genz_status_collaboration', JSON.stringify(settings));
-        
+
         if (onCollaborationUpdate) {
           onCollaborationUpdate(collaborationSettings);
         }
@@ -262,46 +359,89 @@ const StatusCollaborationPanel = ({ onClose, status, onCollaborationUpdate }) =>
               <p className="text-white font-medium">Collaborators ({collaborators.length}/{maxCollaborators})</p>
               <button
                 onClick={() => {
-                  const name = prompt('Enter collaborator username or user ID:');
+                  const name = prompt('Enter collaborator username:');
                   if (name && name.trim()) {
-                    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-                    handleAddCollaborator({ id, name: name.trim(), role: 'viewer' });
+                    handleAddCollaborator(name.trim());
                   }
                 }}
-                className="text-[#00a884] text-sm flex items-center gap-1"
+                disabled={addingUser}
+                className="text-[#00a884] text-sm flex items-center gap-1 disabled:opacity-50"
               >
                 <UserPlus size={14} />
-                Add
+                {addingUser ? 'Adding...' : 'Add'}
               </button>
             </div>
+            {error && (
+              <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-300 text-xs rounded-lg px-3 py-2 mb-2">
+                <AlertCircle size={14} />
+                {error}
+              </div>
+            )}
             <div className="space-y-2">
               {collaborators.length === 0 ? (
                 <div className="text-center text-white/40 py-4">
                   <Users size={32} className="mx-auto mb-2 opacity-50" />
                   <p className="text-sm">No collaborators yet</p>
+                  <p className="text-xs mt-1">Add collaborators by username to build a shared story</p>
                 </div>
               ) : (
-                collaborators.map((collab) => (
-                  <div key={collab.id} className="flex items-center justify-between bg-white/5 rounded-lg p-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-[#00a884]/20 rounded-full flex items-center justify-center">
-                        <User size={16} className="text-[#00a884]" />
+                collaborators.map((collab, index) => {
+                  const collabId = collab.userId || collab.user || collab.id || index;
+                  return (
+                    <div key={String(collabId)} className="flex items-center justify-between bg-white/5 rounded-lg p-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-[#00a884]/20 rounded-full flex items-center justify-center">
+                          <User size={16} className="text-[#00a884]" />
+                        </div>
+                        <div>
+                          <p className="text-white text-sm">{collab.username || collab.name || `User ${String(collabId).slice(0, 8)}`}</p>
+                          <p className="text-white/40 text-xs capitalize">{collab.role}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-white text-sm">{collab.name || `User ${String(collab.id).slice(0, 8)}`}</p>
-                        <p className="text-white/40 text-xs capitalize">{collab.role}</p>
-                      </div>
+                      <button
+                        onClick={() => handleRemoveCollaborator(collabId)}
+                        className="text-red-400 hover:text-red-300"
+                      >
+                        <X size={16} />
+                      </button>
                     </div>
-                    <button
-                      onClick={() => handleRemoveCollaborator(collab.id)}
-                      className="text-red-400 hover:text-red-300"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
+          </div>
+
+          {/* Contribute to this story */}
+          <div className="bg-white/5 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <ImageIcon className="text-[#00a884]" size={18} />
+              <p className="text-white font-medium">Contribute to this story</p>
+            </div>
+            <p className="text-white/40 text-xs mb-3">
+              Add your own photo, video or text to this shared story (Instagram-style).
+            </p>
+            <input
+              ref={contributeInputRef}
+              type="file"
+              accept="image/*,video/*,audio/*"
+              onChange={(e) => setContributeFile(e.target.files[0] || null)}
+              className="w-full bg-white/10 text-white px-3 py-2 rounded-lg border border-white/20 text-sm mb-2 file:mr-2 file:px-3 file:py-1 file:rounded file:bg-[#00a884] file:text-white file:border-0"
+            />
+            <textarea
+              value={contributeCaption}
+              onChange={(e) => setContributeCaption(e.target.value)}
+              placeholder="Add a caption..."
+              rows={2}
+              className="w-full bg-white/10 text-white px-3 py-2 rounded-lg border border-white/20 text-sm mb-2 resize-none placeholder-white/40"
+            />
+            <button
+              onClick={handleContribute}
+              disabled={contributing}
+              className="w-full px-3 py-2 bg-[#00a884] hover:bg-[#008f6f] rounded-lg text-white text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <Send size={16} />
+              {contributing ? 'Posting...' : 'Post to story'}
+            </button>
           </div>
 
           {/* Share Link */}

@@ -579,12 +579,44 @@ exports.getStatuses = async (req, res) => {
       filtered.push(s);
     }
 
-    res.status(200).json({ success: true, statuses: filtered });
+    res.status(200).json({ success: true, statuses: groupCollaborativeStories(filtered) });
   } catch (error) {
     console.error('Error fetching statuses:', error);
     res.status(500).json({ message: error.message });
   }
 };
+
+// Merge collaborative contributions into their parent story so the shared
+// ring shows as one story with the owner + each contributor's items.
+function groupCollaborativeStories(statuses) {
+  const parents = [];
+  const byParentId = new Map();
+  const childrenByStory = new Map();
+
+  for (const s of statuses) {
+    if (s.storyId) {
+      const key = String(s.storyId);
+      if (!childrenByStory.has(key)) childrenByStory.set(key, []);
+      childrenByStory.get(key).push(s);
+    } else {
+      const key = String(s._id || s.id);
+      if (!byParentId.has(key)) byParentId.set(key, s);
+      parents.push(s);
+    }
+  }
+
+  const result = [];
+  for (const parent of parents) {
+    const plain = parent.toObject ? parent.toObject() : parent;
+    const children = childrenByStory.get(String(parent._id || parent.id));
+    if (children && children.length > 0) {
+      plain._contributions = children.map((c) => (c.toObject ? c.toObject() : c));
+      plain._collaboratorCount = plain._contributions.length;
+    }
+    result.push(plain);
+  }
+  return result;
+}
 
 // @desc    View status
 // @route   POST /api/advanced/status/:id/view

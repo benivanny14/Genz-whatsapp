@@ -20,6 +20,14 @@ const replySchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+const collaboratorSchema = new mongoose.Schema({
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
+  userId: { type: String, default: '' },
+  username: { type: String, default: '' },
+  role: { type: String, enum: ['viewer', 'editor'], default: 'viewer' },
+  joinedAt: { type: Date, default: Date.now }
+});
+
 const statusSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
   userId: { type: String },
@@ -46,6 +54,14 @@ const statusSchema = new mongoose.Schema({
   includedViewers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   collabUserId: { type: String, default: '' },
   collabUsername: { type: String, default: '' },
+  collaborators: [collaboratorSchema],
+  collabMode: { type: String, default: 'view' },
+  allowComments: { type: Boolean, default: true },
+  allowEdits: { type: Boolean, default: false },
+  expiryDate: { type: String, default: '' },
+  maxCollaborators: { type: Number, default: 10 },
+  storyId: { type: String, default: '' },
+  isContribution: { type: Boolean, default: false },
   viewsCount: { type: Number, default: 0 },
   views: [viewSchema],
   reactions: [reactionSchema],

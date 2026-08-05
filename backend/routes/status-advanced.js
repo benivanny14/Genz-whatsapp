@@ -120,6 +120,7 @@ router.post('/:id/text-to-speech', statusAdvancedController.textToSpeech);
 router.post('/:id/collaborate', statusAdvancedController.addCollaborator);
 router.get('/:id/collaboration', statusAdvancedController.getCollaboration);
 router.post('/:id/collaboration', statusAdvancedController.updateCollaboration);
+router.post('/:id/contribute', statusAdvancedController.contributeToCollaboration);
 
 // Mentions (read)
 router.get('/:id/mentions', statusAdvancedController.getMentions);

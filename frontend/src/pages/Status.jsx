@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Plus, X, Eye, Clock, Camera, Image, Type, Upload, RefreshCw, Film, Sparkles, Bookmark, Settings, Music, Download, Bell, Shield, TrendingUp, BarChart3, Palette, Share2, DollarSign, Accessibility, Mic, Archive, Users, Volume2, Zap, Heart, Calendar, MapPin, Video, Cloud, QrCode, AtSign, Hash, Edit, Copy, Pin, Flag, Layout, FileText, Star, History, Zap as BoostIcon, BellOff, Trash2, Forward } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { authFetch } from '../utils/authFetch';
@@ -687,6 +687,19 @@ const Status = () => {
     }
   };
 
+  // Flatten collaborative stories (owner + contributors) into one feed so the
+  // viewer shows all shared-story items in sequence.
+  const statusFeed = useMemo(() => {
+    const feed = [];
+    for (const s of statuses || []) {
+      feed.push(s);
+      if (Array.isArray(s._contributions) && s._contributions.length > 0) {
+        feed.push(...s._contributions);
+      }
+    }
+    return feed;
+  }, [statuses]);
+
   return (
     <div className="h-screen w-screen flex items-center justify-center overflow-hidden font-sans" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0f2440 50%, #0a1628 100%)' }}>
       <div className="w-full h-full md:w-[98%] md:h-[96%] bg-white/5 backdrop-blur-xl shadow-2xl flex flex-col border border-white/10 rounded-2xl">
@@ -1003,7 +1016,14 @@ const Status = () => {
                             !viewedStatuses.includes(status._id || status.id) && status.user?._id !== user?._id
                               ? 'text-white'
                               : 'text-gray-300'
-                          }`}>{status.username || 'Unknown'}</p>
+                          }`}>
+                            {status.username || 'Unknown'}
+                            {status._contributions?.length > 0 && (
+                              <span className="text-pink-400 text-xs font-bold ml-1">
+                                & {status._contributions.length} collaborator{status._contributions.length > 1 ? 's' : ''}
+                              </span>
+                            )}
+                          </p>
                           <p className={`text-sm truncate ${
                             !viewedStatuses.includes(status._id || status.id) && status.user?._id !== user?._id
                               ? 'text-white'
@@ -1803,7 +1823,7 @@ const Status = () => {
 
         {showScrollFeed && (
           <StatusScrollFeed
-            statuses={statuses}
+            statuses={statusFeed}
             onClose={() => {
               setShowScrollFeed(false);
               setFeedStartId(null);

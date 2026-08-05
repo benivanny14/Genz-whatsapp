@@ -8,6 +8,12 @@ const isStatusOwner = (status, userId) => {
   return String(status.user) === String(userId);
 };
 
+// Helper function to check if user is a collaborator on the status
+const isCollaborator = (status, userId) => {
+  if (!status || !Array.isArray(status.collaborators)) return false;
+  return status.collaborators.some((c) => String(c.userId) === String(userId) || String(c.user) === String(userId));
+};
+
 // POST /api/status/:id/voice-changer - Apply voice changer to status
 exports.applyVoiceChanger = async (req, res) => {
   try {
@@ -66,11 +72,42 @@ exports.addCollaborator = async (req, res) => {
     if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
     if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
 
-    const collaborator = await User.findById(collabUserId);
+    let collaborator = null;
+    if (collabUserId) {
+      collaborator = await User.findById(collabUserId);
+    } else if (collabUsername) {
+      collaborator = await User.findOne({
+        $or: [
+          { username: collabUsername },
+          { username: { $regex: `^${collabUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } }
+        ]
+      });
+    }
     if (!collaborator) return res.status(404).json({ success: false, message: 'Collaborator haipatikani' });
 
-    status.collabUserId = collabUserId;
-    status.collabUsername = collabUsername || collaborator.username;
+    if (String(collaborator._id) === String(userId)) {
+      return res.status(400).json({ success: false, message: 'Huwezi kujiongeza mwenyewe kama collaborator' });
+    }
+
+    if (!Array.isArray(status.collaborators)) status.collaborators = [];
+    if (status.collaborators.some((c) => String(c.userId || c.user) === String(collaborator._id))) {
+      return res.status(400).json({ success: false, message: 'Collaborator tayari ameongezwa' });
+    }
+
+    const max = Number(status.maxCollaborators) > 0 ? Number(status.maxCollaborators) : 10;
+    if (status.collaborators.length >= max) {
+      return res.status(400).json({ success: false, message: `Upeo wa collaborators ni ${max}` });
+    }
+
+    status.collaborators.push({
+      user: collaborator._id,
+      userId: String(collaborator._id),
+      username: collaborator.username,
+      role: 'viewer',
+      joinedAt: new Date()
+    });
+    status.collabUserId = String(collaborator._id);
+    status.collabUsername = collaborator.username;
     status.isCollaborative = true;
     await status.save();
 
@@ -87,18 +124,20 @@ exports.getCollaboration = async (req, res) => {
     const status = await Status.findById(req.params.id);
     
     if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+    if (!isStatusOwner(status, userId) && !isCollaborator(status, userId)) {
+      return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+    }
 
     res.json({
       success: true,
-      collaboration: status.collaboration || {
-        collaborators: status.collabUserId ? [{ id: status.collabUserId, username: status.collabUsername, role: 'viewer' }] : [],
-        collabMode: 'view',
+      collaboration: {
+        collaborators: status.collaborators || (status.collabUserId ? [{ userId: status.collabUserId, username: status.collabUsername, role: 'viewer' }] : []),
+        collabMode: status.collabMode || 'view',
         isPublic: status.isCollaborative || false,
-        allowComments: true,
-        allowEdits: false,
-        expiryDate: '',
-        maxCollaborators: 10
+        allowComments: status.allowComments !== false,
+        allowEdits: status.allowEdits || false,
+        expiryDate: status.expiryDate || '',
+        maxCollaborators: status.maxCollaborators || 10
       }
     });
   } catch (err) {
@@ -117,19 +156,79 @@ exports.updateCollaboration = async (req, res) => {
 
     const { collaborators, collabMode, isPublic, allowComments, allowEdits, expiryDate, maxCollaborators } = req.body;
 
-    status.collaboration = {
-      collaborators: collaborators || [],
-      collabMode: collabMode || 'view',
-      isPublic: isPublic || false,
-      allowComments: allowComments !== false,
-      allowEdits: allowEdits || false,
-      expiryDate: expiryDate || '',
-      maxCollaborators: maxCollaborators || 10
-    };
-    status.isCollaborative = isPublic || (Array.isArray(collaborators) && collaborators.length > 0);
+    if (Array.isArray(collaborators)) {
+      const clean = collaborators.map((c) => ({
+        user: c.user || (mongoose.Types.ObjectId.isValid(c.userId) ? c.userId : undefined),
+        userId: String(c.userId || c.user || c.id || ''),
+        username: c.username || c.name || '',
+        role: c.role === 'editor' ? 'editor' : 'viewer',
+        joinedAt: c.joinedAt || new Date()
+      })).filter((c) => c.userId);
+      status.collaborators = clean;
+    }
+    status.collabMode = collabMode || status.collabMode || 'view';
+    status.allowComments = allowComments !== false;
+    status.allowEdits = allowEdits || false;
+    status.expiryDate = expiryDate || '';
+    status.maxCollaborators = Number(maxCollaborators) > 0 ? Number(maxCollaborators) : 10;
+    status.isCollaborative = isPublic || (Array.isArray(status.collaborators) && status.collaborators.length > 0);
+    const firstCollab = status.collaborators && status.collaborators[0];
+    if (firstCollab) {
+      status.collabUserId = String(firstCollab.userId || firstCollab.user || '');
+      status.collabUsername = firstCollab.username || '';
+    }
     await status.save();
 
     res.json({ success: true, status });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// POST /api/status/:id/contribute - Collaborator adds a status to the shared story
+exports.contributeToCollaboration = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const username = req.user.username || req.body.username || '';
+    const parent = await Status.findById(req.params.id);
+
+    if (!parent) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+    if (parent.expiresAt && new Date(parent.expiresAt) < new Date()) {
+      return res.status(400).json({ success: false, message: 'Story imekwisha muda wake' });
+    }
+    if (!parent.isCollaborative || (!isCollaborator(parent, userId) && !isStatusOwner(parent, userId))) {
+      return res.status(403).json({ success: false, message: 'Wewe si collaborator wa story hii' });
+    }
+
+    const { type, mediaUrl, mediaType, caption, backgroundColor, textColor } = req.body;
+    if (!type) return res.status(400).json({ success: false, message: 'type inahitajika' });
+    if (['image', 'video', 'audio', 'voice'].includes(type) && !mediaUrl) {
+      return res.status(400).json({ success: false, message: 'mediaUrl inahitajika kwa status ya aina hii' });
+    }
+
+    const contribution = await Status.create({
+      user: userId,
+      userId: String(userId),
+      username,
+      type,
+      content: caption || `${username} contributed to a story`,
+      mediaUrl: mediaUrl || '',
+      mediaType: mediaType || type,
+      caption: caption || '',
+      backgroundColor: backgroundColor || parent.backgroundColor || '#00a884',
+      textColor: textColor || parent.textColor || '#ffffff',
+      privacy: parent.privacy || 'contacts',
+      excludedViewers: parent.excludedViewers || [],
+      includedViewers: parent.includedViewers || [],
+      storyId: String(parent._id),
+      isContribution: true,
+      isCollaborative: true,
+      expiresAt: parent.expiresAt,
+      views: [],
+      viewsCount: 0
+    });
+
+    res.status(201).json({ success: true, status: contribution });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

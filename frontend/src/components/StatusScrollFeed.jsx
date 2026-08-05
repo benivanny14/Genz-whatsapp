@@ -260,6 +260,11 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
                   <span className="bg-pink-500/30 text-pink-300 text-[9px] px-1 rounded-full ml-1">COLLAB</span>
                 </span>
               )}
+              {currentStatus.isContribution && (
+                <span className="bg-purple-500/30 text-purple-300 text-[9px] px-1 rounded-full ml-1 font-bold">
+                  CONTRIBUTED
+                </span>
+              )}
             </p>
             <p className="text-white/60 text-xs flex items-center gap-1">
               <Clock size={12} />
