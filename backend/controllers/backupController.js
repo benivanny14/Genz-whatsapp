@@ -409,3 +409,16 @@ exports.listBackupsForStatus = async (userId) => {
 
   return backups.sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
 };
+
+// Internal helpers exposed for the automated backup scheduler
+module.exports = {
+  ...exports,
+  generateBackupData,
+  encryptBackup,
+  saveBackup,
+  decryptBackup,
+  backupPathFor,
+  backupKeyFor,
+  s3Enabled,
+  BACKUP_DIR
+};

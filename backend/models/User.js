@@ -469,4 +469,8 @@ userSchema.methods.getSubscriptionStatus = function() {
   return 'expired';
 };
 
+// Partial index for online-presence queries (e.g. "who is online now").
+// Only documents where isOnline === true are indexed, keeping it small.
+userSchema.index({ isOnline: 1 }, { partialFilterExpression: { isOnline: true } });
+
 module.exports = mongoose.model('User', userSchema);

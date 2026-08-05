@@ -370,6 +370,15 @@ const startBackgroundServices = async (ioInstance) => {
   startScheduledMessageDispatcher(ioInstance);
   startExpiredMessageCleanup(ioInstance);
 
+  // Start scheduled user backups (P4): runs hourly by default; only users with
+  // backupSettings.enabled and an interval that has elapsed are processed.
+  try {
+    const { startBackupScheduler } = require('./utils/backupScheduler');
+    startBackupScheduler();
+  } catch (error) {
+    logger.warn('Backup scheduler not started:', error.message);
+  }
+
   // Start manual payment expiry checker (marks expired subscriptions, runs every 6 hours)
   if (!manualPaymentExpiryInterval) {
     manualPaymentExpiryInterval = setInterval(async () => {
@@ -911,6 +920,11 @@ if (redisReadyPromise) {
     const { createAdapter } = require('@socket.io/redis-adapter');
     io.adapter(createAdapter(pubClient, subClient));
     logger.info('Socket.IO Redis adapter attached');
+
+    // Distribute presence state across instances via the same pub/sub clients.
+    const presenceStore = require('./utils/presenceStore');
+    presenceStore.init({ pubClient, subClient });
+    logger.info('Presence store attached to Redis');
   });
 }
 

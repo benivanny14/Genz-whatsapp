@@ -33,9 +33,13 @@ const onlineUsers = { get: (k) => getOnlineUsers().get(k), set: (k,v) => getOnli
 const userAwayStatus = new Map();
 const socketToUser = new Map();
 const messageDeduplication = new Map(); // Track processed messages to prevent duplicates
+const presenceStore = require('../utils/presenceStore');
 
-const isUserStillOnline = (userId) =>
-  [...socketToUser.values()].some((id) => id?.toString() === userId?.toString());
+const isUserStillOnline = (userId) => {
+  if (!userId) return false;
+  const localOnline = [...socketToUser.values()].some((id) => id?.toString() === userId.toString());
+  return localOnline || presenceStore.isOnline(userId);
+};
 
 const MESSAGE_DEDUP_TTL = 60000; // 1 minute TTL for deduplication
 const MESSAGE_DEDUP_MAX_SIZE = 10000; // Maximum size to prevent memory leaks
@@ -264,6 +268,9 @@ const setupSocket = (io) => {
       onlineUsers.set(userKey, socket.id);
       socket.userId = userKey;
       socket.join(userKey);
+
+      // Share online state with other instances (no-op without Redis).
+      presenceStore.setLocalPresence(userKey, { online: true, away: false });
 
       try {
         const user = await User.findByIdAndUpdate(userId, { isOnline: true, lastSeen: new Date() }, { new: true }).select('settings contacts');
@@ -2033,6 +2040,7 @@ try {
         const status = data.status === 'away' ? 'away' : 'online';
         if (!socket.userId) return;
         userAwayStatus.set(String(socket.userId), status === 'away');
+        presenceStore.setLocalPresence(String(socket.userId), { online: true, away: status === 'away' });
 
         const conversations = await Conversation.find({ participants: socket.userId }).select('participants');
         const notifiedUsers = new Set();
@@ -2969,6 +2977,7 @@ try {
 
       if (disconnectedUserId && !isUserStillOnline(disconnectedUserId)) {
         onlineUsers.delete(disconnectedUserId);
+        presenceStore.removeLocalPresence(disconnectedUserId);
 
         try {
           await User.findByIdAndUpdate(disconnectedUserId, {

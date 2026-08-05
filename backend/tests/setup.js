@@ -5,6 +5,7 @@ process.env.PORT = process.env.PORT || '5001';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret-with-enough-length-for-validation';
 process.env.JWT_EXPIRE = process.env.JWT_EXPIRE || '7d';
 process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'test-refresh-secret-with-enough-length-for-validation';
+process.env.ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || 'test-admin-jwt-secret-with-enough-length';
 process.env.MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/genz-test-placeholder';
 process.env.BACKUP_ENCRYPTION_KEY = process.env.BACKUP_ENCRYPTION_KEY || 'test-backup-key-with-enough-length';
 process.env.ALLOW_REAL_PAYMENT_PROVIDERS = 'false';
