@@ -13,6 +13,18 @@ const { setAuthCookies, clearAuthCookies } = require('../utils/authCookies');
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || process.env.JWT_EXPIRE || '7d';
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '30d';
 
+// Normalize a phone number so it matches regardless of leading +, spaces,
+// dashes or parentheses (e.g. "+255 712-345-678" -> "+255712345678").
+const normalizePhone = (input) => {
+  if (typeof input !== 'string') return '';
+  const s = input.trim();
+  if (!s) return '';
+  const hasPlus = s.startsWith('+');
+  const digits = s.replace(/[^\d]/g, '');
+  if (!digits) return '';
+  return (hasPlus ? '+' : '') + digits;
+};
+
 const signToken = (user, deviceId) => {
   const payload = {
     id: user._id.toString(),
@@ -76,7 +88,7 @@ exports.register = async (req, res) => {
     const existingUser = await User.findOne({
       $or: [
         { username: username.trim() },
-        ...(phoneNumber ? [{ phoneNumber: phoneNumber.trim() }] : [])
+        ...(phoneNumber ? [{ phoneNumber: normalizePhone(phoneNumber) }] : [])
       ]
     });
 
@@ -92,7 +104,7 @@ exports.register = async (req, res) => {
 
     const user = new User({
       username: username.trim(),
-      phoneNumber: phoneNumber.trim(),
+      phoneNumber: normalizePhone(phoneNumber),
       status: 'offline'
     });
 
@@ -153,12 +165,22 @@ exports.login = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({
+    const trimmedId = loginId.trim();
+    let user = await User.findOne({
       $or: [
-        { phoneNumber: loginId.trim() },
-        { username: loginId.trim() }
+        { phoneNumber: trimmedId },
+        { username: trimmedId }
       ]
     });
+
+    // Fallback: retry as a normalized phone number so "+255 712-345-678"
+    // and "255712345678" both match the stored value.
+    if (!user) {
+      const normPhone = normalizePhone(trimmedId);
+      if (normPhone && normPhone !== trimmedId) {
+        user = await User.findOne({ phoneNumber: normPhone });
+      }
+    }
 
     // Generic message to prevent user enumeration
     const INVALID_CREDS_MSG = 'Invalid login credentials';
@@ -218,6 +240,7 @@ exports.login = async (req, res) => {
 
       if (!verified) {
         console.warn('[Auth] Login failed: Invalid 2FA token', { userId: user._id });
+        await user.incLoginAttempts();
         return res.status(401).json({
           success: false,
           message: 'Invalid two-factor authentication token'

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { Eye, EyeOff, Lock, LogIn, Phone } from 'lucide-react';
+import { Eye, EyeOff, Lock, LogIn, Phone, ShieldCheck, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 
@@ -19,9 +19,16 @@ const Login = () => {
   const { login } = useAuth();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
+  const [twoFactorToken, setTwoFactorToken] = useState('');
+  const [requiresTwoFactor, setRequiresTwoFactor] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const handleError = (err, fallback) => {
+    const msg = err?.message || fallback || 'Network error. Please check your connection.';
+    setError(err?.warning ? `${msg} (${err.warning})` : msg);
+  };
 
   const handleCredentialsLogin = async (e) => {
     e.preventDefault();
@@ -31,7 +38,13 @@ const Login = () => {
     try {
       const data = await login({ identifier: phoneNumber, password });
 
-       if (data?.success !== false && data?.token) {
+      if (data?.requiresTwoFactor) {
+        setRequiresTwoFactor(true);
+        setTwoFactorToken('');
+        return;
+      }
+
+      if (data?.success !== false && data?.token) {
         toast.success('Login successful!');
         navigate(redirectTarget, { replace: true });
       } else {
@@ -39,72 +52,151 @@ const Login = () => {
         setPassword('');
       }
     } catch (err) {
-      setError('Network error. Please check your connection.');
-      console.error('Login error:', err);
+      handleError(err, 'Invalid credentials');
+      setPassword('');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleTwoFactorSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const data = await login({ identifier: phoneNumber, password, twoFactorToken });
+
+      if (data?.success !== false && data?.token) {
+        toast.success('Login successful!');
+        navigate(redirectTarget, { replace: true });
+      } else {
+        setError(data?.message || 'Invalid two-factor code');
+      }
+    } catch (err) {
+      handleError(err, 'Invalid two-factor code');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBackToCredentials = () => {
+    setRequiresTwoFactor(false);
+    setTwoFactorToken('');
+    setError('');
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'radial-gradient(900px 600px at 20% 15%, rgba(255,45,120,0.22), transparent 55%), radial-gradient(800px 600px at 85% 85%, rgba(124,92,255,0.22), transparent 55%), radial-gradient(700px 500px at 65% 30%, rgba(0,217,166,0.12), transparent 50%), #0c0a1e' }}>
-      <form onSubmit={handleCredentialsLogin} className="w-full max-w-md bg-[#111b21] border border-white/10 rounded-lg p-6 shadow-2xl genz-card">
-        <div className="mb-6">
-          <h1 className="genz-display text-3xl text-white">GENZ</h1>
-          <p className="genz-hand text-xl text-[#ffd447] mt-1">Login</p>
-          <p className="text-sm text-slate-400 mt-1">Log in to your account to continue.</p>
-        </div>
-
-        {error && (
-          <div className="mb-4 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-            {error}
+      {requiresTwoFactor ? (
+        <form onSubmit={handleTwoFactorSubmit} className="w-full max-w-md bg-[#111b21] border border-white/10 rounded-lg p-6 shadow-2xl genz-card">
+          <div className="mb-6">
+            <h1 className="genz-display text-3xl text-white">GENZ</h1>
+            <p className="genz-hand text-xl text-[#ffd447] mt-1">Two-Factor Authentication</p>
+            <p className="text-sm text-slate-400 mt-1">
+              Enter the 6-digit code from your authenticator app for{' '}
+              <span className="text-slate-200">{phoneNumber}</span>.
+            </p>
           </div>
-        )}
 
-        <label className="block text-sm text-slate-300 mb-2">
-          Namba ya simu (e.g. +255...)
-        </label>
-        <div className="mb-4 flex items-center gap-2 rounded-md bg-[#202c33] border border-white/10 px-3">
-          <Phone size={18} className="text-[#00a884]" />
-          <input
-            value={phoneNumber}
-            onChange={(event) => setPhoneNumber(event.target.value)}
-            className="w-full bg-transparent py-3 text-white outline-none"
-            placeholder="+255712345678"
-            autoComplete="tel"
-            required
-          />
-        </div>
+          {error && (
+            <div className="mb-4 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+              {error}
+            </div>
+          )}
 
-        <label className="block text-sm text-slate-300 mb-2">Nenosiri</label>
-        <div className="mb-6 flex items-center gap-2 rounded-md bg-[#202c33] border border-white/10 px-3">
-          <Lock size={18} className="text-slate-400" />
-          <input
-            type={showPassword ? 'text' : 'password'}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="w-full bg-transparent py-3 text-white outline-none"
-            autoComplete="current-password"
-            required
-          />
-          <button type="button" onClick={() => setShowPassword((value) => !value)} className="text-slate-300">
-            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          <label className="block text-sm text-slate-300 mb-2">Msimbo wa 2FA</label>
+          <div className="mb-6 flex items-center gap-2 rounded-md bg-[#202c33] border border-white/10 px-3">
+            <ShieldCheck size={18} className="text-[#00a884]" />
+            <input
+              value={twoFactorToken}
+              onChange={(event) => setTwoFactorToken(event.target.value.replace(/[^\d]/g, '').slice(0, 6))}
+              className="w-full bg-transparent py-3 text-white outline-none tracking-widest"
+              placeholder="000000"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              required
+              autoFocus
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading || twoFactorToken.length !== 6}
+            className="w-full flex items-center justify-center gap-2 rounded-md bg-[#ff2d78] hover:bg-[#d61a5e] py-3 font-bold text-white transition-colors disabled:opacity-60 genz-sticker"
+          >
+            <ShieldCheck size={18} />
+            {loading ? 'Inathibitisha...' : 'Verify'}
           </button>
-        </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-2 rounded-md bg-[#ff2d78] hover:bg-[#d61a5e] py-3 font-bold text-white transition-colors disabled:opacity-60 genz-sticker"
-        >
-          <LogIn size={18} />
-          {loading ? 'Logging in...' : 'Login'}
-        </button>
+          <button
+            type="button"
+            onClick={handleBackToCredentials}
+            className="mt-4 w-full flex items-center justify-center gap-1 text-sm text-slate-400 hover:text-white transition-colors"
+          >
+            <ArrowLeft size={16} /> Back to login
+          </button>
+        </form>
+      ) : (
+        <form onSubmit={handleCredentialsLogin} className="w-full max-w-md bg-[#111b21] border border-white/10 rounded-lg p-6 shadow-2xl genz-card">
+          <div className="mb-6">
+            <h1 className="genz-display text-3xl text-white">GENZ</h1>
+            <p className="genz-hand text-xl text-[#ffd447] mt-1">Login</p>
+            <p className="text-sm text-slate-400 mt-1">Log in to your account to continue.</p>
+          </div>
 
-        <div className="mt-5 flex items-center justify-between text-sm">
-          <Link to="/register" className="text-slate-300 hover:text-white transition-colors">Create account</Link>
-        </div>
-      </form>
+          {error && (
+            <div className="mb-4 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+              {error}
+            </div>
+          )}
+
+          <label className="block text-sm text-slate-300 mb-2">
+            Namba ya simu au username (e.g. +255...)
+          </label>
+          <div className="mb-4 flex items-center gap-2 rounded-md bg-[#202c33] border border-white/10 px-3">
+            <Phone size={18} className="text-[#00a884]" />
+            <input
+              value={phoneNumber}
+              onChange={(event) => setPhoneNumber(event.target.value)}
+              className="w-full bg-transparent py-3 text-white outline-none"
+              placeholder="+255712345678"
+              autoComplete="tel"
+              required
+            />
+          </div>
+
+          <label className="block text-sm text-slate-300 mb-2">Nenosiri</label>
+          <div className="mb-6 flex items-center gap-2 rounded-md bg-[#202c33] border border-white/10 px-3">
+            <Lock size={18} className="text-slate-400" />
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className="w-full bg-transparent py-3 text-white outline-none"
+              autoComplete="current-password"
+              required
+            />
+            <button type="button" onClick={() => setShowPassword((value) => !value)} className="text-slate-300">
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 rounded-md bg-[#ff2d78] hover:bg-[#d61a5e] py-3 font-bold text-white transition-colors disabled:opacity-60 genz-sticker"
+          >
+            <LogIn size={18} />
+            {loading ? 'Logging in...' : 'Login'}
+          </button>
+
+          <div className="mt-5 flex items-center justify-between text-sm">
+            <Link to="/register" className="text-slate-300 hover:text-white transition-colors">Create account</Link>
+          </div>
+        </form>
+      )}
     </div>
   );
 };

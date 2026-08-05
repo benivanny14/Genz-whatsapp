@@ -36,6 +36,7 @@ const authService = {
       const status = error.response?.status;
       const err = new Error(message);
       err.status = status;
+      if (error.response?.data?.warning) err.warning = error.response.data.warning;
       throw err;
     }
   },

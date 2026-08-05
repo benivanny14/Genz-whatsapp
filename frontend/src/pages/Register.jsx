@@ -34,7 +34,7 @@ const Register = () => {
         setError(data?.message || 'Registration failed');
       }
     } catch (err) {
-      setError('Network error. Please check your connection.');
+      setError(err?.message || 'Network error. Please check your connection.');
       console.error('Registration error:', err);
     } finally {
       setLoading(false);
@@ -52,7 +52,7 @@ const Register = () => {
         {error && (
           <div className="mb-4 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
             <p>{error}</p>
-            {(error.includes('already exists') || error.includes('account with this')) && (
+            {(error.toLowerCase().includes('already') || error.toLowerCase().includes('exists') || error.toLowerCase().includes('registered')) && (
               <Link to="/login" className="mt-2 block text-[#00a884] hover:underline">
                 Already have an account? Log in →
               </Link>
@@ -99,13 +99,16 @@ const Register = () => {
             onChange={(event) => updateField('password', event.target.value)}
             className="w-full bg-transparent py-3 text-white outline-none"
             autoComplete="new-password"
-            minLength={6}
+            minLength={8}
             required
           />
           <button type="button" onClick={() => setShowPassword((value) => !value)} className="text-slate-300">
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         </div>
+        <p className="-mt-4 mb-5 text-xs text-slate-500">
+          Minimum 8 characters: uppercase, lowercase, number, and special character.
+        </p>
 
         <button
           type="submit"
