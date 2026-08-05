@@ -1,0 +1,63 @@
+# Load test: 500 concurrent virtual users against the GENZ backend.
+#
+# Usage (from backend/):
+#   $env:TARGET_URL="https://your-app.onrender.com"; $env:TEST_USER_PHONE="+255..."; $env:TEST_USER_PASSWORD="..."
+#   npx artillery run loadtest/concurrency-500.yml
+#
+# NOTE: If your Render service is free/starter tier (512MB RAM), 500 concurrent
+# users will likely exhaust the process. That is expected — it tells you the
+# real ceiling. Watch:
+#   - RAM / CPU (Render metrics graph)
+#   - MongoDB connection count (should plateau at ~MONGO_MAX_POOL_SIZE per dyno)
+#   - Artillery error rate + p95/p99 latency
+#   - Sentry + Winston for 5xx / ETIMEDOUT / Mongoose errors
+config:
+  target: "{{ $processEnvironment.TARGET_URL }}"
+  phases:
+    # Ramp up to ~500 concurrent vusers over 60s
+    - name: "ramp-up"
+      duration: 60
+      arrivalRate: 10
+      rampTo: 120
+    # Hold ~500 concurrent vusers for 120s
+    - name: "sustain-500"
+      duration: 120
+      arrivalRate: 120
+      maxVusers: 500
+    # Ramp down
+    - name: "ramp-down"
+      duration: 30
+      arrivalRate: 120
+      rampTo: 5
+  pool: 100 # Reuse connections aggressively under heavy load
+
+scenarios:
+  - name: "authenticated-api-mix"
+    weight: 10
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            phoneNumber: "{{ $processEnvironment.TEST_USER_PHONE }}"
+            password: "{{ $processEnvironment.TEST_USER_PASSWORD }}"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      - loop:
+          - get:
+              url: "/api/advanced/status"
+              headers:
+                Authorization: "Bearer {{ authToken }}"
+          - get:
+              url: "/api/chat/conversations"
+              headers:
+                Authorization: "Bearer {{ authToken }}"
+          - get:
+              url: "/api/message-translator/settings"
+              headers:
+                Authorization: "Bearer {{ authToken }}"
+          - get:
+              url: "/api/backup/list"
+              headers:
+                Authorization: "Bearer {{ authToken }}"
+        count: 5

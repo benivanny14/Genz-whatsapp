@@ -2228,23 +2228,36 @@ try {
       }
     });
 
-    // Start backup handler
+    // Start backup handler — runs the real encrypted backup via
+    // backupController.runBackup (was previously a fake progress simulation).
     socket.on('start_backup', async (data) => {
       try {
-        socket.emit('backup:started', { timestamp: new Date() });
-        // Simulate backup progress
-        let progress = 0;
-        const interval = setInterval(() => {
-          progress += 10;
-          socket.emit('backup:progress', { progress });
-          if (progress >= 100) {
-            clearInterval(interval);
-            socket.emit('backup:completed', { timestamp: new Date() });
+        const userId = socket.userId || (data && data.userId);
+        if (!userId) {
+          return socket.emit('backup:error', { message: 'User not authenticated' });
+        }
+
+        const { runBackup } = require('../controllers/backupController');
+        const result = await runBackup(userId, ({ phase, progress, metadata, backupId, storage }) => {
+          if (phase === 'start') {
+            socket.emit('backup:started', { timestamp: new Date(), progress: 0 });
+          } else if (phase === 'encrypting') {
+            socket.emit('backup:progress', { progress: progress || 50, metadata });
+          } else if (phase === 'completed') {
+            socket.emit('backup:progress', { progress: 100 });
+            socket.emit('backup:completed', {
+              timestamp: new Date(),
+              backupId,
+              storage,
+              message: 'Backup completed successfully'
+            });
           }
-        }, 500);
-        interval.unref?.();
+        });
+
+        return result;
       } catch (error) {
         console.error('Error starting backup:', error);
+        socket.emit('backup:error', { message: 'Failed to create backup', error: error.message });
       }
     });
 

@@ -146,20 +146,8 @@ const readBackup = async (backupId) => {
 exports.createBackup = async (req, res) => {
   try {
     const userId = getCurrentUserId(req);
-    const backupData = await generateBackupData(userId);
-    const encryptedBackup = encryptBackup(backupData);
-    const backupId = `backup_${userId}_${Date.now()}.json`;
-    const storage = await saveBackup(backupId, encryptedBackup, backupData);
-    await User.findByIdAndUpdate(userId, { 'backupSettings.lastBackupAt': new Date() });
-
-    res.status(200).json({
-      success: true,
-      message: 'Backup created successfully',
-      backupId,
-      storage: storage.storage,
-      timestamp: backupData.timestamp,
-      metadata: backupData.metadata
-    });
+    const result = await runBackup(userId);
+    res.status(200).json({ success: true, ...result });
   } catch (error) {
     console.error('[Backup] Error creating backup:', error);
     res.status(500).json({
@@ -168,6 +156,34 @@ exports.createBackup = async (req, res) => {
       error: error.message
     });
   }
+};
+
+// Reusable backup runner (no req/res) so socket handlers can trigger real
+// backups instead of a simulation. `onPhase` receives { phase, progress, ... }
+// for live progress reporting.
+const runBackup = async (userId, onPhase) => {
+  const report = (phase, extra = {}) => {
+    if (typeof onPhase === 'function') {
+      onPhase({ phase, ...extra });
+    }
+  };
+
+  report('start', { progress: 0 });
+  const backupData = await generateBackupData(userId);
+  report('encrypting', { progress: 70, metadata: backupData.metadata });
+  const encryptedBackup = encryptBackup(backupData);
+  const backupId = `backup_${userId}_${Date.now()}.json`;
+  const storage = await saveBackup(backupId, encryptedBackup, backupData);
+  await User.findByIdAndUpdate(userId, { 'backupSettings.lastBackupAt': new Date() });
+  report('completed', { progress: 100, backupId, storage: storage.storage });
+
+  return {
+    message: 'Backup created successfully',
+    backupId,
+    storage: storage.storage,
+    timestamp: backupData.timestamp,
+    metadata: backupData.metadata
+  };
 };
 
 // @desc    List backups
@@ -417,6 +433,7 @@ module.exports = {
   encryptBackup,
   saveBackup,
   decryptBackup,
+  runBackup,
   backupPathFor,
   backupKeyFor,
   s3Enabled,

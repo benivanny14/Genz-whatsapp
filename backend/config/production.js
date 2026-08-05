@@ -9,9 +9,9 @@ const mongoose = require('mongoose');
 
 // Production MongoDB connection options
 const productionOptions = {
-  // Connection pooling
-  maxPoolSize: 50, // Maximum number of connections in the pool
-  minPoolSize: 10, // Minimum number of connections in the pool
+  // Connection pooling (env-overridable: MONGO_MAX_POOL_SIZE / MONGO_MIN_POOL_SIZE)
+  maxPoolSize: Number(process.env.MONGO_MAX_POOL_SIZE || 100),
+  minPoolSize: Number(process.env.MONGO_MIN_POOL_SIZE || 10),
   maxIdleTimeMS: 30000, // Close idle connections after 30 seconds
   
   // Connection timeout

@@ -1,0 +1,61 @@
+# Load test: 100 concurrent virtual users against the GENZ backend.
+#
+# Usage (from backend/):
+#   $env:TARGET_URL="https://your-app.onrender.com"; $env:TEST_USER_PHONE="+255..."; $env:TEST_USER_PASSWORD="..."
+#   npx artillery run loadtest/concurrency-100.yml
+#
+# What to watch while it runs (Render dashboard / MongoDB Atlas):
+#   - RAM & CPU of the web service
+#   - MongoDB connections (pool is MONGO_MAX_POOL_SIZE=100 per instance)
+#   - Error rate in artillery output (p95/p99 latency, "errors" line)
+#   - Sentry + Winston logs for 5xx / DB timeouts
+config:
+  target: "{{ $processEnvironment.TARGET_URL }}"
+  phases:
+    # Ramp up to ~100 concurrent virtual users over 30s
+    - name: "ramp-up"
+      duration: 30
+      arrivalRate: 4
+      rampTo: 30
+    # Hold ~100 concurrent vusers for 60s
+    - name: "sustain-100"
+      duration: 60
+      arrivalRate: 30
+      maxVusers: 100
+    # Ramp down cleanly
+    - name: "ramp-down"
+      duration: 30
+      arrivalRate: 30
+      rampTo: 2
+  pool: 50 # Keep 50 sockets/agents so connections are actually reused
+
+scenarios:
+  - name: "authenticated-api-mix"
+    weight: 10
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            phoneNumber: "{{ $processEnvironment.TEST_USER_PHONE }}"
+            password: "{{ $processEnvironment.TEST_USER_PASSWORD }}"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      - loop:
+          - get:
+              url: "/api/advanced/status"
+              headers:
+                Authorization: "Bearer {{ authToken }}"
+          - get:
+              url: "/api/chat/conversations"
+              headers:
+                Authorization: "Bearer {{ authToken }}"
+          - get:
+              url: "/api/message-translator/settings"
+              headers:
+                Authorization: "Bearer {{ authToken }}"
+          - get:
+              url: "/api/backup/list"
+              headers:
+                Authorization: "Bearer {{ authToken }}"
+        count: 5
