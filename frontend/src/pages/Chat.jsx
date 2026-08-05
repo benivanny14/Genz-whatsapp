@@ -11,6 +11,7 @@ import { Bell, Wifi, WifiOff } from 'lucide-react';
 
 const ChatArea = lazy(() => import('../components/ChatArea'));
 const GENZSettings = lazy(() => import('../components/GENZSettings'));
+const GENZAI = lazy(() => import('../components/GENZAI'));
 
 const PanelLoader = () => (
   <div className="flex-1 flex items-center justify-center bg-[#0b141a]">
@@ -24,6 +25,7 @@ const Chat = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showGENZSettings, setShowGENZSettings] = useState(false);
+  const [showGENZAI, setShowGENZAI] = useState(false);
 
   const [isLocked, setIsLocked] = useState(() => {
     return localStorage.getItem('genz_lock_type') === 'pin' && !!localStorage.getItem('genz_pin_hash');
@@ -110,6 +112,7 @@ const Chat = () => {
               <ChatArea
                 mods={mods}
                 onOpenGENZSettings={() => setShowGENZSettings(true)}
+                onOpenGENZAI={() => setShowGENZAI(true)}
                 sidebarOpen={sidebarOpen}
                 onOpenSidebar={() => setSidebarOpen(true)}
               />
@@ -135,6 +138,22 @@ const Chat = () => {
                   setLockType={setLockType}
                   setLockPin={handleSetLockPin}
                 />
+              </Suspense>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showGENZAI && (
+            <motion.div
+              initial={{ x: '100%', opacity: 0.6 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: '100%', opacity: 0.6 }}
+              transition={{ type: 'spring', damping: 26, stiffness: 210 }}
+              className="absolute inset-0 z-[110] bg-[#0b141a] w-full h-full min-h-0 md:w-[400px] md:right-0 shadow-2xl border-l border-emerald-900/40 flex flex-col"
+            >
+              <Suspense fallback={<PanelLoader />}>
+                <GENZAI close={() => setShowGENZAI(false)} />
               </Suspense>
             </motion.div>
           )}
