@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useChat, applyVoiceEffect } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
-import { ArrowLeft, MoreVertical, Search, Smile, Paperclip, Send, Mic, Image as ImageIcon, MessageCircle, Ghost, Forward, Square, MapPin, ShieldCheck, Globe, BarChart2, CalendarClock, Info, UserMinus, UserCheck, ShieldAlert, Copy, Link, Pin, X, Edit, Briefcase, Plus, Eye, EyeOff, Clock, Lock, Sticker, Download, FileText, Camera, Headphones, Contact, Trash2, Reply, Share2, Star, Archive, BellOff, Bell, Radio, Users, Languages, Grid3x3, Lock as LockIcon, Unlock, ChevronLeft, AtSign, DollarSign, Sparkles } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Search, Smile, Paperclip, Send, Mic, Image as ImageIcon, MessageCircle, Ghost, Forward, Square, MapPin, ShieldCheck, Globe, BarChart2, CalendarClock, Info, UserMinus, UserCheck, ShieldAlert, Copy, Link, Pin, X, Edit, Briefcase, Plus, Eye, EyeOff, Clock, Lock, Sticker, Download, FileText, Camera, Headphones, Contact, Trash2, Reply, Share2, Star, Archive, BellOff, Bell, Radio, Users, Languages, Grid3x3, Lock as LockIcon, Unlock, ChevronLeft, AtSign, DollarSign } from 'lucide-react';
 import { formatMessageTime, decryptMessage } from '../utils/formatDate';
 import { exportChatAsTxt } from '../utils/chatExporter';
 import SignedMedia from './SignedMedia';
@@ -207,7 +207,7 @@ const LinkPreviewCard = ({ url }) => {
   );
 };
 
-const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings, onOpenGENZAI }) => { // Added mods and onOpenGENZSettings
+const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => { // Added mods and onOpenGENZSettings
   mods = mods || {};
   const safeMods = mods;
   const { user: localUser } = useUser();
@@ -2307,15 +2307,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings, onOpen
             <button onClick={() => setShowMediaGallery(true)} title="Media gallery" aria-label="Media gallery"
               className="hidden sm:flex p-2 hover:bg-white/10 rounded-lg transition-colors items-center justify-center">
               <ImageIcon size={18} className="text-white/80" />
-            </button>
-
-            {/* GENZ AI Assistant */}
-            <button onClick={onOpenGENZAI} title="GENZ AI" aria-label="GENZ AI"
-              className="genz-ai-glow flex p-2 rounded-lg transition-colors items-center justify-center group">
-              <span className="w-4 h-4 rounded flex items-center justify-center"
-                style={{ background: 'linear-gradient(135deg, #ff2d78, #7c5cff)' }}>
-                <Sparkles size={12} className="text-white" />
-              </span>
             </button>
 
             {/* Actions Dropdown Toggle (Three Dots) */}

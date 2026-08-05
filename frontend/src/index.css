@@ -2315,11 +2315,6 @@ body {
   outline-offset: 2px;
 }
 
-/* Pink signature glow for the AI copilot */
-.genz-ai-glow {
-  box-shadow: 0 0 0 1px var(--genz-accent), 0 0 24px rgba(255, 45, 120, 0.55);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .genz-sticker,
   .genz-sticker:hover,
