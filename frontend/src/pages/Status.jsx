@@ -70,6 +70,7 @@ import StatusBlockPanel from '../components/StatusBlockPanel';
 import StatusSavePanel from '../components/StatusSavePanel';
 import StatusForwardPanel from '../components/StatusForwardPanel';
 import TrailerStatusGenerator from '../components/TrailerStatusGenerator';
+import MusicTrimmer from '../components/MusicTrimmer';
 
 const Status = () => {
   const { statuses, fetchStatuses, createStatus, uploadStatusMedia, user, contacts } = useChat();
@@ -148,6 +149,7 @@ const Status = () => {
     timerSeconds: 5,
     musicUrl: '',
     musicFile: null,
+    musicTrim: null,
     gifUrl: '',
     // Editor state
     textEffects: {},
@@ -308,10 +310,12 @@ const Status = () => {
 
   // Remove music from status
   const handleRemoveMusic = () => {
+    if (uploadData.musicTrim?.url) URL.revokeObjectURL(uploadData.musicTrim.url);
     setUploadData(prev => ({
       ...prev,
       musicUrl: '',
-      musicFile: null
+      musicFile: null,
+      musicTrim: null
     }));
   };
 
@@ -375,7 +379,15 @@ const Status = () => {
       }
 
       if (uploadData.type === 'music' && uploadData.musicUrl) {
-        mediaUrl = uploadData.musicUrl;
+        if (uploadData.musicTrim?.blob) {
+          const up = await uploadStatusMedia(uploadData.musicTrim.blob);
+          mediaUrl = up.fileUrl || '';
+        } else if (uploadData.musicFile) {
+          const up = await uploadStatusMedia(uploadData.musicFile);
+          mediaUrl = up.fileUrl || '';
+        } else {
+          mediaUrl = uploadData.musicUrl;
+        }
       }
 
       let collageImages = uploadData.collageImages || [];
@@ -454,6 +466,8 @@ const Status = () => {
         collageImages: [],
         timerSeconds: 5,
         musicUrl: '',
+        musicFile: null,
+        musicTrim: null,
         gifUrl: '',
         textEffects: null,
         selectedSticker: null,
@@ -1747,6 +1761,12 @@ const Status = () => {
                   <div className="mt-2 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                     <span className="truncate">🎵 {uploadData.musicFile?.name || 'Music selected'}</span>
                   </div>
+                )}
+                {uploadData.musicUrl && uploadData.musicFile && (
+                  <MusicTrimmer
+                    file={uploadData.musicFile}
+                    onTrim={(trim) => setUploadData((prev) => ({ ...prev, musicTrim: trim }))}
+                  />
                 )}
               </div>
 
