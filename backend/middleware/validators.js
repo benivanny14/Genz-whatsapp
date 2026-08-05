@@ -57,40 +57,6 @@ const loginValidators = [
   }
 ];
 
-const sendOtpValidators = [
-  body('phoneNumber')
-    .trim()
-    .notEmpty().withMessage('Phone number is required')
-    .matches(PHONE_RE).withMessage('Invalid phone number format'),
-  body('type')
-    .optional()
-    .isIn(['register', 'login']).withMessage('OTP type must be register or login'),
-  handleValidationErrors
-];
-
-const verifyOtpValidators = [
-  body('phoneNumber')
-    .trim()
-    .notEmpty().withMessage('Phone number is required')
-    .matches(PHONE_RE).withMessage('Invalid phone number format'),
-  body('otp')
-    .trim()
-    .notEmpty().withMessage('OTP is required')
-    .matches(/^\d{4,8}$/).withMessage('OTP must be a 4-8 digit code'),
-  body('type')
-    .optional()
-    .isIn(['register', 'login']).withMessage('OTP type must be register or login'),
-  handleValidationErrors
-];
-
-const resendOtpValidators = [
-  body('phoneNumber')
-    .trim()
-    .notEmpty().withMessage('Phone number is required')
-    .matches(PHONE_RE).withMessage('Invalid phone number format'),
-  handleValidationErrors
-];
-
 const checkAvailabilityValidators = [
   body('phoneNumber')
     .optional({ nullable: true })
@@ -112,9 +78,6 @@ const checkAvailabilityValidators = [
 module.exports = {
   registerValidators,
   loginValidators,
-  sendOtpValidators,
-  verifyOtpValidators,
-  resendOtpValidators,
   checkAvailabilityValidators,
   handleValidationErrors
 };

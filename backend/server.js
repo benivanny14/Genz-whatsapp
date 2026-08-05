@@ -632,7 +632,6 @@ const genzModsRoutes = require('./routes/genzModsRoutes');
 const backupRoutes = require('./routes/backupRoutes');
 const voiceRoutes = require('./routes/voiceRoutes');
 const authRoutes = require('./routes/authRoutes');
-const otpRoutes = require('./routes/otpRoutes');
 const adminAuthRoutes = require('./routes/adminAuthRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
@@ -696,7 +695,6 @@ const locationSharingRoutes = require('./routes/location-sharing');
 
 // Mount Routes
 app.use('/api/auth', safeMiddleware(authLimiter), authRoutes);
-app.use('/api/otp', otpRoutes);
 
 // Admin auth routes with a single secret base path
 const ADMIN_BASE_PATH = process.env.ADMIN_BASE_PATH || '/api/system-gateway-x9k';

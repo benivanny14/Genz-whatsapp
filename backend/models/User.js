@@ -357,7 +357,6 @@ const userSchema = new mongoose.Schema({
   lastLocation: { type: mongoose.Schema.Types.Mixed, default: null },
   awayMessage: { type: mongoose.Schema.Types.Mixed, default: null },
   businessProfile: { type: mongoose.Schema.Types.Mixed, default: null },
-  otpData: { type: mongoose.Schema.Types.Mixed, default: null },
   lastSyncAt: { type: Date, default: null },
   blockedStatusUsers: { type: mongoose.Schema.Types.Mixed, default: [] },
   mutedStatusUsers: { type: mongoose.Schema.Types.Mixed, default: [] },

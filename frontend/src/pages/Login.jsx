@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { Eye, EyeOff, Lock, LogIn, Phone, Smartphone } from 'lucide-react';
+import { Eye, EyeOff, Lock, LogIn, Phone } from 'lucide-react';
 import toast from 'react-hot-toast';
-import OTPVerification from '../components/OTPVerification';
 import { useAuth } from '../context/AuthContext';
-import { resolveApiBase, fetchWithTimeout } from '../utils/resolveApiBase';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -18,74 +16,12 @@ const Login = () => {
     ? `${location.state.from.pathname || ''}${location.state.from.search || ''}`
     : '';
   const redirectTarget = fromPath || searchParams.get('redirect') || '/chat';
-  const { login, completeSession } = useAuth();
+  const { login } = useAuth();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showOTP, setShowOTP] = useState(false);
-  const [step, setStep] = useState('credentials'); // 'credentials', 'otp'
-
-  const validatePhoneNumber = (phone) => {
-    // Tanzanian phone number format
-    const phoneRegex = /^(\+255|255|0)?[67][5-9]\d{7}$/;
-    return phoneRegex.test(phone.replace(/\D/g, ''));
-  };
-
-  const handleRequestOTP = async (e) => {
-    e.preventDefault();
-    setError('');
-
-    if (!phoneNumber) {
-      setError('Phone number is required');
-      return;
-    }
-
-    if (!validatePhoneNumber(phoneNumber)) {
-      setError('Invalid phone number format. Use format like: 07XX XXX XXX or +255 7XX XXX XXX');
-      return;
-    }
-
-    if (!password || password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const API_URL = resolveApiBase();
-      
-      // Store password temporarily for OTP verification
-      localStorage.setItem('tempPassword', password);
-
-      const response = await fetchWithTimeout(`${API_URL}/otp/request-login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ phoneNumber }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setStep('otp');
-        setShowOTP(true);
-        toast.success('OTP sent successfully! Check your phone.');
-      } else {
-        setError(data.message || 'Failed to send OTP');
-        localStorage.removeItem('tempPassword');
-      }
-    } catch (err) {
-      setError('Network error. Please check your connection.');
-      console.error('Login error:', err);
-      localStorage.removeItem('tempPassword');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleCredentialsLogin = async (e) => {
     e.preventDefault();
@@ -93,8 +29,6 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const API_URL = resolveApiBase();
-      
       const data = await login({ identifier: phoneNumber, password });
 
        if (data?.success !== false && data?.token) {
@@ -112,54 +46,9 @@ const Login = () => {
     }
   };
 
-  const handleOTPOrLogin = (e) => {
-    // If user wants to use OTP method
-    handleRequestOTP(e);
-  };
-
-  const handleOTPComplete = (token, user) => {
-    if (token && user) {
-      completeSession({ token, user });
-      navigate(redirectTarget, { replace: true });
-    } else {
-      // Go back to credentials
-      setStep('credentials');
-      setShowOTP(false);
-    }
-  };
-
-  const handleBackToLogin = () => {
-    setStep('credentials');
-    setShowOTP(false);
-    setError('');
-    localStorage.removeItem('tempPassword');
-  };
-
-  if (showOTP) {
-    return (
-      <div className="min-h-screen bg-[#0b141a] flex items-center justify-center px-4">
-        <div className="w-full max-w-md bg-[#111b21] border border-white/10 rounded-lg p-6 shadow-2xl">
-          <OTPVerification
-            phoneNumber={phoneNumber}
-            type="login"
-            onComplete={handleOTPComplete}
-          />
-          <div className="mt-4 text-center">
-            <button
-              onClick={handleBackToLogin}
-              className="text-sm text-gray-400 hover:text-white transition-colors"
-            >
-              ← Back to login
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#0b141a] flex items-center justify-center px-4">
-      <form onSubmit={handleOTPOrLogin} className="w-full max-w-md bg-[#111b21] border border-white/10 rounded-lg p-6 shadow-2xl">
+      <form onSubmit={handleCredentialsLogin} className="w-full max-w-md bg-[#111b21] border border-white/10 rounded-lg p-6 shadow-2xl">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-white">GENZ Login</h1>
           <p className="text-sm text-slate-400 mt-1">Log in to your account to continue.</p>
@@ -202,32 +91,13 @@ const Login = () => {
           </button>
         </div>
 
-        {/* Login with OTP Button */}
         <button
           type="submit"
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2 rounded-md bg-[#00a884] hover:bg-[#008f6f] py-3 font-semibold text-[#0b141a] transition-colors disabled:opacity-60 mb-3"
-        >
-          <Smartphone size={18} />
-          {loading ? 'Inatuma OTP...' : 'Login with OTP'}
-        </button>
-
-        <div className="relative flex items-center justify-center mb-3">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-white/10"></div>
-          </div>
-          <span className="relative bg-[#111b21] px-3 text-xs text-slate-400 uppercase">Au</span>
-        </div>
-
-        {/* Direct Login Button (without OTP) */}
-        <button
-          type="button"
-          onClick={handleCredentialsLogin}
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-2 rounded-md bg-transparent border border-white/20 hover:bg-white/5 py-3 font-semibold text-white transition-colors disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-2 rounded-md bg-[#00a884] hover:bg-[#008f6f] py-3 font-semibold text-[#0b141a] transition-colors disabled:opacity-60"
         >
           <LogIn size={18} />
-          {loading ? 'Logging in...' : 'Login directly'}
+          {loading ? 'Logging in...' : 'Login'}
         </button>
 
         <div className="mt-5 flex items-center justify-between text-sm">

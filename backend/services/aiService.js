@@ -13,8 +13,8 @@
  *   - AI_DISABLED=1 — force-disable even if a key is present
  *
  * No key configured → runs in DEV MODE: returns a deterministic, clearly
- * labeled mock reply instead of crashing, mirroring smsService's fallback
- * so local development keeps working without paid credentials.
+ * labeled mock reply instead of crashing, so local development keeps working
+ * without paid credentials.
  */
 
 const axios = require('axios');

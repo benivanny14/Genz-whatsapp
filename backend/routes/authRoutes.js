@@ -23,9 +23,6 @@ const {
   checkAvailability,
   getMyOnlineHistory,
   getUserOnlineHistory,
-  sendOTP,
-  verifyOTP,
-  resendOTP,
   checkPasskeyAvailable,
   passkeyRegisterOptions,
   passkeyRegisterVerify,
@@ -40,9 +37,6 @@ const { privacyMiddleware } = require('../middleware/privacy');
 const {
   registerValidators,
   loginValidators,
-  sendOtpValidators,
-  verifyOtpValidators,
-  resendOtpValidators,
   checkAvailabilityValidators
 } = require('../middleware/validators');
 
@@ -72,11 +66,6 @@ router.get('/business-analytics', protect, getBusinessAnalytics);
 router.post('/check-availability', checkAvailabilityValidators, checkAvailability);
 router.get('/users/me/online-history', protect, getMyOnlineHistory);
 router.get('/users/:id/online-history', protect, getUserOnlineHistory);
-
-// OTP routes
-router.post('/send-otp', sendOtpValidators, sendOTP);
-router.post('/verify-otp', verifyOtpValidators, verifyOTP);
-router.post('/resend-otp', resendOtpValidators, resendOTP);
 
 // Passkey (WebAuthn) routes
 router.post('/passkey/check', checkPasskeyAvailable);
