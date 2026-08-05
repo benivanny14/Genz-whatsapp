@@ -72,11 +72,13 @@ import StatusMutePanel from '../components/StatusMutePanel';
 import StatusBlockPanel from '../components/StatusBlockPanel';
 import StatusSavePanel from '../components/StatusSavePanel';
 import StatusForwardPanel from '../components/StatusForwardPanel';
+import TrailerStatusGenerator from '../components/TrailerStatusGenerator';
 
 const Status = () => {
   const { statuses, fetchStatuses, createStatus, uploadStatusMedia, user, contacts } = useChat();
   const [showAddStatus, setShowAddStatus] = useState(false);
   const [showScrollFeed, setShowScrollFeed] = useState(false);
+  const [showTrailer, setShowTrailer] = useState(false);
   const [showReel, setShowReel] = useState(false);
   const [showHighlights, setShowHighlights] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -712,6 +714,14 @@ const Status = () => {
               title="Status Reel Mode" aria-label="Status Reel Mode"
             >
               <Film size={16} /> Reel
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowTrailer(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full text-sm font-bold hover:opacity-90 transition-all shadow-lg"
+              title="Movie Trailer Status" aria-label="Movie Trailer Status"
+            >
+              <Sparkles size={16} /> Trailer
             </button>
             <button
               type="button"
@@ -1830,6 +1840,14 @@ const Status = () => {
             }}
             currentUserId={user?._id || user?.id || 'local-user'}
             initialStatusId={feedStartId}
+          />
+        )}
+
+        {showTrailer && (
+          <TrailerStatusGenerator
+            statuses={statuses}
+            user={user}
+            onClose={() => setShowTrailer(false)}
           />
         )}
 
