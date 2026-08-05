@@ -323,6 +323,7 @@ function App() {
 
   return (
     <ErrorBoundary>
+      <div className="genz-grain" aria-hidden="true" />
       <OfflineBanner />
       <InstallAppPrompt />
       <InAppNotification

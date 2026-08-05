@@ -2311,10 +2311,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings, onOpen
 
             {/* GENZ AI Assistant */}
             <button onClick={onOpenGENZAI} title="GENZ AI" aria-label="GENZ AI"
-              className="flex p-2 hover:bg-emerald-500/20 rounded-lg transition-colors items-center justify-center group">
+              className="genz-ai-glow flex p-2 rounded-lg transition-colors items-center justify-center group">
               <span className="w-4 h-4 rounded flex items-center justify-center"
-                style={{ background: 'linear-gradient(135deg, #34d399, #10b981)' }}>
-                <Sparkles size={12} className="text-[#052e1f]" />
+                style={{ background: 'linear-gradient(135deg, #ff2d78, #7c5cff)' }}>
+                <Sparkles size={12} className="text-white" />
               </span>
             </button>
 

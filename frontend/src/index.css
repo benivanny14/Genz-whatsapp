@@ -1,5 +1,6 @@
 /* WhatsApp Web Dark Theme - Complete CSS */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -2173,4 +2174,157 @@ body {
   border-radius: 12px;
   text-align: center;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   GENZ IDENTITY — hand-built "sticker & marker" design layer.
+   Gives the app a deliberate, non-template look: chunky display
+   type, hard offset shadows, warm paper background, grain texture,
+   and a hot-pink/butter accent system instead of generic gradients.
+   ════════════════════════════════════════════════════════════════ */
+:root {
+  --genz-accent: #ff2d78;
+  --genz-accent-dark: #d61a5e;
+  --genz-butter: #ffd447;
+  --genz-violet: #7c5cff;
+  --genz-mint: #00d9a6;
+  --genz-ink: #14122b;
+  --genz-paper: #f6f0e3;
+  --genz-font-display: 'Archivo Black', 'Arial Black', sans-serif;
+  --genz-font-ui: 'Space Grotesk', 'Inter', sans-serif;
+  --genz-font-hand: 'Caveat', cursive;
+}
+
+body {
+  font-family: var(--genz-font-ui), 'Inter', sans-serif;
+}
+
+.genz-display {
+  font-family: var(--genz-font-display);
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+}
+
+.genz-hand {
+  font-family: var(--genz-font-hand);
+}
+
+.genz-ui {
+  font-family: var(--genz-font-ui);
+}
+
+/* Warm paper shell for app pages */
+.genz-shell {
+  background-color: var(--genz-paper);
+  background-image:
+    radial-gradient(circle at 15% 20%, rgba(255, 45, 120, 0.07) 0, transparent 40%),
+    radial-gradient(circle at 85% 10%, rgba(124, 92, 255, 0.07) 0, transparent 40%),
+    radial-gradient(circle at 70% 90%, rgba(0, 217, 166, 0.07) 0, transparent 40%);
+}
+
+/* Chunky sticker buttons with hard offset shadow */
+.genz-sticker {
+  border: 2.5px solid var(--genz-ink);
+  box-shadow: 4px 4px 0 var(--genz-ink);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.genz-sticker:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 6px 6px 0 var(--genz-ink);
+}
+.genz-sticker:active {
+  transform: translate(3px, 3px);
+  box-shadow: 1px 1px 0 var(--genz-ink);
+}
+
+/* Hard cards (paper slabs) */
+.genz-card {
+  border: 2.5px solid var(--genz-ink);
+  box-shadow: 5px 5px 0 rgba(20, 18, 43, 0.9);
+}
+
+/* Signature header bar */
+.genz-header {
+  background: var(--genz-accent);
+  color: #fff;
+  border-bottom: 3px solid var(--genz-ink);
+}
+.genz-header-butter {
+  background: var(--genz-butter);
+  color: var(--genz-ink);
+  border-bottom: 3px solid var(--genz-ink);
+}
+.genz-header-violet {
+  background: var(--genz-violet);
+  color: #fff;
+  border-bottom: 3px solid var(--genz-ink);
+}
+
+/* Taped-down paper tag for labels */
+.genz-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--genz-font-ui);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  background: var(--genz-butter);
+  color: var(--genz-ink);
+  border: 2px solid var(--genz-ink);
+  transform: rotate(-1.5deg);
+}
+
+/* Grain texture overlay — subtle, keeps the screen readable */
+.genz-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 999998;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Custom chunky scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-track {
+  background: #ede6d6;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--genz-ink);
+  border: 2px solid #ede6d6;
+  border-radius: 0;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--genz-accent);
+}
+
+/* Selection + focus */
+::selection {
+  background: var(--genz-accent);
+  color: #fff;
+}
+:focus-visible {
+  outline: 3px solid var(--genz-accent);
+  outline-offset: 2px;
+}
+
+/* Pink signature glow for the AI copilot */
+.genz-ai-glow {
+  box-shadow: 0 0 0 1px var(--genz-accent), 0 0 24px rgba(255, 45, 120, 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .genz-sticker,
+  .genz-sticker:hover,
+  .genz-sticker:active {
+    transition: none;
+    transform: none;
+  }
 }

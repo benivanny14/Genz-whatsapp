@@ -42,10 +42,10 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b141a] flex items-center justify-center px-4">
-      <form onSubmit={handleDirectRegister} className="w-full max-w-md bg-[#111b21] border border-white/10 rounded-lg p-6 shadow-2xl">
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'radial-gradient(900px 600px at 20% 15%, rgba(255,45,120,0.22), transparent 55%), radial-gradient(800px 600px at 85% 85%, rgba(124,92,255,0.22), transparent 55%), radial-gradient(700px 500px at 65% 30%, rgba(0,217,166,0.12), transparent 50%), #0c0a1e' }}>
+      <form onSubmit={handleDirectRegister} className="w-full max-w-md bg-[#111b21] border border-white/10 rounded-lg p-6 shadow-2xl genz-card">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-white">Tengeneza Akaunti</h1>
+          <h1 className="genz-display text-2xl text-white">Tengeneza Akaunti</h1>
           <p className="text-sm text-slate-400 mt-1">Jisajili kwa akaunti mpya ya GENZ WhatsApp.</p>
         </div>
 
@@ -110,7 +110,7 @@ const Register = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2 rounded-md bg-[#00a884] hover:bg-[#008f6f] py-3 font-semibold text-[#0b141a] transition-colors disabled:opacity-60"
+          className="w-full flex items-center justify-center gap-2 rounded-md bg-[#ff2d78] hover:bg-[#d61a5e] py-3 font-bold text-white transition-colors disabled:opacity-60 genz-sticker"
         >
           <UserPlus size={18} />
           {loading ? 'Inatengeneza...' : 'Register'}

@@ -90,7 +90,7 @@ const Chat = () => {
         </div>
       )}
 
-      <div className="w-full h-full md:w-[98%] md:h-[96%] bg-[#f0f2f5] shadow-2xl flex relative overflow-hidden">
+      <div className="w-full h-full md:w-[98%] md:h-[96%] genz-shell shadow-2xl flex relative overflow-hidden genz-card">
         {/* Sidebar Container: Toggle visible/hidden based on whether conversation is active on mobile screens */}
         <div className={`${selectedConversation ? 'hidden md:flex' : 'flex'} h-full flex-shrink-0 ${sidebarOpen ? 'w-full md:w-80' : 'w-0 md:w-0 overflow-hidden'}`}>
           <Sidebar
