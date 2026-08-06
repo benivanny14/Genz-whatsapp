@@ -858,9 +858,11 @@ exports.getStatusViewers = async (req, res) => {
 
     res.json({
       success: true,
-      viewers: status.views || [],
-      reactions: status.reactions || [],
-      viewCount: (status.views || []).length
+      // Drop views/reactions whose author was deleted so the frontend never
+      // crashes trying to read fields off a null populated user.
+      viewers: (status.views || []).filter((v) => v.user),
+      reactions: (status.reactions || []).filter((r) => r.user),
+      viewCount: (status.views || []).filter((v) => v.user).length
     });
   } catch (error) {
     console.error('Error fetching status viewers:', error);
