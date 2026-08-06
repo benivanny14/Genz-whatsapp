@@ -3,8 +3,9 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Users, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = resolveApiBase() || '/api';
 
 /**
  * Handles WhatsApp-style "tap to join a group" invite links.

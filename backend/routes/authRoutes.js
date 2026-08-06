@@ -40,11 +40,15 @@ const {
   loginValidators,
   checkAvailabilityValidators
 } = require('../middleware/validators');
+const { authSensitiveLimiter } = require('../middleware/rateLimiters');
 
-router.post('/register', registerValidators, register);
-router.post('/login', loginValidators, login);
+// Sensitive credential routes get their own strict limiter so a burst of
+// authenticated calls (background polling) can never exhaust the budget for
+// login/registration, and vice-versa.
+router.post('/register', authSensitiveLimiter, registerValidators, register);
+router.post('/login', authSensitiveLimiter, loginValidators, login);
 // Refresh uses body.refreshToken only (no Authorization required)
-router.post('/refresh', refreshToken);
+router.post('/refresh', authSensitiveLimiter, refreshToken);
 router.get('/me', protect, privacyMiddleware, getMe);
 router.put('/profile', protect, updateProfile);
 router.post('/profile/picture', protect, uploadImage, uploadProfilePicture);

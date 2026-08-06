@@ -887,9 +887,20 @@ export const ChatProvider = ({ children }) => {
       const token = getAuthToken();
       let userId = currentUserId;
       try {
-        const u = authUser || JSON.parse(localStorage.getItem('user') || 'null');
-        if (u?._id) userId = u._id;
+        // Prefer the current JWT (the authenticated session) over the stale
+        // `localStorage.user` profile so a shared browser never joins the
+        // socket under a previous account's id.
+        if (token) {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          if (payload?.id) userId = payload.id;
+        }
       } catch (_) { /* keep default */ }
+      if (!userId) {
+        try {
+          const u = authUser || JSON.parse(localStorage.getItem('user') || 'null');
+          if (u?._id) userId = u._id;
+        } catch (_) { /* keep default */ }
+      }
 
       socket = io(SOCKET_ORIGIN, {
         path: '/socket.io/',
@@ -954,15 +965,24 @@ export const ChatProvider = ({ children }) => {
         // Don't immediately retry on error to prevent 426 issues
       });
 
-      socket.on('reconnect', async (attemptNumber) => {
-        console.log('Socket reconnected after', attemptNumber, 'attempts');
-        setIsSocketConnected(true);
-        let uid = currentUserId;
-        try {
-          const u = authUser || JSON.parse(localStorage.getItem('user') || 'null');
-          if (u?._id) uid = u._id;
-        } catch (_) { /* */ }
-        socket.emit('user:join', uid);
+        socket.on('reconnect', async (attemptNumber) => {
+          console.log('Socket reconnected after', attemptNumber, 'attempts');
+          setIsSocketConnected(true);
+          let uid = currentUserId;
+          try {
+            const token = getAuthToken();
+            if (token) {
+              const payload = JSON.parse(atob(token.split('.')[1]));
+              if (payload?.id) uid = payload.id;
+            }
+          } catch (_) { /* */ }
+          if (!uid) {
+            try {
+              const u = authUser || JSON.parse(localStorage.getItem('user') || 'null');
+              if (u?._id) uid = u._id;
+            } catch (_) { /* */ }
+          }
+          socket.emit('user:join', uid);
 
         // Re-confirm push subscription on reconnect (the real subscribe now
         // happens on app startup in App.jsx — this used to be the *only*

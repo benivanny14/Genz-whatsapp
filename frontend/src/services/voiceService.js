@@ -1,6 +1,7 @@
 import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = resolveApiBase() || '/api';
 
 /**
  * Upload voice note to backend using the unified media upload endpoint

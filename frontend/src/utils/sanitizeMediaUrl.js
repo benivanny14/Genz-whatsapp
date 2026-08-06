@@ -82,7 +82,7 @@ export async function ensureSignedMediaUrl(url, token) {
   if (!token) return clean;
 
   try {
-    const apiBase = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+    const apiBase = getApiOrigin();
     const pathOnly = clean.startsWith('http') ? clean : clean;
     const response = await fetch(
       `${apiBase}/api/media/sign-local?path=${encodeURIComponent(pathOnly)}`,

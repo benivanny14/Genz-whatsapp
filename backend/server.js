@@ -483,12 +483,38 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-const authLimiter = rateLimit({
+// Split auth rate limiting so a burst of authenticated calls (background
+// polling of /auth/me, settings refreshes, etc.) cannot exhaust the budget
+// shared with the login endpoint, and so 2FA/security attempts get their own
+// budget too.
+const authSensitiveLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 30 : (process.env.NODE_ENV === 'test' ? 100000 : 50), // Increased limit for recovery; unlimited in tests
+  max: process.env.NODE_ENV === 'production' ? 10 : (process.env.NODE_ENV === 'test' ? 100000 : 20),
   message: {
     success: false,
-    error: 'Too many authentication attempts, please try again later.'
+    error: 'Too many login/registration attempts, please try again later.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const authGeneralLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: process.env.NODE_ENV === 'production' ? 300 : (process.env.NODE_ENV === 'test' ? 100000 : 500),
+  message: {
+    success: false,
+    error: 'Too many requests, please try again later.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const securityLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: process.env.NODE_ENV === 'production' ? 30 : (process.env.NODE_ENV === 'test' ? 100000 : 50),
+  message: {
+    success: false,
+    error: 'Too many security requests, please try again later.'
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -694,7 +720,7 @@ const antiBanRoutes = require('./routes/anti-ban');
 const locationSharingRoutes = require('./routes/location-sharing');
 
 // Mount Routes
-app.use('/api/auth', safeMiddleware(authLimiter), authRoutes);
+app.use('/api/auth', safeMiddleware(authGeneralLimiter), authRoutes);
 
 // Admin auth routes with a single secret base path
 const ADMIN_BASE_PATH = process.env.ADMIN_BASE_PATH || '/api/system-gateway-x9k';
@@ -708,7 +734,7 @@ app.use('/api/payment/manual', manualPaymentUserRoutes);
 app.use('/api/admin/manual-payments', manualPaymentAdminRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/device', deviceRoutes);
-app.use('/api/security', safeMiddleware(authLimiter), securityRoutes);
+app.use('/api/security', safeMiddleware(securityLimiter), securityRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/privacy', privacyContactsRoutes);
 app.use('/api/contacts', phoneContactsRoutes);
@@ -1024,7 +1050,12 @@ const gracefulShutdown = async (signal) => {
   ]);
 
   logger.info('Graceful shutdown completed', { signal });
-  process.exit(0);
+
+  // Exit non-zero when the shutdown was triggered by a failure (startup error,
+  // uncaught exception) so the process manager / Render restarts the service
+  // instead of treating a crash as a clean stop.
+  const isFailureShutdown = signal === 'uncaughtException' || signal === 'startupFailure';
+  process.exit(isFailureShutdown ? 1 : 0);
 };
 
 if (!isTestEnvironment) {

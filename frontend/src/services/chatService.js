@@ -3,8 +3,9 @@
  * Handles all chat/conversation/message API calls
  */
 import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = resolveApiBase() || '/api';
 
 const chatService = {
   // ── Conversations ─────────────────────────────────────────────────

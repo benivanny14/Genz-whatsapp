@@ -1,9 +1,10 @@
 import axios from 'axios';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
 // The regular app uses VITE_API_URL (e.g. https://host/api).
 // Admin login/auth uses the hidden gateway, while admin data endpoints are
 // mounted under the normal /api namespace.
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = resolveApiBase() || '/api';
 const API_ROOT = API_URL.replace(/\/api\/?$/, '');
 const ADMIN_BASE_PATH = (import.meta.env.VITE_ADMIN_BASE_PATH || '/api/system-gateway-x9k').replace(/\/$/, '');
 

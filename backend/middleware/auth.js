@@ -79,6 +79,17 @@ const protect = async (req, res, next) => {
           return reject('User not authorized');
         }
 
+        // Tokens issued before a password change must be rejected, otherwise a
+        // stolen token keeps working after the user resets their password.
+        // Small tolerance (30s) absorbs clock-skew / iat second-truncation.
+        if (user.passwordChangedAt) {
+          const changedAt = new Date(user.passwordChangedAt).getTime();
+          if (decoded.iat && decoded.iat * 1000 + 30000 < changedAt) {
+            console.error('[Auth] Token issued before password change; rejecting');
+            return reject('Session expired. Please log in again.');
+          }
+        }
+
         // Device-scoped tokens are invalid once their device is deactivated
         // (logout all devices, unlink, admin revoke).
         const deviceAllowed = await isDeviceAllowed(decoded);

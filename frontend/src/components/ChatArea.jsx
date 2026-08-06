@@ -35,6 +35,7 @@ import StickerPackBrowser from './StickerPackBrowser';
 import { uploadVoiceNote, getAudioDuration, analyzeAudioForWaveform } from '../services/voiceService';
 import toast from 'react-hot-toast';
 import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { compressImage } from '../utils/imageCompression';
 // New components for enhanced features
 import MediaViewer from './MediaViewer';
@@ -49,7 +50,7 @@ import FloatingStickerOverlay from './FloatingStickerOverlay';
 import { getNotificationSettings, vibrateTyping } from '../services/notificationService';
 import { spawnBubbleBurst } from '../utils/bubbleBurst';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = resolveApiBase() || '/api';
 
 const DISAPPEARING_OPTIONS = [
   { label: 'Off', value: 'Off' },
@@ -897,7 +898,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         formData.append('duration', recordingDuration);
 
         try {
-          const API_URL = import.meta.env.VITE_API_URL || '';
           const response = await authFetch(`${API_URL}/media/upload`, {
             method: 'POST',
             body: formData,
@@ -1140,7 +1140,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         return;
       }
 
-      const API_URL = import.meta.env.VITE_API_URL || '';
       const response = await authFetch(`${API_URL}/chat/messages/${messageId}/delete-for-everyone`, {
         method: 'DELETE',
         headers: {
@@ -1358,7 +1357,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     formData.append('file', file);
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || '';
       const response = await authFetch(`${API_URL}/media/upload`, {
         method: 'POST',
         // No auth headers needed

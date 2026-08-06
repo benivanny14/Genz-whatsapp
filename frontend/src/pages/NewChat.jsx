@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search, UserPlus, MessageCircle } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import AddContactModal from '../components/AddContactModal';
 
-const BACKEND_URL = import.meta.env.VITE_API_URL || '';
+const BACKEND_URL = resolveApiBase() || '/api';
 
 const NewChat = () => {
   const navigate = useNavigate();

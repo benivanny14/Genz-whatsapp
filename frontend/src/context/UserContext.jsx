@@ -2,12 +2,13 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { getDeviceId, getDeviceInfo } from '../utils/deviceIdentity';
 import { isBlobUrl, sanitizeBlobUrls } from '../utils/sanitizeStorage';
 import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
 const UserContext = createContext();
 
 const USER_STORAGE_KEY = 'genz_user_profile';
 const USER_SETTINGS_KEY = 'genz_user_settings';
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = resolveApiBase() || '/api';
 
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);

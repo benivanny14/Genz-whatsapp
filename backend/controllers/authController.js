@@ -411,6 +411,19 @@ exports.logout = async (req, res) => {
         status: 'offline',
         lastSeen: new Date()
       });
+
+      // Revoke this device's session so its tokens stop working. Device-scoped
+      // JWTs are checked by isDeviceAllowed() in the auth middleware, so
+      // marking the device inactive invalidates the token even if it is still
+      // present in another tab / copy of the browser.
+      const deviceId = getRequestDeviceId(req);
+      if (deviceId) {
+        const Device = require('../models/Device');
+        await Device.updateOne(
+          { localUserId: String(req.user._id), deviceId },
+          { $set: { isActive: false } }
+        );
+      }
     }
 
     clearAuthCookies(res);

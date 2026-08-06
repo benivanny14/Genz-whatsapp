@@ -18,10 +18,11 @@ import TwoFactorAuth from './TwoFactorAuth';
 import GlassThemeManager from './GlassThemeManager';
 import SystemDashboard from './SystemDashboard';
 import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import { VOICE_EFFECT_PRESETS, createTestToneBlob, applyVoiceEffect } from '../utils/voiceEffects';
 import { compressImage } from '../utils/imageCompression';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = resolveApiBase() || '/api';
 const SUBSCRIPTION_AMOUNT = 10000; // Tsh 10,000 kwa Premium (siku 30)
 
 const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin }) => {

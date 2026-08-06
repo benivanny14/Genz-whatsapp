@@ -20,6 +20,17 @@ const MAX_RECONNECT_ATTEMPTS = 10;
 
 function resolveSocketUserId(explicitId) {
   if (explicitId) return String(explicitId);
+  // Prefer the current in-memory JWT (the authenticated session) over the
+  // stale `localStorage.user` profile. On a shared/switch-account browser the
+  // cached profile can belong to a previous account, which would make the
+  // socket join under the wrong user id and leak that user's events.
+  try {
+    const token = getAuthToken();
+    if (token) {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload?.id) return String(payload.id);
+    }
+  } catch (_) { /* ignore malformed token */ }
   try {
     const u = JSON.parse(localStorage.getItem('user') || 'null');
     if (u?._id) return String(u._id);
