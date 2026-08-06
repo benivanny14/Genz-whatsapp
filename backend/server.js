@@ -67,6 +67,7 @@ const upload = multer({
   }
 });
 const validateEnv = require('./utils/validateEnv');
+const { protect } = require('./middleware/auth');
 const errorHandler = require('./middleware/errorHandler');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
@@ -769,7 +770,7 @@ app.use('/api/anti-ban', antiBanRoutes);
 app.use('/api/location-sharing', locationSharingRoutes);
 
 // File upload route
-app.post('/api/upload', upload.single('file'), async (req, res) => {
+app.post('/api/upload', protect, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({

@@ -354,11 +354,21 @@ exports.getNearbyFriends = async (req, res) => {
     const friendsWithLocation = await User.find({
       _id: { $in: friendIds },
       'lastLocation.timestamp': { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } // Last 24 hours
-    }).select('username profilePicture lastLocation');
+    }).select('username profilePicture lastLocation locationSharingSettings');
 
     // Calculate distance and filter by radius
     const nearbyFriends = friendsWithLocation
       .map(friend => {
+        const friendSettings = mergeSettings(friend.locationSharingSettings?.toObject?.() || friend.locationSharingSettings);
+
+        // Respect the friend's location-sharing privacy: if they turned sharing
+        // off, or explicitly hid their location from this requester, skip them.
+        if (!friendSettings.locationSharingEnabled) return null;
+        const hiddenFrom = Array.isArray(friendSettings.hideLocationFrom)
+          ? friendSettings.hideLocationFrom.map(id => id?.toString())
+          : [];
+        if (hiddenFrom.includes(user._id.toString())) return null;
+
         if (!friend.lastLocation || !friend.lastLocation.latitude || !friend.lastLocation.longitude) {
           return null;
         }
@@ -374,7 +384,6 @@ exports.getNearbyFriends = async (req, res) => {
           userId: friend._id,
           username: friend.username,
           profilePicture: friend.profilePicture,
-          location: friend.lastLocation,
           distance: distance.toFixed(2)
         };
       })

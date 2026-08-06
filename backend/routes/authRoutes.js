@@ -12,6 +12,7 @@ const {
   uploadProfilePicture,
   getBlockedUsers,
   changeNumber,
+  changePassword,
   deleteAccount,
   updateBusinessProfile,
   addCatalogItem,
@@ -52,6 +53,7 @@ router.put('/settings', protect, updateSettings);
 router.get('/blocked', protect, privacyMiddleware, getBlockedUsers);
 router.post('/logout', protect, logout);
 router.post('/change-number', protect, changeNumber);
+router.post('/change-password', protect, changePassword);
 router.post('/delete-account', protect, deleteAccount);
 
 // Business routes

@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 
 import { resolveApiBase } from '../utils/resolveApiBase';
+import { getAuthToken } from '../utils/tokenStore';
 
 const GlassThemeManager = ({ mods, setMods, onClose }) => {
   const [videoPreviewUrl, setVideoPreviewUrl] = useState(mods?.videoBg || '');
@@ -58,6 +59,7 @@ const GlassThemeManager = ({ mods, setMods, onClose }) => {
       formData.append('file', file);
       const res = await fetch(`${API_URL}/upload`, {
         method: 'POST',
+        headers: { 'Authorization': `Bearer ${getAuthToken() || ''}` },
         body: formData
       });
       if (res.ok) {

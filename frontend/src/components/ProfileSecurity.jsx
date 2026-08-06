@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { Shield, X, Check, RefreshCw, Lock, Eye, EyeOff, AlertTriangle, Fingerprint, Smartphone } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
+
+const API_URL = resolveApiBase();
 
 const ProfileSecurity = ({ user, securitySettings, onUpdateSecurity, onClose }) => {
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -56,16 +60,29 @@ const ProfileSecurity = ({ user, securitySettings, onUpdateSecurity, onClose }) 
     }
 
     setIsProcessing(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsProcessing(false);
-
-    onUpdateSecurity?.({
-      ...securitySettings,
-      passwordChanged: true
-    });
-
-    setFormData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    setShowChangePassword(false);
+    try {
+      const res = await authFetch(`${API_URL}/auth/change-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.message || 'Kubadilisha password imeshindikana');
+        return;
+      }
+      alert('Password imebadilishwa kwa mafanikio');
+      onUpdateSecurity?.({
+        ...securitySettings,
+        passwordChanged: true
+      });
+      setFormData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setShowChangePassword(false);
+    } catch (err) {
+      alert('Imeshindwa kuunganisha na server. Jaribu tena.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (

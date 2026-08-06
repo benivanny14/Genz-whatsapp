@@ -1,5 +1,12 @@
 const Message = require('../models/Message');
 const User = require('../models/User');
+const Conversation = require('../models/Conversation');
+
+const includesId = (items = [], id) => {
+  if (!Array.isArray(items)) return false;
+  const target = id?._id ? id._id.toString() : id?.toString();
+  return items.some(item => (item?._id ? item._id.toString() : item?.toString()) === target);
+};
 
 const defaultSettings = {
   antiDeleteMessages: true,
@@ -165,9 +172,19 @@ exports.getDeletedMessages = async (req, res) => {
 
 exports.restoreDeletedMessage = async (req, res) => {
   try {
+    const userId = req.user._id;
     const message = await Message.findById(req.params.id);
     if (!message) {
       return res.status(404).json({ success: false, message: 'Message not found' });
+    }
+
+    const isSender = String(message.sender?._id || message.sender) === String(userId);
+    const conversation = message.conversationId
+      ? await Conversation.findById(message.conversationId).select('participants')
+      : null;
+    const isParticipant = conversation && includesId(conversation.participants, userId);
+    if (!isSender && !isParticipant) {
+      return res.status(403).json({ success: false, message: 'You can only restore messages from conversations you are part of' });
     }
 
     if (message.originalContent) {
@@ -280,12 +297,22 @@ exports.freezeLastSeen = async (req, res) => {
 
 exports.getMessageTracking = async (req, res) => {
   try {
+    const userId = req.user._id;
     const message = await Message.findById(req.params.messageId)
       .populate('readBy.user', 'username profilePicture')
       .populate('reactions.user', 'username profilePicture');
 
     if (!message) {
       return res.status(404).json({ success: false, message: 'Message not found' });
+    }
+
+    const isSender = String(message.sender?._id || message.sender) === String(userId);
+    const conversation = message.conversationId
+      ? await Conversation.findById(message.conversationId).select('participants')
+      : null;
+    const isParticipant = conversation && includesId(conversation.participants, userId);
+    if (!isSender && !isParticipant) {
+      return res.status(403).json({ success: false, message: 'You can only track messages from conversations you are part of' });
     }
 
     res.json({

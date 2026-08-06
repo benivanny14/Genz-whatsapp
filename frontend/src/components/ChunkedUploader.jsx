@@ -75,7 +75,7 @@ const ChunkedUploader = ({ onComplete, onClose, onUploadComplete, onCancel, acce
       if (file.size <= CHUNK_SIZE) {
         const formData = new FormData();
         formData.append('file', file);
-        const res = await fetch(`${API_URL}/upload`, { method: 'POST', body: formData });
+        const res = await fetch(`${API_URL}/upload`, { method: 'POST', headers: authHeaders(), body: formData });
         if (!res.ok) throw new Error('Upload failed');
         const data = await res.json();
         setStatus('done');

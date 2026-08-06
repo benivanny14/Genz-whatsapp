@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { superAdminAuth } = require('../middleware/superAdminAuth');
 const { strictRateLimiter } = require('../middleware/security');
+const { protect } = require('../middleware/auth');
 const {
   bootstrapAdmin,
   getOverview,
@@ -80,7 +81,7 @@ const {
   startDirectChat
 } = require('../controllers/adminSupportController');
 
-router.post('/bootstrap', strictRateLimiter, bootstrapAdmin);
+router.post('/bootstrap', strictRateLimiter, protect, bootstrapAdmin);
 
 router.use(superAdminAuth);
 router.get('/overview', getOverview);

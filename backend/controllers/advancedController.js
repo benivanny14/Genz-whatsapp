@@ -750,9 +750,14 @@ exports.getStatusDetails = async (req, res) => {
 // @access  Private
 exports.getStatusReplies = async (req, res) => {
   try {
-    const status = await Status.findById(req.params.id).select('replies');
+    const currentUserId = getCurrentUserId(req);
+    const status = await Status.findById(req.params.id).select('replies userId user');
     if (!status) {
       return res.status(404).json({ success: true, replies: [] });
+    }
+    const isOwn = String(status.userId || status.user) === String(currentUserId);
+    if (!isOwn) {
+      return res.status(403).json({ message: 'You can only view replies on your own statuses' });
     }
     res.status(200).json({ success: true, replies: status.replies || [] });
   } catch (error) {
@@ -844,6 +849,11 @@ exports.getStatusViewers = async (req, res) => {
 
     if (!status) {
       return res.status(404).json({ message: 'Status not found' });
+    }
+
+    const isOwn = String(status.userId || status.user) === String(currentUserId);
+    if (!isOwn) {
+      return res.status(403).json({ message: 'You can only view viewers on your own statuses' });
     }
 
     res.json({
