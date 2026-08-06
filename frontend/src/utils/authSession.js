@@ -88,6 +88,23 @@ export const clearAllUserData = async () => {
 };
 
 export const clearSessionAndRedirect = async () => {
+  // Fire-and-forget a backend logout so the httpOnly cookies are actually
+  // cleared (JS cannot delete an httpOnly cookie). Without this, a stale
+  // cookie survives 401/logout and the NEXT page load tries to restore it,
+  // producing the "app keeps closing and reopening" loop.
+  try {
+    const res = await fetch(`${API_URL}/auth/logout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getDeviceHeaders() },
+      credentials: 'include'
+    });
+    if (!res.ok) {
+      console.warn('[Auth] Backend logout during session clear failed:', res.status);
+    }
+  } catch (e) {
+    console.warn('[Auth] Backend logout during session clear failed:', e);
+  }
+
   await clearAllUserData();
   const path = window.location.pathname;
   if (path !== '/login' && path !== '/register') {

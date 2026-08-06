@@ -56,6 +56,14 @@ const AccountSwitcher = () => {
 
   const switchAccount = async (account) => {
     await clearAllUserData();
+    // Persist the target account's tokens to localStorage as well. This
+    // component navigates with a full page reload (window.location.href), and
+    // the in-memory token store is wiped by that reload — without a
+    // localStorage fallback the httpOnly cookie of the PREVIOUS account would
+    // silently restore the old session, making the switch land on someone
+    // else's account.
+    localStorage.setItem('token', account.token || '');
+    if (account.refreshToken) localStorage.setItem('refreshToken', account.refreshToken);
     persistTokens({
       token: account.token,
       refreshToken: account.refreshToken,

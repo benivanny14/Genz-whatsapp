@@ -1,29 +1,29 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { isDeviceAllowed } = require('../utils/deviceSession');
+const { clearAuthCookies } = require('../utils/authCookies');
 const { JWT_SECRET } = require('../config/secrets');
 
 const DEFAULT_DEVICE_ID = process.env.DEFAULT_DEVICE_ID || 'local-web-device';
 const LOCAL_USER_ID = process.env.LOCAL_USER_ID || '60d5ecb8b392cb371c664c12';
 
 const getBearerToken = (req) => {
-  // Prefer the httpOnly cookie (primary auth transport), then fall back to the
-  // Authorization header for backward compatibility with older clients.
-  if (req.cookies?.token) {
-    return req.cookies.token;
-  }
-
+  // Prefer the Authorization header: it carries the in-memory token of the
+  // user that THIS browser session is currently acting as. The httpOnly cookie
+  // is a stale, browser-wide value — if two accounts are used in the same
+  // browser, the last login overwrites the cookie for every tab, so relying on
+  // it first would leak user B's data into user A's open tab. The cookie is
+  // only a fallback for fresh page loads (after reload the in-memory token is
+  // gone and the cookie is the persistent session).
   const header = req.headers.authorization || '';
-  if (!header.startsWith('Bearer ')) {
-    return null;
+  if (header.startsWith('Bearer ')) {
+    const token = header.slice(7).trim();
+    if (token && token !== 'null' && token !== 'undefined') {
+      return token;
+    }
   }
 
-  const token = header.slice(7).trim();
-  if (!token || token === 'null' || token === 'undefined') {
-    return null;
-  }
-
-  return token;
+  return req.cookies?.token || null;
 };
 
 const createOrFindDeviceUser = async (deviceId) => {
@@ -52,22 +52,31 @@ const protect = async (req, res, next) => {
   try {
     const token = getBearerToken(req);
 
+    // Helper to reject while also clearing any stale httpOnly cookies. Without
+    // this, an expired cookie stays in the browser and every page load (login,
+    // register, chat) keeps getting 401 → clearSessionAndRedirect → reload,
+    // which looks exactly like the app "closing and reopening by itself".
+    const reject = (message, status = 401) => {
+      clearAuthCookies(res);
+      return res.status(status).json({ success: false, message });
+    };
+
     if (token) {
       try {
         const decoded = jwt.verify(token, JWT_SECRET);
         if (decoded.typ === 'refresh') {
           console.error('[Auth] Access route received refresh token');
-          return res.status(401).json({ success: false, message: 'Invalid token type' });
+          return reject('Invalid token type');
         }
         const user = await User.findById(decoded.id);
 
         if (!user) {
           console.error('[Auth] User not found for token:', decoded.id);
-          return res.status(401).json({ success: false, message: 'User not authorized' });
+          return reject('User not authorized');
         }
 
         if (user.isBlocked) {
-          return res.status(401).json({ success: false, message: 'User not authorized' });
+          return reject('User not authorized');
         }
 
         // Device-scoped tokens are invalid once their device is deactivated
@@ -75,7 +84,7 @@ const protect = async (req, res, next) => {
         const deviceAllowed = await isDeviceAllowed(decoded);
         if (!deviceAllowed) {
           console.error('[Auth] Token rejected: device no longer active', { id: decoded.id, deviceId: decoded.deviceId });
-          return res.status(401).json({ success: false, message: 'Session has been logged out on this device' });
+          return reject('Session has been logged out on this device');
         }
 
         req.user = user;
@@ -86,12 +95,12 @@ const protect = async (req, res, next) => {
           error: jwtError.message,
           path: req.path
         });
-        return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+        return reject('Invalid or expired token');
       }
     }
 
     console.error('[Auth] No token provided:', { path: req.path });
-    return res.status(401).json({ success: false, message: 'Authentication required' });
+    return reject('Authentication required');
   } catch (error) {
     console.error('[Auth] Middleware error:', {
       error: error.message,
@@ -99,7 +108,7 @@ const protect = async (req, res, next) => {
       path: req.path,
       method: req.method
     });
-    return res.status(401).json({ success: false, message: 'Authentication failed' });
+    return reject('Authentication failed');
   }
 };
 

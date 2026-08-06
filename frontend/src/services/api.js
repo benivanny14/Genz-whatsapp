@@ -1,7 +1,8 @@
-import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
+import { getAuthToken } from '../utils/tokenStore';
 import axios from 'axios';
 import { getDeviceHeaders } from '../utils/deviceIdentity';
 import { resolveApiBase } from '../utils/resolveApiBase';
+import { clearSessionAndRedirect } from '../utils/authSession';
 
 let API_URL = resolveApiBase() || '/api';
 if (API_URL !== '/api' && !API_URL.endsWith('/api')) {
@@ -33,11 +34,12 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    // If 401 Unauthorized, clear auth and redirect to login
+    // If 401 Unauthorized, clear auth and redirect to login. Uses the guarded
+    // clearSessionAndRedirect (does NOT hard-reload when already on /login or
+    // /register) so that a 401 from a background request during login/register
+    // does not make the app "close and reopen by itself".
     if (error.response?.status === 401) {
-      clearAuthTokens();
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      await clearSessionAndRedirect();
       return Promise.reject(error);
     }
 

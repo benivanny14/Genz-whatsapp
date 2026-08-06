@@ -100,20 +100,34 @@ export const AuthProvider = ({ children }) => {
           // No token in memory/localStorage. The persistent session is the
           // httpOnly cookie set by the backend — attempt to restore via the
           // cookie (getMe sends it automatically with credentials).
-          console.log('[AuthContext] No local token; trying httpOnly cookie session');
-          try {
-            const meData = await authService.getMe();
-            if (meData.success && meData.user) {
-              setUser(meData.user);
-              setIsAuthenticated(true);
-              console.log('[AuthContext] Session restored via httpOnly cookie');
-            } else {
-              console.log('[AuthContext] No valid cookie session found');
+          //
+          // FIX: NEVER auto-restore from the httpOnly cookie on the /login or
+          // /register pages. That cookie is browser-wide: if a previous user
+          // logged in on this browser, their cookie is still valid for up to
+          // 30 days, so a fresh visitor opening /register would be silently
+          // signed into THAT account — a cross-account data leak. On those two
+          // pages the person has explicitly asked to sign in/up, so we start
+          // from a clean slate.
+          const path = window.location.pathname;
+          if (path === '/login' || path === '/register') {
+            console.log('[AuthContext] Skipping cookie restore on auth pages');
+            setIsAuthenticated(false);
+          } else {
+            console.log('[AuthContext] No local token; trying httpOnly cookie session');
+            try {
+              const meData = await authService.getMe();
+              if (meData.success && meData.user) {
+                setUser(meData.user);
+                setIsAuthenticated(true);
+                console.log('[AuthContext] Session restored via httpOnly cookie');
+              } else {
+                console.log('[AuthContext] No valid cookie session found');
+                setIsAuthenticated(false);
+              }
+            } catch (cookieError) {
+              console.log('[AuthContext] Cookie session check failed:', cookieError?.response?.status || cookieError.message);
               setIsAuthenticated(false);
             }
-          } catch (cookieError) {
-            console.log('[AuthContext] Cookie session check failed:', cookieError?.response?.status || cookieError.message);
-            setIsAuthenticated(false);
           }
         }
       } catch (error) {
