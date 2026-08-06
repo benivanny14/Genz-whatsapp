@@ -277,6 +277,7 @@ export const ChatProvider = ({ children }) => {
   const markReadDebouncedRef = useRef(null);
   const modsRef = useRef({});  // keep mods accessible in socket callbacks
   const activeCallRef = useRef(null);  // keep active call state accessible in socket callbacks
+  const currentUserIdRef = useRef(null);
   const { isAuthenticated, loading: authLoading, user: authUser, isAuthReady, completeSession } = useAuth();
 
   const currentUserId = React.useMemo(() => {
@@ -284,6 +285,10 @@ export const ChatProvider = ({ children }) => {
     if (ENABLE_DEMO_DATA) return UNAUTHENTICATED_FALLBACK_USER_ID;
     return null;
   }, [authUser?._id]);
+
+  useEffect(() => {
+    currentUserIdRef.current = currentUserId;
+  }, [currentUserId]);
 
   // Core state
   const [conversations, setConversations] = useState([]);
@@ -1233,12 +1238,14 @@ export const ChatProvider = ({ children }) => {
       });
 
       // ── Anti-Delete (Phase 3): intercept deletion, keep visible ──
-      socket.on('message:deleted', ({ messageId, forEveryone, reason } = {}) => {
+      socket.on('message:deleted', ({ messageId, forEveryone, deletedBy, reason } = {}) => {
         if (forEveryone && modsRef.current.antiDelete) {
           setMessages(prev => prev.map(m =>
             m._id === messageId ? { ...m, deletedForEveryone: true, _antiDeletePreserved: true } : m
           ));
-        } else {
+        } else if (forEveryone || (deletedBy && String(deletedBy) === String(currentUserIdRef.current))) {
+          // Delete for everyone removes the message for everyone.
+          // Delete for me only removes it on the deleter's own client.
           setMessages(prev => prev.filter(m => m._id !== messageId));
         }
       });
@@ -2490,9 +2497,9 @@ export const ChatProvider = ({ children }) => {
     emitSafe('message:edit', { messageId: id, content: newContent, caption: newCaption });
   };
 
-  const deleteMessage = async (id) => {
+  const deleteMessage = async (id, forEveryone = false) => {
     setMessages(prev => prev.filter(m => m._id !== id));
-    emitSafe('message:delete', { messageId: id, forEveryone: true });
+    emitSafe('message:delete', { messageId: id, forEveryone });
   };
 
   const clearChat = async (chatId = selectedConversation?._id) => {

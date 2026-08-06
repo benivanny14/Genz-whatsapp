@@ -1135,7 +1135,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       if (!confirm('Delete this message for everyone?')) return;
 
       if (String(messageId).startsWith('client-message-')) {
-        deleteMessage(messageId);
+        deleteMessage(messageId, true);
         toast.success("Message deleted for everyone");
         return;
       }
@@ -1149,7 +1149,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       });
 
       if (response.ok) {
-        deleteMessage(messageId);
+        deleteMessage(messageId, true);
         toast.success("Message deleted for everyone");
       } else {
         toast.error('Failed to delete message for everyone');

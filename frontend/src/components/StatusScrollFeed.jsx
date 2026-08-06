@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Heart, MessageCircle, Bookmark, Share2, Send, X, MoreVertical, Eye, Clock } from 'lucide-react';
+import { Heart, MessageCircle, Bookmark, Share2, Send, X, MoreVertical, Eye, Clock, MapPin, Navigation } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
@@ -317,6 +317,40 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
                   playsInline
                   onClick={() => setIsMuted(!isMuted)}
                 />
+              ) : status.type === 'location' ? (
+                <div className="w-full h-full relative flex items-center justify-center bg-gradient-to-br from-teal-800 to-[#075e54]">
+                  <div className="absolute inset-0">
+                    {status?.locationData?.lat != null && status?.locationData?.lng != null ? (
+                      <img
+                        src={`https://static-maps.yandex.ru/1.x/?ll=${status.locationData.lng},${status.locationData.lat}&z=14&size=650,450&l=map&pt=${status.locationData.lng},${status.locationData.lat},pm2rdm`}
+                        alt="Location map"
+                        className="w-full h-full object-cover opacity-60"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-teal-900" />
+                    )}
+                  </div>
+                  <div className="relative z-10 bg-black/60 backdrop-blur rounded-2xl px-8 py-6 mx-6 text-center">
+                    <MapPin className="text-[#00a884] mx-auto mb-3" size={48} />
+                    <h2 className="text-2xl font-bold text-white">
+                      {status?.locationData?.address || status?.content || 'Location'}
+                    </h2>
+                    {status?.locationData?.placeName && (
+                      <p className="text-white/70 text-sm mt-1">{status.locationData.placeName}</p>
+                    )}
+                    {status?.locationData?.lat != null && status?.locationData?.lng != null && (
+                      <a
+                        href={`https://www.google.com/maps?q=${status.locationData.lat},${status.locationData.lng}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-4 inline-flex items-center gap-2 px-5 py-2 bg-[#00a884] rounded-full text-white text-sm font-medium"
+                      >
+                        <Navigation size={16} />
+                        Open in Maps
+                      </a>
+                    )}
+                  </div>
+                </div>
               ) : (
                 <div
                   className="w-full h-full flex items-center justify-center p-8"

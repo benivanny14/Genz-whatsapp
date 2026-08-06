@@ -111,7 +111,8 @@ exports.shareLocation = async (req, res) => {
       sender: user._id,
       content: `📍 Location shared`,
       messageType: 'location',
-      location: locationData
+      latitude,
+      longitude
     });
 
     res.status(200).json({

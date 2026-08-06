@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   X, Heart, MessageCircle, Share2, Download, Bookmark,
   MoreVertical, Trash2, Volume2, VolumeX, Play, Pause,
-  ChevronUp, ChevronDown, Music, Sparkles, Send
+  ChevronUp, ChevronDown, Music, Sparkles, Send, MapPin, Navigation
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -368,6 +368,41 @@ const StatusReel = ({ onClose, initialStatuses = [] }) => {
               >
                 "{current.content}"
               </h2>
+            </div>
+          )}
+          {current?.type === 'location' && (
+            <div className="w-full h-full relative flex items-center justify-center bg-gradient-to-br from-teal-800 to-[#075e54]">
+              <div className="absolute inset-0">
+                {current?.locationData?.lat != null && current?.locationData?.lng != null ? (
+                  <img
+                    src={`https://static-maps.yandex.ru/1.x/?ll=${current.locationData.lng},${current.locationData.lat}&z=14&size=650,450&l=map&pt=${current.locationData.lng},${current.locationData.lat},pm2rdm`}
+                    alt="Location map"
+                    className="w-full h-full object-cover opacity-60"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-teal-900" />
+                )}
+              </div>
+              <div className="relative z-10 bg-black/60 backdrop-blur rounded-2xl px-8 py-6 mx-6 text-center">
+                <MapPin className="text-[#00a884] mx-auto mb-3" size={48} />
+                <h2 className="text-2xl font-bold text-white">
+                  {current?.locationData?.address || current?.content || 'Location'}
+                </h2>
+                {current?.locationData?.placeName && (
+                  <p className="text-white/70 text-sm mt-1">{current.locationData.placeName}</p>
+                )}
+                {current?.locationData?.lat != null && current?.locationData?.lng != null && (
+                  <a
+                    href={`https://www.google.com/maps?q=${current.locationData.lat},${current.locationData.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 inline-flex items-center gap-2 px-5 py-2 bg-[#00a884] rounded-full text-white text-sm font-medium"
+                  >
+                    <Navigation size={16} />
+                    Open in Maps
+                  </a>
+                )}
+              </div>
             </div>
           )}
           {/* Caption overlay */}

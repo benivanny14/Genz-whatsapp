@@ -1151,6 +1151,7 @@ exports.deleteMessage = async (req, res) => {
       io.to(message.conversationId.toString()).emit("message:deleted", {
         messageId: message._id,
         forEveryone: Boolean(forEveryone),
+        deletedBy: localUserId,
       });
     }
 

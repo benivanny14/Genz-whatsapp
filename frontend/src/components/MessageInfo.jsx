@@ -26,7 +26,7 @@ const MessageInfo = ({ messageId, onClose }) => {
       const { authFetch } = await import('../utils/authFetch');
       const { resolveApiBase } = await import('../utils/resolveApiBase');
       const API_URL = resolveApiBase();
-      const response = await authFetch(`${API_URL}/messages/${messageId}/edit-history`);
+      const response = await authFetch(`${API_URL}/chat/messages/${messageId}/edit-history`);
       const data = await response.json();
       if (data.success) {
         setEditHistory(data.editHistory || []);

@@ -859,22 +859,24 @@ const setupSocket = (io) => {
         if (!result) return;
         const { message } = result;
 
-        if (message.sender.toString() === socket.userId) {
-          if (forEveryone) {
-            message.deletedForEveryone = true;
-          } else {
-            if (!Array.isArray(message.deletedFor)) message.deletedFor = [];
-            if (!message.deletedFor.some((id) => id?.toString() === socket.userId)) {
-              message.deletedFor.push(socket.userId);
-            }
+        if (forEveryone) {
+          // Only the sender may delete for everyone via socket (admins use REST).
+          if (message.sender.toString() !== socket.userId) return;
+          message.deletedForEveryone = true;
+        } else {
+          // Delete for me works for any participant of the conversation.
+          if (!Array.isArray(message.deletedFor)) message.deletedFor = [];
+          if (!message.deletedFor.some((id) => id?.toString() === socket.userId)) {
+            message.deletedFor.push(socket.userId);
           }
-          await message.save();
-
-          io.to(message.conversationId.toString()).emit('message:deleted', {
-            messageId,
-            forEveryone
-          });
         }
+        await message.save();
+
+        io.to(message.conversationId.toString()).emit('message:deleted', {
+          messageId,
+          forEveryone,
+          deletedBy: socket.userId
+        });
       } catch (error) {
         console.error('Error deleting message:', error);
       }

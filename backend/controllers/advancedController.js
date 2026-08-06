@@ -414,14 +414,14 @@ exports.createStatus = async (req, res) => {
     } = req.body;
 
     // Validate status type
-    const validTypes = ['text', 'image', 'video', 'voice', 'audio', 'gif', 'link', 'music', 'quiz', 'question', 'countdown', 'location', 'collage'];
+    const validTypes = ['text', 'image', 'video', 'voice', 'audio', 'gif', 'link', 'music', 'quiz', 'question', 'countdown', 'location', 'collage', 'boomerang', 'livePhoto', 'dualCamera', 'timer'];
     if (!validTypes.includes(type)) {
       return res.status(400).json({ message: 'Invalid status type' });
     }
 
     // For media statuses, mediaUrl is required. gif/music may come as a URL
     // field (gifUrl/musicUrl) instead of an uploaded file.
-    const mediaFileTypes = ['image', 'video', 'voice', 'audio'];
+    const mediaFileTypes = ['image', 'video', 'voice', 'audio', 'boomerang', 'livePhoto', 'dualCamera'];
     const resolvedMediaUrl = mediaUrl
       || (type === 'gif' ? gifUrl : '')
       || (type === 'music' ? musicUrl : '');

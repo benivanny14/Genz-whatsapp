@@ -931,6 +931,7 @@ exports.getAnalytics = async (req, res) => {
 
     const analytics = {
       totalViews,
+      totalReactions: reactions.length,
       uniqueViewers,
       engagementRate: Math.round(engagementRate * 10000) / 10000,
       shareCount,
@@ -940,6 +941,7 @@ exports.getAnalytics = async (req, res) => {
       // Demographics / device / location need per-viewer profile data that isn't
       // collected yet, so return empty instead of inventing numbers.
       demographics: { age: [], gender: [] },
+      engagement: { views: [0, 1, 2, 3, 4, 5, 6].map((d) => dayCounts[d] || 0) },
       viewsByTime,
       viewsByDevice: [],
       viewsByLocation: [],

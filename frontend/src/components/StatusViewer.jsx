@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { X, Clock, Eye, ChevronUp, ChevronLeft, ChevronRight, Pause, Play, Users, MessageCircle, Trash2, Share2, MoreVertical, Download, Heart, Send, Search, Check, Smile, ThumbsUp, Laugh, Sparkles, Frown, Angry } from 'lucide-react';
+import { X, Clock, Eye, ChevronUp, ChevronLeft, ChevronRight, Pause, Play, Users, MessageCircle, Trash2, Share2, MoreVertical, Download, Heart, Send, Search, Check, Smile, ThumbsUp, Laugh, Sparkles, Frown, Angry, MapPin, Navigation } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChat } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
@@ -578,6 +578,41 @@ const StatusViewer = ({ status, onClose, statuses: propStatuses }) => {
               >
                 &ldquo;{currentStatus.content}&rdquo;
               </h2>
+            </div>
+          )}
+          {currentStatus.type === 'location' && (
+            <div className="w-full h-full relative flex items-center justify-center bg-gradient-to-br from-teal-800 to-[#075e54]">
+              <div className="absolute inset-0">
+                {currentStatus?.locationData?.lat != null && currentStatus?.locationData?.lng != null ? (
+                  <img
+                    src={`https://static-maps.yandex.ru/1.x/?ll=${currentStatus.locationData.lng},${currentStatus.locationData.lat}&z=14&size=650,450&l=map&pt=${currentStatus.locationData.lng},${currentStatus.locationData.lat},pm2rdm`}
+                    alt="Location map"
+                    className="w-full h-full object-cover opacity-60"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-teal-900" />
+                )}
+              </div>
+              <div className="relative z-10 bg-black/60 backdrop-blur rounded-2xl px-8 py-6 mx-6 text-center">
+                <MapPin className="text-[#00a884] mx-auto mb-3" size={48} />
+                <h2 className="text-2xl font-bold text-white">
+                  {currentStatus?.locationData?.address || currentStatus?.content || 'Location'}
+                </h2>
+                {currentStatus?.locationData?.placeName && (
+                  <p className="text-white/70 text-sm mt-1">{currentStatus.locationData.placeName}</p>
+                )}
+                {currentStatus?.locationData?.lat != null && currentStatus?.locationData?.lng != null && (
+                  <a
+                    href={`https://www.google.com/maps?q=${currentStatus.locationData.lat},${currentStatus.locationData.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 inline-flex items-center gap-2 px-5 py-2 bg-[#00a884] rounded-full text-white text-sm font-medium"
+                  >
+                    <Navigation size={16} />
+                    Open in Maps
+                  </a>
+                )}
+              </div>
             </div>
           )}
         </motion.div>

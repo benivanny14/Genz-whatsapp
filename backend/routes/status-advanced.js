@@ -97,6 +97,16 @@ router.post('/:id/draft', statusAdvancedController.saveDraft);
 // Favorites (per-status)
 router.post('/:id/favorite', statusAdvancedController.favoriteStatus);
 
+// Share / Download / Save to collection
+router.post('/:id/share', statusAdvancedController.shareStatus);
+router.post('/:id/download', statusAdvancedController.downloadStatus);
+router.post('/:id/save', statusAdvancedController.saveToCollection);
+router.post('/:id/forward', statusAdvancedController.forwardStatus);
+
+// Mute / Block status users
+router.post('/:id/mute', statusAdvancedController.muteUserStatus);
+router.post('/:id/block', statusAdvancedController.blockUserStatus);
+
 // Insights
 router.get('/:id/insights', statusAdvancedController.getInsights);
 router.get('/:id/analytics', statusAdvancedController.getAnalytics);

@@ -93,6 +93,19 @@ const StatusInsightsPanel = ({ onClose, status }) => {
     { id: '90d', label: '90 Days' }
   ];
 
+  const ageData = Array.isArray(displayInsights?.demographics?.age)
+    ? displayInsights.demographics.age
+    : Object.entries(displayInsights?.demographics?.age || {}).map(([range, percentage]) => ({ range, percentage }));
+
+  const agePercentage = (range) => {
+    const match = ageData.find((a) => a.range === range);
+    return match ? Number(match.percentage) || 0 : 0;
+  };
+
+  const engagementViews = Array.isArray(displayInsights?.engagement?.views)
+    ? displayInsights.engagement.views
+    : [];
+
   return (
     <div className="fixed inset-0 z-[600] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-[#1a2e35] rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
@@ -167,7 +180,7 @@ const StatusInsightsPanel = ({ onClose, status }) => {
                 <Users className="text-yellow-400" size={18} />
                 <span className="text-white/60 text-xs">Engagement</span>
               </div>
-              <p className="text-white text-2xl font-bold">{displayInsights.engagementRate}%</p>
+              <p className="text-white text-2xl font-bold">{Math.round((Number(displayInsights.engagementRate) || 0) * 100)}%</p>
               <p className="text-green-400 text-xs flex items-center gap-1">
                 <TrendingUp size={12} />
                 +5.1%
@@ -203,28 +216,28 @@ const StatusInsightsPanel = ({ onClose, status }) => {
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="text-white/60">Age 18-24</span>
-                  <span className="text-white">{mockInsights.demographics.age['18-24']}%</span>
+                  <span className="text-white">{agePercentage('18-24')}%</span>
                 </div>
                 <div className="w-full bg-white/10 rounded-full h-2">
-                  <div className="bg-[#00a884] h-2 rounded-full" style={{ width: `${mockInsights.demographics.age['18-24']}%` }} />
+                  <div className="bg-[#00a884] h-2 rounded-full" style={{ width: `${agePercentage('18-24')}%` }} />
                 </div>
               </div>
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="text-white/60">Age 25-34</span>
-                  <span className="text-white">{mockInsights.demographics.age['25-34']}%</span>
+                  <span className="text-white">{agePercentage('25-34')}%</span>
                 </div>
                 <div className="w-full bg-white/10 rounded-full h-2">
-                  <div className="bg-[#00a884] h-2 rounded-full" style={{ width: `${mockInsights.demographics.age['25-34']}%` }} />
+                  <div className="bg-[#00a884] h-2 rounded-full" style={{ width: `${agePercentage('25-34')}%` }} />
                 </div>
               </div>
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="text-white/60">Age 35-44</span>
-                  <span className="text-white">{mockInsights.demographics.age['35-44']}%</span>
+                  <span className="text-white">{agePercentage('35-44')}%</span>
                 </div>
                 <div className="w-full bg-white/10 rounded-full h-2">
-                  <div className="bg-[#00a884] h-2 rounded-full" style={{ width: `${mockInsights.demographics.age['35-44']}%` }} />
+                  <div className="bg-[#00a884] h-2 rounded-full" style={{ width: `${agePercentage('35-44')}%` }} />
                 </div>
               </div>
             </div>
@@ -237,11 +250,11 @@ const StatusInsightsPanel = ({ onClose, status }) => {
               Engagement Trend
             </h3>
             <div className="flex items-end gap-2 h-32">
-              {mockInsights.engagement.views.map((value, index) => (
+              {engagementViews.map((value, index) => (
                 <div
                   key={index}
                   className="flex-1 bg-[#00a884]/50 hover:bg-[#00a884] rounded-t transition-colors"
-                  style={{ height: `${(value / 220) * 100}%` }}
+                  style={{ height: `${Math.min((Number(value) || 0) / 220, 1) * 100}%` }}
                 />
               ))}
             </div>

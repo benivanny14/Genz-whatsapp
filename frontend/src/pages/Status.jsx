@@ -1586,13 +1586,47 @@ const Status = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Location Address
                   </label>
-                  <input
-                    type="text"
-                    value={uploadData.locationData?.address || ''}
-                    onChange={(e) => setUploadData((prev) => ({ ...prev, locationData: { ...prev.locationData, address: e.target.value, lat: 0, lng: 0 } }))}
-                    placeholder="Enter location address"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={uploadData.locationData?.address || ''}
+                      onChange={(e) => setUploadData((prev) => ({ ...prev, locationData: { ...prev.locationData, address: e.target.value } }))}
+                      placeholder="Enter location address"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!navigator.geolocation) {
+                          setError('Geolocation is not supported by this browser');
+                          return;
+                        }
+                        navigator.geolocation.getCurrentPosition(
+                          (pos) => {
+                            setUploadData((prev) => ({
+                              ...prev,
+                              locationData: {
+                                ...prev.locationData,
+                                lat: pos.coords.latitude,
+                                lng: pos.coords.longitude
+                              }
+                            }));
+                            setError('');
+                          },
+                          (err) => setError(`Could not get location: ${err.message}`),
+                          { enableHighAccuracy: true, timeout: 10000 }
+                        );
+                      }}
+                      className="px-4 py-2 shrink-0 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                    >
+                      Use My Location
+                    </button>
+                  </div>
+                  {uploadData.locationData?.lat != null && uploadData.locationData?.lng != null && (
+                    <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                      Coordinates: {Number(uploadData.locationData.lat).toFixed(6)}, {Number(uploadData.locationData.lng).toFixed(6)}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -2024,7 +2058,9 @@ const Status = () => {
           <LocationTaggingPanel 
             onClose={() => { setShowLocationTagging(false); setSelectedStatusForPanel(null); }}
             status={selectedStatusForPanel}
-            onLocationAdd={(location) => console.log('Location added:', location)}
+            onLocationAdd={async () => {
+              try { await fetchStatuses(); } catch (e) { console.error('Failed to refresh statuses after adding location:', e); }
+            }}
           />
         )}
         {showStatusBackup && (
