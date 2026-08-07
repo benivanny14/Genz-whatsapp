@@ -47,6 +47,14 @@
     right: 0 !important;
     z-index: 50 !important;
   }
+}
+
+/* Safe area padding for mobile devices with notches/home indicators */
+@supports (padding: max(0px)) {
+  .pb-safe {
+    padding-bottom: max(env(safe-area-inset-bottom), 16px);
+  }
+}
 
   /* Add padding to messages container to account for fixed input bar */
   .flex-1.min-h-0.overflow-y-auto {
