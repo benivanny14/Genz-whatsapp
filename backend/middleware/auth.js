@@ -63,7 +63,7 @@ const protect = async (req, res, next) => {
 
     if (token) {
       try {
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
         if (decoded.typ === 'refresh') {
           console.error('[Auth] Access route received refresh token');
           return reject('Invalid token type');

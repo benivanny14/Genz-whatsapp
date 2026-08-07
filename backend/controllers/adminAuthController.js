@@ -84,7 +84,7 @@ const loginStep2 = async (req, res) => {
 
     let payload;
     try {
-      payload = jwt.verify(preAuthToken, ADMIN_JWT_SECRET);
+      payload = jwt.verify(preAuthToken, ADMIN_JWT_SECRET, { algorithms: ['HS256'] });
     } catch (err) {
       return res.status(401).json({ success: false, error: 'Pre-auth session expired, please log in again' });
     }

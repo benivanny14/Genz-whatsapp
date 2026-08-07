@@ -353,7 +353,12 @@ exports.getFileInfo = async (req, res) => {
 exports.generateSignedUrl = async (req, res) => {
   try {
     const { publicId } = req.params;
-    const { expiresIn = 3600 } = req.query;
+    // Cap the requested expiry so a caller cannot mint long-lived signed URLs.
+    const MAX_EXPIRY_S = 24 * 60 * 60; // 24h
+    const requestedExpiry = parseInt(req.query.expiresIn, 10);
+    const expiresIn = Number.isFinite(requestedExpiry) && requestedExpiry > 0
+      ? Math.min(requestedExpiry, MAX_EXPIRY_S)
+      : 3600;
 
     if (!publicId) {
       return res.status(400).json({ 
@@ -364,20 +369,20 @@ exports.generateSignedUrl = async (req, res) => {
 
     if (!isCloudinaryConfigured()) {
       const relative = publicId.includes('/') ? publicId : publicId;
-      const signedPath = buildSignedUploadPath(relative, parseInt(expiresIn, 10) || 3600);
+      const signedPath = buildSignedUploadPath(relative, expiresIn);
       return res.status(200).json({
         success: true,
         signedUrl: signLocalUrlIfNeeded(`${getPublicBaseUrl(req)}${signedPath}`, getPublicBaseUrl(req)),
-        expiresIn: parseInt(expiresIn, 10) || 3600
+        expiresIn
       });
     }
 
-    const signedUrl = await generateSignedUrl(publicId, parseInt(expiresIn));
+    const signedUrl = await generateSignedUrl(publicId, expiresIn);
 
     res.status(200).json({
       success: true,
       signedUrl,
-      expiresIn: parseInt(expiresIn)
+      expiresIn
     });
   } catch (error) {
     console.error('[MediaController] Signed URL error:', error);

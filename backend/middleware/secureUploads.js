@@ -23,7 +23,7 @@ const verifyJwtAccess = async (req) => {
   if (!token) return false;
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
     if (decoded.typ === 'refresh') return false;
     const user = await User.findById(decoded.id).select('_id isBlocked');
     if (!user || user.isBlocked) return false;

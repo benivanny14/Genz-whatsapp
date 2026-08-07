@@ -54,7 +54,7 @@ exports.register = async (req, res) => {
   try {
     const { username, phoneNumber, password } = req.body;
 
-    console.log('[Auth] Registration attempt:', { username, phoneNumber });
+    console.log('[Auth] Registration attempt:', { hasUsername: Boolean(username), hasPhone: Boolean(phoneNumber) });
 
     if (!username || !password || !phoneNumber) {
       console.warn('[Auth] Registration failed: Missing required fields');
@@ -147,7 +147,11 @@ exports.login = async (req, res) => {
     const { identifier, phoneNumber, username, password, twoFactorToken } = req.body;
     const loginId = identifier || phoneNumber || username;
 
-    console.log('[Auth] Login attempt:', { loginId });
+    const hasLoginId = Boolean(loginId);
+    const loginIdHint = typeof loginId === 'string'
+      ? loginId.slice(0, 3) + '***'
+      : hasLoginId ? '***' : '';
+    console.log('[Auth] Login attempt:', { loginIdHint });
 
     if (!loginId || !password) {
       console.warn('[Auth] Login failed: Missing credentials');
@@ -186,7 +190,7 @@ exports.login = async (req, res) => {
     const INVALID_CREDS_MSG = 'Invalid login credentials';
 
     if (!user) {
-      console.warn('[Auth] Login failed: User not found', { loginId });
+      console.warn('[Auth] Login failed: User not found', { hasLoginId: Boolean(loginId) });
       return res.status(401).json({ success: false, message: INVALID_CREDS_MSG });
     }
 
@@ -562,7 +566,7 @@ exports.refreshToken = async (req, res) => {
 
     let decoded;
     try {
-      decoded = jwt.verify(presentedToken, JWT_REFRESH_SECRET);
+      decoded = jwt.verify(presentedToken, JWT_REFRESH_SECRET, { algorithms: ['HS256'] });
     } catch (e) {
       console.error('[Auth] Refresh JWT invalid or expired:', { message: e.message });
       return res.status(401).json({

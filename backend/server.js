@@ -980,7 +980,7 @@ io.use(async (socket, next) => {
     }
 
     try {
-      const decoded = jwt.verify(token, JWT_SECRET);
+      const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
       if (decoded.typ === 'refresh') {
         return next(new Error('Invalid token type for socket'));
       }
