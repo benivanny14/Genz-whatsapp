@@ -9,6 +9,7 @@ import MassSenderModal from './MassSenderModal';
 import ProfileEditor from './ProfileEditor';
 import StoryHighlights from './StoryHighlights';
 import ArchiveChats from './ArchiveChats';
+import StatusList from './StatusList';
 import { AnimatePresence } from 'framer-motion';
 import { decryptMessage } from '../utils/formatDate';
 import { isClientE2EEMessageContent } from '../utils/e2eeContent';
@@ -1334,12 +1335,8 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
         )}
 
         {isOpen && activeTab === 'status' && (
-          <div className="p-4">
-            <div className="text-center text-dark-textSecondary text-sm mb-4">
-              <CircleDot size={48} className="mx-auto mb-2 text-primary-500" />
-              <p>Status feature coming soon</p>
-              <p className="text-xs mt-1">View and share status updates</p>
-            </div>
+          <div className="h-full">
+            <StatusList />
           </div>
         )}
 
