@@ -64,25 +64,23 @@ exports.register = async (req, res) => {
       });
     }
 
-    if (password.length < 8) {
+    if (password.length < 6) {
       console.warn('[Auth] Registration failed: Password too short');
       return res.status(400).json({
         success: false,
-        message: 'Password must be at least 8 characters long'
+        message: 'Password must be at least 6 characters long'
       });
     }
 
-    // Enforce strong password policy
+    // Optional: Warn about weak password but allow registration
     const hasUppercase = /[A-Z]/.test(password);
     const hasLowercase = /[a-z]/.test(password);
     const hasDigit = /[0-9]/.test(password);
     const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
 
     if (!hasUppercase || !hasLowercase || !hasDigit || !hasSpecial) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password must include uppercase, lowercase, number, and special character'
-      });
+      console.warn('[Auth] Registration: Weak password accepted', { userId: username });
+      // Allow registration but could add warning in response
     }
 
     const existingUser = await User.findOne({
