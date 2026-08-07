@@ -23,6 +23,7 @@ import ReportDialog from './ReportDialog';
 import VoiceWaveform from './VoiceWaveform';
 import VoiceMessageBubble from './VoiceMessageBubble';
 import VoiceRecorder from './VoiceRecorder';
+import DocumentMessage from './DocumentMessage';
 import AudioPlayer from './AudioPlayer';
 import LiveReactions from './LiveReactions';
 import MediaPickerPanel from './MediaPickerPanel';
@@ -2728,15 +2729,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       </div>
                     )}
                     {message.messageType === 'file' && (
-                      <a
-                        href={message.mediaUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 underline"
-                      >
-                        <Paperclip className="w-4 h-4" />
-                        {typeof message.fileName === 'string' ? message.fileName : 'File'}
-                      </a>
+                      <DocumentMessage
+                        fileName={message.fileName || 'File'}
+                        fileSize={message.fileSize}
+                        fileUrl={message.mediaUrl}
+                        messageType={message.messageType}
+                      />
                     )}
                     {message.messageType === 'poll' && message.poll && (
                       <div className="mb-2 min-w-[250px] bg-dark-bg/20 p-3 rounded-xl border border-dark-border/50">
