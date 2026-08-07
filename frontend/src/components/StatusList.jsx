@@ -17,10 +17,10 @@ const StatusList = () => {
   }, [getStatuses]);
 
   useEffect(() => {
-    if (statuses && user) {
+    if (statuses && user && Array.isArray(statuses)) {
       // Group statuses by user
       const grouped = {};
-      
+
       statuses.forEach(status => {
         const userId = String(status.user._id || status.user);
         if (!grouped[userId]) {
@@ -39,6 +39,8 @@ const StatusList = () => {
       // Sort by last updated
       const sorted = Object.values(grouped).sort((a, b) => b.lastUpdated - a.lastUpdated);
       setGroupedStatuses(sorted);
+    } else {
+      setGroupedStatuses([]);
     }
   }, [statuses, user]);
 
