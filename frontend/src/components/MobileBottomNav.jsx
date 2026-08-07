@@ -1,11 +1,10 @@
-import { MessageCircle, Newspaper, Sparkles, UsersRound, CircleDot } from 'lucide-react';
+import { MessageCircle, Sparkles, UsersRound, CircleDot } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useChat } from '../context/ChatContext';
 
 const NAV_ITEMS = [
   { label: 'Chats', path: '/chat', icon: MessageCircle, match: (path) => path === '/' || path.startsWith('/chat') },
   { label: 'Status', path: '/status', icon: CircleDot, match: (path) => path.startsWith('/status') },
-  { label: 'Updates', path: '/updates', icon: Newspaper, match: (path) => path.startsWith('/updates') || path.startsWith('/channels') },
   { label: 'Communities', path: '/communities', icon: UsersRound, match: (path) => path.startsWith('/communities') },
   { label: 'Me', path: '/settings', icon: Sparkles, match: (path) => path.startsWith('/settings') || path.startsWith('/genz-mods') || path.startsWith('/linked-devices') },
 ];

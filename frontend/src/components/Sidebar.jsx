@@ -9,7 +9,6 @@ import MassSenderModal from './MassSenderModal';
 import ProfileEditor from './ProfileEditor';
 import StoryHighlights from './StoryHighlights';
 import ArchiveChats from './ArchiveChats';
-import StatusList from './StatusList';
 import { AnimatePresence } from 'framer-motion';
 import { decryptMessage } from '../utils/formatDate';
 import { isClientE2EEMessageContent } from '../utils/e2eeContent';
@@ -1320,23 +1319,11 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
               Chats
             </button>
             <button
-              onClick={() => setActiveTab('status')}
-              className={`w-full py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'status' ? 'bg-primary-600 text-white shadow-lg' : 'text-dark-textSecondary hover:text-dark-text'}`}
-            >
-              Status
-            </button>
-            <button
               onClick={() => setActiveTab('visitors')}
               className={`w-full py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'visitors' ? 'bg-primary-600 text-white shadow-lg' : 'text-dark-textSecondary hover:text-dark-text'}`}
             >
               Visitors
             </button>
-          </div>
-        )}
-
-        {isOpen && activeTab === 'status' && (
-          <div className="h-full">
-            <StatusList />
           </div>
         )}
 
