@@ -52,7 +52,8 @@ import {
   Mic,
   Upload,
   Download,
-  Clock
+  Clock,
+  CircleDot
 } from 'lucide-react';
 import ProfileEnlarger from './ProfileEnlarger';
 import AccountSwitcher from './AccountSwitcher';
@@ -1305,11 +1306,27 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
               Chats
             </button>
             <button
+              onClick={() => setActiveTab('status')}
+              className={`w-full py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'status' ? 'bg-primary-600 text-white shadow-lg' : 'text-dark-textSecondary hover:text-dark-text'}`}
+            >
+              Status
+            </button>
+            <button
               onClick={() => setActiveTab('visitors')}
               className={`w-full py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'visitors' ? 'bg-primary-600 text-white shadow-lg' : 'text-dark-textSecondary hover:text-dark-text'}`}
             >
               Visitors
             </button>
+          </div>
+        )}
+
+        {isOpen && activeTab === 'status' && (
+          <div className="p-4">
+            <div className="text-center text-dark-textSecondary text-sm mb-4">
+              <CircleDot size={48} className="mx-auto mb-2 text-primary-500" />
+              <p>Status feature coming soon</p>
+              <p className="text-xs mt-1">View and share status updates</p>
+            </div>
           </div>
         )}
 
