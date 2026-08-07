@@ -53,7 +53,12 @@ const Register = () => {
       const data = await register({ phoneNumber: form.phoneNumber, username: form.username, password: form.password });
 
       if (data?.success !== false && data?.token) {
-        navigate('/chat', { replace: true });
+        // Redirect to phone verification if phone is not verified
+        if (data?.phoneVerified === false) {
+          navigate(`/verify-phone?phone=${form.phoneNumber}`, { replace: true });
+        } else {
+          navigate('/chat', { replace: true });
+        }
       } else {
         setError(data?.message || 'Registration failed');
       }

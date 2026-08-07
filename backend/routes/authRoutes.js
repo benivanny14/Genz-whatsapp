@@ -32,7 +32,9 @@ const {
    getPasskeys,
   deletePasskey,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  verifyPhoneOTP,
+  resendPhoneOTP
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 const { uploadImage } = require('../middleware/upload');
@@ -88,5 +90,9 @@ router.delete('/passkey/:id', protect, deletePasskey);
 // Password reset (forgot password) — rate-limited, no auth required.
 router.post('/forgot-password', authSensitiveLimiter, forgotPassword);
 router.post('/reset-password', authSensitiveLimiter, resetPassword);
+
+// Phone verification — rate-limited, no auth required.
+router.post('/verify-phone-otp', authSensitiveLimiter, verifyPhoneOTP);
+router.post('/resend-phone-otp', authSensitiveLimiter, resendPhoneOTP);
 
 module.exports = router;

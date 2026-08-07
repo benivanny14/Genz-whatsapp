@@ -103,10 +103,19 @@ exports.register = async (req, res) => {
     const user = new User({
       username: username.trim(),
       phoneNumber: normalizePhone(phoneNumber),
-      status: 'offline'
+      status: 'offline',
+      phoneVerified: false
     });
 
     await user.setPassword(password);
+    await user.save();
+
+    // Generate phone verification OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    user.phoneVerificationOTP = otp;
+    user.phoneVerificationOTPExpiry = expiry;
     await user.save();
 
     const deviceId = getRequestDeviceId(req);
@@ -123,7 +132,9 @@ exports.register = async (req, res) => {
       success: true,
       token,
       refreshToken,
-      user: safeUser(user)
+      user: safeUser(user),
+      phoneVerified: false,
+      ...(process.env.NODE_ENV !== 'production' ? { phoneVerificationOTP: otp } : {})
     });
   } catch (error) {
     console.error('[Auth] Registration error:', error.message);
@@ -1415,6 +1426,84 @@ exports.resetPassword = async (req, res) => {
     res.status(200).json({ success: true, message: 'Password has been reset successfully' });
   } catch (error) {
     console.error('Reset password error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.verifyPhoneOTP = async (req, res) => {
+  try {
+    const { phoneNumber, otp } = req.body;
+    if (!phoneNumber || !otp) {
+      return res.status(400).json({ success: false, message: 'Phone number and OTP are required' });
+    }
+
+    const normalized = normalizePhone(phoneNumber);
+    const user = await User.findOne({ phoneNumber: normalized });
+
+    if (!user || !user.phoneVerificationOTP || !user.phoneVerificationOTPExpiry) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+    }
+
+    const now = new Date();
+    if (now > user.phoneVerificationOTPExpiry) {
+      user.phoneVerificationOTP = null;
+      user.phoneVerificationOTPExpiry = null;
+      await user.save();
+      return res.status(400).json({ success: false, message: 'OTP has expired, please request a new one' });
+    }
+
+    if (!crypto.timingSafeEqual(Buffer.from(String(user.phoneVerificationOTP)), Buffer.from(String(otp)))) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP' });
+    }
+
+    user.phoneVerified = true;
+    user.phoneVerificationOTP = null;
+    user.phoneVerificationOTPExpiry = null;
+    await user.save();
+
+    res.status(200).json({ success: true, message: 'Phone number verified successfully' });
+  } catch (error) {
+    console.error('Verify phone OTP error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.resendPhoneOTP = async (req, res) => {
+  try {
+    const { phoneNumber } = req.body;
+    if (!phoneNumber) {
+      return res.status(400).json({ success: false, message: 'Phone number is required' });
+    }
+
+    const normalized = normalizePhone(phoneNumber);
+    const user = await User.findOne({ phoneNumber: normalized });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.phoneVerified) {
+      return res.status(400).json({ success: false, message: 'Phone number already verified' });
+    }
+
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    user.phoneVerificationOTP = otp;
+    user.phoneVerificationOTPExpiry = expiry;
+    await user.save();
+
+    if (process.env.NODE_ENV !== 'production') {
+      return res.status(200).json({
+        success: true,
+        message: 'OTP sent successfully',
+        otp // dev/test only
+      });
+    }
+
+    res.status(200).json({ success: true, message: 'OTP sent successfully' });
+  } catch (error) {
+    console.error('Resend phone OTP error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

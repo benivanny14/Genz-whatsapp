@@ -79,6 +79,12 @@ const protect = async (req, res, next) => {
           return reject('User not authorized');
         }
 
+        // Check if phone number is verified
+        if (!user.phoneVerified) {
+          console.error('[Auth] Phone number not verified:', { userId: user._id });
+          return reject('Phone number not verified. Please verify your phone number to continue.');
+        }
+
         // Tokens issued before a password change must be rejected, otherwise a
         // stolen token keeps working after the user resets their password.
         // Small tolerance (30s) absorbs clock-skew / iat second-truncation.

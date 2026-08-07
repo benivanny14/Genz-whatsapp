@@ -48,6 +48,18 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  phoneVerified: {
+    type: Boolean,
+    default: false
+  },
+  phoneVerificationOTP: {
+    type: String,
+    default: null
+  },
+  phoneVerificationOTPExpiry: {
+    type: Date,
+    default: null
+  },
   twoFactorSecret: {
     type: String,
     default: null
