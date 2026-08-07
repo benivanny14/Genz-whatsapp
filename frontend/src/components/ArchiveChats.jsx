@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Archive, ArchiveRestore, X, Search, Filter, MoreVertical, Trash2, Pin, Unpin } from 'lucide-react';
+import { Archive, ArchiveRestore, X, Search, Filter, MoreVertical, Trash2, Pin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const ArchiveChats = ({ chats, onArchive, onUnarchive, onPin, onUnpin, onDelete, onClose }) => {
