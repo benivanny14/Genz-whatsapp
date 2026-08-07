@@ -34,6 +34,7 @@ const {
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 const { uploadImage } = require('../middleware/upload');
+const { validateFileContent } = require('../middleware/fileValidation');
 const { privacyMiddleware } = require('../middleware/privacy');
 const {
   registerValidators,
@@ -51,7 +52,7 @@ router.post('/login', authSensitiveLimiter, loginValidators, login);
 router.post('/refresh', authSensitiveLimiter, refreshToken);
 router.get('/me', protect, privacyMiddleware, getMe);
 router.put('/profile', protect, updateProfile);
-router.post('/profile/picture', protect, uploadImage, uploadProfilePicture);
+router.post('/profile/picture', protect, uploadImage, validateFileContent, uploadProfilePicture);
 router.get('/settings', protect, getSettings);
 router.put('/settings', protect, updateSettings);
 router.get('/blocked', protect, privacyMiddleware, getBlockedUsers);

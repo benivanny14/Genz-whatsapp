@@ -86,7 +86,7 @@ exports.getStatuses = async (req, res) => {
     const statuses = await Status.find({
       expiresAt: { $gt: new Date() }
     })
-    .populate('user', 'username profilePicture settings contacts')
+    .populate('user', 'username profilePicture contacts')
     .populate('views.user', 'username profilePicture')
     .populate('reactions.user', 'username profilePicture')
     .sort({ createdAt: -1 });
@@ -134,6 +134,20 @@ exports.getStatuses = async (req, res) => {
     const myStatuses = filtered.filter(s => String(s.user._id) === String(userId));
     const othersStatuses = filtered.filter(s => String(s.user._id) !== String(userId));
 
+    // Safisha siri za user zisirudi kwa client (contacts/settings zilihitajika
+    // tu kwa privacy checks za server-side).
+    const stripUserSecrets = (statuses) => {
+      statuses.forEach(s => {
+        if (s.user && typeof s.user === 'object') {
+          delete s.user.contacts;
+          delete s.user.settings;
+          delete s.user.encryptionKeys;
+          delete s.user.publicKey;
+        }
+      });
+      return statuses;
+    };
+
     // Panga kwa user - kila user awe na array ya statuses zake
     const grouped = {};
     othersStatuses.forEach(s => {
@@ -143,6 +157,9 @@ exports.getStatuses = async (req, res) => {
       const viewed = s.views.some(v => String(v.user._id) === String(userId));
       if (!viewed) grouped[uid].hasUnviewed = true;
     });
+
+    stripUserSecrets(myStatuses);
+    Object.values(grouped).forEach(g => stripUserSecrets(g.statuses));
 
     res.json({
       success: true,

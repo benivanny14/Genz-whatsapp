@@ -308,7 +308,12 @@ messageSchema.index({ isStarred: 1 });
 messageSchema.index({ deletedForEveryone: 1 });
 messageSchema.index({ 'mentions.user': 1, createdAt: -1 });
 // Deduplication: clientMessageId prevents the same message being saved twice on reconnect
-messageSchema.index({ clientMessageId: 1 }, { unique: true, sparse: true });
+// Compound unique (sender+conversation) stops attackers reserving another user's clientMessageId,
+// and the partial filter excludes empty strings so messages sent without an id never collide.
+messageSchema.index(
+  { sender: 1, conversationId: 1, clientMessageId: 1 },
+  { unique: true, partialFilterExpression: { clientMessageId: { $type: 'string', $ne: '' } } }
+);
 // Speed up "unread in this conversation for this user" queries
 messageSchema.index({ conversationId: 1, 'readBy.user': 1 });
 // TTL index for disappearing messages - MongoDB will delete documents when disappearAt is reached

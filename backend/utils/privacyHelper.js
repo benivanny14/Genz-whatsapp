@@ -91,6 +91,15 @@ const applyPrivacyFilter = async (user, requesterId) => {
     delete filteredUser.bio;
   }
 
+  // PII: contacts (address book) na settings (blockedUsers, appLock, defaultMessageTimer,
+  // privacy config, n.k.) SIZI za kuonekana na watu wengine — hata kama wako kwenye conversation.
+  delete filteredUser.contacts;
+  delete filteredUser.settings;
+
+  // E2EE/public-key material haipaswi kuonekana na watu wengine
+  delete filteredUser.encryptionKeys;
+  delete filteredUser.publicKey;
+
   return filteredUser;
 };
 

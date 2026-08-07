@@ -9,8 +9,8 @@ const FileType = require('file-type');
  * to prevent attackers from disguising malicious files (e.g., .exe, .php)
  * as innocent-looking images or documents.
  * 
- * This runs AFTER multer has saved the file to disk but BEFORE
- * the file is processed or served to other users.
+ * Handles both single (req.file) and multiple (req.files) uploads.
+ * Runs AFTER multer has saved the file but BEFORE it is served to users.
  */
 
 // Allowed MIME types mapped to categories
@@ -75,135 +75,159 @@ const DANGEROUS_EXTENSIONS = new Set([
   '.psm1', '.psd1', '.sh', '.bash', '.csh', '.ksh',
   '.php', '.php3', '.php4', '.php5', '.phtml', '.asp',
   '.aspx', '.jsp', '.py', '.rb', '.pl', '.cgi', '.htaccess',
-  '.dll', '.sys', '.drv', '.inf', '.reg'
+  '.dll', '.sys', '.drv', '.inf', '.reg', '.svg', '.html', '.htm'
 ]);
 
+// Extensions that may safely pair with a detected MIME even when the
+// claimed MIME is absent or unreliable.
+const TEXT_EXTENSIONS = new Set(['.txt', '.csv', '.json']);
+
 /**
- * Validate a file's actual content against its claimed type.
- * Removes the file from disk if it fails validation.
- * 
- * @param {Object} req - Express request object with req.file from multer
- * @param {Object} res - Express response object
- * @param {Function} next - Express next middleware
+ * Check a file's original name against the dangerous extension blocklist.
+ * @param {Object} file - Multer file object
+ * @returns {string|null} Rejection reason or null if safe
+ */
+const checkDangerousExtension = (file) => {
+  const ext = path.extname(file.originalname || '').toLowerCase();
+  if (DANGEROUS_EXTENSIONS.has(ext)) {
+    return `File type "${ext}" is not allowed for security reasons`;
+  }
+  return null;
+};
+
+/**
+ * Validate a single file's content (magic bytes when bytes are available,
+ * otherwise extension + claimed MIME allowlist for remote/Cloudinary files).
+ * @param {Object} file - Multer file object
+ * @returns {Promise<{ valid: boolean, error?: string }>}
+ */
+const validateSingleFile = async (file) => {
+  const extReason = checkDangerousExtension(file);
+  if (extReason) {
+    safeRemove(file.path);
+    return { valid: false, error: extReason };
+  }
+
+  const claimedMime = (file.mimetype || '').toLowerCase();
+  const hasBytes = Buffer.isBuffer(file.buffer) && file.buffer.length > 0;
+
+  // Local upload: bytes are on disk -> full magic-byte verification.
+  const localPath = file.path && !/^https?:\/\//i.test(file.path) && fs.existsSync(file.path)
+    ? file.path
+    : null;
+
+  let buffer = null;
+  if (hasBytes) {
+    buffer = file.buffer;
+  } else if (localPath) {
+    try {
+      buffer = fs.readFileSync(localPath);
+    } catch {
+      safeRemove(localPath);
+      return { valid: false, error: 'Unable to read uploaded file' };
+    }
+  }
+
+  if (buffer) {
+    let detectedType = null;
+    try {
+      detectedType = await FileType.fromBuffer(buffer);
+    } catch {
+      detectedType = null;
+    }
+
+    // Text-based formats produce no magic bytes -> scan content, allow safe text.
+    if (!detectedType) {
+      const ext = path.extname(file.originalname || '').toLowerCase();
+      const isTextBased = claimedMime.startsWith('text/') || claimedMime === 'application/json' || TEXT_EXTENSIONS.has(ext);
+      if (isTextBased) {
+        const textContent = buffer.toString('utf8', 0, Math.min(buffer.length, 8192));
+        if (/<\?php/i.test(textContent) || /<script/i.test(textContent) || /<svg/i.test(textContent)) {
+          safeRemove(localPath);
+          return { valid: false, error: 'File contains potentially malicious content' };
+        }
+        file.verifiedMime = claimedMime;
+        return { valid: true };
+      }
+
+      const mimePrefixOk = claimedMime.startsWith('audio/') || claimedMime.startsWith('image/') || claimedMime.startsWith('video/');
+      if (mimePrefixOk) {
+        // Some media (webm audio/video, some WAVs) lack reliable magic bytes.
+        file.verifiedMime = claimedMime;
+        return { valid: true };
+      }
+
+      safeRemove(localPath);
+      return { valid: false, error: 'Unable to verify file type. Upload rejected.' };
+    }
+
+    // Special-case: some WAV files are detected as 'audio/vnd.wave' or similar.
+    if (detectedType.ext === 'wav') {
+      file.verifiedMime = 'audio/wav';
+      file.verifiedExt = 'wav';
+      return { valid: true };
+    }
+
+    const mimeBase = (detectedType.mime || '').split(';')[0].trim();
+    if (!ALL_ALLOWED.has(detectedType.mime) && !ALL_ALLOWED.has(mimeBase)) {
+      safeRemove(localPath);
+      return { valid: false, error: `Detected file type "${detectedType.mime}" is not allowed` };
+    }
+
+    file.verifiedMime = detectedType.mime;
+    file.verifiedExt = detectedType.ext;
+    return { valid: true };
+  }
+
+  // Remote/Cloudinary upload (no local bytes): enforce extension blocklist
+  // and claimed-MIME allowlist. Also guard against claim/extension mismatch.
+  const ext = path.extname(file.originalname || '').toLowerCase();
+  if (!claimedMime || !ALL_ALLOWED.has(claimedMime)) {
+    safeRemove(localPath);
+    return { valid: false, error: 'Unable to verify file type. Upload rejected.' };
+  }
+
+  const mimeBase = claimedMime.split(';')[0].trim();
+  if (!ALL_ALLOWED.has(claimedMime) && !ALL_ALLOWED.has(mimeBase)) {
+    safeRemove(localPath);
+    return { valid: false, error: `Detected file type "${claimedMime}" is not allowed` };
+  }
+
+  // Text claimed but dangerous ext -> reject.
+  if ((claimedMime.startsWith('text/') || claimedMime === 'application/json') && DANGEROUS_EXTENSIONS.has(ext)) {
+    safeRemove(localPath);
+    return { valid: false, error: `File type "${ext}" is not allowed for security reasons` };
+  }
+
+  file.verifiedMime = claimedMime;
+  return { valid: true };
+};
+
+/**
+ * Validate uploaded files: single (req.file) or multiple (req.files).
+ * Removes rejected files from disk.
  */
 const validateFileContent = async (req, res, next) => {
-  if (!req.file) {
+  const files = [];
+  if (req.file) files.push(req.file);
+  if (Array.isArray(req.files) && req.files.length) files.push(...req.files);
+
+  if (files.length === 0) {
     console.log('[Security] No file to validate');
     return next();
   }
 
-  const filePath = req.file.path;
-  console.log('[Security] File path:', filePath);
-  console.log('[Security] File exists:', fs.existsSync(filePath));
-
-  // Skip validation if file was uploaded to Cloudinary (no local path)
-  if (!filePath || !fs.existsSync(filePath)) {
-    console.log('[Security] Skipping file content validation for Cloudinary upload');
-    return next();
+  for (const file of files) {
+    const result = await validateSingleFile(file);
+    if (!result.valid) {
+      return res.status(400).json({
+        success: false,
+        message: result.error
+      });
+    }
   }
 
-  try {
-    // 1. Check extension against blocklist
-    const ext = path.extname(req.file.originalname || '').toLowerCase();
-    console.log('[Security] File extension:', ext);
-    if (DANGEROUS_EXTENSIONS.has(ext)) {
-      safeRemove(filePath);
-      return res.status(400).json({
-        success: false,
-        message: `File type "${ext}" is not allowed for security reasons`
-      });
-    }
-
-    // 2. Read magic bytes and determine real file type
-    const fileBuffer = fs.readFileSync(filePath);
-    const detectedType = await FileType.fromBuffer(fileBuffer);
-    console.log('[Security] Detected file type:', detectedType);
-
-    // For text-based files (txt, csv, svg), file-type returns undefined.
-    // Allow them only if the claimed MIME starts with text/ or is a known doc type.
-    if (!detectedType) {
-      const claimedMime = (req.file.mimetype || '').toLowerCase();
-      console.log('[Security] Claimed MIME:', claimedMime);
-      const isTextBased = claimedMime.startsWith('text/') || claimedMime === 'application/json';
-      const isAudio = claimedMime.startsWith('audio/') || claimedMime.startsWith('video/webm');
-      const isImage = claimedMime.startsWith('image/');
-      const isVideo = claimedMime.startsWith('video/');
-
-      if (isTextBased) {
-        // Scan for suspicious embedded content (PHP tags, script tags)
-        const textContent = fileBuffer.toString('utf8', 0, Math.min(fileBuffer.length, 8192));
-        if (/<\?php/i.test(textContent) || /<script/i.test(textContent)) {
-          safeRemove(filePath);
-          return res.status(400).json({
-            success: false,
-            message: 'File contains potentially malicious content'
-          });
-        }
-        return next();
-      }
-
-      // Allow audio/video/image files even if file-type can't detect them
-      // (some formats like webm audio may not have recognizable magic bytes)
-      if (isAudio || isImage || isVideo) {
-        console.log('[Security] Allowing media file with claimed MIME:', claimedMime);
-        return next();
-      }
-
-      // Unknown binary without magic bytes — reject
-      safeRemove(filePath);
-      return res.status(400).json({
-        success: false,
-        message: 'Unable to verify file type. Upload rejected.'
-      });
-    }
-
-    // 3. Verify detected MIME is in our allowlist
-    console.log('[Security] Detected MIME:', detectedType.mime);
-    console.log('[Security] Allowed MIMEs:', JSON.stringify(Array.from(ALL_ALLOWED)));
-    console.log('[Security] Allowed HAS detected?', ALL_ALLOWED.has(detectedType.mime));
-    // Defensive: also check charset/params-less version (e.g. audio/webm;codecs=opus)
-    const mimeBase = (detectedType.mime || '').split(';')[0].trim();
-    console.log('[Security] Detected MIME base:', mimeBase);
-    // Write persistent validation info to a logfile for debugging requests
-    try {
-      const logDir = path.join(__dirname, '..', 'logs');
-      if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
-      const out = `[${new Date().toISOString()}] file:${path.basename(filePath)} detected:${detectedType.mime} base:${mimeBase} allowed:${ALL_ALLOWED.has(detectedType.mime)} ext:${detectedType.ext}\n`;
-      fs.appendFileSync(path.join(logDir, 'file_validation.log'), out);
-    } catch (e) {
-      console.error('[Security] Failed writing validation log:', e.message);
-    }
-    // Special-case: some WAV files are detected as 'audio/vnd.wave' or similar
-    // Accept by extension if file-type reports a WAV ext to avoid rejecting
-    // common browser-recorded WAV variants.
-    if (detectedType.ext === 'wav') {
-      console.log('[Security] WAV detected by extension; accepting as audio');
-      req.file.verifiedMime = 'audio/wav';
-      req.file.verifiedExt = 'wav';
-      return next();
-    }
-
-    if (!ALL_ALLOWED.has(detectedType.mime) && !ALL_ALLOWED.has(mimeBase)) {
-      safeRemove(filePath);
-      return res.status(400).json({
-        success: false,
-        message: `Detected file type "${detectedType.mime}" is not allowed`
-      });
-    }
-
-    // 4. Attach the verified type info for downstream handlers
-    req.file.verifiedMime = detectedType.mime;
-    req.file.verifiedExt = detectedType.ext;
-
-    return next();
-  } catch (error) {
-    console.error('[Security] File validation error:', error.message);
-    safeRemove(filePath);
-    return res.status(500).json({
-      success: false,
-      message: 'File validation failed'
-    });
-  }
+  return next();
 };
 
 /**
@@ -211,7 +235,7 @@ const validateFileContent = async (req, res, next) => {
  */
 function safeRemove(filePath) {
   try {
-    if (filePath && fs.existsSync(filePath)) {
+    if (filePath && !/^https?:\/\//i.test(filePath) && fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
   } catch (e) {

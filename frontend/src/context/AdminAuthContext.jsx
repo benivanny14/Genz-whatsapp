@@ -34,17 +34,12 @@ export const AdminAuthProvider = ({ children }) => {
   const loginStep1 = useCallback(async (username, password) => {
     const { data } = await adminAuthClient.post('/login', { username, password });
     if (data.requiresTwoFactor) {
-      // For owner access in this local/dev setup, skip the 2FA challenge so the
-      // admin dashboard opens immediately after valid username/password input.
-      setPendingPreAuthToken(null);
-      adminTokenStore.setAccessToken(data.accessToken);
-      if (data.refreshToken) {
-        adminTokenStore.setRefreshToken(data.refreshToken);
-      }
+      // Owner 2FA is enforced: hold the short-lived pre-auth token and wait
+      // for the TOTP code before issuing any real admin session.
+      setPendingPreAuthToken(data.preAuthToken || null);
       setAdmin(data.admin || null);
-      setIsAuthenticated(true);
       setHasBootstrappedSession(true);
-      return { requiresTwoFactor: false };
+      return { requiresTwoFactor: true, preAuthToken: data.preAuthToken };
     }
     adminTokenStore.setAccessToken(data.accessToken);
     if (data.refreshToken) {

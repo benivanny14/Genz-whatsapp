@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+﻿const mongoose = require("mongoose");
 const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
 const User = require("../models/User");
@@ -93,7 +93,7 @@ const invalidateCachePattern = async (req, pattern) => {
   try {
     const keys = await redisClient.keys(pattern);
     if (!keys.length) return;
-    // Delete in batches — passing a huge array to del() can exceed the call stack
+    // Delete in batches â€” passing a huge array to del() can exceed the call stack
     const BATCH = 500;
     for (let i = 0; i < keys.length; i += BATCH) {
       await redisClient.del(keys.slice(i, i + BATCH));
@@ -102,8 +102,8 @@ const invalidateCachePattern = async (req, pattern) => {
 };
 
 // Persist a group "system" notice (e.g. "Juma was added", "Asha left the
-// group", "Group name changed") as a real Message document — exactly like
-// WhatsApp does — so it survives refresh and shows up in chat history,
+// group", "Group name changed") as a real Message document â€” exactly like
+// WhatsApp does â€” so it survives refresh and shows up in chat history,
 // instead of only firing an ephemeral socket event that disappears if
 // nobody currently has the chat open.
 const createSystemMessage = async (req, conversation, actorId, text) => {
@@ -217,7 +217,7 @@ const populateConversation = (query) =>
   query
     .populate(
       "participants",
-      "username phoneNumber profilePicture isOnline lastSeen about settings contacts",
+      "username phoneNumber profilePicture isOnline lastSeen about",
     )
     .populate("admins", "username profilePicture")
     .populate("lastMessage");
@@ -412,7 +412,7 @@ exports.createGroup = async (req, res) => {
       if (groupPrivacy === 'contacts' || groupPrivacy === 'contacts_except') {
         // FIX: contacts are stored as { user, savedName } subdocuments, so
         // comparing c.toString() directly always produced "[object Object]"
-        // and never matched — meaning this privacy check silently blocked
+        // and never matched â€” meaning this privacy check silently blocked
         // EVERY add attempt for any user with groupPrivacy === 'contacts',
         // even actual contacts. Compare against the nested `user` field.
         const isContact = (user.contacts || []).some(c => {
@@ -788,7 +788,7 @@ exports.sendMessage = async (req, res) => {
 
     if (!ensureParticipant(conversation, localUserId, res)) return;
 
-    // ✅ Angalia kama mpokeaji amemzuia mtumaji
+    // âœ… Angalia kama mpokeaji amemzuia mtumaji
     const receiverId = conversation.participants.find(p => String(p) !== String(localUserId));
     if (receiverId) {
       const receiver = await User.findById(receiverId).select('blockedUsers');
@@ -856,6 +856,25 @@ exports.sendMessage = async (req, res) => {
     }
 
     // 2. Hifadhi ujumbe rasmi kwenye MongoDB Database
+    // Dedup: kama message yenye clientMessageId hii tayari ipo kwa sender+conversation,
+    // rudisha ile iliyopo (badala ya kuruhusu E11000 kuwa 500 kwenye network retry).
+    if (messageId) {
+      const existing = await Message.findOne({
+        clientMessageId: String(messageId),
+        sender: localUserId,
+        conversationId: finalConversationId
+      }).select('_id');
+      if (existing) {
+        const alreadySent = await Message.findById(existing._id)
+          .populate("sender", "username profilePicture");
+        return res.status(200).json({
+          success: true,
+          duplicate: true,
+          message: alreadySent,
+        });
+      }
+    }
+
     const message = await Message.create({
       conversationId: finalConversationId,
       sender: localUserId,
@@ -1183,9 +1202,9 @@ exports.markAsRead = async (req, res) => {
     const reader = await User.findById(localUserId).select('settings.privacy.readReceipts');
     const readReceiptsEnabled = reader?.settings?.privacy?.readReceipts !== false;
 
-    // FIX: the previous read → decrement-in-JS → save pattern was a classic
+    // FIX: the previous read â†’ decrement-in-JS â†’ save pattern was a classic
     // lost-update race. Opening a chat with several unread messages fires
-    // markAsRead once per message, often concurrently — two requests could
+    // markAsRead once per message, often concurrently â€” two requests could
     // both read the same unreadCount value before either saved, so one
     // decrement silently vanished and the badge stayed stuck too high.
     // Same issue existed for the readBy duplicate-check. Both are now
@@ -1391,7 +1410,7 @@ exports.searchUsers = async (req, res) => {
       $or: [{ username: regex }, { phoneNumber: regex }],
     })
       .select(
-        "username phoneNumber profilePicture about isOnline lastSeen settings contacts",
+        "username phoneNumber profilePicture about isOnline lastSeen",
       )
       .limit(25);
 
@@ -1419,7 +1438,7 @@ exports.addContact = async (req, res) => {
     const [user, contact] = await Promise.all([
       User.findById(localUserId),
       User.findById(userId).select(
-        "username phoneNumber profilePicture about isOnline lastSeen settings contacts",
+        "username phoneNumber profilePicture about isOnline lastSeen",
       ),
     ]);
 
@@ -1515,7 +1534,7 @@ exports.getContacts = async (req, res) => {
     const localUserId = getCurrentUserId(req);
     const user = await User.findById(localUserId).populate(
       "contacts.user",
-      "username phoneNumber profilePicture about isOnline lastSeen settings contacts",
+      "username phoneNumber profilePicture about isOnline lastSeen",
     );
 
     const filteredContacts = (
@@ -2038,7 +2057,7 @@ exports.markViewOnceViewed = async (req, res) => {
 
     // Mark the message as consumed
     message.isConsumed = true;
-    message.content = message.isSelfDestruct ? '💥 Message self-destructed' : 'View Once message opened';
+    message.content = message.isSelfDestruct ? 'ðŸ’¥ Message self-destructed' : 'View Once message opened';
     message.mediaUrl = '';
     message.fileName = '';
     
@@ -2106,7 +2125,7 @@ exports.updateGroupInfo = async (req, res) => {
 
     // Permission toggles (adminOnlyMessaging, canSendMedia, canCreatePolls,
     // canChangeGroupInfo, canAddMembers) can only ever be changed by an
-    // admin — these are the group-wide rules, not the content itself.
+    // admin â€” these are the group-wide rules, not the content itself.
     const wantsPermissionChange =
       adminOnlyMessaging !== undefined ||
       canSendMedia !== undefined ||
@@ -2176,7 +2195,7 @@ exports.updateGroupInfo = async (req, res) => {
     const transformed = await transformConversationForUser(updated, userId);
 
     // Notify every other participant in real time, the same way WhatsApp
-    // pushes group setting changes to all members instantly — both to the
+    // pushes group setting changes to all members instantly â€” both to the
     // conversation room (for anyone with the chat open) and to each
     // participant's personal room (so it lands even if the chat is closed).
     const io = req.app.get("io");
@@ -2339,7 +2358,7 @@ exports.addReaction = async (req, res) => {
     const conversation = await Conversation.findById(message.conversationId);
     if (!ensureParticipant(conversation, userId, res)) return;
 
-    // Check if用户 already reacted with this emoji
+    // Check ifç”¨æˆ· already reacted with this emoji
     const existingReactionIndex = message.reactions.findIndex(
       r => String(r.user) === String(userId) && r.emoji === emoji
     );
@@ -2620,7 +2639,7 @@ exports.joinGroup = async (req, res) => {
 
     const isMember = conversation.participants.some((p) => p.toString() === userId);
     if (isMember) {
-      // Already a member — just return the conversation so the frontend can open it
+      // Already a member â€” just return the conversation so the frontend can open it
       const populated = await populateConversation(Conversation.findById(groupId));
       return res.status(200).json({ success: true, alreadyMember: true, conversation: populated });
     }
@@ -2683,7 +2702,7 @@ exports.joinGroup = async (req, res) => {
 };
 
 
-// ─── BAN / KICK MEMBER ───────────────────────────────────────────────────────
+// â”€â”€â”€ BAN / KICK MEMBER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 exports.banMember = async (req, res) => {
   try {
     const { id: groupId, userId: targetUserId } = req.params;
@@ -2731,7 +2750,7 @@ exports.banMember = async (req, res) => {
   }
 };
 
-// ─── UNBAN MEMBER ────────────────────────────────────────────────────────────
+// â”€â”€â”€ UNBAN MEMBER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 exports.unbanMember = async (req, res) => {
   try {
     const { id: groupId, userId: targetUserId } = req.params;
@@ -2752,7 +2771,7 @@ exports.unbanMember = async (req, res) => {
   }
 };
 
-// ─── GET BANNED MEMBERS ──────────────────────────────────────────────────────
+// â”€â”€â”€ GET BANNED MEMBERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 exports.getBannedMembers = async (req, res) => {
   try {
     const { id: groupId } = req.params;
@@ -2773,7 +2792,7 @@ exports.getBannedMembers = async (req, res) => {
   }
 };
 
-// ─── TRANSFER OWNERSHIP ──────────────────────────────────────────────────────
+// â”€â”€â”€ TRANSFER OWNERSHIP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 exports.transferOwnership = async (req, res) => {
   try {
     const { id: groupId } = req.params;
@@ -2817,7 +2836,7 @@ exports.transferOwnership = async (req, res) => {
   }
 };
 
-// ─── GET PENDING JOIN REQUESTS ───────────────────────────────────────────────
+// â”€â”€â”€ GET PENDING JOIN REQUESTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 exports.getPendingJoinRequests = async (req, res) => {
   try {
     const { id: groupId } = req.params;
@@ -2837,7 +2856,7 @@ exports.getPendingJoinRequests = async (req, res) => {
   }
 };
 
-// ─── APPROVE JOIN REQUEST ────────────────────────────────────────────────────
+// â”€â”€â”€ APPROVE JOIN REQUEST â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 exports.approveJoinRequest = async (req, res) => {
   try {
     const { id: groupId, userId: targetUserId } = req.params;
@@ -2876,7 +2895,7 @@ exports.approveJoinRequest = async (req, res) => {
   }
 };
 
-// ─── REJECT JOIN REQUEST ─────────────────────────────────────────────────────
+// â”€â”€â”€ REJECT JOIN REQUEST â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 exports.rejectJoinRequest = async (req, res) => {
   try {
     const { id: groupId, userId: targetUserId } = req.params;
@@ -2904,7 +2923,7 @@ exports.rejectJoinRequest = async (req, res) => {
   }
 };
 
-// ─── UPDATE ANTI-SPAM SETTINGS ───────────────────────────────────────────────
+// â”€â”€â”€ UPDATE ANTI-SPAM SETTINGS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 exports.updateAntiSpam = async (req, res) => {
   try {
     const { id: groupId } = req.params;
@@ -2935,7 +2954,7 @@ exports.updateAntiSpam = async (req, res) => {
   }
 };
 
-// ─── GROUP QR CODE ───────────────────────────────────────────────────────────
+// â”€â”€â”€ GROUP QR CODE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 exports.getGroupQRCode = async (req, res) => {
   try {
     const { id: groupId } = req.params;
@@ -2964,7 +2983,7 @@ exports.getGroupQRCode = async (req, res) => {
   }
 };
 
-// ─── CREATE GROUP EVENT ──────────────────────────────────────────────────────
+// â”€â”€â”€ CREATE GROUP EVENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 exports.createGroupEvent = async (req, res) => {
   try {
     const { id: groupId } = req.params;
@@ -3006,7 +3025,7 @@ exports.createGroupEvent = async (req, res) => {
   }
 };
 
-// ─── RSVP GROUP EVENT ────────────────────────────────────────────────────────
+// â”€â”€â”€ RSVP GROUP EVENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 exports.rsvpGroupEvent = async (req, res) => {
   try {
     const { id: groupId, eventId } = req.params;
@@ -3040,7 +3059,7 @@ exports.rsvpGroupEvent = async (req, res) => {
   }
 };
 
-// ─── GET GROUP EVENTS ────────────────────────────────────────────────────────
+// â”€â”€â”€ GET GROUP EVENTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 exports.getGroupEvents = async (req, res) => {
   try {
     const { id: groupId } = req.params;
@@ -3061,7 +3080,7 @@ exports.getGroupEvents = async (req, res) => {
   }
 };
 
-// ─── UPDATE JOIN APPROVAL REQUIREMENT ───────────────────────────────────────
+// â”€â”€â”€ UPDATE JOIN APPROVAL REQUIREMENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 exports.updateJoinApproval = async (req, res) => {
   try {
     const { id: groupId } = req.params;

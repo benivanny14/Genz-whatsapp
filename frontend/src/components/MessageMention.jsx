@@ -294,19 +294,43 @@ export const MentionBadge = ({ mention, onClick }) => {
 
 // Mentioned Message Component
 export const MentionedMessage = ({ message, mentions, onMentionClick }) => {
+  const escapeHtml = (str) =>
+    String(str ?? '').replace(/[&<>"']/g, (ch) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[ch]));
+
   const renderContentWithMentions = (content) => {
-    if (!mentions || mentions.length === 0) return content;
+    if (!content) return null;
+    if (!mentions || mentions.length === 0) return escapeHtml(content);
 
-    let processedContent = content;
-    mentions.forEach(mention => {
-      const mentionRegex = new RegExp(`@${mention.username}`, 'g');
-      processedContent = processedContent.replace(
-        mentionRegex,
-        `<span class="text-[#00a884] cursor-pointer hover:underline">@${mention.username}</span>`
+    const parts = [];
+    let remaining = escapeHtml(content);
+    const sortedMentions = [...mentions]
+      .filter(m => m.username)
+      .sort((a, b) => String(b.username).length - String(a.username).length);
+
+    for (const mention of sortedMentions) {
+      const token = `@${escapeHtml(String(mention.username))}`;
+      const idx = remaining.indexOf(token);
+      if (idx === -1) continue;
+      if (idx > 0) parts.push(remaining.slice(0, idx));
+      parts.push(
+        <span
+          key={`${mention.contactId}-${idx}`}
+          className="text-[#00a884] cursor-pointer hover:underline"
+          onClick={() => onMentionClick?.(mention)}
+        >
+          {token}
+        </span>
       );
-    });
-
-    return <span dangerouslySetInnerHTML={{ __html: processedContent }} />;
+      remaining = remaining.slice(idx + token.length);
+    }
+    if (remaining) parts.push(remaining);
+    return parts;
   };
 
   return (

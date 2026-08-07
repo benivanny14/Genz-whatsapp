@@ -534,7 +534,7 @@ exports.deleteAccount = async (req, res) => {
 
 exports.getBlockedUsers = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).populate('blockedUsers', 'username phoneNumber profilePicture about isOnline lastSeen settings contacts');
+    const user = await User.findById(req.user._id).populate('blockedUsers', 'username phoneNumber profilePicture about isOnline lastSeen');
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
@@ -883,7 +883,7 @@ exports.getMyOnlineHistory = async (req, res) => {
 // @access  Private
 exports.getUserOnlineHistory = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select('onlineHistory lastSeen username settings contacts');
+    const user = await User.findById(req.params.id).select('onlineHistory lastSeen username');
 
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });

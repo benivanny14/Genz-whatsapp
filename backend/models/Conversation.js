@@ -278,7 +278,6 @@ conversationSchema.index({ updatedAt: -1 });
 
 // Indexes for performance optimization
 conversationSchema.index({ participants: 1, updatedAt: -1 });
-conversationSchema.index({ 'participants.$': 1 });
 conversationSchema.index({ isGroup: 1 });
 conversationSchema.index({ isArchived: 1, updatedAt: -1 });
 conversationSchema.index({ isPinned: 1 });

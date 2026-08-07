@@ -516,7 +516,7 @@ const setupSocket = (io) => {
           isSelfDestruct: Boolean(isSelfDestruct),
           disappearAt,
           mentions: mentionData.mentions,
-          clientMessageId: messageId ? String(messageId) : '',
+          clientMessageId: messageId ? String(messageId) : undefined,
           structuredContent: structuredContent || [],
           latitude: typeof latitude === 'number' ? latitude : (latitude ? Number(latitude) : null),
           longitude: typeof longitude === 'number' ? longitude : (longitude ? Number(longitude) : null),
@@ -1319,24 +1319,31 @@ try {
       }
     });
 
-    socket.on('live_reaction', (data = {}) => {
+    socket.on('live_reaction', safeAsyncHandler(socket, async (data = {}) => {
+      const chatId = data.chatId || data.conversationId;
+      if (!chatId) {
+        return socket.emit('error', { message: 'chatId is required for live reactions' });
+      }
+      const conversation = await getConversationIfParticipant(chatId, socket);
+      if (!conversation) return;
       const payload = {
-        chatId: data.chatId || data.conversationId,
+        chatId,
         emoji: data.emoji,
         userId: socket.userId,
         timestamp: new Date().toISOString()
       };
-      if (payload.chatId) {
-        socket.to(payload.chatId).emit('live_reaction_signal', payload);
-      } else {
-        socket.broadcast.emit('live_reaction_signal', payload);
-      }
-     });
+      socket.to(chatId).emit('live_reaction_signal', payload);
+     }));
 
     // ── Floating Sticker Broadcast ──
-    socket.on('sticker:floating', (data = {}) => {
+    socket.on('sticker:floating', safeAsyncHandler(socket, async (data = {}) => {
       const { conversationId, chatId, stickerUrl, senderId, senderName, caption } = data;
-      const chatRoomId = conversationId || chatId || socket.userId;
+      const chatRoomId = conversationId || chatId;
+      if (!chatRoomId) {
+        return socket.emit('error', { message: 'conversationId is required for floating stickers' });
+      }
+      const conversation = await getConversationIfParticipant(chatRoomId, socket);
+      if (!conversation) return;
       const payload = {
         conversationId: chatRoomId,
         stickerUrl: stickerUrl || data.url || data.content,
@@ -1349,7 +1356,7 @@ try {
       socket.to(chatRoomId).emit('sticker:floating', payload);
       // Also emit to the sender (so they see their own sticker float)
       socket.emit('sticker:floating', payload);
-    });
+    }));
 
     // Broadcast create handler
     socket.on('broadcast:create', async (data) => {
@@ -1374,6 +1381,11 @@ try {
         for (const recipientId of recipients) {
           try {
             const recipStr = String(recipientId);
+            // FIX: never deliver to a user who blocked the sender (or whom
+            // the sender blocked) — broadcast delivery must respect blocks
+            // exactly like the REST broadcast path.
+            const blocked = await isEitherUserBlocked(socket.userId, recipientId);
+            if (blocked) continue;
             // Get or create 1-to-1 conversation
             let conv = await Conversation.findOne({
               isGroup: false,
@@ -1451,6 +1463,11 @@ try {
 
         for (const recipientId of recipients) {
           try {
+          const blocked = await isEitherUserBlocked(socket.userId, recipientId);
+          if (blocked) {
+            failedRecipients.push({ recipientId, error: 'blocked' });
+            continue;
+          }
           let conversation = await Conversation.findOne({
             participants: { $all: [socket.userId, recipientId] },
             isGroup: false
@@ -1528,6 +1545,8 @@ try {
     socket.on('poll:create', async (data) => {
       try {
         const { conversationId, question, options } = data;
+        const conversation = await getConversationIfParticipant(conversationId, socket);
+        if (!conversation) return;
         const message = await Message.create({
           conversationId,
           sender: socket.userId,
@@ -1552,6 +1571,8 @@ try {
         const { messageId, optionIndex } = data;
         const message = await Message.findById(messageId);
         if (message && message.poll) {
+          const conversation = await getConversationIfParticipant(message.conversationId, socket);
+          if (!conversation) return;
           const userId = socket.userId;
           // Remove previous vote if any
           message.poll.options.forEach(opt => {

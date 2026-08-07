@@ -43,6 +43,15 @@ const mergeSettings = (settings = {}) => ({
   ...settings
 });
 
+const isGroupParticipant = (conversation, userId) => {
+  const uid = String(userId);
+  return Boolean(
+    conversation &&
+    conversation.participants &&
+    conversation.participants.some((p) => String(p) === uid)
+  );
+};
+
 // @desc    Get group features settings
 // @route   GET /api/group-features/settings
 // @access  Private
@@ -178,6 +187,10 @@ exports.createGroupPoll = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Group conversation not found' });
     }
 
+    if (!isGroupParticipant(conversation, user._id)) {
+      return res.status(403).json({ success: false, message: 'You are not a member of this group' });
+    }
+
     const poll = {
       _id: new (require('mongoose').Types.ObjectId)(),
       question,
@@ -216,6 +229,10 @@ exports.voteGroupPoll = async (req, res) => {
     const conversation = await Conversation.findById(conversationId);
     if (!conversation || !conversation.polls) {
       return res.status(404).json({ success: false, message: 'Poll not found' });
+    }
+
+    if (!isGroupParticipant(conversation, user._id)) {
+      return res.status(403).json({ success: false, message: 'You are not a member of this group' });
     }
 
     const poll = conversation.polls.id(pollId);
@@ -290,6 +307,10 @@ exports.setGroupAnnouncementsMode = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Group conversation not found' });
     }
 
+    if (!isGroupParticipant(conversation, user._id)) {
+      return res.status(403).json({ success: false, message: 'You are not a member of this group' });
+    }
+
     // Check if user is admin
     if (!conversation.admins || !conversation.admins.some(a => String(a) === String(user._id))) {
       return res.status(403).json({ success: false, message: 'Only admins can change announcements mode' });
@@ -349,6 +370,10 @@ exports.createGroupEvent = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Group conversation not found' });
     }
 
+    if (!isGroupParticipant(conversation, user._id)) {
+      return res.status(403).json({ success: false, message: 'You are not a member of this group' });
+    }
+
     const event = {
       _id: new (require('mongoose').Types.ObjectId)(),
       title,
@@ -385,6 +410,10 @@ exports.rsvpGroupEvent = async (req, res) => {
     const conversation = await Conversation.findById(conversationId);
     if (!conversation || !conversation.events) {
       return res.status(404).json({ success: false, message: 'Event not found' });
+    }
+
+    if (!isGroupParticipant(conversation, user._id)) {
+      return res.status(403).json({ success: false, message: 'You are not a member of this group' });
     }
 
     const event = conversation.events.id(eventId);

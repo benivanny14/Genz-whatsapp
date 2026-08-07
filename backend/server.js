@@ -31,6 +31,7 @@ const {
   FILE_SIZE_LIMITS,
   isConfigured: isCloudinaryConfigured
 } = require('./config/cloudinary');
+const { validateFileContent } = require('./middleware/fileValidation');
 
 // Define uploads directory path (always needed for multer config)
 const uploadDir = path.join(__dirname, 'uploads');
@@ -796,7 +797,7 @@ app.use('/api/anti-ban', antiBanRoutes);
 app.use('/api/location-sharing', locationSharingRoutes);
 
 // File upload route
-app.post('/api/upload', protect, upload.single('file'), async (req, res) => {
+app.post('/api/upload', protect, upload.single('file'), validateFileContent, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({

@@ -42,6 +42,19 @@ const loginStep1 = async (req, res) => {
       return res.status(401).json({ success: false, error: 'Invalid credentials' });
     }
 
+    // 2FA is enforced for owner accounts. Step 1 only returns a short-lived
+    // pre-auth token; the real access/refresh tokens are issued in loginStep2
+    // ONLY after a valid TOTP code has been presented. This prevents the
+    // "password alone unlocks the dashboard" bypass.
+    if (admin.totpEnabled) {
+      const preAuthToken = signPre2FAToken(admin);
+      return res.json({
+        success: true,
+        requiresTwoFactor: true,
+        preAuthToken
+      });
+    }
+
     const accessToken = signAccessToken(admin);
     const refreshToken = crypto.randomBytes(48).toString('hex');
     await admin.setRefreshToken(refreshToken, REFRESH_TOKEN_TTL_MS);
