@@ -52,12 +52,15 @@ const Register = () => {
     try {
       const data = await register({ phoneNumber: form.phoneNumber, username: form.username, password: form.password });
 
+      console.log('[Register] Registration response:', data);
+
       if (data?.success !== false && data?.token) {
         // Redirect to phone verification if phone is not verified
         if (data?.phoneVerified === false) {
           navigate(`/verify-phone?phone=${form.phoneNumber}`, { replace: true });
         } else {
-          navigate('/chat', { replace: true });
+          // Force a page reload to ensure session is properly initialized
+          window.location.href = '/chat';
         }
       } else {
         setError(data?.message || 'Registration failed');

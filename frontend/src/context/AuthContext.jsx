@@ -192,11 +192,14 @@ export const AuthProvider = ({ children }) => {
       console.log('[AuthContext] Registering...');
       const data = await authService.register(credentials);
 
-      setToken(data.token);
-      setUser(data.user);
-      setIsAuthenticated(true);
-      setError(null);
-      console.log('[AuthContext] Registration successful');
+      // Only set auth state if registration was successful and we have a token
+      if (data?.success !== false && data?.token) {
+        setToken(data.token);
+        setUser(data.user);
+        setIsAuthenticated(true);
+        setError(null);
+        console.log('[AuthContext] Registration successful');
+      }
 
       return data;
     } catch (error) {
