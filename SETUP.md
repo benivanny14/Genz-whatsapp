@@ -103,6 +103,9 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 # Generate JWT Refresh Secret (48 hex characters)
 node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 
+# Generate Admin JWT Secret (48 hex characters)
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+
 # Generate Admin Bootstrap Token (48 hex characters)
 node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 
@@ -116,6 +119,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 **Save these as:**
 - `JWT_SECRET`
 - `JWT_REFRESH_SECRET`
+- `ADMIN_JWT_SECRET`
 - `ADMIN_BOOTSTRAP_TOKEN`
 - `BACKUP_ENCRYPTION_KEY`
 - `MESSAGE_ENCRYPTION_SECRET`
@@ -139,6 +143,7 @@ MONGODB_URI=mongodb+srv://genzwhatsapp:YOUR_PASSWORD@cluster0.mongodb.net/genz-w
 # ── Auth (from Step 4) ───────────────────────────
 JWT_SECRET=your_generated_48_hex_secret
 JWT_REFRESH_SECRET=your_different_48_hex_secret
+ADMIN_JWT_SECRET=your_another_48_hex_secret
 JWT_EXPIRE=7d
 JWT_REFRESH_EXPIRES_IN=30d
 
