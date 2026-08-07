@@ -3711,7 +3711,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                     className="flex-1 py-2 rounded-xl border border-dark-border text-dark-textSecondary hover:bg-dark-hover transition-colors text-sm">
                     Cancel
                   </button>
-                  <button onClick={(e) => {
+                  <button type="button" onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     console.log('[Schedule button] Clicked');

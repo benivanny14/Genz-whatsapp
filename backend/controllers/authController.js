@@ -1310,3 +1310,113 @@ exports.deletePasskey = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// ── Password reset (forgot password) ─────────────────────────────────
+const PASSWORD_STRENGTH_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]).{8,}$/;
+
+function validatePasswordStrength(password) {
+  if (typeof password !== 'string' || password.length < 8) {
+    return 'Password must be at least 8 characters long';
+  }
+  if (!PASSWORD_STRENGTH_REGEX.test(password)) {
+    return 'Password must include uppercase, lowercase, number, and special character';
+  }
+  return null;
+}
+
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { emailOrPhone } = req.body;
+    if (!emailOrPhone || typeof emailOrPhone !== 'string' || !emailOrPhone.trim()) {
+      return res.status(400).json({ success: false, message: 'Email or phone number is required' });
+    }
+
+    const normalized = normalizePhone(emailOrPhone);
+    const user = await User.findOne({
+      $or: [{ email: emailOrPhone.toLowerCase() }, { phoneNumber: normalized }]
+    });
+
+    if (!user) {
+      return res.status(200).json({
+        success: true,
+        message: 'If an account exists for that email/phone, an OTP has been sent.',
+        ...(process.env.NODE_ENV !== 'production' ? { otp: '000000' } : {})
+      });
+    }
+
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const expiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+    user.resetOTP = otp;
+    user.resetOTPExpiry = expiry;
+    await user.save();
+
+    if (process.env.NODE_ENV !== 'production') {
+      return res.status(200).json({
+        success: true,
+        message: 'If an account exists for that email/phone, an OTP has been sent.',
+        otp // dev/test only
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'If an account exists for that email/phone, an OTP has been sent.'
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const { emailOrPhone, otp, newPassword } = req.body;
+    if (!emailOrPhone || !otp || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Email/phone, OTP, and new password are required' });
+    }
+
+    const strengthErr = validatePasswordStrength(newPassword);
+    if (strengthErr) {
+      return res.status(400).json({ success: false, message: strengthErr });
+    }
+
+    if (String(otp).length !== 6 || !/^\d{6}$/.test(String(otp))) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP format' });
+    }
+
+    const normalized = normalizePhone(emailOrPhone);
+    const user = await User.findOne({
+      $or: [{ email: emailOrPhone.toLowerCase() }, { phoneNumber: normalized }]
+    });
+
+    if (!user || !user.resetOTP || !user.resetOTPExpiry) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+    }
+
+    const now = new Date();
+    if (now > user.resetOTPExpiry) {
+      user.resetOTP = null;
+      user.resetOTPExpiry = null;
+      await user.save();
+      return res.status(400).json({ success: false, message: 'OTP has expired, please request a new one' });
+    }
+
+    if (!crypto.timingSafeEqual(Buffer.from(String(user.resetOTP)), Buffer.from(String(otp)))) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP' });
+    }
+
+    user.setPassword(newPassword);
+    user.resetOTP = null;
+    user.resetOTPExpiry = null;
+    user.refreshToken = null;
+    user.fcmTokens = [];
+    user.passwordChangedAt = new Date();
+    await user.save();
+
+    res.status(200).json({ success: true, message: 'Password has been reset successfully' });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
