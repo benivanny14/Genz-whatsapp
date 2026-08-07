@@ -92,7 +92,7 @@ const authService = {
 
   verifyPhoneOTP: async ({ phoneNumber, otp }) => {
     try {
-      const response = await api.post('/auth/verify-phone', { phoneNumber, otp });
+      const response = await api.post('/auth/verify-phone-otp', { phoneNumber, otp });
       return response.data;
     } catch (error) {
       const message = error.response?.data?.message || 'Verification failed. Please try again.';
@@ -104,7 +104,7 @@ const authService = {
 
   resendPhoneOTP: async ({ phoneNumber }) => {
     try {
-      const response = await api.post('/auth/resend-otp', { phoneNumber });
+      const response = await api.post('/auth/resend-phone-otp', { phoneNumber });
       return response.data;
     } catch (error) {
       const message = error.response?.data?.message || 'Failed to resend OTP. Please try again.';
