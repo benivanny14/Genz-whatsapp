@@ -8,6 +8,7 @@ import MassSenderModal from './MassSenderModal';
 
 import ProfileEditor from './ProfileEditor';
 import StoryHighlights from './StoryHighlights';
+import ArchiveChats from './ArchiveChats';
 import { AnimatePresence } from 'framer-motion';
 import { decryptMessage } from '../utils/formatDate';
 import { isClientE2EEMessageContent } from '../utils/e2eeContent';
@@ -90,6 +91,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   const [activeFolder, setActiveFolder] = useState('All');
   const [showBroadcastModal, setShowBroadcastModal] = useState(false);
   const [showMassSenderModal, setShowMassSenderModal] = useState(false);
+  const [showArchiveChats, setShowArchiveChats] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const chatListRef = useRef(null);
@@ -1163,6 +1165,17 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     <Megaphone className="w-4 h-4" />
                     <span>New Broadcast</span>
                   </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowArchiveChats(true);
+                      setShowMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2 hover:bg-dark-hover text-dark-text"
+                  >
+                    <Archive className="w-4 h-4" />
+                    <span>Archived Chats</span>
+                  </button>
                   <div className="border-t border-dark-border my-1" />
 
                   <button
@@ -2036,6 +2049,17 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
       )}
       {showMassSenderModal && (
         <MassSenderModal onClose={() => setShowMassSenderModal(false)} />
+      )}
+      {showArchiveChats && (
+        <ArchiveChats
+          chats={conversations}
+          onArchive={toggleArchiveChat}
+          onUnarchive={toggleArchiveChat}
+          onPin={togglePinChat}
+          onUnpin={togglePinChat}
+          onDelete={deleteChat}
+          onClose={() => setShowArchiveChats(false)}
+        />
       )}
       {showProfileEditor && (
         <ProfileEditor onClose={() => setShowProfileEditor(false)} />
