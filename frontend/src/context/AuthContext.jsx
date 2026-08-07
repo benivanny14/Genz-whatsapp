@@ -48,6 +48,16 @@ export const AuthProvider = ({ children }) => {
             const meData = await authService.getMe();
             if (meData.success && meData.user) {
               setUser(meData.user);
+              
+              // Check if phone needs verification
+              if (meData.user.phoneVerified === false) {
+                console.log('[AuthContext] Phone verification required');
+                setIsAuthenticated(false);
+                setLoading(false);
+                setIsAuthReady(true);
+                return; // Stop here, don't clear session
+              }
+              
               console.log('[AuthContext] Session restored successfully');
             } else {
               // Token invalid, try to refresh
@@ -109,7 +119,7 @@ export const AuthProvider = ({ children }) => {
           // pages the person has explicitly asked to sign in/up, so we start
           // from a clean slate.
           const path = window.location.pathname;
-          if (path === '/login' || path === '/register') {
+          if (path === '/login' || path === '/register' || path === '/verify-phone') {
             console.log('[AuthContext] Skipping cookie restore on auth pages');
             setIsAuthenticated(false);
           } else {
@@ -118,6 +128,16 @@ export const AuthProvider = ({ children }) => {
               const meData = await authService.getMe();
               if (meData.success && meData.user) {
                 setUser(meData.user);
+                
+                // Check phone verification
+                if (meData.user.phoneVerified === false) {
+                  console.log('[AuthContext] Phone verification required (cookie restore)');
+                  setIsAuthenticated(false);
+                  setLoading(false);
+                  setIsAuthReady(true);
+                  return;
+                }
+                
                 setIsAuthenticated(true);
                 console.log('[AuthContext] Session restored via httpOnly cookie');
               } else {
@@ -174,8 +194,17 @@ export const AuthProvider = ({ children }) => {
       if (!data.requiresTwoFactor) {
         setToken(data.token);
         setUser(data.user);
-        setIsAuthenticated(true);
         setError(null);
+        
+        // Check if phone verification is required
+        if (data.requiresPhoneVerification || data.phoneVerified === false) {
+          console.log('[AuthContext] Phone verification required after login');
+          setIsAuthenticated(false);
+          authService.saveTokens(data);
+          return { ...data, requiresPhoneVerification: true };
+        }
+        
+        setIsAuthenticated(true);
         console.log('[AuthContext] Login successful');
       }
 
@@ -192,12 +221,20 @@ export const AuthProvider = ({ children }) => {
       console.log('[AuthContext] Registering...');
       const data = await authService.register(credentials);
 
-      // Only set auth state if registration was successful and we have a token
       if (data?.success !== false && data?.token) {
         setToken(data.token);
         setUser(data.user);
-        setIsAuthenticated(true);
         setError(null);
+        
+        // Check if phone verification is required
+        if (data.requiresPhoneVerification || data.phoneVerified === false) {
+          console.log('[AuthContext] Phone verification required');
+          setIsAuthenticated(false); // Don't set authenticated yet
+          authService.saveTokens(data); // Save tokens for verification API calls
+          return { ...data, requiresPhoneVerification: true };
+        }
+        
+        setIsAuthenticated(true);
         console.log('[AuthContext] Registration successful');
       }
 

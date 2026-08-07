@@ -8,13 +8,6 @@ const DEFAULT_DEVICE_ID = process.env.DEFAULT_DEVICE_ID || 'local-web-device';
 const LOCAL_USER_ID = process.env.LOCAL_USER_ID || '60d5ecb8b392cb371c664c12';
 
 const getBearerToken = (req) => {
-  // Prefer the Authorization header: it carries the in-memory token of the
-  // user that THIS browser session is currently acting as. The httpOnly cookie
-  // is a stale, browser-wide value — if two accounts are used in the same
-  // browser, the last login overwrites the cookie for every tab, so relying on
-  // it first would leak user B's data into user A's open tab. The cookie is
-  // only a fallback for fresh page loads (after reload the in-memory token is
-  // gone and the cookie is the persistent session).
   const header = req.headers.authorization || '';
   if (header.startsWith('Bearer ')) {
     const token = header.slice(7).trim();
@@ -22,13 +15,11 @@ const getBearerToken = (req) => {
       return token;
     }
   }
-
   return req.cookies?.token || null;
 };
 
 const createOrFindDeviceUser = async (deviceId) => {
   let user = await User.findOne({ deviceId });
-
   if (!user) {
     const userData = {
       deviceId,
@@ -36,88 +27,112 @@ const createOrFindDeviceUser = async (deviceId) => {
       phoneNumber: deviceId,
       status: 'offline'
     };
-
     if (deviceId === DEFAULT_DEVICE_ID) {
       userData._id = LOCAL_USER_ID;
     }
-
     user = await User.create(userData);
   }
-
   return user;
 };
 
-// Supports real JWT auth while preserving the app's device-based PWA fallback.
+// Routes that should NEVER check phone verification (essential auth routes)
+const SKIP_PHONE_VERIFY_PATHS = [
+  '/auth/me',
+  '/auth/refresh',
+  '/auth/logout',
+  '/auth/verify-phone',
+  '/auth/resend-otp',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+  '/auth/passkey'
+];
+
+// Helper to reject with optional cookie clearing
+const reject = (res, message, status = 401, shouldClearCookies = true) => {
+  if (shouldClearCookies) {
+    clearAuthCookies(res);
+  }
+  return res.status(status).json({ success: false, message });
+};
+
 const protect = async (req, res, next) => {
   try {
     const token = getBearerToken(req);
 
-    // Helper to reject while also clearing any stale httpOnly cookies. Without
-    // this, an expired cookie stays in the browser and every page load (login,
-    // register, chat) keeps getting 401 → clearSessionAndRedirect → reload,
-    // which looks exactly like the app "closing and reopening by itself".
-    const reject = (message, status = 401) => {
-      clearAuthCookies(res);
-      return res.status(status).json({ success: false, message });
-    };
-
     if (token) {
       try {
         const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
+        
         if (decoded.typ === 'refresh') {
           console.error('[Auth] Access route received refresh token');
-          return reject('Invalid token type');
+          return reject(res, 'Invalid token type', 401, true);
         }
-        const user = await User.findById(decoded.id);
 
+        const user = await User.findById(decoded.id);
         if (!user) {
           console.error('[Auth] User not found for token:', decoded.id);
-          return reject('User not authorized');
+          return reject(res, 'User not authorized', 401, true);
         }
 
         if (user.isBlocked) {
-          return reject('User not authorized');
+          return reject(res, 'User not authorized', 401, true);
         }
 
-        // Check if phone number is verified
-        if (!user.phoneVerified) {
-          console.error('[Auth] Phone number not verified:', { userId: user._id });
-          return reject('Phone number not verified. Please verify your phone number to continue.');
-        }
-
-        // Tokens issued before a password change must be rejected, otherwise a
-        // stolen token keeps working after the user resets their password.
-        // Small tolerance (30s) absorbs clock-skew / iat second-truncation.
+        // Check password change
         if (user.passwordChangedAt) {
           const changedAt = new Date(user.passwordChangedAt).getTime();
           if (decoded.iat && decoded.iat * 1000 + 30000 < changedAt) {
             console.error('[Auth] Token issued before password change; rejecting');
-            return reject('Session expired. Please log in again.');
+            return reject(res, 'Session expired. Please log in again.', 401, true);
           }
         }
 
-        // Device-scoped tokens are invalid once their device is deactivated
-        // (logout all devices, unlink, admin revoke).
+        // Check device
         const deviceAllowed = await isDeviceAllowed(decoded);
         if (!deviceAllowed) {
           console.error('[Auth] Token rejected: device no longer active', { id: decoded.id, deviceId: decoded.deviceId });
-          return reject('Session has been logged out on this device');
+          return reject(res, 'Session has been logged out on this device', 401, true);
+        }
+
+        // Phone verification check - SKIP for essential auth routes
+        const isAuthRoute = SKIP_PHONE_VERIFY_PATHS.some(path => req.path.includes(path));
+        
+        if (!isAuthRoute && !user.phoneVerified) {
+          console.warn('[Auth] Phone not verified for protected route:', req.path);
+          return res.status(403).json({
+            success: false,
+            message: 'Phone number not verified. Please verify your phone number to continue.',
+            requiresPhoneVerification: true
+          });
         }
 
         req.user = user;
         req.authMode = 'jwt';
         return next();
+        
       } catch (jwtError) {
         console.error('[Auth] JWT verification failed:', {
           error: jwtError.message,
           path: req.path
         });
-        return reject('Invalid or expired token');
+
+        // Token expired - DO NOT clear cookies (allow refresh to work)
+        if (jwtError.name === 'TokenExpiredError') {
+          return res.status(401).json({
+            success: false,
+            message: 'Token expired',
+            code: 'TOKEN_EXPIRED'
+          });
+        }
+
+        // Other JWT errors - clear cookies
+        return reject(res, 'Invalid or expired token', 401, true);
       }
     }
 
     console.error('[Auth] No token provided:', { path: req.path });
-    return reject('Authentication required');
+    return reject(res, 'Authentication required', 401, true);
+    
   } catch (error) {
     console.error('[Auth] Middleware error:', {
       error: error.message,
@@ -125,8 +140,20 @@ const protect = async (req, res, next) => {
       path: req.path,
       method: req.method
     });
-    return reject('Authentication failed');
+    return reject(res, 'Authentication failed', 401, true);
   }
+};
+
+// Separate middleware for routes that REQUIRE phone verification
+const requirePhoneVerified = async (req, res, next) => {
+  if (!req.user?.phoneVerified) {
+    return res.status(403).json({
+      success: false,
+      message: 'Phone number not verified. Please verify your phone number to continue.',
+      requiresPhoneVerification: true
+    });
+  }
+  next();
 };
 
 const isAdmin = async (req, res, next) => {
@@ -152,5 +179,6 @@ const isAdmin = async (req, res, next) => {
 module.exports = {
   protect,
   isAdmin,
-  getBearerToken
+  getBearerToken,
+  requirePhoneVerified
 };

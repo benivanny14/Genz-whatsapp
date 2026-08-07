@@ -61,7 +61,7 @@ const {
   updateJoinApproval,
 } = require("../controllers/chatController");
 const { validateMessage } = require("../middleware/validator");
-const { protect } = require("../middleware/auth");
+const { protect, requirePhoneVerified } = require("../middleware/auth");
 const { privacyMiddleware } = require("../middleware/privacy");
 
 router.use(protect);
@@ -70,47 +70,47 @@ router.use(protect);
 router.get("/conversations/archived", getArchivedConversations);
 router.get("/conversations", getConversations);
 router.get("/conversations/:id", getConversation);
-router.post("/conversation", getOrCreateConversation);
+router.post("/conversation", requirePhoneVerified, getOrCreateConversation);
 
 // Group management
-router.post("/groups", createGroup);
+router.post("/groups", requirePhoneVerified, createGroup);
 router.get("/groups/:groupId/info", getGroupInfo);
-router.post("/groups/:groupId/invite/regenerate", regenerateGroupInvite);
-router.put("/groups/:groupId/info", updateGroupInfo);
-router.post("/groups/:id/participants", addParticipant);
-router.delete("/groups/:id/participants/:userId", removeParticipant);
-router.put("/groups/:id/admins/:userId", makeAdmin);
-router.delete("/groups/:id/admins/:memberId", removeAdmin);
-router.delete("/groups/:id/leave", leaveGroup);
-router.post("/groups/:groupId/join", joinGroup);
+router.post("/groups/:groupId/invite/regenerate", getGroupQRCode);
+router.put("/groups/:groupId/info", requirePhoneVerified, updateGroupInfo);
+router.post("/groups/:id/participants", requirePhoneVerified, addParticipant);
+router.delete("/groups/:id/participants/:userId", requirePhoneVerified, removeParticipant);
+router.put("/groups/:id/admins/:userId", requirePhoneVerified, makeAdmin);
+router.delete("/groups/:id/admins/:memberId", requirePhoneVerified, removeAdmin);
+router.delete("/groups/:id/leave", requirePhoneVerified, leaveGroup);
+router.post("/groups/:groupId/join", requirePhoneVerified, joinGroup);
 
 // Group member management (ban, approve, ownership)
-router.post("/groups/:id/ban/:userId", banMember);
-router.delete("/groups/:id/ban/:userId", unbanMember);
+router.post("/groups/:id/ban/:userId", requirePhoneVerified, banMember);
+router.delete("/groups/:id/ban/:userId", requirePhoneVerified, unbanMember);
 router.get("/groups/:id/banned", getBannedMembers);
-router.put("/groups/:id/transfer-ownership", transferOwnership);
+router.put("/groups/:id/transfer-ownership", requirePhoneVerified, transferOwnership);
 router.get("/groups/:id/pending-requests", getPendingJoinRequests);
-router.post("/groups/:id/pending-requests/:userId/approve", approveJoinRequest);
-router.post("/groups/:id/pending-requests/:userId/reject", rejectJoinRequest);
-router.put("/groups/:id/antispam", updateAntiSpam);
-router.put("/groups/:id/join-approval", updateJoinApproval);
+router.post("/groups/:id/pending-requests/:userId/approve", requirePhoneVerified, approveJoinRequest);
+router.post("/groups/:id/pending-requests/:userId/reject", requirePhoneVerified, rejectJoinRequest);
+router.put("/groups/:id/antispam", requirePhoneVerified, updateAntiSpam);
+router.put("/groups/:id/join-approval", requirePhoneVerified, updateJoinApproval);
 router.get("/groups/:id/qr", getGroupQRCode);
 
 // Group events
 router.get("/groups/:id/events", getGroupEvents);
-router.post("/groups/:id/events", createGroupEvent);
-router.post("/groups/:id/events/:eventId/rsvp", rsvpGroupEvent);
+router.post("/groups/:id/events", requirePhoneVerified, createGroupEvent);
+router.post("/groups/:id/events/:eventId/rsvp", requirePhoneVerified, rsvpGroupEvent);
 
 // Message routes
 router.get("/conversations/:id/messages", getMessages);
 router.get("/messages/starred", getStarredMessages);
 router.get("/conversations/:conversationId/search", searchMessages);
 router.get("/conversations/:conversationId/media", getMediaGallery);
-router.post("/messages", validateMessage, sendMessage);
-router.put("/messages/:id", editMessage);
-router.delete("/messages/:id", deleteMessage);
-router.delete("/messages/:id/delete-for-everyone", deleteMessage);
-router.delete("/messages/:id/admin-delete-for-everyone", (req, res, next) => {
+router.post("/messages", requirePhoneVerified, validateMessage, sendMessage);
+router.put("/messages/:id", requirePhoneVerified, editMessage);
+router.delete("/messages/:id", requirePhoneVerified, deleteMessage);
+router.delete("/messages/:id/delete-for-everyone", requirePhoneVerified, deleteMessage);
+router.delete("/messages/:id/admin-delete-for-everyone", requirePhoneVerified, (req, res, next) => {
   req.body.forEveryone = true;
   req.body.adminDelete = true;
   next();
@@ -122,12 +122,12 @@ router.put("/messages/:id/keep", toggleKeepMessage);
 router.get("/messages/:messageId/info", getMessageInfo);
 router.get("/messages/:messageId/edit-history", getMessageEditHistory);
 router.put("/messages/:messageId/view-once-viewed", markViewOnceViewed);
-router.post("/messages/:messageId/forward", forwardMessage);
-router.post("/messages/:messageId/report", reportMessage);
+router.post("/messages/:messageId/forward", requirePhoneVerified, forwardMessage);
+router.post("/messages/:messageId/report", requirePhoneVerified, reportMessage);
 
 // Message reactions
-router.post("/messages/:id/reactions", addReaction);
-router.delete("/messages/:id/reactions", removeReaction);
+router.post("/messages/:id/reactions", requirePhoneVerified, addReaction);
+router.delete("/messages/:id/reactions", requirePhoneVerified, removeReaction);
 
 // Anti-screenshot
 router.post("/messages/:messageId/screenshot-attempt", reportScreenshotAttempt);

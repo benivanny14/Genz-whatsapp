@@ -87,7 +87,13 @@ export const clearAllUserData = async () => {
   }
 };
 
-export const clearSessionAndRedirect = async () => {
+export const clearSessionAndRedirect = async (options = {}) => {
+  // Don't redirect if we're already on auth pages (prevents loops)
+  const currentPath = window.location.pathname;
+  if (currentPath === '/login' || currentPath === '/register' || currentPath === '/verify-phone') {
+    return;
+  }
+
   // Fire-and-forget a backend logout so the httpOnly cookies are actually
   // cleared (JS cannot delete an httpOnly cookie). Without this, a stale
   // cookie survives 401/logout and the NEXT page load tries to restore it,
@@ -107,7 +113,7 @@ export const clearSessionAndRedirect = async () => {
 
   await clearAllUserData();
   const path = window.location.pathname;
-  if (path !== '/login' && path !== '/register') {
+  if (path !== '/login' && path !== '/register' && path !== '/verify-phone') {
     window.location.href = '/login';
   }
 };

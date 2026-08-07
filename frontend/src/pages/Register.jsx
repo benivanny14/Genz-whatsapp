@@ -54,14 +54,14 @@ const Register = () => {
 
       console.log('[Register] Registration response:', data);
 
+      if (data?.requiresPhoneVerification) {
+        navigate('/verify-phone', { replace: true });
+        return;
+      }
+
       if (data?.success !== false && data?.token) {
-        // Redirect to phone verification if phone is not verified
-        if (data?.phoneVerified === false) {
-          navigate(`/verify-phone?phone=${form.phoneNumber}`, { replace: true });
-        } else {
-          // Force a page reload to ensure session is properly initialized
-          window.location.href = '/chat';
-        }
+        // Force a page reload to ensure session is properly initialized
+        window.location.href = '/chat';
       } else {
         setError(data?.message || 'Registration failed');
       }

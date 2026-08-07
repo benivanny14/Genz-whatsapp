@@ -44,6 +44,11 @@ const Login = () => {
         return;
       }
 
+      if (data?.requiresPhoneVerification) {
+        navigate('/verify-phone', { replace: true });
+        return;
+      }
+
       if (data?.success !== false && data?.token) {
         toast.success('Login successful!');
         navigate(redirectTarget, { replace: true });

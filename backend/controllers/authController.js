@@ -134,6 +134,7 @@ exports.register = async (req, res) => {
       refreshToken,
       user: safeUser(user),
       phoneVerified: false,
+      requiresPhoneVerification: true,
       ...(process.env.NODE_ENV !== 'production' ? { phoneVerificationOTP: otp } : {})
     });
   } catch (error) {
@@ -279,11 +280,24 @@ exports.login = async (req, res) => {
 
     setAuthCookies(res, { token, refreshToken });
 
+    // Check if phone needs verification
+    if (!user.phoneVerified) {
+      return res.json({
+        success: true,
+        token,
+        refreshToken,
+        user: safeUser(user),
+        phoneVerified: false,
+        requiresPhoneVerification: true
+      });
+    }
+
     res.json({
       success: true,
       token,
       refreshToken,
-      user: safeUser(user)
+      user: safeUser(user),
+      phoneVerified: true
     });
   } catch (error) {
     console.error('[Auth] Login error:', {
@@ -1342,7 +1356,7 @@ exports.forgotPassword = async (req, res) => {
 
     const normalized = normalizePhone(emailOrPhone);
     const user = await User.findOne({
-      $or: [{ email: emailOrPhone.toLowerCase() }, { phoneNumber: normalized }]
+      $or: [{ username: emailOrPhone.toLowerCase() }, { phoneNumber: normalized }]
     });
 
     if (!user) {

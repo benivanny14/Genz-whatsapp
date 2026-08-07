@@ -90,6 +90,30 @@ const authService = {
     return null;
   },
 
+  verifyPhoneOTP: async ({ phoneNumber, otp }) => {
+    try {
+      const response = await api.post('/auth/verify-phone', { phoneNumber, otp });
+      return response.data;
+    } catch (error) {
+      const message = error.response?.data?.message || 'Verification failed. Please try again.';
+      const err = new Error(message);
+      err.status = error.response?.status;
+      throw err;
+    }
+  },
+
+  resendPhoneOTP: async ({ phoneNumber }) => {
+    try {
+      const response = await api.post('/auth/resend-otp', { phoneNumber });
+      return response.data;
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to resend OTP. Please try again.';
+      const err = new Error(message);
+      err.status = error.response?.status;
+      throw err;
+    }
+  },
+
   // Check if user is authenticated
   isAuthenticated: () => {
     const token = getAuthToken();

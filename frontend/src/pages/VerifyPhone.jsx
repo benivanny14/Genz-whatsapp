@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Phone, RefreshCw, ShieldAlert, Check } from 'lucide-react';
-import { authFetch } from '../utils/authFetch';
-import { resolveApiBase } from '../utils/resolveApiBase';
+import authService from '../services/authService';
 import { useAuth } from '../context/AuthContext';
-
-const API_URL = resolveApiBase();
 
 const VerifyPhone = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user } = useAuth();
+  const { user, setIsAuthenticated, setUser: setAuthUser } = useAuth();
   const [phoneNumber, setPhoneNumber] = useState(searchParams.get('phone') || user?.phoneNumber || '');
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
@@ -21,70 +18,75 @@ const VerifyPhone = () => {
   const [canResend, setCanResend] = useState(false);
 
   useEffect(() => {
-    let timer;
-    if (countdown > 0 && !canResend) {
-      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-    } else if (countdown === 0) {
+    // If no user data, redirect to login
+    if (!phoneNumber) {
+      navigate('/login');
+      return;
+    }
+    
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(c => c - 1), 1000);
+      return () => clearTimeout(timer);
+    } else {
       setCanResend(true);
     }
-    return () => clearTimeout(timer);
-  }, [countdown, canResend]);
+  }, [countdown, phoneNumber, navigate]);
 
   const handleVerify = async (e) => {
     e.preventDefault();
-    if (!phoneNumber || otp.length !== 6) {
-      setError('Please enter a valid 6-digit OTP');
+    if (otp.length !== 6) {
+      setError('Please enter a 6-digit code');
       return;
     }
+    
     setLoading(true);
     setError('');
+    
     try {
-      const res = await authFetch(`${API_URL}/auth/verify-phone-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber, otp })
+      const res = await authService.verifyPhoneOTP({
+        phoneNumber,
+        otp
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(data.message || 'Failed to verify OTP');
-        return;
+      
+      if (res.success) {
+        // Update user in localStorage
+        const updatedUser = { ...user, phoneVerified: true };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        // Update auth context
+        setAuthUser(updatedUser);
+        setIsAuthenticated(true);
+        
+        setSuccess('Phone verified successfully!');
+        setTimeout(() => navigate('/chat'), 1500);
       }
-      setSuccess('Phone number verified successfully!');
-      setTimeout(() => navigate('/chat'), 2000);
     } catch (err) {
-      setError(err?.message || 'Network error');
+      setError(err.message || 'Verification failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleResend = async () => {
-    if (!canResend) return;
-    setResendLoading(true);
+    if (countdown > 0) return;
+    setCountdown(60);
+    setCanResend(false);
     setError('');
+    
     try {
-      const res = await authFetch(`${API_URL}/auth/resend-phone-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(data.message || 'Failed to resend OTP');
-        return;
-      }
-      if (data.otp) {
-        setOtp(String(data.otp));
+      const res = await authService.resendPhoneOTP({ phoneNumber });
+      if (res.otp) {
+        setOtp(String(res.otp));
       }
       setSuccess('New OTP sent successfully');
-      setCountdown(60);
-      setCanResend(false);
     } catch (err) {
-      setError(err?.message || 'Network error');
-    } finally {
-      setResendLoading(false);
+      setError(err.message || 'Failed to resend OTP');
     }
   };
+
+  if (!phoneNumber) {
+    return null; // Will redirect
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'radial-gradient(900px 600px at 20% 15%, rgba(255,45,120,0.22), transparent 55%), radial-gradient(800px 600px at 85% 85%, rgba(124,92,255,0.22), transparent 55%), radial-gradient(700px 500px at 65% 30%, rgba(0,217,166,0.12), transparent 50%), #0c0a1e' }}>

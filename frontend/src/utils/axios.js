@@ -65,6 +65,15 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    // Handle phone verification required (403)
+    if (status === 403 && error.response?.data?.requiresPhoneVerification) {
+      // Don't logout - redirect to verification page
+      if (window.location.pathname !== '/verify-phone') {
+        window.location.href = '/verify-phone';
+      }
+      return Promise.reject(error);
+    }
+
     if (status === 401 && originalRequest && !originalRequest._authRetry) {
       originalRequest._authRetry = true;
 
