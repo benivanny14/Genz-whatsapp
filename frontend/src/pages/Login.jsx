@@ -193,6 +193,7 @@ const Login = () => {
           </button>
 
           <div className="mt-5 flex items-center justify-between text-sm">
+            <Link to="/forgot-password" className="text-[#00a884] hover:text-white transition-colors">Forgot password?</Link>
             <Link to="/register" className="text-slate-300 hover:text-white transition-colors">Create account</Link>
           </div>
         </form>
