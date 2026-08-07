@@ -29,8 +29,10 @@ const {
   passkeyRegisterVerify,
   passkeyLoginOptions,
   passkeyLoginVerify,
-  getPasskeys,
-  deletePasskey
+   getPasskeys,
+  deletePasskey,
+  forgotPassword,
+  resetPassword
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 const { uploadImage } = require('../middleware/upload');
@@ -82,5 +84,9 @@ router.post('/passkey/login/options', passkeyLoginOptions);
 router.post('/passkey/login/verify', passkeyLoginVerify);
 router.get('/passkey/list', protect, getPasskeys);
 router.delete('/passkey/:id', protect, deletePasskey);
+
+// Password reset (forgot password) — rate-limited, no auth required.
+router.post('/forgot-password', authSensitiveLimiter, forgotPassword);
+router.post('/reset-password', authSensitiveLimiter, resetPassword);
 
 module.exports = router;
