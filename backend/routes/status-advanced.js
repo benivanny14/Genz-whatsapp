@@ -10,6 +10,7 @@ router.use(protect);
 
 // Backup & Restore
 router.post('/backup', statusAdvancedController.backupStatuses);
+router.get('/backup', statusAdvancedController.backupStatuses);
 router.post('/restore', statusAdvancedController.restoreStatuses);
 
 // Templates
