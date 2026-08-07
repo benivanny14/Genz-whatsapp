@@ -227,7 +227,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     updateGroupMember, joinGroup, updateDisappearingMessages, toggleAdminOnlyMessaging, updateGroupPermission, createCustomRole, assignRole, viewProfile,
     pinMessage, unpinMessage, pinnedMessages, presenceHistory, unlockedSessionChats, verifyChatUnlock, toggleChatLock,     stickerPacks, downloadedStickers, downloadStickerPack, sendSticker, addFavoriteSticker, toggleStarMessage, toggleMessageLock, toggleMuteChat, toggleArchiveChat, markAsRead, markViewOnceViewed, getUserStatusWithGhostMode,
     sendFloatingSticker, floatingStickerHandlers, setFloatingStickerHandlers,
-    isDNDMode, toggleDNDMode, selectConversation, setMods
+    isDNDMode, toggleDNDMode, selectConversation, setMods, aiAssistant
   } = useChat();
   const user = chatUser || localUser;
   const [messageInput, setMessageInput] = useState('');
@@ -730,6 +730,57 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     }
 
     const rawMessage = messageInput.trim();
+
+    // Check for /ai command
+    if (rawMessage.toLowerCase().startsWith('/ai ')) {
+      const prompt = rawMessage.substring(4).trim();
+      if (!prompt) {
+        toast.error('Please provide a question or command after /ai');
+        return;
+      }
+
+      // Show loading state
+      const loadingMsg = {
+        _id: `ai-loading-${Date.now()}`,
+        content: '🤖 AI is thinking...',
+        sender: { _id: 'system', username: 'AI Assistant' },
+        messageType: 'text',
+        status: 'sent',
+        createdAt: new Date().toISOString(),
+        conversationId: selectedConversation._id,
+        isSystem: true
+      };
+      setMessages(prev => [...prev, loadingMsg]);
+
+      try {
+        const result = await aiAssistant(rawMessage);
+        setMessages(prev => prev.filter(m => m._id !== loadingMsg._id));
+        
+        if (result.success) {
+          const aiResponse = {
+            _id: `ai-${Date.now()}`,
+            content: result.response,
+            sender: { _id: 'system', username: 'AI Assistant' },
+            messageType: 'text',
+            status: 'sent',
+            createdAt: new Date().toISOString(),
+            conversationId: selectedConversation._id,
+            isSystem: true
+          };
+          setMessages(prev => [...prev, aiResponse]);
+        } else {
+          toast.error(result.message || 'AI Assistant failed');
+        }
+      } catch (error) {
+        setMessages(prev => prev.filter(m => m._id !== loadingMsg._id));
+        toast.error('Failed to get AI response');
+      }
+
+      setMessageInput('');
+      setMentionState({ open: false, query: '', start: -1, cursor: 0, activeIndex: 0 });
+      return;
+    }
+
     const mentions = buildMentionPayload(
       rawMessage,
       selectedConversation?.participants || [],

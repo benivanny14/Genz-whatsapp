@@ -1758,3 +1758,58 @@ exports.getGifs = async (req, res) => {
   }
 };
 
+// @desc    AI Assistant - Process /ai command
+// @route   POST /api/advanced/ai-assistant
+// @access  Private
+exports.aiAssistant = async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    const userId = getCurrentUserId(req);
+
+    if (!prompt || typeof prompt !== 'string') {
+      return res.status(400).json({ success: false, message: 'Prompt is required' });
+    }
+
+    // Remove /ai prefix if present
+    const cleanPrompt = prompt.replace(/^\/ai\s*/i, '').trim();
+
+    if (!cleanPrompt) {
+      return res.status(400).json({ success: false, message: 'Please provide a question or command' });
+    }
+
+    // Simple AI response logic (can be enhanced with actual AI API)
+    let response = '';
+    const lowerPrompt = cleanPrompt.toLowerCase();
+
+    // Basic pattern matching for common queries
+    if (lowerPrompt.includes('help') || lowerPrompt.includes('assist')) {
+      response = "I'm your GENZ AI Assistant! I can help you with:\n- General questions\n- Quick information\n- Chat tips\n\nTry asking me anything!";
+    } else if (lowerPrompt.includes('hello') || lowerPrompt.includes('hi')) {
+      response = "Hello! 👋 How can I help you today?";
+    } else if (lowerPrompt.includes('time')) {
+      response = `The current time is ${new Date().toLocaleString()}`;
+    } else if (lowerPrompt.includes('date')) {
+      response = `Today is ${new Date().toLocaleDateString()}`;
+    } else if (lowerPrompt.includes('weather')) {
+      response = "I don't have access to real-time weather data yet, but you can check your local weather app!";
+    } else if (lowerPrompt.includes('joke')) {
+      const jokes = [
+        "Why don't scientists trust atoms? Because they make up everything! 😄",
+        "I told my computer I needed a break, and now it won't stop sending me vacation ads. 🏖️",
+        "Why did the developer go broke? Because he used up all his cache. 💰"
+      ];
+      response = jokes[Math.floor(Math.random() * jokes.length)];
+    } else {
+      response = "I received your message! For now, I'm a basic AI assistant. More advanced features coming soon! 🤖";
+    }
+
+    res.status(200).json({
+      success: true,
+      response,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('AI Assistant error:', error);
+    res.status(500).json({ success: false, message: 'AI Assistant failed' });
+  }
+};
