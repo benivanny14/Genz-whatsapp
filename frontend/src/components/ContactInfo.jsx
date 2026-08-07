@@ -260,6 +260,16 @@ const DisappearingPicker = ({ current, onSelect, onClose }) => (
 /* ───────── New Modals ───────── */
 
 const ReportModal = ({ contactName, onClose, onReport }) => {
+  const [category, setCategory] = useState('other');
+  const [description, setDescription] = useState('');
+  const reportCategories = [
+    { value: 'spam', label: 'Spam' },
+    { value: 'harassment', label: 'Harassment / Bullying' },
+    { value: 'inappropriate_content', label: 'Inappropriate content' },
+    { value: 'scam', label: 'Scam / Fraud' },
+    { value: 'fake_account', label: 'Fake account' },
+    { value: 'other', label: 'Other' }
+  ];
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -280,14 +290,33 @@ const ReportModal = ({ contactName, onClose, onReport }) => {
           <p className="text-white/70 text-sm mb-6">
             The last 5 messages from this contact will be forwarded to GENZ. This contact will not be notified.
           </p>
-          <div className="flex items-center gap-3 mb-6">
-            <input type="checkbox" id="block-report" className="w-4 h-4 accent-[#00a884] bg-white/10 border-white/20 rounded" defaultChecked />
-            <label htmlFor="block-report" className="text-white/90 text-sm">Block contact and clear chat</label>
-          </div>
-          <div className="flex justify-end gap-3">
-            <button onClick={onClose} className="px-4 py-2 text-[#00a884] font-medium hover:bg-white/5 rounded-lg transition-colors text-sm">Cancel</button>
-            <button onClick={() => { onReport(); onClose(); }} className="px-4 py-2 bg-[#00a884] hover:bg-[#029676] text-white font-medium rounded-lg transition-colors text-sm">Report</button>
-          </div>
+           <div className="mb-4">
+             <label className="text-white/70 text-sm block mb-1">Category</label>
+             <select
+               value={category}
+               onChange={(e) => setCategory(e.target.value)}
+               className="w-full bg-[#2a3947] text-white rounded-lg px-3 py-2 text-sm border border-white/10 focus:outline-none focus:border-[#00a884]"
+             >
+               {reportCategories.map((c) => (
+                 <option key={c.value} value={c.value}>{c.label}</option>
+               ))}
+             </select>
+           </div>
+           <div className="mb-6">
+             <label className="text-white/70 text-sm block mb-1">Description</label>
+             <textarea
+               value={description}
+               onChange={(e) => setDescription(e.target.value.slice(0, 1000))}
+               placeholder="Explain why you are reporting this contact..."
+               rows={4}
+               maxLength={1000}
+               className="w-full bg-[#2a3947] text-white rounded-lg px-3 py-2 text-sm border border-white/10 focus:outline-none focus:border-[#00a884] resize-none"
+             />
+           </div>
+           <div className="flex justify-end gap-3">
+             <button onClick={onClose} className="px-4 py-2 text-[#00a884] font-medium hover:bg-white/5 rounded-lg transition-colors text-sm">Cancel</button>
+             <button onClick={() => { onReport(category, description); onClose(); }} className="px-4 py-2 bg-[#e74c3c] hover:bg-[#c0392b] text-white font-medium rounded-lg transition-colors text-sm">Report</button>
+           </div>
         </div>
       </motion.div>
     </motion.div>
@@ -801,12 +830,30 @@ const ContactInfo = ({
             key="report-modal"
             contactName={displayName}
             onClose={() => setShowReportModal(false)}
-            onReport={() => {
-              // Simulate report
-              setTimeout(() => {
-                toast.success('Report submitted successfully');
-              }, 500);
-            }}
+              onReport={async (category, description) => {
+                // BUG FIX: used to be a setTimeout "fake" report that never
+                // reached the backend. Now posts a real abuse report.
+                if (!contact?._id) {
+                  toast.error('Cannot report this contact');
+                  return;
+                }
+                try {
+                  const res = await authFetch(`${API_URL}/chat/users/${contact._id}/report`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ category: category || 'other', description })
+                  });
+                  const data = await res.json();
+                  if (res.ok && data.success) {
+                    toast.success('Report submitted successfully');
+                    setShowReportModal(false);
+                  } else {
+                    toast.error(data.message || 'Failed to submit report');
+                  }
+                } catch (err) {
+                  toast.error('Network error while reporting');
+                }
+              }}
           />
         )}
 

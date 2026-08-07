@@ -1,9 +1,95 @@
-import React from 'react';
-import { ArrowLeft, ShieldCheck, KeyRound, Lock, Bell } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, ShieldCheck, KeyRound, Lock, Bell, QrCode, Smartphone, Check, Shield, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
+
+const API_URL = resolveApiBase();
 
 const SecuritySettings = () => {
   const navigate = useNavigate();
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [twoFactorLoading, setTwoFactorLoading] = useState(false);
+  const [qrSetup, setQrSetup] = useState(null);
+  const [verifyToken, setVerifyToken] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const loadTwoFactorStatus = async () => {
+    try {
+      const res = await authFetch(`${API_URL}/security/2fa/status`);
+      const data = await res.json();
+      if (data.success) setTwoFactorEnabled(data.twoFactorEnabled);
+    } catch (e) {
+      console.error('Error loading 2FA status:', e);
+    }
+  };
+
+  useEffect(() => { loadTwoFactorStatus(); }, []);
+
+  const enableTwoFactor = async () => {
+    setTwoFactorLoading(true);
+    setErrorMsg('');
+    try {
+      const res = await authFetch(`${API_URL}/security/2fa/generate`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setQrSetup({ secret: data.secret, qr: data.qr, qrCode: data.qrCode });
+      } else {
+        setErrorMsg(data.message || 'Failed to generate 2FA secret');
+      }
+    } catch (e) {
+      setErrorMsg('Network error');
+    } finally {
+      setTwoFactorLoading(false);
+    }
+  };
+
+  const confirmTwoFactor = async () => {
+    if (!verifyToken || verifyToken.length < 6) {
+      setErrorMsg('Please enter a valid 6-digit code');
+      return;
+    }
+    setTwoFactorLoading(true);
+    setErrorMsg('');
+    try {
+      const res = await authFetch(`${API_URL}/security/2fa/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: verifyToken })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTwoFactorEnabled(true);
+        setQrSetup(null);
+        setVerifyToken('');
+      } else {
+        setErrorMsg(data.message || 'Invalid verification code');
+      }
+    } catch (e) {
+      setErrorMsg('Network error');
+    } finally {
+      setTwoFactorLoading(false);
+    }
+  };
+
+  const disableTwoFactor = async () => {
+    if (!window.confirm('Disable two-factor authentication? You will no longer need an authenticator app to log in.')) return;
+    setTwoFactorLoading(true);
+    setErrorMsg('');
+    try {
+      const res = await authFetch(`${API_URL}/security/2fa/disable`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setTwoFactorEnabled(false);
+      } else {
+        setErrorMsg(data.message || 'Failed to disable 2FA');
+      }
+    } catch (e) {
+      setErrorMsg('Network error');
+    } finally {
+      setTwoFactorLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
@@ -66,14 +152,78 @@ const SecuritySettings = () => {
               <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-lg">
                 <ShieldCheck className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Two-step verification</h2>
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Two-factor authentication</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  Two-step verification has been removed from GENZ.
-                  For enhanced security, use passkeys instead.
+                  Add an extra layer of security to your account using an authenticator app (TOTP).
                 </p>
+                {errorMsg && <p className="text-sm text-red-500 mt-2">{errorMsg}</p>}
               </div>
             </div>
+
+            {qrSetup ? (
+              <div className="mt-4 space-y-4">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Scan this QR code with your authenticator app, then enter the 6-digit code below.
+                </p>
+                {qrSetup.qrCode ? (
+                  <img src={qrSetup.qrCode} alt="2FA QR code" className="w-32 h-32" />
+                ) : qrSetup.qr ? (
+                  <img src={qrSetup.qr} alt="2FA QR code" className="w-32 h-32" />
+                ) : (
+                  <QrCode className="w-24 h-24 text-gray-400" />
+                )}
+                <p className="text-xs text-gray-500 break-all">Secret: {qrSetup.secret}</p>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={verifyToken}
+                  onChange={(e) => setVerifyToken(e.target.value.replace(/\D/g, ''))}
+                  className="w-full px-3 py-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder="6-digit code from authenticator"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={confirmTwoFactor}
+                    disabled={twoFactorLoading || !verifyToken}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {twoFactorLoading ? 'Verifying...' : <><Check size={16} /> Verify & enable</>}
+                  </button>
+                  <button type="button" onClick={() => { setQrSetup(null); setVerifyToken(''); setErrorMsg(''); }} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-md">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : twoFactorEnabled ? (
+              <div className="mt-4 flex items-center gap-4">
+                <div className="flex items-center gap-2 text-green-600">
+                  <Shield size={18} />
+                  <span className="font-medium">Two-factor authentication is ON</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={disableTwoFactor}
+                  disabled={twoFactorLoading}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md flex items-center gap-2"
+                >
+                  {twoFactorLoading ? 'Disabling...' : 'Disable'}
+                </button>
+              </div>
+            ) : (
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={enableTwoFactor}
+                  disabled={twoFactorLoading}
+                  className="px-4 py-2 bg-[#00a884] hover:bg-[#029676] text-white rounded-md flex items-center gap-2"
+                >
+                  {twoFactorLoading ? 'Loading...' : <><Smartphone size={16} /> Enable two-factor authentication</>}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

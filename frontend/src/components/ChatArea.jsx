@@ -215,6 +215,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const {
     user: chatUser,
     selectedConversation, messages, setMessages, loading, sendMessage,
+  handleRetryMessage,
     updateLiveLocation, stopLiveLocation,
     editMessage, deleteMessage, clearChat, deleteChat, addReaction,
     sendTypingStatus, forwardMessage, conversations,
@@ -1347,14 +1348,37 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       return;
     }
 
+    // Compress image attachments on send to reduce bandwidth and server storage.
+    // We honor the high-res flag (used for wallpapers/avatars) — when that's on
+    // we keep originals so users can upload full-resolution media.
+    let outgoingFile = file;
+    if (!safeMods?.highResMedia && file.type.startsWith('image/')) {
+      try {
+        const opts = safeMods?.compressionQuality
+          ? { maxWidth: safeMods.compressionWidth || 1080, quality: safeMods.compressionQuality }
+          : undefined;
+        const result = opts ? await compressImage(file, opts.maxWidth, opts.quality) : await compressImage(file, 1080, 0.7);
+        if (typeof result === 'string' && result.startsWith('data:image/jpeg')) {
+          const byteString = atob(result.split(',')[1]);
+          const mime = result.split(',')[0].match(/:(.*?);/)[1];
+          const ab = new ArrayBuffer(byteString.length);
+          const ia = new Uint8Array(ab);
+          for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+          outgoingFile = new File([new Blob([ab], { type: mime })], file.name, { type: 'image/jpeg' });
+        }
+      } catch (e) {
+        console.warn('[ChatArea] Image compression failed, sending original:', e?.message || e);
+      }
+    }
+
     const resolvedCaption = caption ?? (
-      (file.type.startsWith('image/') || file.type.startsWith('video/'))
+      (outgoingFile.type.startsWith('image/') || outgoingFile.type.startsWith('video/'))
         ? window.prompt("Add a caption (optional):", "")
         : null
     );
 
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', outgoingFile);
 
     try {
       const response = await authFetch(`${API_URL}/media/upload`, {
@@ -1369,13 +1393,13 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         if (!uploadedUrl) throw new Error('Upload succeeded without a media URL');
         let type = forcedType || 'file';
         if (!forcedType) {
-          if (file.type.startsWith('image/')) type = 'image';
-          else if (file.type.startsWith('video/')) type = 'video';
-          else if (file.type.startsWith('audio/')) type = 'audio';
+          if (outgoingFile.type.startsWith('image/')) type = 'image';
+          else if (outgoingFile.type.startsWith('video/')) type = 'video';
+          else if (outgoingFile.type.startsWith('audio/')) type = 'audio';
         }
 
         const mediaContent = resolvedCaption?.trim()
-          || (type === 'image' ? 'Photo' : type === 'video' ? 'Video' : type === 'audio' ? 'Audio' : file.name || 'Document');
+          || (type === 'image' ? 'Photo' : type === 'video' ? 'Video' : type === 'audio' ? 'Audio' : outgoingFile.name || 'Document');
 
         await sendMessage(mediaContent, user?.username, {
           messageType: type,
@@ -2949,7 +2973,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       <span className="text-xs opacity-70">{formatMessageTime(message.createdAt)}</span>
                       {isOwnMessage(message) && (
                         <span
-                          className={`text-[10px] font-black ${message.status === 'read' && !safeMods?.hideBlueTickColor && (!safeMods?.tickStyle || safeMods?.tickStyle === 'default' || safeMods?.tickStyle === 'ios')
+                          className={`text-[10px] font-black ${message.status === 'failed' ? 'text-red-400' : message.status === 'read' && !safeMods?.hideBlueTickColor && (!safeMods?.tickStyle || safeMods?.tickStyle === 'default' || safeMods?.tickStyle === 'ios')
                             ? 'text-blue-400'
                             : message.status === 'delivered'
                               ? 'text-white/70'
@@ -2958,10 +2982,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                           title={typeof message.status === 'string' ? message.status : 'Status'}
                         >
                           {(() => {
-                            const status = message.status;
                             const style = safeMods?.tickStyle || 'default';
+                            const status = message.status;
+                            if (status === 'failed') return '⚠️';
+                            if (status === 'pending' || status === 'sending') return '◐';
                             const isSent = status === 'sent';
-
                             switch (style) {
                               case 'batman': return isSent ? '🦇' : '🦇🦇';
                               case 'minions': return isSent ? '🍌' : '🍌🍌';
@@ -2973,7 +2998,21 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                             }
                           })()}
                         </span>
-                      )}
+                        )}{' '}
+                        {message.status === 'failed' && (
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              const result = await handleRetryMessage(message._id);
+                              if (!result?.ok) toast.error('Retry failed, try again later');
+                            }}
+                            className="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#00a884] hover:bg-[#029676] text-white transition shrink-0"
+                            title="Retry sending"
+                            aria-label="Retry sending message"
+                          >
+                            ↻
+                          </button>
+                        )}
                     </div>
                     {message.reactions && message.reactions.length > 0 && (
                       <div className={`absolute -bottom-3 ${isOwnMessage(message) ? 'right-2' : 'right-2'} flex flex-wrap gap-0.5 bg-dark-surface p-0.5 rounded-full border border-dark-border shadow-sm z-10`}>

@@ -441,7 +441,7 @@ exports.logout = async (req, res) => {
 
 exports.changeNumber = async (req, res) => {
   try {
-    const { newPhoneNumber } = req.body;
+    const { newPhoneNumber, otp, verifyOtp } = req.body;
     if (!newPhoneNumber) {
       return res.status(400).json({ success: false, message: 'New phone number is required' });
     }
@@ -451,6 +451,42 @@ exports.changeNumber = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Phone number already in use' });
     }
 
+    // Step 1 — request OTP on the new number. When no OTP is supplied yet we
+    // generate and (in dev/mock) return it so the client can complete verify.
+    if (!otp && !verifyOtp) {
+      const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiry = new Date(Date.now() + 5 * 60 * 1000);
+      req.app?.locals?.changeNumberOtps?.set(newPhoneNumber, {
+        otp: generatedOtp, expires: expiry, oldUserId: req.user._id, newPhoneNumber
+      });
+      if (!req.app?.locals?.changeNumberOtps) {
+        req.app.locals.changeNumberOtps = new Map();
+        req.app.locals.changeNumberOtps.set(newPhoneNumber, {
+          otp: generatedOtp, expires: expiry, oldUserId: req.user._id, newPhoneNumber
+        });
+      }
+      return res.status(200).json({
+        success: true,
+        requiresOtp: true,
+        message: 'OTP sent to the new number. Verification required.',
+        // In tests/dev only — production should send via SMS provider.
+        ...(process.env.NODE_ENV !== 'production' ? { otp: generatedOtp } : {})
+      });
+    }
+
+    // Step 2 — verify the OTP before mutating the stored phone number.
+    const stored = req.app?.locals?.changeNumberOtps?.get(newPhoneNumber);
+    if (!stored || new Date() > new Date(stored.expires)) {
+      return res.status(400).json({ success: false, message: 'OTP expired or not requested' });
+    }
+    if (String(stored.otp) !== String(verifyOtp || otp)) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP' });
+    }
+    if (String(stored.oldUserId) !== String(req.user._id)) {
+      return res.status(403).json({ success: false, message: 'OTP was issued for another user' });
+    }
+
+    req.app?.locals?.changeNumberOtps?.delete(newPhoneNumber);
     const user = await User.findById(req.user._id);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });

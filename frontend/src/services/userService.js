@@ -130,11 +130,11 @@ const userService = {
   },
 
   // ── Account Management ───────────────────────────────────────────
-  changeNumber: async (newPhoneNumber) => {
+  changeNumber: async (newPhoneNumber, options = {}) => {
     const res = await authFetch(`${API_URL}/auth/change-number`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ newPhoneNumber }),
+      body: JSON.stringify({ newPhoneNumber, ...options }),
     });
     if (!res.ok) {
       const data = await res.json();

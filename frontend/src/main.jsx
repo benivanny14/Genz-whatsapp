@@ -79,7 +79,7 @@ if ('serviceWorker' in navigator) {
           window.dispatchEvent(new CustomEvent('call-decline', { detail: event.data }));
         }
         if (type === 'SYNC_MESSAGES') {
-          window.dispatchEvent(new CustomEvent('sync-messages'));
+          window.dispatchEvent(new CustomEvent('process-offline-queue'));
         }
       });
 

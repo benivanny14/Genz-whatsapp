@@ -105,7 +105,7 @@ const StatusSecurityPanel = ({ onClose, status, onSecurityUpdate }) => {
           if ('Notification' in window && Notification.permission === 'granted') {
             new Notification('Screenshot Detected', {
               body: 'Someone may have taken a screenshot of your status',
-              icon: '/shield-icon.png'
+              icon: '/icons/icon-192x192.png'
             });
           }
         }

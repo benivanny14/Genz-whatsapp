@@ -282,13 +282,27 @@ function App() {
       navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
     }
 
+    // BUG FIX: In-app notification toast (InAppNotification) used to receive
+    // `notification` = null forever — nothing ever called setNotification()
+    // with real data, so the toast was dead. ChatContext now dispatches a
+    // `genz-in-app-notification` CustomEvent for foreground new-messages;
+    // wire it to the toast here so the component actually shows.
+    const handleInAppNotification = (event) => {
+      const data = event?.detail;
+      if (data && data.title) {
+        setNotification({ title: data.title, message: data.message || '', avatar: data.avatar });
+      }
+    };
+    window.addEventListener('genz-in-app-notification', handleInAppNotification);
+
     return () => {
       cancelled = true;
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
       }
+      window.removeEventListener('genz-in-app-notification', handleInAppNotification);
     };
-  }, [setActiveCall]);
+  }, [setActiveCall, setNotification]);
 
   // --- PWA Updates ---
   useEffect(() => {

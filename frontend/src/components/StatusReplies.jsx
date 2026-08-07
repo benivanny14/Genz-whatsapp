@@ -15,7 +15,7 @@ const StatusReplies = ({ status, onReply, onClose }) => {
     { id: 'angry', icon: Angry, color: 'text-orange-500' },
   ];
 
-  emojis = ['😀', '😂', '❤️', '👍', '🔥', '😮', '😢', '🎉', '💯', '✨'];
+  const emojis = ['😀', '😂', '❤️', '👍', '🔥', '😮', '😢', '🎉', '💯', '✨'];
 
   const handleSendReply = () => {
     if (!replyText.trim() && !selectedReaction) return;

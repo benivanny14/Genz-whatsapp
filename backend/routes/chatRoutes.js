@@ -39,7 +39,8 @@ const {
   markViewOnceViewed,
   updateGroupInfo,
   forwardMessage,
-  reportMessage,
+   reportMessage,
+   reportUser,
   getGroupInfo,
   regenerateGroupInvite,
   clearChat,
@@ -146,5 +147,6 @@ router.post("/contacts", addContact);
 router.get("/contacts", privacyMiddleware, getContacts);
 router.post("/users/:id/block", blockUser);
 router.delete("/users/:id/block", unblockUser);
+router.post("/users/:id/report", reportUser);
 
 module.exports = router;

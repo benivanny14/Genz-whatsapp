@@ -226,15 +226,27 @@ describe('Settings API audit', () => {
       expect(res.statusCode).toBe(400);
     });
 
-    it('should change phone number successfully', async () => {
+    it('should change phone number successfully with OTP verification', async () => {
+      const newNumber = '255700000299';
+      // Step 1 — request OTP on the new number
+      const reqRes = await request(app)
+        .post('/api/auth/change-number')
+        .set('Authorization', `Bearer ${alice.token}`)
+        .send({ newPhoneNumber: newNumber });
+
+      expect(reqRes.statusCode).toBe(200);
+      expect(reqRes.body.requiresOtp).toBe(true);
+      const otp = reqRes.body.otp; // exposed only in non-production for dev/test
+
+      // Step 2 — verify OTP before the number is persisted
       const res = await request(app)
         .post('/api/auth/change-number')
         .set('Authorization', `Bearer ${alice.token}`)
-        .send({ newPhoneNumber: '255700000299' });
+        .send({ newPhoneNumber: newNumber, verifyOtp: otp });
 
       expect(res.statusCode).toBe(200);
       const persisted = await User.findById(alice.user._id);
-      expect(persisted.phoneNumber).toBe('255700000299');
+      expect(persisted.phoneNumber).toBe(newNumber);
     });
 
     it('should delete the account', async () => {

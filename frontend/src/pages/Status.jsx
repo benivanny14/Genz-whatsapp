@@ -834,6 +834,14 @@ const Status = () => {
             </button>
             <button
               type="button"
+              onClick={() => openStatusPanel(setShowStatusPoll)}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              title="Poll" aria-label="Poll"
+            >
+              <BarChart3 size={20} />
+            </button>
+            <button
+              type="button"
               onClick={() => openStatusPanel(setShowStatusMentions)}
               className="p-2 hover:bg-white/20 rounded-full transition-colors"
               title="Mentions" aria-label="Mentions"

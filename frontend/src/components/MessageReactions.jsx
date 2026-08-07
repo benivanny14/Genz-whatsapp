@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Heart, ThumbsUp, Laugh, Sparkles, Frown, Angry, MoreHorizontal, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useUser } from '../context/UserContext';
 
 const MessageReactions = ({ message, onReact, onRemoveReaction, onClose }) => {
   const [showAllReactions, setShowAllReactions] = useState(false);
+  const { userId: currentUserId } = useUser();
 
   const reactions = [
     { id: 'love', icon: Heart, color: 'text-red-500', label: 'Love' },
@@ -73,7 +75,7 @@ const MessageReactions = ({ message, onReact, onRemoveReaction, onClose }) => {
           >
             <div className="flex flex-wrap gap-2">
               {reactions.map(reaction => {
-                const hasReacted = message.reactions?.some(r => r.type === reaction.id && r.userId === 'current-user');
+          const hasReacted = message.reactions?.some(r => r.type === reaction.id && r.userId === currentUserId);
                 return (
                   <motion.button
                     key={reaction.id}

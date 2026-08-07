@@ -38,7 +38,7 @@ const StatusQRCodePanel = ({ onClose, status }) => {
       const token = getAuthToken();
       const statusUrl = customUrl || `${window.location.origin}/status/${status?._id || status?.id}`;
       
-      const response = await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/qr`, {
+      const response = await fetch(`${resolveApiBase()}/status-advanced/qr`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

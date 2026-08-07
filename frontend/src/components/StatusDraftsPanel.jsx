@@ -80,7 +80,7 @@ const StatusDraftsPanel = ({ onClose, onDraftSelect, onDraftDelete }) => {
   const handleDeleteDraft = async (draftId) => {
     try {
       const token = getAuthToken();
-      await fetch(`${resolveApiBase()}/status-advanced/${draftId}`, {
+      await fetch(`${resolveApiBase()}/status-advanced/drafts/${draftId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

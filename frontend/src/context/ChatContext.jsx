@@ -1104,8 +1104,20 @@ export const ChatProvider = ({ children }) => {
               // notification body. Other apps never do that — show a clean
               // "🔗 Link" label instead, same as an image/video message.
               else if (/^https?:\/\/\S+$/i.test(preview.trim())) preview = '🔗 Link';
-              notifyNewMessage(senderName, preview, incoming.conversationId);
-              setOnlineNotification(`New message from ${senderName}`);
+               notifyNewMessage(senderName, preview, incoming.conversationId);
+               // BUG FIX: InAppNotification toast (App.jsx) was never fed data.
+               // Dispatch a foreground in-app notification so the toast shows
+               // while the user has the app open (push already covers bg).
+               try {
+                 window.dispatchEvent(new CustomEvent('genz-in-app-notification', {
+                   detail: {
+                     title: senderName,
+                     message: preview,
+                     avatar: incoming.sender?.profilePicture
+                   }
+                 }));
+               } catch (_) { /* ignore */ }
+               setOnlineNotification(`New message from ${senderName}`);
               setTimeout(() => setOnlineNotification(null), 3000);
             }
             
@@ -2378,8 +2390,64 @@ export const ChatProvider = ({ children }) => {
       return { ok: messageSent, id: resolvedServerId || clientMessageId, clientMessageId };
   };
 
-  // Push a new GPS fix for an in-progress live location share. Updates the
-  // ORIGINAL message's coordinates for every participant in real time,
+  // Resend a failed message. Looks up the failed message from state and
+  // re-runs the same send path (socket -> HTTP fallback). Only acts on
+  // messages whose current status is 'failed'.
+  const handleRetryMessage = async (messageId) => {
+    const message = (messages || []).find(
+      (m) => (m._id === messageId || m.clientMessageId === messageId) && m.status === 'failed'
+    );
+    if (!message) return { ok: false, error: 'Message not found or not failed' };
+
+    // Cap retries to avoid infinite retry loops when the server persistently
+    // rejects a message (e.g. recipient blocked the user, invalid media, etc.)
+    const retryCount = Number(message.retryCount || 0);
+    if (retryCount >= 5) {
+      return { ok: false, error: 'Max retries reached — please resend manually' };
+    }
+
+    // Pull the original send options back out of the stored message so the
+    // retry is a faithful retransmission (same mediaUrl/type/reply/etc).
+    const options = {};
+    if (message.messageType) options.messageType = message.messageType;
+    if (message.mediaUrl) options.mediaUrl = message.mediaUrl;
+    if (message.fileName) options.fileName = message.fileName;
+    if (message.fileSize) options.fileSize = message.fileSize;
+    if (message.duration) options.duration = message.duration;
+    if (message.replyTo) options.replyTo = message.replyTo;
+    if (message.mentions) options.mentions = message.mentions;
+    if (message.isViewOnce) options.isViewOnce = message.isViewOnce;
+    if (message.isForwarded) options.isForwarded = message.isForwarded;
+    if (message.structuredContent) options.structuredContent = message.structuredContent;
+    if (message.isLiveLocation) options.isLiveLocation = message.isLiveLocation;
+    if (message.latitude != null) options.latitude = message.latitude;
+    if (message.longitude != null) options.longitude = message.longitude;
+    if (message.thumbnail) options.thumbnail = message.thumbnail;
+    options.retryCount = retryCount + 1;
+
+    // Remove the failed marker so the UI goes back to "sending"/pending.
+    setMessages(prev => prev.map(m =>
+      (m._id === messageId || m.clientMessageId === messageId)
+        ? { ...m, status: 'pending', retryCount: retryCount + 1 }
+        : m
+    ));
+
+    const content = message.content || (message.messageType === 'image' ? 'Photo' : message.messageType === 'video' ? 'Video' : message.messageType === 'audio' ? 'Audio' : 'Message');
+    const result = await sendMessage(content, authUser?.username || 'Me', options);
+
+    // If the resend failed again and we've exhausted retries, persist a
+    // non-retryable server-rejection error on the message so the UI can
+    // surface it instead of silently looping.
+    if (!result?.ok && retryCount + 1 >= 5) {
+      const errMsg = message.errorMessage || 'Server rejected — max retries reached';
+      setMessages(prev => prev.map(m =>
+        (m._id === messageId || m.clientMessageId === messageId)
+          ? { ...m, status: 'failed', errorMessage: errMsg, retryCount: retryCount + 1, nonRetryable: true }
+          : m
+      ));
+    }
+    return result;
+  };
   // instead of creating a new chat message per tick.
   const updateLiveLocation = (messageId, latitude, longitude) => {
     if (!messageId || typeof latitude !== 'number' || typeof longitude !== 'number') return;
@@ -5056,7 +5124,7 @@ export const ChatProvider = ({ children }) => {
     messages, setMessages,
     loading, setLoading,
     sendMessage, editMessage, deleteMessage, clearChat, deleteChat,
-    addReaction, forwardMessage, markAsRead,
+    handleRetryMessage, addReaction, forwardMessage, markAsRead,
     updateLiveLocation, stopLiveLocation,
     isOtherUserTyping, sendTypingStatus, typingByConversation,
     isOtherUserRecording, sendRecordingStatus,

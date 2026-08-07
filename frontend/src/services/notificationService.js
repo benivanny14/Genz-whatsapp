@@ -173,8 +173,8 @@ export const showNotification = async (title, body, options = {}) => {
 
   const notifOptions = {
     body,
-    icon: '/icon.png',
-    badge: '/icon.png',
+    icon: '/icons/icon-192x192.png',
+    badge: '/icons/icon-192x192.png',
     vibrate: options.vibratePattern || settings.messageVibrationPattern,
     tag: options.tag || 'genz-message',
     renotify: true,

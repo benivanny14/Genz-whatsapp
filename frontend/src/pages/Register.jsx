@@ -9,11 +9,27 @@ const Register = () => {
   const [form, setForm] = useState({
     phoneNumber: '',
     username: '',
-    password: ''
+    password: '',
+    confirmPassword: ''
   });
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const passwordStrength = (() => {
+    const p = form.password || '';
+    const checks = {
+      length: p.length >= 8,
+      upper: /[A-Z]/.test(p),
+      lower: /[a-z]/.test(p),
+      number: /\d/.test(p),
+      special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(p)
+    };
+    const score = Object.values(checks).filter(Boolean).length;
+    return { score, checks };
+  })();
 
   const updateField = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -23,10 +39,18 @@ const Register = () => {
   const handleDirectRegister = async (e) => {
     e.preventDefault();
     setError('');
+    if (form.password !== form.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    if (!agreedToTerms) {
+      setError('You must accept the Terms of Service and Privacy Policy to continue.');
+      return;
+    }
     setLoading(true);
 
     try {
-      const data = await register(form);
+      const data = await register({ phoneNumber: form.phoneNumber, username: form.username, password: form.password });
 
       if (data?.success !== false && data?.token) {
         navigate('/chat', { replace: true });
@@ -110,9 +134,64 @@ const Register = () => {
           Minimum 8 characters: uppercase, lowercase, number, and special character.
         </p>
 
+        {/* Password strength indicator */}
+        <div className="mb-4 space-y-1.5">
+          <div className="flex items-center gap-2">
+            <div className="flex-1 h-1.5 rounded bg-slate-700 overflow-hidden">
+              <div className={`h-full rounded transition-all ${passwordStrength.score >= 4 ? 'bg-green-400' : passwordStrength.score >= 2 ? 'bg-yellow-400' : 'bg-red-400'}`} style={{ width: `${(passwordStrength.score / 5) * 100}%` }} />
+            </div>
+            <span className="text-xs text-slate-400 min-w-[48px] text-right">
+              {passwordStrength.score === 5 ? 'Strong' : passwordStrength.score >= 2 ? 'Medium' : form.password ? 'Weak' : '—'}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-1 text-[10px] text-slate-500">
+            <span className={passwordStrength.checks.length ? 'text-green-400' : ''}>8+ chars</span>
+            <span className={passwordStrength.checks.upper ? 'text-green-400' : ''}>Uppercase</span>
+            <span className={passwordStrength.checks.number ? 'text-green-400' : ''}>Number</span>
+            <span className={passwordStrength.checks.special ? 'text-green-400' : ''}>Special</span>
+          </div>
+        </div>
+
+        <label className="block text-sm text-slate-300 mb-2">Thibitisha Nenosiri</label>
+        <div className="mb-4 flex items-center gap-2 rounded-md bg-[#202c33] border border-white/10 px-3">
+          <Lock size={18} className="text-slate-400" />
+          <input
+            type={showConfirm ? 'text' : 'password'}
+            value={form.confirmPassword}
+            onChange={(event) => updateField('confirmPassword', event.target.value)}
+            className="w-full bg-transparent py-3 text-white outline-none"
+            autoComplete="new-password"
+            minLength={8}
+            required
+          />
+          <button type="button" onClick={() => setShowConfirm((value) => !value)} className="text-slate-300">
+            {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
+        {form.confirmPassword && form.password !== form.confirmPassword && (
+          <p className="text-xs text-red-400 mb-2">Passwords do not match</p>
+        )}
+
+        {/* Terms checkbox */}
+        <label className="flex items-start gap-2 mb-4 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={agreedToTerms}
+            onChange={(e) => setAgreedToTerms(e.target.checked)}
+            className="mt-0.5 rounded border-slate-600 text-[#ff2d78] focus:ring-[#ff2d78]"
+            required
+          />
+          <span className="text-xs text-slate-300">
+            I agree to the <span className="text-[#00a884]">Terms of Service</span> and <span className="text-[#00a884]">Privacy Policy</span>, including end-to-end encryption settings.
+          </span>
+        </label>
+        {!agreedToTerms && error && (
+          <p className="text-xs text-red-400 mb-2">You must accept the terms to continue</p>
+        )}
+
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || passwordStrength.score < 3 || form.password !== form.confirmPassword || !agreedToTerms}
           className="w-full flex items-center justify-center gap-2 rounded-md bg-[#ff2d78] hover:bg-[#d61a5e] py-3 font-bold text-white transition-colors disabled:opacity-60 genz-sticker"
         >
           <UserPlus size={18} />

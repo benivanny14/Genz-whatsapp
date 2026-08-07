@@ -2,6 +2,7 @@
 const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
 const User = require("../models/User");
+const AbuseReport = require("../models/AbuseReport");
 const PrivacyExcludedContact = require("../models/PrivacyExcludedContact");
 const PrivacyAllowedContact = require("../models/PrivacyAllowedContact");
 const crypto = require("crypto");
@@ -2334,6 +2335,48 @@ exports.reportMessage = async (req, res) => {
     console.log("Message report:", report);
 
     res.json({ success: true, message: "Message reported successfully" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.reportUser = async (req, res) => {
+  try {
+    const reporterId = getCurrentUserId(req);
+    const { reportedUserId } = req.params;
+    const { category, description, contentType } = req.body;
+
+    if (!reportedUserId) {
+      return res.status(400).json({ success: false, message: 'reportedUserId is required' });
+    }
+    if (String(reporterId) === String(reportedUserId)) {
+      return res.status(400).json({ success: false, message: 'You cannot report yourself' });
+    }
+
+    const validCategories = ['spam', 'harassment', 'inappropriate_content', 'fake_account', 'scam', 'violence', 'hate_speech', 'other'];
+    if (!validCategories.includes(category || 'other')) {
+      return res.status(400).json({ success: false, message: 'Invalid report category' });
+    }
+    if (typeof description !== 'string' || description.trim().length === 0 || description.length > 1000) {
+      return res.status(400).json({ success: false, message: 'A valid description (1-1000 chars) is required' });
+    }
+
+    const reportedUser = await User.findById(reportedUserId).select('_id');
+    if (!reportedUser) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const report = new AbuseReport({
+      reporterId,
+      reportedUserId,
+      contentType: contentType || 'user_profile',
+      category: category || 'other',
+      description: description.trim(),
+      priority: category === 'violence' || category === 'hate_speech' || category === 'scam' ? 'high' : 'medium'
+    });
+    await report.save();
+
+    res.status(201).json({ success: true, message: 'User reported successfully', reportId: report._id });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

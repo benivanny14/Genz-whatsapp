@@ -798,14 +798,22 @@ const Settings = () => {
   const handleChangeNumber = async () => {
     if (!settingsData.account.changeNumberGuard || window.confirm('Are you sure you want to change your phone number? This will migrate your account data.')) {
       const newNumber = window.prompt('Enter your new phone number:');
-      if (newNumber) {
-        try {
-          await userService.changeNumber(newNumber);
+      if (!newNumber) return;
+      try {
+        let result = await userService.changeNumber(newNumber);
+        if (result?.requiresOtp) {
+          const otp = window.prompt(`OTP sent to ${newNumber}. Enter the verification code:`);
+          if (!otp) return;
+          result = await userService.changeNumber(newNumber, { verifyOtp: otp });
+        }
+        if (result?.success) {
           showStatus('success', 'Phone number changed successfully.');
           setProfileData(prev => ({ ...prev, phone: newNumber }));
-        } catch (error) {
-          showStatus('error', error.message || 'Failed to change number.');
+        } else {
+          showStatus('error', result?.message || 'Failed to change number.');
         }
+      } catch (error) {
+        showStatus('error', error.message || 'Failed to change number.');
       }
     }
   };
