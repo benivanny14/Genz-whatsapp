@@ -1771,11 +1771,16 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   };
 
   const handleContactSimulation = () => {
-    const name = window.prompt("GENZ Sim: Enter contact name to share:");
-    if (name) {
-      sendMessage(`Shared Contact: ${name}`, user?.username, { messageType: 'text', replyTo: replyingTo });
-      setReplyingTo(null);
-    }
+    const name = window.prompt("GENZ: Enter contact name to share:");
+    if (!name) return;
+    const phone = window.prompt(`GENZ: Enter phone number for ${name}:`) || '';
+    const plain = `Shared Contact: ${name}${phone ? ` · ${phone}` : ''}`;
+    sendMessage(plain, user?.username, {
+      messageType: 'contact',
+      structuredContent: [{ type: 'text', value: plain, meta: { contactName: name, contactPhone: phone } }],
+      replyTo: replyingTo
+    });
+    setReplyingTo(null);
   };
 
   const handleFilePreview = (message) => {
@@ -2962,7 +2967,26 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                         })}
                       </div>
                     )}
-                    {(!['image', 'video', 'location', 'sticker', 'audio', 'structured'].includes(message.messageType) ||
+                    {/* ── Contact Card ── */}
+                    {message.messageType === 'contact' && (
+                      <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl p-3 min-w-[200px]">
+                        <div className="w-10 h-10 rounded-full bg-[#25d366]/20 flex items-center justify-center text-[#25d366] font-bold text-sm shrink-0">
+                          {(message.structuredContent?.[0]?.meta?.contactName || plaintextOf(message)).trim().charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-white font-medium text-sm truncate">
+                            {message.structuredContent?.[0]?.meta?.contactName || plaintextOf(message)}
+                          </p>
+                          {message.structuredContent?.[0]?.meta?.contactPhone && (
+                            <p className="text-white/60 text-xs truncate">{message.structuredContent[0].meta.contactPhone}</p>
+                          )}
+                        </div>
+                        <span className="text-[10px] uppercase tracking-wide text-white/40 flex items-center gap-1 shrink-0">
+                          <Contact size={12} /> Contact
+                        </span>
+                      </div>
+                    )}
+                    {(!['image', 'video', 'location', 'sticker', 'audio', 'structured', 'contact'].includes(message.messageType) ||
                       (plaintextOf(message) &&
                         plaintextOf(message) !== mediaSourceOf(message) &&
                         plaintextOf(message) !== `${message.messageType} message` &&

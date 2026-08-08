@@ -1099,6 +1099,8 @@ export const ChatProvider = ({ children }) => {
               else if (incoming.messageType === 'audio') preview = '🎵 Voice note';
               else if (incoming.messageType === 'sticker') preview = '🖼️ Sticker';
               else if (incoming.messageType === 'gif') preview = '🎞️ GIF';
+              else if (incoming.messageType === 'contact') preview = '👤 Contact';
+              else if (incoming.messageType === 'location') preview = '📍 Location';
               // BUG FIX: a text message that's just a URL (e.g. a shared group
               // invite link) used to show the whole raw link in the
               // notification body. Other apps never do that — show a clean
@@ -1246,6 +1248,7 @@ export const ChatProvider = ({ children }) => {
         else if (message?.messageType === 'image') preview = '📷 Photo';
         else if (message?.messageType === 'video') preview = '🎥 Video';
         else if (message?.messageType === 'audio') preview = '🎵 Voice note';
+        else if (message?.messageType === 'contact') preview = '👤 Contact';
         const notification = {
           id: `mention-${message?._id || Date.now()}`,
           type: 'mention',

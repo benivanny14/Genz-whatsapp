@@ -999,6 +999,8 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     if (conv.lastMessage.messageType === 'video') return '🎥 Video' + (conv.lastMessage.caption ? `: ${conv.lastMessage.caption}` : '');
     if (conv.lastMessage.messageType === 'audio') return '🎵 Voice note';
     if (conv.lastMessage.messageType === 'sticker') return '🖼️ Sticker';
+    if (conv.lastMessage.messageType === 'contact') return '👤 Contact';
+    if (conv.lastMessage.messageType === 'location') return '📍 Location';
 
     if (!mods?.debugEncryption && isClientE2EEMessageContent(conv.lastMessage.content)) {
       return '🔒 Ujumbe uliosimbwa (E2EE)';
