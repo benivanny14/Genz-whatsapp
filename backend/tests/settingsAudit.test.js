@@ -16,7 +16,17 @@ const registerUser = async (username, phone) => {
       password: 'Password123!'
     });
   expect(res.statusCode).toBe(201);
-  return { token: res.body.token, user: res.body.user };
+  return { token: res.body.token, user: res.body.user, otp: res.body.phoneVerificationOTP, phoneNumber: res.body.user.phoneNumber };
+};
+
+const verifyPhone = async ({ token, otp, phoneNumber }) => {
+  expect(otp).toBeTruthy();
+  const res = await request(app)
+    .post('/api/auth/verify-phone-otp')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ phoneNumber, otp });
+    expect(res.statusCode).toBe(200);
+  return res.body;
 };
 
 describe('Settings API audit', () => {
@@ -24,7 +34,9 @@ describe('Settings API audit', () => {
 
   beforeEach(async () => {
     alice = await registerUser('alice', '255700000201');
+    await verifyPhone(alice);
     bob = await registerUser('bob', '255700000202');
+    await verifyPhone(bob);
   });
 
   describe('GET /api/settings', () => {
@@ -347,5 +359,75 @@ describe('Settings API audit', () => {
 
       expect(bobList.body.excludedContacts.length).toBe(0);
     });
+  describe('Phone verification (verify/resend OTP)', () => {
+    it('should verify a phone number with the valid OTP', async () => {
+      const fresh = await registerUser('verify1', '255700000203');
+      expect(fresh.otp).toBeTruthy();
+      const res = await request(app)
+        .post('/api/auth/verify-phone-otp')
+        .set('Authorization', `Bearer ${fresh.token}`)
+        .send({ phoneNumber: '255700000203', otp: fresh.otp });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
+
+      const persisted = await User.findById(fresh.user._id);
+      expect(persisted.phoneVerified).toBe(true);
+      expect(persisted.phoneVerificationOTP).toBeNull();
+    });
+
+    it('should reject an invalid OTP', async () => {
+      const fresh = await registerUser('verify2', '255700000204');
+      const res = await request(app)
+        .post('/api/auth/verify-phone-otp')
+        .set('Authorization', `Bearer ${fresh.token}`)
+        .send({ phoneNumber: '255700000204', otp: '000000' });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.success).toBe(false);
+
+      const persisted = await User.findById(fresh.user._id);
+      expect(persisted.phoneVerified).toBe(false);
+    });
+
+    it('should reject OTP verification for another session phone', async () => {
+      const res = await request(app)
+        .post('/api/auth/verify-phone-otp')
+        .set('Authorization', `Bearer ${alice.token}`)
+        .send({ phoneNumber: '255700000202', otp: bob.otp });
+
+      expect(res.statusCode).toBe(403);
+      expect(res.body.success).toBe(false);
+    });
+
+    it('should require a token', async () => {
+      const res = await request(app)
+        .post('/api/auth/verify-phone-otp')
+        .send({ phoneNumber: '255700000201', otp: '123456' });
+
+      expect(res.statusCode).toBe(401);
+    });
+
+    it('should resend a new OTP and verify with it', async () => {
+      const fresh = await registerUser('verify3', '255700000205');
+      const resend = await request(app)
+        .post('/api/auth/resend-phone-otp')
+        .set('Authorization', `Bearer ${fresh.token}`)
+        .send({ phoneNumber: '255700000205' });
+
+      expect(resend.statusCode).toBe(200);
+      expect(resend.body.otp).toBeTruthy();
+      expect(resend.body.otp).not.toBe(fresh.otp);
+
+      const res = await request(app)
+        .post('/api/auth/verify-phone-otp')
+        .set('Authorization', `Bearer ${fresh.token}`)
+        .send({ phoneNumber: '255700000205', otp: resend.body.otp });
+
+      expect(res.statusCode).toBe(200);
+      const persisted = await User.findById(fresh.user._id);
+      expect(persisted.phoneVerified).toBe(true);
+    });
   });
+});
 });

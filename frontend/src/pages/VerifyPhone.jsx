@@ -3,7 +3,15 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Phone, RefreshCw, ShieldAlert, Check } from 'lucide-react';
 import authService from '../services/authService';
 import { useAuth } from '../context/AuthContext';
-import { sendOtpToUser, verifyUserOtp, setupRecaptcha } from '../firebase';
+
+const formatPhoneForRequest = (phone) => {
+  let formatted = String(phone || '').trim();
+  if (!formatted) return '';
+  if (!formatted.startsWith('+')) {
+    formatted = '+255' + formatted.replace(/^0/, '');
+  }
+  return formatted;
+};
 
 const VerifyPhone = () => {
   const navigate = useNavigate();
@@ -18,17 +26,17 @@ const VerifyPhone = () => {
   const [countdown, setCountdown] = useState(60);
   const [canResend, setCanResend] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
-  const recaptchaContainerRef = useRef(null);
+  const autoSentRef = useRef(false);
 
   useEffect(() => {
-    // If no user data, redirect to login
     if (!phoneNumber) {
       navigate('/login');
       return;
     }
-    
-    // Auto-send OTP on component mount
-    handleSendOtp();
+    if (!autoSentRef.current) {
+      autoSentRef.current = true;
+      handleSendOtp();
+    }
   }, [phoneNumber, navigate]);
 
   useEffect(() => {
@@ -41,25 +49,27 @@ const VerifyPhone = () => {
   }, [countdown]);
 
   const handleSendOtp = async () => {
-    // Format phone number with country code if not present
-    let formattedPhone = phoneNumber;
-    if (!formattedPhone.startsWith('+')) {
-      // Assume Tanzania country code if not present
-      formattedPhone = '+255' + formattedPhone.replace(/^0/, '');
+    const formattedPhone = formatPhoneForRequest(phoneNumber);
+    if (!formattedPhone) {
+      setError('Invalid phone number');
+      return;
     }
-    
+
     setResendLoading(true);
     setError('');
-    
+
     try {
-      const result = await sendOtpToUser(formattedPhone);
-      if (result.success) {
+      const result = await authService.resendPhoneOTP({ phoneNumber: formattedPhone });
+      if (result?.success) {
         setSuccess('OTP sent successfully!');
         setOtpSent(true);
         setCountdown(60);
         setCanResend(false);
+        if (result.otp) {
+          setOtp(String(result.otp));
+        }
       } else {
-        setError(result.message || 'Failed to send OTP');
+        setError(result?.message || 'Failed to send OTP');
       }
     } catch (err) {
       setError(err.message || 'Failed to send OTP');
@@ -74,35 +84,27 @@ const VerifyPhone = () => {
       setError('Please enter a 6-digit code');
       return;
     }
-    
+
     setLoading(true);
     setError('');
-    
+
     try {
-      // First verify with Firebase
-      const firebaseResult = await verifyUserOtp(otp);
-      
-      if (firebaseResult.success) {
-        // Then verify with backend to mark phone as verified in database
-        const res = await authService.verifyPhoneOTP({
-          phoneNumber,
-          otp
-        });
-        
-        if (res.success) {
-          // Update user in localStorage
-          const updatedUser = { ...user, phoneVerified: true };
-          localStorage.setItem('user', JSON.stringify(updatedUser));
-          
-          // Update auth context
-          setAuthUser(updatedUser);
-          setIsAuthenticated(true);
-          
-          setSuccess('Phone verified successfully!');
-          setTimeout(() => navigate('/chat'), 1500);
-        }
+      const res = await authService.verifyPhoneOTP({
+        phoneNumber: formatPhoneForRequest(phoneNumber),
+        otp
+      });
+
+      if (res?.success) {
+        const updatedUser = { ...user, phoneVerified: true };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+
+        setAuthUser(updatedUser);
+        setIsAuthenticated(true);
+
+        setSuccess('Phone verified successfully!');
+        setTimeout(() => navigate('/chat'), 1500);
       } else {
-        setError(firebaseResult.message || 'Invalid OTP');
+        setError(res?.message || 'Verification failed. Please try again.');
       }
     } catch (err) {
       setError(err.message || 'Verification failed. Please try again.');
@@ -188,9 +190,6 @@ const VerifyPhone = () => {
             {resendLoading ? 'Sending...' : canResend ? 'Resend OTP' : `Resend in ${countdown}s`}
           </button>
         </div>
-
-        {/* reCAPTCHA container for Firebase phone authentication */}
-        <div id="recaptcha-container" ref={recaptchaContainerRef} className="hidden"></div>
       </div>
     </div>
   );

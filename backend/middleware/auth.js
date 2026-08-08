@@ -40,8 +40,8 @@ const SKIP_PHONE_VERIFY_PATHS = [
   '/auth/me',
   '/auth/refresh',
   '/auth/logout',
-  '/auth/verify-phone',
-  '/auth/resend-otp',
+  '/auth/verify-phone-otp',
+  '/auth/resend-phone-otp',
   '/auth/forgot-password',
   '/auth/reset-password',
   '/auth/passkey'
@@ -94,8 +94,9 @@ const protect = async (req, res, next) => {
           return reject(res, 'Session has been logged out on this device', 401, true);
         }
 
-        // Phone verification check - SKIP for essential auth routes
-        const isAuthRoute = SKIP_PHONE_VERIFY_PATHS.some(path => req.path.includes(path));
+        // Phone verification check - SKIP for essential auth routes.
+        // Use req.originalUrl (full path incl. mount prefix) since req.path is router-stripped.
+        const isAuthRoute = SKIP_PHONE_VERIFY_PATHS.some(path => req.originalUrl.includes(path));
         
         if (!isAuthRoute && !user.phoneVerified) {
           console.warn('[Auth] Phone not verified for protected route:', req.path);

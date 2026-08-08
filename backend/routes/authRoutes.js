@@ -91,8 +91,8 @@ router.delete('/passkey/:id', protect, deletePasskey);
 router.post('/forgot-password', authSensitiveLimiter, forgotPassword);
 router.post('/reset-password', authSensitiveLimiter, resetPassword);
 
-// Phone verification — rate-limited, no auth required.
-router.post('/verify-phone-otp', authSensitiveLimiter, verifyPhoneOTP);
-router.post('/resend-phone-otp', authSensitiveLimiter, resendPhoneOTP);
+// Phone verification — rate-limited, session required.
+router.post('/verify-phone-otp', protect, authSensitiveLimiter, verifyPhoneOTP);
+router.post('/resend-phone-otp', protect, authSensitiveLimiter, resendPhoneOTP);
 
 module.exports = router;

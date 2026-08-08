@@ -25,6 +25,20 @@ const normalizePhone = (input) => {
   return (hasPlus ? '+' : '') + digits;
 };
 
+const phoneCandidates = (input) => {
+  const candidates = [];
+  const normalized = normalizePhone(input);
+  if (normalized) candidates.push(normalized);
+  const digits = String(input || '').replace(/[^\d]/g, '');
+  if (digits) {
+    const tz = '+255' + digits.replace(/^0+/, '');
+    if (!candidates.includes(tz)) candidates.push(tz);
+    const local = digits.replace(/^0+/, '');
+    if (!candidates.includes(local)) candidates.push(local);
+  }
+  return candidates;
+};
+
 const signToken = (user, deviceId) => {
   const payload = {
     id: user._id.toString(),
@@ -1451,10 +1465,19 @@ exports.verifyPhoneOTP = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Phone number and OTP are required' });
     }
 
-    const normalized = normalizePhone(phoneNumber);
-    const user = await User.findOne({ phoneNumber: normalized });
+    const candidates = phoneCandidates(phoneNumber);
+    const user = await User.findOne({ phoneNumber: { $in: candidates } });
 
-    if (!user || !user.phoneVerificationOTP || !user.phoneVerificationOTPExpiry) {
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+    }
+
+    if (req.user && !candidates.includes(req.user.phoneNumber)) {
+      console.warn('[Auth] Phone verification: submitted phone does not match session', { userId: user._id });
+      return res.status(403).json({ success: false, message: 'Phone number does not match the current session' });
+    }
+
+    if (!user.phoneVerificationOTP || !user.phoneVerificationOTPExpiry) {
       return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
     }
 
@@ -1489,11 +1512,16 @@ exports.resendPhoneOTP = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Phone number is required' });
     }
 
-    const normalized = normalizePhone(phoneNumber);
-    const user = await User.findOne({ phoneNumber: normalized });
+    const candidates = phoneCandidates(phoneNumber);
+    const user = await User.findOne({ phoneNumber: { $in: candidates } });
 
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (req.user && !candidates.includes(req.user.phoneNumber)) {
+      console.warn('[Auth] OTP resend: submitted phone does not match session', { userId: user._id });
+      return res.status(403).json({ success: false, message: 'Phone number does not match the current session' });
     }
 
     if (user.phoneVerified) {

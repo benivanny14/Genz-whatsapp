@@ -14,7 +14,17 @@ const registerUser = async (username, phone) => {
       password: 'Password123!'
     });
   expect(res.statusCode).toBe(201);
-  return { token: res.body.token, user: res.body.user };
+  return { token: res.body.token, user: res.body.user, otp: res.body.phoneVerificationOTP, phoneNumber: res.body.user.phoneNumber };
+};
+
+const verifyPhone = async ({ token, otp, phoneNumber }) => {
+  expect(otp).toBeTruthy();
+  const res = await request(app)
+    .post('/api/auth/verify-phone-otp')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ phoneNumber, otp });
+  expect(res.statusCode).toBe(200);
+  return res.body;
 };
 
 describe('Block/Unblock (WhatsApp semantics)', () => {
@@ -22,7 +32,9 @@ describe('Block/Unblock (WhatsApp semantics)', () => {
 
   beforeEach(async () => {
     alice = await registerUser('alice', '255700000101');
+    await verifyPhone(alice);
     bob = await registerUser('bob', '255700000102');
+    await verifyPhone(bob);
   });
 
   describe('POST /api/chat/users/:id/block', () => {
