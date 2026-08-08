@@ -135,7 +135,7 @@ exports.register = async (req, res) => {
 
     // Deliver the OTP via WhatsApp when enabled (failure is non-fatal — the
     // code is still stored on the user and echoed in dev/test responses).
-    await deliverOtp(user.phoneNumber, otp, 'phone-verification');
+    const delivery = await deliverOtp(user.phoneNumber, otp, 'phone-verification');
 
     const deviceId = getRequestDeviceId(req);
     await registerDevice(req, user._id);
@@ -154,6 +154,7 @@ exports.register = async (req, res) => {
       user: safeUser(user),
       phoneVerified: false,
       requiresPhoneVerification: true,
+      otpDelivery: { delivered: delivery.delivered, error: delivery.error ? delivery.error.message : null },
       ...(process.env.NODE_ENV !== 'production' ? { phoneVerificationOTP: otp } : {})
     });
   } catch (error) {
@@ -508,11 +509,12 @@ exports.changeNumber = async (req, res) => {
         });
       }
       // WhatsApp delivery when enabled (non-fatal on failure).
-      await deliverOtp(newPhoneNumber, generatedOtp, 'change-number');
+      const changeDelivery = await deliverOtp(newPhoneNumber, generatedOtp, 'change-number');
       return res.status(200).json({
         success: true,
         requiresOtp: true,
         message: 'OTP sent to the new number. Verification required.',
+        otpDelivery: { delivered: changeDelivery.delivered, error: changeDelivery.error ? changeDelivery.error.message : null },
         // In tests/dev only — production should send via SMS provider.
         ...(process.env.NODE_ENV !== 'production' ? { otp: generatedOtp } : {})
       });
@@ -1397,19 +1399,21 @@ exports.forgotPassword = async (req, res) => {
 
     // WhatsApp delivery when enabled (non-fatal on failure — dev/test still
     // echo the code below).
-    await deliverOtp(normalized, otp, 'password-reset');
+    const resetDelivery = await deliverOtp(normalized, otp, 'password-reset');
 
     if (process.env.NODE_ENV !== 'production') {
       return res.status(200).json({
         success: true,
         message: 'If an account exists for that email/phone, an OTP has been sent.',
+        otpDelivery: { delivered: resetDelivery.delivered, error: resetDelivery.error ? resetDelivery.error.message : null },
         otp // dev/test only
       });
     }
 
     res.status(200).json({
       success: true,
-      message: 'If an account exists for that email/phone, an OTP has been sent.'
+      message: 'If an account exists for that email/phone, an OTP has been sent.',
+      otpDelivery: { delivered: resetDelivery.delivered, error: resetDelivery.error ? resetDelivery.error.message : null }
     });
   } catch (error) {
     console.error('Forgot password error:', error);
@@ -1547,17 +1551,22 @@ exports.resendPhoneOTP = async (req, res) => {
     await user.save();
 
     // WhatsApp delivery when enabled (non-fatal on failure).
-    await deliverOtp(user.phoneNumber, otp, 'phone-verification-resend');
+    const resendDelivery = await deliverOtp(user.phoneNumber, otp, 'phone-verification-resend');
 
     if (process.env.NODE_ENV !== 'production') {
       return res.status(200).json({
         success: true,
         message: 'OTP sent successfully',
+        otpDelivery: { delivered: resendDelivery.delivered, error: resendDelivery.error ? resendDelivery.error.message : null },
         otp // dev/test only
       });
     }
 
-    res.status(200).json({ success: true, message: 'OTP sent successfully' });
+    res.status(200).json({
+      success: true,
+      message: 'OTP sent successfully',
+      otpDelivery: { delivered: resendDelivery.delivered, error: resendDelivery.error ? resendDelivery.error.message : null }
+    });
   } catch (error) {
     console.error('Resend phone OTP error:', error);
     res.status(500).json({ success: false, message: error.message });

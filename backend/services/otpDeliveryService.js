@@ -36,6 +36,22 @@ async function deliverOtp(phoneNumber, otp, purpose = 'otp', options = {}) {
   if (process.env.WHATSAPP_OTP_ENABLED !== 'true') {
     return { delivered: 'none' };
   }
+
+  // whatsapp-web: fail fast when the client has never been linked (no QR scan
+  // yet). Waiting 15s per request is pointless — the QR is still on screen.
+  // Once a session exists the client restores quickly, so then we do wait.
+  if (PROVIDER !== 'cloud-api') {
+    const status = whatsappOtp.getStatus();
+    if (!status.clientReady && !status.linkedPhone && !status.clientInitializing) {
+      // Kick off client init (prints the QR) but don't block the flow.
+      whatsappOtp.ensureReady(3000).catch(() => {});
+      return {
+        delivered: 'none',
+        error: new Error('WhatsApp is not linked yet. Scan the QR code shown in the server terminal (WhatsApp > Settings > Linked Devices > Link a Device), then try again.'),
+      };
+    }
+  }
+
   try {
     if (PROVIDER === 'cloud-api') {
       const { to } = await whatsappCloudApi.sendOtpMessage(phoneNumber, otp, {
