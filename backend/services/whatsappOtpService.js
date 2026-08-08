@@ -169,7 +169,7 @@ async function sendOtpMessage(rawPhone, otp, options = {}) {
     .replace('{otp}', otp)
     .replace('{minutes}', minutes);
 
-  const whatsappClient = await ensureReady();
+  const whatsappClient = await ensureReady(options.timeoutMs || 30000);
   const jid = toWhatsAppJid(rawPhone);
   await whatsappClient.sendMessage(jid, message);
   return { jid };

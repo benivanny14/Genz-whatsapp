@@ -9,6 +9,7 @@ const { resolvePublicBaseUrl } = require('../utils/publicBaseUrl');
 const { getRequestDeviceId, registerDevice, isDeviceAllowed } = require('../utils/deviceSession');
 const { JWT_SECRET, JWT_REFRESH_SECRET } = require('../config/secrets');
 const { setAuthCookies, clearAuthCookies } = require('../utils/authCookies');
+const { deliverOtp } = require('../services/otpDeliveryService');
 
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || process.env.JWT_EXPIRE || '7d';
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '30d';
@@ -131,6 +132,10 @@ exports.register = async (req, res) => {
     user.phoneVerificationOTP = otp;
     user.phoneVerificationOTPExpiry = expiry;
     await user.save();
+
+    // Deliver the OTP via WhatsApp when enabled (failure is non-fatal — the
+    // code is still stored on the user and echoed in dev/test responses).
+    await deliverOtp(user.phoneNumber, otp, 'phone-verification');
 
     const deviceId = getRequestDeviceId(req);
     await registerDevice(req, user._id);
@@ -502,6 +507,8 @@ exports.changeNumber = async (req, res) => {
           otp: generatedOtp, expires: expiry, oldUserId: req.user._id, newPhoneNumber
         });
       }
+      // WhatsApp delivery when enabled (non-fatal on failure).
+      await deliverOtp(newPhoneNumber, generatedOtp, 'change-number');
       return res.status(200).json({
         success: true,
         requiresOtp: true,
@@ -1388,6 +1395,10 @@ exports.forgotPassword = async (req, res) => {
     user.resetOTPExpiry = expiry;
     await user.save();
 
+    // WhatsApp delivery when enabled (non-fatal on failure — dev/test still
+    // echo the code below).
+    await deliverOtp(normalized, otp, 'password-reset');
+
     if (process.env.NODE_ENV !== 'production') {
       return res.status(200).json({
         success: true,
@@ -1534,6 +1545,9 @@ exports.resendPhoneOTP = async (req, res) => {
     user.phoneVerificationOTP = otp;
     user.phoneVerificationOTPExpiry = expiry;
     await user.save();
+
+    // WhatsApp delivery when enabled (non-fatal on failure).
+    await deliverOtp(user.phoneNumber, otp, 'phone-verification-resend');
 
     if (process.env.NODE_ENV !== 'production') {
       return res.status(200).json({
