@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Phone, RefreshCw, ShieldAlert, Check } from 'lucide-react';
 import authService from '../services/authService';
 import { useAuth } from '../context/AuthContext';
+import { sendOtpToUser, verifyUserOtp, setupRecaptcha } from '../firebase';
 
 const VerifyPhone = () => {
   const navigate = useNavigate();
@@ -16,6 +17,8 @@ const VerifyPhone = () => {
   const [resendLoading, setResendLoading] = useState(false);
   const [countdown, setCountdown] = useState(60);
   const [canResend, setCanResend] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const recaptchaContainerRef = useRef(null);
 
   useEffect(() => {
     // If no user data, redirect to login
@@ -24,13 +27,46 @@ const VerifyPhone = () => {
       return;
     }
     
+    // Auto-send OTP on component mount
+    handleSendOtp();
+  }, [phoneNumber, navigate]);
+
+  useEffect(() => {
     if (countdown > 0) {
       const timer = setTimeout(() => setCountdown(c => c - 1), 1000);
       return () => clearTimeout(timer);
     } else {
       setCanResend(true);
     }
-  }, [countdown, phoneNumber, navigate]);
+  }, [countdown]);
+
+  const handleSendOtp = async () => {
+    // Format phone number with country code if not present
+    let formattedPhone = phoneNumber;
+    if (!formattedPhone.startsWith('+')) {
+      // Assume Tanzania country code if not present
+      formattedPhone = '+255' + formattedPhone.replace(/^0/, '');
+    }
+    
+    setResendLoading(true);
+    setError('');
+    
+    try {
+      const result = await sendOtpToUser(formattedPhone);
+      if (result.success) {
+        setSuccess('OTP sent successfully!');
+        setOtpSent(true);
+        setCountdown(60);
+        setCanResend(false);
+      } else {
+        setError(result.message || 'Failed to send OTP');
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to send OTP');
+    } finally {
+      setResendLoading(false);
+    }
+  };
 
   const handleVerify = async (e) => {
     e.preventDefault();
@@ -43,22 +79,30 @@ const VerifyPhone = () => {
     setError('');
     
     try {
-      const res = await authService.verifyPhoneOTP({
-        phoneNumber,
-        otp
-      });
+      // First verify with Firebase
+      const firebaseResult = await verifyUserOtp(otp);
       
-      if (res.success) {
-        // Update user in localStorage
-        const updatedUser = { ...user, phoneVerified: true };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
+      if (firebaseResult.success) {
+        // Then verify with backend to mark phone as verified in database
+        const res = await authService.verifyPhoneOTP({
+          phoneNumber,
+          otp
+        });
         
-        // Update auth context
-        setAuthUser(updatedUser);
-        setIsAuthenticated(true);
-        
-        setSuccess('Phone verified successfully!');
-        setTimeout(() => navigate('/chat'), 1500);
+        if (res.success) {
+          // Update user in localStorage
+          const updatedUser = { ...user, phoneVerified: true };
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          
+          // Update auth context
+          setAuthUser(updatedUser);
+          setIsAuthenticated(true);
+          
+          setSuccess('Phone verified successfully!');
+          setTimeout(() => navigate('/chat'), 1500);
+        }
+      } else {
+        setError(firebaseResult.message || 'Invalid OTP');
       }
     } catch (err) {
       setError(err.message || 'Verification failed. Please try again.');
@@ -69,19 +113,7 @@ const VerifyPhone = () => {
 
   const handleResend = async () => {
     if (countdown > 0) return;
-    setCountdown(60);
-    setCanResend(false);
-    setError('');
-    
-    try {
-      const res = await authService.resendPhoneOTP({ phoneNumber });
-      if (res.otp) {
-        setOtp(String(res.otp));
-      }
-      setSuccess('New OTP sent successfully');
-    } catch (err) {
-      setError(err.message || 'Failed to resend OTP');
-    }
+    handleSendOtp();
   };
 
   if (!phoneNumber) {
@@ -156,6 +188,9 @@ const VerifyPhone = () => {
             {resendLoading ? 'Sending...' : canResend ? 'Resend OTP' : `Resend in ${countdown}s`}
           </button>
         </div>
+
+        {/* reCAPTCHA container for Firebase phone authentication */}
+        <div id="recaptcha-container" ref={recaptchaContainerRef} className="hidden"></div>
       </div>
     </div>
   );
