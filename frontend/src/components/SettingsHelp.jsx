@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
-import { HelpCircle, X, Search, MessageCircle, Book, AlertCircle, Mail, ExternalLink, ChevronRight } from 'lucide-react';
+import { HelpCircle, X, Search, MessageCircle, Book, AlertCircle, Mail, ExternalLink, ChevronRight, ChevronDown, Bug } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const SUPPORT_URL = 'https://github.com/benivanny14/Genz-whatsapp/issues';
 
 const SettingsHelp = ({ onClose }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [expandedId, setExpandedId] = useState(null);
+  const [showContact, setShowContact] = useState(false);
 
   const helpCategories = [
     { id: 'getting-started', name: 'Getting Started', icon: Book },
@@ -18,43 +22,43 @@ const SettingsHelp = ({ onClose }) => {
       id: 1,
       category: 'getting-started',
       title: 'How to create an account',
-      content: 'Learn how to sign up and set up your profile',
+      content: 'Open the app and tap "Create account". Enter a username, your phone number, and a strong password (at least 6 characters with a mix of letters, numbers and symbols). You will receive a one-time code to verify your phone number before you can start chatting.',
     },
     {
       id: 2,
       category: 'getting-started',
       title: 'Adding contacts',
-      content: 'Find and add people to your contact list',
+      content: 'Tap the new chat icon and search for a contact by username or phone number. If your contacts are stored on the phone, they can be imported from the Contacts settings page.',
     },
     {
       id: 3,
       category: 'features',
       title: 'Sending messages',
-      content: 'Send text, media, and voice messages',
+      content: 'Open a chat, type your message, and press send. You can send text, images, documents, and voice notes. Messages show a checkmark once delivered and double checkmark once read.',
     },
     {
       id: 4,
       category: 'features',
-      title: 'Making calls',
-      content: 'Voice and video calling features',
+      title: 'Status updates',
+      content: 'Share photos or text with your contacts for 24 hours. Tap the Status tab, then the camera icon to create a new status. You can control who sees your status from Status Privacy in Settings.',
     },
     {
       id: 5,
       category: 'features',
-      title: 'Status updates',
-      content: 'Share moments with your contacts',
+      title: 'Privacy & security',
+      content: 'Control who sees your last seen and online status, enable two-factor authentication, and use linked devices from the Security settings page. You can also report abusive users from the chat menu.',
     },
     {
       id: 6,
       category: 'troubleshooting',
       title: 'Connection issues',
-      content: 'Fix problems with internet connection',
+      content: 'Make sure you are connected to the internet and the server is reachable. Try toggling airplane mode, restarting the app, or checking the status of the GENZ server on the deployment dashboard.',
     },
     {
       id: 7,
       category: 'troubleshooting',
       title: 'App not loading',
-      content: 'Solutions for app performance issues',
+      content: 'Clear the browser cache or reload the page. If the app stays stuck, log out and log back in, or check that your browser allows notifications and local storage for this site.',
     },
   ];
 
@@ -136,24 +140,65 @@ const SettingsHelp = ({ onClose }) => {
 
         {/* Articles */}
         <div className="flex-1 overflow-y-auto p-4">
-          <div className="space-y-2">
-            {filteredArticles.map(article => (
+          {showContact ? (
+            <div className="space-y-3">
+              <div className="p-4 rounded-lg bg-[#0b141a] border border-[#00a884]/20">
+                <h4 className="text-white font-semibold mb-2 flex items-center gap-2">
+                  <Mail size={16} className="text-[#00a884]" /> Contact Support
+                </h4>
+                <p className="text-gray-400 text-sm mb-4">
+                  Found a bug or have a suggestion? Open an issue on our GitHub repository with as much detail as possible — your device, browser, and what you were doing when it happened.
+                </p>
+                <a
+                  href={SUPPORT_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-center gap-2 bg-[#00a884]/10 text-[#00a884] py-3 rounded-lg hover:bg-[#00a884]/20 transition-colors"
+                >
+                  <Bug size={18} /> Open a GitHub issue <ExternalLink size={14} />
+                </a>
+              </div>
               <button
-                key={article.id}
-                className="w-full p-4 rounded-lg bg-[#0b141a] border border-[#00a884]/20 hover:border-[#00a884] transition-colors text-left"
+                onClick={() => setShowContact(false)}
+                className="w-full text-sm text-gray-400 hover:text-white transition-colors py-2 flex items-center justify-center gap-1"
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <p className="text-white font-medium mb-1">{article.title}</p>
-                    <p className="text-gray-400 text-sm">{article.content}</p>
-                  </div>
-                  <ChevronRight size={16} className="text-gray-400 flex-shrink-0 mt-1" />
-                </div>
+                <ChevronDown size={16} className="rotate-180" /> Back to articles
               </button>
-            ))}
-          </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filteredArticles.map(article => {
+                const expanded = expandedId === article.id;
+                return (
+                  <button
+                    key={article.id}
+                    onClick={() => setExpandedId(expanded ? null : article.id)}
+                    className={`w-full p-4 rounded-lg bg-[#0b141a] border transition-colors text-left ${
+                      expanded ? 'border-[#00a884]' : 'border-[#00a884]/20 hover:border-[#00a884]'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="text-white font-medium mb-1">{article.title}</p>
+                        {expanded ? (
+                          <p className="text-gray-300 text-sm leading-relaxed">{article.content}</p>
+                        ) : (
+                          <p className="text-gray-400 text-sm line-clamp-2">{article.content}</p>
+                        )}
+                      </div>
+                      {expanded ? (
+                        <ChevronDown size={16} className="text-gray-400 flex-shrink-0 mt-1" />
+                      ) : (
+                        <ChevronRight size={16} className="text-gray-400 flex-shrink-0 mt-1" />
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
-          {filteredArticles.length === 0 && (
+          {!showContact && filteredArticles.length === 0 && (
             <div className="text-center py-8">
               <HelpCircle className="text-gray-600 mx-auto mb-4" size={32} />
               <p className="text-gray-400">No help articles found</p>
@@ -163,7 +208,10 @@ const SettingsHelp = ({ onClose }) => {
 
         {/* Contact Support */}
         <div className="p-4 border-t border-[#00a884]/20">
-          <button className="w-full bg-[#00a884]/10 text-[#00a884] py-3 rounded-lg hover:bg-[#00a884]/20 transition-colors flex items-center justify-center gap-2">
+          <button
+            onClick={() => setShowContact(!showContact)}
+            className="w-full bg-[#00a884]/10 text-[#00a884] py-3 rounded-lg hover:bg-[#00a884]/20 transition-colors flex items-center justify-center gap-2"
+          >
             <Mail size={18} />
             Contact Support
           </button>
