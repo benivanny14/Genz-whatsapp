@@ -20,9 +20,8 @@ const api = axios.create({
   // just hangs forever. Since this instance is used for login, getMe(),
   // and session restore, that hang left the UI stuck on "Checking
   // authentication..." / a login spinner indefinitely, with no error ever
-  // surfacing. 20s is generous enough for slow mobile data while still
-  // guaranteeing the UI always recovers.
-  timeout: 20000
+  // surfacing. Increased to 60s to handle Render cold starts.
+  timeout: 60000
 });
 
 api.interceptors.request.use(
