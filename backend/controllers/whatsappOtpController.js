@@ -5,6 +5,7 @@
  *   GET  /api/auth/whatsapp/status → WhatsApp client status (for debugging)
  */
 const otpStore = require('../services/otpStore');
+const { deliverOtp } = require('../services/otpDeliveryService');
 const whatsappOtp = require('../services/whatsappOtpService');
 
 const RETURN_OTP_IN_RESPONSE = process.env.WHATSAPP_OTP_RETURN_IN_RESPONSE === 'true';
@@ -29,15 +30,13 @@ exports.sendOtp = async (req, res) => {
     const key = digits;
     otpStore.storeOtp(key, otp);
 
-    try {
-      const { jid } = await whatsappOtp.sendOtpMessage(digits, otp);
-      console.log(`[WhatsAppOTP] OTP sent to ${jid}`);
-    } catch (sendError) {
+    const delivery = await deliverOtp(digits, otp, 'send-otp');
+    if (delivery.delivered !== 'whatsapp') {
       otpStore.clearOtp(key);
-      const isSetupIssue = /QR|ready|disabled|session/i.test(sendError?.message || '');
+      const isSetupIssue = /QR|ready|disabled|not configured|session|token|ban/i.test(delivery.error?.message || '');
       return res.status(isSetupIssue ? 503 : 500).json({
         success: false,
-        message: sendError?.message || 'Failed to send OTP via WhatsApp',
+        message: delivery.error?.message || 'Failed to send OTP via WhatsApp',
         ...(RETURN_OTP_IN_RESPONSE || process.env.NODE_ENV !== 'production'
           ? { devOtp: otp, whatsappStatus: whatsappOtp.getStatus() }
           : {}),
