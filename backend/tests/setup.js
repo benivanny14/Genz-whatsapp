@@ -11,6 +11,9 @@ process.env.BACKUP_ENCRYPTION_KEY = process.env.BACKUP_ENCRYPTION_KEY || 'test-b
 process.env.ALLOW_REAL_PAYMENT_PROVIDERS = 'false';
 process.env.ALLOW_MOCK_PAYMENTS = 'true';
 process.env.SENTRY_DSN = '';
+// Tests exercise the full OTP flow — force the verification gate ON regardless
+// of what backend/.env sets for local development.
+process.env.PHONE_VERIFICATION_REQUIRED = 'true';
 process.env.MONGOMS_DOWNLOAD_DIR = process.env.MONGOMS_DOWNLOAD_DIR || path.join(__dirname, '..', 'node_modules', '.cache', 'mongodb-memory-server');
 process.env.MONGOMS_PREFER_GLOBAL_PATH = process.env.MONGOMS_PREFER_GLOBAL_PATH || 'false';
 

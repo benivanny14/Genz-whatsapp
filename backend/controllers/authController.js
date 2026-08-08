@@ -65,6 +65,11 @@ const signRefreshToken = (user) => jwt.sign(
 
 const safeUser = (user) => (typeof user.toSafeJSON === 'function' ? user.toSafeJSON() : user);
 
+// Phone-verification gate toggle. Set PHONE_VERIFICATION_REQUIRED=false to
+// skip OTP verification on register/login entirely (re-enable by flipping the
+// env var back). Defaults to ON when unset.
+const isPhoneVerificationRequired = () => process.env.PHONE_VERIFICATION_REQUIRED !== 'false';
+
 exports.register = async (req, res) => {
   try {
     const { username, phoneNumber, password } = req.body;
@@ -119,7 +124,7 @@ exports.register = async (req, res) => {
       username: username.trim(),
       phoneNumber: normalizePhone(phoneNumber),
       status: 'offline',
-      phoneVerified: false
+      phoneVerified: !isPhoneVerificationRequired()
     });
 
     await user.setPassword(password);
@@ -135,7 +140,9 @@ exports.register = async (req, res) => {
 
     // Deliver the OTP via WhatsApp when enabled (failure is non-fatal — the
     // code is still stored on the user and echoed in dev/test responses).
-    const delivery = await deliverOtp(user.phoneNumber, otp, 'phone-verification');
+    const delivery = isPhoneVerificationRequired()
+      ? await deliverOtp(user.phoneNumber, otp, 'phone-verification')
+      : { delivered: 'none', error: null };
 
     const deviceId = getRequestDeviceId(req);
     await registerDevice(req, user._id);
@@ -152,8 +159,8 @@ exports.register = async (req, res) => {
       token,
       refreshToken,
       user: safeUser(user),
-      phoneVerified: false,
-      requiresPhoneVerification: true,
+      phoneVerified: user.phoneVerified,
+      requiresPhoneVerification: isPhoneVerificationRequired(),
       otpDelivery: { delivered: delivery.delivered, error: delivery.error ? delivery.error.message : null },
       ...(process.env.NODE_ENV !== 'production' ? { phoneVerificationOTP: otp } : {})
     });
@@ -301,7 +308,7 @@ exports.login = async (req, res) => {
     setAuthCookies(res, { token, refreshToken });
 
     // Check if phone needs verification
-    if (!user.phoneVerified) {
+    if (!user.phoneVerified && isPhoneVerificationRequired()) {
       return res.json({
         success: true,
         token,
@@ -310,6 +317,13 @@ exports.login = async (req, res) => {
         phoneVerified: false,
         requiresPhoneVerification: true
       });
+    }
+
+    // Feature disabled — auto-verify existing accounts on login so they can
+    // get straight in (no manual DB cleanup needed).
+    if (!user.phoneVerified) {
+      user.phoneVerified = true;
+      await user.save();
     }
 
     res.json({
@@ -330,6 +344,12 @@ exports.login = async (req, res) => {
 };
 
 exports.getMe = async (req, res) => {
+  // Feature disabled — auto-verify on session restore so existing unverified
+  // accounts aren't stuck behind the gate.
+  if (!req.user.phoneVerified && !isPhoneVerificationRequired()) {
+    req.user.phoneVerified = true;
+    await req.user.save();
+  }
   res.json({
     success: true,
     user: safeUser(req.user)
