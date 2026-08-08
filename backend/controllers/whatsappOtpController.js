@@ -110,6 +110,19 @@ exports.getWhatsAppQr = async (req, res) => {
   }
 };
 
+// @desc    Hard reset: wipe WhatsApp session and restart client fresh
+// @route   POST /api/auth/whatsapp/reset
+exports.resetWhatsApp = async (req, res) => {
+  try {
+    const status = await whatsappOtp.resetClient();
+    console.log('[WhatsAppOTP] Client reset — a fresh QR will appear on the display page.');
+    res.status(200).json({ success: true, message: 'WhatsApp session reset. Scan the new QR.', status });
+  } catch (error) {
+    console.error('[WhatsAppOTP] reset error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // @desc    Human-friendly page showing the QR (auto-refreshes) — for operators
 // @route   GET /api/auth/whatsapp/qr/display
 exports.getWhatsAppQrDisplay = async (req, res) => {
@@ -118,13 +131,21 @@ exports.getWhatsAppQrDisplay = async (req, res) => {
     const status = whatsappOtp.getStatus();
 
     let body;
+    const qrAgeSeconds = status.lastQrAt
+      ? Math.floor((Date.now() - new Date(status.lastQrAt).getTime()) / 1000)
+      : null;
+
     if (status.clientReady) {
       body = '<p style="font-size:18px;color:#25D366">✓ WhatsApp client is READY (linked number: '
         + (status.linkedPhone ? status.linkedPhone : 'n/a')
         + '). OTPs are being sent.</p>'
         + '<button onclick="location.reload()" style="...">Refresh</button>';
     } else if (qr) {
-      body = '<img src="' + qr + '" alt="WhatsApp QR" style="width:320px;height:320px;image-rendering:pixelated;background:#fff;padding:8px;border-radius:12px" />'
+      const stale = qrAgeSeconds !== null && qrAgeSeconds > 45;
+      body = (stale
+          ? '<p style="font-size:16px;color:#ff5252;font-weight:600">⚠ QR is ' + qrAgeSeconds + 's old — WhatsApp will REFUSE an expired QR. This page refreshes automatically; wait for a fresh one.</p>'
+          : '<p style="color:#aaa">QR generated ' + (qrAgeSeconds !== null ? qrAgeSeconds + 's ago' : 'recently') + ' — scan NOW.</p>')
+        + '<img src="' + qr + '" alt="WhatsApp QR" style="width:320px;height:320px;image-rendering:pixelated;background:#fff;padding:8px;border-radius:12px" />'
         + '<p style="color:#aaa">Scan this with your phone: WhatsApp &gt; Settings &gt; Linked Devices &gt; Link a Device.</p>'
         + '<p style="color:#aaa">QR expires after ~1 minute — this page refreshes automatically.</p>';
     } else {

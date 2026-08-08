@@ -147,6 +147,36 @@ async function getQrDataUrl() {
 }
 
 /**
+ * Hard reset: destroy the client, wipe the LocalAuth session folder and
+ * re-initialize from scratch. Use when linking fails or the session is stuck.
+ * On Windows the Chrome profile may hold file locks — callers should retry,
+ * and a server restart after this is safe.
+ */
+async function resetClient() {
+  const fs = require('fs');
+  const path = require('path');
+  if (client) {
+    try { await client.destroy(); } catch (_) { /* ignore */ }
+  }
+  client = null;
+  clientReady = false;
+  clientInitializing = false;
+  linkedPhone = null;
+  lastQr = null;
+  lastQrAt = null;
+  waitingReady = null;
+  try {
+    fs.rmSync(SESSION_DIR, { recursive: true, force: true });
+  } catch (err) {
+    console.warn('[WhatsAppOTP] Could not fully wipe session dir:', err?.message || err);
+  }
+  const parent = path.dirname(SESSION_DIR);
+  if (!fs.existsSync(parent)) fs.mkdirSync(parent, { recursive: true });
+  initClient();
+  return getStatus();
+}
+
+/**
  * Resolve when the WhatsApp client is READY to send messages.
  * @param {number} timeoutMs - how long to wait before giving up.
  */
@@ -206,6 +236,7 @@ module.exports = {
   isEnabled,
   getStatus,
   getQrDataUrl,
+  resetClient,
   toWhatsAppJid,
   sendOtpMessage,
   ensureReady,
