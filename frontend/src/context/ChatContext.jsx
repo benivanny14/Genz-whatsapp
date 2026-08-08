@@ -12,7 +12,7 @@ import { useAuth } from './AuthContext';
 import { authFetch } from '../utils/authFetch';
 import { playMessageSound, playSentSound } from '../utils/notificationSounds';
 import webRTCService from '../services/webrtc';
-import api from '../services/api';
+import api, { mediaAPI } from '../services/api';
 import { cleanupLocalBlobUrls, sanitizeBlobUrls } from '../utils/sanitizeStorage';
 import encryptionService from '../services/encryptionService';
 import { decryptMessageContent, decryptMessagesList } from '../utils/e2eeMessage';
@@ -4330,7 +4330,33 @@ export const ChatProvider = ({ children }) => {
     fetchStickerPacks();
   }, [isAuthReady, authLoading, isAuthenticated, fetchStickerPacks]);
 
-  const sendSticker = (stickerUrl, options = {}) => { if (stickerUrl) sendMessage(stickerUrl, authUser?.username || 'Me', { messageType: 'sticker', ...options }); };
+  // Custom stickers are data:/blob: URLs that only exist on this device — they
+  // must be uploaded to the server first so the receiver can actually load them.
+  const uploadLocalSticker = useCallback(async (stickerUrl) => {
+    if (!/^(data:|blob:)/i.test(stickerUrl)) return stickerUrl;
+    try {
+      let blob;
+      if (stickerUrl.startsWith('data:')) {
+        blob = await fetch(stickerUrl).then((r) => r.blob());
+      } else {
+        blob = await fetch(stickerUrl).then((r) => r.blob());
+      }
+      if (!blob) return stickerUrl;
+      const file = new File([blob], `sticker_${Date.now()}.png`, { type: 'image/png' });
+      const { data } = await mediaAPI.uploadFile(file);
+      if (data?.success && data.fileUrl) return data.fileUrl;
+      return stickerUrl;
+    } catch (err) {
+      console.warn('[ChatContext] Sticker upload failed, sending local URL:', err?.message || err);
+      return stickerUrl;
+    }
+  }, []);
+
+  const sendSticker = useCallback(async (stickerUrl, options = {}) => {
+    if (!stickerUrl) return;
+    const finalUrl = await uploadLocalSticker(stickerUrl);
+    sendMessage(finalUrl, authUser?.username || 'Me', { messageType: 'sticker', ...options });
+  }, [sendMessage, authUser?.username, uploadLocalSticker]);
   
   const [floatingStickerHandlers, setFloatingStickerHandlers] = useState([]);
   
