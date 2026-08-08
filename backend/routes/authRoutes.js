@@ -46,6 +46,11 @@ const {
   checkAvailabilityValidators
 } = require('../middleware/validators');
 const { authSensitiveLimiter } = require('../middleware/rateLimiters');
+const {
+  sendOtp,
+  verifyOtp,
+  getWhatsAppStatus
+} = require('../controllers/whatsappOtpController');
 
 // Sensitive credential routes get their own strict limiter so a burst of
 // authenticated calls (background polling) can never exhaust the budget for
@@ -94,5 +99,11 @@ router.post('/reset-password', authSensitiveLimiter, resetPassword);
 // Phone verification — rate-limited, session required.
 router.post('/verify-phone-otp', protect, authSensitiveLimiter, verifyPhoneOTP);
 router.post('/resend-phone-otp', protect, authSensitiveLimiter, resendPhoneOTP);
+
+// WhatsApp OTP delivery (whatsapp-web.js) — public, rate-limited.
+// Status endpoint is public so the frontend can show "scan QR first" hints.
+router.post('/send-otp', authSensitiveLimiter, sendOtp);
+router.post('/verify-otp', authSensitiveLimiter, verifyOtp);
+router.get('/whatsapp/status', getWhatsAppStatus);
 
 module.exports = router;
