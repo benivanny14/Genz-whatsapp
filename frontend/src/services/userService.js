@@ -76,6 +76,16 @@ const userService = {
     return res.json();
   },
 
+  resetSettings: async () => {
+    const res = await authFetch(`${API_URL}/settings/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    if (!res.ok) throw new Error('Failed to reset settings');
+    return res.json();
+  },
+
   updateOnlineStatus: async (isOnline) => {
     const res = await authFetch(`${API_URL}/genz-mods/online-status`, {
       method: 'PUT',

@@ -781,12 +781,21 @@ const Settings = () => {
   };
 
 
-  const resetSettings = () => {
+  const resetSettings = async () => {
     if (!window.confirm('Reset all WhatsApp-style settings on this device?')) return;
-    const next = clone(DEFAULT_SETTINGS);
-    setSettingsData(next);
-    persistSettings(next);
-    saveSettings(next);
+    try {
+      const response = await userService.resetSettings();
+      const saved = normalizeSettings(response.settings || DEFAULT_SETTINGS);
+      setSettingsData(saved);
+      persistSettings(saved);
+      showStatus('success', 'Settings reset to defaults.');
+    } catch (error) {
+      const next = clone(DEFAULT_SETTINGS);
+      setSettingsData(next);
+      persistSettings(next);
+      saveSettings(next);
+      showStatus('warning', 'Reset saved on this device. Server sync will retry next time.');
+    }
   };
 
   const resetNetworkUsage = () => {

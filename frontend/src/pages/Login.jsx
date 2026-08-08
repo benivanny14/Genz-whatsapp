@@ -24,10 +24,19 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [locked, setLocked] = useState(false);
+  const [lockMinutes, setLockMinutes] = useState(0);
 
   const handleError = (err, fallback) => {
     const msg = err?.message || fallback || 'Network error. Please check your connection.';
-    setError(err?.warning ? `${msg} (${err.warning})` : msg);
+    if (err?.status === 423) {
+      const minutes = Number((msg.match(/in (\d+) minute/) || [])[1] || 0);
+      setLocked(true);
+      setLockMinutes(minutes);
+      setError('');
+    } else {
+      setError(err?.warning ? `${msg} (${err.warning})` : msg);
+    }
   };
 
   const handleCredentialsLogin = async (e) => {
@@ -157,6 +166,13 @@ const Login = () => {
             </div>
           )}
 
+          {locked && (
+            <div className="mb-4 rounded-md border border-orange-500/40 bg-orange-500/10 px-3 py-3 text-sm text-orange-200">
+              <p className="font-semibold mb-1">Account temporarily locked</p>
+              <p>Too many failed login attempts. Try again in {lockMinutes} minute{lockMinutes === 1 ? '' : 's'}.</p>
+            </div>
+          )}
+
           <label className="block text-sm text-slate-300 mb-2">
             Namba ya simu au username (e.g. +255...)
           </label>
@@ -168,6 +184,7 @@ const Login = () => {
               className="w-full bg-transparent py-3 text-white outline-none"
               placeholder="+255712345678"
               autoComplete="tel"
+              disabled={locked}
               required
             />
           </div>
@@ -181,6 +198,7 @@ const Login = () => {
               onChange={(event) => setPassword(event.target.value)}
               className="w-full bg-transparent py-3 text-white outline-none"
               autoComplete="current-password"
+              disabled={locked}
               required
             />
             <button type="button" onClick={() => setShowPassword((value) => !value)} className="text-slate-300">
@@ -190,7 +208,7 @@ const Login = () => {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || locked}
             className="w-full flex items-center justify-center gap-2 rounded-md bg-[#ff2d78] hover:bg-[#d61a5e] py-3 font-bold text-white transition-colors disabled:opacity-60 genz-sticker"
           >
             <LogIn size={18} />
