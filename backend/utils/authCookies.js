@@ -3,7 +3,7 @@ const isProduction = () => process.env.NODE_ENV === 'production';
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: isProduction(),
-  sameSite: 'strict',
+  sameSite: isProduction() ? 'none' : 'lax',
   path: '/'
 };
 
@@ -20,8 +20,8 @@ const setAuthCookies = (res, { token, refreshToken } = {}) => {
 };
 
 const clearAuthCookies = (res) => {
-  res.clearCookie('token', { path: '/' });
-  res.clearCookie('refreshToken', { path: '/' });
+  res.clearCookie('token', { path: '/', sameSite: COOKIE_OPTIONS.sameSite, secure: COOKIE_OPTIONS.secure });
+  res.clearCookie('refreshToken', { path: '/', sameSite: COOKIE_OPTIONS.sameSite, secure: COOKIE_OPTIONS.secure });
 };
 
 module.exports = { setAuthCookies, clearAuthCookies };
