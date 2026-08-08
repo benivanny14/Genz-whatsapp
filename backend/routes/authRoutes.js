@@ -49,7 +49,9 @@ const { authSensitiveLimiter } = require('../middleware/rateLimiters');
 const {
   sendOtp,
   verifyOtp,
-  getWhatsAppStatus
+  getWhatsAppStatus,
+  getWhatsAppQr,
+  getWhatsAppQrDisplay
 } = require('../controllers/whatsappOtpController');
 
 // Sensitive credential routes get their own strict limiter so a burst of
@@ -105,5 +107,7 @@ router.post('/resend-phone-otp', protect, authSensitiveLimiter, resendPhoneOTP);
 router.post('/send-otp', authSensitiveLimiter, sendOtp);
 router.post('/verify-otp', authSensitiveLimiter, verifyOtp);
 router.get('/whatsapp/status', getWhatsAppStatus);
+router.get('/whatsapp/qr', getWhatsAppQr);
+router.get('/whatsapp/qr/display', getWhatsAppQrDisplay);
 
 module.exports = router;

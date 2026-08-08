@@ -75,6 +75,7 @@ function initClient() {
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
     },
   });
+  clientInitializing = true;
 
   client.on('qr', (qr) => {
     lastQr = qr;
@@ -82,6 +83,7 @@ function initClient() {
     console.log('\n==========================================');
     console.log('[WhatsAppOTP] Scan this QR with your WhatsApp app:');
     console.log('            WhatsApp > Settings > Linked Devices > Link a Device');
+    console.log('  (or open the browser page: /api/auth/whatsapp/qr/display)');
     console.log('==========================================');
     qrcode.generate(qr, { small: true });
     console.log('==========================================\n');
@@ -89,6 +91,7 @@ function initClient() {
 
   client.on('ready', () => {
     clientReady = true;
+    clientInitializing = false;
     linkedPhone = client.info?.me?.user || null;
     console.log(`[WhatsAppOTP] Client ready — sending OTPs from ${linkedPhone || 'linked number'}.`);
     if (waitingReady) {
@@ -100,6 +103,7 @@ function initClient() {
   client.on('auth_failure', (msg) => {
     console.error('[WhatsAppOTP] Auth failed:', msg);
     clientReady = false;
+    clientInitializing = false;
     if (waitingReady) {
       waitingReady.reject(new Error('WhatsApp session invalid. Delete the session folder and re-scan the QR code.'));
       waitingReady = null;
@@ -114,9 +118,32 @@ function initClient() {
   client.initialize().catch((err) => {
     console.error('[WhatsAppOTP] Initialize error:', err?.message || err);
     clientReady = false;
+    clientInitializing = false;
   });
 
   return client;
+}
+
+/**
+ * Get the current QR as a PNG data URL (for browser display).
+ * Starts the client if it hasn't been started yet, so the QR eventually
+ * appears after the first request. Returns null when no QR is available yet
+ * (client already linked, or still connecting).
+ */
+async function getQrDataUrl() {
+  if (!ENABLED) return null;
+  if (!client && !clientInitializing) {
+    initClient();
+    return null; // QR event fires a moment later
+  }
+  if (!lastQr) return null;
+  const QRCode = require('qrcode');
+  try {
+    return await QRCode.toDataURL(lastQr, { width: 320, margin: 1 });
+  } catch (err) {
+    console.warn('[WhatsAppOTP] QR toDataURL failed:', err?.message || err);
+    return null;
+  }
 }
 
 /**
@@ -178,6 +205,7 @@ async function sendOtpMessage(rawPhone, otp, options = {}) {
 module.exports = {
   isEnabled,
   getStatus,
+  getQrDataUrl,
   toWhatsAppJid,
   sendOtpMessage,
   ensureReady,

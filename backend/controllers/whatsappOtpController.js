@@ -96,3 +96,71 @@ exports.verifyOtp = async (req, res) => {
 exports.getWhatsAppStatus = async (req, res) => {
   res.status(200).json({ success: true, status: whatsappOtp.getStatus() });
 };
+
+// @desc    Current QR as a PNG data URL (JSON) — for frontend integration
+// @route   GET /api/auth/whatsapp/qr
+exports.getWhatsAppQr = async (req, res) => {
+  try {
+    const qr = await whatsappOtp.getQrDataUrl();
+    const status = whatsappOtp.getStatus();
+    res.status(200).json({ success: Boolean(qr), qr, status });
+  } catch (error) {
+    console.error('[WhatsAppOTP] getWhatsAppQr error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Human-friendly page showing the QR (auto-refreshes) — for operators
+// @route   GET /api/auth/whatsapp/qr/display
+exports.getWhatsAppQrDisplay = async (req, res) => {
+  try {
+    const qr = await whatsappOtp.getQrDataUrl();
+    const status = whatsappOtp.getStatus();
+
+    let body;
+    if (status.clientReady) {
+      body = '<p style="font-size:18px;color:#25D366">✓ WhatsApp client is READY (linked number: '
+        + (status.linkedPhone ? status.linkedPhone : 'n/a')
+        + '). OTPs are being sent.</p>'
+        + '<button onclick="location.reload()" style="...">Refresh</button>';
+    } else if (qr) {
+      body = '<img src="' + qr + '" alt="WhatsApp QR" style="width:320px;height:320px;image-rendering:pixelated;background:#fff;padding:8px;border-radius:12px" />'
+        + '<p style="color:#aaa">Scan this with your phone: WhatsApp &gt; Settings &gt; Linked Devices &gt; Link a Device.</p>'
+        + '<p style="color:#aaa">QR expires after ~1 minute — this page refreshes automatically.</p>';
+    } else {
+      body = '<p style="font-size:18px;color:#fff">Starting WhatsApp client — generating QR…</p>'
+        + '<p style="color:#aaa">If nothing appears in ~15 seconds, request an OTP (register/login) once and come back here.</p>';
+    }
+
+    res.setHeader('Content-Type', 'text/html');
+    res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>WhatsApp OTP — Link device</title>
+<style>
+  body { background:#0d1f35; color:#fff; font-family:system-ui,sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; }
+  .card { background:#182229; border:1px solid rgba(255,255,255,.1); border-radius:20px; padding:32px; text-align:center; max-width:440px; }
+  h1 { font-size:20px; margin:0 0 8px; }
+  .sub { color:#8696a0; font-size:14px; margin:0 0 24px; }
+  .pill { display:inline-block; margin-top:16px; padding:6px 14px; border-radius:999px; font-size:13px; }
+  .pill.ok { background:rgba(37,211,102,.15); color:#25D366; }
+  .pill.wait { background:rgba(255,193,7,.15); color:#ffc107; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>WhatsApp OTP — Link a device</h1>
+    <p class="sub">GENZ WhatsApp backend</p>
+    ${body}
+    <div class="pill ${status.clientReady ? 'ok' : 'wait'}">${status.clientReady ? 'READY' : (qr ? 'SCAN THE QR ABOVE' : 'STARTING…')}</div>
+  </div>
+  <script>setTimeout(function(){ location.reload(); }, 4000);</script>
+</body>
+</html>`);
+  } catch (error) {
+    console.error('[WhatsAppOTP] getWhatsAppQrDisplay error:', error);
+    res.status(500).send('Error: ' + (error.message || 'unknown'));
+  }
+};

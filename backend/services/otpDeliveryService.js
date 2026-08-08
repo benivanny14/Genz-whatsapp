@@ -36,6 +36,11 @@ async function deliverOtp(phoneNumber, otp, purpose = 'otp', options = {}) {
   if (process.env.WHATSAPP_OTP_ENABLED !== 'true') {
     return { delivered: 'none' };
   }
+  // Never launch the WhatsApp client (Chrome) from inside the test suite —
+  // it hangs Jest and leaves orphan processes behind.
+  if (process.env.NODE_ENV === 'test') {
+    return { delivered: 'none', error: new Error('WhatsApp delivery skipped in test environment') };
+  }
 
   // whatsapp-web: fail fast when the client has never been linked (no QR scan
   // yet). Waiting 15s per request is pointless — the QR is still on screen.
