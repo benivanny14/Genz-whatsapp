@@ -496,18 +496,20 @@ exports.changeNumber = async (req, res) => {
 
     // Step 1 — request OTP on the new number. When no OTP is supplied yet we
     // generate and (in dev/mock) return it so the client can complete verify.
+    // OTP is persisted on the user document (survives restarts / multi-instance).
     if (!otp && !verifyOtp) {
       const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
       const expiry = new Date(Date.now() + 5 * 60 * 1000);
-      req.app?.locals?.changeNumberOtps?.set(newPhoneNumber, {
-        otp: generatedOtp, expires: expiry, oldUserId: req.user._id, newPhoneNumber
-      });
-      if (!req.app?.locals?.changeNumberOtps) {
-        req.app.locals.changeNumberOtps = new Map();
-        req.app.locals.changeNumberOtps.set(newPhoneNumber, {
-          otp: generatedOtp, expires: expiry, oldUserId: req.user._id, newPhoneNumber
-        });
-      }
+      await User.updateOne(
+        { _id: req.user._id },
+        {
+          $set: {
+            changeNumberOTP: generatedOtp,
+            changeNumberOTPExpiry: expiry,
+            changeNumberNewPhone: newPhoneNumber
+          }
+        }
+      );
       // WhatsApp delivery when enabled (non-fatal on failure).
       const changeDelivery = await deliverOtp(newPhoneNumber, generatedOtp, 'change-number');
       return res.status(200).json({
@@ -521,24 +523,30 @@ exports.changeNumber = async (req, res) => {
     }
 
     // Step 2 — verify the OTP before mutating the stored phone number.
-    const stored = req.app?.locals?.changeNumberOtps?.get(newPhoneNumber);
-    if (!stored || new Date() > new Date(stored.expires)) {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    const stored = (user.changeNumberOTP && user.changeNumberNewPhone === newPhoneNumber)
+      ? { otp: user.changeNumberOTP, expires: user.changeNumberOTPExpiry }
+      : null;
+    if (!stored || !stored.expires || new Date() > new Date(stored.expires)) {
+      if (user.changeNumberOTP) {
+        user.changeNumberOTP = null;
+        user.changeNumberOTPExpiry = null;
+        user.changeNumberNewPhone = null;
+        await user.save();
+      }
       return res.status(400).json({ success: false, message: 'OTP expired or not requested' });
     }
     if (String(stored.otp) !== String(verifyOtp || otp)) {
       return res.status(400).json({ success: false, message: 'Invalid OTP' });
     }
-    if (String(stored.oldUserId) !== String(req.user._id)) {
-      return res.status(403).json({ success: false, message: 'OTP was issued for another user' });
-    }
-
-    req.app?.locals?.changeNumberOtps?.delete(newPhoneNumber);
-    const user = await User.findById(req.user._id);
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
 
     user.phoneNumber = newPhoneNumber;
+    user.changeNumberOTP = null;
+    user.changeNumberOTPExpiry = null;
+    user.changeNumberNewPhone = null;
     await user.save();
 
     res.status(200).json({ success: true, message: 'Phone number changed successfully', user });
@@ -1439,7 +1447,7 @@ exports.resetPassword = async (req, res) => {
 
     const normalized = normalizePhone(emailOrPhone);
     const user = await User.findOne({
-      $or: [{ email: emailOrPhone.toLowerCase() }, { phoneNumber: normalized }]
+      $or: [{ username: emailOrPhone.toLowerCase() }, { phoneNumber: normalized }]
     });
 
     if (!user || !user.resetOTP || !user.resetOTPExpiry) {

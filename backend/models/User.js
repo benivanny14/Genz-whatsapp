@@ -60,6 +60,20 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  // Change-number OTP persisted on the user so it survives restarts and
+  // multi-instance deployments (previously stored in-memory on req.app.locals).
+  changeNumberOTP: {
+    type: String,
+    default: null
+  },
+  changeNumberOTPExpiry: {
+    type: Date,
+    default: null
+  },
+  changeNumberNewPhone: {
+    type: String,
+    default: null
+  },
   twoFactorSecret: {
     type: String,
     default: null
