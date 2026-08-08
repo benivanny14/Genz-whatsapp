@@ -300,6 +300,10 @@ export const ChatProvider = ({ children }) => {
   const [selectedConversation, setSelectedConversation] = useState(null);
   const selectedConversationIdRef = useRef(null);
   const [messages, setMessages] = useState([]);
+  // Infinite scroll: server-side history pagination (page 1 = newest 50).
+  const [hasOlderMessages, setHasOlderMessages] = useState(true);
+  const historyPageRef = useRef(1);
+  const loadingOlderRef = useRef(false);
   const [loading, setLoading] = useState(false);
   const [activeCall, setActiveCall] = useState(null);
   useEffect(() => {
@@ -2489,11 +2493,17 @@ export const ChatProvider = ({ children }) => {
       setSelectedConversation(null);
       clearStoredSelectedConversationId();
       setMessages([]);
+      historyPageRef.current = 1;
+      setHasOlderMessages(true);
+      loadingOlderRef.current = false;
       return;
     }
 
     console.log('[ChatContext] Setting selected conversation:', conv._id);
     setSelectedConversation(conv);
+    historyPageRef.current = 1;
+    setHasOlderMessages(true);
+    loadingOlderRef.current = false;
     
     if (conv._id) {
       setStoredSelectedConversationId(conv._id);
@@ -2558,6 +2568,40 @@ export const ChatProvider = ({ children }) => {
       setMessages([]);
     }
   };
+
+  // Infinite scroll: fetch the next older page (50) of server history and
+  // PREPEND it, preserving chat order. Returns true if a fetch was attempted.
+  const loadOlderMessages = useCallback(async (convId = selectedConversation?._id) => {
+    const id = String(convId || '');
+    if (!id) return false;
+    if (loadingOlderRef.current) return false;
+    if (!hasOlderMessages) return false;
+    loadingOlderRef.current = true;
+    try {
+      const page = historyPageRef.current + 1;
+      const res = await apiService.getMessages(id, page, 50);
+      if (String(selectedConversationIdRef.current) !== String(id)) return false;
+      if (!res?.success) return false;
+      const decrypted = await decryptMessagesList(res.messages || []);
+      const totalPages = Number(res.pagination?.pages) || 0;
+      setHasOlderMessages(page < totalPages && decrypted.length > 0);
+      historyPageRef.current = page;
+      if (decrypted.length) {
+        setMessages(prev => {
+          const existingIds = new Set(prev.map(m => String(m._id || m.id)));
+          const fresh = decrypted.filter(m => !existingIds.has(String(m._id || m.id)));
+          if (!fresh.length) return prev;
+          return [...fresh, ...prev];
+        });
+      }
+      return true;
+    } catch (err) {
+      console.warn('[ChatContext] loadOlderMessages failed:', err?.message || err);
+      return false;
+    } finally {
+      loadingOlderRef.current = false;
+    }
+  }, [selectedConversation?._id, hasOlderMessages]);
 
   useEffect(() => {
     if (!conversations.length) return;
@@ -5188,6 +5232,7 @@ export const ChatProvider = ({ children }) => {
     fetchGENZModsSettings, saveGENZModsSettings,
     fetchDeletedMessages, restoreDeletedMessage,
     processAutoReply, getUserStatusWithGhostMode,
+    loadOlderMessages, hasOlderMessages,
     // Broadcast functions
     fetchBroadcasts, createBroadcast, updateBroadcast,
     deleteBroadcast, sendBroadcastMessage,
@@ -5214,7 +5259,8 @@ export const ChatProvider = ({ children }) => {
     statusPrivacy, backupProgress, notificationSound, mods,
     isSocketConnected, isDNDMode, appTheme,
     fetchStatuses, createStatus, deleteStatus, replyToStatus,
-    listCloudBackups, restoreCloudBackup, deleteCloudBackup
+    listCloudBackups, restoreCloudBackup, deleteCloudBackup,
+    loadOlderMessages, hasOlderMessages
   ]);
 
   return (

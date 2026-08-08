@@ -227,7 +227,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     updateGroupMember, joinGroup, updateDisappearingMessages, toggleAdminOnlyMessaging, updateGroupPermission, createCustomRole, assignRole, viewProfile,
     pinMessage, unpinMessage, pinnedMessages, presenceHistory, unlockedSessionChats, verifyChatUnlock, toggleChatLock,     stickerPacks, downloadedStickers, downloadStickerPack, sendSticker, addFavoriteSticker, toggleStarMessage, toggleMessageLock, toggleMuteChat, toggleArchiveChat, markAsRead, markViewOnceViewed, getUserStatusWithGhostMode,
     sendFloatingSticker, floatingStickerHandlers, setFloatingStickerHandlers,
-    isDNDMode, toggleDNDMode, selectConversation, setMods, aiAssistant
+    isDNDMode, toggleDNDMode, selectConversation, setMods, aiAssistant,
+    loadOlderMessages, hasOlderMessages
   } = useChat();
   const user = chatUser || localUser;
   const [messageInput, setMessageInput] = useState('');
@@ -428,6 +429,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [showChunkedUploader, setShowChunkedUploader] = useState(false);
   const [e2eePlain, setE2eePlain] = useState({});
   const [visibleCount, setVisibleCount] = useState(50);
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const [showMessageInfoModal, setShowMessageInfoModal] = useState(false);
   const [messageInfoId, setMessageInfoId] = useState(null);
   const [floatingStickerSpawner, setFloatingStickerSpawner] = useState(null);
@@ -514,6 +516,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const userScrollPositionRef = useRef(null);
   const shouldAutoScrollRef = useRef(true);
   const prevConversationIdRef = useRef(null);
+  // Infinite scroll: anchor + counters to preserve scroll position when older
+  // messages get prepended.
+  const olderAnchorRef = useRef(null);
+  const prevMessagesCountRef = useRef(0);
   
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -522,6 +528,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     if (selectedConversation?._id !== prevConversationIdRef.current) {
       prevConversationIdRef.current = selectedConversation?._id;
       shouldAutoScrollRef.current = true;
+      olderAnchorRef.current = null;
+      prevMessagesCountRef.current = 0;
+      setVisibleCount(50);
       messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
@@ -535,6 +544,21 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       }, 50);
     }
   }, [messages, selectedConversation?._id]);
+
+  // Preserve scroll position after older messages are prepended by infinite scroll
+  useEffect(() => {
+    const msgsCount = (filteredMessages || []).length;
+    const added = msgsCount - prevMessagesCountRef.current;
+    if (added > 0 && olderAnchorRef.current !== null) {
+      setVisibleCount(prev => prev + added);
+      const container = messagesContainerRef.current;
+      if (container) {
+        container.scrollTop = container.scrollHeight - olderAnchorRef.current;
+      }
+      olderAnchorRef.current = null;
+    }
+    prevMessagesCountRef.current = msgsCount;
+  }, [filteredMessages]);
   
   // ── Swipe-to-Reply handlers ─────────────────────────────────────────
   const handleMsgTouchStart = useCallback((e, message) => {
@@ -580,7 +604,16 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     
     // Load more messages when scrolling to top
     if (container.scrollTop === 0) {
-      setVisibleCount(prev => Math.min(prev + 50, filteredMessages.length));
+      const totalInMemory = filteredMessages.length;
+      if (visibleCount < totalInMemory) {
+        // Reveal more of what's already in memory
+        setVisibleCount(prev => Math.min(prev + 50, totalInMemory));
+      } else if (hasOlderMessages && selectedConversation?._id) {
+        // Fetch the next older page (50) from the server
+        olderAnchorRef.current = container.scrollHeight;
+        setLoadingOlder(true);
+        loadOlderMessages(selectedConversation._id).finally(() => setLoadingOlder(false));
+      }
     }
   };
 
@@ -2546,6 +2579,14 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
             </div>
           ) : (
             <div className="space-y-2 md:space-y-4 w-full">
+              {loadingOlder && (
+                <div className="flex justify-center my-2">
+                  <span className="bg-[#182229] text-[#8696a0] text-xs px-3 py-1.5 rounded-lg shadow-sm text-center inline-flex items-center gap-2">
+                    <span className="inline-block w-3 h-3 border-2 border-[#8696a0] border-t-transparent rounded-full animate-spin" />
+                    Loading older messages...
+                  </span>
+                </div>
+              )}
               {selectedConversation?.disappearingMessages?.enabled && (
                 <div className="bg-yellow-100 dark:bg-yellow-900/30 border-l-4 border-yellow-500 p-2 text-yellow-700 dark:text-yellow-300 text-xs rounded-md shadow-sm mb-2 mx-auto max-w-md">
                   <p className="font-medium">⏰ Disappearing Messages</p>
