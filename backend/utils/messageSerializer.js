@@ -59,6 +59,7 @@ const serializeOutgoingMessage = (msgObj = {}, extras = {}) => {
     liveLocationExpiresAt: base.liveLocationExpiresAt || null,
     liveLocationStoppedAt: base.liveLocationStoppedAt || null,
     isViewOnce: Boolean(base.isViewOnce),
+    isVideoNote: Boolean(base.isVideoNote),
     isSelfDestruct: Boolean(base.isSelfDestruct),
     isConsumed: Boolean(base.isConsumed),
     disappearAt: base.disappearAt || null,
