@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, X, Navigation, StopCircle, Clock, Users, RefreshCw, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import LeafletMap from './LeafletMap';
 
 const LiveLocationSharing = ({ activeShares, onStartSharing, onStopSharing, onClose }) => {
   const [duration, setDuration] = useState('1h'); // 15m, 1h, 8h
@@ -217,6 +218,8 @@ export const LiveLocationIndicator = ({ share }) => {
 
 // Live Location Map View Component
 export const LiveLocationMapView = ({ shares, onUserClick }) => {
+  const liveShare = (shares || []).find(s => typeof s.latitude === 'number' && typeof s.longitude === 'number');
+  const mapCenter = liveShare ? { lat: liveShare.latitude, lng: liveShare.longitude } : undefined;
   return (
     <div className="bg-[#0b141a] rounded-lg p-4 border border-[#00a884]/20">
       <div className="flex items-center gap-2 mb-3">
@@ -224,11 +227,15 @@ export const LiveLocationMapView = ({ shares, onUserClick }) => {
         <span className="text-white font-medium">Live Locations</span>
       </div>
       
-      {/* Map Placeholder */}
-      <div className="bg-[#1a2e35] rounded-lg h-48 mb-3 flex items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#00a884]/10 to-[#00a884]/5" />
-        <MapPin size={48} className="text-[#00a884]/50" />
-        <p className="text-gray-400 text-sm absolute bottom-2">Map View</p>
+      {/* Real Interactive Map (Leaflet + OpenStreetMap tiles) */}
+      <div className="h-48 mb-3 rounded-lg overflow-hidden relative">
+        <LeafletMap
+          center={mapCenter}
+          marker={liveShare ? { lat: liveShare.latitude, lng: liveShare.longitude } : null}
+          live
+          zoom={14}
+          height="100%"
+        />
       </div>
 
       {/* Location List */}

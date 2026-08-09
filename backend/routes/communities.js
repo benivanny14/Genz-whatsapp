@@ -6,6 +6,7 @@ const {
   createCommunity,
   joinCommunity,
   leaveCommunity,
+  updateCommunity,
   deleteCommunity
 } = require('../controllers/communityController');
 
@@ -15,6 +16,7 @@ router.get('/', getCommunities);
 router.post('/', createCommunity);
 router.post('/:id/join', joinCommunity);
 router.post('/:id/leave', leaveCommunity);
+router.patch('/:id', updateCommunity);
 router.delete('/:id', deleteCommunity);
 
 module.exports = router;

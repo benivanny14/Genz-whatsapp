@@ -98,6 +98,46 @@ exports.leaveCommunity = async (req, res) => {
   }
 };
 
+// @desc    Update a community (owner only)
+// @route   PATCH /api/communities/:id
+// @access  Private
+exports.updateCommunity = async (req, res) => {
+  try {
+    const userId = req.user?._id;
+    const { id } = req.params;
+    const { name, description, public: isPublic } = req.body;
+
+    const community = await Community.findById(id);
+    if (!community) {
+      return res.status(404).json({ success: false, message: 'Community not found' });
+    }
+
+    if (String(community.createdBy) !== String(userId)) {
+      return res.status(403).json({ success: false, message: 'Only the creator can edit this community' });
+    }
+
+    if (name !== undefined) {
+      if (!String(name).trim()) {
+        return res.status(400).json({ success: false, message: 'Community name is required' });
+      }
+      community.name = String(name).trim();
+    }
+    if (description !== undefined) {
+      community.description = String(description).trim();
+    }
+    if (isPublic !== undefined) {
+      community.public = isPublic !== false;
+    }
+
+    await community.save();
+
+    res.status(200).json({ success: true, community: serializeCommunity(community, userId), message: 'Community updated' });
+  } catch (error) {
+    console.error('Update community error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // @desc    Delete a community (owner only)
 // @route   DELETE /api/communities/:id
 // @access  Private

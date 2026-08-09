@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, Navigation, Search, X, Send, Clock, Share2, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import LeafletMap from './LeafletMap';
 
 const LocationPicker = ({ onClose, onLocationSelect, currentUser, selectedChat }) => {
   const [mapCenter, setMapCenter] = useState({ lat: -6.2088, lng: 35.2757 }); // Default: Dar es Salaam
@@ -66,8 +67,8 @@ const LocationPicker = ({ onClose, onLocationSelect, currentUser, selectedChat }
     setSearchQuery('');
   };
 
-  // Handle map click to select location
-  const handleMapClick = (lat, lng) => {
+  // Handle map click to select location (Leaflet passes { lat, lng })
+  const handleMapClick = ({ lat, lng } = {}) => {
     setSelectedLocation({ lat, lng, address: `${lat.toFixed(6)}, ${lng.toFixed(6)}` });
   };
 
@@ -121,9 +122,9 @@ const LocationPicker = ({ onClose, onLocationSelect, currentUser, selectedChat }
           </button>
         </div>
 
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
           {/* Map Area */}
-          <div className="flex-1 relative bg-[#0d1b2a]">
+          <div className="flex-1 relative bg-[#0d1b2a] min-h-[40vh] md:min-h-0">
             {/* Search Bar */}
             <div className="absolute top-4 left-4 right-4 z-10">
               <div className="relative">
@@ -152,38 +153,19 @@ const LocationPicker = ({ onClose, onLocationSelect, currentUser, selectedChat }
               </div>
             </div>
 
-            {/* Map Placeholder (In production, use actual map library like Leaflet) */}
-            <div className="w-full h-full flex items-center justify-center relative">
-              <div className="text-center">
-                <MapPin className="text-[#00a884] mx-auto mb-4" size={64} />
-                <p className="text-gray-400">Map View</p>
-                <p className="text-gray-500 text-sm mt-2">
-                  {mapCenter.lat.toFixed(4)}, {mapCenter.lng.toFixed(4)}
-                </p>
-              </div>
-
-              {/* Selected Location Marker */}
-              {selectedLocation && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute"
-                  style={{
-                    left: '50%',
-                    top: '50%',
-                    transform: 'translate(-50%, -50%)'
-                  }}
-                >
-                  <div className="relative">
-                    <MapPin className="text-[#00a884]" size={32} />
-                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#00a884] rounded-full animate-ping" />
-                  </div>
-                </motion.div>
-              )}
-
+            {/* Real Interactive Map (Leaflet + OpenStreetMap tiles) */}
+            <div className="absolute inset-0">
+              <LeafletMap
+                center={mapCenter}
+                marker={selectedLocation}
+                interactive
+                onMapClick={handleMapClick}
+                zoom={13}
+                height="100%"
+              />
               {/* Click to select instruction */}
               {!selectedLocation && (
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-[#1a2e35] px-4 py-2 rounded-lg text-white text-sm">
+                <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-[#1a2e35]/95 px-4 py-2 rounded-lg text-white text-sm z-[500] pointer-events-none">
                   Click on map to select location
                 </div>
               )}
@@ -200,7 +182,7 @@ const LocationPicker = ({ onClose, onLocationSelect, currentUser, selectedChat }
           </div>
 
           {/* Side Panel */}
-          <div className="w-80 bg-[#1a2e35] p-4 flex flex-col border-l border-[#00a884]/20">
+          <div className="w-full md:w-80 bg-[#1a2e35] p-4 flex flex-col md:border-l border-t md:border-t-0 border-[#00a884]/20 max-h-[40vh] md:max-h-none overflow-y-auto">
             {/* Location Type Toggle */}
             <div className="mb-6">
               <label className="text-white text-sm font-medium mb-3 block">Location Type</label>

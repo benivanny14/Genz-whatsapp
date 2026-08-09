@@ -2330,3 +2330,18 @@ body {
     transform: none;
   }
 }
+
+/* Leaflet live-location ping animation */
+@keyframes genz-ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+.leaflet-container {
+  font-family: inherit;
+  z-index: 0;
+}
+.leaflet-container a {
+  color: #00a884;
+}

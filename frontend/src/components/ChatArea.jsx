@@ -48,6 +48,7 @@ import ContactPickerModal from './ContactPickerModal';
 import ProductCatalogue from './ProductCatalogue';
 import AutoRefreshIndicator from './AutoRefreshIndicator';
 import FloatingStickerOverlay from './FloatingStickerOverlay';
+import LeafletMap from './LeafletMap';
 import { getNotificationSettings, vibrateTyping } from '../services/notificationService';
 import { spawnBubbleBurst } from '../utils/bubbleBurst';
 
@@ -3055,9 +3056,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                          (!message.liveLocationExpiresAt || new Date(message.liveLocationExpiresAt) > new Date());
                        const lat = typeof message.latitude === 'number' ? message.latitude : null;
                        const lng = typeof message.longitude === 'number' ? message.longitude : null;
-                       const staticMapUrl = lat && lng
-                         ? `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=15&size=400x300&marker=${lat},${lng}&marker=shadow`
-                         : null;
                        const mapsUrl = lat && lng
                          ? `https://www.google.com/maps?q=${lat},${lng}&layer=c`
                          : (plaintextOf(message).match(/https?:\/\/\S+/) || [null])[0];
@@ -3067,35 +3065,23 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                          : null;
                        return (
                          <div className="mb-1 w-[260px] rounded-lg overflow-hidden bg-[#0b141a] shadow-sm relative group cursor-pointer" onClick={() => { if (mapsUrl) window.open(mapsUrl, '_blank'); }}>
-                           {/* Real Map Preview */}
-                           <div className="relative h-48 bg-[#202c33] flex items-center justify-center overflow-hidden">
-                             {staticMapUrl ? (
-                               <img src={staticMapUrl} alt="Map" className="w-full h-full object-cover" loading="lazy" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.style.backgroundImage = 'radial-gradient(circle at 50% 50%, #202c33 0%, #0b141a 100%)'; }} />
-                             ) : (
-                               <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, #202c33 0%, #0b141a 100%)' }} />
-                             )}
-                             {/* Pulsing Location Dot */}
-                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                               {isLive ? (
-                                 <div className="relative flex items-center justify-center">
-                                   <div className="absolute rounded-full border-[3px] border-[#00a884] w-14 h-14 animate-ping opacity-60" />
-                                   <div className="w-10 h-10 rounded-full border-[3px] border-[#00a884] shadow-xl overflow-hidden z-10 bg-[#202c33] flex items-center justify-center">
-                                     <MapPin className="w-6 h-6 text-[#00a884] fill-current" />
-                                   </div>
-                                 </div>
-                               ) : (
-                                 <div className="w-10 h-10 rounded-full bg-[#202c33] shadow-xl flex items-center justify-center">
-                                   <MapPin className="w-6 h-6 text-[#00a884] fill-current" />
-                                 </div>
-                               )}
-                             </div>
-                             {/* Live Timer Badge */}
-                             {timeRemaining && (
-                               <div className="absolute top-2 right-2 bg-[#00a884] text-white text-xs font-semibold px-2 py-1 rounded-full flex items-center gap-1">
-                                 <Clock size={10} /> {timeRemaining}
-                               </div>
-                             )}
+                       {/* Real Interactive Map Preview (Leaflet + OpenStreetMap tiles) */}
+                       <div className="relative h-48 overflow-hidden">
+                         <LeafletMap
+                           center={lat && lng ? { lat, lng } : undefined}
+                           marker={lat && lng ? { lat, lng } : null}
+                           live={isLive}
+                           zoom={15}
+                           height="100%"
+                           onClick={() => { if (mapsUrl) window.open(mapsUrl, '_blank'); }}
+                         />
+                         {/* Live Timer Badge */}
+                         {timeRemaining && (
+                           <div className="absolute top-2 right-2 bg-[#00a884] text-white text-xs font-semibold px-2 py-1 rounded-full flex items-center gap-1 z-[500]">
+                             <Clock size={10} /> {timeRemaining}
                            </div>
+                         )}
+                       </div>
                            {/* Bottom Bar Info */}
                            <div className="bg-[#111b21] p-3 flex flex-col border-t border-[#2a3942]">
                              <p className="text-sm font-bold text-white truncate">

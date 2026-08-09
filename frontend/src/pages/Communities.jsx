@@ -42,6 +42,10 @@ const Communities = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState(null);
+  const [managing, setManaging] = useState(null);
+  const [manageDraft, setManageDraft] = useState({ name: '', description: '', public: true });
+  const [savingManage, setSavingManage] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -130,6 +134,47 @@ const Communities = () => {
     }
   };
 
+  const openManage = (community) => {
+    setManaging(community);
+    setManageDraft({ name: community.name, description: community.description || '', public: community.public });
+    setInviteCopied(false);
+  };
+
+  const saveManage = async () => {
+    if (!managing) return;
+    const name = manageDraft.name.trim();
+    if (!name) return;
+    setSavingManage(true);
+    try {
+      const updated = await communityService.updateCommunity(managing.id, {
+        name,
+        description: manageDraft.description.trim(),
+        public: manageDraft.public
+      });
+      setCommunities((current) =>
+        current.map((c) => (c.id === managing.id ? { ...c, ...updated } : c))
+      );
+      setManaging(null);
+      showNotice('success', 'Community settings saved.');
+    } catch (err) {
+      showNotice('error', err.message || 'Failed to save community settings.');
+    } finally {
+      setSavingManage(false);
+    }
+  };
+
+  const copyInviteLink = async () => {
+    if (!managing) return;
+    try {
+      const link = `${window.location.origin}/communities?join=${managing.id}`;
+      await navigator.clipboard.writeText(link);
+      setInviteCopied(true);
+      showNotice('success', 'Invite link copied.');
+    } catch (err) {
+      showNotice('error', 'Failed to copy invite link.');
+    }
+  };
+
   const deleteCommunity = async (communityId) => {
     if (!window.confirm('Delete this community permanently?')) return;
     try {
@@ -141,14 +186,19 @@ const Communities = () => {
     }
   };
 
-  const manageCommunity = (community) => {
+  const manageCommunity = async (community) => {
     const newName = window.prompt('Rename community:', community.name);
     if (!newName || !newName.trim()) return;
     const name = newName.trim();
-    setCommunities((current) =>
-      current.map((c) => (c.id === community.id ? { ...c, name } : c))
-    );
-    showNotice('success', 'Community updated.');
+    try {
+      const updated = await communityService.updateCommunity(community.id, { name });
+      setCommunities((current) =>
+        current.map((c) => (c.id === community.id ? { ...c, ...updated } : c))
+      );
+      showNotice('success', 'Community updated.');
+    } catch (err) {
+      showNotice('error', err.message || 'Failed to update community.');
+    }
   };
 
   return (
@@ -296,7 +346,11 @@ const Communities = () => {
                           >
                             <Settings size={16} /> Edit
                           </button>
-                          <button type="button" className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-2.5 text-sm font-semibold text-white hover:bg-white/15">
+                          <button
+                            type="button"
+                            onClick={() => openManage(community)}
+                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-2.5 text-sm font-semibold text-white hover:bg-white/15"
+                          >
                             <Settings size={16} /> Manage
                           </button>
                           <button
@@ -332,6 +386,87 @@ const Communities = () => {
           )}
         </div>
       </main>
+
+      {managing && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center" onClick={() => setManaging(null)}>
+          <div
+            className="w-full max-w-md rounded-t-3xl border border-white/10 bg-[#111b21] p-6 shadow-2xl sm:rounded-3xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-white">Manage Community</h3>
+                <p className="mt-1 text-sm text-white/50">Edit settings and invite members.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setManaging(null)}
+                className="rounded-full p-2 text-white/60 hover:bg-white/10 hover:text-white"
+                aria-label="Close"
+              >
+                <ArrowLeft size={20} />
+              </button>
+            </div>
+
+            <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-white/45">Community name</label>
+            <input
+              value={manageDraft.name}
+              onChange={(e) => setManageDraft((d) => ({ ...d, name: e.target.value }))}
+              placeholder="Community name"
+              className="mb-4 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-[#008069]"
+            />
+
+            <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-white/45">Description</label>
+            <textarea
+              value={manageDraft.description}
+              onChange={(e) => setManageDraft((d) => ({ ...d, description: e.target.value }))}
+              placeholder="Description"
+              rows={2}
+              className="mb-4 w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-[#008069]"
+            />
+
+            <button
+              type="button"
+              onClick={() => setManageDraft((d) => ({ ...d, public: !d.public }))}
+              className="mb-4 flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left"
+            >
+              <div>
+                <p className="text-sm font-semibold text-white">Public community</p>
+                <p className="text-xs text-white/50">People can discover and join it.</p>
+              </div>
+              <span className={`relative h-6 w-11 shrink-0 rounded-full transition ${manageDraft.public ? 'bg-[#008069]' : 'bg-white/15'}`}>
+                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${manageDraft.public ? 'left-[22px]' : 'left-0.5'}`} />
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={copyInviteLink}
+              className="mb-4 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm font-semibold text-white hover:bg-white/10"
+            >
+              {inviteCopied ? 'Invite link copied ✓' : 'Copy invite link'}
+            </button>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setManaging(null)}
+                className="flex-1 rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold text-white hover:bg-white/15"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveManage}
+                disabled={!manageDraft.name.trim() || savingManage}
+                className="flex-1 rounded-xl bg-[#008069] px-4 py-3 text-sm font-bold text-white hover:bg-[#007a5e] disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {savingManage ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

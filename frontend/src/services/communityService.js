@@ -49,6 +49,17 @@ const communityService = {
     return normalizeCommunity(data.community);
   },
 
+  updateCommunity: async (id, payload) => {
+    const res = await authFetch(`${API_URL}/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('Failed to update community');
+    const data = await res.json();
+    return normalizeCommunity(data.community);
+  },
+
   deleteCommunity: async (id) => {
     const res = await authFetch(`${API_URL}/${id}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Failed to delete community');
