@@ -135,6 +135,7 @@ const Status = () => {
     fontColor: '#ffffff',
     privacy: 'contacts',
     excludedViewers: [],
+    includedViewers: [],
     file: null,
     // New status type fields
     linkUrl: '',
@@ -415,6 +416,7 @@ const Status = () => {
         textColor: uploadData.fontColor,
         privacy,
         excludedViewers: privacy === 'contacts_except' ? uploadData.excludedViewers : [],
+        includedViewers: privacy === 'only_share_with' ? uploadData.includedViewers : [],
         // New status type fields
         linkUrl: uploadData.linkUrl || '',
         quizQuestion: uploadData.quizQuestion || '',
@@ -1690,16 +1692,74 @@ const Status = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Privacy
                 </label>
-                <select
-                  value={uploadData.privacy}
-                  onChange={(e) => setUploadData((prev) => ({ ...prev, privacy: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                >
-                  <option value="contacts">My Contacts</option>
-                  <option value="contacts_except">My Contacts Except...</option>
-                  <option value="everyone">Everyone</option>
-                  <option value="private">Only me</option>
-                </select>
+                {/* WhatsApp-style privacy radio options */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2.5 p-2.5 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors">
+                    <input
+                      type="radio"
+                      name="status-privacy"
+                      checked={uploadData.privacy === 'everyone'}
+                      onChange={() => setUploadData((prev) => ({ ...prev, privacy: 'everyone' }))}
+                      className="accent-[#00a884] w-4 h-4"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-800 dark:text-gray-100">Everyone</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Anyone can view your status</p>
+                    </div>
+                  </label>
+                  <label className="flex items-center gap-2.5 p-2.5 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors">
+                    <input
+                      type="radio"
+                      name="status-privacy"
+                      checked={uploadData.privacy === 'contacts'}
+                      onChange={() => setUploadData((prev) => ({ ...prev, privacy: 'contacts' }))}
+                      className="accent-[#00a884] w-4 h-4"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-800 dark:text-gray-100">My Contacts</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Only your contacts can view your status</p>
+                    </div>
+                  </label>
+                  <label className="flex items-center gap-2.5 p-2.5 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors">
+                    <input
+                      type="radio"
+                      name="status-privacy"
+                      checked={uploadData.privacy === 'only_share_with'}
+                      onChange={() => setUploadData((prev) => ({ ...prev, privacy: 'only_share_with' }))}
+                      className="accent-[#00a884] w-4 h-4"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-800 dark:text-gray-100">Only Share With...</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Choose specific people to share your status with</p>
+                    </div>
+                  </label>
+                  <label className="flex items-center gap-2.5 p-2.5 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors">
+                    <input
+                      type="radio"
+                      name="status-privacy"
+                      checked={uploadData.privacy === 'contacts_except'}
+                      onChange={() => setUploadData((prev) => ({ ...prev, privacy: 'contacts_except' }))}
+                      className="accent-[#00a884] w-4 h-4"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-800 dark:text-gray-100">My Contacts Except...</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Hide your status from specific contacts</p>
+                    </div>
+                  </label>
+                  <label className="flex items-center gap-2.5 p-2.5 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors">
+                    <input
+                      type="radio"
+                      name="status-privacy"
+                      checked={uploadData.privacy === 'private' || uploadData.privacy === 'only_me'}
+                      onChange={() => setUploadData((prev) => ({ ...prev, privacy: 'only_me' }))}
+                      className="accent-[#00a884] w-4 h-4"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-800 dark:text-gray-100">Only Me</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Only you can view your status</p>
+                    </div>
+                  </label>
+                </div>
 
               {(uploadData.type === 'image' || uploadData.type === 'video') && (
                 <div className="mb-4">
@@ -1815,6 +1875,34 @@ const Status = () => {
                 {/* FEATURE ADD: WhatsApp-style "hide my status from..." picker.
                     Anyone checked here won't be able to see this status even
                     though they're a contact. */}
+                {/* FEATURE ADD: "Only Share With..." picker — chosen people are the ONLY ones who see this status */}
+                {uploadData.privacy === 'only_share_with' && (
+                  <div className="mt-2 max-h-40 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2 space-y-1">
+                    {(contacts || []).length === 0 && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 py-2 text-center">No contacts yet</p>
+                    )}
+                    {(contacts || []).map((c) => {
+                      const cid = String(c.user?._id || c.user || c._id || c.id);
+                      const checked = uploadData.includedViewers.includes(cid);
+                      return (
+                        <label key={cid} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200 py-1 px-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => setUploadData((prev) => ({
+                              ...prev,
+                              includedViewers: checked
+                                ? prev.includedViewers.filter((id) => id !== cid)
+                                : [...prev.includedViewers, cid]
+                            }))}
+                          />
+                          {c.user?.username || c.username || c.name || 'Contact'}
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+                {/* FEATURE: "My Contacts Except..." picker — checked people are hidden from this status */}
                 {uploadData.privacy === 'contacts_except' && (
                   <div className="mt-2 max-h-40 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2 space-y-1">
                     {(contacts || []).length === 0 && (
