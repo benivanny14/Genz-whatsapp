@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Heart, MessageCircle, Bookmark, Share2, Send, X, MoreVertical, Eye, Clock, MapPin, Navigation } from 'lucide-react';
+import { Heart, MessageCircle, Bookmark, Share2, Send, X, MoreVertical, Eye, Clock, MapPin, Navigation, BarChart2, Trash2, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
@@ -16,11 +16,68 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
   const [isMuted, setIsMuted] = useState(true);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [quizAnswers, setQuizAnswers] = useState({});
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const containerRef = useRef(null);
   const videoRefs = useRef({});
   const isShareInProgressRef = useRef(false);
 
   const likeUserId = currentUserId || 'local-user';
+
+  // A status belongs to the current user when its owner id matches currentUserId
+  const isOwnStatus = (status) => {
+    if (!status) return false;
+    const ownerId = String(status.user?._id || status.userId || status.user || '');
+    return !!ownerId && ownerId === String(currentUserId || '');
+  };
+
+  // Fetch analytics (views + reactions) for an own status
+  const loadAnalytics = useCallback(async (index) => {
+    const status = statuses[index];
+    if (!status || !isOwnStatus(status)) return;
+    try {
+      const statusId = (status.id || status._id).replace('status-', '');
+      const response = await authFetch(`${API_URL}/status-advanced/${statusId}/analytics`);
+      const data = await response.json();
+      if (data.success) setAnalyticsData(data.analytics || data);
+    } catch (error) {
+      console.error('Analytics error:', error);
+    }
+  }, [statuses, currentUserId]);
+
+  // Load analytics when landing on an own status
+  useEffect(() => {
+    const status = statuses[currentIndex];
+    if (status && isOwnStatus(status)) {
+      loadAnalytics(currentIndex);
+    } else {
+      setAnalyticsData(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex, statuses]);
+
+  const deleteStatus = useCallback(async () => {
+    const status = statuses[currentIndex];
+    if (!status) return;
+    setIsDeleting(true);
+    try {
+      const statusId = (status.id || status._id).replace('status-', '');
+      const response = await authFetch(`${API_URL}/status/${statusId}`, {
+        method: 'DELETE'
+      });
+      const data = await response.json();
+      if (data.success) {
+        setShowDeleteConfirm(false);
+        onClose();
+      }
+    } catch (error) {
+      console.error('Delete status error:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [statuses, currentIndex, onClose]);
 
   useEffect(() => {
     if (!initialStatusId || !statuses?.length) return;
@@ -274,10 +331,20 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 text-white/60 text-xs">
-            <Eye size={12} />
-            <span>{currentStatus.viewsCount || 0}</span>
-          </div>
+          {isOwnStatus(currentStatus) ? (
+            <button
+              onClick={() => { loadAnalytics(currentIndex); setShowAnalytics(true); }}
+              className="flex items-center gap-1 text-white/80 text-xs bg-black/30 backdrop-blur-md px-2.5 py-1.5 rounded-full hover:bg-black/50 transition-colors"
+             aria-label="Status analytics">
+              <BarChart2 size={14} className="text-[#00a884]" />
+              <span>{currentStatus.viewsCount || 0} watchers</span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-1 text-white/60 text-xs">
+              <Eye size={12} />
+              <span>{currentStatus.viewsCount || 0}</span>
+            </div>
+          )}
           <button
             onClick={onClose}
             className="p-2 bg-black/30 backdrop-blur-md rounded-full hover:bg-black/50 transition-colors"
@@ -463,45 +530,80 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
               </div>
             )}
 
-            {/* Interaction Buttons */}
+            {/* Interaction Buttons — WhatsApp-style: owner sees analytics/reactions, viewers see reply/like/save */}
             {index === currentIndex && (
               <div className="absolute right-4 bottom-32 flex flex-col gap-4">
-                <button
-                  onClick={(e) => handleLike(e, index)}
-                  className="p-3 bg-black/30 backdrop-blur-md rounded-full hover:bg-black/50 transition-all transform hover:scale-110"
-                 aria-label="Like">
-                  <Heart
-                    size={24}
-                    className={liked[index] ? 'text-red-500 fill-red-500' : 'text-white'}
-                  />
-                </button>
-                <button
-                  onClick={(e) => handleReply(e, index)}
-                  className="p-3 bg-black/30 backdrop-blur-md rounded-full hover:bg-black/50 transition-all transform hover:scale-110"
-                 aria-label="Message">
-                  <MessageCircle size={24} className="text-white" />
-                </button>
-                <button
-                  onClick={(e) => handleSave(e, index)}
-                  className="p-3 bg-black/30 backdrop-blur-md rounded-full hover:bg-black/50 transition-all transform hover:scale-110"
-                >
-                  <Bookmark
-                    size={24}
-                    className={saved[index] ? 'text-yellow-400 fill-yellow-400' : 'text-white'}
-                  />
-                </button>
-                <button
-                  onClick={(e) => handleShare(e, status)}
-                  className="p-3 bg-black/30 backdrop-blur-md rounded-full hover:bg-black/50 transition-all transform hover:scale-110"
-                 aria-label="Share">
-                  <Share2 size={24} className="text-white" />
-                </button>
-                <button
-                  onClick={handleMoreOptions}
-                  className="p-3 bg-black/30 backdrop-blur-md rounded-full hover:bg-black/50 transition-all transform hover:scale-110"
-                 aria-label="More options">
-                  <MoreVertical size={24} className="text-white" />
-                </button>
+                {isOwnStatus(status) ? (
+                  <>
+                    {/* Watchers / viewers list */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); loadAnalytics(index); setShowAnalytics(true); }}
+                      className="p-3 bg-black/30 backdrop-blur-md rounded-full hover:bg-black/50 transition-all transform hover:scale-110"
+                     aria-label="Watchers">
+                      <Users size={24} className="text-[#00a884]" />
+                    </button>
+                    {/* Reactions from viewers */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); loadAnalytics(index); setShowAnalytics(true); }}
+                      className="p-3 bg-black/30 backdrop-blur-md rounded-full hover:bg-black/50 transition-all transform hover:scale-110"
+                     aria-label="Reactions">
+                      <Heart size={24} className="text-red-500" />
+                    </button>
+                    {/* Share own status */}
+                    <button
+                      onClick={(e) => handleShare(e, status)}
+                      className="p-3 bg-black/30 backdrop-blur-md rounded-full hover:bg-black/50 transition-all transform hover:scale-110"
+                     aria-label="Share">
+                      <Share2 size={24} className="text-white" />
+                    </button>
+                    {/* Delete own status */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true); }}
+                      className="p-3 bg-black/30 backdrop-blur-md rounded-full hover:bg-black/50 transition-all transform hover:scale-110"
+                     aria-label="Delete status">
+                      <Trash2 size={24} className="text-red-400" />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={(e) => handleLike(e, index)}
+                      className="p-3 bg-black/30 backdrop-blur-md rounded-full hover:bg-black/50 transition-all transform hover:scale-110"
+                     aria-label="Like">
+                      <Heart
+                        size={24}
+                        className={liked[index] ? 'text-red-500 fill-red-500' : 'text-white'}
+                      />
+                    </button>
+                    <button
+                      onClick={(e) => handleReply(e, index)}
+                      className="p-3 bg-black/30 backdrop-blur-md rounded-full hover:bg-black/50 transition-all transform hover:scale-110"
+                     aria-label="Message">
+                      <MessageCircle size={24} className="text-white" />
+                    </button>
+                    <button
+                      onClick={(e) => handleSave(e, index)}
+                      className="p-3 bg-black/30 backdrop-blur-md rounded-full hover:bg-black/50 transition-all transform hover:scale-110"
+                    >
+                      <Bookmark
+                        size={24}
+                        className={saved[index] ? 'text-yellow-400 fill-yellow-400' : 'text-white'}
+                      />
+                    </button>
+                    <button
+                      onClick={(e) => handleShare(e, status)}
+                      className="p-3 bg-black/30 backdrop-blur-md rounded-full hover:bg-black/50 transition-all transform hover:scale-110"
+                     aria-label="Share">
+                      <Share2 size={24} className="text-white" />
+                    </button>
+                    <button
+                      onClick={handleMoreOptions}
+                      className="p-3 bg-black/30 backdrop-blur-md rounded-full hover:bg-black/50 transition-all transform hover:scale-110"
+                     aria-label="More options">
+                      <MoreVertical size={24} className="text-white" />
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -538,6 +640,129 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
               <X size={20} className="text-white" />
             </button>
           </div>
+        </motion.div>
+      )}
+
+      {/* Own-status Analytics Panel (watchers + reactions) */}
+      {showAnalytics && isOwnStatus(currentStatus) && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 z-30 bg-black/80 backdrop-blur-xl flex items-center justify-center p-6"
+          onClick={() => setShowAnalytics(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="w-full max-w-md bg-[#111b21] rounded-2xl p-6 max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                <BarChart2 size={20} className="text-[#00a884]" /> Status Analytics
+              </h3>
+              <button
+                onClick={() => setShowAnalytics(false)}
+                className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors"
+               aria-label="Close analytics">
+                <X size={18} className="text-white" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 mb-5">
+              <div className="bg-white/5 rounded-xl p-3 text-center">
+                <p className="text-2xl font-bold text-[#00a884]">{currentStatus.viewsCount || 0}</p>
+                <p className="text-xs text-white/60 mt-1">Watchers</p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-3 text-center">
+                <p className="text-2xl font-bold text-red-400">{(analyticsData?.reactions || currentStatus.reactions || []).length}</p>
+                <p className="text-xs text-white/60 mt-1">Reactions</p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-3 text-center">
+                <p className="text-2xl font-bold text-yellow-400">{(analyticsData?.replies || currentStatus.replies || []).length}</p>
+                <p className="text-xs text-white/60 mt-1">Replies</p>
+              </div>
+            </div>
+
+            <p className="text-white/70 text-sm font-semibold mb-2 flex items-center gap-1.5">
+              <Eye size={14} /> Watchers ({currentStatus.viewsCount || 0})
+            </p>
+            <div className="space-y-2 mb-5">
+              {(analyticsData?.views || currentStatus.views || []).length === 0 ? (
+                <p className="text-white/40 text-sm">No one has viewed this status yet.</p>
+              ) : (
+                (analyticsData?.views || currentStatus.views || []).map((view, vi) => (
+                  <div key={vi} className="flex items-center gap-3 bg-white/5 rounded-xl px-3 py-2">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white text-xs font-bold">
+                      {(view.user?.username || view.username || '?').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm truncate">{view.user?.username || view.username || 'Unknown'}</p>
+                    </div>
+                    <p className="text-white/40 text-xs">
+                      {view.viewedAt ? new Date(view.viewedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <p className="text-white/70 text-sm font-semibold mb-2 flex items-center gap-1.5">
+              <Heart size={14} className="text-red-400" /> Reactions ({analyticsData?.reactions?.length || (currentStatus.reactions || []).length})
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {(analyticsData?.reactions || currentStatus.reactions || []).length === 0 ? (
+                <p className="text-white/40 text-sm">No reactions yet.</p>
+              ) : (
+                (analyticsData?.reactions || currentStatus.reactions || []).map((r, ri) => (
+                  <div key={ri} className="flex items-center gap-1.5 bg-white/5 rounded-full px-3 py-1.5">
+                    <span className="text-lg">{r.emoji || '❤️'}</span>
+                    <span className="text-white text-xs">{r.user?.username || r.username || 'Unknown'}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* Delete own-status confirmation */}
+      {showDeleteConfirm && isOwnStatus(currentStatus) && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 z-30 bg-black/80 backdrop-blur-xl flex items-center justify-center p-6"
+          onClick={() => setShowDeleteConfirm(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="w-full max-w-sm bg-[#111b21] rounded-2xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
+              <Trash2 size={24} className="text-red-400" />
+            </div>
+            <h3 className="text-white font-bold text-lg text-center mb-2">Delete status?</h3>
+            <p className="text-white/60 text-sm text-center mb-6">This status will be permanently deleted. This action cannot be undone.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 py-2.5 rounded-full bg-white/10 text-white font-medium hover:bg-white/20 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deleteStatus}
+                disabled={isDeleting}
+                className="flex-1 py-2.5 rounded-full bg-red-500 text-white font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </motion.div>
         </motion.div>
       )}
 
