@@ -63,6 +63,7 @@ const {
 const { validateMessage } = require("../middleware/validator");
 const { protect, requirePhoneVerified } = require("../middleware/auth");
 const { privacyMiddleware } = require("../middleware/privacy");
+const { messageSenderLimiter } = require("../middleware/rateLimiters");
 
 router.use(protect);
 
@@ -106,7 +107,7 @@ router.get("/conversations/:id/messages", getMessages);
 router.get("/messages/starred", getStarredMessages);
 router.get("/conversations/:conversationId/search", searchMessages);
 router.get("/conversations/:conversationId/media", getMediaGallery);
-router.post("/messages", requirePhoneVerified, validateMessage, sendMessage);
+router.post("/messages", requirePhoneVerified, messageSenderLimiter, validateMessage, sendMessage);
 router.put("/messages/:id", requirePhoneVerified, editMessage);
 router.delete("/messages/:id", requirePhoneVerified, deleteMessage);
 router.delete("/messages/:id/delete-for-everyone", requirePhoneVerified, deleteMessage);

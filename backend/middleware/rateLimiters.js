@@ -25,4 +25,37 @@ const pairingLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-module.exports = { authSensitiveLimiter, pairingLimiter };
+// Per-user key generator: rate limits are tied to the authenticated account
+// (req.user._id) rather than the shared IP, so one user behind a NAT or VPN
+// cannot burn the budget for everyone else.
+const userKeyGenerator = (req) => `user:${req.user?._id || req.ip || 'unknown'}`;
+
+// Sending messages is cheap for a human but expensive for a bot. 120/minute
+// comfortably covers a real user while capping scripted spam.
+const messageSenderLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: process.env.NODE_ENV === 'test' ? 100000 : 120,
+  keyGenerator: userKeyGenerator,
+  message: {
+    success: false,
+    error: 'Too many messages sent. Please slow down.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Uploads are heavier (bandwidth + storage). 30/minute per user stops abuse
+// without blocking legitimate media sharing.
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: process.env.NODE_ENV === 'test' ? 100000 : 30,
+  keyGenerator: userKeyGenerator,
+  message: {
+    success: false,
+    error: 'Too many uploads. Please try again later.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+module.exports = { authSensitiveLimiter, pairingLimiter, messageSenderLimiter, uploadLimiter };

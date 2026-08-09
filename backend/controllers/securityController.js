@@ -51,8 +51,11 @@ exports.verifyTwoFactorToken = async (req, res) => {
     const user = await requireUser(req, res);
     if (!user) return;
 
-    const { token, secret } = req.body;
-    const twoFactorSecret = secret || user.twoFactorSecret;
+    // SECURITY: only verify against the server-issued secret stored on the
+    // user (generateTwoFactorSecret saves it). Never accept a client-supplied
+    // secret — that would let an attacker bind their own secret to the account.
+    const { token } = req.body;
+    const twoFactorSecret = user.twoFactorSecret;
 
     if (!token || !twoFactorSecret) {
       return res.status(400).json({
@@ -72,7 +75,6 @@ exports.verifyTwoFactorToken = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid 2FA token' });
     }
 
-    user.twoFactorSecret = twoFactorSecret;
     user.twoFactorEnabled = true;
     user.twoFactorVerified = true;
     await user.save();

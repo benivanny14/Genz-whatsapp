@@ -13,6 +13,7 @@ const {
   handleUploadError,
 } = require("../middleware/upload");
 const { validateFileContent } = require("../middleware/fileValidation");
+const { uploadLimiter } = require("../middleware/rateLimiters");
 const mediaController = require("../controllers/mediaController");
 
 /**
@@ -25,6 +26,7 @@ const mediaController = require("../controllers/mediaController");
 router.post(
   "/upload/image",
   protect,
+  uploadLimiter,
   uploadImage,
   handleUploadError,
   validateFileContent,
@@ -33,6 +35,7 @@ router.post(
 router.post(
   "/upload/video",
   protect,
+  uploadLimiter,
   uploadVideo,
   handleUploadError,
   validateFileContent,
@@ -41,6 +44,7 @@ router.post(
 router.post(
   "/upload/audio",
   protect,
+  uploadLimiter,
   uploadAudio,
   handleUploadError,
   validateFileContent,
@@ -49,6 +53,7 @@ router.post(
 router.post(
   "/upload/document",
   protect,
+  uploadLimiter,
   uploadDocument,
   handleUploadError,
   validateFileContent,
@@ -59,6 +64,7 @@ router.post(
 router.post(
   "/upload",
   protect,
+  uploadLimiter,
   uploadAny,
   handleUploadError,
   validateFileContent,
@@ -69,6 +75,7 @@ router.post(
 router.post(
   "/upload/images",
   protect,
+  uploadLimiter,
   uploadMultipleImages,
   handleUploadError,
   validateFileContent,
@@ -77,6 +84,7 @@ router.post(
 router.post(
   "/upload/videos",
   protect,
+  uploadLimiter,
   uploadMultipleVideos,
   handleUploadError,
   validateFileContent,
@@ -85,6 +93,7 @@ router.post(
 router.post(
   "/upload/documents",
   protect,
+  uploadLimiter,
   uploadMultipleDocuments,
   handleUploadError,
   validateFileContent,
@@ -95,6 +104,7 @@ router.post(
 router.post(
   "/upload-multiple",
   protect,
+  uploadLimiter,
   uploadAny,
   handleUploadError,
   validateFileContent,

@@ -110,31 +110,6 @@ const MessageInfo = ({ messageId, onClose }) => {
                 </div>
               )}
 
-              {/* Delivered to */}
-              {info.deliveredTo?.length > 0 && (
-                <div className="px-4 pb-2">
-                  <p className="text-[#8696a0] text-xs font-semibold uppercase tracking-wide mb-2 flex items-center gap-1">
-                    <CheckCheck size={12} /> Delivered to ({info.deliveredTo.length})
-                  </p>
-                  <div className="bg-[#202c33] rounded-xl overflow-hidden">
-                    {info.deliveredTo.map((d, i) => (
-                      <div key={d.user?._id || i}
-                        className="flex items-center justify-between px-3 py-2.5 border-b border-[#2a3942] last:border-0">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-[#2a3942] flex items-center justify-center">
-                            <span className="text-white text-xs font-bold">
-                              {(d.user?.username || '?').charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <span className="text-white text-sm">{d.user?.username || 'User'}</span>
-                        </div>
-                        <span className="text-[#8696a0] text-xs">{fmt(d.deliveredAt)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Reactions */}
               {info.reactions?.length > 0 && (
                 <div className="px-4 pb-2">

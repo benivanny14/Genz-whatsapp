@@ -26,9 +26,8 @@ import { useUser } from '../context/UserContext';
 import { useLanguage } from '../context/LanguageContext';
 import userService from '../services/userService';
 import { checkForUpdate } from '../utils/appUpdate';
-import { resolveApiBase } from '../utils/resolveApiBase';
 import SettingsHelp from '../components/SettingsHelp';
-import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
+import api from '../services/api';
 
 const SETTINGS_KEY = 'genz_user_settings';
 
@@ -540,8 +539,7 @@ const Settings = () => {
       const payload = {
         username: profileData.username.trim(),
         bio: profileData.bio,
-        about: profileData.bio,
-        phoneNumber: profileData.phone.trim()
+        about: profileData.bio
       };
       await userService.updateProfile(payload);
       updateUserProfile?.(payload);
@@ -549,8 +547,7 @@ const Settings = () => {
     } catch (error) {
       updateUserProfile?.({
         username: profileData.username,
-        bio: profileData.bio,
-        phoneNumber: profileData.phone
+        bio: profileData.bio
       });
       showStatus('warning', 'Profile saved locally. Server sync failed.');
     } finally {
@@ -614,22 +611,12 @@ const Settings = () => {
   const openContactSelector = async (privacyType, selectorType) => {
     try {
       // Fetch full contact data from API
-      const API_URL = resolveApiBase();
-      const token = getAuthToken();
       const [contactsRes, savedRes] = await Promise.all([
-        fetch(`${API_URL}/chat/contacts`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }),
-        fetch(`${API_URL}/privacy/${selectorType}/${privacyType}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        })
+        api.get('/chat/contacts'),
+        api.get(`/privacy/${selectorType}/${privacyType}`)
       ]);
       
-      const data = contactsRes.ok ? await contactsRes.json() : {};
+      const data = contactsRes?.data || {};
       const contacts = (data.contacts || data.users || []).map((c) =>
         c.user
           ? {
@@ -646,8 +633,8 @@ const Settings = () => {
       // Reload the currently-saved selection so reopening the selector
       // shows what is actually saved, not an empty list.
       let initialSelectedContacts = [];
-      if (savedRes.ok) {
-        const savedData = await savedRes.json();
+      if (savedRes?.data) {
+        const savedData = savedRes.data;
         const key = selectorType === 'excluded' ? 'excludedContacts' : 'allowedContacts';
         const idKey = selectorType === 'excluded' ? 'excludedContactId' : 'allowedContactId';
         initialSelectedContacts = (savedData[key] || [])
@@ -679,50 +666,24 @@ const Settings = () => {
     const { privacyType, selectorType } = contactSelectorConfig;
     
     try {
-      const API_URL = resolveApiBase();
-      
       if (selectorType === 'excluded') {
         // Clear existing and add new
-        await fetch(`${API_URL}/privacy/excluded/type/${privacyType}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${getAuthToken()}`
-          }
-        });
+        await api.delete(`/privacy/excluded/type/${privacyType}`);
         
         if (selectedContactData.length > 0) {
-          await fetch(`${API_URL}/privacy/excluded/bulk`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${getAuthToken()}`
-            },
-            body: JSON.stringify({
-              privacyType,
-              contacts: selectedContactData
-            })
+          await api.post('/privacy/excluded/bulk', {
+            privacyType,
+            contacts: selectedContactData
           });
         }
       } else if (selectorType === 'allowed') {
         // Clear existing and add new
-        await fetch(`${API_URL}/privacy/allowed/type/${privacyType}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${getAuthToken()}`
-          }
-        });
+        await api.delete(`/privacy/allowed/type/${privacyType}`);
         
         if (selectedContactData.length > 0) {
-          await fetch(`${API_URL}/privacy/allowed/bulk`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${getAuthToken()}`
-            },
-            body: JSON.stringify({
-              privacyType,
-              contacts: selectedContactData
-            })
+          await api.post('/privacy/allowed/bulk', {
+            privacyType,
+            contacts: selectedContactData
           });
         }
       }

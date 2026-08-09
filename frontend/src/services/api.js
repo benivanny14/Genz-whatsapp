@@ -50,7 +50,7 @@ api.interceptors.response.use(
 
     if (offline) {
       return Promise.resolve({
-        data: { success: false, message: 'Network error. Please check your connection.', isOffline: true },
+        data: { success: false, message: 'You are offline. Please check your connection.', isOffline: true },
         status: 0,
       });
     }

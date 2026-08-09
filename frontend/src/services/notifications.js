@@ -20,6 +20,9 @@ export const registerServiceWorker = async () => {
     return null;
   }
   try {
+    // Deduplicate: only register once. App.jsx and ChatContext both call this.
+    const existing = await navigator.serviceWorker.getRegistration('/');
+    if (existing) return existing;
     const reg = await navigator.serviceWorker.register(SW_URL, { scope: '/' });
     console.log('[Notifications] Service Worker registered:', reg.scope);
     return reg;

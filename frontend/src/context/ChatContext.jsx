@@ -4250,7 +4250,8 @@ export const ChatProvider = ({ children }) => {
     }
   };
   const verifyChatUnlock = (chatId, enteredPin) => {
-    const storedPin = localStorage.getItem('genz_lock_pin') || '1234';
+    const storedPin = localStorage.getItem('genz_lock_pin');
+    if (!storedPin) return false;
     if (enteredPin === storedPin) {
       setUnlockedSessionChats(prev => {
         const next = new Set(prev);
@@ -4263,7 +4264,7 @@ export const ChatProvider = ({ children }) => {
   };
   const toggleChatLock = (chatId, isLocked, pin) => {
     if (chatId) {
-      const storedPin = localStorage.getItem('genz_lock_pin') || '1234';
+      const storedPin = localStorage.getItem('genz_lock_pin') || '';
       // Optimistic update
       setConversations(prev => prev.map(c => {
         if (c._id === chatId) {

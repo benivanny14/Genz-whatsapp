@@ -1025,6 +1025,16 @@ exports.sendMessage = async (req, res) => {
             });
           }
         }
+
+        // HTTP-fallback path must mirror the socket path's delivered ack
+        // (socket/index.js message:mark_delivered -> message:delivered) so the
+        // sender's ticks don't stay stuck on 'sent' after a socket failure.
+        if (senderSocketId) {
+          io.to(senderSocketId).emit('message:delivered', {
+            messageId: messageId || populatedMessage?._id?.toString(),
+            serverMessageId: populatedMessage?._id?.toString()
+          });
+        }
       }
     } catch (emitErr) {
       console.warn("[ChatController] Socket emit failed:", emitErr?.message || emitErr);

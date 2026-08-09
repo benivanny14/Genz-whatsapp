@@ -358,7 +358,10 @@ exports.getMe = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    const allowedFields = ['username', 'about', 'bio', 'profilePicture', 'phoneNumber'];
+    // NOTE: phoneNumber, twoFactorEnabled and twoFactorSecret are deliberately
+    // NOT editable here — changing the phone number requires the OTP-verified
+    // /auth/change-number flow, and 2FA is managed by /security endpoints.
+    const allowedFields = ['username', 'about', 'bio', 'profilePicture'];
     const updates = {};
 
     allowedFields.forEach((field) => {
@@ -700,6 +703,19 @@ exports.refreshToken = async (req, res) => {
         success: false,
         message: 'User not authorized'
       });
+    }
+
+    // Invalidate refresh tokens issued before a password change/reset —
+    // matches the passwordChangedAt check in middleware/auth.js protect().
+    if (user.passwordChangedAt) {
+      const changedAt = new Date(user.passwordChangedAt).getTime();
+      if (decoded.iat && decoded.iat * 1000 + 30000 < changedAt) {
+        console.warn('[Auth] Refresh rejected: token issued before password change', { id: decoded.id });
+        return res.status(401).json({
+          success: false,
+          message: 'Session expired. Please log in again.'
+        });
+      }
     }
 
     const deviceId = getRequestDeviceId(req);
