@@ -11,7 +11,7 @@ import {
   MessageSquare, 
   Layout, 
   Navigation, 
-  Icons, 
+  Shapes, 
   Smile, 
   Store,
   Sparkles
@@ -122,7 +122,7 @@ const CustomizationModsPanel = ({ onClose }) => {
       key: 'customIconsEnabled',
       title: 'Custom Icons',
       description: 'Use custom icon packs',
-      icon: Icons,
+      icon: Shapes,
       color: 'pink',
       endpoint: 'custom-icons'
     },

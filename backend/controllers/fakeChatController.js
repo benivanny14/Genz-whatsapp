@@ -281,7 +281,7 @@ exports.deleteFakeChat = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Fake chat not found' });
     }
 
-    if (!conversation.participants.includes(user._id.toString())) {
+    if (!conversation.participants.some((p) => String(p) === String(user._id))) {
       return res.status(403).json({ success: false, message: 'You do not have permission to delete this chat' });
     }
 

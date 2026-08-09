@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, LockOpen, Globe, Shield, Users, X, Check, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Lock, Globe, Shield, Users, X, Check, RefreshCw, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const GroupPrivacy = ({ group, onUpdate, onClose }) => {

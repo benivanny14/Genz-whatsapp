@@ -99,6 +99,7 @@ export const apiService = {
   removeStickerPack: (packId) => apiCall(`/stickers/packs/${packId}`, { method: 'DELETE' }),
   toggleFavoriteSticker: (stickerId, url) => apiCall(`/stickers/favorites/${encodeURIComponent(stickerId)}`, { method: 'POST', data: { url } }),
   getConversations: () => apiCall('/chat/conversations'),
+  getConversation: (id) => apiCall(`/chat/conversations/${encodeURIComponent(id)}`),
   getScheduledMessages: (conversationId = null) => {
     const url = conversationId 
       ? `/scheduled-messages?conversationId=${conversationId}`

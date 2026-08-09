@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { authFetch } from '../utils/authFetch';
-import { API_URL } from '../config';
+import { resolveApiBase } from '../utils/resolveApiBase';
+const API_URL = resolveApiBase();
 import { DollarSign, MapPin, Star, Eye, Mail, Loader2, AlertCircle } from 'lucide-react';
 
 const PaymentFeatures = () => {

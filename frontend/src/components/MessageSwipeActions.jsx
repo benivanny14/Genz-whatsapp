@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SwipeLeft, SwipeRight, Archive, Trash2, Reply, Star, Check, X } from 'lucide-react';
+import { MoveLeft, MoveRight, Archive, Trash2, Reply, Star, Check, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const MessageSwipeActions = ({ message, onSwipeLeft, onSwipeRight, settings }) => {
@@ -101,7 +101,7 @@ export const SwipeActionsSettings = ({ settings, onUpdate }) => {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-white font-medium flex items-center gap-2">
-            <SwipeLeft size={18} className="text-[#00a884]" />
+            <MoveLeft size={18} className="text-[#00a884]" />
             Swipe Actions
           </p>
           <p className="text-gray-400 text-sm">Swipe messages for quick actions</p>
@@ -183,12 +183,12 @@ export const SwipeActionIndicator = ({ direction }) => {
     >
       {direction === 'left' ? (
         <>
-          <SwipeLeft size={12} />
+          <MoveLeft size={12} />
           <span>Swipe left</span>
         </>
       ) : (
         <>
-          <SwipeRight size={12} />
+          <MoveRight size={12} />
           <span>Swipe right</span>
         </>
       )}

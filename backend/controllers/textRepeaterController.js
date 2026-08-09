@@ -126,7 +126,7 @@ exports.repeatText = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Conversation not found' });
     }
 
-    if (!conversation.participants.includes(user._id.toString())) {
+    if (!conversation.participants.some((p) => String(p) === String(user._id))) {
       return res.status(403).json({ success: false, message: 'You are not a participant in this conversation' });
     }
 
@@ -186,7 +186,7 @@ exports.repeatTextDelayed = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Conversation not found' });
     }
 
-    if (!conversation.participants.includes(user._id.toString())) {
+    if (!conversation.participants.some((p) => String(p) === String(user._id))) {
       return res.status(403).json({ success: false, message: 'You are not a participant in this conversation' });
     }
 

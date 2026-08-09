@@ -9,7 +9,6 @@ import {
   AlertTriangle, 
   RefreshCw, 
   Settings, 
-  Switch,
   Bell,
   Inbox
 } from 'lucide-react';

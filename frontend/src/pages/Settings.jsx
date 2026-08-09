@@ -6,7 +6,7 @@ import {
   HelpCircle, Download, Trash2, Phone, Wifi, Image as ImageIcon,
   HardDrive, CheckCircle2, EyeOff, Archive, Clock, FileText, Globe2,
   RefreshCw, RotateCcw, Palette, MessageSquare, MapPin, X, Fingerprint,
-  DollarSign, Star, Search, Plus, Camera, Video, Upload as UploadIcon, Mail, Crown
+  DollarSign, Star, Search, Plus, Camera, Video, Upload as UploadIcon, Mail, Crown, LayoutGrid
 } from 'lucide-react';
 import ContactManager from '../components/ContactManager';
 import { BlockedUsersList } from '../components/BlockUnblock';
@@ -836,6 +836,9 @@ const Settings = () => {
 
   const renderAccount = () => (
     <div className="space-y-4">
+      <SettingSection title="Feature Library" description="Every GENZ feature in one place — chat tools, appearance, privacy, data, messaging and account.">
+        <SettingRow icon={LayoutGrid} title="Open Feature Library" description="Explore and use all available GENZ features." onClick={() => navigate('/features')} />
+      </SettingSection>
       <SettingSection title="Account" description="Security, passkeys, account information, and account actions.">
         <SettingRow icon={KeyRound} title="Passkeys" description="Store passkey preference for secure sign-in and backups." control={
           <Toggle checked={settingsData.account.passkeys} onChange={() => toggleSetting('account.passkeys')} />

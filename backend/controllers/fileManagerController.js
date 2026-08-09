@@ -224,7 +224,7 @@ exports.deleteFile = async (req, res) => {
     }
 
     const conversation = await Conversation.findById(message.conversationId);
-    if (!conversation || !conversation.participants.includes(user._id.toString())) {
+    if (!conversation || !conversation.participants.some((p) => String(p) === String(user._id))) {
       return res.status(403).json({ success: false, message: 'You do not have permission to delete this file' });
     }
 
@@ -272,7 +272,7 @@ exports.shareFile = async (req, res) => {
     for (const convId of conversationIds) {
       try {
         const conversation = await Conversation.findById(convId);
-        if (!conversation || !conversation.participants.includes(user._id.toString())) {
+        if (!conversation || !conversation.participants.some((p) => String(p) === String(user._id))) {
           errors.push({ conversationId: convId, error: 'Not a participant' });
           continue;
         }

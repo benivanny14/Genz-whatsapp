@@ -14,8 +14,8 @@ exports.generateInviteLink = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Group not found' });
     }
 
-    // Check if user is admin
-    if (!conversation.admins.includes(userId.toString())) {
+    // Check if user is admin (admins is an ObjectId[] — compare with String())
+    if (!conversation.admins.some((p) => String(p) === String(userId))) {
       return res.status(403).json({ success: false, message: 'Only admins can generate invite links' });
     }
 
@@ -59,8 +59,8 @@ exports.getInviteLink = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Group not found' });
     }
 
-    // Check if user is member
-    if (!conversation.participants.includes(userId.toString())) {
+    // Check if user is member (participants is an ObjectId[])
+    if (!conversation.participants.some((p) => String(p) === String(userId))) {
       return res.status(403).json({ success: false, message: 'Not a group member' });
     }
 
@@ -87,8 +87,8 @@ exports.revokeInviteLink = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Group not found' });
     }
 
-    // Check if user is admin
-    if (!conversation.admins.includes(userId.toString())) {
+    // Check if user is admin (admins is an ObjectId[])
+    if (!conversation.admins.some((p) => String(p) === String(userId))) {
       return res.status(403).json({ success: false, message: 'Only admins can revoke invite links' });
     }
 
@@ -133,8 +133,8 @@ exports.joinViaInviteLink = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invite link has reached maximum uses' });
     }
 
-    // Check if user is already a member
-    if (conversation.participants.includes(userId.toString())) {
+    // Check if user is already a member (participants is an ObjectId[])
+    if (conversation.participants.some((p) => String(p) === String(userId))) {
       return res.status(400).json({ success: false, message: 'You are already a member of this group' });
     }
 
@@ -184,8 +184,8 @@ exports.resetInviteLink = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Group not found' });
     }
 
-    // Check if user is admin
-    if (!conversation.admins.includes(userId.toString())) {
+    // Check if user is admin (admins is an ObjectId[])
+    if (!conversation.admins.some((p) => String(p) === String(userId))) {
       return res.status(403).json({ success: false, message: 'Only admins can reset invite links' });
     }
 

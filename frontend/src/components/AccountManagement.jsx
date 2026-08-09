@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Trash2, Shield, AlertTriangle, X, Check, Download, RefreshCw, UserPlus, Link as LinkIcon, Sync, Clock, Info } from 'lucide-react';
+import { Trash2, Shield, AlertTriangle, X, Check, Download, RefreshCw, UserPlus, Link as LinkIcon, RotateCw, Clock, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const AccountDelete = ({ onDeleteAccount, onClose }) => {
@@ -366,7 +366,7 @@ const AccountSync = ({ syncSettings, onSyncSettingsChange, onSyncNow, onClose })
       <div className="bg-[#1a2e35] rounded-2xl w-full max-w-md p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-white text-xl font-semibold flex items-center gap-2">
-            <Sync className="text-[#00a884]" />
+            <RotateCw className="text-[#00a884]" />
             Account Sync
           </h3>
           <button

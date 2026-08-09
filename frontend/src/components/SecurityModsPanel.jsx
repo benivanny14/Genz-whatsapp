@@ -9,7 +9,6 @@ import {
   ShieldAlert, 
   Globe, 
   Smartphone, 
-  LockPattern, 
   Lock, 
   Fingerprint, 
   Camera, 
@@ -116,7 +115,7 @@ const SecurityModsPanel = ({ onClose }) => {
       key: 'appLockPattern',
       title: 'App Lock Pattern',
       description: 'Lock app with pattern',
-      icon: LockPattern,
+      icon: Lock,
       color: 'red',
       endpoint: 'app-lock-pattern'
     },

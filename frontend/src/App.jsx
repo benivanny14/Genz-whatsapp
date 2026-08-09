@@ -30,6 +30,7 @@ const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AdminSetup = lazy(() => import('./pages/AdminSetup'));
 const GENZMods = lazy(() => import('./pages/GENZMods'));
+const FeatureLibrary = lazy(() => import('./pages/FeatureLibrary'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
@@ -359,6 +360,7 @@ function App() {
             <Route path="/system-gateway-x9k" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
             <Route path="/system-gateway-x9k/login" element={<AdminLogin />} />
             <Route path="/genz-mods" element={<ProtectedRoute><GENZMods /></ProtectedRoute>} />
+            <Route path="/features" element={<ProtectedRoute><FeatureLibrary /></ProtectedRoute>} />
             <Route path="/channels" element={<ProtectedRoute><Channels /></ProtectedRoute>} />
             <Route path="/channels/:channelId" element={<ProtectedRoute><ChannelView /></ProtectedRoute>} />
             <Route path="/communities" element={<ProtectedRoute><Communities /></ProtectedRoute>} />
