@@ -33,6 +33,7 @@ import ChunkedUploader from './ChunkedUploader';
 import ContactInfo from './ContactInfo';
 import GroupInfo from './GroupInfo';
 import StickerPicker from './StickerPicker';
+import { useStickers } from '../context/StickerContext';
 import { uploadVoiceNote, getAudioDuration, analyzeAudioForWaveform } from '../services/voiceService';
 import toast from 'react-hot-toast';
 import { authFetch } from '../utils/authFetch';
@@ -226,11 +227,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     createPoll, votePoll, scheduleMessage, scheduledMessages, cancelScheduledMessage,
     initiateCall, endCall,
     updateGroupMember, joinGroup, updateDisappearingMessages, toggleAdminOnlyMessaging, updateGroupPermission, createCustomRole, assignRole, viewProfile,
-    pinMessage, unpinMessage, pinnedMessages, presenceHistory, unlockedSessionChats, verifyChatUnlock, toggleChatLock,     stickerPacks, downloadedStickers, downloadStickerPack, removeStickerPack, sendSticker, addFavoriteSticker, toggleStarMessage, toggleMessageLock, toggleMuteChat, toggleArchiveChat, markAsRead, markViewOnceViewed, getUserStatusWithGhostMode,
+    pinMessage, unpinMessage, pinnedMessages, presenceHistory, unlockedSessionChats, verifyChatUnlock, toggleChatLock, toggleStarMessage, toggleMessageLock, toggleMuteChat, toggleArchiveChat, markAsRead, markViewOnceViewed, getUserStatusWithGhostMode,
     sendFloatingSticker, floatingStickerHandlers, setFloatingStickerHandlers,
     isDNDMode, toggleDNDMode, selectConversation, setMods, aiAssistant,
     loadOlderMessages, hasOlderMessages
   } = useChat();
+  const { sendSticker } = useStickers();
   const user = chatUser || localUser;
   const [messageInput, setMessageInput] = useState('');
   const [selectedFont, setSelectedFont] = useState('default');
@@ -3639,11 +3641,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         {showStickerPacks && (
           <div className="absolute bottom-full left-0 right-0 w-full z-50 overflow-hidden shadow-2xl border-t border-dark-border">
             <StickerPicker
-              stickerPacks={stickerPacks}
-              downloadedStickers={downloadedStickers}
-              onDownloadPack={downloadStickerPack}
-              onRemovePack={removeStickerPack}
-              onToggleFavorite={addFavoriteSticker}
               onStickerSelect={(stickerUrl, options) => {
                 if (floatingStickerMode) {
                   // Floating mode keeps the instant fly-across-screen behavior

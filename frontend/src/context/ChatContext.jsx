@@ -425,8 +425,6 @@ export const ChatProvider = ({ children }) => {
       setUnlockedSessionChats(new Set());
     }
   }, [unlockedSessionChatsKey]);
-  const [stickerPacks, setStickerPacks] = useState([]);
-  const [downloadedStickers, setDownloadedStickers] = useState([]);
   const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
   const [isOtherUserRecording, setIsOtherUserRecording] = useState(false);
   const [typingByConversation, setTypingByConversation] = useState({});
@@ -4315,85 +4313,10 @@ export const ChatProvider = ({ children }) => {
       emitSafe('toggle_chat_lock', { chatId, isLocked, pin: pin || storedPin });
     }
   };
-  const downloadStickerPack = useCallback(async (pack) => {
-    const packId = pack?.id || pack;
-    if (!packId) return;
-    try {
-      const res = await apiService.downloadStickerPack(packId);
-      if (res?.success) {
-        setStickerPacks(prev => prev.map(p => p.id === packId ? { ...p, isDownloaded: true } : p));
-        const downloadedPack = stickerPacks.find(p => p.id === packId) || res.pack;
-        const newUrls = (downloadedPack?.stickers || []).map(s => s.url).filter(Boolean);
-        setDownloadedStickers(prev => Array.from(new Set([...prev, ...newUrls])));
-      }
-    } catch (err) {
-      console.warn('[ChatContext] downloadStickerPack failed:', err?.message || err);
-    }
-  }, [stickerPacks]);
-
-  const removeStickerPack = useCallback(async (packId) => {
-    if (!packId) return;
-    try {
-      const res = await apiService.removeStickerPack(packId);
-      if (res?.success) {
-        const pack = stickerPacks.find(p => p.id === packId);
-        setStickerPacks(prev => prev.map(p => p.id === packId ? { ...p, isDownloaded: false } : p));
-        const removedUrls = new Set((pack?.stickers || []).map(s => s.url));
-        setDownloadedStickers(prev => prev.filter(url => !removedUrls.has(url)));
-      }
-    } catch (err) {
-      console.warn('[ChatContext] removeStickerPack failed:', err?.message || err);
-    }
-  }, [stickerPacks]);
-
-  const fetchStickerPacks = useCallback(async () => {
-    try {
-      const res = await apiService.getStickerPacks();
-      if (res?.success) {
-        setStickerPacks(res.packs || []);
-        const downloadedUrls = (res.packs || [])
-          .filter(p => p.isDownloaded)
-          .flatMap(p => (p.stickers || []).map(s => s.url));
-        setDownloadedStickers(downloadedUrls);
-      }
-    } catch (err) {
-      console.warn('[ChatContext] fetchStickerPacks failed:', err?.message || err);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isAuthReady || (REQUIRE_AUTH && (authLoading || !isAuthenticated))) return;
-    fetchStickerPacks();
-  }, [isAuthReady, authLoading, isAuthenticated, fetchStickerPacks]);
-
-  // Custom stickers are data:/blob: URLs that only exist on this device — they
-  // must be uploaded to the server first so the receiver can actually load them.
-  const uploadLocalSticker = useCallback(async (stickerUrl) => {
-    if (!/^(data:|blob:)/i.test(stickerUrl)) return stickerUrl;
-    try {
-      let blob;
-      if (stickerUrl.startsWith('data:')) {
-        blob = await fetch(stickerUrl).then((r) => r.blob());
-      } else {
-        blob = await fetch(stickerUrl).then((r) => r.blob());
-      }
-      if (!blob) return stickerUrl;
-      const file = new File([blob], `sticker_${Date.now()}.png`, { type: 'image/png' });
-      const { data } = await mediaAPI.uploadFile(file);
-      if (data?.success && data.fileUrl) return data.fileUrl;
-      return stickerUrl;
-    } catch (err) {
-      console.warn('[ChatContext] Sticker upload failed, sending local URL:', err?.message || err);
-      return stickerUrl;
-    }
-  }, []);
-
-  const sendSticker = useCallback(async (stickerUrl, options = {}) => {
-    if (!stickerUrl) return;
-    const finalUrl = await uploadLocalSticker(stickerUrl);
-    sendMessage(finalUrl, authUser?.username || 'Me', { messageType: 'sticker', ...options });
-  }, [sendMessage, authUser?.username, uploadLocalSticker]);
-  
+  // Sticker pack catalog, downloads, favorites, recents, and sending now live
+  // in StickerContext (frontend/src/context/StickerContext.jsx) so the sticker
+  // feature is self-contained. Floating stickers stay here because they are
+  // coupled to the socket and the selected conversation.
   const [floatingStickerHandlers, setFloatingStickerHandlers] = useState([]);
   
   const sendFloatingSticker = useCallback((stickerUrl, options = {}) => {
@@ -4415,17 +4338,6 @@ export const ChatProvider = ({ children }) => {
       return prev;
     });
   }, [selectedConversation, currentUserId, authUser]);
-  const [favoriteStickers, setFavoriteStickers] = useState([]);
-  const addFavoriteSticker = useCallback(async (stickerId, url) => {
-    const key = stickerId || url;
-    if (!key) return;
-    try {
-      const res = await apiService.toggleFavoriteSticker(key, url);
-      if (res?.success) setFavoriteStickers(res.favorites || []);
-    } catch (err) {
-      console.warn('[ChatContext] addFavoriteSticker failed:', err?.message || err);
-    }
-  }, []);
   const toggleStarMessage = async (messageId, desiredStarred) => {
     if (messageId) {
       const currentMessage = messages.find(m => m._id === messageId || m.id === messageId);
@@ -5286,7 +5198,6 @@ export const ChatProvider = ({ children }) => {
     togglePinChat, toggleMuteChat, toggleArchiveChat,
     pinMessage, unpinMessage, pinnedMessages,
     presenceHistory, unlockedSessionChats, verifyChatUnlock, toggleChatLock,
-    stickerPacks, downloadedStickers, downloadStickerPack, removeStickerPack,     sendSticker, addFavoriteSticker, favoriteStickers,
     sendFloatingSticker, floatingStickerHandlers, setFloatingStickerHandlers,
     toggleStarMessage, toggleMessageLock, viewProfile,
     // New WhatsApp features
@@ -5331,8 +5242,8 @@ export const ChatProvider = ({ children }) => {
     onlineNotification, broadcasts, statuses, statusViewers,
     onlineUsers, awayUsers, lastSeenByUser, callLogs, fetchCallLogs, profileVisitors, showProfileEditor,
     contacts, blockedUsers, scheduledMessages, pinnedMessages,
-    presenceHistory, unlockedSessionChats, stickerPacks,
-    downloadedStickers, connectedDevices, sessions, notifications,
+    presenceHistory, unlockedSessionChats,
+    connectedDevices, sessions, notifications,
     statusPrivacy, backupProgress, notificationSound, mods,
     isSocketConnected, isDNDMode, appTheme,
     fetchStatuses, createStatus, deleteStatus, replyToStatus,

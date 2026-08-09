@@ -6,6 +6,7 @@ import { BrowserRouter } from 'react-router-dom'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { UserProvider } from './context/UserContext'
 import { ChatProvider } from './context/ChatContext'
+import { StickerProvider } from './context/StickerContext'
 import { AuthProvider } from './context/AuthContext'
 import { LanguageProvider } from './context/LanguageContext'
 import { cleanupLocalBlobUrls } from './utils/sanitizeStorage'
@@ -101,7 +102,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <LanguageProvider>
           <UserProvider>
             <ChatProvider>
-              <App />
+              <StickerProvider>
+                <App />
+              </StickerProvider>
             </ChatProvider>
           </UserProvider>
         </LanguageProvider>

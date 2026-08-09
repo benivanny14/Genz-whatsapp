@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Search, X, Heart, Clock, Plus, ChevronLeft, Check, Download, Grid3x3, Wand2 } from 'lucide-react';
 import StickerCreator from './StickerCreator';
+import { useStickers } from '../context/StickerContext';
 
 // Offline fallback catalog (GIPHY CDN) — used only when the backend catalog
 // hasn't loaded yet. The live catalog comes from GET /api/stickers/packs.
@@ -52,8 +53,7 @@ const STATIC_STICKER_PACKS = [
   }
 ];
 
-const FAV_KEY = 'genz_sticker_favorites';
-const RECENT_KEY = 'genz_sticker_recents';
+const CUSTOM_KEY = 'genz_custom_stickers';
 
 const loadJSON = (key, fallback) => {
   try {
@@ -62,22 +62,29 @@ const loadJSON = (key, fallback) => {
   } catch { return fallback; }
 };
 
+// WhatsApp-style sticker picker. All sticker data and actions (packs,
+// downloads, favorites, recents) come from StickerContext so the sticker
+// feature is self-contained; only per-chat concerns are props.
 const StickerPicker = ({
   onStickerSelect,
-  onClose,
-  stickerPacks = [],
-  downloadedStickers = [],
-  onDownloadPack,
-  onRemovePack,
-  onToggleFavorite
+  onClose
 }) => {
+  const {
+    stickerPacks,
+    downloadedStickers,
+    favoriteStickers,
+    recents,
+    downloadStickerPack,
+    removeStickerPack,
+    toggleFavoriteSticker,
+    recordRecentSticker
+  } = useStickers();
+
   const [searchActive, setSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('store'); // 'favorites' | 'recents' | packId | 'store'
   const [showCreator, setShowCreator] = useState(false);
-  const [customStickers, setCustomStickers] = useState(() => loadJSON('genz_custom_stickers', []));
-  const [favorites, setFavorites] = useState(() => loadJSON(FAV_KEY, []));
-  const [recents, setRecents] = useState(() => loadJSON(RECENT_KEY, []));
+  const [customStickers, setCustomStickers] = useState(() => loadJSON(CUSTOM_KEY, []));
   const longPressRef = useRef(null);
 
   // Live catalog from the backend (Twemoji packs); static GIPHY packs are only
@@ -92,23 +99,14 @@ const StickerPicker = ({
 
   const downloadedPacks = packs.filter(isPackDownloaded);
 
-  const isFav = (sticker) => favorites.includes(sticker.id) || favorites.includes(sticker.url);
+  const isFav = (sticker) => favoriteStickers.includes(sticker.id) || favoriteStickers.includes(sticker.url);
 
-  const toggleFavorite = (sticker) => {
-    const key = sticker.id || sticker.url;
-    const next = favorites.includes(key) ? favorites.filter((id) => id !== key) : [key, ...favorites];
-    setFavorites(next);
-    try { localStorage.setItem(FAV_KEY, JSON.stringify(next)); } catch (e) { /* ignore quota */ }
-    if (onToggleFavorite) onToggleFavorite(sticker.id, sticker.url);
-  };
+  const toggleFavorite = (sticker) => toggleFavoriteSticker(sticker.id, sticker.url);
 
   const pickSticker = (sticker) => {
-    // Record as recent (most-recent first, deduped, capped at 30).
-    // Computed OUTSIDE the state updater: the parent closes the picker on
-    // select, and React discards pending updater side-effects on unmount.
-    const next = [sticker, ...recents.filter((s) => (s.id || s.url) !== (sticker.id || sticker.url))].slice(0, 30);
-    setRecents(next);
-    try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch (e) { /* ignore quota */ }
+    // Record as recent (most-recent first, deduped, capped at 30) — handled by
+    // StickerContext, which persists to localStorage.
+    recordRecentSticker(sticker);
     onStickerSelect(sticker.url, { caption: sticker.name || sticker.emoji || '' });
   };
 
@@ -122,7 +120,7 @@ const StickerPicker = ({
 
   const allStickers = useMemo(() => packs.flatMap((p) => (p.stickers || [])), [packs]);
 
-  const favoriteStickers = allStickers.filter(isFav);
+  const favoriteStickerObjects = allStickers.filter(isFav);
 
   const searchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -139,12 +137,12 @@ const StickerPicker = ({
       // WhatsApp: empty search shows every sticker; typing filters by emoji/name
       return searchQuery.trim() ? searchResults : allStickers;
     }
-    if (activeTab === 'favorites') return favoriteStickers;
+    if (activeTab === 'favorites') return favoriteStickerObjects;
     if (activeTab === 'recents') return recents.map((r) => r);
     if (activeTab === 'store') return [];
     const pack = packs.find((p) => p.id === activeTab);
     return pack ? pack.stickers || [] : [];
-  }, [searchActive, searchResults, searchQuery, activeTab, favoriteStickers, recents, packs, allStickers]);
+  }, [searchActive, searchResults, searchQuery, activeTab, favoriteStickerObjects, recents, packs, allStickers]);
 
   const activePack = activeTab !== 'store' && activeTab !== 'favorites' && activeTab !== 'recents'
     ? packs.find((p) => p.id === activeTab)
@@ -153,9 +151,9 @@ const StickerPicker = ({
   const handlePackAction = (e, pack) => {
     e.stopPropagation();
     if (isPackDownloaded(pack)) {
-      if (onRemovePack) onRemovePack(pack.id);
-    } else if (onDownloadPack) {
-      onDownloadPack(pack);
+      if (removeStickerPack) removeStickerPack(pack.id);
+    } else if (downloadStickerPack) {
+      downloadStickerPack(pack);
     }
   };
 
@@ -169,7 +167,7 @@ const StickerPicker = ({
           title="Favorites"
           aria-label="Favorite stickers"
         >
-          <Heart size={20} fill={favoriteStickers.length > 0 ? 'currentColor' : 'none'} />
+          <Heart size={20} fill={favoriteStickerObjects.length > 0 ? 'currentColor' : 'none'} />
         </button>
         <button
           onClick={() => { setActiveTab('recents'); setSearchActive(false); }}
@@ -267,8 +265,8 @@ const StickerPicker = ({
             <div className="text-center py-8 text-[#8696a0] text-sm">No custom stickers yet — create one!</div>
           )
         ) : activeTab === 'favorites' ? (
-          favoriteStickers.length > 0 ? (
-            <StickerGrid stickers={favoriteStickers} onPick={pickSticker} isFav={isFav} onFav={toggleFavorite} onLongPressStart={startLongPress} onLongPressEnd={cancelLongPress} />
+          favoriteStickerObjects.length > 0 ? (
+            <StickerGrid stickers={favoriteStickerObjects} onPick={pickSticker} isFav={isFav} onFav={toggleFavorite} onLongPressStart={startLongPress} onLongPressEnd={cancelLongPress} />
           ) : (
             <div className="text-center py-8 text-[#8696a0] text-sm">
               <Heart size={28} className="mx-auto mb-2 opacity-50" />
@@ -296,7 +294,7 @@ const StickerPicker = ({
           onStickerCreated={(sticker) => {
             setCustomStickers((prev) => {
               const updated = [...prev, sticker];
-              localStorage.setItem('genz_custom_stickers', JSON.stringify(updated));
+              localStorage.setItem(CUSTOM_KEY, JSON.stringify(updated));
               return updated;
             });
             setShowCreator(false);
