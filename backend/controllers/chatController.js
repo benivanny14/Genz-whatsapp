@@ -308,7 +308,7 @@ exports.getOrCreateConversation = async (req, res) => {
     const isSelfChat = String(userId) === String(localUserId);
 
     const targetUser = isSelfChat ? null : await User.findById(userId).select("_id settings");
-    if (!targetUser) {
+    if (!isSelfChat && !targetUser) {
       return res
         .status(404)
         .json({ success: false, message: "User not found" });
