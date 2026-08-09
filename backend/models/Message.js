@@ -232,6 +232,10 @@ const messageSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isVideoNote: {
+    type: Boolean,
+    default: false
+  },
   isConsumed: {
     type: Boolean,
     default: false

@@ -304,24 +304,25 @@ exports.getOrCreateConversation = async (req, res) => {
         .json({ success: false, message: "User ID is required" });
     }
 
-    if (userId === localUserId) {
-      return res.status(400).json({
-        success: false,
-        message: "Cannot create conversation with yourself",
-      });
-    }
+    // "Message yourself" — WhatsApp-style self-chat allowed (single-participant conversation)
+    const isSelfChat = String(userId) === String(localUserId);
 
-    const targetUser = await User.findById(userId).select("_id settings");
+    const targetUser = isSelfChat ? null : await User.findById(userId).select("_id settings");
     if (!targetUser) {
       return res
         .status(404)
         .json({ success: false, message: "User not found" });
     }
 
-    let conversation = await Conversation.findOne({
-      participants: { $all: [localUserId, userId] },
-      isGroup: false,
-    });
+    let conversation = isSelfChat
+      ? await Conversation.findOne({
+          participants: { $size: 1, $all: [localUserId] },
+          isGroup: false,
+        })
+      : await Conversation.findOne({
+          participants: { $all: [localUserId, userId] },
+          isGroup: false,
+        });
 
     if (!conversation) {
       const localUser = await User.findById(localUserId).select("settings");
@@ -354,7 +355,7 @@ exports.getOrCreateConversation = async (req, res) => {
       }
 
       conversation = await Conversation.create({
-        participants: [localUserId, userId],
+        participants: isSelfChat ? [localUserId] : [localUserId, userId],
         isGroup: false,
         disappearingMessages
       });
@@ -771,6 +772,7 @@ exports.sendMessage = async (req, res) => {
       duration,
       replyTo,
       isViewOnce,
+      isVideoNote,
       isSelfDestruct,
       mentions,
       messageId,
@@ -888,6 +890,7 @@ exports.sendMessage = async (req, res) => {
       duration: duration || 0,
       replyTo: replyToId,
       isViewOnce: Boolean(isViewOnce),
+      isVideoNote: Boolean(isVideoNote),
       isSelfDestruct: Boolean(isSelfDestruct),
       mentions: mentionData.mentions || [],
       disappearAt,
@@ -2593,6 +2596,7 @@ exports.regenerateGroupInvite = async (req, res) => {
     res.json({
       success: true,
       groupInviteCode: conversation.groupInviteCode,
+      inviteCode: conversation.groupInviteCode,
       message: 'Invite code regenerated'
     });
   } catch (error) {

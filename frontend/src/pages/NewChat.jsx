@@ -14,7 +14,7 @@ const NewChat = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [myContacts, setMyContacts] = useState([]);
-  const { selectConversation, contacts, conversations } = useChat();
+  const { selectConversation, contacts, conversations, user } = useChat();
 
   // Load contacts from backend on mount
   useEffect(() => {
@@ -80,6 +80,38 @@ const NewChat = () => {
     }
   };
 
+  // Message yourself — opens (or creates) the single-participant self conversation
+  const handleMessageYourself = async () => {
+    const myId = user?._id || user?.id;
+    if (!myId) return;
+    try {
+      // Reuse an existing self-conversation if present
+      const existingSelf = (conversations || []).find(conv => {
+        if (conv.isGroup) return false;
+        const participants = conv.participants || [];
+        return participants.length === 1 &&
+          String(participants[0]?._id || participants[0]) === String(myId);
+      });
+      if (existingSelf) {
+        selectConversation(existingSelf);
+        navigate('/chat');
+        return;
+      }
+      const response = await authFetch(`${BACKEND_URL}/chat/conversation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: myId })
+      });
+      const data = await response.json();
+      if (data.success && data.conversation) {
+        selectConversation(data.conversation);
+      }
+      navigate('/chat');
+    } catch (error) {
+      console.error('[NewChat] Failed to open self conversation:', error);
+    }
+  };
+
   // Callback to refresh contacts after adding a new one
   const handleModalClose = () => {
     setIsModalOpen(false);
@@ -98,6 +130,25 @@ const NewChat = () => {
       </header>
 
       <div className="p-4 flex-1 overflow-y-auto">
+        {/* Message yourself — WhatsApp-style */}
+        <button
+          onClick={handleMessageYourself}
+          className="w-full mb-4 flex items-center gap-3 p-3 bg-dark-surface border border-primary-600/40 hover:bg-dark-hover rounded-lg transition-colors"
+        >
+          <div className="w-12 h-12 rounded-full bg-primary-600 flex items-center justify-center overflow-hidden flex-shrink-0">
+            {user?.profilePicture ? (
+              <img src={user.profilePicture} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-white font-semibold text-lg">You</span>
+            )}
+          </div>
+          <div className="flex-1 text-left min-w-0">
+            <h3 className="text-dark-text font-medium truncate">Message yourself</h3>
+            <p className="text-sm text-dark-textSecondary truncate">Note to self — your private chat</p>
+          </div>
+          <MessageCircle className="w-5 h-5 text-primary-500 flex-shrink-0" />
+        </button>
+
         <button 
           onClick={() => setIsModalOpen(true)}
           className="w-full mb-4 p-3 bg-slate-700 text-white font-medium rounded-lg hover:bg-slate-600 transition-all flex items-center justify-center gap-2"

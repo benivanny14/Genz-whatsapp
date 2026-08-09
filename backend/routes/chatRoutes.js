@@ -76,7 +76,7 @@ router.post("/conversation", requirePhoneVerified, getOrCreateConversation);
 // Group management
 router.post("/groups", requirePhoneVerified, createGroup);
 router.get("/groups/:groupId/info", getGroupInfo);
-router.post("/groups/:groupId/invite/regenerate", getGroupQRCode);
+router.post("/groups/:groupId/invite/regenerate", requirePhoneVerified, regenerateGroupInvite);
 router.put("/groups/:groupId/info", requirePhoneVerified, updateGroupInfo);
 router.post("/groups/:id/participants", requirePhoneVerified, addParticipant);
 router.delete("/groups/:id/participants/:userId", requirePhoneVerified, removeParticipant);

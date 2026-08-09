@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useChat, applyVoiceEffect } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
-import { ArrowLeft, MoreVertical, Search, Smile, Paperclip, Send, Mic, Image as ImageIcon, MessageCircle, Ghost, Forward, Square, MapPin, ShieldCheck, Globe, BarChart2, CalendarClock, Info, UserMinus, UserCheck, ShieldAlert, Copy, Link, Pin, X, Edit, Briefcase, Plus, Eye, EyeOff, Clock, Lock, Sticker, Download, FileText, Camera, Headphones, Contact, Trash2, Reply, Share2, Star, Archive, BellOff, Bell, Radio, Users, Languages, Grid3x3, Lock as LockIcon, Unlock, ChevronLeft, AtSign, DollarSign } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Search, Smile, Paperclip, Send, Mic, Image as ImageIcon, MessageCircle, Ghost, Forward, Square, MapPin, ShieldCheck, Globe, BarChart2, CalendarClock, Info, UserMinus, UserCheck, ShieldAlert, Copy, Link, Pin, X, Edit, Briefcase, Plus, Eye, EyeOff, Clock, Lock, Sticker, Download, FileText, Camera, Headphones, Contact, Trash2, Reply, Share2, Star, Archive, BellOff, Bell, Radio, Users, Languages, Grid3x3, Lock as LockIcon, Unlock, ChevronLeft, AtSign, DollarSign, Video as VideoIcon } from 'lucide-react';
 import { formatMessageTime, decryptMessage } from '../utils/formatDate';
 import { exportChatAsTxt } from '../utils/chatExporter';
 import SignedMedia from './SignedMedia';
@@ -403,6 +403,18 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const videoChunksRef = useRef([]);
   const [recordedVideoUrl, setRecordedVideoUrl] = useState(null);
 
+  // ── Video Notes (WhatsApp-style circular video) ──
+  const [showVideoNoteModal, setShowVideoNoteModal] = useState(false);
+  const videoNoteStreamRef = useRef(null);
+  const videoNoteRecorderRef = useRef(null);
+  const videoNoteChunksRef = useRef([]);
+  const [isRecordingVideoNote, setIsRecordingVideoNote] = useState(false);
+  const [videoNoteDuration, setVideoNoteDuration] = useState(0);
+  const videoNoteTimerRef = useRef(null);
+  const [recordedVideoNoteUrl, setRecordedVideoNoteUrl] = useState(null);
+  const videoNotePreviewRef = useRef(null);
+  const videoNoteSendingRef = useRef(false);
+
   const [showAudioModal, setShowAudioModal] = useState(false);
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
   const [audioDuration, setAudioDuration] = useState(0);
@@ -720,6 +732,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       return selectedConversation.groupName || 'Group';
     }
     const otherUser = (selectedConversation.participants || []).find((p) => String(p?._id || p?.id || p) !== String(user?.id || user?._id));
+    // Message yourself — single-participant self chat
+    if (!otherUser && (selectedConversation.participants || []).length > 0) {
+      return 'You';
+    }
     return otherUser?.username || otherUser?.name || 'Unknown';
   }
 
@@ -740,8 +756,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     if (otherUser?.profilePicture && !hasStaleBlobUrl(otherUser.profilePicture)) {
       return otherUser.profilePicture;
     }
+    // Message yourself — use own avatar
+    if (!otherUser && (selectedConversation.participants || []).length > 0 && user?.profilePicture && !hasStaleBlobUrl(user.profilePicture)) {
+      return user.profilePicture;
+    }
     // Fallback: generic avatar from ui-avatars
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(otherUser?.username || otherUser?.name || 'User')}&background=random&color=fff`;
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(otherUser?.username || otherUser?.name || (!otherUser && (selectedConversation.participants || []).length === 1 ? 'You' : 'User'))}&background=random&color=fff`;
   }
 
 
@@ -1728,6 +1748,140 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       toast.error('Failed to send video');
     }
     closeCamera();
+  };
+
+  // ── VIDEO NOTE HANDLERS (WhatsApp-style circular video) ──
+  const openVideoNoteRecorder = async () => {
+    setShowAttachmentMenu(false);
+    if (!canSendMedia && !currentUserIsAdmin) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 480 } },
+        audio: true
+      });
+      videoNoteStreamRef.current = stream;
+      videoNoteChunksRef.current = [];
+      setRecordedVideoNoteUrl(null);
+      setIsRecordingVideoNote(false);
+      setVideoNoteDuration(0);
+      setShowVideoNoteModal(true);
+      // Play the preview once the modal mounts
+      setTimeout(() => {
+        const v = videoNotePreviewRef.current;
+        if (v && videoNoteStreamRef.current) {
+          v.srcObject = videoNoteStreamRef.current;
+          v.play().catch(() => {});
+        }
+      }, 100);
+    } catch (err) {
+      console.error('[ChatArea] Video note camera error:', err);
+      toast.error('Could not access camera for video note');
+    }
+  };
+
+  const toggleVideoNoteRecording = () => {
+    if (isRecordingVideoNote) {
+      stopVideoNoteRecording();
+    } else {
+      startVideoNoteRecording();
+    }
+  };
+
+  const startVideoNoteRecording = () => {
+    if (!videoNoteStreamRef.current) return;
+    videoNoteChunksRef.current = [];
+    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
+    const recorder = new MediaRecorder(videoNoteStreamRef.current, { mimeType });
+    videoNoteRecorderRef.current = recorder;
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) videoNoteChunksRef.current.push(e.data);
+    };
+    recorder.onstop = () => {
+      const blob = new Blob(videoNoteChunksRef.current, { type: recorder.mimeType || 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      setRecordedVideoNoteUrl(url);
+    };
+    recorder.start();
+    setIsRecordingVideoNote(true);
+    setVideoNoteDuration(0);
+    videoNoteTimerRef.current = setInterval(() => {
+      setVideoNoteDuration((prev) => {
+        if (prev >= 60) {
+          // WhatsApp-style 60s cap
+          stopVideoNoteRecording();
+          return 60;
+        }
+        return prev + 1;
+      });
+    }, 1000);
+  };
+
+  const stopVideoNoteRecording = () => {
+    clearInterval(videoNoteTimerRef.current);
+    if (videoNoteRecorderRef.current && videoNoteRecorderRef.current.state === 'recording') {
+      videoNoteRecorderRef.current.stop();
+    }
+    setIsRecordingVideoNote(false);
+  };
+
+  const sendVideoNote = async () => {
+    if (!selectedConversation || videoNoteSendingRef.current) return;
+    if (!videoNoteChunksRef.current.length) {
+      toast.error('Record a video note first');
+      return;
+    }
+    videoNoteSendingRef.current = true;
+    try {
+      const blob = new Blob(videoNoteChunksRef.current, { type: 'video/webm' });
+      const file = new File([blob], `video-note-${Date.now()}.webm`, { type: 'video/webm' });
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await authFetch(`${API_URL}/media/upload`, { method: 'POST', body: formData });
+      const data = await response.json();
+      if (response.ok && (data.success || data.fileUrl || data.url)) {
+        const uploadedUrl = data.fileUrl || data.url;
+        if (!uploadedUrl) throw new Error('Upload succeeded without a media URL');
+        await sendMessage('Video note', user?.username, {
+          messageType: 'video',
+          mediaUrl: uploadedUrl,
+          fileName: file.name,
+          caption: '',
+          isVideoNote: true,
+          duration: videoNoteDuration || 0,
+          chatId: selectedConversation._id,
+          isGroup: selectedConversation.isGroup,
+          replyTo: replyingTo
+        });
+        setReplyingTo(null);
+        closeVideoNoteRecorder();
+      } else {
+        toast.error('Failed to upload video note');
+      }
+    } catch (err) {
+      console.error('[ChatArea] Failed to send video note:', err);
+      toast.error('Failed to send video note');
+    } finally {
+      videoNoteSendingRef.current = false;
+    }
+  };
+
+  const closeVideoNoteRecorder = () => {
+    clearInterval(videoNoteTimerRef.current);
+    if (videoNoteRecorderRef.current && videoNoteRecorderRef.current.state === 'recording') {
+      videoNoteRecorderRef.current.stop();
+    }
+    videoNoteRecorderRef.current = null;
+    if (videoNoteStreamRef.current) {
+      videoNoteStreamRef.current.getTracks().forEach((track) => track.stop());
+      videoNoteStreamRef.current = null;
+    }
+    if (recordedVideoNoteUrl) {
+      URL.revokeObjectURL(recordedVideoNoteUrl);
+    }
+    setRecordedVideoNoteUrl(null);
+    setIsRecordingVideoNote(false);
+    setVideoNoteDuration(0);
+    setShowVideoNoteModal(false);
   };
 
   // --- AUDIO ATTACHMENT MODAL HANDLERS ---
@@ -2746,6 +2900,30 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                             </div>
                           </div>
                         </div>
+                      ) : message.isVideoNote ? (
+                        <div
+                          className="mb-1 cursor-pointer flex items-center"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedMedia(message);
+                          }}
+                          title="Video note"
+                        >
+                          <SignedMedia
+                            as="video"
+                            src={mediaSourceOf(message)}
+                            controls
+                            autoPlay={false}
+                            muted
+                            loop
+                            playsInline
+                            className="w-44 h-44 md:w-52 md:h-52 rounded-full object-cover border-2 border-dark-border shadow-lg"
+                            preload="metadata"
+                          />
+                          {message.duration > 0 && (
+                            <span className="ml-2 text-[10px] text-dark-textSecondary">{Math.floor(message.duration / 60)}:{String(message.duration % 60).padStart(2, '0')}</span>
+                          )}
+                        </div>
                       ) : (
                         <div
                           className="mb-1 cursor-pointer"
@@ -3548,6 +3726,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               />
               <AttachmentIcon icon={<ImageIcon className="text-purple-500" />} label="Gallery" onClick={() => { setShowAttachmentMenu(false); fileInputRef.current?.click(); }} disabled={!canSendMedia && !currentUserIsAdmin} />
               <AttachmentIcon icon={<Headphones className="text-orange-500" />} label="Audio" onClick={() => { setShowAttachmentMenu(false); openAudioAttachment(); }} disabled={!canSendMedia && !currentUserIsAdmin} title="Audio (Emulator may need permission)" />
+              <AttachmentIcon icon={<VideoIcon className="text-cyan-500" />} label="Video Note" onClick={() => openVideoNoteRecorder()} disabled={!canSendMedia && !currentUserIsAdmin} title="Record a short circular video note (like WhatsApp)" />
               <AttachmentIcon icon={<MapPin className="text-green-500" />} label="Location" onClick={() => { setShowAttachmentMenu(false); handleShareLocation('current'); }} disabled={!canSendMedia && !currentUserIsAdmin} />
               <AttachmentIcon icon={<MapPin className="text-red-500" />} label="Live Loc." onClick={() => { setShowAttachmentMenu(false); handleShareLocation('live'); }} disabled={!canSendMedia && !currentUserIsAdmin} />
               <AttachmentIcon icon={<Contact className="text-blue-400" />} label="Contact" onClick={() => { setShowAttachmentMenu(false); handleContactSimulation(); }} disabled={!canSendMedia && !currentUserIsAdmin} />
@@ -4015,6 +4194,46 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               )
             )}
           </div>
+        </div>
+      )}
+
+      {/* ── Video Note Modal (WhatsApp-style circular video) ── */}
+      {showVideoNoteModal && (
+        <div className="fixed inset-0 bg-black z-[1000] flex flex-col">
+          <div className="p-4 flex justify-between items-center bg-gradient-to-b from-black/80 to-transparent absolute top-0 w-full z-10">
+            <button onClick={closeVideoNoteRecorder} className="text-white hover:bg-white/20 p-2 rounded-full" aria-label="Close"><X size={24} /></button>
+            <span className="text-white font-bold">🎥 Video Note</span>
+            <div className="w-8"></div>
+          </div>
+          <div className="flex-1 bg-black flex items-center justify-center overflow-hidden">
+            {recordedVideoNoteUrl ? (
+              <video src={recordedVideoNoteUrl} controls autoPlay muted loop className="w-72 h-72 rounded-full object-cover border-4 border-white/20" />
+            ) : (
+              <video ref={videoNotePreviewRef} autoPlay playsInline muted className="w-72 h-72 rounded-full object-cover" />
+            )}
+          </div>
+          <div className="p-6 bg-gradient-to-t from-black to-transparent absolute bottom-0 w-full flex justify-center items-center gap-6">
+            {recordedVideoNoteUrl ? (
+              <>
+                <button onClick={() => { setRecordedVideoNoteUrl(null); videoNoteChunksRef.current = []; }} className="p-4 bg-white/20 text-white rounded-full" aria-label="Retake"><Trash2 size={24} /></button>
+                <button onClick={sendVideoNote} className="p-4 bg-primary-600 text-white rounded-full" aria-label="Send"><Send size={24} /></button>
+              </>
+            ) : isRecordingVideoNote ? (
+              <>
+                <div className="text-red-500 font-mono text-xl animate-pulse">{Math.floor(videoNoteDuration / 60)}:{(videoNoteDuration % 60).toString().padStart(2, '0')}</div>
+                <button onClick={stopVideoNoteRecording} className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center">
+                  <Square className="w-10 h-10 text-red-600 fill-red-600" />
+                </button>
+              </>
+            ) : (
+              <button onClick={startVideoNoteRecording} className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center">
+                <div className="w-16 h-16 rounded-full bg-red-600"></div>
+              </button>
+            )}
+          </div>
+          {!isRecordingVideoNote && !recordedVideoNoteUrl && (
+            <div className="absolute bottom-28 w-full text-center text-white/70 text-sm">Tap the red button to record (max 60s)</div>
+          )}
         </div>
       )}
 

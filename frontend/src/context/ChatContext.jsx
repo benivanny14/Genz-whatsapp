@@ -2285,6 +2285,7 @@ export const ChatProvider = ({ children }) => {
         messageId: newMessage._id,
         isClientE2EE: isClientE2EEMessageContent(newMessage.content),
         isViewOnce: Boolean(options.isViewOnce),
+        isVideoNote: Boolean(options.isVideoNote),
         isSelfDestruct: Boolean(options.isSelfDestruct),
         selfDestructTimer: options.selfDestructTimer ?? null,
         mediaUrl: options.mediaUrl || '',

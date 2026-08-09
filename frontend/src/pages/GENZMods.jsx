@@ -570,6 +570,136 @@ const GENZMods = () => {
         />
       </div>
 
+        {/* ── Ghost Mode (sub-options) ── */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-start space-x-3">
+              <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                <Ghost className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Ghost Mode</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Hide your online activity per option</p>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-4">
+            {[
+              ['hideOnline', 'Hide Online', 'Do not broadcast when you are online'],
+              ['hideTyping', 'Hide Typing', 'Do not show the typing indicator'],
+              ['hideReadReceipts', 'Hide Read Receipts', 'Do not send read receipts to others'],
+              ['hideRecording', 'Hide Recording', 'Do not show when you are recording'],
+              ['freezeLastSeen', 'Freeze Last Seen', 'Keep your last seen timestamp frozen']
+            ].map(([key, label, desc]) => (
+              <div key={key} className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white text-sm">{label}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{desc}</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={!!modsSettings.ghostMode?.[key]}
+                    onChange={(e) => updateGhostMode(key, e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Privacy & Messaging Mods ── */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-start space-x-3">
+              <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                <EyeOff className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Privacy & Messaging</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Extra privacy and messaging controls</p>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-4">
+            {[
+              ['hideLastSeen', 'Hide Last Seen', 'Stop sharing your last seen timestamp'],
+              ['hideSecondTick', 'Hide Second Tick', 'Hide the double-tick read indicator'],
+              ['hideViewStatus', 'Hide View Status', 'Do not notify others when you view their status'],
+              ['antiViewOnce', 'Anti View-Once', 'Save a copy of view-once media before it expires'],
+              ['readReceipts', 'Read Receipts', 'Send read receipts to other users'],
+              ['typingIndicators', 'Typing Indicators', 'Show the typing indicator while you type'],
+              ['onlineStatus', 'Online Status', 'Broadcast your online status'],
+              ['alwaysOnline', 'Always Online', 'Appear online at all times'],
+              ['selfDestruct', 'Self-Destruct', 'Send messages that disappear after 10 seconds'],
+              ['noForwardLabel', 'No Forward Label', 'Hide the “forwarded” label on forwarded messages']
+            ].map(([key, label, desc]) => (
+              <div key={key} className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white text-sm">{label}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{desc}</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={!!modsSettings[key]}
+                    onChange={(e) => setModsSettings(prev => ({ ...prev, [key]: e.target.checked }))}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+            ))}
+
+            {/* Voice Effect */}
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="font-medium text-gray-900 dark:text-white text-sm">Voice Effect</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Apply an effect to your voice messages</p>
+              </div>
+              <select
+                value={modsSettings.voiceEffect || 'none'}
+                onChange={(e) => setModsSettings(prev => ({ ...prev, voiceEffect: e.target.value }))}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm flex-shrink-0"
+              >
+                <option value="none">None</option>
+                <option value="robot">Robot</option>
+                <option value="chipmunk">Chipmunk</option>
+                <option value="deep">Deep</option>
+                <option value="helium">Helium</option>
+              </select>
+            </div>
+
+            {/* Chat Background Music */}
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="font-medium text-gray-900 dark:text-white text-sm">Chat Background Music</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Play music inside chat screens</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                <input
+                  type="checkbox"
+                  checked={!!modsSettings.chatBackgroundMusic?.enabled}
+                  onChange={(e) => setModsSettings(prev => ({ ...prev, chatBackgroundMusic: { ...prev.chatBackgroundMusic, enabled: e.target.checked } }))}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+            {modsSettings.chatBackgroundMusic?.enabled && (
+              <input
+                type="text"
+                value={modsSettings.chatBackgroundMusic?.track || ''}
+                onChange={(e) => setModsSettings(prev => ({ ...prev, chatBackgroundMusic: { ...prev.chatBackgroundMusic, track: e.target.value } }))}
+                placeholder="Paste an audio track URL…"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+              />
+            )}
+          </div>
+        </div>
+
       {/* Deleted Messages Modal */}
       {showDeletedMessages && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">

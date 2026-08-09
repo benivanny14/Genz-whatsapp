@@ -852,6 +852,9 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
       return conv.groupName?.toLowerCase().includes(searchQuery.toLowerCase());
     } else {
       const otherUser = conv.participants?.find((p) => p._id !== user?.id);
+      if (!otherUser && (conv.participants?.length || 0) > 0) {
+        return 'you'.includes(searchQuery.toLowerCase()) || 'myself'.includes(searchQuery.toLowerCase());
+      }
       return otherUser?.username?.toLowerCase().includes(searchQuery.toLowerCase());
     }
   });
@@ -961,6 +964,10 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
       return conv.groupName;
     }
     const otherUser = conv.participants?.find((p) => p._id !== user?.id);
+    // Message yourself — single-participant self chat
+    if (!otherUser && (conv.participants?.length || 0) > 0) {
+      return 'You';
+    }
     return otherUser?.username || 'Unknown';
   };
 
@@ -974,8 +981,10 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     }
     const otherUser = conv.participants?.find((p) => p._id !== user?.id);
     if (otherUser?.profilePicture) return otherUser.profilePicture;
+    // Message yourself — use own avatar
+    if (!otherUser && (conv.participants?.length || 0) > 0 && user?.profilePicture) return user.profilePicture;
     // Fallback avatar: use ui-avatars service
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(otherUser?.username || 'User')}&background=random&color=fff`;
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(otherUser?.username || (conv.participants?.length === 1 ? 'You' : 'User'))}&background=random&color=fff`;
   };
 
   const getLastMessage = (conv) => {
@@ -996,7 +1005,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     // Support for media previews in sidebar
     if (conv.lastMessage.messageType === 'gif') return '🎞️ GIF';
     if (conv.lastMessage.messageType === 'image') return '📷 Photo' + (conv.lastMessage.caption ? `: ${conv.lastMessage.caption}` : '');
-    if (conv.lastMessage.messageType === 'video') return '🎥 Video' + (conv.lastMessage.caption ? `: ${conv.lastMessage.caption}` : '');
+    if (conv.lastMessage.messageType === 'video') return (conv.lastMessage.isVideoNote ? '🎥 Video note' : '🎥 Video') + (conv.lastMessage.caption ? `: ${conv.lastMessage.caption}` : '');
     if (conv.lastMessage.messageType === 'audio') return '🎵 Voice note';
     if (conv.lastMessage.messageType === 'sticker') return '🖼️ Sticker';
     if (conv.lastMessage.messageType === 'contact') return '👤 Contact';
