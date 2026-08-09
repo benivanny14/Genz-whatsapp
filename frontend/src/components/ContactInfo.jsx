@@ -144,11 +144,7 @@ const FullscreenImageViewer = ({ src, alt, onClose }) => {
 
 /* ───────── Encryption Verification Modal ───────── */
 
-const EncryptionModal = ({ contactName, onClose }) => {
-  const securityCode = Array.from({ length: 12 }, () =>
-    String(Math.floor(Math.random() * 100000)).padStart(5, '0')
-  );
-
+const EncryptionModal = ({ contactName, e2eeEnabled, onClose }) => {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -165,38 +161,31 @@ const EncryptionModal = ({ contactName, onClose }) => {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-4 bg-[#00a884] flex justify-between items-center">
-          <h3 className="text-white font-bold text-lg">Verify Security Code</h3>
+          <h3 className="text-white font-bold text-lg">Encryption</h3>
           <button onClick={onClose} className="hover:bg-white/20 p-1 rounded-full" aria-label="Close">
             <X size={20} className="text-white" />
           </button>
         </div>
 
         <div className="p-6 flex flex-col items-center gap-5">
-          {/* Simulated QR Code */}
-          <div className="w-40 h-40 bg-white rounded-lg p-2 flex items-center justify-center">
-            <div className="w-full h-full grid grid-cols-8 grid-rows-8 gap-[1px]">
-              {Array.from({ length: 64 }, (_, i) => (
-                <div
-                  key={i}
-                  className={`rounded-[1px] ${Math.random() > 0.45 ? 'bg-black' : 'bg-white'}`}
-                />
-              ))}
-            </div>
+          <div className="w-16 h-16 rounded-full bg-[#00a884]/20 flex items-center justify-center">
+            <Shield size={28} className="text-[#00a884]" />
           </div>
 
-          <p className="text-white/60 text-xs text-center leading-relaxed">
-            To verify that messages you send to {contactName} are end-to-end encrypted,
-            compare the number above with the number on their phone.
-          </p>
-
-          {/* Security code */}
-          <div className="grid grid-cols-4 gap-x-4 gap-y-1 text-center">
-            {securityCode.map((code, i) => (
-              <span key={i} className="text-white font-mono text-sm tracking-wider">
-                {code}
-              </span>
-            ))}
-          </div>
+          {e2eeEnabled ? (
+            <p className="text-white/70 text-xs text-center leading-relaxed">
+              Client-side end-to-end encryption is enabled. Messages you send to {contactName}
+              are encrypted on your device before they are sent, and can only be decrypted by
+              their device. Manage your keys under Security &gt; E2EE Keys.
+            </p>
+          ) : (
+            <p className="text-white/70 text-xs text-center leading-relaxed">
+              End-to-end encryption is currently <span className="text-yellow-400 font-semibold">off</span> for
+              your chats. Messages are encrypted in transit and at rest on the server, but the
+              server can read them. Enable "Client E2EE" in GENZ Mods to encrypt messages on
+              your device before sending.
+            </p>
+          )}
 
           <button
             onClick={onClose}
@@ -446,6 +435,24 @@ const ContactInfo = ({
 
   const { messages, contacts, awayUsers } = useChat();
 
+  // True E2EE is a per-user mod (Client E2EE), OFF by default. Read it from
+  // the stored mods so the encryption UI tells the truth instead of claiming
+  // WhatsApp-style "end-to-end encrypted" unconditionally.
+  const e2eeEnabled = (() => {
+    try {
+      const raw = currentUserId
+        ? localStorage.getItem(`genz_mods:${currentUserId}`)
+        : null;
+      const mods = raw
+        ? JSON.parse(raw)
+        : JSON.parse(localStorage.getItem('genz_mods') || '{}');
+      const modsObj = mods?.mods || mods;
+      return modsObj.clientE2EE === true;
+    } catch {
+      return false;
+    }
+  })();
+
   /* Fetch media preview */
   useEffect(() => {
     if (!conversation?._id) return;
@@ -601,9 +608,11 @@ const ContactInfo = ({
           <div className="bg-[#202c33]">
             <SectionRow
               icon={Shield}
-              iconColor="text-[#00a884]"
+              iconColor={e2eeEnabled ? 'text-[#00a884]' : 'text-yellow-500'}
               label="Encryption"
-              value="Messages and calls are end-to-end encrypted. Tap to verify."
+              value={e2eeEnabled
+                ? 'Messages are end-to-end encrypted. Tap for details.'
+                : 'End-to-end encryption is off. Tap for details.'}
               onClick={() => setShowEncryptionModal(true)}
             />
           </div>
@@ -821,6 +830,7 @@ const ContactInfo = ({
           <EncryptionModal
             key="encryption-modal"
             contactName={displayName}
+            e2eeEnabled={e2eeEnabled}
             onClose={() => setShowEncryptionModal(false)}
           />
         )}

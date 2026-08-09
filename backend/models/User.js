@@ -78,6 +78,24 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  // WebAuthn challenges persisted on the document (not in-memory) so passkey
+  // flows survive server restarts and work across multiple instances.
+  passkeyRegisterChallenge: {
+    type: String,
+    default: null
+  },
+  passkeyRegisterChallengeExpiry: {
+    type: Date,
+    default: null
+  },
+  passkeyLoginChallenge: {
+    type: String,
+    default: null
+  },
+  passkeyLoginChallengeExpiry: {
+    type: Date,
+    default: null
+  },
   twoFactorEnabled: {
     type: Boolean,
     default: false

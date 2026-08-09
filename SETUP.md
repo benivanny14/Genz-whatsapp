@@ -2,7 +2,7 @@
 
 ## 🎯 Overview
 
-This guide will help you set up GENZ WhatsApp for production deployment using free services. The system is now **100% ready for deployment** after fixing all critical issues.
+This guide will help you set up GENZ WhatsApp for deployment using free services. The app builds and passes its tests, but before inviting many users, complete the items in `PRODUCTION_READINESS.md` (Cloudinary media storage, payment-process decision, Redis/TURN for scale).
 
 ## ✅ Issues Fixed
 
@@ -362,4 +362,4 @@ If you encounter issues:
 
 ---
 
-**Your GENZ WhatsApp system is now 100% ready for production deployment! 🚀**
+**Your GENZ WhatsApp system is now deployed — review `PRODUCTION_READINESS.md` before scaling to many users. 🚀**

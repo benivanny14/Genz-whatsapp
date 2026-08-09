@@ -1114,10 +1114,11 @@ exports.passkeyRegisterOptions = async (req, res) => {
       supportedAlgorithmIDs: [-7, -257, -37]
     });
 
-    // Store challenge in session for verification
-    const sessionKey = `passkey:register:${user._id}`;
-    req.app.set(sessionKey, options.challenge);
-    setTimeout(() => req.app.set(sessionKey, null), 5 * 60 * 1000);
+    // Persist the challenge on the user document (survives restarts and
+    // multi-instance deployments — in-memory req.app.set was lost on restart).
+    user.passkeyRegisterChallenge = options.challenge;
+    user.passkeyRegisterChallengeExpiry = new Date(Date.now() + 5 * 60 * 1000);
+    await user.save();
 
     res.json({
       success: true,
@@ -1146,10 +1147,11 @@ exports.passkeyRegisterVerify = async (req, res) => {
     const { verifyRegistrationResponse } = require('@simplewebauthn/server');
     const { resolvePublicBaseUrl } = require('../utils/publicBaseUrl');
 
-    const sessionKey = `passkey:register:${user._id}`;
-    const expectedChallenge = req.app.get(sessionKey);
+    const expectedChallenge = user.passkeyRegisterChallenge;
+    const challengeValid = user.passkeyRegisterChallengeExpiry
+      && new Date(user.passkeyRegisterChallengeExpiry) > new Date();
 
-    if (!expectedChallenge) {
+    if (!expectedChallenge || !challengeValid) {
       return res.status(400).json({ success: false, message: 'Registration challenge expired or missing' });
     }
 
@@ -1176,9 +1178,9 @@ exports.passkeyRegisterVerify = async (req, res) => {
       createdAt: new Date()
     });
 
+    user.passkeyRegisterChallenge = null;
+    user.passkeyRegisterChallengeExpiry = null;
     await user.save();
-
-    req.app.set(sessionKey, null);
 
     res.json({ success: true, message: 'Passkey registered successfully' });
   } catch (error) {
@@ -1229,9 +1231,11 @@ exports.passkeyLoginOptions = async (req, res) => {
       timeout: 60000
     });
 
-    const sessionKey = `passkey:login:${user._id}`;
-    req.app.set(sessionKey, { challenge: options.challenge, userId: user._id });
-    setTimeout(() => req.app.set(sessionKey, null), 5 * 60 * 1000);
+    // Persist the challenge on the user document (survives restarts and
+    // multi-instance deployments — in-memory req.app.set was lost on restart).
+    user.passkeyLoginChallenge = options.challenge;
+    user.passkeyLoginChallengeExpiry = new Date(Date.now() + 5 * 60 * 1000);
+    await user.save();
 
     res.json({
       success: true,
@@ -1253,33 +1257,17 @@ exports.passkeyLoginOptions = async (req, res) => {
 // @access  Public
 exports.passkeyLoginVerify = async (req, res) => {
   try {
-    const { response, deviceName } = req.body;
-    const userId = req.app.get('passkeyLoginUserId');
+    const { response, deviceName, userId: requestedUserId } = req.body;
 
-    // We need to find the session - this is a simplified approach
-    // In production, use proper session management
-    const sessionKey = `passkey:login:${req.body.userId}`;
-    let session = req.app.get(sessionKey);
-
-    if (!session) {
-      // Try to get session from app settings
-      const keys = Object.keys(req.app.settings || {}).filter(k => k.startsWith('passkey:login:'));
-      for (const key of keys) {
-        const s = req.app.get(key);
-        if (s && s.userId) {
-          session = s;
-          break;
-        }
-      }
-    }
-
-    if (!session) {
-      return res.status(400).json({ success: false, message: 'Login challenge expired or missing' });
+    // The client must echo the userId (username/phone lookup) so we can find
+    // the persisted challenge; no in-memory session store is used.
+    if (!requestedUserId) {
+      return res.status(400).json({ success: false, message: 'userId is required' });
     }
 
     const { verifyAuthenticationResponse } = require('@simplewebauthn/server');
 
-    const user = await User.findById(session.userId).select('passkeys username phoneNumber isBlocked');
+    const user = await User.findById(requestedUserId).select('passkeys username phoneNumber isBlocked passkeyLoginChallenge passkeyLoginChallengeExpiry');
 
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
@@ -1287,6 +1275,14 @@ exports.passkeyLoginVerify = async (req, res) => {
 
     if (user.isBlocked) {
       return res.status(403).json({ success: false, message: 'This account is blocked' });
+    }
+
+    const expectedChallenge = user.passkeyLoginChallenge;
+    const challengeValid = user.passkeyLoginChallengeExpiry
+      && new Date(user.passkeyLoginChallengeExpiry) > new Date();
+
+    if (!expectedChallenge || !challengeValid) {
+      return res.status(400).json({ success: false, message: 'Login challenge expired or missing' });
     }
 
     const { resolvePublicBaseUrl } = require('../utils/publicBaseUrl');
@@ -1299,7 +1295,7 @@ exports.passkeyLoginVerify = async (req, res) => {
 
     const verification = await verifyAuthenticationResponse({
       credential: response,
-      expectedChallenge: session.challenge,
+      expectedChallenge,
       origin,
       rpID: process.env.RP_ID || '',
       authenticator: {
@@ -1330,12 +1326,12 @@ exports.passkeyLoginVerify = async (req, res) => {
     const token = signToken(user, deviceId);
     const refreshToken = signRefreshToken(user);
 
+    // Clean up the persisted challenge in the same save as the login state
+    user.passkeyLoginChallenge = null;
+    user.passkeyLoginChallengeExpiry = null;
     user.lastSeen = new Date();
     user.isOnline = true;
     await user.save();
-
-    // Clean up session
-    req.app.set(sessionKey, null);
 
     console.log('[Auth] Passkey login successful:', { userId: user._id, username: user.username });
 

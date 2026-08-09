@@ -32,11 +32,11 @@ const PrivacyPolicyAnimation = ({ show, onClose }) => {
             <div className="p-6 space-y-4 text-dark-text">
               <p className="text-sm flex items-center gap-2">
                 <Lock size={16} className="text-primary-500" />
-                Your messages are End-to-End Encrypted. Only you and the recipient can read them.
+                Messages are encrypted in transit and at rest. You can also enable client-side end-to-end encryption (Client E2EE) in GENZ Mods so messages are encrypted on your device before sending.
               </p>
               <p className="text-sm flex items-center gap-2">
                 <Globe size={16} className="text-primary-500" />
-                We do not store your personal data on our servers. Your privacy is our priority.
+                We only store the data needed to run the service (profile, contacts, messages, settings). Your privacy is our priority.
               </p>
               <p className="text-sm flex items-center gap-2">
                 <ShieldCheck size={16} className="text-primary-500" />

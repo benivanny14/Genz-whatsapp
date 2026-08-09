@@ -21,7 +21,10 @@ const MessageEncryption = ({ chat, encryptionStatus, onVerify, onReset, onClose 
     none: { label: 'None', color: 'text-red-500', icon: AlertCircle }
   };
 
-  const level = encryptionLevels[encryptionStatus.level] || encryptionLevels.end_to_end;
+  // Default to "server" (not "end_to_end") when no status is known — the
+  // truthful baseline is server-side encryption, since Client E2EE is a mod
+  // that is off by default.
+  const level = encryptionLevels[encryptionStatus.level] || encryptionLevels.server;
   const LevelIcon = level.icon;
 
   return (
@@ -79,7 +82,7 @@ const MessageEncryption = ({ chat, encryptionStatus, onVerify, onReset, onClose 
             </div>
             <div>
               <p className="text-gray-400 text-xs mb-1">Key Exchange</p>
-              <p className="text-white text-sm">{encryptionStatus.keyExchange || 'Signal Protocol'}</p>
+              <p className="text-white text-sm">{encryptionStatus.keyExchange || 'ECDH-P256 (X25519)'}</p>
             </div>
             <div>
               <p className="text-gray-400 text-xs mb-1">Last Verified</p>
@@ -174,7 +177,7 @@ export const EncryptionIndicator = ({ status }) => {
     none: { icon: AlertCircle, color: 'text-red-500', label: 'Not encrypted' }
   };
 
-  const level = encryptionLevels[status] || encryptionLevels.end_to_end;
+  const level = encryptionLevels[status] || encryptionLevels.server;
   const Icon = level.icon;
 
   return (

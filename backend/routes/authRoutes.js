@@ -45,7 +45,7 @@ const {
   loginValidators,
   checkAvailabilityValidators
 } = require('../middleware/validators');
-const { authSensitiveLimiter } = require('../middleware/rateLimiters');
+const { authSensitiveLimiter, discoveryLimiter } = require('../middleware/rateLimiters');
 const {
   sendOtp,
   verifyOtp,
@@ -82,12 +82,12 @@ router.delete('/quick-replies/:id', protect, removeQuickReply);
 router.put('/away-message', protect, updateAwayMessage);
 router.get('/business-analytics', protect, getBusinessAnalytics);
 
-router.post('/check-availability', checkAvailabilityValidators, checkAvailability);
+router.post('/check-availability', discoveryLimiter, checkAvailabilityValidators, checkAvailability);
 router.get('/users/me/online-history', protect, getMyOnlineHistory);
 router.get('/users/:id/online-history', protect, getUserOnlineHistory);
 
 // Passkey (WebAuthn) routes
-router.post('/passkey/check', checkPasskeyAvailable);
+router.post('/passkey/check', discoveryLimiter, checkPasskeyAvailable);
 router.post('/passkey/register/options', protect, passkeyRegisterOptions);
 router.post('/passkey/register/verify', protect, passkeyRegisterVerify);
 router.post('/passkey/login/options', passkeyLoginOptions);

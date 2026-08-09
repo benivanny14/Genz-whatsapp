@@ -1,6 +1,16 @@
 # Genz WhatsApp - React Native APK
 
-A comprehensive WhatsApp-like messaging application with advanced status features, built with React Native for Android.
+> ⚠️ **STATUS: EARLY PROTOTYPE — NOT READY FOR USERS**
+>
+> This React Native app is a **static UI demo only**. It uses hardcoded mock data
+> (see `src/screens/ChatListScreen.js`), has **no backend connection, no API,
+> no authentication, and no real-time messaging**. It does NOT communicate with
+> the GENZ WhatsApp web backend in any way.
+>
+> Do not distribute this APK to real users yet. The feature list below is the
+> *planned* scope, not what is implemented.
+
+A WhatsApp-like mobile UI prototype with advanced status features, built with React Native for Android.
 
 ## Features
 

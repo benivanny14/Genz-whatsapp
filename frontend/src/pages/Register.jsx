@@ -190,7 +190,7 @@ const Register = () => {
             required
           />
           <span className="text-xs text-slate-300">
-            I agree to the <span className="text-[#00a884]">Terms of Service</span> and <span className="text-[#00a884]">Privacy Policy</span>, including end-to-end encryption settings.
+            I agree to the <span className="text-[#00a884]">Terms of Service</span> and <span className="text-[#00a884]">Privacy Policy</span>, including encryption and privacy settings.
           </span>
         </label>
         {!agreedToTerms && error && (

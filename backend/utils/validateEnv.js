@@ -161,6 +161,20 @@ const validateEnv = () => {
     });
   }
 
+  if (isProduction() && !hasValue('CLOUDINARY_CLOUD_NAME')) {
+    warnings.push({
+      key: 'CLOUDINARY_CLOUD_NAME',
+      description: 'Cloudinary is not configured; media is stored on the local ephemeral disk and will be LOST on redeploy'
+    });
+  }
+
+  if (isProduction() && !hasValue('MANUAL_PAYMENT_RECEIVER_NUMBER')) {
+    warnings.push({
+      key: 'MANUAL_PAYMENT_RECEIVER_NUMBER',
+      description: 'Manual payments use the hardcoded default receiver; set MANUAL_PAYMENT_RECEIVER_NUMBER and MANUAL_PAYMENT_RECEIVER_NAME'
+    });
+  }
+
   // Skip validation in test mode - setup.js handles environment
   if (process.env.NODE_ENV === 'test') {
     console.log(`Environment validation skipped (test mode)\n`);

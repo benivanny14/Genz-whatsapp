@@ -30,6 +30,20 @@ const pairingLimiter = rateLimit({
 // cannot burn the budget for everyone else.
 const userKeyGenerator = (req) => `user:${req.user?._id || req.ip || 'unknown'}`;
 
+// Account-discovery endpoints (check-availability, passkey/check) answer
+// "does this username/phone exist?". Bulk enumeration is the attack, so cap
+// queries per IP without breaking legitimate form validation.
+const discoveryLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'test' ? 100000 : 40,
+  message: {
+    success: false,
+    error: 'Too many lookups. Please try again later.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Sending messages is cheap for a human but expensive for a bot. 120/minute
 // comfortably covers a real user while capping scripted spam.
 const messageSenderLimiter = rateLimit({
@@ -58,4 +72,4 @@ const uploadLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-module.exports = { authSensitiveLimiter, pairingLimiter, messageSenderLimiter, uploadLimiter };
+module.exports = { authSensitiveLimiter, pairingLimiter, discoveryLimiter, messageSenderLimiter, uploadLimiter };

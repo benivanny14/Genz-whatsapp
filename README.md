@@ -1,6 +1,16 @@
-# TM WhatsApp - Modern Chat Application
+# GENZ WhatsApp - Modern Chat Application
 
-A complete, production-ready WhatsApp-like web application built with React (frontend) and Node.js/Express (backend) with real-time messaging via Socket.io.
+A WhatsApp-like web application built with React (frontend) and Node.js/Express (backend) with real-time messaging via Socket.io, plus a GENZ Mods layer (themes, anti-delete, bulk sender, etc.) and a manual mobile-money Premium payment flow.
+
+## ⚠️ System Status
+
+**Current status: BETA — works for small user groups, not yet proven at scale.**
+
+Verified: backend syntax check passes (240 files), backend tests pass (87/87), frontend production build passes.
+
+Before onboarding many users, complete the checklist in `PRODUCTION_READINESS.md` (Cloudinary media storage, Redis, TURN for calls, payment-process automation, npm audit cleanup). The React Native app in `react-native/` is a **static mock prototype** — it is not connected to this backend and must not be shipped to users as-is.
+
+Note: "End-to-end encryption" claims shown in the UI only apply when the **Client E2EE** mod is enabled (it is OFF by default). By default messages are encrypted in transit and at rest on the server.
 
 ## 🚀 Features
 
@@ -139,14 +149,14 @@ In the frontend directory (open a new terminal):
 npm run dev
 ```
 
-The frontend will start on `http://localhost:5173`
+The frontend will start on `http://localhost:5174`
 
 ### Step 4: Access the Application
 
 Open your browser and navigate to:
 
 ```
-http://localhost:5173
+http://localhost:5174
 ```
 
 ## 📱 Usage
@@ -376,7 +386,7 @@ NODE_ENV=development                         # Environment mode
 
 ## 🤝 Contributing
 
-This is a complete production-ready application. Feel free to extend it with additional features.
+This is a beta-quality application under active development. Feel free to extend it with additional features.
 
 ## 📄 License
 
@@ -384,7 +394,7 @@ MIT License
 
 ## 👤 Author
 
-TM - Full Stack Developer
+GENZ / TM - Full Stack Developer
 
 ## 🙏 Acknowledgments
 

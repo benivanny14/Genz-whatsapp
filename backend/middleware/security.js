@@ -153,11 +153,18 @@ const validateCSRF = (req, res, next) => {
 
 /**
  * Input sanitization middleware
+ *
+ * Only strips null bytes and control characters. DO NOT strip `<` / `>` here:
+ * message content legitimately contains those characters ("a < b", "<3"), and
+ * stripping them silently corrupts user messages. Stored-XSS is prevented at
+ * render time (React auto-escapes text; no dangerouslySetInnerHTML is used in
+ * the app) and by the fileValidation + xss-clean layers on specific fields.
  */
 const sanitizeInput = (req, res, next) => {
   const sanitize = (obj) => {
     if (typeof obj === 'string') {
-      return obj.replace(/[<>]/g, '');
+      // eslint-disable-next-line no-control-regex
+      return obj.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
     }
     if (Array.isArray(obj)) {
       return obj.map(sanitize);
