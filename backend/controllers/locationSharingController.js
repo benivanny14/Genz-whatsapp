@@ -94,7 +94,9 @@ exports.shareLocation = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Conversation not found' });
     }
 
-    if (!conversation.participants.includes(user._id.toString())) {
+    // participants is an ObjectId[] — compare with String() on both sides
+    const isParticipant = conversation.participants.some((p) => String(p) === String(user._id));
+    if (!isParticipant) {
       return res.status(403).json({ success: false, message: 'You are not a participant in this conversation' });
     }
 
@@ -152,7 +154,9 @@ exports.startLiveLocation = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Conversation not found' });
     }
 
-    if (!conversation.participants.includes(user._id.toString())) {
+    // participants is an ObjectId[] — compare with String() on both sides
+    const isParticipant = conversation.participants.some((p) => String(p) === String(user._id));
+    if (!isParticipant) {
       return res.status(403).json({ success: false, message: 'You are not a participant in this conversation' });
     }
 

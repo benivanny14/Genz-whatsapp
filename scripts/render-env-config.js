@@ -35,9 +35,9 @@ function generateVapidKeys() {
 }
 
 const REQUIRED = {
-  NODE_ENV: { value: 'production', desc: 'Environment (must be production)' },
-  PORT: { value: '5000', desc: 'Server port' },
-  JWT_EXPIRE: { value: '7d', desc: 'Access token lifetime' },
+  NODE_ENV: { value: 'production', force: true, desc: 'Environment (must be production)' },
+  PORT: { value: '5000', force: true, desc: 'Server port' },
+  JWT_EXPIRE: { value: '7d', force: true, desc: 'Access token lifetime' },
   MONGODB_URI: { required: true, desc: 'MongoDB Atlas connection string' },
   JWT_SECRET: { generate: true, desc: 'JWT access token secret' },
   JWT_REFRESH_SECRET: { generate: true, desc: 'JWT refresh token secret (must differ from JWT_SECRET)' },
@@ -150,9 +150,31 @@ function buildEnv(envPath) {
   const errors = [];
   let vapidPair = null;
 
+  // Dev-host guard: production must never inherit localhost/dev URLs or a
+  // local MongoDB URI from the developer's .env.
+  const isDevHost = (v) => /localhost|127\.0\.0\.1/.test(String(v || ''));
+
   const pick = (key, cfg) => {
     const localValue = local[key];
+
+    // Production constants — never take dev values for these.
+    if (cfg.force) {
+      env[key] = cfg.value;
+      return;
+    }
+
+    // URL keys with a production default: reject localhost dev values.
+    if (cfg.value !== undefined && localValue && isDevHost(localValue)) {
+      warnings.push(`${key}: local .env uses a dev host (${localValue}) — using production default ${cfg.value}`);
+      env[key] = cfg.value;
+      return;
+    }
+
     if (localValue && !isPlaceholder(localValue)) {
+      if (cfg.required && isDevHost(localValue)) {
+        errors.push(`${key}: points to a local/dev MongoDB (${localValue}) — set your Atlas connection string`);
+        return;
+      }
       env[key] = localValue;
       return;
     }

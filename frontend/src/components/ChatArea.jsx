@@ -747,7 +747,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!messageInput.trim() || !selectedConversation) return;
+    // Allow sending when only a sticker preview is staged (no typed text yet)
+    if ((!messageInput.trim() && !selectedMedia) || !selectedConversation) return;
 
     // Check if conversation is blocked before sending message
     const otherUser = selectedConversation.participants?.find(
@@ -843,7 +844,14 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         replyTo: replyingTo
       };
 
-      if (selectedMedia) {
+      if (selectedMedia?.type === 'sticker') {
+        // TikTok-style combined message: sticker + typed text ride as ONE bubble
+        await sendSticker(selectedMedia.url, {
+          replyTo: replyingTo,
+          caption: sanitizedMessage || undefined,
+          isViewOnce: safeMods.selfDestruct ? false : isViewOnceEnabled
+        });
+      } else if (selectedMedia) {
         finalOptions.messageType = 'structured';
         finalOptions.structuredContent = [
           { type: 'text', value: sanitizedMessage, font: selectedFont !== 'default' ? selectedFont : undefined },
@@ -3444,9 +3452,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               onTabChange={setActiveMediaTab}
               onEmojiSelect={handleEmojiClick}
               onStickerSelect={(stickerUrl, options = {}) => {
+                // TikTok-style: sticker previews in the input so the user can
+                // keep typing; Send delivers sticker + text as ONE message.
                 setSelectedMedia({ type: 'sticker', url: stickerUrl, options });
                 setShowMediaPanel(false);
-                handleSendMessage(stickerUrl, { sticker: { type: 'sticker', url: stickerUrl, ...options } }, selectedConversation?._id);
               }}
             />
           </div>
@@ -3461,6 +3470,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               <X size={14} />
             </button>
             <img src={selectedMedia.url} alt="selected media" className="w-full h-auto rounded-lg max-h-32 object-contain" />
+            {selectedMedia.type === 'sticker' && (
+              <p className="text-[10px] text-dark-textSecondary mt-1 text-center">
+                Sticker itatumwa pamoja na ujumbe wako ✨
+              </p>
+            )}
           </div>
         )}
 
@@ -3865,7 +3879,14 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       {showStickerPacks && (
         <StickerPackBrowser
           onStickerSelect={(stickerUrl, options) => {
-            handleSendStickerWithCaption(stickerUrl, { ...options, isFloating: floatingStickerMode });
+            if (floatingStickerMode) {
+              // Floating mode keeps the instant fly-across-screen behavior
+              handleSendStickerWithCaption(stickerUrl, { ...options, isFloating: true });
+            } else {
+              // TikTok-style: stage the sticker in the input preview; Send
+              // delivers sticker + typed text together as one bubble.
+              setSelectedMedia({ type: 'sticker', url: stickerUrl, options });
+            }
             setShowStickerPacks(false);
           }}
           onClose={() => setShowStickerPacks(false)}
