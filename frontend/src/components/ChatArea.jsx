@@ -32,7 +32,7 @@ import PaymentRequestModal, { PaymentRequestsPanel } from './PaidFeatures/Paymen
 import ChunkedUploader from './ChunkedUploader';
 import ContactInfo from './ContactInfo';
 import GroupInfo from './GroupInfo';
-import StickerPackBrowser from './StickerPackBrowser';
+import StickerPicker from './StickerPicker';
 import { uploadVoiceNote, getAudioDuration, analyzeAudioForWaveform } from '../services/voiceService';
 import toast from 'react-hot-toast';
 import { authFetch } from '../utils/authFetch';
@@ -244,7 +244,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   });
   const [showMediaPanel, setShowMediaPanel] = useState(false);
   const [activeMediaTab, setActiveMediaTab] = useState('emoji');
-  const [selectedMedia, setSelectedMedia] = useState(null); // { type, url, meta }
+  const [selectedMedia, setSelectedMedia] = useState(null); // { type, url, meta } — composer staging (TikTok-style)
+  const [viewerMedia, setViewerMedia] = useState(null); // media-viewer modal state (separate from composer staging)
   const [chatSearchQuery, setChatSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [isLiveLocationActive, setIsLiveLocationActive] = useState(false); // State for live location
@@ -2785,7 +2786,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                   onDoubleClick={() => handleDoubleClick(message._id || message.id)}
                 >
                   <div
-                    className={`max-w-[75%] relative group shadow-sm transition-all duration-300 ${(message.messageType === 'audio' || message.messageType === 'voice')
+                    className={`max-w-[75%] relative group shadow-sm transition-all duration-300 ${(message.messageType === 'audio' || message.messageType === 'voice' || message.messageType === 'sticker')
                       ? 'bg-transparent p-0'
                       : `px-4 py-2 ${safeMods?.bubbleStyle === 'sharp' ? 'rounded-none' :
                         safeMods?.bubbleStyle === 'bubble' ? 'rounded-3xl' :
@@ -2801,7 +2802,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       setActiveMessageMenu(null);
                     }}
                     style={
-                      (message.messageType !== 'audio' && message.messageType !== 'voice')
+                      (message.messageType !== 'audio' && message.messageType !== 'voice' && message.messageType !== 'sticker')
                         ? {
                           backgroundColor: isOwnMessage(message)
                             ? (safeMods?.bubbleSentColor || undefined)
@@ -2908,7 +2909,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                           className="mb-1 cursor-pointer flex items-center"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedMedia(message);
+                            setViewerMedia(message);
                           }}
                           title="Video note"
                         >
@@ -2932,7 +2933,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                           className="mb-1 cursor-pointer"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedMedia(message);
+                            setViewerMedia(message);
                           }}
                         >
                           <SignedMedia
@@ -2947,20 +2948,27 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       )
                     )}
 
-                    {/* ── Sticker Message (TikTok-style: sticker + caption inline in bubble) ── */}
+                    {/* ── Sticker Message (WhatsApp style: no bubble, big sticker, tiny time overlay) ── */}
                     {message.messageType === 'sticker' && (
                       <div className="mb-1" style={{ animation: 'stickerBounce 0.4s ease-out' }}>
-                        <div className="relative">
+                        <div className="relative w-fit">
                           <img
                             src={message.content || message.mediaUrl}
                             alt={typeof message.content === 'string' ? message.content : 'Sticker'}
-                            className="w-full max-w-[200px] h-auto object-contain cursor-pointer rounded-lg"
+                            className="w-full max-w-[210px] h-auto object-contain cursor-pointer"
                             loading="lazy"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedMedia(message);
+                              setViewerMedia(message);
                             }}
                           />
+                          {/* WhatsApp-style tiny time overlay at the bottom of the sticker */}
+                          <span className="absolute bottom-1 right-1.5 text-[10px] leading-none text-white/85 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] pointer-events-none">
+                            {formatMessageTime(message.createdAt)}
+                            {isOwnMessage(message) && message.status !== 'failed' && message.status !== 'pending' && message.status !== 'sending' && (
+                              <span>{message.status === 'sent' ? ' ✓' : ' ✓✓'}</span>
+                            )}
+                          </span>
                         </div>
                         {message.caption && (
                           <p className="text-sm mt-1 whitespace-pre-wrap break-words">{message.caption}</p>
@@ -2991,7 +2999,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       ) : (
                         <div className="cursor-pointer" onClick={(e) => {
                           e.stopPropagation();
-                          setSelectedMedia(message);
+                          setViewerMedia(message);
                         }}>
                           <SignedMedia
                             src={mediaSourceOf(message)}
@@ -3247,6 +3255,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                         {typeof translatedMessages[message.id || message._id] === 'string' ? translatedMessages[message.id || message._id] : 'Translation'}
                       </div>
                     )}
+                    {message.messageType !== 'sticker' && (
                     <div className={`flex items-center gap-1 mt-1 justify-end ${isOwnMessage(message) ? 'text-white/80' : 'text-dark-textSecondary'
                       }`}>
                       {(message._antiDeletePreserved || message.deletedForEveryone) && (
@@ -3296,12 +3305,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                             }}
                             className="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#00a884] hover:bg-[#029676] text-white transition shrink-0"
                             title="Retry sending"
-                            aria-label="Retry sending message"
-                          >
-                            ↻
-                          </button>
-                        )}
-                    </div>
+                            aria-label="Retry sending message"                            >
+                              ↻
+                            </button>
+                          )}
+                      </div>
+                    )}
                     {message.reactions && message.reactions.length > 0 && (
                       <div className={`absolute -bottom-3 ${isOwnMessage(message) ? 'right-2' : 'right-2'} flex flex-wrap gap-0.5 bg-dark-surface p-0.5 rounded-full border border-dark-border shadow-sm z-10`}>
                         {/* Group reactions by emoji */}
@@ -3627,6 +3636,30 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           </div>
         )}
 
+        {showStickerPacks && (
+          <div className="absolute bottom-full left-0 right-0 w-full z-50 overflow-hidden shadow-2xl border-t border-dark-border">
+            <StickerPicker
+              stickerPacks={stickerPacks}
+              downloadedStickers={downloadedStickers}
+              onDownloadPack={downloadStickerPack}
+              onRemovePack={removeStickerPack}
+              onToggleFavorite={addFavoriteSticker}
+              onStickerSelect={(stickerUrl, options) => {
+                if (floatingStickerMode) {
+                  // Floating mode keeps the instant fly-across-screen behavior
+                  handleSendStickerWithCaption(stickerUrl, { ...options, isFloating: true });
+                } else {
+                  // TikTok-style: stage the sticker in the input preview; Send
+                  // delivers sticker + typed text together as one bubble.
+                  setSelectedMedia({ type: 'sticker', url: stickerUrl, options });
+                }
+                setShowStickerPacks(false);
+              }}
+              onClose={() => setShowStickerPacks(false)}
+            />
+          </div>
+        )}
+
         {selectedMedia && (
           <div className="mb-2 relative inline-block bg-dark-bg p-2 rounded-xl border border-dark-border max-w-[200px]">
             <button
@@ -3659,10 +3692,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               </button>
               <button
                 type="button"
-                onClick={() => setShowStickerPacks(true)}
+                onClick={() => { setShowMediaPanel(false); setShowStickerPacks(!showStickerPacks); }}
                 className={`p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center ${showStickerPacks ? 'bg-primary-600 text-white' : 'hover:bg-dark-hover text-dark-text'}`}
                 title="Stickers (send with text)"
                 aria-label="Open sticker picker"
+                aria-expanded={showStickerPacks}
               >
                 <Square className="w-5 h-5" />
               </button>
@@ -3933,12 +3967,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           }}
         />
       )}
-      {selectedMedia && (
+      {viewerMedia && (
         <MediaViewer
-          src={selectedMedia.mediaUrl || selectedMedia.content}
-          type={selectedMedia.messageType === 'sticker' ? 'image' : selectedMedia.messageType}
-          alt={typeof selectedMedia.content === 'string' ? selectedMedia.content : 'Media'}
-          onClose={() => setSelectedMedia(null)}
+          src={viewerMedia.mediaUrl || viewerMedia.content}
+          type={viewerMedia.messageType === 'sticker' ? 'image' : viewerMedia.messageType}
+          alt={typeof viewerMedia.content === 'string' ? viewerMedia.content : 'Media'}
+          onClose={() => setViewerMedia(null)}
         />
       )}
 
@@ -4042,28 +4076,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         )
       }
 
-      {/* ── Sticker Packs Modal ── */}
-      {showStickerPacks && (
-        <StickerPackBrowser
-          stickerPacks={stickerPacks}
-          downloadedStickers={downloadedStickers}
-          onDownloadPack={downloadStickerPack}
-          onRemovePack={removeStickerPack}
-          onToggleFavorite={addFavoriteSticker}
-          onStickerSelect={(stickerUrl, options) => {
-            if (floatingStickerMode) {
-              // Floating mode keeps the instant fly-across-screen behavior
-              handleSendStickerWithCaption(stickerUrl, { ...options, isFloating: true });
-            } else {
-              // TikTok-style: stage the sticker in the input preview; Send
-              // delivers sticker + typed text together as one bubble.
-              setSelectedMedia({ type: 'sticker', url: stickerUrl, options });
-            }
-            setShowStickerPacks(false);
-          }}
-          onClose={() => setShowStickerPacks(false)}
-        />
-      )}
+
 
        {/* ── Drawing / Doodle Editor for chat media ── */}
       {showDrawingEditor && drawingImageUrl && (
