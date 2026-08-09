@@ -114,6 +114,29 @@ WHATSAPP_CLOUD_API_TOKEN=...   # (see backend/services/whatsappCloudApiService.j
 
 ---
 
+## 🟢 Infrastructure hardening (implemented)
+
+- **Circuit breakers** (`backend/utils/circuitBreaker.js`) guard every external
+  API call: Cloudinary uploads (fall back to local `/uploads` serving when the
+  circuit is open, so media sends never fail), Cloudinary delete/resource calls
+  (fail soft), WhatsApp Cloud API (fast-fail after 3 failures, 60s cooldown),
+  LibreTranslate + GIPHY (fall back to local translation / fallback GIFs). All
+  calls are also wrapped in timeouts.
+- **API versioning** — every route is mounted under both `/api/...` (legacy,
+  what the current frontend calls) and `/api/v1/...`. **New code should use
+  `/api/v1`.** Routes are declared in one `API_ROUTE_MOUNTS` array in
+  `backend/server.js`; health + upload are versioned too.
+- **Response caching** (`backend/utils/responseCache.js`) — bounded in-memory
+  TTL cache (200 entries max, per-entry expiry): health payload (5s), GIF
+  search (60s), link previews (5 min per URL).
+- **Cache headers** — all `/api` responses default to `Cache-Control: no-store`
+  (auth/user data); public endpoints (GIFs, link previews) override with
+  `public, max-age=...`.
+- **Memory-leak cap on socket dedup** — `messageDeduplication` Map is capped at
+  10,000 entries with 60s TTL and 30s cleanup sweep.
+
+---
+
 ## ✅ Post-deploy verification
 
 1. `curl https://YOUR-URL/api/health` → `"mongo":"connected"`, `"redis":"connected"`,

@@ -14,6 +14,7 @@
  * API reference: https://developers.facebook.com/docs/whatsapp/cloud-api/guides/send-messages
  */
 const axios = require('axios');
+const { circuit, isCircuitOpenError } = require('../utils/circuitBreaker');
 
 const GRAPH_VERSION = process.env.WHATSAPP_CLOUD_API_VERSION || 'v21.0';
 const ACCESS_TOKEN = process.env.WHATSAPP_CLOUD_API_ACCESS_TOKEN || '';
@@ -70,26 +71,29 @@ async function sendOtpMessage(rawPhone, otp, options = {}) {
   const to = toInternationalDigits(rawPhone);
 
   try {
-    const { data } = await axios.post(
-      API_URL,
-      {
-        messaging_product: 'whatsapp',
-        recipient_type: 'individual',
-        to,
-        type: 'text',
-        text: { body },
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${ACCESS_TOKEN}`,
-          'Content-Type': 'application/json',
+    const { data } = await circuit('whatsapp.cloud-api', { failureThreshold: 3, cooldownMs: 60000, timeoutMs: 15000 }, () =>
+      axios.post(
+        API_URL,
+        {
+          messaging_product: 'whatsapp',
+          recipient_type: 'individual',
+          to,
+          type: 'text',
+          text: { body },
         },
-        timeout: 15000,
-      }
+        {
+          headers: {
+            Authorization: `Bearer ${ACCESS_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 15000,
+        }
+      )
     );
     console.log(`[CloudAPI] OTP sent to ${to} (msg id ${data?.messages?.[0]?.id || 'n/a'})`);
     return { to };
   } catch (error) {
+    if (isCircuitOpenError(error)) throw error; // let callers detect fast-fail
     const code = error?.response?.data?.error?.code;
     const rawMessage = error?.response?.data?.error?.message || '';
     const hint = ERROR_HINTS[code] || rawMessage || 'unknown API error';

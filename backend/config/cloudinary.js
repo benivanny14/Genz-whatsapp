@@ -3,6 +3,7 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { getBreaker, isCircuitOpenError } = require('../utils/circuitBreaker');
 
 /**
  * Cloudinary Configuration
@@ -22,6 +23,25 @@ const isConfigured = () => Boolean(
   process.env.CLOUDINARY_API_KEY &&
   process.env.CLOUDINARY_API_SECRET
 );
+
+// Circuit breakers around the Cloudinary SDK so a Cloudinary outage can't
+// take down every media upload. Uploads fall back to local /uploads serving;
+// deletes fail soft (best-effort cleanup).
+const uploadBreaker = getBreaker('cloudinary.upload', {
+  failureThreshold: 5,
+  cooldownMs: 30000,
+  timeoutMs: 30000,
+});
+const deleteBreaker = getBreaker('cloudinary.delete', {
+  failureThreshold: 5,
+  cooldownMs: 30000,
+  timeoutMs: 20000,
+});
+const resourceBreaker = getBreaker('cloudinary.resource', {
+  failureThreshold: 5,
+  cooldownMs: 30000,
+  timeoutMs: 20000,
+});
 
 const uploadDir = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -199,6 +219,26 @@ const uploadOptions = {
 };
 
 /**
+ * Local fallback result (used when Cloudinary is unconfigured or its circuit
+ * is open). The file is already on disk at `filePath`, so we serve it from
+ * /uploads and keep the same result shape.
+ */
+const localUploadResult = (filePath, fileType, options = {}) => {
+  const stats = fs.existsSync(filePath) ? fs.statSync(filePath) : null;
+  const fileName = path.basename(filePath);
+  return {
+    success: true,
+    url: options.publicUrl || `/uploads/${fileName}`,
+    publicId: fileName,
+    resourceType: fileType,
+    format: path.extname(fileName).slice(1),
+    bytes: stats?.size || 0,
+    storageProvider: 'local',
+    thumbnailUrl: null
+  };
+};
+
+/**
  * Upload file to Cloudinary with custom options
  * @param {string} filePath - Local file path
  * @param {string} fileType - File type (image, video, audio, document)
@@ -208,19 +248,7 @@ const uploadOptions = {
 const uploadFile = async (filePath, fileType, options = {}) => {
   try {
     if (!isConfigured()) {
-      const stats = fs.existsSync(filePath) ? fs.statSync(filePath) : null;
-      const fileName = path.basename(filePath);
-
-      return {
-        success: true,
-        url: options.publicUrl || `/uploads/${fileName}`,
-        publicId: fileName,
-        resourceType: fileType,
-        format: path.extname(fileName).slice(1),
-        bytes: stats?.size || 0,
-        storageProvider: 'local',
-        thumbnailUrl: null
-      };
+      return localUploadResult(filePath, fileType, options);
     }
 
     const uploadOpts = {
@@ -229,7 +257,7 @@ const uploadFile = async (filePath, fileType, options = {}) => {
       public_id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     };
     
-    const result = await cloudinary.uploader.upload(filePath, uploadOpts);
+    const result = await uploadBreaker.execute(() => cloudinary.uploader.upload(filePath, uploadOpts));
     
     return {
       success: true,
@@ -245,6 +273,10 @@ const uploadFile = async (filePath, fileType, options = {}) => {
       thumbnailUrl: result.eager && result.eager[0] ? result.eager[0].secure_url : null
     };
   } catch (error) {
+    if (isCircuitOpenError(error)) {
+      console.warn('[Cloudinary] Circuit open — falling back to local storage:', error.message);
+      return localUploadResult(filePath, fileType, options);
+    }
     console.error('[Cloudinary] Upload error:', error);
     throw new Error(`Failed to upload file: ${error.message}`);
   }
@@ -258,15 +290,18 @@ const uploadFile = async (filePath, fileType, options = {}) => {
  */
 const deleteFile = async (publicId, resourceType = 'image') => {
   try {
-    const result = await cloudinary.uploader.destroy(publicId, {
+    const result = await deleteBreaker.execute(() => cloudinary.uploader.destroy(publicId, {
       resource_type: resourceType
-    });
+    }));
     
     return {
       success: result.result === 'ok',
       result: result.result
     };
   } catch (error) {
+    if (isCircuitOpenError(error)) {
+      return { success: false, result: 'circuit_open', error: error.message };
+    }
     console.error('[Cloudinary] Delete error:', error);
     throw new Error(`Failed to delete file: ${error.message}`);
   }
@@ -280,9 +315,9 @@ const deleteFile = async (publicId, resourceType = 'image') => {
  */
 const deleteFiles = async (publicIds, resourceType = 'image') => {
   try {
-    const result = await cloudinary.api.delete_resources(publicIds, {
+    const result = await deleteBreaker.execute(() => cloudinary.api.delete_resources(publicIds, {
       resource_type: resourceType
-    });
+    }));
     
     return {
       success: true,
@@ -290,6 +325,9 @@ const deleteFiles = async (publicIds, resourceType = 'image') => {
       failed: result.failed
     };
   } catch (error) {
+    if (isCircuitOpenError(error)) {
+      return { success: false, deleted: [], failed: publicIds, error: error.message };
+    }
     console.error('[Cloudinary] Batch delete error:', error);
     throw new Error(`Failed to delete files: ${error.message}`);
   }
@@ -303,9 +341,9 @@ const deleteFiles = async (publicIds, resourceType = 'image') => {
  */
 const getFileInfo = async (publicId, resourceType = 'image') => {
   try {
-    const result = await cloudinary.api.resource(publicId, {
+    const result = await resourceBreaker.execute(() => cloudinary.api.resource(publicId, {
       resource_type: resourceType
-    });
+    }));
     
     return {
       success: true,
@@ -319,6 +357,9 @@ const getFileInfo = async (publicId, resourceType = 'image') => {
       createdAt: result.created_at
     };
   } catch (error) {
+    if (isCircuitOpenError(error)) {
+      return { success: false, circuitOpen: true, error: error.message };
+    }
     console.error('[Cloudinary] Get info error:', error);
     throw new Error(`Failed to get file info: ${error.message}`);
   }
@@ -341,13 +382,13 @@ const listResources = async (options = {}) => {
     let nextCursor;
 
     do {
-      const result = await cloudinary.api.resources({
+      const result = await resourceBreaker.execute(() => cloudinary.api.resources({
         type: 'upload',
         resource_type: resourceType,
         prefix,
         max_results: Math.min(maxResults - resources.length, 500),
         next_cursor: nextCursor
-      });
+      }));
 
       resources.push(...(result.resources || []));
       nextCursor = result.next_cursor;
@@ -364,6 +405,9 @@ const listResources = async (options = {}) => {
       }))
     };
   } catch (error) {
+    if (isCircuitOpenError(error)) {
+      return { success: false, circuitOpen: true, resources: [], error: error.message };
+    }
     console.error('[Cloudinary] List resources error:', error);
     throw new Error(`Failed to list resources: ${error.message}`);
   }

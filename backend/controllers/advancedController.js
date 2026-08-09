@@ -3,6 +3,8 @@ const Conversation = require('../models/Conversation');
 const Status = require('../models/Status');
 const Broadcast = require('../models/Broadcast');
 const axios = require('axios');
+const { circuit } = require('../utils/circuitBreaker');
+const { cached: cachedResponse } = require('../utils/responseCache');
 const fs = require('fs').promises;
 const {
   uploadFile: uploadToMediaStorage,
@@ -75,14 +77,17 @@ exports.translateMessage = async (req, res) => {
       return res.status(400).json({ message: 'Text or messageId is required' });
     }
 
-    // Try LibreTranslate (free, no API key)
+    // Try LibreTranslate (free, no API key) — circuit-broken so a failing
+    // provider trips open and we fast-fall back to the local translation.
     try {
-      const libreRes = await axios.post('https://libretranslate.de/translate', {
-        q: contentToTranslate,
-        source: 'auto',
-        target: targetLang,
-        format: 'text'
-      }, { timeout: 5000, headers: { 'Content-Type': 'application/json' } });
+      const libreRes = await circuit('translate.libretranslate', { failureThreshold: 3, cooldownMs: 30000, timeoutMs: 5000 }, () =>
+        axios.post('https://libretranslate.de/translate', {
+          q: contentToTranslate,
+          source: 'auto',
+          target: targetLang,
+          format: 'text'
+        }, { timeout: 5000, headers: { 'Content-Type': 'application/json' } })
+      );
 
       if (libreRes.data && libreRes.data.translatedText) {
         return res.status(200).json({
@@ -1638,38 +1643,43 @@ exports.getLinkPreview = async (req, res) => {
 
     const parsedUrl = await assertSafeExternalUrl(url);
 
-    // Fetch the HTML page
-    const response = await axios.get(parsedUrl.toString(), {
-      timeout: 5000,
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; GENZBot/1.0)' },
-      maxRedirects: 0,
-      maxContentLength: 500000 // 500KB max
+    // Cache the preview per URL (5 min TTL, bounded map) so repeated sends of
+    // the same link don't re-fetch the remote page every time.
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    const cacheKey = `link-preview:${parsedUrl.toString()}`;
+    const preview = await cachedResponse(cacheKey, 300000, async () => {
+      // Fetch the HTML page
+      const response = await axios.get(parsedUrl.toString(), {
+        timeout: 5000,
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; GENZBot/1.0)' },
+        maxRedirects: 0,
+        maxContentLength: 500000 // 500KB max
+      });
+
+      const html = response.data || '';
+
+      // Extract Open Graph meta tags using regex (no cheerio needed)
+      const getMeta = (name) => {
+        const match = html.match(new RegExp(`<meta[^>]*(?:property|name)=["']${name}["'][^>]*content=["']([^"']+)["']`, 'i'))
+          || html.match(new RegExp(`<meta[^>]*content=["']([^"']+)["']`, 'i'))
+          || html.match(new RegExp(`<meta[^>]*content=["']([^"']+)["'][^>]*(?:property|name)=["']${name}["']`, 'i'));
+        return match ? match[1] : null;
+      };
+
+      const getTitleFromHtml = () => {
+        const match = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+        return match ? match[1].trim() : null;
+      };
+
+      const title = getMeta('og:title') || getMeta('twitter:title') || getTitleFromHtml() || parsedUrl.hostname;
+      const description = getMeta('og:description') || getMeta('twitter:description') || getMeta('description') || '';
+      const image = getMeta('og:image') || getMeta('twitter:image') || '';
+      const siteName = getMeta('og:site_name') || parsedUrl.hostname;
+
+      return { url, title, description, image, siteName, domain: parsedUrl.hostname };
     });
 
-    const html = response.data || '';
-
-    // Extract Open Graph meta tags using regex (no cheerio needed)
-    const getMeta = (name) => {
-      const match = html.match(new RegExp(`<meta[^>]*(?:property|name)=["']${name}["'][^>]*content=["']([^"']+)["']`, 'i'))
-        || html.match(new RegExp(`<meta[^>]*content=["']([^"']+)["']`, 'i'))
-        || html.match(new RegExp(`<meta[^>]*content=["']([^"']+)["'][^>]*(?:property|name)=["']${name}["']`, 'i'));
-      return match ? match[1] : null;
-    };
-
-    const getTitleFromHtml = () => {
-      const match = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-      return match ? match[1].trim() : null;
-    };
-
-    const title = getMeta('og:title') || getMeta('twitter:title') || getTitleFromHtml() || parsedUrl.hostname;
-    const description = getMeta('og:description') || getMeta('twitter:description') || getMeta('description') || '';
-    const image = getMeta('og:image') || getMeta('twitter:image') || '';
-    const siteName = getMeta('og:site_name') || parsedUrl.hostname;
-
-    res.status(200).json({
-      success: true,
-      preview: { url, title, description, image, siteName, domain: parsedUrl.hostname }
-    });
+    res.status(200).json({ success: true, preview });
   } catch (error) {
     if (error.statusCode) {
       return res.status(error.statusCode).json({
@@ -1708,6 +1718,8 @@ const sliceFallback = (limit) => STATIC_FALLBACK_GIFS.slice(0, Math.min(Math.max
 // @access  Public
 exports.getGifs = async (req, res) => {
   try {
+    // Public, cacheable content — set before any early return.
+    res.setHeader('Cache-Control', 'public, max-age=60');
     const type = (req.query.type || 'trending').toLowerCase();
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 24, 1), 50);
     const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
@@ -1735,18 +1747,30 @@ exports.getGifs = async (req, res) => {
       giphyUrl = `https://api.giphy.com/v1/gifs/trending?api_key=${encodeURIComponent(key)}&limit=${limit}&offset=${offset}&rating=g`;
     }
 
-    const { data } = await axios.get(giphyUrl, { timeout: 10000 });
-    const list = (data && data.data) || [];
-    if (!list.length) {
-      return res.status(200).json({ success: true, gifs: sliceFallback(limit), fallback: true });
-    }
-
-    return res.status(200).json({
-      success: true,
-      gifs: list.map(mapItem),
-      pagination: data.pagination,
-      fallback: false
+    // Circuit-broken + cached for 60s so a Giphy outage or heavy usage can't
+    // hammer the upstream. On any failure we serve the stable fallback set.
+    const cacheKey = `gifs:${type}:${req.query.q || ''}:${limit}:${offset}`;
+    const payload = await cachedResponse(cacheKey, 60000, async () => {
+      try {
+        const { data } = await circuit('giphy.api', { failureThreshold: 3, cooldownMs: 30000, timeoutMs: 10000 }, () =>
+          axios.get(giphyUrl, { timeout: 10000 })
+        );
+        const list = (data && data.data) || [];
+        if (!list.length) {
+          return { success: true, gifs: sliceFallback(limit), fallback: true };
+        }
+        return {
+          success: true,
+          gifs: list.map(mapItem),
+          pagination: data.pagination,
+          fallback: false
+        };
+      } catch (err) {
+        console.error('Giphy proxy error:', err.message);
+        return { success: true, gifs: sliceFallback(limit), fallback: true };
+      }
     });
+    return res.status(200).json(payload);
   } catch (error) {
     console.error('Giphy proxy error:', error.message);
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 24, 1), 50);

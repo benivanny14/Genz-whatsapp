@@ -32,6 +32,7 @@ const {
   isConfigured: isCloudinaryConfigured
 } = require('./config/cloudinary');
 const { validateFileContent } = require('./middleware/fileValidation');
+const { cached: cachedResponse } = require('./utils/responseCache');
 
 // Define uploads directory path (always needed for multer config)
 const uploadDir = path.join(__dirname, 'uploads');
@@ -551,6 +552,15 @@ app.use((req, res, next) => {
   next();
 });
 
+// API cache headers — auth/user data must never be cached by browsers or
+// proxies. Handlers that serve public, cacheable data (health, GIFs, link
+// previews) override this with `Cache-Control: public, max-age=...`.
+app.use('/api', (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Pragma', 'no-cache');
+  next();
+});
+
 app.use(express.json({
   limit: process.env.JSON_BODY_LIMIT || '2mb',
   verify: (req, res, buf) => {
@@ -574,16 +584,35 @@ const getHealthPayload = () => ({
   }
 });
 
-app.get('/api/health', (req, res) => {
-  res.json(getHealthPayload());
+// Health payload is cached 5s so monitoring/polling bursts don't re-run the
+// ready-state check on every request.
+const getCachedHealthPayload = () =>
+  cachedResponse('health:payload', 5000, () => Promise.resolve(getHealthPayload()));
+
+app.get('/api/health', async (req, res) => {
+  res.json(await getCachedHealthPayload());
+});
+app.get('/api/v1/health', async (req, res) => {
+  res.json(await getCachedHealthPayload());
 });
 
 app.get('/api/health/live', (req, res) => {
   res.json({ success: true, status: 'alive', timestamp: new Date().toISOString() });
 });
+app.get('/api/v1/health/live', (req, res) => {
+  res.json({ success: true, status: 'alive', timestamp: new Date().toISOString() });
+});
 
-app.get('/api/health/ready', (req, res) => {
-  const payload = getHealthPayload();
+app.get('/api/health/ready', async (req, res) => {
+  const payload = await getCachedHealthPayload();
+  const ready = payload.services.mongo === 'connected' || process.env.NODE_ENV !== 'production';
+  res.status(ready ? 200 : 503).json({
+    ...payload,
+    status: ready ? 'ready' : 'not_ready'
+  });
+});
+app.get('/api/v1/health/ready', async (req, res) => {
+  const payload = await getCachedHealthPayload();
   const ready = payload.services.mongo === 'connected' || process.env.NODE_ENV !== 'production';
   res.status(ready ? 200 : 503).json({
     ...payload,
@@ -720,84 +749,97 @@ const whatsappWebRoutes = require('./routes/whatsapp-web');
 const antiBanRoutes = require('./routes/anti-ban');
 const locationSharingRoutes = require('./routes/location-sharing');
 
-// Mount Routes
-app.use('/api/auth', safeMiddleware(authGeneralLimiter), authRoutes);
+// Mount Routes — every public API route is mounted under BOTH /api (legacy,
+// what the current frontend calls) and /api/v1 (the versioned namespace new
+// code should use). Adding a route to API_ROUTE_MOUNTS versions it for free.
+const API_ROUTE_MOUNTS = [
+  ['/auth', safeMiddleware(authGeneralLimiter), authRoutes],
+  ['/admin', adminRoutes],
+  ['/chat', chatRoutes],
+  ['/advanced', advancedRoutes],
+  ['/media', mediaRoutes],
+  ['/payment/manual', manualPaymentUserRoutes],
+  ['/admin/manual-payments', manualPaymentAdminRoutes],
+  ['/payments', paymentRoutes],
+  ['/device', deviceRoutes],
+  ['/security', safeMiddleware(securityLimiter), securityRoutes],
+  ['/settings', settingsRoutes],
+  ['/privacy', privacyContactsRoutes],
+  ['/contacts', phoneContactsRoutes],
+  ['/communities', communityRoutes],
+  ['/groups', groupInviteRoutes],
+  ['/anti-revoke', antiRevokeRoutes],
+  ['/privacy-mods', privacyModsRoutes],
+  ['/media-mods', mediaModsRoutes],
+  ['/customization-mods', customizationModsRoutes],
+  ['/automation-mods', automationModsRoutes],
+  ['/security-mods', securityModsRoutes],
+  ['/chat-list-mods', chatListModsRoutes],
+  ['/message-mods', messageModsRoutes],
+  ['/group-mods', groupModsRoutes],
+  ['/genz-mods', genzModsRoutes],
+  ['/backup', backupRoutes],
+  ['/stickers', stickerRoutes],
+  ['/voice', voiceRoutes],
+  ['/notifications', notificationRoutes],
+  ['/encryption', encryptionRoutes],
+  ['/webrtc', webrtcRoutes],
+  ['/calls', callRoutes],
+  ['/products', productRoutes],
+  ['/scheduled-messages', scheduledMessageRoutes],
+  ['/status', statusRoutes],
+  ['/status-advanced', statusAdvancedRoutes],
+  ['/payment-features', paymentFeaturesRoutes],
+  ['/channels', channelRoutes],
+  // Newly-wired feature routes (previously orphaned controllers)
+  ['/bulk-sender', bulkSenderRoutes],
+  ['/business-account', businessAccountRoutes],
+  ['/cache-cleaner', cacheCleanerRoutes],
+  ['/call-blocker', callBlockerRoutes],
+  ['/call-features', callFeaturesRoutes],
+  ['/chat-analyzer', chatAnalyzerRoutes],
+  ['/chat-filter', chatFilterRoutes],
+  ['/chat-folders', chatFoldersRoutes],
+  ['/chat-search', chatSearchRoutes],
+  ['/chat-sort', chatSortRoutes],
+  ['/data-usage', dataUsageRoutes],
+  ['/fake-chat', fakeChatRoutes],
+  ['/file-manager', fileManagerRoutes],
+  ['/gif-player', gifPlayerRoutes],
+  ['/group-features', groupFeaturesRoutes],
+  ['/live-reactions', liveReactionsRoutes],
+  ['/media-compressor', mediaCompressorRoutes],
+  ['/media-editor', mediaEditorRoutes],
+  ['/message-translator', messageTranslatorRoutes],
+  ['/multi-accounts', multiAccountsRoutes],
+  ['/quick-actions', quickActionsRoutes],
+  ['/status-features', statusFeaturesRoutes],
+  ['/storage-manager', storageManagerRoutes],
+  ['/story-highlights', storyHighlightsRoutes],
+  ['/text-repeater', textRepeaterRoutes],
+  ['/theme-engine', themeEngineRoutes],
+  ['/whatsapp-web', whatsappWebRoutes],
+  ['/anti-ban', antiBanRoutes],
+  ['/location-sharing', locationSharingRoutes],
+];
 
-// Admin auth routes with a single secret base path
+const mountApiRoutes = (prefix) => {
+  for (const [routePath, ...middleware] of API_ROUTE_MOUNTS) {
+    app.use(`${prefix}${routePath}`, ...middleware);
+  }
+};
+
+mountApiRoutes('/api');
+mountApiRoutes('/api/v1');
+
+// Admin auth routes with a single secret base path (kept outside /api/v1 — it
+// is already an obscured, non-public path)
 const ADMIN_BASE_PATH = process.env.ADMIN_BASE_PATH || '/api/system-gateway-x9k';
 
 app.use(`${ADMIN_BASE_PATH}/auth`, adminAuthRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/chat', chatRoutes);
-app.use('/api/advanced', advancedRoutes);
-app.use('/api/media', mediaRoutes);
-app.use('/api/payment/manual', manualPaymentUserRoutes);
-app.use('/api/admin/manual-payments', manualPaymentAdminRoutes);
-app.use('/api/payments', paymentRoutes);
-app.use('/api/device', deviceRoutes);
-app.use('/api/security', safeMiddleware(securityLimiter), securityRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/privacy', privacyContactsRoutes);
-app.use('/api/contacts', phoneContactsRoutes);
-app.use('/api/communities', communityRoutes);
-app.use('/api/groups', groupInviteRoutes);
-app.use('/api/anti-revoke', antiRevokeRoutes);
-app.use('/api/privacy-mods', privacyModsRoutes);
-app.use('/api/media-mods', mediaModsRoutes);
-app.use('/api/customization-mods', customizationModsRoutes);
-app.use('/api/automation-mods', automationModsRoutes);
-app.use('/api/security-mods', securityModsRoutes);
-app.use('/api/chat-list-mods', chatListModsRoutes);
-app.use('/api/message-mods', messageModsRoutes);
-app.use('/api/group-mods', groupModsRoutes);
-app.use('/api/genz-mods', genzModsRoutes);
-app.use('/api/backup', backupRoutes);
-app.use('/api/stickers', stickerRoutes);
-app.use('/api/voice', voiceRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/encryption', encryptionRoutes);
-app.use('/api/webrtc', webrtcRoutes);
-app.use('/api/calls', callRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/scheduled-messages', scheduledMessageRoutes);
-app.use('/api/status', statusRoutes);
-app.use('/api/status-advanced', statusAdvancedRoutes);
-app.use('/api/payment-features', paymentFeaturesRoutes);
-app.use('/api/channels', channelRoutes);
 
-// Newly-wired feature routes (previously orphaned controllers)
-app.use('/api/bulk-sender', bulkSenderRoutes);
-app.use('/api/business-account', businessAccountRoutes);
-app.use('/api/cache-cleaner', cacheCleanerRoutes);
-app.use('/api/call-blocker', callBlockerRoutes);
-app.use('/api/call-features', callFeaturesRoutes);
-app.use('/api/chat-analyzer', chatAnalyzerRoutes);
-app.use('/api/chat-filter', chatFilterRoutes);
-app.use('/api/chat-folders', chatFoldersRoutes);
-app.use('/api/chat-search', chatSearchRoutes);
-app.use('/api/chat-sort', chatSortRoutes);
-app.use('/api/data-usage', dataUsageRoutes);
-app.use('/api/fake-chat', fakeChatRoutes);
-app.use('/api/file-manager', fileManagerRoutes);
-app.use('/api/gif-player', gifPlayerRoutes);
-app.use('/api/group-features', groupFeaturesRoutes);
-app.use('/api/live-reactions', liveReactionsRoutes);
-app.use('/api/media-compressor', mediaCompressorRoutes);
-app.use('/api/media-editor', mediaEditorRoutes);
-app.use('/api/message-translator', messageTranslatorRoutes);
-app.use('/api/multi-accounts', multiAccountsRoutes);
-app.use('/api/quick-actions', quickActionsRoutes);
-app.use('/api/status-features', statusFeaturesRoutes);
-app.use('/api/storage-manager', storageManagerRoutes);
-app.use('/api/story-highlights', storyHighlightsRoutes);
-app.use('/api/text-repeater', textRepeaterRoutes);
-app.use('/api/theme-engine', themeEngineRoutes);
-app.use('/api/whatsapp-web', whatsappWebRoutes);
-app.use('/api/anti-ban', antiBanRoutes);
-app.use('/api/location-sharing', locationSharingRoutes);
-
-// File upload route
-app.post('/api/upload', protect, upload.single('file'), validateFileContent, async (req, res) => {
+// File upload route (mounted under both /api and /api/v1)
+const handleUpload = async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -861,7 +903,9 @@ app.post('/api/upload', protect, upload.single('file'), validateFileContent, asy
       error: 'Failed to upload file'
     });
   }
-});
+};
+app.post('/api/upload', protect, upload.single('file'), validateFileContent, handleUpload);
+app.post('/api/v1/upload', protect, upload.single('file'), validateFileContent, handleUpload);
 
 // Health check endpoint for monitoring
 app.get('/health', (req, res) => {
