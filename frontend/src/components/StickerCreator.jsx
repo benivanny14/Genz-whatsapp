@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react';
-import { X, Upload, Scissors, Wand2, Trash2, Image as ImageIcon, Sparkles } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { X, Upload, Scissors, Wand2, Trash2, Image as ImageIcon, Video as VideoIcon, Sparkles } from 'lucide-react';
 
 const StickerCreator = ({ onClose, onStickerCreated }) => {
-  const [image, setImage] = useState(null);
+  const [media, setMedia] = useState(null); // { type: 'image'|'video', url }
   const [stickerName, setStickerName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
@@ -12,23 +12,38 @@ const StickerCreator = ({ onClose, onStickerCreated }) => {
     } catch { return []; }
   });
   const fileInputRef = useRef(null);
+  const videoRef = useRef(null);
+
+  // Revoke object URLs (videos) when the creator closes
+  useEffect(() => {
+    const url = media?.type === 'video' ? media.url : null;
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setError('Please select an image file');
+    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+      setError('Please select an image or video file');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (ev) => setImage(ev.target.result);
-    reader.readAsDataURL(file);
+    if (media?.type === 'video') URL.revokeObjectURL(media.url);
+    if (file.type.startsWith('video/')) {
+      setMedia({ type: 'video', url: URL.createObjectURL(file) });
+    } else {
+      const reader = new FileReader();
+      reader.onload = (ev) => setMedia({ type: 'image', url: ev.target.result });
+      reader.readAsDataURL(file);
+    }
     setError('');
   };
 
   const processSticker = async () => {
-    if (!image) {
-      setError('Please select an image first');
+    if (!media) {
+      setError('Please select an image or video first');
       return;
     }
     setIsProcessing(true);
@@ -40,21 +55,35 @@ const StickerCreator = ({ onClose, onStickerCreated }) => {
       canvas.height = 512;
       const ctx = canvas.getContext('2d');
 
-      const img = new Image();
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = image;
-      });
-
-      // Draw with white background, centered, with padding
+      // White background, content centered with padding
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, 512, 512);
 
-      const scale = Math.min(460 / img.width, 460 / img.height);
-      const w = img.width * scale;
-      const h = img.height * scale;
-      ctx.drawImage(img, (512 - w) / 2, (512 - h) / 2, w, h);
+      let w, h;
+      if (media.type === 'image') {
+        const img = new Image();
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = media.url;
+        });
+        const scale = Math.min(460 / img.width, 460 / img.height);
+        w = img.width * scale;
+        h = img.height * scale;
+        ctx.drawImage(img, (512 - w) / 2, (512 - h) / 2, w, h);
+      } else {
+        // Video: use the frame the user paused on
+        const video = videoRef.current;
+        if (!video || !video.videoWidth) {
+          throw new Error('Video frame not ready');
+        }
+        const vw = video.videoWidth;
+        const vh = video.videoHeight;
+        const scale = Math.min(460 / vw, 460 / vh);
+        w = vw * scale;
+        h = vh * scale;
+        ctx.drawImage(video, (512 - w) / 2, (512 - h) / 2, w, h);
+      }
 
       const stickerUrl = canvas.toDataURL('image/png');
 
@@ -69,11 +98,12 @@ const StickerCreator = ({ onClose, onStickerCreated }) => {
       setCustomStickers(updated);
       localStorage.setItem('genz_custom_stickers', JSON.stringify(updated));
       onStickerCreated?.(sticker);
-      setImage(null);
+      if (media.type === 'video') URL.revokeObjectURL(media.url);
+      setMedia(null);
       setStickerName('');
     } catch (err) {
       console.error('Sticker processing error:', err);
-      setError('Failed to process sticker');
+      setError('Failed to process sticker. Make sure your video has loaded and is paused on a frame.');
     } finally {
       setIsProcessing(false);
     }
@@ -83,6 +113,12 @@ const StickerCreator = ({ onClose, onStickerCreated }) => {
     const updated = customStickers.filter(s => s.id !== id);
     setCustomStickers(updated);
     localStorage.setItem('genz_custom_stickers', JSON.stringify(updated));
+  };
+
+  const clearMedia = () => {
+    if (media?.type === 'video') URL.revokeObjectURL(media.url);
+    setMedia(null);
+    setError('');
   };
 
   return (
@@ -102,12 +138,12 @@ const StickerCreator = ({ onClose, onStickerCreated }) => {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,video/*"
             className="hidden"
             onChange={handleFileSelect}
           />
 
-          {!image ? (
+          {!media ? (
             <button
               onClick={() => fileInputRef.current?.click()}
               className="w-full border-2 border-dashed border-white/20 rounded-2xl py-12 flex flex-col items-center gap-3 hover:border-pink-400/50 hover:bg-white/5 transition-colors"
@@ -115,26 +151,43 @@ const StickerCreator = ({ onClose, onStickerCreated }) => {
               <div className="w-16 h-16 bg-pink-400/10 rounded-full flex items-center justify-center">
                 <Upload size={28} className="text-pink-400" />
               </div>
-              <p className="text-white font-medium">Upload an image</p>
-              <p className="text-white/40 text-sm">PNG, JPG or WebP</p>
+              <p className="text-white font-medium">Upload an image or video</p>
+              <p className="text-white/40 text-sm">PNG, JPG, WebP or MP4</p>
             </button>
           ) : (
             <div className="space-y-4">
               <div className="relative rounded-2xl overflow-hidden border border-white/10">
-                <img src={image} alt="Sticker preview" className="w-full h-48 object-contain bg-white/5" />
+                {media.type === 'image' ? (
+                  <img src={media.url} alt="Sticker preview" className="w-full h-48 object-contain bg-white/5" />
+                ) : (
+                  <video
+                    ref={videoRef}
+                    src={media.url}
+                    controls
+                    muted
+                    playsInline
+                    className="w-full h-48 object-contain bg-white/5"
+                  />
+                )}
                 <button
-                  onClick={() => { setImage(null); setError(''); }}
+                  onClick={clearMedia}
                   className="absolute top-2 right-2 bg-black/70 text-white p-2 rounded-full hover:bg-black/90"
-                  aria-label="Remove image"
+                  aria-label="Remove media"
                 >
                   <X size={16} />
                 </button>
               </div>
-              <p className="text-white/40 text-xs text-center">Sticker will be created at 512×512 with a white background</p>
+              {media.type === 'video' ? (
+                <p className="text-white/40 text-xs text-center flex items-center justify-center gap-1">
+                  <VideoIcon size={12} /> Pause the video on the frame you want, then create the sticker
+                </p>
+              ) : (
+                <p className="text-white/40 text-xs text-center">Sticker will be created at 512×512 with a white background</p>
+              )}
             </div>
           )}
 
-          {image && (
+          {media && (
             <div className="mt-4">
               <label className="block text-sm text-white/70 mb-2">Sticker name</label>
               <input
@@ -153,7 +206,7 @@ const StickerCreator = ({ onClose, onStickerCreated }) => {
             </div>
           )}
 
-          {image && (
+          {media && (
             <button
               onClick={processSticker}
               disabled={isProcessing}

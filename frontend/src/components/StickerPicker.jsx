@@ -120,16 +120,18 @@ const StickerPicker = ({
 
   const allStickers = useMemo(() => packs.flatMap((p) => (p.stickers || [])), [packs]);
 
-  const favoriteStickerObjects = allStickers.filter(isFav);
+  // Favorites may include custom stickers (created via StickerCreator) — they
+  // live in customStickers, not in the pack catalog, so include both.
+  const favoriteStickerObjects = [...customStickers, ...allStickers].filter(isFav);
 
   const searchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return [];
-    return allStickers.filter((s) =>
+    return [...customStickers, ...allStickers].filter((s) =>
       (s.emoji && s.emoji.includes(searchQuery.trim())) ||
       (s.name || '').toLowerCase().includes(q)
     );
-  }, [allStickers, searchQuery]);
+  }, [allStickers, customStickers, searchQuery]);
 
   // Determine which stickers to show in the content grid
   const visibleStickers = useMemo(() => {
