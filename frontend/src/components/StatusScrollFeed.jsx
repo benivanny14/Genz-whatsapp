@@ -692,19 +692,38 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
               {(analyticsData?.views || currentStatus.views || []).length === 0 ? (
                 <p className="text-white/40 text-sm">No one has viewed this status yet.</p>
               ) : (
-                (analyticsData?.views || currentStatus.views || []).map((view, vi) => (
-                  <div key={vi} className="flex items-center gap-3 bg-white/5 rounded-xl px-3 py-2">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white text-xs font-bold">
-                      {(view.user?.username || view.username || '?').charAt(0).toUpperCase()}
+                (analyticsData?.views || currentStatus.views || []).map((view, vi) => {
+                  const viewerName = view.user?.username || view.username || 'Unknown';
+                  const viewerPic = view.user?.profilePicture || view.profilePicture || '';
+                  const viewedAt = view.viewedAt ? new Date(view.viewedAt) : null;
+                  const sameDay = viewedAt && new Date().toDateString() === viewedAt.toDateString();
+                  const timeStr = viewedAt
+                    ? (sameDay
+                        ? viewedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        : viewedAt.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + viewedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
+                    : '';
+                  return (
+                    <div key={vi} className="flex items-center gap-3 bg-white/5 rounded-xl px-3 py-2 hover:bg-white/10 transition-colors">
+                      {viewerPic ? (
+                        <img
+                          src={viewerPic}
+                          alt={viewerName}
+                          className="w-9 h-9 rounded-full object-cover border border-white/20"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
+                      ) : null}
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                        {viewerName.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm font-medium truncate">{viewerName}</p>
+                        <p className="text-white/40 text-[11px]">
+                          {viewedAt ? `Viewed ${sameDay ? 'today at' : 'on'} ${timeStr}` : ''}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm truncate">{view.user?.username || view.username || 'Unknown'}</p>
-                    </div>
-                    <p className="text-white/40 text-xs">
-                      {view.viewedAt ? new Date(view.viewedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-                    </p>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
