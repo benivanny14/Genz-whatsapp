@@ -633,15 +633,28 @@ exports.restoreStatuses = async (req, res) => {
 // POST /api/status/:id/qr - Generate QR code for status
 exports.generateQRCode = async (req, res) => {
   try {
-    const statusId = req.params.id;
-    const status = await Status.findById(statusId);
-    
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+    // The frontend posts to /status-advanced/qr without a URL param; the
+    // status id comes in the body. Fall back to req.params.id for legacy calls.
+    const statusId = req.body?.statusId || req.body?.id || req.params.id;
+    let status = null;
+    if (statusId) {
+      status = await Status.findById(statusId).catch(() => null);
+    }
 
-    // In production, use QR code library
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${process.env.PUBLIC_URL || 'http://localhost:5174'}/status/${statusId}`)}`;
+    // If no valid status, still generate a QR for the custom URL / profile link
+    const base = process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`;
+    const targetUrl = req.body?.url || (status ? `${base}/status/${statusId}` : base);
 
-    res.json({ success: true, qrCodeUrl });
+    // Size/style/color passed from the picker; qrserver supports style options
+    const size = Number(req.body?.size) || 256;
+    const color = (req.body?.color || '#000000').replace('#', '');
+    const style = req.body?.style || 'square';
+    const styleParam = style === 'rounded' ? '&qzone=2' : style === 'dots' ? '&dots=1' : style === 'circle' ? '&circle=1' : '';
+
+    // In production, use QR code library (qrserver fallback)
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&color=${color}${styleParam}&data=${encodeURIComponent(targetUrl)}`;
+
+    res.json({ success: true, qrCodeUrl, url: targetUrl });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

@@ -46,6 +46,7 @@ const StatusQRCodePanel = ({ onClose, status }) => {
         },
         body: JSON.stringify({
           url: statusUrl,
+          statusId: status?._id || status?.id || '',
           style: qrStyle,
           color: qrColor,
           size: qrSize,
@@ -136,6 +137,7 @@ const StatusQRCodePanel = ({ onClose, status }) => {
                 className="flex-1 bg-white/10 text-white px-4 py-3 rounded-xl border border-white/20 focus:border-[#00a884] focus:outline-none"
               />
               <button
+                type="button"
                 onClick={generateQRCode}
                 className="px-4 py-3 bg-[#00a884] hover:bg-[#008f6f] rounded-xl text-white"
               >
@@ -151,6 +153,7 @@ const StatusQRCodePanel = ({ onClose, status }) => {
               {qrStyles.map((style) => (
                 <button
                   key={style.id}
+                  type="button"
                   onClick={() => setQrStyle(style.id)}
                   className={`p-3 rounded-xl text-sm transition-colors ${
                     qrStyle === style.id
@@ -171,6 +174,7 @@ const StatusQRCodePanel = ({ onClose, status }) => {
               {colors.map((color) => (
                 <button
                   key={color.id}
+                  type="button"
                   onClick={() => setQrColor(color.id)}
                   className={`w-10 h-10 rounded-xl transition-colors ${
                     qrColor === color.id ? 'ring-2 ring-[#00a884]' : ''
@@ -210,6 +214,7 @@ const StatusQRCodePanel = ({ onClose, status }) => {
           {/* Action Buttons */}
           <div className="grid grid-cols-3 gap-2">
             <button
+              type="button"
               onClick={handleDownload}
               className="px-4 py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white font-medium flex items-center justify-center gap-2"
             >
@@ -217,6 +222,7 @@ const StatusQRCodePanel = ({ onClose, status }) => {
               Download
             </button>
             <button
+              type="button"
               onClick={handleCopyLink}
               className="px-4 py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white font-medium flex items-center justify-center gap-2"
             >
@@ -224,6 +230,7 @@ const StatusQRCodePanel = ({ onClose, status }) => {
               Copy Link
             </button>
             <button
+              type="button"
               onClick={handleShare}
               className="px-4 py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white font-medium flex items-center justify-center gap-2"
             >
@@ -236,6 +243,7 @@ const StatusQRCodePanel = ({ onClose, status }) => {
         {/* Footer */}
         <div className="bg-[#0b141a] p-4 border-t border-[#00a884]/20">
           <button
+            type="button"
             onClick={onClose}
             className="w-full px-4 py-3 bg-white/10 hover:bg-white/20 rounded-lg text-white font-medium"
           >

@@ -178,6 +178,15 @@ const Status = () => {
   const timerRef = useRef(null);
   const recordStreamRef = useRef(null);
 
+  // ── Dual camera state ──
+  const [dualCamActive, setDualCamActive] = useState(false);
+  const [dualCamError, setDualCamError] = useState('');
+  const [dualCamCaptured, setDualCamCaptured] = useState(false);
+  const dualCamStreamsRef = useRef([]);
+  const frontVideoRef = useRef(null);
+  const backVideoRef = useRef(null);
+  const dualCamCanvasRef = useRef(null);
+
   // Update edit URLs when uploadData.file changes
   useEffect(() => {
     if (uploadData.file) {
@@ -613,6 +622,112 @@ const Status = () => {
     setIsRecording(false);
     setIsPaused(false);
     setRecordingTime(0);
+  };
+
+  // ── Dual camera (front + back at once, picture-in-picture like WhatsApp) ──
+  const openDualCamera = async () => {
+    setDualCamError('');
+    setDualCamCaptured(false);
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setDualCamError('Camera not supported in this browser');
+      return;
+    }
+    try {
+      const [frontStream, backStream] = await Promise.all([
+        navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 320 }, height: { ideal: 320 } },
+          audio: false
+        }).catch(() => null),
+        navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 640 } },
+          audio: false
+        }).catch(() => null)
+      ]);
+      if (!frontStream && !backStream) {
+        setDualCamError('Could not access cameras. Check permissions and try again.');
+        return;
+      }
+      dualCamStreamsRef.current = [frontStream, backStream].filter(Boolean);
+      setDualCamActive(true);
+      // Let the video elements attach after render
+      setTimeout(() => {
+        if (frontStream && frontVideoRef.current) {
+          frontVideoRef.current.srcObject = frontStream;
+          frontVideoRef.current.play().catch(() => {});
+        }
+        if (backStream && backVideoRef.current) {
+          backVideoRef.current.srcObject = backStream;
+          backVideoRef.current.play().catch(() => {});
+        }
+      }, 100);
+    } catch (err) {
+      console.error('Dual camera error:', err);
+      setDualCamError('Could not open cameras: ' + (err.message || 'permission denied'));
+    }
+  };
+
+  const stopDualCamera = () => {
+    dualCamStreamsRef.current.forEach((s) => s && s.getTracks().forEach((t) => t.stop()));
+    dualCamStreamsRef.current = [];
+    setDualCamActive(false);
+  };
+
+  const captureDualCamera = () => {
+    const canvas = dualCamCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const back = backVideoRef.current;
+    const front = frontVideoRef.current;
+    const bw = back && back.videoWidth ? back.videoWidth : 640;
+    const bh = back && back.videoHeight ? back.videoHeight : 640;
+    const fw = front && front.videoWidth ? front.videoWidth : 320;
+    const fh = front && front.videoHeight ? front.videoHeight : 320;
+    const size = Math.max(bw, bh);
+    canvas.width = size;
+    canvas.height = size;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, size, size);
+    // Back camera fills the canvas
+    if (back && back.videoWidth) {
+      const s = Math.min(size / bw, size / bh);
+      const dw = bw * s, dh = bh * s;
+      ctx.drawImage(back, (size - dw) / 2, (size - dh) / 2, dw, dh);
+    } else {
+      ctx.fillStyle = '#1f2937';
+      ctx.fillRect(0, 0, size, size);
+      ctx.fillStyle = '#6b7280';
+      ctx.font = '24px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Back camera unavailable', size / 2, size / 2);
+    }
+    // Front camera as a small rounded overlay (picture-in-picture) in the corner
+    if (front && front.videoWidth) {
+      const overlay = Math.round(size * 0.32);
+      const margin = Math.round(size * 0.03);
+      const x = size - overlay - margin;
+      const y = margin;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x + overlay / 2, y + overlay / 2, overlay / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      const s = Math.max(overlay / fw, overlay / fh);
+      const dw = fw * s, dh = fh * s;
+      ctx.drawImage(front, x - (dw - overlay) / 2, y - (dh - overlay) / 2, dw, dh);
+      ctx.restore();
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x + overlay / 2, y + overlay / 2, overlay / 2, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const file = new File([blob], 'dual-camera-status.png', { type: 'image/png' });
+      setUploadData((prev) => ({ ...prev, file, type: 'dualCamera', caption: prev.caption || 'Dual camera status' }));
+      setDualCamCaptured(true);
+      stopDualCamera();
+    }, 'image/png');
   };
 
   const formatRecTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -1378,6 +1493,80 @@ const Status = () => {
                 </div>
               </div>
 
+              {uploadData.type === 'dualCamera' && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Dual Camera — Front + Back at once
+                  </label>
+                  {!dualCamActive && !uploadData.file && (
+                    <div className="rounded-lg border border-gray-300 dark:border-gray-600 p-4 flex flex-col items-center space-y-3">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                        Capture with both cameras at the same time. The front camera appears in a small circle over the main camera view.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={openDualCamera}
+                        className="px-4 py-2 bg-[#00a884] text-white rounded-full text-sm font-medium hover:bg-[#008f6f] transition-colors flex items-center gap-2"
+                      >
+                        <Camera size={16} /> Open Dual Camera
+                      </button>
+                    </div>
+                  )}
+                  {dualCamError && (
+                    <p className="text-xs text-red-500 mt-1">{dualCamError}</p>
+                  )}
+                  {dualCamActive && (
+                    <div className="rounded-lg border border-gray-300 dark:border-gray-600 p-3 space-y-3">
+                      <div className="relative bg-black rounded-lg overflow-hidden" style={{ height: 240 }}>
+                        <video
+                          ref={backVideoRef}
+                          muted
+                          playsInline
+                          className="w-full h-full object-cover"
+                        />
+                        <video
+                          ref={frontVideoRef}
+                          muted
+                          playsInline
+                          className="absolute top-2 right-2 w-24 h-24 rounded-full object-cover border-2 border-white/80 shadow-lg"
+                        />
+                      </div>
+                      <div className="flex justify-center gap-3">
+                        <button
+                          type="button"
+                          onClick={captureDualCamera}
+                          className="px-5 py-2 bg-[#00a884] text-white rounded-full text-sm font-medium hover:bg-[#008f6f] transition-colors"
+                        >
+                          Capture
+                        </button>
+                        <button
+                          type="button"
+                          onClick={stopDualCamera}
+                          className="px-5 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {uploadData.file && !dualCamActive && (
+                    <div className="rounded-lg border border-gray-300 dark:border-gray-600 p-3 flex items-center justify-between">
+                      <p className="text-xs text-gray-600 dark:text-gray-300">
+                        {dualCamCaptured ? '✓ Dual camera photo captured — ready to post' : 'Photo attached'}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setUploadData((prev) => ({ ...prev, file: null }))}
+                        className="text-xs text-red-500 hover:text-red-600"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                  <canvas ref={dualCamCanvasRef} className="hidden" />
+                </div>
+              )}
+
               {['image', 'video', 'audio', 'boomerang', 'livePhoto', 'dualCamera'].includes(uploadData.type) && (
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -1747,8 +1936,8 @@ const Status = () => {
                     <div className="flex-1">
                       <p className="text-sm text-gray-800 dark:text-gray-100">Only Share With...</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {uploadData.includedViewers.length > 0
-                          ? `${uploadData.includedViewers.length} contact${uploadData.includedViewers.length > 1 ? 's' : ''} selected`
+                        {(uploadData.includedViewers || []).length > 0
+                          ? `${(uploadData.includedViewers || []).length} contact${(uploadData.includedViewers || []).length > 1 ? 's' : ''} selected`
                           : 'Choose specific people to share your status with'}
                       </p>
                     </div>
@@ -1764,8 +1953,8 @@ const Status = () => {
                     <div className="flex-1">
                       <p className="text-sm text-gray-800 dark:text-gray-100">My Contacts Except...</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {uploadData.excludedViewers.length > 0
-                          ? `${uploadData.excludedViewers.length} contact${uploadData.excludedViewers.length > 1 ? 's' : ''} hidden`
+                        {(uploadData.excludedViewers || []).length > 0
+                          ? `${(uploadData.excludedViewers || []).length} contact${(uploadData.excludedViewers || []).length > 1 ? 's' : ''} hidden`
                           : 'Hide your status from specific contacts'}
                       </p>
                     </div>
