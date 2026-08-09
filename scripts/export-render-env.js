@@ -1,44 +1,48 @@
 #!/usr/bin/env node
 /**
- * Export backend/.env as Render-ready KEY=VALUE lines (for dashboard paste).
+ * Export GENZ WhatsApp env as Render-ready KEY=VALUE lines (dashboard paste).
+ * Uses the same tiered config + secret generation as setup-render-env.js.
+ *
  * Output: scripts/render-env-export.txt (gitignored)
+ * Generated secrets are also appended to backend/.env so you keep a copy.
+ *
+ * Usage:
+ *   node scripts/export-render-env.js
  */
 const fs = require('fs');
 const path = require('path');
+const { buildEnv } = require('./render-env-config');
 
-const ENV_PATH = path.join(__dirname, '../backend/.env');
+const ROOT = path.join(__dirname, '..');
+const ENV_PATH = path.join(ROOT, 'backend', '.env');
 const OUT_PATH = path.join(__dirname, 'render-env-export.txt');
 
-const PRODUCTION_OVERRIDES = {
-  NODE_ENV: 'production',
-  PORT: '5000',
-  FRONTEND_URL: 'https://genz-whatsapp-1.onrender.com',
-  PUBLIC_API_URL: 'https://genz-whatsapp-1.onrender.com',
-  ALLOW_ANONYMOUS_DEVICE_AUTH: 'false',
-  ALLOW_SOCKET_WITHOUT_AUTH: 'false',
-  ALLOW_MOCK_PAYMENTS: 'false'
-};
-
-function parse(file) {
-  const out = { ...PRODUCTION_OVERRIDES };
-  for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
-    const t = line.trim();
-    if (!t || t.startsWith('#')) continue;
-    const i = t.indexOf('=');
-    if (i < 0) continue;
-    out[t.slice(0, i).trim()] = t.slice(i + 1).trim();
-  }
-  if (!out.JWT_REFRESH_SECRET && out.JWT_SECRET) {
-    out.JWT_REFRESH_SECRET = `${out.JWT_SECRET}-refresh`;
-  }
-  return out;
+function appendToEnvFile(filePath, entries) {
+  const header = '\n# ── Auto-generated secrets (from scripts/export-render-env.js) ──\n';
+  const block = entries.map(([k, v]) => `${k}=${v}`).join('\n');
+  fs.appendFileSync(filePath, header + block + '\n');
 }
 
-const env = parse(ENV_PATH);
+const { env, generated, warnings, errors } = buildEnv(ENV_PATH);
+
+if (errors.length) {
+  console.warn('Warnings/errors from build:');
+  for (const e of errors) console.warn(`  ✗ ${e}`);
+}
+if (warnings.length) {
+  for (const w of warnings) console.warn(`  ⚠ ${w}`);
+}
+
 const lines = Object.entries(env)
-  .filter(([, v]) => v && !String(v).startsWith('your_'))
   .map(([k, v]) => `${k}=${v}`);
 
 fs.writeFileSync(OUT_PATH, lines.join('\n') + '\n');
-console.log(`Exported ${lines.length} variables → ${OUT_PATH}`);
-console.log('Paste each line in Render Dashboard → genz-whatsapp → Environment');
+
+if (generated.length) {
+  appendToEnvFile(ENV_PATH, generated);
+  console.log(`\n${generated.length} generated secrets appended to backend/.env — keep this file safe.`);
+}
+
+console.log(`\nExported ${lines.length} variables → ${OUT_PATH}`);
+console.log('Paste each line in Render Dashboard → genz-whatsapp → Environment.');
+console.log('NOTE: values in the file include generated secrets — delete the file after pasting, and never commit it.');

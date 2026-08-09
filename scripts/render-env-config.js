@@ -1,0 +1,219 @@
+#!/usr/bin/env node
+/**
+ * Shared Render environment configuration for GENZ WhatsApp.
+ *
+ * Tiers:
+ *  - REQUIRED    : the server fails closed in production without these
+ *                  (see backend/utils/validateEnv.js + backend/config/secrets.js).
+ *  - RECOMMENDED : strongly advised before onboarding real users (media,
+ *                  push notifications, payments, OTP, Redis).
+ *  - OPTIONAL    : used only when the corresponding feature is enabled.
+ *
+ * Every entry supports:
+ *  - value     : fixed default applied when nothing is set locally
+ *  - generate  : generate a strong random secret when missing/placeholder
+ *  - generateVapid : generate a VAPID key pair (both keys together)
+ *  - required  : hard error when missing locally (e.g. MONGODB_URI)
+ */
+const crypto = require('crypto');
+
+const PLACEHOLDER_RE = /change-me|changeme|your_|your-|example\.com/i;
+
+const isPlaceholder = (v) => typeof v === 'string' && PLACEHOLDER_RE.test(v);
+
+const randomSecret = () => crypto.randomBytes(48).toString('hex');
+
+// VAPID key pair in the format web-push expects: EC P-256, public key is the
+// 65-byte uncompressed point, private key 32 bytes — both base64url encoded.
+function generateVapidKeys() {
+  const ecdh = crypto.createECDH('prime256v1');
+  ecdh.generateKeys();
+  return {
+    publicKey: ecdh.getPublicKey().toString('base64url'),
+    privateKey: ecdh.getPrivateKey().toString('base64url')
+  };
+}
+
+const REQUIRED = {
+  NODE_ENV: { value: 'production', desc: 'Environment (must be production)' },
+  PORT: { value: '5000', desc: 'Server port' },
+  JWT_EXPIRE: { value: '7d', desc: 'Access token lifetime' },
+  MONGODB_URI: { required: true, desc: 'MongoDB Atlas connection string' },
+  JWT_SECRET: { generate: true, desc: 'JWT access token secret' },
+  JWT_REFRESH_SECRET: { generate: true, desc: 'JWT refresh token secret (must differ from JWT_SECRET)' },
+  ADMIN_JWT_SECRET: { generate: true, desc: 'Admin JWT secret' },
+  ADMIN_BOOTSTRAP_TOKEN: { generate: true, desc: 'One-time admin bootstrap token' },
+  BACKUP_ENCRYPTION_KEY: { generate: true, desc: 'Backup encryption key' },
+  MESSAGE_ENCRYPTION_SECRET: { generate: true, desc: 'Message encryption secret' },
+  FRONTEND_URL: { value: 'https://genz-whatsapp-1.onrender.com', desc: 'Frontend origin (CORS/CSRF allowlist)' },
+  PUBLIC_API_URL: { value: 'https://genz-whatsapp-1.onrender.com', desc: 'Public API URL (media links, callbacks)' }
+};
+
+const RECOMMENDED = {
+  CLOUDINARY_CLOUD_NAME: { desc: 'Cloudinary cloud name (media storage)' },
+  CLOUDINARY_API_KEY: { desc: 'Cloudinary API key' },
+  CLOUDINARY_API_SECRET: { desc: 'Cloudinary API secret' },
+  VAPID_PUBLIC_KEY: { generateVapid: true, desc: 'Web Push public key' },
+  VAPID_PRIVATE_KEY: { generateVapid: true, desc: 'Web Push private key' },
+  VAPID_SUBJECT: { value: 'mailto:admin@genz-whatsapp.com', desc: 'Web Push contact' },
+  REDIS_URL: { desc: 'Redis URL (distributed sockets + presence)' },
+  REDIS_PASSWORD: { desc: 'Redis password (optional)' },
+  MANUAL_PAYMENT_RECEIVER_NAME: { desc: 'Mobile-money receiver name shown to users' },
+  MANUAL_PAYMENT_RECEIVER_NUMBER: { desc: 'Mobile-money receiver number (do NOT ship the hardcoded default)' },
+  PHONE_VERIFICATION_REQUIRED: { value: 'true', desc: 'Require OTP phone verification' },
+  ALLOW_ANONYMOUS_DEVICE_AUTH: { value: 'false', desc: 'Block anonymous device auth in prod' },
+  ALLOW_MOCK_PAYMENTS: { value: 'false', desc: 'Block mock payments in prod' },
+  ADMIN_BASE_PATH: { value: '/api/system-gateway-x9k', desc: 'Obscure admin base path' },
+  RP_ID: { desc: 'Passkey relying-party domain (e.g. genz-whatsapp-1.onrender.com)' },
+  WHATSAPP_OTP_ENABLED: { value: 'false', desc: 'Deliver OTPs via WhatsApp' },
+  WHATSAPP_OTP_PROVIDER: { value: 'cloud-api', desc: 'whatsapp-web (risky, ban-prone) or cloud-api (recommended)' },
+  WHATSAPP_OTP_COUNTRY_CODE: { value: '255', desc: 'Default country code for OTP numbers' },
+  WHATSAPP_CLOUD_API_ACCESS_TOKEN: { desc: 'Meta WhatsApp Business Cloud API token' },
+  WHATSAPP_CLOUD_API_PHONE_NUMBER_ID: { desc: 'Meta WhatsApp Business phone number ID' },
+  WHATSAPP_CLOUD_API_VERSION: { value: 'v21.0', desc: 'Meta Graph API version' }
+};
+
+const OPTIONAL = {
+  SENTRY_DSN: { desc: 'Sentry error tracking DSN' },
+  SENTRY_TRACES_SAMPLE_RATE: { value: '0.1', desc: 'Sentry trace sample rate' },
+  SENTRY_PROFILES_SAMPLE_RATE: { value: '0.1', desc: 'Sentry profile sample rate' },
+  METERED_TURN_USERNAME: { desc: 'Metered TURN username (calls)' },
+  METERED_TURN_PASSWORD: { desc: 'Metered TURN password (calls)' },
+  TURN_SERVER_URL: { desc: 'TURN server URL (calls behind NAT)' },
+  TURN_SERVER_URL_TCP: { desc: 'TURN TCP URL (calls)' },
+  TURN_SERVER_URL_TLS: { desc: 'TURNS URL (calls)' },
+  TURN_USERNAME: { desc: 'TURN username' },
+  TURN_CREDENTIAL: { desc: 'TURN credential' },
+  ICE_TRANSPORT_POLICY: { value: 'all', desc: 'ICE transport policy' },
+  ICE_CANDIDATE_POOL_SIZE: { value: '10', desc: 'ICE candidate pool size' },
+  BUNDLE_POLICY: { value: 'balanced', desc: 'WebRTC bundle policy' },
+  RTCP_MUX_POLICY: { value: 'require', desc: 'WebRTC RTCP mux policy' },
+  ICE_CONNECTION_TIMEOUT: { value: '5000', desc: 'ICE connection timeout (ms)' },
+  ICE_GATHERING_TIMEOUT: { value: '3000', desc: 'ICE gathering timeout (ms)' },
+  FIREBASE_PROJECT_ID: { desc: 'Firebase project id (FCM push)' },
+  FIREBASE_CLIENT_EMAIL: { desc: 'Firebase service account email' },
+  FIREBASE_PRIVATE_KEY: { desc: 'Firebase private key' },
+  FIREBASE_PRIVATE_KEY_ID: { desc: 'Firebase private key id' },
+  FIREBASE_CLIENT_ID: { desc: 'Firebase client id' },
+  GIPHY_API_KEY: { desc: 'Giphy API key (GIF search)' },
+  MONGO_MAX_POOL_SIZE: { value: '20', desc: 'MongoDB max pool size' },
+  MONGO_MIN_POOL_SIZE: { value: '0', desc: 'MongoDB min pool size' },
+  LOG_LEVEL: { value: 'info', desc: 'Winston log level' },
+  MAX_UPLOAD_BYTES: { value: '104857600', desc: 'Max upload size in bytes' },
+  JSON_BODY_LIMIT: { value: '2mb', desc: 'JSON body limit' },
+  FORM_BODY_LIMIT: { value: '2mb', desc: 'Form body limit' },
+  TRUST_PROXY: { value: '1', desc: 'Express trust proxy' },
+  WEBHOOK_IP_WHITELIST: { desc: 'Webhook IP allowlist (comma separated)' },
+  ADMIN_IP_ALLOWLIST: { desc: 'Admin panel IP allowlist (comma separated)' },
+  JWT_REFRESH_EXPIRES_IN: { value: '30d', desc: 'Refresh token lifetime' },
+  SMTP_HOST: { desc: 'SMTP host (email currently unused in code)' },
+  SMTP_PORT: { value: '587', desc: 'SMTP port' },
+  SMTP_USER: { desc: 'SMTP username' },
+  SMTP_PASS: { desc: 'SMTP password' },
+  SMTP_FROM: { desc: 'SMTP from address' },
+  AWS_ACCESS_KEY_ID: { desc: 'AWS access key (S3 backups)' },
+  AWS_SECRET_ACCESS_KEY: { desc: 'AWS secret key (S3 backups)' },
+  AWS_REGION: { value: 'us-east-1', desc: 'AWS region (S3 backups)' },
+  S3_BUCKET_NAME: { desc: 'S3 bucket (backups)' },
+  MEDIA_ACCESS_SECRET: { desc: 'Media signed-URL secret (optional; auto-signed fallback exists)' },
+  REQUIRE_MEDIA_SIGNATURE: { value: 'false', desc: 'Require signed media URLs' },
+  MEDIA_URL_TTL_SECONDS: { value: '3600', desc: 'Signed media URL TTL' },
+  BACKUP_SCHEDULE: { value: '0 0 * * *', desc: 'Backup cron schedule' },
+  PUSH_MAX_RETRIES: { value: '3', desc: 'Push delivery retries' }
+};
+
+/**
+ * Build the final env map from a local .env + generation + defaults.
+ * Shared by setup-render-env.js and export-render-env.js.
+ * Returns { env, generated, warnings, errors }.
+ */
+function buildEnv(envPath) {
+  const fs = require('fs');
+
+  const parseEnvFile = (filePath) => {
+    const out = {};
+    if (!fs.existsSync(filePath)) return out;
+    for (const line of fs.readFileSync(filePath, 'utf8').split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const idx = trimmed.indexOf('=');
+      if (idx === -1) continue;
+      out[trimmed.slice(0, idx).trim()] = trimmed.slice(idx + 1).trim();
+    }
+    return out;
+  };
+
+  const local = parseEnvFile(envPath);
+  const env = {};
+  const generated = [];
+  const warnings = [];
+  const errors = [];
+  let vapidPair = null;
+
+  const pick = (key, cfg) => {
+    const localValue = local[key];
+    if (localValue && !isPlaceholder(localValue)) {
+      env[key] = localValue;
+      return;
+    }
+    if (localValue && isPlaceholder(localValue)) {
+      warnings.push(`${key}: local .env value looks like a placeholder — overriding with a generated/default value`);
+    }
+    if (cfg.generate) {
+      const secret = randomSecret();
+      env[key] = secret;
+      generated.push([key, secret]);
+      return;
+    }
+    if (cfg.generateVapid) {
+      if (!vapidPair) vapidPair = generateVapidKeys();
+      const part = key === 'VAPID_PUBLIC_KEY' ? 'publicKey' : 'privateKey';
+      env[key] = vapidPair[part];
+      if (key === 'VAPID_PUBLIC_KEY') {
+        generated.push(['VAPID_PUBLIC_KEY', vapidPair.publicKey], ['VAPID_PRIVATE_KEY', vapidPair.privateKey]);
+      }
+      return;
+    }
+    if (cfg.value !== undefined) {
+      env[key] = cfg.value;
+      return;
+    }
+    if (cfg.required) {
+      errors.push(`${key}: REQUIRED but missing locally — set it in backend/.env first`);
+      return;
+    }
+    if (RECOMMENDED[key]) {
+      warnings.push(`${key}: not set — ${cfg.desc}`);
+    }
+  };
+
+  for (const [key, cfg] of Object.entries(REQUIRED)) pick(key, cfg);
+  for (const [key, cfg] of Object.entries(RECOMMENDED)) pick(key, cfg);
+  for (const [key, cfg] of Object.entries(OPTIONAL)) {
+    const localValue = local[key];
+    if (localValue && !isPlaceholder(localValue)) env[key] = localValue;
+    else if (cfg.value !== undefined) env[key] = cfg.value;
+  }
+
+  if (env.JWT_REFRESH_SECRET && env.JWT_SECRET && env.JWT_REFRESH_SECRET === env.JWT_SECRET) {
+    errors.push('JWT_REFRESH_SECRET must differ from JWT_SECRET in production');
+  }
+  for (const [key, value] of Object.entries(env)) {
+    if (isPlaceholder(value)) {
+      errors.push(`${key}: placeholder value would be pushed to production — fix backend/.env first`);
+    }
+  }
+
+  return { env, generated, warnings, errors };
+}
+
+module.exports = {
+  REQUIRED,
+  RECOMMENDED,
+  OPTIONAL,
+  ALL_KEYS: { ...REQUIRED, ...RECOMMENDED, ...OPTIONAL },
+  randomSecret,
+  generateVapidKeys,
+  isPlaceholder,
+  buildEnv
+};

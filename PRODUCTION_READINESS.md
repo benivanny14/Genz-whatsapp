@@ -4,6 +4,11 @@ This checklist covers everything that must be configured before GENZ WhatsApp
 is exposed to a large number of real users. Each item is either a deployment
 environment variable (set in Render/Railway/VPS) or a code decision.
 
+> 🚀 **Fast path:** run `scripts/setup-render-env.js` (see
+> `RENDER_DEPLOY_GUIDE.md` for the step-by-step walkthrough). It sets every
+> variable below, auto-generates missing secrets and VAPID keys, refuses
+> placeholders, and saves generated secrets to `backend/.env`.
+
 ---
 
 ## 🔴 Required before launch

@@ -1,39 +1,33 @@
 #!/usr/bin/env node
 /**
- * Sync backend/.env variables to a Render web service.
+ * Sync GENZ WhatsApp environment variables to a Render web service.
+ *
+ * Features:
+ *  - Tiered keys (REQUIRED / RECOMMENDED / OPTIONAL) from render-env-config.js
+ *  - Auto-generates missing secrets (JWT, admin, encryption) and VAPID keys —
+ *    generated values are APPENDED to backend/.env so you keep a copy locally
+ *  - Refuses placeholder values (change-me / your-... / example.com)
+ *  - Never derives JWT_REFRESH_SECRET from JWT_SECRET (they must differ in prod)
+ *  - --dry-run previews what would be applied without touching Render
  *
  * Usage:
  *   set RENDER_API_KEY=rnd_xxx
  *   node scripts/setup-render-env.js --service-id srv-xxx
  *   node scripts/setup-render-env.js --service-name genz-whatsapp
+ *   node scripts/setup-render-env.js --service-id srv-xxx --dry-run
  */
 const fs = require('fs');
 const path = require('path');
+const { buildEnv } = require('./render-env-config');
 
 const API = 'https://api.render.com/v1';
 const ROOT = path.join(__dirname, '..');
 const ENV_PATH = path.join(ROOT, 'backend', '.env');
 
-const RENDER_KEYS = [
-  'NODE_ENV', 'PORT', 'MONGODB_URI', 'JWT_SECRET', 'JWT_REFRESH_SECRET', 'JWT_EXPIRE',
-  'FRONTEND_URL', 'PUBLIC_API_URL', 'ADMIN_BOOTSTRAP_TOKEN', 'BACKUP_ENCRYPTION_KEY',
-  'MESSAGE_ENCRYPTION_SECRET', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET',
-  'SMTP_HOST', 'SMTP_USER', 'SMTP_PASS', 'VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY', 'VAPID_SUBJECT',
-  'ALLOW_ANONYMOUS_DEVICE_AUTH', 'ALLOW_SOCKET_WITHOUT_AUTH', 'ALLOW_MOCK_PAYMENTS',
-  'REDIS_URL', 'TURN_SERVER_URL', 'TURN_USERNAME', 'TURN_CREDENTIAL'
-];
-
-function parseEnvFile(filePath) {
-  if (!fs.existsSync(filePath)) throw new Error(`Missing ${filePath}`);
-  const out = {};
-  for (const line of fs.readFileSync(filePath, 'utf8').split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const idx = trimmed.indexOf('=');
-    if (idx === -1) continue;
-    out[trimmed.slice(0, idx).trim()] = trimmed.slice(idx + 1).trim();
-  }
-  return out;
+function appendToEnvFile(filePath, entries) {
+  const header = '\n# ── Auto-generated secrets (from scripts/setup-render-env.js) ──\n';
+  const block = entries.map(([k, v]) => `${k}=${v}`).join('\n');
+  fs.appendFileSync(filePath, header + block + '\n');
 }
 
 function getArg(name) {
@@ -65,8 +59,8 @@ async function resolveServiceId() {
   const name = getArg('--service-name') || 'genz-whatsapp';
   let cursor;
   do {
-    const q = cursor ? `?cursor=${cursor}` : '';
-    const page = await api(`/services?limit=100${q.replace('?', '&')}`);
+    const q = cursor ? `&cursor=${cursor}` : '';
+    const page = await api(`/services?limit=100${q}`);
     const match = (page || []).find((s) => s.service?.name === name || s.name === name);
     if (match) return match.service?.id || match.id;
     cursor = page?.length ? page[page.length - 1]?.cursor : null;
@@ -74,39 +68,62 @@ async function resolveServiceId() {
   throw new Error(`Service not found: ${name}`);
 }
 
+function printPlan(serviceId, { env, generated, warnings, errors }) {
+  console.log(`\n=== Render env plan for service: ${serviceId} ===`);
+  console.log(`Total variables: ${Object.keys(env).length} (${generated.length} auto-generated)`);
+  if (generated.length) {
+    console.log('\nAuto-generated (saved to backend/.env, NOT shown here):');
+    for (const [key] of generated) console.log(`  + ${key}`);
+  }
+  if (warnings.length) {
+    console.log('\nWarnings:');
+    for (const w of warnings) console.log(`  ⚠ ${w}`);
+  }
+  if (errors.length) {
+    console.log('\nErrors (fix these before applying):');
+    for (const e of errors) console.log(`  ✗ ${e}`);
+  }
+}
+
 async function main() {
-  const local = parseEnvFile(ENV_PATH);
+  const dryRun = process.argv.includes('--dry-run');
+  const { env, generated, warnings, errors } = buildEnv(ENV_PATH);
+
+  if (!dryRun) {
+    const missingRequired = errors.filter((e) => e.includes('REQUIRED'));
+    if (missingRequired.length) {
+      console.error('Cannot continue — required variables are missing:\n');
+      for (const e of missingRequired) console.error(`  ✗ ${e}`);
+      console.error('\nAdd them to backend/.env (see RENDER_DEPLOY_GUIDE.md) and re-run.');
+      process.exit(1);
+    }
+  }
+
+  if (dryRun) {
+    printPlan('(dry-run)', { env, generated, warnings, errors });
+    console.log('\nDry-run complete — nothing was sent to Render.');
+    return;
+  }
+
   const serviceId = await resolveServiceId();
-  const productionDefaults = {
-    NODE_ENV: 'production',
-    PORT: '5000',
-    FRONTEND_URL: 'https://genz-whatsapp-1.onrender.com',
-    PUBLIC_API_URL: 'https://genz-whatsapp-1.onrender.com',
-    ALLOW_ANONYMOUS_DEVICE_AUTH: 'false',
-    ALLOW_SOCKET_WITHOUT_AUTH: 'false',
-    ALLOW_MOCK_PAYMENTS: 'false'
-  };
+  printPlan(serviceId, { env, generated, warnings, errors });
 
-  const payload = { ...productionDefaults };
-  for (const key of RENDER_KEYS) {
-    if (local[key]) payload[key] = local[key];
-  }
-  if (!payload.JWT_REFRESH_SECRET && payload.JWT_SECRET) {
-    payload.JWT_REFRESH_SECRET = `${payload.JWT_SECRET}-refresh`;
-  }
-  if (!payload.FRONTEND_URL) payload.FRONTEND_URL = 'https://genz-whatsapp-1.onrender.com';
-  if (!payload.PUBLIC_API_URL) payload.PUBLIC_API_URL = 'https://genz-whatsapp-1.onrender.com';
-  if (!payload.FRONTEND_URL) payload.FRONTEND_URL = payload.PUBLIC_API_URL;
-
-  console.log(`Updating ${Object.keys(payload).length} env vars on service ${serviceId}...`);
-  for (const [key, value] of Object.entries(payload)) {
+  console.log(`\nApplying ${Object.keys(env).length} env vars to ${serviceId}...`);
+  for (const [key, value] of Object.entries(env)) {
     await api(`/services/${serviceId}/env-vars`, {
       method: 'POST',
       body: { envVar: { key, value } }
     });
     console.log(`  ✓ ${key}`);
   }
-  console.log('\nDone. Trigger redeploy from Render dashboard if needed.');
+
+  if (generated.length) {
+    appendToEnvFile(ENV_PATH, generated);
+    console.log(`\n${generated.length} generated secrets appended to backend/.env — keep this file safe.`);
+  }
+
+  console.log('\nDone. Trigger a redeploy from the Render dashboard (Manual Deploy → Deploy latest commit).');
+  console.log('Then verify: curl https://YOUR-URL/api/health  → mongo connected, mediaStorage: cloudinary');
 }
 
 main().catch((e) => {
