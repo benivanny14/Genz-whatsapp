@@ -68,7 +68,11 @@ router.post('/profile/picture', protect, uploadImage, validateFileContent, uploa
 router.get('/settings', protect, getSettings);
 router.put('/settings', protect, updateSettings);
 router.get('/blocked', protect, privacyMiddleware, getBlockedUsers);
-router.post('/logout', protect, logout);
+// Logout must NOT require auth: the frontend calls it fire-and-forget during
+// session clear even when the user is already logged out (no access token),
+// and a 401 there only adds console noise. The controller guards req.user and
+// always clears the httpOnly cookies, so it is safe to call unauthenticated.
+router.post('/logout', logout);
 router.post('/change-number', protect, changeNumber);
 router.post('/change-password', protect, changePassword);
 router.post('/delete-account', protect, deleteAccount);
