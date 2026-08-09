@@ -41,6 +41,90 @@ const StickerCreator = ({ onClose, onStickerCreated }) => {
     setError('');
   };
 
+  // Smart crop: detect the content bounding box (pixels that are not near-white
+  // or transparent), then crop a square centered on it and scale to 512×512 with
+  // a transparent background — WhatsApp-style stickers instead of white bars.
+  const createSquareSticker = (source, srcW, srcH) => {
+    const detectCanvas = document.createElement('canvas');
+    detectCanvas.width = srcW;
+    detectCanvas.height = srcH;
+    const dctx = detectCanvas.getContext('2d');
+    dctx.drawImage(source, 0, 0, srcW, srcH);
+
+    let imgData = null;
+    try { imgData = dctx.getImageData(0, 0, srcW, srcH); } catch (e) { /* cross-origin */ }
+
+    let box = null;
+    if (imgData) {
+      const { data, width, height } = imgData;
+      const threshold = 240; // treat near-white as background
+      let minX = width, minY = height, maxX = -1, maxY = -1;
+      for (let y = 0; y < height; y += 2) {
+        for (let x = 0; x < width; x += 2) {
+          const i = (y * width + x) * 4;
+          const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
+          const isBg = a < 25 || (r > threshold && g > threshold && b > threshold);
+          if (!isBg) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+      if (maxX >= 0 && maxY >= 0 && (maxX - minX) > 8 && (maxY - minY) > 8) {
+        box = { minX, minY, maxX, maxY };
+      }
+    }
+
+    const pad = 12;
+    let cropX, cropY, cropW, cropH;
+    if (box) {
+      cropX = Math.max(0, box.minX - pad);
+      cropY = Math.max(0, box.minY - pad);
+      cropW = Math.min(srcW - cropX, box.maxX - box.minX + pad * 2);
+      cropH = Math.min(srcH - cropY, box.maxY - box.minY + pad * 2);
+    } else {
+      cropX = 0; cropY = 0; cropW = srcW; cropH = srcH;
+    }
+
+    // Make the crop region square, centered on the detected content
+    const side = Math.max(cropW, cropH);
+    let sx = cropX + cropW / 2 - side / 2;
+    let sy = cropY + cropH / 2 - side / 2;
+    sx = Math.max(0, Math.min(sx, srcW - side));
+    sy = Math.max(0, Math.min(sy, srcH - side));
+    const actualSide = Math.min(side, srcW - sx, srcH - sy);
+    sx = Math.max(0, Math.min(sx, srcW - actualSide));
+    sy = Math.max(0, Math.min(sy, srcH - actualSide));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+    // Transparent background (WhatsApp-style stickers)
+    ctx.clearRect(0, 0, 512, 512);
+
+    // Only draw inside the detected content box; everything outside stays
+    // transparent (no white bars / letterboxing around the subject).
+    const scale = 512 / actualSide;
+    if (box) {
+      const contentX = (box.minX - sx) * scale;
+      const contentY = (box.minY - sy) * scale;
+      const contentW = (box.maxX - box.minX) * scale;
+      const contentH = (box.maxY - box.minY) * scale;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(contentX, contentY, contentW, contentH);
+      ctx.clip();
+      ctx.drawImage(detectCanvas, sx, sy, actualSide, actualSide, 0, 0, 512, 512);
+      ctx.restore();
+    } else {
+      ctx.drawImage(detectCanvas, sx, sy, actualSide, actualSide, 0, 0, 512, 512);
+    }
+    return canvas;
+  };
+
   const processSticker = async () => {
     if (!media) {
       setError('Please select an image or video first');
@@ -50,16 +134,7 @@ const StickerCreator = ({ onClose, onStickerCreated }) => {
     setError('');
 
     try {
-      const canvas = document.createElement('canvas');
-      canvas.width = 512;
-      canvas.height = 512;
-      const ctx = canvas.getContext('2d');
-
-      // White background, content centered with padding
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, 512, 512);
-
-      let w, h;
+      let outCanvas;
       if (media.type === 'image') {
         const img = new Image();
         await new Promise((resolve, reject) => {
@@ -67,25 +142,17 @@ const StickerCreator = ({ onClose, onStickerCreated }) => {
           img.onerror = reject;
           img.src = media.url;
         });
-        const scale = Math.min(460 / img.width, 460 / img.height);
-        w = img.width * scale;
-        h = img.height * scale;
-        ctx.drawImage(img, (512 - w) / 2, (512 - h) / 2, w, h);
+        outCanvas = createSquareSticker(img, img.naturalWidth, img.naturalHeight);
       } else {
         // Video: use the frame the user paused on
         const video = videoRef.current;
         if (!video || !video.videoWidth) {
           throw new Error('Video frame not ready');
         }
-        const vw = video.videoWidth;
-        const vh = video.videoHeight;
-        const scale = Math.min(460 / vw, 460 / vh);
-        w = vw * scale;
-        h = vh * scale;
-        ctx.drawImage(video, (512 - w) / 2, (512 - h) / 2, w, h);
+        outCanvas = createSquareSticker(video, video.videoWidth, video.videoHeight);
       }
 
-      const stickerUrl = canvas.toDataURL('image/png');
+      const stickerUrl = outCanvas.toDataURL('image/png');
 
       const sticker = {
         id: Date.now().toString(),
@@ -182,7 +249,7 @@ const StickerCreator = ({ onClose, onStickerCreated }) => {
                   <VideoIcon size={12} /> Pause the video on the frame you want, then create the sticker
                 </p>
               ) : (
-                <p className="text-white/40 text-xs text-center">Sticker will be created at 512×512 with a white background</p>
+                <p className="text-white/40 text-xs text-center">Sticker will be smart-cropped to 512×512 with a transparent background</p>
               )}
             </div>
           )}

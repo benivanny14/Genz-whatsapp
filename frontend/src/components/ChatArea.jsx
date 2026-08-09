@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useChat, applyVoiceEffect } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
-import { ArrowLeft, MoreVertical, Search, Smile, Paperclip, Send, Mic, Image as ImageIcon, MessageCircle, Ghost, Forward, Square, MapPin, ShieldCheck, Globe, BarChart2, CalendarClock, Info, UserMinus, UserCheck, ShieldAlert, Copy, Link, Pin, X, Edit, Briefcase, Plus, Eye, EyeOff, Clock, Lock, Sticker, Download, FileText, Camera, Headphones, Contact, Trash2, Reply, Share2, Star, Archive, BellOff, Bell, Radio, Users, Languages, Grid3x3, Lock as LockIcon, Unlock, ChevronLeft, AtSign, DollarSign, Video as VideoIcon } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Search, Smile, Paperclip, Send, Mic, Image as ImageIcon, MessageCircle, Ghost, Forward, Square, MapPin, ShieldCheck, Globe, BarChart2, CalendarClock, Info, UserMinus, UserCheck, ShieldAlert, Copy, Link, Pin, X, Edit, Briefcase, Plus, Eye, EyeOff, Clock, Lock, Sticker, Download, FileText, Camera, Headphones, Contact, Trash2, Reply, Share2, Star, Archive, BellOff, Bell, Radio, Users, Languages, Grid3x3, Lock as LockIcon, Unlock, ChevronLeft, AtSign, DollarSign, Video as VideoIcon, Heart, Flag } from 'lucide-react';
 import { formatMessageTime, decryptMessage } from '../utils/formatDate';
 import { exportChatAsTxt } from '../utils/chatExporter';
 import SignedMedia from './SignedMedia';
@@ -227,12 +227,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     createPoll, votePoll, scheduleMessage, scheduledMessages, cancelScheduledMessage,
     initiateCall, endCall,
     updateGroupMember, joinGroup, updateDisappearingMessages, toggleAdminOnlyMessaging, updateGroupPermission, createCustomRole, assignRole, viewProfile,
-    pinMessage, unpinMessage, pinnedMessages, presenceHistory, unlockedSessionChats, verifyChatUnlock, toggleChatLock, toggleStarMessage, toggleMessageLock, toggleMuteChat, toggleArchiveChat, markAsRead, markViewOnceViewed, getUserStatusWithGhostMode,
+    pinMessage, unpinMessage, pinnedMessages, presenceHistory, unlockedSessionChats, verifyChatUnlock, toggleChatLock, toggleStarMessage, toggleMessageLock, toggleMuteChat, toggleArchiveChat, markAsRead, markViewOnceViewed, getUserStatusWithGhostMode, reportMessage,
     sendFloatingSticker, floatingStickerHandlers, setFloatingStickerHandlers,
     isDNDMode, toggleDNDMode, selectConversation, setMods, aiAssistant,
     loadOlderMessages, hasOlderMessages
   } = useChat();
-  const { sendSticker } = useStickers();
+  const { sendSticker, favoriteStickers, toggleFavoriteSticker } = useStickers();
   const user = chatUser || localUser;
   const [messageInput, setMessageInput] = useState('');
   const [selectedFont, setSelectedFont] = useState('default');
@@ -259,6 +259,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [activeMessageMenu, setActiveMessageMenu] = useState(null);
   const [lockPinInput, setLockPinInput] = useState('');
   const [quickReactionMsg, setQuickReactionMsg] = useState(null);
+  const [reportTarget, setReportTarget] = useState(null); // message opened in ReportDialog
 
   // Close message menu + quick reactions on outside click
   useEffect(() => {
@@ -3454,6 +3455,42 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                             >
                               <Star size={14} className={message.isStarred ? "text-yellow-500 fill-yellow-500" : "text-dark-text"} /> {message.isStarred ? 'Unstar' : 'Star'}
                             </button>
+                            {message.messageType === 'sticker' && (() => {
+                              const stickerUrl = message.content || message.mediaUrl;
+                              const isStickerFav = !!stickerUrl && favoriteStickers.includes(stickerUrl);
+                              return (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    try {
+                                      if (stickerUrl) toggleFavoriteSticker(stickerUrl, stickerUrl);
+                                      setActiveMessageMenu(null);
+                                    } catch (err) {
+                                      console.error('Sticker favorite error:', err);
+                                    }
+                                  }}
+                                  className="w-full px-4 py-2 text-left text-sm hover:bg-dark-hover flex items-center gap-3"
+                                >
+                                  <Heart size={14} className={isStickerFav ? "text-pink-500 fill-pink-500" : "text-dark-text"} /> {isStickerFav ? 'Remove from favorites' : 'Add to favorites'}
+                                </button>
+                              );
+                            })()}
+                            {message.messageType === 'sticker' && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    setReportTarget(message);
+                                    setActiveMessageMenu(null);
+                                  } catch (err) {
+                                    console.error('Report error:', err);
+                                  }
+                                }}
+                                className="w-full px-4 py-2 text-left text-sm hover:bg-dark-hover flex items-center gap-3 text-red-400"
+                              >
+                                <Flag size={14} /> Report
+                              </button>
+                            )}
                             {isOwnMessage(message) && (
                               <button
                                 onClick={(e) => {
@@ -3935,6 +3972,16 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
            isGroupChat={selectedConversation?.isGroup}
            conversation={selectedConversation}
            onClose={() => setMessageContextMenu(null)}
+        />
+      )}
+
+      {/* Report dialog (sticker messages via the message menu) */}
+      {reportTarget && (
+        <ReportDialog
+          messageId={reportTarget._id || reportTarget.id}
+          messageContent={reportTarget.content || 'Sticker'}
+          senderInfo={reportTarget.sender}
+          onClose={() => setReportTarget(null)}
         />
       )}
 
