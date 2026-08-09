@@ -128,12 +128,20 @@ const Status = () => {
   const [showStatusSave, setShowStatusSave] = useState(false);
   const [showStatusForward, setShowStatusForward] = useState(false);
   const [selectedStatusForPanel, setSelectedStatusForPanel] = useState(null);
-  const [uploadData, setUploadData] = useState({
+  const [uploadData, setUploadData] = useState(() => {
+    let savedPrivacy = 'contacts';
+    try {
+      const saved = localStorage.getItem('genz_status_privacy_default');
+      if (saved && ['everyone', 'contacts', 'contacts_except', 'only_share_with', 'only_me'].includes(saved)) {
+        savedPrivacy = saved;
+      }
+    } catch (e) { /* ignore */ }
+    return {
     type: 'text',
     caption: '',
     backgroundColor: '#1f2937',
     fontColor: '#ffffff',
-    privacy: 'contacts',
+    privacy: savedPrivacy,
     excludedViewers: [],
     includedViewers: [],
     file: null,
@@ -155,6 +163,7 @@ const Status = () => {
     // Editor state
     textEffects: {},
     selectedSticker: null
+    };
   });
   const [editImageUrl, setEditImageUrl] = useState(null);
   const [editVideoUrl, setEditVideoUrl] = useState(null);
@@ -228,6 +237,13 @@ const Status = () => {
   useEffect(() => {
     localStorage.setItem('genz_status_notifications', JSON.stringify(statusNotificationSettings));
   }, [statusNotificationSettings]);
+
+  // Remember the last chosen status privacy as the default for new statuses
+  useEffect(() => {
+    try {
+      localStorage.setItem('genz_status_privacy_default', uploadData.privacy);
+    } catch (e) { /* ignore */ }
+  }, [uploadData.privacy]);
 
   // Toggle status notifications for a specific user
   const toggleStatusNotification = (userId) => {
@@ -1730,7 +1746,11 @@ const Status = () => {
                     />
                     <div className="flex-1">
                       <p className="text-sm text-gray-800 dark:text-gray-100">Only Share With...</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Choose specific people to share your status with</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {uploadData.includedViewers.length > 0
+                          ? `${uploadData.includedViewers.length} contact${uploadData.includedViewers.length > 1 ? 's' : ''} selected`
+                          : 'Choose specific people to share your status with'}
+                      </p>
                     </div>
                   </label>
                   <label className="flex items-center gap-2.5 p-2.5 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors">
@@ -1743,7 +1763,11 @@ const Status = () => {
                     />
                     <div className="flex-1">
                       <p className="text-sm text-gray-800 dark:text-gray-100">My Contacts Except...</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Hide your status from specific contacts</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {uploadData.excludedViewers.length > 0
+                          ? `${uploadData.excludedViewers.length} contact${uploadData.excludedViewers.length > 1 ? 's' : ''} hidden`
+                          : 'Hide your status from specific contacts'}
+                      </p>
                     </div>
                   </label>
                   <label className="flex items-center gap-2.5 p-2.5 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors">
