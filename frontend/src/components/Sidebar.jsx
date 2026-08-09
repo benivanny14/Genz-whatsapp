@@ -75,8 +75,12 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   };
   
   // Compute total unread count across all conversations
-  const { conversations, selectConversation, selectedConversation, onlineUsers, togglePinChat, toggleMuteChat, toggleArchiveChat, clearChat, deleteChat, callLogs, statuses, addStatus, deleteStatus, uploadStatusMedia, profileVisitors, showProfileEditor, setShowProfileEditor, typingByConversation, sendMessage, addContact, removeContact, acceptContact, rejectContact, fetchContacts } = useChat();
+  const { user: chatUser, conversations, selectConversation, selectedConversation, onlineUsers, togglePinChat, toggleMuteChat, toggleArchiveChat, clearChat, deleteChat, callLogs, statuses, addStatus, deleteStatus, uploadStatusMedia, profileVisitors, showProfileEditor, setShowProfileEditor, typingByConversation, sendMessage, addContact, removeContact, acceptContact, rejectContact, fetchContacts } = useChat();
   const currentUserId = String(user?._id || user?.id || 'anonymous');
+  // Use the authenticated chat user id (falls back to the local user) when
+  // matching conversation participants — fixes self-chat being shown as a
+  // regular 1:1 chat named after the logged-in user themselves.
+  const effectiveUserId = String(chatUser?._id || chatUser?.id || user?._id || user?.id || 'anonymous');
   const defaultChatTabs = ['All', 'Personal', 'Work', 'Groups'];
   const totalUnread = useMemo(() =>
     conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0),
@@ -851,7 +855,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     if (conv.isGroup) {
       return conv.groupName?.toLowerCase().includes(searchQuery.toLowerCase());
     } else {
-      const otherUser = conv.participants?.find((p) => p._id !== user?.id);
+      const otherUser = conv.participants?.find((p) => String(p._id) !== effectiveUserId);
       if (!otherUser && (conv.participants?.length || 0) > 0) {
         return 'you'.includes(searchQuery.toLowerCase()) || 'myself'.includes(searchQuery.toLowerCase());
       }
@@ -963,7 +967,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     if (conv.isGroup) {
       return conv.groupName;
     }
-    const otherUser = conv.participants?.find((p) => p._id !== user?.id);
+    const otherUser = conv.participants?.find((p) => String(p._id) !== effectiveUserId);
     // Message yourself — single-participant self chat
     if (!otherUser && (conv.participants?.length || 0) > 0) {
       return 'You';
@@ -979,7 +983,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
       if (firstParticipant?.profilePicture) return firstParticipant.profilePicture;
       return `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.groupName || 'Group')}&background=random&color=fff`;
     }
-    const otherUser = conv.participants?.find((p) => p._id !== user?.id);
+    const otherUser = conv.participants?.find((p) => String(p._id) !== effectiveUserId);
     if (otherUser?.profilePicture) return otherUser.profilePicture;
     // Message yourself — use own avatar
     if (!otherUser && (conv.participants?.length || 0) > 0 && user?.profilePicture) return user.profilePicture;

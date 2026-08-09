@@ -1,6 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+// Backend the dev proxy forwards /api, /uploads and /socket.io to.
+// Overridable per-worktree (e.g. GENZ_BACKEND_TARGET=http://localhost:5055)
+// so a preview can run against a newer backend without editing this file.
+const backendTarget = process.env.GENZ_BACKEND_TARGET || 'http://localhost:5000';
+
 export default defineConfig({
   plugins: [react()],
   define: {
@@ -32,15 +37,15 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: backendTarget,
         changeOrigin: true
       },
       '/uploads': {
-        target: 'http://localhost:5000',
+        target: backendTarget,
         changeOrigin: true
       },
       '/socket.io': {
-        target: 'http://localhost:5000',
+        target: backendTarget,
         changeOrigin: true,
         ws: true,
         configure: (proxy, options) => {
