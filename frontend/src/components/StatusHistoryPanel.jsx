@@ -86,9 +86,13 @@ const StatusHistoryPanel = ({ onClose, status }) => {
   };
 
   const formatDate = (dateStr) => {
+    if (!dateStr) return 'Unknown date';
     const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return 'Unknown date';
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
+
+  const historyDateOf = (item) => item?.createdAt || item?.timestamp || item?.date || null;
 
   const totalViews = displayHistory.reduce((sum, item) => sum + (item.views || 0), 0);
   const totalReactions = displayHistory.reduce((sum, item) => sum + (item.reactions || 0), 0);
@@ -184,7 +188,7 @@ const StatusHistoryPanel = ({ onClose, status }) => {
                   <div className="flex items-center gap-3 text-white/40 text-xs mt-1">
                     <div className="flex items-center gap-1">
                       <Calendar size={12} />
-                      <span>{formatDate(item.date)}</span>
+                      <span>{formatDate(historyDateOf(item))}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Eye size={12} />

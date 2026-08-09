@@ -1,8 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const FloatingStickerOverlay = ({ onStickerReceived, isMobile }) => {
   const [floatingStickers, setFloatingStickers] = useState([]);
+  // Keep the latest callback in a ref so the registration effect below only
+  // runs once (a new inline onStickerReceived reference on every parent render
+  // used to retrigger it forever → "Maximum update depth exceeded").
+  const onStickerReceivedRef = useRef(onStickerReceived);
+  useEffect(() => {
+    onStickerReceivedRef.current = onStickerReceived;
+  }, [onStickerReceived]);
 
   const spawnSticker = useCallback((stickerData, own = true) => {
     const id = `fstick-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -24,11 +31,12 @@ const FloatingStickerOverlay = ({ onStickerReceived, isMobile }) => {
   }, [isMobile]);
 
   useEffect(() => {
-    if (!onStickerReceived) return;
+    if (!onStickerReceivedRef.current) return;
     const handler = (stickerData) => spawnSticker(stickerData, false);
-    onStickerReceived(handler);
+    onStickerReceivedRef.current(handler);
     return () => setFloatingStickers([]);
-  }, [onStickerReceived, spawnSticker]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spawnSticker]);
 
   const bottomOffset = isMobile ? 'calc(100px + 4rem)' : '120px';
 

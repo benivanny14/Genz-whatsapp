@@ -11,7 +11,7 @@ import { AdminAuthProvider } from './context/AdminAuthContext';
 import notificationService from './services/notificationService';
 import { cleanupLocalBlobUrls, sanitizeBlobUrls } from './utils/sanitizeStorage';
 import { applyAntiScreenshot, initAntiScreenshotListeners } from './utils/antiScreenshot';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 import { useChat } from './context/ChatContext';
 import { useUser } from './context/UserContext';
 import { getSocket } from './services/socket';
@@ -329,6 +329,38 @@ function App() {
   return (
     <ErrorBoundary>
       <div className="genz-grain" aria-hidden="true" />
+      {/* Global toast host — without <Toaster /> every toast.success()/
+          toast.error() call across the app is a silent no-op. Styled to
+          match native APK toasts: dark WhatsApp surface, rounded, icon-tinted. */}
+      <Toaster
+        position="top-center"
+        gutter={10}
+        containerStyle={{ top: 16, zIndex: 99999 }}
+        toastOptions={{
+          duration: 3500,
+          style: {
+            background: '#202c33',
+            color: '#e9edef',
+            borderRadius: '14px',
+            padding: '12px 18px',
+            fontSize: '14px',
+            fontWeight: 500,
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 8px 28px rgba(0,0,0,0.55)',
+            maxWidth: 'min(92vw, 380px)',
+          },
+          success: {
+            iconTheme: { primary: '#25d366', secondary: '#0b141a' },
+          },
+          error: {
+            iconTheme: { primary: '#ff6b6b', secondary: '#0b141a' },
+            duration: 5000,
+          },
+          loading: {
+            iconTheme: { primary: '#00a884', secondary: '#0b141a' },
+          },
+        }}
+      />
       <OfflineBanner />
       <InstallAppPrompt />
       <InAppNotification

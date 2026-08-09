@@ -33,7 +33,7 @@ const CallsManagement = () => {
       toast.success('Imefutwa');
       load();
     } catch {
-      toast.error('Imeshindwa');
+      toast.error('Imeshindwa kufuta rekodi ya simu');
     }
   };
 

@@ -31,7 +31,7 @@ const AdminDeviceManagement = () => {
       toast.success('Kifaa kimeondolewa');
       load(pagination.page);
     } catch {
-      toast.error('Imeshindwa');
+      toast.error('Imeshindwa kuondoa kifaa');
     }
   };
 

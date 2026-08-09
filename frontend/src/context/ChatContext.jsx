@@ -31,6 +31,16 @@ import { applyAntiScreenshot, initAntiScreenshotListeners, setScreenshotAttemptC
 
 export const ChatContext = createContext();
 
+// WhatsApp behavior: a 1:1 conversation with a blocked user is hidden from the
+// chat list until the user is unblocked. Group chats always stay visible (you
+// just stop receiving that user's messages).
+const isOneToOneWithUser = (conv, targetUserId, selfId) => {
+  if (!conv || conv.isGroup) return false;
+  return (conv.participants || [])
+    .map((p) => String(p?._id || p?.id || p))
+    .some((id) => id && id !== String(selfId) && id === String(targetUserId));
+};
+
 // Wrap socket event handlers to prevent crashes from propagating
 const safeSocketOn = (socket, event, handler) => {
   socket.on(event, async (...args) => {
@@ -1831,7 +1841,8 @@ export const ChatProvider = ({ children }) => {
         );
 
         // If this device initiated the change (or another of our own
-        // devices did), keep our own `blockedUsers` list in sync too.
+        // devices did), keep our own `blockedUsers` list in sync too, and
+        // apply WhatsApp's hide-on-block / restore-on-unblock behavior.
         if (String(blockerId) === String(currentUserId)) {
           setBlockedUsers((prev) => {
             const list = prev || [];
@@ -1839,6 +1850,29 @@ export const ChatProvider = ({ children }) => {
             if (blocked) return already ? list : [...list, targetUserId];
             return list.filter((id) => String(id) !== String(targetUserId));
           });
+
+          if (blocked) {
+            // Hide the 1:1 chat immediately; close it if it's open.
+            setConversations((prev) =>
+              prev.filter((c) => !isOneToOneWithUser(c, targetUserId, currentUserId))
+            );
+            setSelectedConversation((prev) =>
+              prev && isOneToOneWithUser(prev, targetUserId, currentUserId) ? null : prev
+            );
+          } else {
+            // Unblocked — refetch so the chat returns to the list.
+            apiService.getConversations()
+              .then((data) => {
+                if (data?.success && Array.isArray(data.conversations)) {
+                  setConversations((prev) => {
+                    const map = new Map(prev.map((c) => [String(c._id), c]));
+                    data.conversations.forEach((c) => map.set(String(c._id), c));
+                    return Array.from(map.values());
+                  });
+                }
+              })
+              .catch(() => {});
+          }
         }
       };
 
@@ -4548,6 +4582,9 @@ export const ChatProvider = ({ children }) => {
       const data = await response.json();
       if (data.success) {
         setBlockedUsers(prev => [...(prev || []), userId]);
+        // WhatsApp: hide the 1:1 chat immediately (don't wait for the socket relay)
+        setConversations(prev => prev.filter((c) => !isOneToOneWithUser(c, userId, currentUserId)));
+        setSelectedConversation(prev => (prev && isOneToOneWithUser(prev, userId, currentUserId) ? null : prev));
         emitSafe('block_user', { userId, blockerId: currentUserId });
       }
       return data;
@@ -4570,6 +4607,18 @@ export const ChatProvider = ({ children }) => {
       const data = await response.json();
       if (data.success) {
         setBlockedUsers(prev => (prev || []).filter(id => id !== userId));
+        // WhatsApp: unblocked — refetch so the chat returns to the list.
+        apiService.getConversations()
+          .then((res) => {
+            if (res?.success && Array.isArray(res.conversations)) {
+              setConversations((prev) => {
+                const map = new Map(prev.map((c) => [String(c._id), c]));
+                res.conversations.forEach((c) => map.set(String(c._id), c));
+                return Array.from(map.values());
+              });
+            }
+          })
+          .catch(() => {});
         emitSafe('unblock_user', { userId, blockerId: currentUserId });
       }
       return data;

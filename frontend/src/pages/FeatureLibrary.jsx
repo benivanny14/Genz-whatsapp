@@ -148,8 +148,40 @@ import PaymentFeaturesManager from '../components/PaymentFeaturesManager';
 import SkeletonLoader from '../components/SkeletonLoader';
 import TabSystem from '../components/TabSystem';
 import TextMenu from '../components/TextMenu';
-import Toast from '../components/Toast';
+import toast from 'react-hot-toast';
 import TypingDots from '../components/TypingDots';
+
+// Toast demo — fires real app toasts via react-hot-toast (the `<Toaster />`
+// in App.jsx renders them). The old `Toast` import was a context *provider*,
+// which rendered an empty panel when used as a UI component.
+const ToastPreview = () => (
+  <div className="space-y-3">
+    <p className="text-sm text-dark-textSecondary">Preview the app's toast notifications:</p>
+    <div className="flex flex-wrap gap-2">
+      <button
+        type="button"
+        onClick={() => toast.success('Operation successful ✓')}
+        className="px-3 py-2 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-sm font-medium hover:bg-emerald-500/30 transition-colors"
+      >
+        Success toast
+      </button>
+      <button
+        type="button"
+        onClick={() => toast.error('Something went wrong')}
+        className="px-3 py-2 rounded-lg bg-red-500/20 text-red-300 border border-red-500/30 text-sm font-medium hover:bg-red-500/30 transition-colors"
+      >
+        Error toast
+      </button>
+      <button
+        type="button"
+        onClick={() => toast('Heads up: this is an info toast', { icon: 'ℹ️' })}
+        className="px-3 py-2 rounded-lg bg-white/5 text-white/80 border border-white/10 text-sm font-medium hover:bg-white/10 transition-colors"
+      >
+        Info toast
+      </button>
+    </div>
+  </div>
+);
 import VideoPlayer from '../components/VideoPlayer';
 
 // localStorage-backed state (works the same as a real setting — persists)
@@ -584,8 +616,8 @@ const FeatureLibrary = () => {
           props: { tabs, activeTab: tabs[0]?.id, onTabChange: () => {}, onAddTab: () => {}, onDeleteTab: () => {} } },
         { id: 'ui-textmenu', name: 'Text Menu', desc: 'Composer action menu preview', C: TextMenu, preview: true,
           props: { isOpen: true, onClose: close, onEmojiSelect: () => {}, onAttachmentSelect: () => {} } },
-        { id: 'ui-toast', name: 'Toast', desc: 'Toast notification preview', C: Toast, preview: true,
-          props: { message: 'This is a toast preview', type: 'success', persistent: false } },
+        { id: 'ui-toast', name: 'Toast', desc: 'Toast notification preview', C: ToastPreview, preview: true,
+          props: {} },
         { id: 'ui-typing', name: 'Typing Dots', desc: 'Typing indicator preview', C: TypingDots, preview: true,
           props: { size: 'md' } },
         { id: 'ui-video', name: 'Video Player', desc: 'Video playback preview', C: VideoPlayer, preview: true,

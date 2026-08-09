@@ -15,6 +15,7 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
   const [showHeartAnimation, setShowHeartAnimation] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [quizAnswers, setQuizAnswers] = useState({});
   const containerRef = useRef(null);
   const videoRefs = useRef({});
   const isShareInProgressRef = useRef(false);
@@ -350,6 +351,80 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
                       </a>
                     )}
                   </div>
+                </div>
+              ) : status.type === 'quiz' ? (
+                <div
+                  className="w-full h-full flex flex-col items-center justify-center p-8"
+                  style={{ backgroundColor: status.backgroundColor || '#00a884' }}
+                >
+                  <h2 className="text-2xl font-bold text-white text-center mb-6 drop-shadow">
+                    {status.quizQuestion || status.content}
+                  </h2>
+                  <div className="w-full max-w-sm space-y-3">
+                    {(status.quizOptions || []).map((opt, optIdx) => {
+                      const isCorrect = optIdx === Number(status.quizCorrectAnswer);
+                      const selected = quizAnswers[index] === optIdx;
+                      const answered = quizAnswers[index] !== undefined;
+                      let cls = 'bg-white/20 text-white border border-white/30 hover:bg-white/30';
+                      if (answered && selected && isCorrect) cls = 'bg-emerald-500 text-white border-emerald-300';
+                      else if (answered && selected && !isCorrect) cls = 'bg-red-500 text-white border-red-300';
+                      else if (answered && isCorrect) cls = 'bg-emerald-500/50 text-white border-emerald-300';
+                      return (
+                        <button
+                          key={optIdx}
+                          onClick={() => setQuizAnswers((prev) => ({ ...prev, [index]: optIdx }))}
+                          className={`w-full px-4 py-3 rounded-xl font-medium text-left transition-colors ${cls}`}
+                        >
+                          <span>{opt}</span>
+                          {answered && isCorrect && <span className="float-right">✓</span>}
+                          {answered && selected && !isCorrect && <span className="float-right">✗</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : status.type === 'question' ? (
+                <div
+                  className="w-full h-full flex flex-col items-center justify-center p-8"
+                  style={{ backgroundColor: status.backgroundColor || '#00a884' }}
+                >
+                  <MessageCircle className="text-white/80 mb-4" size={40} />
+                  <h2 className="text-2xl font-bold text-white text-center drop-shadow">
+                    {status.questionText || status.content}
+                  </h2>
+                  {status.caption && <p className="text-white/70 text-sm mt-3 text-center">{status.caption}</p>}
+                </div>
+              ) : status.type === 'link' ? (
+                <div
+                  className="w-full h-full flex flex-col items-center justify-center p-8 text-center"
+                  style={{ backgroundColor: status.backgroundColor || '#00a884' }}
+                >
+                  <h2 className="text-2xl font-bold text-white mb-3 drop-shadow">{status.content}</h2>
+                  {(status.linkUrl || status.mediaUrl) && (
+                    <a
+                      href={status.linkUrl || status.mediaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-flex items-center gap-2 px-5 py-2 bg-white/25 backdrop-blur rounded-full text-white text-sm font-medium border border-white/30"
+                    >
+                      <Share2 size={16} /> Open Link
+                    </a>
+                  )}
+                </div>
+              ) : status.type === 'countdown' ? (
+                <div
+                  className="w-full h-full flex flex-col items-center justify-center p-8"
+                  style={{ backgroundColor: status.backgroundColor || '#00a884' }}
+                >
+                  <Clock className="text-white/80 mb-4" size={40} />
+                  <h2 className="text-2xl font-bold text-white text-center drop-shadow">
+                    {status.content}
+                  </h2>
+                  {status.countdownDate && (
+                    <p className="text-white/80 text-base mt-3">
+                      {new Date(status.countdownDate).toLocaleString()}
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div

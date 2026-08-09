@@ -31,7 +31,7 @@ const BroadcastSystem = () => {
       toast.success('Imefutwa');
       load();
     } catch {
-      toast.error('Imeshindwa');
+      toast.error('Imeshindwa kufuta matangazo');
     }
   };
 

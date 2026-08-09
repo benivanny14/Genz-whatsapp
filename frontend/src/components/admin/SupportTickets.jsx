@@ -57,7 +57,7 @@ const SupportTickets = () => {
       setActive(data.ticket);
       load();
     } catch {
-      toast.error('Imeshindwa');
+      toast.error('Imeshindwa kusasisha tiketi');
     }
   };
 

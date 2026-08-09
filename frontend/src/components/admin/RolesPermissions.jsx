@@ -47,7 +47,7 @@ const RolesPermissions = () => {
       if (foundUser?._id === userId) setFoundUser({ ...foundUser, appPermissions: next });
       load();
     } catch {
-      toast.error('Imeshindwa');
+      toast.error('Imeshindwa kusasisha ruhusa');
     }
   };
 

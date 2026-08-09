@@ -31,7 +31,7 @@ const ChannelManagement = () => {
       toast.success('Imesasishwa');
       load(pagination.page);
     } catch {
-      toast.error('Imeshindwa');
+      toast.error('Imeshindwa kusasisha chaneli');
     }
   };
 
@@ -61,7 +61,7 @@ const ChannelManagement = () => {
       toast.success('Chapisho limeondolewa');
       viewPosts(posts.channel);
     } catch {
-      toast.error('Imeshindwa');
+      toast.error('Imeshindwa kuondoa chapisho');
     }
   };
 

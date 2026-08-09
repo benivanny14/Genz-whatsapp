@@ -4,7 +4,7 @@ import { X, ShieldAlert, ShieldCheck } from 'lucide-react';
 
 const BlockUserModal = ({ userId, username, onClose }) => {
   const { blockUser, unblockUser, blockedUsers } = useChat();
-  const isBlocked = blockedUsers.includes(userId);
+  const isBlocked = (blockedUsers || []).some((b) => String(b?._id || b) === String(userId));
 
   const handleToggle = () => {
     if (isBlocked) {

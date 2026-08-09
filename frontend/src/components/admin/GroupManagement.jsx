@@ -42,7 +42,7 @@ const GroupManagement = () => {
       toast.success('Ameondolewa');
       viewMembers(viewing);
     } catch {
-      toast.error('Imeshindwa');
+      toast.error('Imeshindwa kumwondoa mwanachama');
     }
   };
 

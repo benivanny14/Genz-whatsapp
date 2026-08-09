@@ -29,7 +29,7 @@ const SessionManagement = () => {
       toast.success('Session imeondolewa');
       setSessions((prev) => prev.filter((s) => s.token !== token));
     } catch {
-      toast.error('Imeshindwa');
+      toast.error('Imeshindwa kuondoa session');
     }
   };
 
@@ -40,7 +40,7 @@ const SessionManagement = () => {
       toast.success('Session zote zimeondolewa');
       setSessions([]);
     } catch {
-      toast.error('Imeshindwa');
+      toast.error('Imeshindwa kuondoa session zote');
     }
   };
 

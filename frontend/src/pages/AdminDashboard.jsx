@@ -187,7 +187,7 @@ const UsersSection = () => {
       toast.success(action === 'block' ? 'Amezuiwa' : 'Amefunguliwa');
       load(search);
     } catch {
-      toast.error('Imeshindwa');
+      toast.error('Imeshindwa kubadilisha hali ya mtumiaji');
     }
   };
 
@@ -284,7 +284,7 @@ const PaymentsSection = ({ statusFilter = 'All', title = 'Payment Management' })
       toast.success(action === 'approve' ? 'Imekubaliwa' : 'Imekataliwa');
       load();
     } catch {
-      toast.error('Imeshindwa');
+      toast.error('Imeshindwa kusasisha malipo');
     }
   };
 

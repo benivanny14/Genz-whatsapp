@@ -35,7 +35,7 @@ const StatusStoriesManagement = ({ mode = 'status' }) => {
       toast.success('Imefutwa');
       load();
     } catch {
-      toast.error('Imeshindwa');
+      toast.error('Imeshindwa kufuta status');
     }
   };
 

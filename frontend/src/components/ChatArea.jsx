@@ -225,7 +225,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     createPoll, votePoll, scheduleMessage, scheduledMessages, cancelScheduledMessage,
     initiateCall, endCall,
     updateGroupMember, joinGroup, updateDisappearingMessages, toggleAdminOnlyMessaging, updateGroupPermission, createCustomRole, assignRole, viewProfile,
-    pinMessage, unpinMessage, pinnedMessages, presenceHistory, unlockedSessionChats, verifyChatUnlock, toggleChatLock,     stickerPacks, downloadedStickers, downloadStickerPack, sendSticker, addFavoriteSticker, toggleStarMessage, toggleMessageLock, toggleMuteChat, toggleArchiveChat, markAsRead, markViewOnceViewed, getUserStatusWithGhostMode,
+    pinMessage, unpinMessage, pinnedMessages, presenceHistory, unlockedSessionChats, verifyChatUnlock, toggleChatLock,     stickerPacks, downloadedStickers, downloadStickerPack, removeStickerPack, sendSticker, addFavoriteSticker, toggleStarMessage, toggleMessageLock, toggleMuteChat, toggleArchiveChat, markAsRead, markViewOnceViewed, getUserStatusWithGhostMode,
     sendFloatingSticker, floatingStickerHandlers, setFloatingStickerHandlers,
     isDNDMode, toggleDNDMode, selectConversation, setMods, aiAssistant,
     loadOlderMessages, hasOlderMessages
@@ -557,6 +557,44 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     }
   }, [messages, selectedConversation?._id]);
 
+  // Derived message lists — computed BEFORE any useEffect that references them
+  // (a dep array like [filteredMessages] must not sit above the declaration,
+  // otherwise opening a chat crashes with a TDZ ReferenceError).
+  const isHttpUrl = (value) => typeof value === 'string' && /^https?:\/\//i.test(value);
+  const mediaSourceOf = (message = {}) => (
+    message.mediaUrl ||
+    message.fileUrl ||
+    (isHttpUrl(message.content) ? message.content : '')
+  );
+  const isStaleBlobMessage = (message = {}) => (
+    hasStaleBlobUrl(message.content) ||
+    hasStaleBlobUrl(message.mediaUrl) ||
+    hasStaleBlobUrl(message.fileUrl) ||
+    hasStaleBlobUrl(message.thumbnailUrl) ||
+    hasStaleBlobUrl(message.quotedStatus?.mediaUrl)
+  );
+  const visibleMessages = (messages || []).filter((message) => {
+    if (isStaleBlobMessage(message)) return false;
+    if (message.disappearAt && new Date(message.disappearAt).getTime() <= Date.now()) return false;
+
+    // View Once logic
+    const isSender = message.sender === user?.id || message.sender?._id === user?.id;
+    if (message.isViewOnce) {
+      if (safeMods.antiViewOnce) return true;
+      if (message.isConsumed) return false;
+    }
+    if (message.messageType === 'viewOnce') {
+      if (safeMods.antiViewOnce) return true;
+      if (message.disappearAt && new Date(message.disappearAt) <= new Date()) return false;
+      if (!isSender && message.isConsumed) return false;
+    }
+    return true;
+  });
+
+  const filteredMessages = chatSearchQuery
+    ? visibleMessages.filter(m => m && plaintextOf(m)?.toLowerCase()?.includes(chatSearchQuery.toLowerCase()))
+    : visibleMessages;
+
   // Preserve scroll position after older messages are prepended by infinite scroll
   useEffect(() => {
     const msgsCount = (filteredMessages || []).length;
@@ -877,11 +915,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           { type: 'text', value: sanitizedMessage, font: selectedFont !== 'default' ? selectedFont : undefined },
           { type: selectedMedia.type, value: selectedMedia.url, meta: selectedMedia.meta }
         ];
+        await sendMessage(sanitizedMessage, user?.username || 'Me', finalOptions);
       } else {
         finalOptions.font = selectedFont !== 'default' ? selectedFont : undefined;
+        await sendMessage(sanitizedMessage, user?.username || 'Me', finalOptions);
       }
-
-      await sendMessage(sanitizedMessage, user?.username || 'Me', finalOptions);
       // GENZ Exclusive: "Chat Bubble Animations" — confetti/hearts burst.
       // This used to just toggle a CSS class with no matching styles
       // anywhere, so turning the mod on had zero visible effect.
@@ -1288,12 +1326,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const handleShareLocation = (type) => {
     setShowAttachmentMenu(false);
     if (!navigator.geolocation) {
-      toast.error('GENZ WhatsApp: Your browser does not support location sharing.');
+      toast.error('Your browser does not support location sharing.');
       return;
     }
 
     if (type === 'current') {
-      const toastId = toast.loading('GENZ WhatsApp: Fetching your current location...');
+      const toastId = toast.loading('Fetching your current location...');
 
       const handleFallback = (errMsg) => {
         toast.dismiss(toastId);
@@ -1302,7 +1340,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         setCurrentLocationCoords(fallbackCoords);
         setCurrentLocationComment('');
         setShowCurrentLocationModal(true);
-        toast.error(`GENZ WhatsApp: GPS error (${errMsg}). Opened with default location.`);
+        toast.error('Could not get your exact location. Opened with default location.');
       };
 
       try {
@@ -1408,7 +1446,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           handleStopLiveLocation();
         }, liveLocationDuration * 60 * 1000);
       },
-      () => toast.error('GENZ WhatsApp: Failed to get initial location.')
+      () => toast.error('Failed to get your initial location.')
     );
   };
 
@@ -1435,7 +1473,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
     const maxSize = (safeMods?.highResMedia ? 50 : 10) * 1024 * 1024;
     if (file.size > maxSize) {
-      toast.error(`GENZ WhatsApp: File too large (max ${safeMods?.highResMedia ? 50 : 10}MB)`);
+      toast.error(`File too large (max ${safeMods?.highResMedia ? 50 : 10}MB)`);
       return;
     }
 
@@ -1457,7 +1495,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const uploadAndSendFile = async (file, caption, isViewOnce, forcedType, originalEvent) => {
     const maxSize = (safeMods?.highResMedia ? 50 : 10) * 1024 * 1024;
     if (file.size > maxSize) {
-      toast.error(`GENZ WhatsApp: File too large (max ${safeMods?.highResMedia ? 50 : 10}MB)`);
+      toast.error(`File too large (max ${safeMods?.highResMedia ? 50 : 10}MB)`);
       return;
     }
 
@@ -2390,42 +2428,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
   const pinnedMessageId = selectedConversation ? pinnedMessages[selectedConversation._id] : null; // Added null check
   const pinnedMessage = pinnedMessageId ? messages.find(m => (m._id || m.id) === pinnedMessageId) : null; // Added null check
-
-
-  const isHttpUrl = (value) => typeof value === 'string' && /^https?:\/\//i.test(value);
-  const mediaSourceOf = (message = {}) => (
-    message.mediaUrl ||
-    message.fileUrl ||
-    (isHttpUrl(message.content) ? message.content : '')
-  );
-  const isStaleBlobMessage = (message = {}) => (
-    hasStaleBlobUrl(message.content) ||
-    hasStaleBlobUrl(message.mediaUrl) ||
-    hasStaleBlobUrl(message.fileUrl) ||
-    hasStaleBlobUrl(message.thumbnailUrl) ||
-    hasStaleBlobUrl(message.quotedStatus?.mediaUrl)
-  );
-  const visibleMessages = (messages || []).filter((message) => {
-    if (isStaleBlobMessage(message)) return false;
-    if (message.disappearAt && new Date(message.disappearAt).getTime() <= Date.now()) return false;
-
-    // View Once logic
-    const isSender = message.sender === user?.id || message.sender?._id === user?.id;
-    if (message.isViewOnce) {
-      if (safeMods.antiViewOnce) return true;
-      if (message.isConsumed) return false;
-    }
-    if (message.messageType === 'viewOnce') {
-      if (safeMods.antiViewOnce) return true;
-      if (message.disappearAt && new Date(message.disappearAt) <= new Date()) return false;
-      if (!isSender && message.isConsumed) return false;
-    }
-    return true;
-  });
-
-  const filteredMessages = chatSearchQuery
-    ? visibleMessages.filter(m => m && plaintextOf(m)?.toLowerCase()?.includes(chatSearchQuery.toLowerCase()))
-    : visibleMessages;
 
 
   const safeChatWallpaper = safeMods && hasStaleBlobUrl(safeMods.chatWallpaper) ? null : safeMods?.chatWallpaper;
@@ -4057,6 +4059,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       {/* ── Sticker Packs Modal ── */}
       {showStickerPacks && (
         <StickerPackBrowser
+          stickerPacks={stickerPacks}
+          downloadedStickers={downloadedStickers}
+          onDownloadPack={downloadStickerPack}
+          onRemovePack={removeStickerPack}
+          onToggleFavorite={addFavoriteSticker}
           onStickerSelect={(stickerUrl, options) => {
             if (floatingStickerMode) {
               // Floating mode keeps the instant fly-across-screen behavior

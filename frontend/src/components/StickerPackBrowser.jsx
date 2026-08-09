@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, Search, Grid3x3, Heart, Plus, ChevronLeft, ChevronRight, Sparkles, Wand2 } from 'lucide-react';
+import { X, Search, Grid3x3, Heart, Plus, ChevronLeft, ChevronRight, Sparkles, Wand2, Check, Download } from 'lucide-react';
 import StickerCreator from './StickerCreator';
 
-const STICKER_PACKS = [
+// Offline fallback catalog (GIPHY CDN) — used only when the backend catalog
+// hasn't loaded yet. The live catalog comes from GET /api/stickers/packs.
+const STATIC_STICKER_PACKS = [
   {
     id: 'genz-default',
     name: 'GENZ Stickers',
@@ -50,11 +52,20 @@ const STICKER_PACKS = [
   }
 ];
 
-const StickerPackBrowser = ({ onStickerSelect, onClose }) => {
+const StickerPackBrowser = ({
+  onStickerSelect,
+  onClose,
+  stickerPacks = [],
+  downloadedStickers = [],
+  onDownloadPack,
+  onRemovePack,
+  onToggleFavorite
+}) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPack, setSelectedPack] = useState(null);
   const [showCreator, setShowCreator] = useState(false);
   const [showMine, setShowMine] = useState(false);
+  const [showFavorites, setShowFavorites] = useState(false);
   const [customStickers, setCustomStickers] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('genz_custom_stickers') || '[]');
@@ -66,22 +77,48 @@ const StickerPackBrowser = ({ onStickerSelect, onClose }) => {
     } catch { return []; }
   });
 
-  const toggleFavorite = (stickerId) => {
-    const newFavorites = favorites.includes(stickerId)
-      ? favorites.filter(id => id !== stickerId)
-      : [...favorites, stickerId];
+  // Live catalog from the backend (Twemoji packs); static GIPHY packs are only
+  // an offline fallback while the API hasn't responded yet.
+  const packs = (Array.isArray(stickerPacks) && stickerPacks.length > 0)
+    ? stickerPacks
+    : STATIC_STICKER_PACKS;
+
+  const isPackDownloaded = (pack) =>
+    pack.isDownloaded === true ||
+    ((pack.stickers || []).length > 0 && (pack.stickers || []).every((s) => downloadedStickers.includes(s.url)));
+
+  const toggleFavorite = (stickerId, url) => {
+    const key = stickerId || url;
+    const newFavorites = favorites.includes(key)
+      ? favorites.filter((id) => id !== key)
+      : [...favorites, key];
     setFavorites(newFavorites);
     localStorage.setItem('genz_sticker_favorites', JSON.stringify(newFavorites));
+    // Persist to the server too (favorites survive logout / other devices)
+    if (onToggleFavorite) onToggleFavorite(stickerId, url);
   };
 
-  const filteredPacks = STICKER_PACKS.filter(pack =>
+  const handlePackAction = (e, pack) => {
+    e.stopPropagation();
+    if (isPackDownloaded(pack)) {
+      if (onRemovePack) onRemovePack(pack.id);
+    } else if (onDownloadPack) {
+      onDownloadPack(pack);
+    }
+  };
+
+  const filteredPacks = packs.filter((pack) =>
     pack.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     pack.author.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const allStickers = searchQuery
-    ? STICKER_PACKS.flatMap(pack => pack.stickers.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())))
+    ? packs.flatMap((pack) => pack.stickers.filter((s) => (s.name || '').toLowerCase().includes(searchQuery.toLowerCase())))
     : null;
+
+  const favoriteStickers = packs
+    .flatMap((p) => (p.stickers || []))
+    .filter((s) => favorites.includes(s.id) || favorites.includes(s.url));
 
   if (selectedPack) {
     return (
@@ -94,17 +131,46 @@ const StickerPackBrowser = ({ onStickerSelect, onClose }) => {
             <span className="text-white font-bold">{selectedPack.name}</span>
             <span className="text-white/40 text-xs">{selectedPack.author}</span>
           </div>
+
+          {/* Download / remove toggle for this pack */}
+          <div className="px-4 py-2 border-b border-white/10 flex items-center justify-between">
+            <span className="text-white/50 text-xs">
+              {selectedPack.stickers?.length || 0} stickers
+            </span>
+            <button
+              onClick={(e) => handlePackAction(e, selectedPack)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                isPackDownloaded(selectedPack)
+                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                  : 'bg-primary-600/20 text-primary-400 border border-primary-500/30 hover:bg-primary-600/30'
+              }`}
+            >
+              {isPackDownloaded(selectedPack) ? <><Check size={13} /> Added</> : <><Download size={13} /> Download pack</>}
+            </button>
+          </div>
+
           <div className="p-4 grid grid-cols-4 gap-2 max-h-[60vh] overflow-y-auto">
-            {selectedPack.stickers.map((sticker) => (
-              <button
-                key={sticker.id}
-                onClick={() => onStickerSelect(sticker.url, { caption: sticker.name })}
-                className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-white/5 transition-colors"
-              >
-                <img src={sticker.url} alt={sticker.name} className="w-16 h-16 object-contain" loading="lazy" />
-                <span className="text-[10px] text-white/50 truncate w-full text-center">{sticker.name}</span>
-              </button>
-            ))}
+            {(selectedPack.stickers || []).map((sticker) => {
+              const isFav = favorites.includes(sticker.id) || favorites.includes(sticker.url);
+              return (
+                <div key={sticker.id} className="relative flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                  <button
+                    onClick={() => onStickerSelect(sticker.url, { caption: sticker.name })}
+                    className="flex flex-col items-center gap-1 w-full"
+                  >
+                    <img src={sticker.url} alt={sticker.name} className="w-16 h-16 object-contain" loading="lazy" />
+                    <span className="text-[10px] text-white/50 truncate w-full text-center">{sticker.name}</span>
+                  </button>
+                  <button
+                    onClick={() => toggleFavorite(sticker.id, sticker.url)}
+                    className={`absolute top-1 right-1 p-1 rounded-full transition-colors ${isFav ? 'text-pink-400' : 'text-white/20 hover:text-white/60'}`}
+                    aria-label={isFav ? 'Remove from favorites' : 'Add to favorites'}
+                  >
+                    <Heart size={14} fill={isFav ? 'currentColor' : 'none'} />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -134,7 +200,7 @@ const StickerPackBrowser = ({ onStickerSelect, onClose }) => {
           </div>
         </div>
 
-        {/* Quick actions: Create + My Stickers */}
+        {/* Quick actions: Create + My Stickers + Favorites */}
         <div className="flex gap-2 px-4 pt-3">
           <button
             onClick={() => setShowCreator(true)}
@@ -144,10 +210,18 @@ const StickerPackBrowser = ({ onStickerSelect, onClose }) => {
           </button>
           {customStickers.length > 0 && (
             <button
-              onClick={() => setShowMine(!showMine)}
+              onClick={() => { setShowFavorites(false); setShowMine(!showMine); }}
               className="flex-1 flex items-center justify-center gap-2 bg-white/5 text-white/80 border border-white/10 rounded-xl py-2.5 text-sm font-medium hover:bg-white/10 transition-colors"
             >
               <Grid3x3 size={16} /> My Stickers ({customStickers.length})
+            </button>
+          )}
+          {favoriteStickers.length > 0 && (
+            <button
+              onClick={() => { setShowMine(false); setShowFavorites(!showFavorites); }}
+              className="flex-1 flex items-center justify-center gap-2 bg-pink-500/10 text-pink-300 border border-pink-500/20 rounded-xl py-2.5 text-sm font-medium hover:bg-pink-500/20 transition-colors"
+            >
+              <Heart size={16} /> Favorites ({favoriteStickers.length})
             </button>
           )}
         </div>
@@ -159,6 +233,24 @@ const StickerPackBrowser = ({ onStickerSelect, onClose }) => {
               {customStickers.map((sticker) => (
                 <button
                   key={sticker.id}
+                  onClick={() => onStickerSelect(sticker.url, { caption: sticker.name })}
+                  className="flex flex-col items-center gap-1 p-1 rounded-lg hover:bg-white/5 transition-colors"
+                >
+                  <img src={sticker.url} alt={sticker.name} className="w-14 h-14 object-contain" loading="lazy" />
+                  <span className="text-[10px] text-white/50 truncate w-full text-center">{sticker.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Favorites view */}
+        {showFavorites && favoriteStickers.length > 0 && (
+          <div className="px-4 pt-4">
+            <div className="grid grid-cols-4 gap-2 bg-dark-bg/50 rounded-xl p-3 border border-dark-border/50">
+              {favoriteStickers.map((sticker) => (
+                <button
+                  key={sticker.id || sticker.url}
                   onClick={() => onStickerSelect(sticker.url, { caption: sticker.name })}
                   className="flex flex-col items-center gap-1 p-1 rounded-lg hover:bg-white/5 transition-colors"
                 >
@@ -186,22 +278,38 @@ const StickerPackBrowser = ({ onStickerSelect, onClose }) => {
             </div>
           ) : (
             <div className="space-y-4">
-              {filteredPacks.map((pack) => (
+              {filteredPacks.map((pack) => {
+                const downloaded = isPackDownloaded(pack);
+                return (
                 <div key={pack.id} className="bg-dark-bg/50 rounded-xl p-4 border border-dark-border/50">
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <h3 className="text-white font-semibold text-sm">{pack.name}</h3>
-                      <p className="text-white/40 text-xs">{pack.stickers.length} stickers</p>
+                      <p className="text-white/40 text-xs">
+                        {pack.stickers?.length || 0} stickers {downloaded && <span className="text-emerald-400 ml-1">✓ added</span>}
+                      </p>
                     </div>
-                    <button
-                      onClick={() => setSelectedPack(pack)}
-                      className="bg-primary-600/20 text-primary-400 px-3 py-1.5 rounded-full text-xs font-medium hover:bg-primary-600/30 transition-colors"
-                    >
-                      View All
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => handlePackAction(e, pack)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                          downloaded
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30'
+                            : 'bg-primary-600/20 text-primary-400 border border-primary-500/30 hover:bg-primary-600/30'
+                        }`}
+                      >
+                        {downloaded ? 'Added ✓' : '+ Download'}
+                      </button>
+                      <button
+                        onClick={() => setSelectedPack(pack)}
+                        className="bg-white/5 text-white/70 px-3 py-1.5 rounded-full text-xs font-medium hover:bg-white/10 transition-colors"
+                      >
+                        View All
+                      </button>
+                    </div>
                   </div>
                   <div className="flex gap-2 overflow-x-auto pb-1">
-                    {pack.stickers.slice(0, 6).map((sticker) => (
+                    {(pack.stickers || []).slice(0, 6).map((sticker) => (
                       <button
                         key={sticker.id}
                         onClick={() => onStickerSelect(sticker.url, { caption: sticker.name })}
@@ -210,14 +318,15 @@ const StickerPackBrowser = ({ onStickerSelect, onClose }) => {
                         <img src={sticker.url} alt={sticker.name} className="w-full h-full object-contain" loading="lazy" />
                       </button>
                     ))}
-                    {pack.stickers.length > 6 && (
+                    {(pack.stickers || []).length > 6 && (
                       <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-dark-surface border border-dark-border/50 flex items-center justify-center text-white/30 text-xs">
-                        +{pack.stickers.length - 6}
+                        +{(pack.stickers || []).length - 6}
                       </div>
                     )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
 
               {filteredPacks.length === 0 && (
                 <div className="text-center py-8">

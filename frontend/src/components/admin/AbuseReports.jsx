@@ -111,7 +111,7 @@ const AbuseReports = () => {
       toast.success('Imesasishwa');
       load(pagination.page);
     } catch {
-      toast.error('Imeshindwa');
+      toast.error('Imeshindwa kusasisha ripoti');
     }
   };
 

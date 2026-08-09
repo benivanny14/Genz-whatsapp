@@ -249,6 +249,21 @@ exports.getConversations = async (req, res) => {
       Conversation.find({ participants: userId, deletedFor: { $ne: userId } }),
     );
 
+    // WhatsApp behavior: 1:1 chats with blocked users are hidden from the list
+    // until they are unblocked. Group chats stay visible — you simply stop
+    // receiving that user's messages.
+    const currentUser = await User.findById(userId).select('blockedUsers').lean();
+    const blockedSet = new Set((currentUser?.blockedUsers || []).map((id) => String(id)));
+    if (blockedSet.size > 0) {
+      conversations = conversations.filter((conv) => {
+        if (conv.isGroup) return true;
+        const others = (conv.participants || [])
+          .map((p) => String(p?._id || p))
+          .filter((id) => id && id !== String(userId));
+        return !others.some((id) => blockedSet.has(id));
+      });
+    }
+
     // Transform conversations for current user
     conversations = await Promise.all(
       conversations.map((conv) => transformConversationForUser(conv, userId)),

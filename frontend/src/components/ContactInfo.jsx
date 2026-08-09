@@ -30,6 +30,7 @@ import {
 import { authFetch } from '../utils/authFetch';
 import { useChat } from '../context/ChatContext';
 import { resolveApiBase } from '../utils/resolveApiBase';
+import BlockUserModal from './BlockUserModal';
 
 const API_URL = resolveApiBase() || '/api';
 
@@ -426,6 +427,7 @@ const ContactInfo = ({
   const [showReportModal, setShowReportModal] = useState(false);
   const [showWallpaperModal, setShowWallpaperModal] = useState(false);
   const [showCustomNotifModal, setShowCustomNotifModal] = useState(false);
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false);
 
   const [mediaPreview, setMediaPreview] = useState([]);
   const [mediaCount, setMediaCount] = useState(0);
@@ -759,7 +761,7 @@ const ContactInfo = ({
             {!isStatusConversation && (
               <>
                 <button
-                  onClick={() => isBlocked ? onUnblockUser?.(contact?._id) : onBlockUser?.(contact?._id)}
+                  onClick={() => setShowBlockConfirm(true)}
                   className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-white/5 transition-colors"
                 >
                   {isBlocked ? (
@@ -832,6 +834,15 @@ const ContactInfo = ({
             contactName={displayName}
             e2eeEnabled={e2eeEnabled}
             onClose={() => setShowEncryptionModal(false)}
+          />
+        )}
+
+        {showBlockConfirm && (
+          <BlockUserModal
+            key="block-user-modal"
+            userId={contact?._id}
+            username={displayName}
+            onClose={() => setShowBlockConfirm(false)}
           />
         )}
 
