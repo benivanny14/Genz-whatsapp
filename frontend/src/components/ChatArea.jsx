@@ -571,6 +571,14 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     message.fileUrl ||
     (isHttpUrl(message.content) ? message.content : '')
   );
+  // Animated (video) stickers — created from videos in StickerCreator. They are
+  // stored with a video URL, so render them as <video> instead of a static image.
+  const isVideoSticker = (message = {}) => {
+    const raw = message.content || message.mediaUrl || '';
+    return Boolean(message.isVideo) ||
+      /^data:video\//i.test(raw) ||
+      /\.(webm|mp4|mov)(\?|$)/i.test(raw.split('?')[0]);
+  };
   const isStaleBlobMessage = (message = {}) => (
     hasStaleBlobUrl(message.content) ||
     hasStaleBlobUrl(message.mediaUrl) ||
@@ -2951,20 +2959,35 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       )
                     )}
 
-                    {/* ── Sticker Message (WhatsApp style: no bubble, big sticker, tiny time overlay) ── */}
+                    {/* ── Sticker Message (WhatsApp style: no bubble, compact sticker, tiny time overlay) ── */}
                     {message.messageType === 'sticker' && (
                       <div className="mb-1" style={{ animation: 'stickerBounce 0.4s ease-out' }}>
                         <div className="relative w-fit">
-                          <img
-                            src={message.content || message.mediaUrl}
-                            alt={typeof message.content === 'string' ? message.content : 'Sticker'}
-                            className="w-full max-w-[210px] h-auto object-contain cursor-pointer"
-                            loading="lazy"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setViewerMedia(message);
-                            }}
-                          />
+                          {isVideoSticker(message) ? (
+                            <video
+                              src={message.content || message.mediaUrl}
+                              className="w-full max-w-[150px] h-auto object-contain cursor-pointer rounded-sm"
+                              muted
+                              autoPlay
+                              loop
+                              playsInline
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setViewerMedia(message);
+                              }}
+                            />
+                          ) : (
+                            <img
+                              src={message.content || message.mediaUrl}
+                              alt={typeof message.content === 'string' ? message.content : 'Sticker'}
+                              className="w-full max-w-[150px] h-auto object-contain cursor-pointer"
+                              loading="lazy"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setViewerMedia(message);
+                              }}
+                            />
+                          )}
                           {/* WhatsApp-style tiny time overlay at the bottom of the sticker */}
                           <span className="absolute bottom-1 right-1.5 text-[10px] leading-none text-white/85 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] pointer-events-none">
                             {formatMessageTime(message.createdAt)}

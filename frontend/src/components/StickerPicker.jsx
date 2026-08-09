@@ -330,7 +330,11 @@ const StickerGrid = ({ stickers, onPick, isFav, onFav, onLongPressStart, onLongP
             title={sticker.name || sticker.emoji || 'Sticker'}
             aria-label={sticker.name || sticker.emoji || 'Sticker'}
           >
-            <img src={sticker.url} alt={sticker.name || sticker.emoji || 'sticker'} className="w-full h-full object-contain pointer-events-none" loading="lazy" />
+            {sticker.isVideo ? (
+              <video src={sticker.url} muted autoPlay loop playsInline className="w-full h-full object-contain pointer-events-none rounded" />
+            ) : (
+              <img src={sticker.url} alt={sticker.name || sticker.emoji || 'sticker'} className="w-full h-full object-contain pointer-events-none" loading="lazy" />
+            )}
           </button>
           <button
             type="button"

@@ -119,7 +119,11 @@ export const StickerProvider = ({ children }) => {
     try {
       const blob = await fetch(stickerUrl).then((r) => r.blob());
       if (!blob) return stickerUrl;
-      const file = new File([blob], `sticker_${Date.now()}.png`, { type: 'image/png' });
+      // Preserve the media type so animated (video) stickers keep playing after
+      // upload instead of being forced into an image.
+      const fileType = blob.type || 'image/png';
+      const ext = fileType.includes('video') ? 'webm' : fileType.includes('gif') ? 'gif' : 'png';
+      const file = new File([blob], `sticker_${Date.now()}.${ext}`, { type: fileType });
       const { data } = await mediaAPI.uploadFile(file);
       if (data?.success && data.fileUrl) return data.fileUrl;
       return stickerUrl;
