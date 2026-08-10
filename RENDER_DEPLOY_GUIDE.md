@@ -35,7 +35,11 @@ yote script itajaza yenyewe):
 # MUHIMU (bila hii server haitaanza)
 MONGODB_URI=mongodb+srv://USER:PASS@cluster0.mongodb.net/genz-whatsapp?retryWrites=true&w=majority
 
-# MEDIA (bila hii media itapotea kila redeploy!)
+# MEDIA — LAZIMA (server HAITAANZA bila hii!)
+# Cloudinary ni sharti kwa production: bila hiyo media inahifadhiwa kwenye
+# disk ya ephemeral ya Render na inafutika kimya kimya kila redeploy.
+# backend/utils/validateEnv.js ina-fail closed: NODE_ENV=production bila
+# Cloudinary → server inakataa kuanza (error wazi, haifiki runtime).
 CLOUDINARY_CLOUD_NAME=your-cloud-name
 CLOUDINARY_API_KEY=your-api-key
 CLOUDINARY_API_SECRET=your-api-secret
@@ -57,6 +61,13 @@ RP_ID=genz-whatsapp-1.onrender.com
 
 > ⚠️ **Usiweke namba yako ya mobile money kwenye code au kwenye git** —
 > weka kwenye `.env` pekee (ambayo iko kwenye `.gitignore`).
+
+> 🔒 **Cloudinary ni lazima, si hiari.** Kuanzia sasa, deployment yoyote ya
+> production **bila** `CLOUDINARY_CLOUD_NAME` + `CLOUDINARY_API_KEY` +
+> `CLOUDINARY_API_SECRET` itakataliwa: server haitaanza (validateEnv fail-closed)
+> na script ya `setup-render-env.js` itatoa error. Hii inazula data loss ya
+> media kwenye Render kimyakimya. Pata credentials zako kwenye
+> [Cloudinary Console](https://console.cloudinary.com/) → Dashboard.
 
 ---
 

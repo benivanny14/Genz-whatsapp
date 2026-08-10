@@ -46,13 +46,16 @@ const REQUIRED = {
   BACKUP_ENCRYPTION_KEY: { generate: true, desc: 'Backup encryption key' },
   MESSAGE_ENCRYPTION_SECRET: { generate: true, desc: 'Message encryption secret' },
   FRONTEND_URL: { value: 'https://genz-whatsapp-1.onrender.com', desc: 'Frontend origin (CORS/CSRF allowlist)' },
-  PUBLIC_API_URL: { value: 'https://genz-whatsapp-1.onrender.com', desc: 'Public API URL (media links, callbacks)' }
+  PUBLIC_API_URL: { value: 'https://genz-whatsapp-1.onrender.com', desc: 'Public API URL (media links, callbacks)' },
+  // Cloudinary is REQUIRED in production: without it the server refuses to
+  // start (validateEnv fails closed) because media would be stored on the
+  // local ephemeral disk and silently LOST on every redeploy.
+  CLOUDINARY_CLOUD_NAME: { required: true, desc: 'Cloudinary cloud name (media storage — REQUIRED, server will not start without it)' },
+  CLOUDINARY_API_KEY: { required: true, desc: 'Cloudinary API key (REQUIRED)' },
+  CLOUDINARY_API_SECRET: { required: true, desc: 'Cloudinary API secret (REQUIRED)' }
 };
 
 const RECOMMENDED = {
-  CLOUDINARY_CLOUD_NAME: { desc: 'Cloudinary cloud name (media storage)' },
-  CLOUDINARY_API_KEY: { desc: 'Cloudinary API key' },
-  CLOUDINARY_API_SECRET: { desc: 'Cloudinary API secret' },
   VAPID_PUBLIC_KEY: { generateVapid: true, desc: 'Web Push public key' },
   VAPID_PRIVATE_KEY: { generateVapid: true, desc: 'Web Push private key' },
   VAPID_SUBJECT: { value: 'mailto:admin@genz-whatsapp.com', desc: 'Web Push contact' },
@@ -60,7 +63,9 @@ const RECOMMENDED = {
   REDIS_PASSWORD: { desc: 'Redis password (optional)' },
   MANUAL_PAYMENT_RECEIVER_NAME: { desc: 'Mobile-money receiver name shown to users' },
   MANUAL_PAYMENT_RECEIVER_NUMBER: { desc: 'Mobile-money receiver number (do NOT ship the hardcoded default)' },
-  PHONE_VERIFICATION_REQUIRED: { value: 'true', desc: 'Require OTP phone verification' },
+  // OFF until WhatsApp OTP delivery is configured. Verification ON + no
+  // delivery channel = every new registration locked out (OTP never sent).
+  PHONE_VERIFICATION_REQUIRED: { value: 'false', desc: 'Require OTP phone verification (keep OFF until WhatsApp OTP delivery is configured)' },
   ALLOW_ANONYMOUS_DEVICE_AUTH: { value: 'false', desc: 'Block anonymous device auth in prod' },
   ALLOW_MOCK_PAYMENTS: { value: 'false', desc: 'Block mock payments in prod' },
   ADMIN_BASE_PATH: { value: '/api/system-gateway-x9k', desc: 'Obscure admin base path' },
@@ -219,6 +224,28 @@ function buildEnv(envPath) {
 
   if (env.JWT_REFRESH_SECRET && env.JWT_SECRET && env.JWT_REFRESH_SECRET === env.JWT_SECRET) {
     errors.push('JWT_REFRESH_SECRET must differ from JWT_SECRET in production');
+  }
+
+  // Fail closed: phone verification ON with no OTP delivery channel silently
+  // locks every new registration out (OTP is stored but never sent, and is
+  // not echoed in production responses). Only WHATSAPP_OTP_RETURN_IN_RESPONSE
+  // is an (insecure, dev-only) escape hatch.
+  if (
+    env.PHONE_VERIFICATION_REQUIRED === 'true' &&
+    env.WHATSAPP_OTP_ENABLED !== 'true' &&
+    env.WHATSAPP_OTP_RETURN_IN_RESPONSE !== 'true'
+  ) {
+    errors.push(
+      'PHONE_VERIFICATION_REQUIRED=true needs an OTP delivery channel: set WHATSAPP_OTP_ENABLED=true (with WHATSAPP_CLOUD_API_* credentials) or set PHONE_VERIFICATION_REQUIRED=false'
+    );
+  } else if (
+    env.PHONE_VERIFICATION_REQUIRED === 'true' &&
+    env.WHATSAPP_OTP_RETURN_IN_RESPONSE === 'true' &&
+    env.WHATSAPP_OTP_ENABLED !== 'true'
+  ) {
+    warnings.push(
+      'PHONE_VERIFICATION_REQUIRED=true is served by WHATSAPP_OTP_RETURN_IN_RESPONSE — OTPs are exposed in API responses; configure real WhatsApp delivery before launch'
+    );
   }
   for (const [key, value] of Object.entries(env)) {
     if (isPlaceholder(value)) {

@@ -141,6 +141,32 @@ const validateEnv = () => {
     });
   }
 
+  // Fail closed: phone verification ON with no OTP delivery channel silently
+  // locks every new registration out — the OTP is stored on the user but
+  // never sent, and production responses never echo it. Only the dev-only
+  // WHATSAPP_OTP_RETURN_IN_RESPONSE flag is an (insecure) escape hatch.
+  if (
+    isProduction() &&
+    process.env.PHONE_VERIFICATION_REQUIRED === 'true' &&
+    process.env.WHATSAPP_OTP_ENABLED !== 'true' &&
+    process.env.WHATSAPP_OTP_RETURN_IN_RESPONSE !== 'true'
+  ) {
+    invalidValues.push({
+      key: 'PHONE_VERIFICATION_REQUIRED',
+      description: 'Requires an OTP delivery channel: set WHATSAPP_OTP_ENABLED=true with WHATSAPP_CLOUD_API_* credentials, or set PHONE_VERIFICATION_REQUIRED=false — otherwise every new registration is locked out (OTP never delivered)'
+    });
+  } else if (
+    isProduction() &&
+    process.env.PHONE_VERIFICATION_REQUIRED === 'true' &&
+    process.env.WHATSAPP_OTP_RETURN_IN_RESPONSE === 'true' &&
+    process.env.WHATSAPP_OTP_ENABLED !== 'true'
+  ) {
+    warnings.push({
+      key: 'WHATSAPP_OTP_RETURN_IN_RESPONSE',
+      description: 'OTPs are exposed in API responses to satisfy phone verification — configure real WhatsApp delivery before launch'
+    });
+  }
+
   if (isProduction() && !hasValue('TURN_SERVER_URL')) {
     warnings.push({
       key: 'TURN_SERVER_URL',
@@ -161,10 +187,15 @@ const validateEnv = () => {
     });
   }
 
-  if (isProduction() && !hasValue('CLOUDINARY_CLOUD_NAME')) {
-    warnings.push({
-      key: 'CLOUDINARY_CLOUD_NAME',
-      description: 'Cloudinary is not configured; media is stored on the local ephemeral disk and will be LOST on redeploy'
+  // Cloudinary is REQUIRED in production: without it, media uploads fall back
+  // to the local /uploads directory, which is ephemeral on Render and silently
+  // LOST on every redeploy. Fail closed so a misconfigured deploy cannot start.
+  const missingCloudinaryKeys = ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET']
+    .filter((key) => !hasValue(key));
+  if (isProduction() && missingCloudinaryKeys.length > 0) {
+    invalidValues.push({
+      key: missingCloudinaryKeys[0],
+      description: `Cloudinary is REQUIRED in production (missing: ${missingCloudinaryKeys.join(', ')}). Without it, media is stored on the local ephemeral disk and silently LOST on every redeploy (Render filesystem is not persistent). Set all three from your Cloudinary dashboard — see RENDER_DEPLOY_GUIDE.md`
     });
   }
 
