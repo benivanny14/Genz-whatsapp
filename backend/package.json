@@ -30,11 +30,11 @@
     }
   },
   "dependencies": {
-    "@sentry/node": "^8.0.0",
-    "@sentry/profiling-node": "^8.0.0",
+    "@aws-sdk/client-s3": "^3.1106.0",
+    "@sentry/node": "^10.70.0",
+    "@sentry/profiling-node": "^10.70.0",
     "@simplewebauthn/server": "^13.3.2",
     "@socket.io/redis-adapter": "^8.3.0",
-    "aws-sdk": "^2.1540.0",
     "axios": "^1.6.2",
     "cloudinary": "^2.2.0",
     "compression": "^1.8.1",
@@ -45,7 +45,7 @@
     "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^7.5.1",
     "express-validator": "^7.0.1",
-    "file-type": "^16.5.4",
+    "file-type": "^22.0.1",
     "firebase-admin": "^12.0.0",
     "helmet": "^7.2.0",
     "jsonwebtoken": "^9.0.3",

@@ -1,6 +1,14 @@
 const fs = require('fs');
 const path = require('path');
-const FileType = require('file-type');
+
+// file-type v17+ is ESM-only, so it cannot be require()'d from this CommonJS
+// module. Load it lazily via dynamic import (Node caches the module, so this
+// only happens once) and use the v22 API (fileTypeFromBuffer).
+let fileTypeModule = null;
+const fileTypeFromBuffer = async (buffer) => {
+  if (!fileTypeModule) fileTypeModule = await import('file-type');
+  return fileTypeModule.fileTypeFromBuffer(buffer);
+};
 
 /**
  * File Upload Security Middleware
@@ -131,7 +139,7 @@ const validateSingleFile = async (file) => {
   if (buffer) {
     let detectedType = null;
     try {
-      detectedType = await FileType.fromBuffer(buffer);
+      detectedType = await fileTypeFromBuffer(buffer);
     } catch {
       detectedType = null;
     }
@@ -254,7 +262,7 @@ const validateFileOnDisk = async (filePath, { originalName = '' } = {}) => {
   }
 
   const fileBuffer = fs.readFileSync(filePath);
-  const detectedType = await FileType.fromBuffer(fileBuffer);
+  const detectedType = await fileTypeFromBuffer(fileBuffer);
 
   if (!detectedType) {
     safeRemove(filePath);

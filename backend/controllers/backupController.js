@@ -1,4 +1,10 @@
-const AWS = require('aws-sdk');
+const {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  ListObjectsV2Command,
+  DeleteObjectCommand
+} = require('@aws-sdk/client-s3');
 const crypto = require('crypto');
 const fs = require('fs/promises');
 const path = require('path');
@@ -14,10 +20,12 @@ const BACKUP_DIR = path.resolve(__dirname, '..', 'backups');
 const S3_PREFIX = 'backups';
 const s3Enabled = Boolean(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && BUCKET_NAME);
 
-const s3 = s3Enabled ? new AWS.S3({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION || 'us-east-1'
+const s3 = s3Enabled ? new S3Client({
+  region: process.env.AWS_REGION || 'us-east-1',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+  }
 }) : null;
 
 const getCurrentUserId = (req) => {
@@ -115,7 +123,7 @@ const saveBackup = async (backupId, encryptedBackup, metadata) => {
   const body = JSON.stringify(encryptedBackup);
 
   if (s3Enabled) {
-    await s3.upload({
+    await s3.send(new PutObjectCommand({
       Bucket: BUCKET_NAME,
       Key: backupKeyFor(backupId),
       Body: body,
@@ -125,7 +133,7 @@ const saveBackup = async (backupId, encryptedBackup, metadata) => {
         timestamp: metadata.timestamp,
         version: metadata.version
       }
-    }).promise();
+    }));
     return { storage: 's3' };
   }
 
@@ -136,8 +144,8 @@ const saveBackup = async (backupId, encryptedBackup, metadata) => {
 
 const readBackup = async (backupId) => {
   if (s3Enabled) {
-    const data = await s3.getObject({ Bucket: BUCKET_NAME, Key: backupKeyFor(backupId) }).promise();
-    return JSON.parse(data.Body.toString('utf8'));
+    const data = await s3.send(new GetObjectCommand({ Bucket: BUCKET_NAME, Key: backupKeyFor(backupId) }));
+    return JSON.parse(await data.Body.transformToString('utf8'));
   }
 
   const data = await fs.readFile(backupPathFor(backupId), 'utf8');
@@ -199,11 +207,11 @@ exports.listBackups = async (req, res) => {
     let backups = [];
 
     if (s3Enabled) {
-      const data = await s3.listObjectsV2({
+      const data = await s3.send(new ListObjectsV2Command({
         Bucket: BUCKET_NAME,
         Prefix: `${S3_PREFIX}/backup_${userId}_`,
         MaxKeys: 50
-      }).promise();
+      }));
 
       backups = (data.Contents || []).map((obj) => ({
         backupId: obj.Key.split('/').pop(),
@@ -329,7 +337,7 @@ exports.deleteBackup = async (req, res) => {
     }
 
     if (s3Enabled) {
-      await s3.deleteObject({ Bucket: BUCKET_NAME, Key: backupKeyFor(backupId) }).promise();
+      await s3.send(new DeleteObjectCommand({ Bucket: BUCKET_NAME, Key: backupKeyFor(backupId) }));
     } else {
       await fs.unlink(backupPathFor(backupId));
     }
@@ -400,11 +408,11 @@ exports.getBackupStatus = async (req, res) => {
 
 exports.listBackupsForStatus = async (userId) => {
   if (s3Enabled) {
-    const data = await s3.listObjectsV2({
+    const data = await s3.send(new ListObjectsV2Command({
       Bucket: BUCKET_NAME,
       Prefix: `${S3_PREFIX}/backup_${userId}_`,
       MaxKeys: 10
-    }).promise();
+    }));
     return (data.Contents || []).map((obj) => ({
       backupId: obj.Key.split('/').pop(),
       lastModified: obj.LastModified,
