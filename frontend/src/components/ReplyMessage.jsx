@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, ArrowUp } from 'lucide-react';
+import FormattedText from './FormattedText';
 
 const ReplyMessage = ({ replyTo, onCancel, isReplying }) => {
   if (!replyTo && !isReplying) return null;
@@ -13,8 +14,10 @@ const ReplyMessage = ({ replyTo, onCancel, isReplying }) => {
     if (msg.messageType === 'location') return '📍 Location';
     if (msg.messageType === 'contact') return '👤 Contact';
     if (msg.messageType === 'gif') return 'GIF';
-    return msg.content?.substring(0, 50) || msg.text?.substring(0, 50) || '';
+    return (msg.content || msg.text || '').substring(0, 100);
   };
+
+  const preview = getPreview(replyTo);
 
   return (
     <div className="reply-preview flex items-center gap-3">
@@ -25,7 +28,7 @@ const ReplyMessage = ({ replyTo, onCancel, isReplying }) => {
           </div>
         )}
         <div className="reply-text text-sm truncate mt-1">
-          {getPreview(replyTo)}
+          <FormattedText text={preview.content} />
         </div>
       </div>
       {onCancel && (

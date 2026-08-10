@@ -32,6 +32,20 @@ test('unmatched markers stay as plain text', () => {
   ]);
 });
 
+test('underscores inside a word (e.g. @mention usernames) stay plain text', () => {
+  // `_gc_` in `@e2e_gc_1786 karibu!` must NOT be parsed as italic — WhatsApp
+  // only italicizes underscores at word boundaries.
+  const tokens = formatTextTokens('@e2e_gc_1786 karibu!');
+  assert.deepEqual(tokens, [{ type: 'text', content: '@e2e_gc_1786 karibu!' }]);
+  assert.deepEqual(formatTextTokens('file_name_v2'), [{ type: 'text', content: 'file_name_v2' }]);
+  // Space-delimited underscores still italicize.
+  assert.deepEqual(formatTextTokens('sema _ndoto_ leo'), [
+    { type: 'text', content: 'sema ' },
+    { type: 'italic', content: 'ndoto' },
+    { type: 'text', content: ' leo' }
+  ]);
+});
+
 test('handles empty and non-string input', () => {
   assert.deepEqual(formatTextTokens(''), [{ type: 'text', content: '' }]);
   assert.deepEqual(formatTextTokens(null), [{ type: 'text', content: '' }]);

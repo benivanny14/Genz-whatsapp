@@ -15,7 +15,9 @@ export const formatTextTokens = (text) => {
   if (typeof text !== 'string' || !text) return [{ type: 'text', content: text || '' }];
 
   const tokens = [];
-  const re = /(\*[^*\n]+\*|_[^_\n]+_|~[^~\n]+~|`[^`\n]+`)/g;
+  // Underscores only italicize at word boundaries (like WhatsApp): `_gc_` inside
+  // a username like `e2e_gc_1786` must NOT become italic, or @mentions break.
+  const re = /(\*[^*\n]+\*|(?<![A-Za-z0-9_])_[^_\n]+_(?![A-Za-z0-9_])|~[^~\n]+~|`[^`\n]+`)/g;
   let lastIndex = 0;
   let match;
 

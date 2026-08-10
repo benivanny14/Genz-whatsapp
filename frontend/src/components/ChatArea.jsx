@@ -3012,7 +3012,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                             {message.replyTo.messageType === 'voice' || message.replyTo.messageType === 'audio' ? '🎤 Voice message'
                               : message.replyTo.messageType === 'video' ? '🎥 Video'
                               : message.replyTo.messageType === 'file' ? '📎 File'
-                              : typeof message.replyTo.content === 'string' ? (message.replyTo.content?.substring(0, 60) + (message.replyTo.content?.length > 60 ? '...' : ''))
+                              : typeof message.replyTo.content === 'string'
+                                ? <FormattedText text={message.replyTo.content?.substring(0, 60) + (message.replyTo.content?.length > 60 ? '...' : '')} />
                               : 'Reply'}
                           </p>
                         )}
@@ -3893,6 +3894,23 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                 Sticker itatumwa pamoja na ujumbe wako ✨
               </p>
             )}
+          </div>
+        )}
+
+        {/* Editing-message indicator */}
+        {editingMessage && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-[#182229] border border-dark-border rounded-t-xl border-b-0 -mb-px self-end z-50">
+            <Edit size={14} className="text-[#25d366]" />
+            <span className="text-xs text-gray-300">Editing message</span>
+            <button
+              type="button"
+              onClick={() => { setEditingMessage(null); setMessageInput(''); inputRef.current?.focus(); }}
+              className="ml-1 text-gray-400 hover:text-white transition-colors"
+              title="Cancel editing"
+              aria-label="Cancel editing"
+            >
+              <X size={14} />
+            </button>
           </div>
         )}
 

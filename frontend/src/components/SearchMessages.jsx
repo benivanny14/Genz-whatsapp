@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useChat } from '../context/ChatContext';
 import { Search as FiSearch, X as FiX } from 'lucide-react';
+import FormattedText from './FormattedText';
 
 const SearchMessages = ({ conversationId, onSelectMessage, onClose }) => {
   const [query, setQuery] = useState('');
@@ -126,9 +127,11 @@ const SearchMessages = ({ conversationId, onSelectMessage, onClose }) => {
                     </p>
                   </div>
                   
-                  {/* Message Preview */}
+                  {/* Message Preview (WhatsApp-style formatting) */}
                   <p className="text-gray-300 text-sm truncate mt-1">
-                    {msg.messageType === 'text' ? msg.content : `📎 ${msg.messageType}`}
+                    {msg.messageType === 'text'
+                      ? <FormattedText text={typeof msg.content === 'string' ? msg.content : ''} />
+                      : `📎 ${msg.messageType}`}
                   </p>
                 </div>
               </div>

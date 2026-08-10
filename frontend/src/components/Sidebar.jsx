@@ -12,6 +12,7 @@ import ArchiveChats from './ArchiveChats';
 import { AnimatePresence } from 'framer-motion';
 import { decryptMessage } from '../utils/formatDate';
 import { isClientE2EEMessageContent } from '../utils/e2eeContent';
+import { importChatFile } from '../utils/chatImporter';
 import {
   MessageCircle,
   Users,
@@ -354,7 +355,9 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
       reader.onload = (event) => {
         try {
           const content = event.target.result;
-          const importedData = JSON.parse(content);
+          // WhatsApp .txt exports are parsed into messages (formatting markers
+          // preserved); JSON exports pass through as-is.
+          const { messages: importedData } = importChatFile(content, file.name);
           
           // Store imported data in localStorage
           const existingImports = JSON.parse(localStorage.getItem('genz_imported_chats') || '[]');
@@ -366,7 +369,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
           });
           localStorage.setItem('genz_imported_chats', JSON.stringify(existingImports));
           
-          alert('Chat imported successfully! You can now view it in the imported chats section.');
+          alert(`Chat imported successfully (${importedData.length} messages)! You can now view it in the imported chats section.`);
         } catch (error) {
           alert('Failed to import chat. Please ensure the file is in the correct format.');
         }

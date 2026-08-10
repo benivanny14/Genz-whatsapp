@@ -401,6 +401,37 @@ nakala ya `getUser` (na ~34 zina `mergeSettings`), zikiwemo:
   Blocked contacts → chat inarudi → message "message after unblock" inatuma (✓✓).
 - DB verification: `blockedUsers` inaonekana baada ya block, inaondoka baada ya unblock.
 
+### 14. ✅ Formatting kila mahali + WhatsApp .txt import + E2E block flow
+
+#### Formatting toolbar wakati wa edit + indicators
+- Edit composer inatumia `messageInput` sawa → toolbar ya B/I/S/M inaonekana pia
+  wakati wa edit (raw markers huhifadhiwa kwenye stored message).
+- **Indicator "Editing message" + Cancel button** imeongezwa juu ya composer ili
+  edit mode ionekane wazi (hapo awali hakukuwa na dalili yoyote ya editing).
+
+#### FormattedText kwenye previews zote
+- **`ReplyMessage.jsx`**: quoted message preview (juu ya composer) sasa inarender
+  formatting kupitia `FormattedText`.
+- **`SearchMessages.jsx`**: search results zinarender formatting.
+- **`ChatArea.jsx`**: quoted reply ndani ya message bubble inatumia `FormattedText`.
+- **`MessageGroupReply.jsx`**: modal ya group reply preview inatumia `FormattedText`.
+
+#### WhatsApp .txt import (formatting-preserving)
+- **`frontend/src/utils/chatImporter.js`** (mpya): inaparse export ya WhatsApp `.txt`
+  (`[date, time] Sender: message` format, ikihimili multi-line messages), inahifadhi
+  formatting markers kwenye content, na inatoa messages zinazoendana na schema ya app.
+- **`Sidebar.jsx`**: Import Chat sasa inakubali `.txt` pamoja na `.json`
+  (JSON inabaki kwenye njia ya zamani).
+- Tests: `src/tests/chatImporter.test.js` (+7).
+
+#### E2E test ya block flow (`frontend/e2e/block-flow.spec.js`)
+- Inathibitisha mzunguko kamili: A↔B chat inaonekana → A anablock B → chat inatoweka
+  kwenye list → B hawezi kutuma (403) → A an-unblock (kuthibitishwa kwa
+  `GET /api/auth/blocked`) → chat inarudi → B anapeleka ujumbe (201).
+- Inaendeshwa kwa `GENZ_DEV_PORT=5176 PLAYWRIGHT_BASE_URL=http://127.0.0.1:5176`
+  (convention ya e2e suite); `request.delete()` inatumika kwa unblock (badala ya
+  `request.post` + `method` override ambayo Playwright haikuiheshimu).
+
 ### 7. ✅ Test coverage expansion (batches 1–4) + `npm run coverage`
 
 #### Tests zilizoongezwa (kwa pattern ya happy path + validation + auth)
@@ -431,6 +462,6 @@ nakala ya `getUser` (na ~34 zina `mergeSettings`), zikiwemo:
 
 ## Vigezo vya "done" kwa kila hatua
 - [x] `node -c` inapita kwa faili zote zilizobadilika
-- [x] `npm test` inapita (**1532 tests backend + 12 frontend** kwa sasa)
+- [x] `npm test` inapita (**1534 tests backend + 22 frontend** kwa sasa)
 - [x] Route paths za nje hazijabadilika (diff ya routes ni import-only)
 - [x] Feature smoke test (`scripts/feature-smoke-test.js`) inapita kwa endpoints zilizoguswa

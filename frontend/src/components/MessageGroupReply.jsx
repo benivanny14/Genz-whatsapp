@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Users, X, Check, RefreshCw, Send, User, Search, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import FormattedText from './FormattedText';
 
 const MessageGroupReply = ({ message, groupMembers, onGroupReply, onClose }) => {
   const [selectedMembers, setSelectedMembers] = useState([]);
@@ -72,7 +73,9 @@ const MessageGroupReply = ({ message, groupMembers, onGroupReply, onClose }) => 
         <div className="p-4 border-b border-[#00a884]/20">
           <div className="bg-[#0b141a] rounded-lg p-3 border border-[#00a884]/20">
             <p className="text-gray-400 text-xs mb-1">Replying to:</p>
-            <p className="text-white text-sm line-clamp-2">{message.content}</p>
+            <p className="text-white text-sm line-clamp-2">
+              <FormattedText text={typeof message.content === 'string' ? message.content : ''} />
+            </p>
           </div>
         </div>
 
