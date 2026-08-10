@@ -1259,3 +1259,151 @@ describe('chatController — socket io emission', () => {
     expect(emit).toHaveBeenCalledWith('message:read_receipt', expect.any(Object));
   });
 });
+
+describe('chatController — view-once privacy', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    containsProfanity.mockReturnValue(false);
+    isConversationBlocked.mockResolvedValue(false);
+  });
+
+  const viewOnceMsg = (overrides = {}) =>
+    makeMessage({
+      isViewOnce: true,
+      isConsumed: false,
+      content: 'secret one-time text',
+      caption: 'cap',
+      mediaUrl: 'https://example.com/secret.png',
+      fileName: 'secret.png',
+      fileSize: 123,
+      duration: 5,
+      ...overrides
+    });
+
+  it('getMessages strips view-once content from the feed payload', async () => {
+    Conversation.findById.mockResolvedValue(makeConv());
+    Message.find.mockReturnValue(msgFindChain([viewOnceMsg()], { sortLimit: true, skip: true }));
+    Message.countDocuments.mockResolvedValue(1);
+    const res = makeRes();
+    await chat.getMessages(makeReq({ params: { id: 'c1' } }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.messages[0].content).toBe('View Once message');
+    expect(res.body.messages[0].mediaUrl).toBe('');
+    expect(res.body.messages[0].fileName).toBe('');
+    expect(res.body.messages[0].isViewOnce).toBe(true);
+  });
+
+  it('getMessages keeps the placeholder for the sender too', async () => {
+    Conversation.findById.mockResolvedValue(makeConv());
+    Message.find.mockReturnValue(msgFindChain([viewOnceMsg({ sender: 'user-1' })], { sortLimit: true, skip: true }));
+    Message.countDocuments.mockResolvedValue(1);
+    const res = makeRes();
+    await chat.getMessages(makeReq(), res);
+    expect(res.body.messages[0].content).toBe('View Once message');
+    expect(res.body.messages[0].mediaUrl).toBe('');
+  });
+
+  it('getMessages does not strip consumed view-once messages', async () => {
+    Conversation.findById.mockResolvedValue(makeConv());
+    const consumed = viewOnceMsg({ isConsumed: true, content: 'View Once message opened' });
+    Message.find.mockReturnValue(msgFindChain([consumed], { sortLimit: true, skip: true }));
+    Message.countDocuments.mockResolvedValue(1);
+    const res = makeRes();
+    await chat.getMessages(makeReq({ params: { id: 'c1' } }), res);
+    expect(res.body.messages[0].content).toBe('View Once message opened');
+  });
+
+  it('getConversations strips view-once lastMessage preview', async () => {
+    const conv = makeConv({ updatedAt: new Date('2025-06-01T00:00:00Z'), lastMessage: viewOnceMsg() });
+    Conversation.find.mockReturnValue(populateChain([conv]));
+    User.findById.mockReturnValue({ select: jest.fn(() => ({ lean: jest.fn().mockResolvedValue({ blockedUsers: [] }) })) });
+    const res = makeRes();
+    await chat.getConversations(makeReq(), res);
+    expect(res.body.conversations[0].lastMessage.content).toBe('View Once message');
+    expect(res.body.conversations[0].lastMessage.mediaUrl).toBe('');
+  });
+
+  it('getMediaGallery excludes unconsumed view-once media', async () => {
+    Conversation.findById.mockResolvedValue(makeConv());
+    const media = [
+      viewOnceMsg({ messageType: 'image' }),
+      makeMessage({ messageType: 'image', mediaUrl: 'https://x/y.png', content: '' })
+    ];
+    Message.find.mockReturnValue({
+      populate: jest.fn().mockReturnValue({ sort: jest.fn().mockResolvedValue(media) })
+    });
+    const res = makeRes();
+    await chat.getMediaGallery(makeReq({ params: { conversationId: VALID_ID } }), res);
+    expect(res.body.media).toHaveLength(1);
+    expect(res.body.media[0]._id).toBe('m1');
+  });
+
+  it('getMessageInfo strips view-once content for a non-sender', async () => {
+    const message = viewOnceMsg({ sender: 'user-2' });
+    Message.findById.mockReturnValue(msgById3(message));
+    Conversation.findById.mockResolvedValue(makeConv());
+    const res = makeRes();
+    await chat.getMessageInfo(makeReq({ params: { messageId: 'm1' } }), res);
+    expect(res.body.messageInfo.content).toBe('View Once message');
+    expect(res.body.messageInfo.mediaUrl).toBe('');
+  });
+
+  it('getMessageInfo keeps the real content for the sender', async () => {
+    const message = viewOnceMsg({ sender: 'user-1' });
+    Message.findById.mockReturnValue(msgById3(message));
+    Conversation.findById.mockResolvedValue(makeConv());
+    const res = makeRes();
+    await chat.getMessageInfo(makeReq({ params: { messageId: 'm1' } }), res);
+    expect(res.body.messageInfo.content).toBe('secret one-time text');
+  });
+
+  it('revealViewOnceMessage returns 404 for a missing message', async () => {
+    Message.findById.mockResolvedValue(null);
+    const res = makeRes();
+    await chat.revealViewOnceMessage(makeReq({ params: { messageId: 'm1' } }), res);
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('revealViewOnceMessage forbids non-participants (403)', async () => {
+    Message.findById.mockResolvedValue(viewOnceMsg());
+    Conversation.findById.mockResolvedValue(makeConv({ participants: ['user-9'] }));
+    const res = makeRes();
+    await chat.revealViewOnceMessage(makeReq({ params: { messageId: 'm1' } }), res);
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('revealViewOnceMessage forbids the sender from revealing their own message (403)', async () => {
+    Message.findById.mockResolvedValue(viewOnceMsg({ sender: 'user-1' }));
+    Conversation.findById.mockResolvedValue(makeConv());
+    const res = makeRes();
+    await chat.revealViewOnceMessage(makeReq({ params: { messageId: 'm1' } }), res);
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('revealViewOnceMessage rejects non view-once messages (400)', async () => {
+    Message.findById.mockResolvedValue(makeMessage({ sender: 'user-2' }));
+    Conversation.findById.mockResolvedValue(makeConv());
+    const res = makeRes();
+    await chat.revealViewOnceMessage(makeReq({ params: { messageId: 'm1' } }), res);
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('revealViewOnceMessage rejects already-consumed messages (400)', async () => {
+    Message.findById.mockResolvedValue(viewOnceMsg({ isConsumed: true }));
+    Conversation.findById.mockResolvedValue(makeConv());
+    const res = makeRes();
+    await chat.revealViewOnceMessage(makeReq({ params: { messageId: 'm1' } }), res);
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('revealViewOnceMessage returns the real content once (happy path)', async () => {
+    Message.findById.mockResolvedValue(viewOnceMsg({ sender: 'user-2', mediaUrl: 'https://example.com/secret.png' }));
+    Conversation.findById.mockResolvedValue(makeConv());
+    const res = makeRes();
+    await chat.revealViewOnceMessage(makeReq({ params: { messageId: 'm1' } }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.content).toBe('secret one-time text');
+    expect(res.body.mediaUrl).toBe('https://example.com/secret.png');
+  });
+});

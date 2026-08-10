@@ -4615,6 +4615,20 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
+  // Fetch a view-once message's real content. The feed APIs strip it, so this
+  // is the only way a receiver gets it — once, before the message is consumed.
+  const revealViewOnce = async (messageId) => {
+    const response = await authFetch(`${BACKEND_URL}/chat/messages/${messageId}/view-once-reveal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await response.json();
+    if (!response.ok || !data?.success) {
+      throw new Error(data?.message || 'View once message unavailable');
+    }
+    return data;
+  };
+
   const markViewOnceViewed = async (messageId) => {
     try {
       const response = await authFetch(`${BACKEND_URL}/chat/messages/${messageId}/view-once-viewed`, {
@@ -5201,7 +5215,7 @@ export const ChatProvider = ({ children }) => {
     sendFloatingSticker, floatingStickerHandlers, setFloatingStickerHandlers,
     toggleStarMessage, toggleMessageLock, viewProfile,
     // New WhatsApp features
-    searchMessages, getMediaGallery, getMessageInfo, markViewOnceViewed,
+    searchMessages, getMediaGallery, getMessageInfo, revealViewOnce, markViewOnceViewed,
     reportMessage, getGroupInfo, regenerateGroupInvite, updateGroupInfo, removeAdmin, makeAdmin, addParticipant, removeParticipant, leaveGroup, refreshConversations, setStoredSelectedConversationId,
     // Advanced group management
     banGroupMember, unbanGroupMember, getGroupBannedMembers,

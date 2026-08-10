@@ -33,6 +33,7 @@ import ChunkedUploader from './ChunkedUploader';
 import ContactInfo from './ContactInfo';
 import GroupInfo from './GroupInfo';
 import StickerPicker from './StickerPicker';
+import StickerImage, { hasEmojiChar } from './StickerImage';
 import { useStickers } from '../context/StickerContext';
 import { uploadVoiceNote, getAudioDuration, analyzeAudioForWaveform } from '../services/voiceService';
 import toast from 'react-hot-toast';
@@ -227,7 +228,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     createPoll, votePoll, scheduleMessage, scheduledMessages, cancelScheduledMessage,
     initiateCall, endCall,
     updateGroupMember, joinGroup, updateDisappearingMessages, toggleAdminOnlyMessaging, updateGroupPermission, createCustomRole, assignRole, viewProfile,
-    pinMessage, unpinMessage, pinnedMessages, presenceHistory, unlockedSessionChats, verifyChatUnlock, toggleChatLock, toggleStarMessage, toggleMessageLock, toggleMuteChat, toggleArchiveChat, markAsRead, markViewOnceViewed, getUserStatusWithGhostMode, reportMessage,
+    pinMessage, unpinMessage, pinnedMessages, presenceHistory, unlockedSessionChats, verifyChatUnlock, toggleChatLock, toggleStarMessage, toggleMessageLock, toggleMuteChat, toggleArchiveChat, markAsRead, revealViewOnce, markViewOnceViewed, getUserStatusWithGhostMode, reportMessage,
     sendFloatingSticker, floatingStickerHandlers, setFloatingStickerHandlers,
     isDNDMode, toggleDNDMode, selectConversation, setMods, aiAssistant,
     loadOlderMessages, hasOlderMessages
@@ -389,6 +390,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [viewOnceModalOpen, setViewOnceModalOpen] = useState(false);
   const [viewOnceMessageData, setViewOnceMessageData] = useState(null);
+  const viewOnceModalOpenRef = useRef(false);
   const [showDrawingEditor, setShowDrawingEditor] = useState(false);
   const [drawingImageUrl, setDrawingImageUrl] = useState('');
   const [pendingImageFile, setPendingImageFile] = useState(null);
@@ -1637,13 +1639,31 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   }, [viewOnceModalOpen]);
 
 
-  const openViewOnceModal = (message) => {
-    setViewOnceMessageData(message);
+  const openViewOnceModal = async (message) => {
+    const messageId = message.id || message._id;
+    // Clear stale data so the modal shows a loading state while we fetch the
+    // real content through the reveal endpoint (the feed payload is stripped).
+    setViewOnceMessageData(null);
     setViewOnceModalOpen(true);
+    viewOnceModalOpenRef.current = true;
+    try {
+      const revealed = await revealViewOnce(messageId);
+      // User may have closed the modal while the reveal was in flight.
+      if (!viewOnceModalOpenRef.current) return;
+      setViewOnceMessageData({ ...message, ...revealed });
+    } catch (err) {
+      console.error('Failed to reveal view-once message:', err);
+      if (viewOnceModalOpenRef.current) {
+        toast.error(err?.message || 'This view-once message has already been opened');
+        setViewOnceModalOpen(false);
+      }
+      viewOnceModalOpenRef.current = false;
+    }
   };
 
   // Close View Once modal - NOW mark as viewed/consumed
   const closeViewOnceModal = async () => {
+    viewOnceModalOpenRef.current = false;
     if (viewOnceMessageData) {
       const messageId = viewOnceMessageData.id || viewOnceMessageData._id;
       const senderId = String(viewOnceMessageData.sender?._id || viewOnceMessageData.sender || '');
@@ -2538,7 +2558,14 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-white font-medium truncate leading-tight">{getConversationName()}</h2>
+                <h2 className="text-white font-medium truncate leading-tight flex items-center gap-1.5">
+                  {getConversationName()}
+                  {selectedConversation?.isGroup ? (
+                    <ShieldAlert size={13} className="text-amber-400/90 flex-shrink-0" title="Messages za group hazijafichwa end-to-end — server inaziona" aria-label="Group messages not E2E encrypted" />
+                  ) : (
+                    <Lock size={12} className="text-[#00a884] flex-shrink-0" title="Text messages kwenye chat hii zinafichwa kwa njia ya E2EE kwenye device zako" aria-label="Chat encrypted end-to-end" />
+                  )}
+                </h2>
                 {selectedConversation.isGroup && !isOtherUserTyping && (
                   <p className="text-[10px] text-white/60 truncate">
                     {groupOnlineCount} online · {(selectedConversation.participants || []).length} members
@@ -2906,11 +2933,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                           {/* Placeholder for View Once video - don't load actual video until clicked */}
                           <div
                             className="max-w-full rounded-lg max-h-64 w-full cursor-pointer bg-dark-bg/50 border-2 border-dashed border-dark-border/50 flex items-center justify-center min-h-[200px]"
-                            onClick={() => openViewOnceModal(message)}
+                            onClick={() => { if (!isOwnMessage(message)) openViewOnceModal(message); }}
                           >
                             <div className="flex flex-col items-center gap-2 text-dark-textSecondary">
                               <Eye size={32} />
-                              <span className="text-sm font-medium">Tap to view</span>
+                              <span className="text-sm font-medium">{isOwnMessage(message) ? 'View once' : 'Tap to view'}</span>
                               <span className="text-xs opacity-60">View once video</span>
                             </div>
                           </div>
@@ -2977,11 +3004,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                               }}
                             />
                           ) : (
-                            <img
+                            <StickerImage
                               src={message.content || message.mediaUrl}
+                              emoji={hasEmojiChar(message.caption) ? message.caption : undefined}
                               alt={typeof message.content === 'string' ? message.content : 'Sticker'}
                               className="w-full max-w-[150px] h-auto object-contain cursor-pointer"
-                              loading="lazy"
+                              fallbackClassName="text-6xl"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setViewerMedia(message);
@@ -3013,11 +3041,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                           {/* Placeholder for View Once media - don't load actual image until clicked */}
                           <div
                             className="max-w-full rounded-lg cursor-pointer bg-dark-bg/50 border-2 border-dashed border-dark-border/50 flex items-center justify-center min-h-[200px]"
-                            onClick={() => openViewOnceModal(message)}
+                            onClick={() => { if (!isOwnMessage(message)) openViewOnceModal(message); }}
                           >
                             <div className="flex flex-col items-center gap-2 text-dark-textSecondary">
                               <Eye size={32} />
-                              <span className="text-sm font-medium">Tap to view</span>
+                              <span className="text-sm font-medium">{isOwnMessage(message) ? 'View once' : 'Tap to view'}</span>
                               <span className="text-xs opacity-60">View once message</span>
                             </div>
                           </div>
@@ -3176,9 +3204,15 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                     {message.isViewOnce &&
                       !message.isSelfDestruct &&
                       message.messageType === 'text' &&
-                      !isOwnMessage(message) &&
                       !safeMods?.antiViewOnce &&
-                      !message.isConsumed && (
+                      !message.isConsumed &&
+                      (isOwnMessage(message) ? (
+                        // Sender sees a static placeholder too — WhatsApp never
+                        // shows the sender the raw view-once content in the chat.
+                        <div className="flex items-center gap-2 text-sm italic text-dark-textSecondary py-2 px-3 rounded-lg bg-black/20 border border-white/10">
+                          <Eye size={16} /> View once message
+                        </div>
+                      ) : (
                         <button
                           type="button"
                           onClick={() => openViewOnceModal(message)}
@@ -3186,7 +3220,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                         >
                           <Eye size={16} /> Tap to view once
                         </button>
-                      )}
+                      ))}
                     {message.isSelfDestruct && !message.isConsumed && (
                       <p className="text-[9px] text-orange-400/90 font-medium mb-1">Disappears in 10 seconds</p>
                     )}
@@ -3249,7 +3283,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                         message.isViewOnce &&
                         !message.isSelfDestruct &&
                         message.messageType === 'text' &&
-                        !isOwnMessage(message) &&
                         !safeMods?.antiViewOnce &&
                         !message.isConsumed
                       ) && !message.isConsumed && (
@@ -3890,7 +3923,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           )}
 
           {/* ── TM WhatsApp Voice Recorder ── */}
-          {(!messageInput.trim() || voiceRecorderActive) && (
+          {((!messageInput.trim() && !selectedMedia) || voiceRecorderActive) && (
             <VoiceRecorder
               onSend={handleVoiceNoteSend}
               canSend={canSendMedia || currentUserIsAdmin}
@@ -3907,8 +3940,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
             />
           )}
 
-          {/* ── Send button — hidden while recording ── */}
-          {!voiceRecorderActive && messageInput.trim() && (
+          {/* ── Send button — hidden while recording; shows when text OR media selected ── */}
+          {!voiceRecorderActive && (messageInput.trim() || selectedMedia) && (
             <button
               ref={sendButtonRef}
               type="submit"

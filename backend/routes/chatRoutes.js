@@ -37,6 +37,7 @@ const {
   getMessageInfo,
   getMessageEditHistory,
   markViewOnceViewed,
+  revealViewOnceMessage,
   updateGroupInfo,
   forwardMessage,
    reportMessage,
@@ -123,6 +124,7 @@ router.put("/messages/:id/keep", toggleKeepMessage);
 router.get("/messages/:messageId/info", getMessageInfo);
 router.get("/messages/:messageId/edit-history", getMessageEditHistory);
 router.put("/messages/:messageId/view-once-viewed", markViewOnceViewed);
+router.post("/messages/:messageId/view-once-reveal", revealViewOnceMessage);
 router.post("/messages/:messageId/forward", requirePhoneVerified, forwardMessage);
 router.post("/messages/:messageId/report", requirePhoneVerified, reportMessage);
 

@@ -212,6 +212,11 @@ const transformConversationForUser = async (conversation, userId) => {
     );
   }
 
+  // Don't leak a view-once message's content into the chat-list preview
+  if (conv.lastMessage) {
+    stripViewOnceContent(conv.lastMessage);
+  }
+
   return conv;
 };
 
@@ -223,6 +228,24 @@ const populateConversation = (query) =>
     )
     .populate("admins", "username profilePicture")
     .populate("lastMessage");
+
+// View-once privacy: a view-once message's real content must never reach a
+// client through list/feed APIs. It is only returned once through the explicit
+// reveal endpoint, so the one-time-view guarantee is enforced server-side
+// instead of being just a UI placeholder. This strips content/media from any
+// serialized message (mongoose doc or plain object) in place.
+const VIEW_ONCE_PLACEHOLDER = 'View Once message';
+const stripViewOnceContent = (msg) => {
+  if (!msg || !msg.isViewOnce || msg.isConsumed) return msg;
+  const placeholder = msg.isSelfDestruct ? '💥 Message self-destructed' : VIEW_ONCE_PLACEHOLDER;
+  msg.content = placeholder;
+  msg.caption = '';
+  msg.mediaUrl = '';
+  msg.fileName = '';
+  msg.fileSize = 0;
+  msg.duration = 0;
+  return msg;
+};
 
 const ensureParticipant = (conversation, userId, res) => {
   if (!conversation) {
@@ -715,6 +738,8 @@ exports.getStarredMessages = async (req, res) => {
       .populate("mentions.user", "username profilePicture")
       .sort({ createdAt: -1 });
 
+    messages.forEach(stripViewOnceContent);
+
     res.json(messages);
   } catch (error) {
     console.error("Get starred messages error:", error);
@@ -753,6 +778,11 @@ exports.getMessages = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(parseInt(limit, 10));
+
+    // View-once privacy: never send real content through the feed API —
+    // receivers (and the sender) only see a placeholder until the message
+    // is consumed, and the content is served once via the reveal endpoint.
+    messages.forEach(stripViewOnceContent);
 
     const total = await Message.countDocuments(filter);
 
@@ -1002,6 +1032,7 @@ exports.sendMessage = async (req, res) => {
             messageType === 'audio' || messageType === 'voice' ? 'Voice note' :
             messageType === 'sticker' ? 'Sticker' :
             messageType === 'gif' ? 'GIF' :
+            message.isViewOnce ? 'View once message' :
             String(safeContent || 'New message').slice(0, 120);
           for (const participantId of conversation.participants) {
             if (String(participantId) === String(localUserId)) continue;
@@ -1009,7 +1040,22 @@ exports.sendMessage = async (req, res) => {
             // only the reverse direction (recipient blocked the sender) is
             // rejected, and that case already returned 403 above.
             const recipientId = String(participantId);
-            io.to(recipientId).emit("message:received", plainMessage);
+            // View-once privacy: participants receive a placeholder over the
+            // socket too — the real content is only served once via the
+            // reveal endpoint, so it can't be scraped from the live feed.
+            let recipientMessage = plainMessage;
+            if (plainMessage.isViewOnce && !plainMessage.isConsumed) {
+              recipientMessage = {
+                ...plainMessage,
+                content: plainMessage.isSelfDestruct ? '💥 Message self-destructed' : VIEW_ONCE_PLACEHOLDER,
+                caption: '',
+                mediaUrl: '',
+                fileName: '',
+                fileSize: 0,
+                duration: 0,
+              };
+            }
+            io.to(recipientId).emit("message:received", recipientMessage);
             if (updatedConversation) {
               io.to(recipientId).emit("conversation:unread-update", {
                 conversationId: finalConversationId,
@@ -1070,7 +1116,7 @@ exports.sendMessage = async (req, res) => {
         mentionedUserIds: mentionData.mentionedUserIds,
         message: populatedMessage,
         senderName: populatedMessage?.sender?.username,
-        text: safeContent,
+        text: message.isViewOnce ? 'View once message' : safeContent,
         mentionerId: localUserId
       });
     } catch (notifyErr) {
@@ -1980,7 +2026,11 @@ exports.getMediaGallery = async (req, res) => {
       .populate("sender", "username profilePicture")
       .sort({ createdAt: -1 });
 
-    res.json({ success: true, media: messages });
+    // View-once media must not appear in the gallery — its URL is only
+    // served once via the reveal endpoint.
+    const media = messages.filter((m) => !(m.isViewOnce && !m.isConsumed));
+
+    res.json({ success: true, media });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -2022,6 +2072,11 @@ exports.getMessageInfo = async (req, res) => {
       isPinned: conversation.pinnedMessages?.includes(message._id),
       isViewOnce: message.isViewOnce,
     };
+
+    // View-once privacy: only the sender gets the real content here.
+    if (!(message.isViewOnce && String(message.sender?._id || message.sender) === String(userId))) {
+      stripViewOnceContent(info);
+    }
 
     res.json({ success: true, messageInfo: info });
   } catch (error) {
@@ -2127,6 +2182,63 @@ exports.markViewOnceViewed = async (req, res) => {
     }
 
     res.json({ success: true, message: "Message marked as viewed" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Reveal a view-once message's real content. This is the ONLY endpoint that
+// returns the content to a receiver — the feed/gallery APIs strip it — so a
+// message's one-time-view guarantee is enforced server-side. Consumption
+// still happens via markViewOnceViewed when the receiver finishes viewing.
+exports.revealViewOnceMessage = async (req, res) => {
+  try {
+    const userId = getCurrentUserId(req);
+    const { messageId } = req.params;
+
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Message not found" });
+    }
+
+    const conversation = await Conversation.findById(message.conversationId);
+    if (!ensureParticipant(conversation, userId, res)) return;
+
+    if (String(message.sender?._id || message.sender) === String(userId)) {
+      return res.status(403).json({
+        success: false,
+        message: "Sender cannot view their own view-once message",
+      });
+    }
+
+    if (!message.isViewOnce && !message.isSelfDestruct) {
+      return res.status(400).json({
+        success: false,
+        message: "Message is not a view-once or self-destruct message",
+      });
+    }
+
+    if (message.isConsumed) {
+      return res.status(400).json({
+        success: false,
+        message: "View once message already opened",
+      });
+    }
+
+    res.json({
+      success: true,
+      content: message.content,
+      caption: message.caption || '',
+      mediaUrl: message.mediaUrl || '',
+      fileName: message.fileName || '',
+      fileSize: message.fileSize || 0,
+      duration: message.duration || 0,
+      messageType: message.messageType,
+      isViewOnce: Boolean(message.isViewOnce),
+      isSelfDestruct: Boolean(message.isSelfDestruct),
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
