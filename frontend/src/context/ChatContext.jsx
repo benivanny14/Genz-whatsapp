@@ -1673,6 +1673,16 @@ export const ChatProvider = ({ children }) => {
         }
       });
 
+      // ── View-once message revealed — notify the sender live, before the
+      //    message is consumed (WhatsApp-style "opened" feedback) ──
+      socket.on('message:revealed', ({ messageId, revealedAt } = {}) => {
+        setOnlineNotification('👁️ Someone opened your view-once message');
+        setTimeout(() => setOnlineNotification(null), 4000);
+        setMessages(prev => prev.map(m =>
+          (m._id === messageId || m.id === messageId) ? { ...m, revealedAt: revealedAt || m.revealedAt } : m
+        ));
+      });
+
       // ── Screenshot attempted notification ──
       socket.on('message:screenshot-attempted', ({ messageId, userId, username }) => {
         const screenshotUser = username || userId || 'Someone';

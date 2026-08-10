@@ -246,6 +246,12 @@ const messageSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  // Every receiver who revealed the content — each gets exactly one reveal,
+  // without blocking other group members from their own single view.
+  revealedBy: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   isSelfDestruct: {
     type: Boolean,
     default: false

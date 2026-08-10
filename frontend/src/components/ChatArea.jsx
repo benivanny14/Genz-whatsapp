@@ -3421,42 +3421,44 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                             >
                               <Reply size={14} className="text-dark-text" /> Reply
                             </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                try {
-                                  const text = plaintextOf(message);
-                                  // Fallback for mobile devices
-                                  if (navigator.clipboard && navigator.clipboard.writeText) {
-                                    navigator.clipboard.writeText(text || '');
-                                    alert("Text Copied!");
-                                  } else {
-                                    // Fallback for older browsers and non-HTTPS contexts
-                                    const textArea = document.createElement('textarea');
-                                    textArea.value = text || '';
-                                    textArea.style.position = 'fixed';
-                                    textArea.style.left = '-999999px';
-                                    document.body.appendChild(textArea);
-                                    textArea.select();
-                                    try {
-                                      document.execCommand('copy');
+                            {!(message.isViewOnce && !isOwnMessage(message)) && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    const text = plaintextOf(message);
+                                    // Fallback for mobile devices
+                                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                                      navigator.clipboard.writeText(text || '');
                                       alert("Text Copied!");
-                                    } catch (err) {
-                                      console.error('Copy fallback error:', err);
-                                      alert('Failed to copy text');
+                                    } else {
+                                      // Fallback for older browsers and non-HTTPS contexts
+                                      const textArea = document.createElement('textarea');
+                                      textArea.value = text || '';
+                                      textArea.style.position = 'fixed';
+                                      textArea.style.left = '-999999px';
+                                      document.body.appendChild(textArea);
+                                      textArea.select();
+                                      try {
+                                        document.execCommand('copy');
+                                        alert("Text Copied!");
+                                      } catch (err) {
+                                        console.error('Copy fallback error:', err);
+                                        alert('Failed to copy text');
+                                      }
+                                      document.body.removeChild(textArea);
                                     }
-                                    document.body.removeChild(textArea);
+                                    setActiveMessageMenu(null);
+                                  } catch (err) {
+                                    console.error('Copy error:', err);
+                                    alert('Failed to copy text');
                                   }
-                                  setActiveMessageMenu(null);
-                                } catch (err) {
-                                  console.error('Copy error:', err);
-                                  alert('Failed to copy text');
-                                }
-                              }}
-                              className="w-full px-4 py-2 text-left text-sm hover:bg-dark-hover flex items-center gap-3"
-                            >
-                              <Copy size={14} className="text-dark-text" /> Copy
-                            </button>
+                                }}
+                                className="w-full px-4 py-2 text-left text-sm hover:bg-dark-hover flex items-center gap-3"
+                              >
+                                <Copy size={14} className="text-dark-text" /> Copy
+                              </button>
+                            )}
                             {!message.isViewOnce && (
                               <button
                                 onClick={(e) => {
@@ -3622,8 +3624,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       )}
                     </div>
 
-                    {/* Download button for media types */}
-                    {(message.messageType === 'image' || message.messageType === 'video' || message.messageType === 'audio' || message.messageType === 'file') && mediaSourceOf(message) && (
+                    {/* Download button for media types — never for view-once */}
+                    {!message.isViewOnce && (message.messageType === 'image' || message.messageType === 'video' || message.messageType === 'audio' || message.messageType === 'file') && mediaSourceOf(message) && (
                       <a href={mediaSourceOf(message)} download className="absolute top-0 left-0 hidden group-hover:flex bg-dark-surface px-2 py-1 rounded text-sm hover:bg-dark-hover -mt-8" title="Download">
                         <Download size={14} />
                       </a>

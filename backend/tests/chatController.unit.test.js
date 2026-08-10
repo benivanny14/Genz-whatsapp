@@ -1436,7 +1436,7 @@ describe('chatController — view-once privacy', () => {
     expect(ttl).toBeLessThanOrEqual(24 * 60 * 60 * 1000 + 5000);
   });
 
-  it('revealViewOnceMessage records revealedAt on first reveal (audit)', async () => {
+  it('revealViewOnceMessage records revealedAt + revealedBy on first reveal (audit)', async () => {
     const message = viewOnceMsg({ sender: 'user-2' });
     message.save = jest.fn().mockResolvedValue(undefined);
     Message.findById.mockResolvedValue(message);
@@ -1445,20 +1445,47 @@ describe('chatController — view-once privacy', () => {
     await chat.revealViewOnceMessage(makeReq({ params: { messageId: 'm1' } }), res);
     expect(res.statusCode).toBe(200);
     expect(message.revealedAt).toBeInstanceOf(Date);
+    expect(message.revealedBy).toContain('user-1');
     expect(message.save).toHaveBeenCalled();
   });
 
-  it('revealViewOnceMessage keeps the first revealedAt on later reveals', async () => {
-    const first = new Date('2026-08-01T00:00:00Z');
-    const message = viewOnceMsg({ sender: 'user-2', revealedAt: first });
+  it('revealViewOnceMessage blocks the same receiver from revealing twice (400)', async () => {
+    const message = viewOnceMsg({ sender: 'user-2', revealedBy: ['user-1'] });
     message.save = jest.fn().mockResolvedValue(undefined);
     Message.findById.mockResolvedValue(message);
     Conversation.findById.mockResolvedValue(makeConv());
     const res = makeRes();
     await chat.revealViewOnceMessage(makeReq({ params: { messageId: 'm1' } }), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toMatch(/already opened/i);
+    expect(message.save).not.toHaveBeenCalled();
+  });
+
+  it('revealViewOnceMessage lets a different receiver use their own single reveal', async () => {
+    const first = new Date('2026-08-01T00:00:00Z');
+    const message = viewOnceMsg({ sender: 'user-2', revealedAt: first, revealedBy: ['user-1'] });
+    message.save = jest.fn().mockResolvedValue(undefined);
+    Message.findById.mockResolvedValue(message);
+    Conversation.findById.mockResolvedValue(makeConv({ participants: ['user-1', 'user-2', 'user-3'] }));
+    const res = makeRes();
+    // Different participant (user-3) is still allowed one reveal.
+    await chat.revealViewOnceMessage(makeReq({ user: { _id: 'user-3' }, params: { messageId: 'm1' } }), res);
     expect(res.statusCode).toBe(200);
     expect(message.revealedAt).toBe(first);
-    expect(message.save).not.toHaveBeenCalled();
+    expect(message.revealedBy).toEqual(['user-1', 'user-3']);
+    expect(message.save).toHaveBeenCalled();
+  });
+
+  it('revealViewOnceMessage emits message:revealed to the sender', async () => {
+    const emit = jest.fn();
+    const message = viewOnceMsg({ sender: 'user-2' });
+    message.save = jest.fn().mockResolvedValue(undefined);
+    Message.findById.mockResolvedValue(message);
+    Conversation.findById.mockResolvedValue(makeConv());
+    const req = makeReq({ params: { messageId: 'm1' }, app: { get: jest.fn(() => ({ to: jest.fn(() => ({ emit })) })) } });
+    const res = makeRes();
+    await chat.revealViewOnceMessage(req, res);
+    expect(emit).toHaveBeenCalledWith('message:revealed', expect.objectContaining({ messageId: 'm1', revealedBy: 'user-1' }));
   });
 
   it('getMessageInfo exposes revealedAt and isConsumed for the sender', async () => {

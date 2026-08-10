@@ -123,4 +123,41 @@ describe('View-once flow (integration)', () => {
     expect(revealRes.statusCode).toBe(403);
     expect(revealRes.body.message).toMatch(/their own view-once message/i);
   });
+
+  it('gives each receiver exactly one reveal without blocking others', async () => {
+    const receiver2 = await User.create({
+      username: 'vo-receiver2',
+      phoneNumber: '255700000103',
+      phoneVerified: true
+    });
+    const receiver2Token = mintToken(receiver2);
+    conversation.participants.push(receiver2._id);
+    await conversation.save();
+
+    const sendRes = await sendViewOnce('group secret');
+    const messageId = sendRes.body.message._id;
+
+    // Receiver 1 reveals → 200, recorded in revealedBy
+    const first = await request(app)
+      .post(`/api/chat/messages/${messageId}/view-once-reveal`)
+      .set('Authorization', `Bearer ${receiverToken}`);
+    expect(first.statusCode).toBe(200);
+
+    // Receiver 1 replays the reveal → 400 (their single reveal is used up)
+    const replay = await request(app)
+      .post(`/api/chat/messages/${messageId}/view-once-reveal`)
+      .set('Authorization', `Bearer ${receiverToken}`);
+    expect(replay.statusCode).toBe(400);
+    expect(replay.body.message).toMatch(/already opened/i);
+
+    // Receiver 2 is still allowed their own single reveal
+    const second = await request(app)
+      .post(`/api/chat/messages/${messageId}/view-once-reveal`)
+      .set('Authorization', `Bearer ${receiver2Token}`);
+    expect(second.statusCode).toBe(200);
+    expect(second.body.content).toBe('group secret');
+
+    const doc = await Message.findById(messageId);
+    expect(doc.revealedBy.map(String)).toEqual([String(receiver._id), String(receiver2._id)]);
+  });
 });

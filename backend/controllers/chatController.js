@@ -2240,16 +2240,45 @@ exports.revealViewOnceMessage = async (req, res) => {
       });
     }
 
+    // Each receiver gets exactly one reveal — replaying the endpoint does
+    // not keep returning the content, while other group members are still
+    // free to use their own single reveal.
+    if ((message.revealedBy || []).some((id) => String(id) === String(userId))) {
+      return res.status(400).json({
+        success: false,
+        message: "You have already opened this view-once message",
+      });
+    }
+
     // Audit trail: record the FIRST reveal so the sender can see the
     // message was opened even before consumption completes. Subsequent
     // reveals by other participants keep the original timestamp.
     if (!message.revealedAt) {
       message.revealedAt = new Date();
-      try {
-        await message.save();
-      } catch (saveErr) {
-        console.warn('[ChatController] Failed to persist revealedAt:', saveErr?.message || saveErr);
+    }
+    message.revealedBy = [...(message.revealedBy || []), userId];
+    try {
+      await message.save();
+    } catch (saveErr) {
+      console.warn('[ChatController] Failed to persist reveal audit:', saveErr?.message || saveErr);
+    }
+
+    // Live notify the sender that someone opened the view-once message,
+    // before consumption completes (WhatsApp-style "opened" feedback).
+    try {
+      const io = req.app.get("io");
+      if (io) {
+        io.to(String(message.sender?._id || message.sender)).emit("message:revealed", {
+          messageId: message._id,
+          conversationId: message.conversationId,
+          revealedBy: userId,
+          revealedAt: message.revealedAt,
+          isViewOnce: message.isViewOnce,
+          isSelfDestruct: message.isSelfDestruct
+        });
       }
+    } catch (emitErr) {
+      console.warn('[ChatController] message:revealed emit failed:', emitErr?.message || emitErr);
     }
 
     res.json({
