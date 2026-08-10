@@ -235,6 +235,11 @@ const populateConversation = (query) =>
 // instead of being just a UI placeholder. This strips content/media from any
 // serialized message (mongoose doc or plain object) in place.
 const VIEW_ONCE_PLACEHOLDER = 'View Once message';
+// View-once messages that are never opened must not stay on the server
+// forever — even if no receiver ever taps to view, the content should be
+// garbage-collected. 24h matches WhatsApp's retention for unopened
+// view-once media; the Message TTL index (on disappearAt) handles deletion.
+const VIEW_ONCE_TTL_MS = 24 * 60 * 60 * 1000;
 const stripViewOnceContent = (msg) => {
   if (!msg || !msg.isViewOnce || msg.isConsumed) return msg;
   const placeholder = msg.isSelfDestruct ? '💥 Message self-destructed' : VIEW_ONCE_PLACEHOLDER;
@@ -905,6 +910,12 @@ exports.sendMessage = async (req, res) => {
       
       if (isSelfDestruct && !disappearAt) {
         disappearAt = getSelfDestructExpiry({ isSelfDestruct, selfDestructTimer });
+      }
+
+      // View-once safety net: even if never opened, the content must not
+      // live on the server indefinitely — TTL cleans it up after 24h.
+      if (isViewOnce && !disappearAt) {
+        disappearAt = new Date(Date.now() + VIEW_ONCE_TTL_MS);
       }
     } catch (disappearErr) {
       console.warn('[ChatController] Disappearing timer skipped:', disappearErr?.message || disappearErr);

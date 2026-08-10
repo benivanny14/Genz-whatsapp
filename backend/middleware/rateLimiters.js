@@ -1,11 +1,34 @@
 const rateLimit = require('express-rate-limit');
 
+// Per-IP auth budget. 100 per 15 min (~7/min) comfortably covers real users
+// sharing one NAT/campus IP while still capping scripted registration spam.
+// (It used to be 10/IP in production — that blocked everyone behind a shared
+// IP after just 10 sign-ups, which breaks launch on school/office networks.)
 const authSensitiveLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'production' ? 10 : (process.env.NODE_ENV === 'test' ? 100000 : 20),
+  max: process.env.NODE_ENV === 'test' ? 100000 : 100,
   message: {
     success: false,
     error: 'Too many login/registration attempts, please try again later.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Brute-force protection PER ACCOUNT: 10 failed attempts per username/phone
+// per 15 min. Keyed by the account, not the IP, so one attacker hammering a
+// single account gets locked out while everyone else on the same network is
+// unaffected.
+const accountLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'test' ? 100000 : 10,
+  keyGenerator: (req) => {
+    const account = req.body?.username || req.body?.phoneNumber || req.body?.identifier || '';
+    return `login:${String(account).toLowerCase().trim()}:${req.ip || 'unknown'}`;
+  },
+  message: {
+    success: false,
+    error: 'Attempts nyingi sana kwa account hii. Jaribu tena baadaye.'
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -72,4 +95,21 @@ const uploadLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-module.exports = { authSensitiveLimiter, pairingLimiter, discoveryLimiter, messageSenderLimiter, uploadLimiter };
+// View-once reveal is the ONLY endpoint that returns a view-once message's
+// real content, so it needs its own budget — a scraper must not be able to
+// drain every view-once message in a conversation by replaying the call.
+// 20 per 15 min per user is plenty for real viewing while capping bulk
+// harvesting.
+const viewOnceRevealLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'test' ? 100000 : 20,
+  keyGenerator: userKeyGenerator,
+  message: {
+    success: false,
+    error: 'Too many view-once reveals. Please slow down.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+module.exports = { authSensitiveLimiter, accountLoginLimiter, pairingLimiter, discoveryLimiter, messageSenderLimiter, uploadLimiter, viewOnceRevealLimiter };

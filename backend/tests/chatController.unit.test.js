@@ -1406,4 +1406,42 @@ describe('chatController — view-once privacy', () => {
     expect(res.body.content).toBe('secret one-time text');
     expect(res.body.mediaUrl).toBe('https://example.com/secret.png');
   });
+
+  it('sendMessage sets a 24h TTL disappearAt for view-once messages', async () => {
+    const conv = makeConv({ participants: ['user-1', 'user-2'] });
+    Conversation.findById.mockResolvedValue(conv);
+    User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ blockedUsers: [] }) });
+    const populated = makeMessage({ content: 'secret', sender: { _id: 'user-1', username: 'alice' } });
+    Message.create.mockResolvedValue(makeMessage({ content: 'secret' }));
+    Message.findById.mockReturnValue(msgById3(populated));
+    Conversation.findByIdAndUpdate.mockResolvedValue(conv);
+    const before = Date.now();
+    const res = makeRes();
+    await chat.sendMessage(makeReq({ body: { conversationId: VALID_ID, content: 'secret', isViewOnce: true } }), res);
+    expect(res.statusCode).toBe(201);
+    const saved = Message.create.mock.calls[0][0];
+    expect(saved.isViewOnce).toBe(true);
+    expect(saved.disappearAt).toBeInstanceOf(Date);
+    const ttl = saved.disappearAt.getTime() - before;
+    expect(ttl).toBeGreaterThan(23 * 60 * 60 * 1000);
+    expect(ttl).toBeLessThanOrEqual(24 * 60 * 60 * 1000 + 5000);
+  });
+
+  it('sendMessage keeps the conversation disappearing timer over the view-once TTL', async () => {
+    const conv = makeConv({
+      participants: ['user-1', 'user-2'],
+      disappearingMessages: { enabled: true, timer: 1 }
+    });
+    Conversation.findById.mockResolvedValue(conv);
+    User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ blockedUsers: [] }) });
+    const populated = makeMessage({ content: 'secret', sender: { _id: 'user-1', username: 'alice' } });
+    Message.create.mockResolvedValue(makeMessage({ content: 'secret' }));
+    Message.findById.mockReturnValue(msgById3(populated));
+    Conversation.findByIdAndUpdate.mockResolvedValue(conv);
+    const res = makeRes();
+    await chat.sendMessage(makeReq({ body: { conversationId: VALID_ID, content: 'secret', isViewOnce: true } }), res);
+    const saved = Message.create.mock.calls[0][0];
+    // 1-hour conversation timer, not the 24h view-once default
+    expect(saved.disappearAt.getTime() - Date.now()).toBeLessThan(2 * 60 * 60 * 1000);
+  });
 });

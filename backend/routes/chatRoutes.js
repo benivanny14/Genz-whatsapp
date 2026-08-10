@@ -64,7 +64,7 @@ const {
 const { validateMessage } = require("../middleware/validator");
 const { protect, requirePhoneVerified } = require("../middleware/auth");
 const { privacyMiddleware } = require("../middleware/privacy");
-const { messageSenderLimiter } = require("../middleware/rateLimiters");
+const { messageSenderLimiter, viewOnceRevealLimiter } = require("../middleware/rateLimiters");
 
 router.use(protect);
 
@@ -124,7 +124,7 @@ router.put("/messages/:id/keep", toggleKeepMessage);
 router.get("/messages/:messageId/info", getMessageInfo);
 router.get("/messages/:messageId/edit-history", getMessageEditHistory);
 router.put("/messages/:messageId/view-once-viewed", markViewOnceViewed);
-router.post("/messages/:messageId/view-once-reveal", revealViewOnceMessage);
+router.post("/messages/:messageId/view-once-reveal", viewOnceRevealLimiter, revealViewOnceMessage);
 router.post("/messages/:messageId/forward", requirePhoneVerified, forwardMessage);
 router.post("/messages/:messageId/report", requirePhoneVerified, reportMessage);
 
