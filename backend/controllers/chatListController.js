@@ -15,25 +15,14 @@
  *   /api/chat-folders/...    →  getChatFoldersSettings, folder CRUD, ...
  */
 
-const User = require('../models/User');
+
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
+const { getUser, mergeSettings, createSettingsMerger } = require('../services/userScopedService');
 
 // ── Shared helpers (previously duplicated across all three controllers) ─────
 
-const getUser = async (req, res) => {
-  const user = await User.findById(req.user?._id);
-  if (!user) {
-    res.status(401).json({ success: false, message: 'Authentication required' });
-    return null;
-  }
-  return user;
-};
 
-const mergeSettings = (defaults, settings = {}) => ({
-  ...defaults,
-  ...settings
-});
 
 // ── Chat list MODs (route prefix /api/chat-list-mods) ───────────────────────
 
@@ -824,3 +813,4 @@ exports.resetChatFoldersSettings = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+

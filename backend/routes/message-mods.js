@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const messageModsController = require('../controllers/messageModsController');
+const messageModsController = require('../controllers/messageToolsController');
 const { protect } = require('../middleware/auth');
 
 // Apply authentication middleware to all routes

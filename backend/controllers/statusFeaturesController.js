@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Status = require('../models/Status');
+const { getUser, createSettingsMerger } = require('../services/userScopedService');
 
 const defaultSettings = {
   statusPrivacy: 'contacts', // everyone, contacts, nobody
@@ -60,19 +61,8 @@ const defaultSettings = {
   maxStatusVideos: 1
 };
 
-const getUser = async (req, res) => {
-  const user = await User.findById(req.user?._id);
-  if (!user) {
-    res.status(401).json({ success: false, message: 'Authentication required' });
-    return null;
-  }
-  return user;
-};
 
-const mergeSettings = (settings = {}) => ({
-  ...defaultSettings,
-  ...settings
-});
+const mergeSettings = createSettingsMerger(defaultSettings);
 
 // @desc    Get status features settings
 // @route   GET /api/status-features/settings
@@ -350,3 +340,4 @@ exports.resetStatusFeaturesSettings = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+

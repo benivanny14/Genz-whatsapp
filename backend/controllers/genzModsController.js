@@ -1,6 +1,7 @@
 const Message = require('../models/Message');
 const User = require('../models/User');
 const Conversation = require('../models/Conversation');
+const { getUser, createSettingsMerger } = require('../services/userScopedService');
 
 const includesId = (items = [], id) => {
   if (!Array.isArray(items)) return false;
@@ -87,14 +88,6 @@ const normalizeIncomingMods = (incoming = {}, existing = {}) => {
   return normalized;
 };
 
-const getUser = async (req, res) => {
-  const user = await User.findById(req.user?._id);
-  if (!user) {
-    res.status(401).json({ success: false, message: 'Authentication required' });
-    return null;
-  }
-  return user;
-};
 
 const mergeSettings = (settings = {}) => ({
   ...defaultSettings,
@@ -359,3 +352,4 @@ exports.importModSettings = async (req, res) => {
   req.body = req.body.settings || req.body;
   return exports.updateGenzModsSettings(req, res);
 };
+

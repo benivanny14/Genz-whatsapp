@@ -9,12 +9,19 @@ exports.createStatus = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
     const { 
-      type, content, mediaUrl, duration, backgroundColor, fontStyle,
+      type, content, mediaUrl, mediaType, duration, backgroundColor, fontStyle,
       linkUrl, quizQuestion, quizOptions, quizCorrectAnswer,
       questionText, countdownDate, countdownTime, locationData,
       collageImages, timerSeconds, caption, collabUserId, collabUsername,
-      textEffects, sticker, selectedSticker, subtitles, audio
+      textEffects, sticker, selectedSticker, subtitles, audio,
+      privacy, excludedViewers, includedViewers
     } = req.body;
+
+    const { containsProfanity } = require('../utils/contentFilter');
+    const { content: c, caption: cap } = req.body;
+    if (containsProfanity(`${c || ''} ${cap || ''}`)) {
+      return res.status(400).json({ success: false, message: 'Status ina maneno yasiyoruhusiwa. Tafadhali badilisha.' });
+    }
 
     if (!type) return res.status(400).json({ success: false, message: 'Type inahitajika' });
     if (type === 'text' && !content) return res.status(400).json({ success: false, message: 'Content inahitajika kwa text status' });
@@ -39,13 +46,22 @@ exports.createStatus = async (req, res) => {
     }
     const expiresAt = new Date(Date.now() + statusHours * 60 * 60 * 1000);
 
+    // Persist the real privacy choice (previously dropped — every status was
+    // silently stored as 'everyone'). Invalid values fall back to 'everyone'.
+    const validPrivacy = ['everyone', 'contacts', 'contacts_except', 'only_share_with', 'only_me', 'nobody'];
+    const statusPrivacy = validPrivacy.includes(privacy) ? privacy : 'everyone';
+
     const status = await Status.create({
       user: userId,
       userId: String(userId),
       type,
+      privacy: statusPrivacy,
+      excludedViewers: (excludedViewers || []).filter((v) => mongoose.Types.ObjectId.isValid(v)),
+      includedViewers: (includedViewers || []).filter((v) => mongoose.Types.ObjectId.isValid(v)),
       expiresAt,
       content: content || '',
       mediaUrl: mediaUrl || '',
+      mediaType: mediaType || '',
       duration: duration || 0,
       backgroundColor: backgroundColor || '#075E54',
       fontStyle: fontStyle || 'sans',
@@ -94,6 +110,9 @@ exports.getStatuses = async (req, res) => {
     // Ficha statuses za watu waliomblock
     const filtered = [];
     for (const s of statuses) {
+      // Orphaned status (poster account deleted) must never crash the feed.
+      if (!s.user || !s.user._id) continue;
+
       const isOwn = String(s.user._id) === viewerIdStr;
       if (!isOwn) {
         const blocked = await isEitherUserBlocked(userId, s.user._id);
@@ -166,6 +185,85 @@ exports.getStatuses = async (req, res) => {
       myStatuses,
       others: Object.values(grouped)
     });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// GET /api/status/shared/:id - Public status viewer (QR / share link)
+// Anonymous visitors can only see statuses whose privacy is 'everyone'.
+// Logged-in visitors get the same contact/block/privacy checks as the feed.
+exports.getSharedStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({ success: false, message: 'Status haipatikani' });
+    }
+
+    const status = await Status.findById(id)
+      .populate('user', 'username profilePicture contacts')
+      .populate('views.user', 'username profilePicture');
+
+    if (!status) {
+      return res.status(404).json({ success: false, message: 'Status haipatikani' });
+    }
+
+    // Orphaned status (poster account deleted) is not viewable via a link
+    if (!status.user && !status.userId) {
+      return res.status(404).json({ success: false, message: 'Status haipatikani' });
+    }
+
+    // Auto-expired (TTL index may not have run yet)
+    if (status.expiresAt && new Date(status.expiresAt) < new Date()) {
+      return res.status(404).json({ success: false, message: 'Status imeisha muda wake' });
+    }
+
+    const ownerId = String(status.user?._id || status.userId || '');
+    const viewerId = req.user ? String(req.user._id || req.user.id) : '';
+    const isOwn = Boolean(viewerId && ownerId && viewerId === ownerId);
+    const statusPrivacy = status.privacy || 'contacts';
+
+    let allowed = isOwn;
+    if (!allowed) {
+      if (statusPrivacy === 'everyone') {
+        allowed = true;
+      } else if (viewerId && ownerId) {
+        const blocked = await isEitherUserBlocked(req.user._id || req.user.id, status.user?._id);
+        if (blocked) {
+          allowed = false;
+        } else if (statusPrivacy === 'only_share_with') {
+          allowed = (status.includedViewers || []).some((v) => String(v) === viewerId);
+        } else if (statusPrivacy === 'only_me' || statusPrivacy === 'nobody') {
+          allowed = false;
+        } else {
+          // contacts / contacts_except
+          const posterContacts = status.user?.contacts || [];
+          allowed = posterContacts.some((c) => {
+            const contactUserId = c?.user ? String(c.user) : String(c);
+            return contactUserId === viewerId;
+          });
+          if (allowed && statusPrivacy === 'contacts_except') {
+            allowed = !(status.excludedViewers || []).some((v) => String(v) === viewerId);
+          }
+        }
+      } else {
+        allowed = false;
+      }
+    }
+
+    if (!allowed) {
+      return res.status(403).json({ success: false, message: 'Status hii haijasharewa hadharani' });
+    }
+
+    // Never leak contact lists / sensitive user fields
+    if (status.user && typeof status.user === 'object') {
+      delete status.user.contacts;
+      delete status.user.settings;
+      delete status.user.encryptionKeys;
+      delete status.user.publicKey;
+    }
+
+    res.json({ success: true, status });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

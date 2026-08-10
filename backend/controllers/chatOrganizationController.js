@@ -14,24 +14,13 @@
  *   POST /api/chat-sort/...    →  sort* handlers below
  */
 
-const User = require('../models/User');
+
 const Conversation = require('../models/Conversation');
+const { getUser, mergeSettings, createSettingsMerger } = require('../services/userScopedService');
 
 // ── Shared helpers (previously duplicated across both controllers) ──────────
 
-const getUser = async (req, res) => {
-  const user = await User.findById(req.user?._id);
-  if (!user) {
-    res.status(401).json({ success: false, message: 'Authentication required' });
-    return null;
-  }
-  return user;
-};
 
-const mergeSettings = (defaults, settings = {}) => ({
-  ...defaults,
-  ...settings
-});
 
 const getUserConversations = async (userId) =>
   Conversation.find({ participants: userId }).populate('participants', 'username profilePicture');
@@ -536,3 +525,4 @@ exports.resetChatSortSettings = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+

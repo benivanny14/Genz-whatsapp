@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
+const { getUser, createSettingsMerger } = require('../services/userScopedService');
 
 const defaultSettings = {
   antiRevokeEnabled: false,
@@ -12,19 +13,8 @@ const defaultSettings = {
   notifyOnDelete: false
 };
 
-const getUser = async (req, res) => {
-  const user = await User.findById(req.user?._id);
-  if (!user) {
-    res.status(401).json({ success: false, message: 'Authentication required' });
-    return null;
-  }
-  return user;
-};
 
-const mergeSettings = (settings = {}) => ({
-  ...defaultSettings,
-  ...settings
-});
+const mergeSettings = createSettingsMerger(defaultSettings);
 
 // @desc    Get anti-revoke settings
 // @route   GET /api/anti-revoke/settings
@@ -271,3 +261,4 @@ exports.resetAntiRevokeSettings = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+

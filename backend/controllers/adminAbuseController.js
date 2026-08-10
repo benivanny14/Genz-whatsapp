@@ -1,5 +1,5 @@
 const AbuseReport = require('../models/AbuseReport');
-const User = require('../models/User');
+
 const { logAdminAction } = require('../utils/auditLogger');
 
 const clampInt = (val, def, min, max) => {

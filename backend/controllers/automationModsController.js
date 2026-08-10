@@ -1,4 +1,5 @@
-const User = require('../models/User');
+
+const { getUser, createSettingsMerger } = require('../services/userScopedService');
 
 const defaultSettings = {
   autoReplyEnabled: false,
@@ -14,19 +15,8 @@ const defaultSettings = {
   goodbyeMessageText: ''
 };
 
-const getUser = async (req, res) => {
-  const user = await User.findById(req.user?._id);
-  if (!user) {
-    res.status(401).json({ success: false, message: 'Authentication required' });
-    return null;
-  }
-  return user;
-};
 
-const mergeSettings = (settings = {}) => ({
-  ...defaultSettings,
-  ...settings
-});
+const mergeSettings = createSettingsMerger(defaultSettings);
 
 // @desc    Get automation MODs settings
 // @route   GET /api/automation-mods/settings
@@ -307,3 +297,4 @@ exports.updateGoodbyeMessageText = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+

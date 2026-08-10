@@ -1,6 +1,7 @@
-const User = require('../models/User');
+
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
+const { getUser, createSettingsMerger } = require('../services/userScopedService');
 
 const defaultSettings = {
   liveReactionsEnabled: true,
@@ -13,19 +14,8 @@ const defaultSettings = {
   soundEnabled: true
 };
 
-const getUser = async (req, res) => {
-  const user = await User.findById(req.user?._id);
-  if (!user) {
-    res.status(401).json({ success: false, message: 'Authentication required' });
-    return null;
-  }
-  return user;
-};
 
-const mergeSettings = (settings = {}) => ({
-  ...defaultSettings,
-  ...settings
-});
+const mergeSettings = createSettingsMerger(defaultSettings);
 
 // @desc    Get live reactions settings
 // @route   GET /api/live-reactions/settings
@@ -98,7 +88,7 @@ exports.sendLiveReaction = async (req, res) => {
 
     // Verify message exists
     const message = await Message.findById(messageId);
-    if (!message || message.conversation.toString() !== conversationId) {
+    if (!message || String(message.conversationId || message.conversation) !== String(conversationId)) {
       return res.status(404).json({ success: false, message: 'Message not found' });
     }
 
@@ -284,3 +274,4 @@ exports.resetLiveReactionsSettings = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+

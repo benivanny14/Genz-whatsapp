@@ -1,4 +1,5 @@
-const User = require('../models/User');
+
+const { getUser, createSettingsMerger } = require('../services/userScopedService');
 
 const defaultSettings = {
   freezeLastSeen: false,
@@ -17,19 +18,8 @@ const defaultSettings = {
   blockAlerts: false
 };
 
-const getUser = async (req, res) => {
-  const user = await User.findById(req.user?._id);
-  if (!user) {
-    res.status(401).json({ success: false, message: 'Authentication required' });
-    return null;
-  }
-  return user;
-};
 
-const mergeSettings = (settings = {}) => ({
-  ...defaultSettings,
-  ...settings
-});
+const mergeSettings = createSettingsMerger(defaultSettings);
 
 // @desc    Get privacy MODs settings
 // @route   GET /api/privacy-mods/settings
@@ -410,3 +400,4 @@ exports.clearBlockAlerts = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+

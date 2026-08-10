@@ -16,7 +16,7 @@ const {
   updateGroupFeaturesSettings,
   updateGroupMemberLimit,
   voteGroupPoll,
-} = require('../controllers/groupFeaturesController');
+} = require('../controllers/groupToolsController');
 
 router.use(protect);
 

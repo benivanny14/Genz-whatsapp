@@ -10,6 +10,7 @@ const { getRequestDeviceId, registerDevice, isDeviceAllowed } = require('../util
 const { JWT_SECRET, JWT_REFRESH_SECRET } = require('../config/secrets');
 const { setAuthCookies, clearAuthCookies } = require('../utils/authCookies');
 const { deliverOtp } = require('../services/otpDeliveryService');
+const { containsProfanity } = require('../utils/contentFilter');
 
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || process.env.JWT_EXPIRE || '7d';
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '30d';
@@ -82,6 +83,10 @@ exports.register = async (req, res) => {
         success: false,
         message: 'Username, password, and phone number are required'
       });
+    }
+
+    if (containsProfanity(username)) {
+      return res.status(400).json({ success: false, message: 'Username ina maneno yasiyoruhusiwa' });
     }
 
     if (password.length < 6) {

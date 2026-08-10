@@ -1,8 +1,9 @@
-const User = require('../models/User');
+
 const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
 const fs = require('fs').promises;
 const path = require('path');
+const { getUser, createSettingsMerger } = require('../services/userScopedService');
 
 const defaultSettings = {
   autoCleanup: false,
@@ -17,19 +18,8 @@ const defaultSettings = {
   keepImportantConversations: true
 };
 
-const getUser = async (req, res) => {
-  const user = await User.findById(req.user?._id);
-  if (!user) {
-    res.status(401).json({ success: false, message: 'Authentication required' });
-    return null;
-  }
-  return user;
-};
 
-const mergeSettings = (settings = {}) => ({
-  ...defaultSettings,
-  ...settings
-});
+const mergeSettings = createSettingsMerger(defaultSettings);
 
 // @desc    Get storage manager settings
 // @route   GET /api/storage-manager/settings
@@ -301,3 +291,4 @@ exports.resetStorageManagerSettings = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+

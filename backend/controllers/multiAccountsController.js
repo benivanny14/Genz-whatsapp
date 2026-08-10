@@ -1,4 +1,5 @@
-const User = require('../models/User');
+
+const { getUser, createSettingsMerger } = require('../services/userScopedService');
 
 const defaultSettings = {
   multiAccountsEnabled: false,
@@ -14,19 +15,8 @@ const defaultSettings = {
   unifiedInbox: false
 };
 
-const getUser = async (req, res) => {
-  const user = await User.findById(req.user?._id);
-  if (!user) {
-    res.status(401).json({ success: false, message: 'Authentication required' });
-    return null;
-  }
-  return user;
-};
 
-const mergeSettings = (settings = {}) => ({
-  ...defaultSettings,
-  ...settings
-});
+const mergeSettings = createSettingsMerger(defaultSettings);
 
 // @desc    Get multi accounts settings
 // @route   GET /api/multi-accounts/settings
@@ -421,3 +411,4 @@ exports.resetMultiAccountsSettings = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+

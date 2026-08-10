@@ -1,4 +1,5 @@
-const User = require('../models/User');
+
+const { getUser, createSettingsMerger } = require('../services/userScopedService');
 
 const defaultSettings = {
   gifPlayerEnabled: true,
@@ -15,19 +16,8 @@ const defaultSettings = {
   gifCompression: false
 };
 
-const getUser = async (req, res) => {
-  const user = await User.findById(req.user?._id);
-  if (!user) {
-    res.status(401).json({ success: false, message: 'Authentication required' });
-    return null;
-  }
-  return user;
-};
 
-const mergeSettings = (settings = {}) => ({
-  ...defaultSettings,
-  ...settings
-});
+const mergeSettings = createSettingsMerger(defaultSettings);
 
 // @desc    Get GIF player settings
 // @route   GET /api/gif-player/settings
@@ -281,3 +271,4 @@ exports.resetGIFPlayerSettings = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+

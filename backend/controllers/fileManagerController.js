@@ -1,6 +1,7 @@
-const User = require('../models/User');
+
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
+const { getUser, createSettingsMerger } = require('../services/userScopedService');
 
 const defaultSettings = {
   fileManagerEnabled: true,
@@ -18,19 +19,8 @@ const defaultSettings = {
   enableFileEncryption: false
 };
 
-const getUser = async (req, res) => {
-  const user = await User.findById(req.user?._id);
-  if (!user) {
-    res.status(401).json({ success: false, message: 'Authentication required' });
-    return null;
-  }
-  return user;
-};
 
-const mergeSettings = (settings = {}) => ({
-  ...defaultSettings,
-  ...settings
-});
+const mergeSettings = createSettingsMerger(defaultSettings);
 
 // @desc    Get file manager settings
 // @route   GET /api/file-manager/settings
@@ -349,3 +339,4 @@ exports.resetFileManagerSettings = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+

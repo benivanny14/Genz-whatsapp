@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
+const { getUser, createSettingsMerger } = require('../services/userScopedService');
 
 const defaultSettings = {
   locationSharingEnabled: true,
@@ -17,19 +18,8 @@ const defaultSettings = {
   hideLocationFrom: []
 };
 
-const getUser = async (req, res) => {
-  const user = await User.findById(req.user?._id);
-  if (!user) {
-    res.status(401).json({ success: false, message: 'Authentication required' });
-    return null;
-  }
-  return user;
-};
 
-const mergeSettings = (settings = {}) => ({
-  ...defaultSettings,
-  ...settings
-});
+const mergeSettings = createSettingsMerger(defaultSettings);
 
 // @desc    Get location sharing settings
 // @route   GET /api/location-sharing/settings
@@ -490,3 +480,4 @@ exports.resetLocationSharingSettings = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+

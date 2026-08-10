@@ -16,6 +16,7 @@ const {
 const { serializeOutgoingMessage } = require("../utils/messageSerializer");
 const { sendMentionNotification, sendNewMessageNotification } = require("../services/notificationService");
 const { ensureUnreadMap, getUnreadCount } = require("../utils/unreadCount");
+const { containsProfanity } = require("../utils/contentFilter");
 
 const getCurrentUserId = (req) => {
   if (!req.user?._id) {
@@ -805,6 +806,12 @@ exports.sendMessage = async (req, res) => {
     const conversation = await Conversation.findById(finalConversationId);
 
     if (!ensureParticipant(conversation, localUserId, res)) return;
+
+    // Content moderation: block clearly harmful language before it is stored
+    const textToCheck = `${content || ''} ${caption || ''}`;
+    if (containsProfanity(textToCheck)) {
+      return res.status(400).json({ success: false, message: 'Ujumbe una maneno yasiyoruhusiwa. Tafadhali badilisha ujumbe.' });
+    }
 
     // âœ… Angalia kama mpokeaji amemzuia mtumaji
     const receiverId = conversation.participants.find(p => String(p) !== String(localUserId));
@@ -2270,11 +2277,29 @@ exports.forwardMessage = async (req, res) => {
       });
     }
 
+    // Forwarding limits (WhatsApp-style fake-news control)
+    const MAX_FORWARD_BATCH = 5; // max chats per forward action
+    const FORWARD_MANY_LIMIT = 5; // after N forwards the chain is "forwarded many times"
+    if (targetConversationIds.length > MAX_FORWARD_BATCH) {
+      return res.status(400).json({
+        success: false,
+        message: `Unaweza kupeleka mbele hadi chats ${MAX_FORWARD_BATCH} kwa wakati mmoja`,
+      });
+    }
+
     const originalMessage = await Message.findById(messageId);
     if (!originalMessage) {
       return res
         .status(404)
         .json({ success: false, message: "Message not found" });
+    }
+
+    const chainForwardCount = originalMessage.forwardCount || 0;
+    if (chainForwardCount >= FORWARD_MANY_LIMIT && targetConversationIds.length > 1) {
+      return res.status(400).json({
+        success: false,
+        message: "Message hii imeforwardwa mara nyingi — unaweza kupeleka mbele kwenye chat moja tu",
+      });
     }
 
     const sourceConversation = await Conversation.findById(
@@ -2307,6 +2332,7 @@ exports.forwardMessage = async (req, res) => {
         isForwarded: true,
         forwardedFrom: messageId,
         originalMessageId: messageId,
+        forwardCount: chainForwardCount + 1,
       });
 
       const populated = await Message.findById(forwardedMessage._id)
@@ -2322,6 +2348,12 @@ exports.forwardMessage = async (req, res) => {
       targetConversation.lastMessage = forwardedMessage._id;
       targetConversation.updatedAt = new Date();
       await targetConversation.save();
+    }
+
+    // Bump the chain counter so repeated forwarding eventually hits the limit
+    if (forwardedMessages.length > 0) {
+      originalMessage.forwardCount = chainForwardCount + forwardedMessages.length;
+      await originalMessage.save();
     }
 
     res.json({ success: true, forwardedMessages });
@@ -2371,7 +2403,8 @@ exports.reportMessage = async (req, res) => {
 exports.reportUser = async (req, res) => {
   try {
     const reporterId = getCurrentUserId(req);
-    const { reportedUserId } = req.params;
+    // Route uses /users/:id/report — accept both param names for safety
+    const reportedUserId = req.params.reportedUserId || req.params.id;
     const { category, description, contentType } = req.body;
 
     if (!reportedUserId) {
@@ -2381,7 +2414,7 @@ exports.reportUser = async (req, res) => {
       return res.status(400).json({ success: false, message: 'You cannot report yourself' });
     }
 
-    const validCategories = ['spam', 'harassment', 'inappropriate_content', 'fake_account', 'scam', 'violence', 'hate_speech', 'other'];
+    const validCategories = ['spam', 'harassment', 'inappropriate_content', 'fake_account', 'scam', 'violence', 'hate_speech', 'csam', 'other'];
     if (!validCategories.includes(category || 'other')) {
       return res.status(400).json({ success: false, message: 'Invalid report category' });
     }
@@ -2394,13 +2427,15 @@ exports.reportUser = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
+    // CSAM is an urgent, legally-required escalation path
+    const highPriority = ['violence', 'hate_speech', 'scam'].includes(category);
     const report = new AbuseReport({
       reporterId,
       reportedUserId,
       contentType: contentType || 'user_profile',
       category: category || 'other',
       description: description.trim(),
-      priority: category === 'violence' || category === 'hate_speech' || category === 'scam' ? 'high' : 'medium'
+      priority: category === 'csam' ? 'urgent' : highPriority ? 'high' : 'medium'
     });
     await report.save();
 
@@ -2533,6 +2568,11 @@ exports.getGroupInfo = async (req, res) => {
     const { groupId } = req.params;
 
     const conversation = await Conversation.findById(groupId)
+      // groupInviteCode is select:false — include it so the "missing" check
+      // below is accurate. Without this, the code looked missing on every call
+      // and got REGENERATED each time getGroupInfo ran (breaking outstanding
+      // invite links the moment any admin viewed group info).
+      .select('+groupInviteCode')
       .populate(
         "participants",
         "username profilePicture isOnline lastSeen about",
@@ -3086,12 +3126,16 @@ exports.createGroupEvent = async (req, res) => {
     conversation.events.push(event);
     await conversation.save();
 
+    // Return the saved subdocument (with its generated _id) so the client can
+    // RSVP to it immediately without refetching.
+    const savedEvent = conversation.events[conversation.events.length - 1];
+
     const io = req.app.get('io');
     if (io) {
-      io.to(String(groupId)).emit('group:event_created', { groupId, event });
+      io.to(String(groupId)).emit('group:event_created', { groupId, event: savedEvent });
     }
 
-    res.status(201).json({ success: true, event });
+    res.status(201).json({ success: true, event: savedEvent });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

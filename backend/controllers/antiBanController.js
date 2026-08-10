@@ -1,4 +1,5 @@
-const User = require('../models/User');
+
+const { getUser, createSettingsMerger } = require('../services/userScopedService');
 
 const defaultSettings = {
   antiBanEnabled: true,
@@ -19,19 +20,8 @@ const defaultSettings = {
   cooldownPeriod: 300 // seconds
 };
 
-const getUser = async (req, res) => {
-  const user = await User.findById(req.user?._id);
-  if (!user) {
-    res.status(401).json({ success: false, message: 'Authentication required' });
-    return null;
-  }
-  return user;
-};
 
-const mergeSettings = (settings = {}) => ({
-  ...defaultSettings,
-  ...settings
-});
+const mergeSettings = createSettingsMerger(defaultSettings);
 
 // @desc    Get anti-ban settings
 // @route   GET /api/anti-ban/settings
@@ -392,3 +382,4 @@ exports.resetAntiBanSettings = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+

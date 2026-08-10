@@ -17,22 +17,11 @@
 
 const User = require('../models/User');
 const { createDefaultWhatsAppSettings, mergeWhatsAppSettings } = require('../utils/whatsappSettings');
+const { getUser, mergeSettings, createSettingsMerger } = require('../services/userScopedService');
 
 // ── Shared helpers (previously duplicated across all three controllers) ─────
 
-const getUser = async (req, res) => {
-  const user = await User.findById(req.user?._id);
-  if (!user) {
-    res.status(401).json({ success: false, message: 'Authentication required' });
-    return null;
-  }
-  return user;
-};
 
-const mergeSettings = (defaults, settings = {}) => ({
-  ...defaults,
-  ...settings
-});
 
 // ── User settings (route prefix /api/settings) ──────────────────────────────
 // NOTE: these three handlers historically used User.findById(req.user._id)
@@ -493,3 +482,4 @@ exports.resetThemeEngineSettings = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+

@@ -9,7 +9,7 @@ const {
   toggleAutoTranslate,
   translateMessage,
   updateTranslatorSettings,
-} = require('../controllers/messageTranslatorController');
+} = require('../controllers/messageToolsController');
 
 router.use(protect);
 

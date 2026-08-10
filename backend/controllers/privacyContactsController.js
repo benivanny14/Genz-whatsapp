@@ -1,6 +1,6 @@
 const PrivacyExcludedContact = require('../models/PrivacyExcludedContact');
 const PrivacyAllowedContact = require('../models/PrivacyAllowedContact');
-const User = require('../models/User');
+
 
 // @desc    Get excluded contacts for a privacy type
 // @route   GET /api/privacy/excluded/:privacyType

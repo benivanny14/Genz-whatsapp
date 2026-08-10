@@ -17,23 +17,12 @@
  *   /api/media-editor/...    →  getMediaEditorSettings, editImage/Video/Audio, ...
  */
 
-const User = require('../models/User');
+
+const { getUser, mergeSettings, createSettingsMerger } = require('../services/userScopedService');
 
 // ── Shared helpers (previously duplicated across all three controllers) ─────
 
-const getUser = async (req, res) => {
-  const user = await User.findById(req.user?._id);
-  if (!user) {
-    res.status(401).json({ success: false, message: 'Authentication required' });
-    return null;
-  }
-  return user;
-};
 
-const mergeSettings = (defaults, settings = {}) => ({
-  ...defaults,
-  ...settings
-});
 
 // ── Media MODs (route prefix /api/media-mods) ───────────────────────────────
 
@@ -430,3 +419,4 @@ exports.resetMediaEditorSettings = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+

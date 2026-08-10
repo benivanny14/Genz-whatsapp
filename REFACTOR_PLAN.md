@@ -167,7 +167,30 @@ shared services/helpers na consolidation ya controllers).
 #### Matokeo
 - Faili 3 → 1; hakuna mabadiliko ya API. Tests: **261/261 zinapita**.
 
-### 5. 🧭 Scan ya duplicates iliyobaki (imefanyika)
+### 5. ✅ Shared user-scoped service + merges za group/message (zimefanyika)
+
+#### `services/userScopedService.js` (mpya)
+- `getUser(req, res)` + `mergeSettings(defaults, settings)` + `createSettingsMerger(defaults)`
+  — zimetolewa kwenye service moja.
+- Controllers **32 zilibadilishwa** kutumia service (kila moja ilipoteza ~8 lines za
+  `getUser` + `mergeSettings` local) — boilerplate ~**400 lines imeondolewa**.
+- `User` require isiyotumika imeondolewa kwenye controllers 29.
+
+#### `groupToolsController.js` (mpya) — groupFeatures + groupMods
+- Toggles 8 za group-mods → `toggleModsField` generic; toggles 5 za group-features
+  (zinazokubali `{ enabled }`) → `toggleFeaturesField` generic.
+- Routes 22 (14 features + 8 mods) zimebaki sawa; controllers 2 za zamani zimefutwa.
+
+#### `messageToolsController.js` (mpya) — messageMods + messageTranslator
+- Toggles 8 za message-mods → `toggleModsField` generic.
+- Routes 16 (9 mods + 7 translator) zimebaki sawa; controllers 2 za zamani zimefutwa.
+
+#### Verification
+- `node scripts/check-syntax.js`: 250 files OK; jest: **261/261 tests zinapita**.
+- Feature smoke test dhidi ya temp server (SMOKE_BASE_URL): **137 passed, 0 failed**
+  (script sasa inaunga mkono `SMOKE_BASE_URL` env kwa kujaribu dhidi ya temp server).
+
+### 6. 🧭 Scan ya duplicates iliyobaki (imefanyika)
 
 `grep -l "const getUser = async (req, res)" controllers/*.js` → **controllers 33** bado zina
 nakala ya `getUser` (na ~34 zina `mergeSettings`), zikiwemo:

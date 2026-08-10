@@ -32,7 +32,11 @@ exports.sendOtp = async (req, res) => {
 
     const delivery = await deliverOtp(digits, otp, 'send-otp');
     if (delivery.delivered !== 'whatsapp') {
-      otpStore.clearOtp(key);
+      // IMPORTANT: do NOT clear the OTP here. Delivery failure is non-fatal
+      // (same as the registration flow) — the code stays stored so dev/test
+      // builds can verify it via the echoed devOtp, and any OTP that did
+      // reach the user remains valid. The store's 5-minute TTL, one-time use
+      // and max-attempts guard already protect it.
       const isSetupIssue = /QR|ready|disabled|not configured|session|token|ban/i.test(delivery.error?.message || '');
       return res.status(isSetupIssue ? 503 : 500).json({
         success: false,
