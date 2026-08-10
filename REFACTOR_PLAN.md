@@ -225,10 +225,40 @@ nakala ya `getUser` (na ~34 zina `mergeSettings`), zikiwemo:
    zote zinafanya kazi na WhatsApp session management; zinaweza kuunganishwa kwenye
    `whatsappSessionController` (lakini hizi ni kubwa — zifanyike baada ya #1).
 
+### 7. ✅ Test coverage expansion (batches 1–4) + `npm run coverage`
+
+#### Tests zilizoongezwa (kwa pattern ya happy path + validation + auth)
+- **Batch 1–3** (commits `efbeb08` … `db7bf68`): mediaTools (+22), chatList (+26),
+  security (+21), groupTools (+35), messageTools (+19), bulkSender, multiAccounts,
+  whatsappWeb, automationMods, chatAnalyzer, statusFeatures, textRepeater,
+  quickActions, callFeatures, callBlocker, liveReactions, dataUsage, admin,
+  adminSupport, adminContent, storageManager, fileManager, notification, sticker,
+  backup (+105) — **+315 tests**.
+- **Batch 4** (commit hii): community, groupInvite, scheduledMessage, gifPlayer,
+  businessAccount, fakeChat, locationSharing, voice, genzMods, advanced — **+212 tests**.
+  `advancedController` (handlers 31) imepanda coverage kutoka ~6% → **58%**.
+
+#### Scripts za coverage (`backend/package.json`)
+- `npm run coverage` — jest coverage (json + text reporters) kwa `controllers/**/*.js`
+- `npm run coverage:scan` — `node scripts/coverage-scan.js`: orodha ya controllers 63
+  sorted by pct (inatoa rahisia ya ku-prioritize batch inayofuata)
+
+#### Hali ya coverage (kutoka `coverage-final.json`)
+- **Statements: ~49%** (6112/12575) • **Functions: ~52%** (701/1341)
+- Controllers 22+ sasa ziko ≥75% statements; 14 ziko ≥80%.
+- Controllers bado chini (<20%): `statusController` (6%), `phoneContactsController` (7%),
+  `statusAdvancedController` (8%), `chatOrganizationController` (8%), `antiBanController` (8%),
+  `storyHighlightsController` (9%), `fcmController` (10%), `antiRevokeController` (10%),
+  `mediaController` (11%), `deviceController` (11%), `manualPaymentController` (12%),
+  `cacheCleanerController` (13%), `adminAccess`/`adminBroadcast`/`adminCalls` (16%).
+- Kumbuka: `userSettingsController` (merged settings/theme) bado iko ~24% — inahitaji
+  tests zake (batch inayofuata yenye faida kubwa zaidi, pamoja na auth/OTP na
+  `statusController` ambayo ina live-query kubwa).
+
 ---
 
 ## Vigezo vya "done" kwa kila hatua
 - [x] `node -c` inapita kwa faili zote zilizobadilika
-- [x] `npm test` inapita (261 tests kwa sasa)
+- [x] `npm test` inapita (**822 tests** kwa sasa)
 - [x] Route paths za nje hazijabadilika (diff ya routes ni import-only)
 - [x] Feature smoke test (`scripts/feature-smoke-test.js`) inapita kwa endpoints zilizoguswa
