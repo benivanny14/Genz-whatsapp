@@ -3,7 +3,8 @@ jest.mock('../models/User', () => ({
 }));
 
 const User = require('../models/User');
-const multiAccounts = require('../controllers/multiAccountsController');
+const whatsappSession = require('../controllers/whatsappSessionController');
+const multiAccounts = whatsappSession;
 
 const makeRes = () => {
   const res = { statusCode: 200 };

@@ -5,7 +5,8 @@ jest.mock('../models/User', () => ({
 jest.mock('../models/CallLog', () => ({}));
 
 const User = require('../models/User');
-const callBlocker = require('../controllers/callBlockerController');
+const callTools = require('../controllers/callToolsController');
+const callBlocker = callTools;
 
 const makeRes = () => {
   const res = { statusCode: 200 };
@@ -37,7 +38,7 @@ const makeUser = (overrides = {}) => ({
   ...overrides
 });
 
-describe('callBlockerController — settings', () => {
+describe('callToolsController (call blocker) — settings', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('returns 401 when the user cannot be resolved (auth)', async () => {
@@ -82,7 +83,7 @@ describe('callBlockerController — settings', () => {
   });
 });
 
-describe('callBlockerController — numbers', () => {
+describe('callToolsController (call blocker) — numbers', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('rejects blockNumber without a phone number (validation)', async () => {
@@ -166,7 +167,7 @@ describe('callBlockerController — numbers', () => {
   });
 });
 
-describe('callBlockerController — check', () => {
+describe('callToolsController (call blocker) — check', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('allows when the blocker is disabled', async () => {

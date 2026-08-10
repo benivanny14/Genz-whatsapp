@@ -16,7 +16,7 @@
 
 
 const Conversation = require('../models/Conversation');
-const { getUser, mergeSettings, createSettingsMerger } = require('../services/userScopedService');
+const { getUser, mergeSettings, createSettingsHandlers } = require('../services/userScopedService');
 
 // ── Shared helpers (previously duplicated across both controllers) ──────────
 
@@ -126,37 +126,16 @@ const FILTER_DEFAULTS = {
   autoApplyFilters: false
 };
 
-exports.getChatFilterSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getChatFilterSettings, updateSettings: updateChatFilterSettings, resetSettings: resetChatFilterSettings } = createSettingsHandlers({
+  field: 'chatFilterSettings',
+  label: 'chat filter',
+  mergeSettings,
+  defaults: FILTER_DEFAULTS,
+});
 
-    const settings = mergeSettings(FILTER_DEFAULTS, user.chatFilterSettings?.toObject?.() || user.chatFilterSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get chat filter settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getChatFilterSettings = getChatFilterSettings;
 
-exports.updateChatFilterSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.chatFilterSettings?.toObject?.() || user.chatFilterSettings || {};
-
-    user.chatFilterSettings = mergeSettings(FILTER_DEFAULTS, { ...existing, ...incoming });
-    user.markModified('chatFilterSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.chatFilterSettings });
-  } catch (error) {
-    console.error('Update chat filter settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateChatFilterSettings = updateChatFilterSettings;
 
 exports.filterConversations = async (req, res) => {
   try {
@@ -310,21 +289,7 @@ exports.toggleChatFilter = async (req, res) => {
   }
 };
 
-exports.resetChatFilterSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    user.chatFilterSettings = mergeSettings(FILTER_DEFAULTS, {});
-    user.markModified('chatFilterSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.chatFilterSettings });
-  } catch (error) {
-    console.error('Reset chat filter settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.resetChatFilterSettings = resetChatFilterSettings;
 
 // ── Chat SORT handlers (route prefix /api/chat-sort) ────────────────────────
 
@@ -338,37 +303,16 @@ const SORT_DEFAULTS = {
   customSortOrder: []
 };
 
-exports.getChatSortSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getChatSortSettings, updateSettings: updateChatSortSettings, resetSettings: resetChatSortSettings } = createSettingsHandlers({
+  field: 'chatSortSettings',
+  label: 'chat sort',
+  mergeSettings,
+  defaults: SORT_DEFAULTS,
+});
 
-    const settings = mergeSettings(SORT_DEFAULTS, user.chatSortSettings?.toObject?.() || user.chatSortSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get chat sort settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getChatSortSettings = getChatSortSettings;
 
-exports.updateChatSortSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.chatSortSettings?.toObject?.() || user.chatSortSettings || {};
-
-    user.chatSortSettings = mergeSettings(SORT_DEFAULTS, { ...existing, ...incoming });
-    user.markModified('chatSortSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.chatSortSettings });
-  } catch (error) {
-    console.error('Update chat sort settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateChatSortSettings = updateChatSortSettings;
 
 exports.sortConversations = async (req, res) => {
   try {
@@ -510,19 +454,5 @@ exports.toggleChatSort = async (req, res) => {
   }
 };
 
-exports.resetChatSortSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    user.chatSortSettings = mergeSettings(SORT_DEFAULTS, {});
-    user.markModified('chatSortSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.chatSortSettings });
-  } catch (error) {
-    console.error('Reset chat sort settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.resetChatSortSettings = resetChatSortSettings;
 

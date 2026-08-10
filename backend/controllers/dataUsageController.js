@@ -1,7 +1,7 @@
 
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
-const { getUser, createSettingsMerger } = require('../services/userScopedService');
+const { getUser, createSettingsMerger, createSettingsHandlers } = require('../services/userScopedService');
 
 const defaultSettings = {
   dataUsageTrackingEnabled: true,
@@ -26,40 +26,18 @@ const mergeSettings = createSettingsMerger(defaultSettings);
 // @desc    Get data usage settings
 // @route   GET /api/data-usage/settings
 // @access  Private
-exports.getDataUsageSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getDataUsageSettings, updateSettings: updateDataUsageSettings, resetSettings: resetDataUsageSettings } = createSettingsHandlers({
+  field: 'dataUsageSettings',
+  label: 'data usage',
+  mergeSettings,
+});
 
-    const settings = mergeSettings(user.dataUsageSettings?.toObject?.() || user.dataUsageSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get data usage settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getDataUsageSettings = getDataUsageSettings;
 
 // @desc    Update data usage settings
 // @route   POST /api/data-usage/settings
 // @access  Private
-exports.updateDataUsageSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.dataUsageSettings?.toObject?.() || user.dataUsageSettings || {};
-    
-    user.dataUsageSettings = mergeSettings({ ...existing, ...incoming });
-    user.markModified('dataUsageSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.dataUsageSettings });
-  } catch (error) {
-    console.error('Update data usage settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateDataUsageSettings = updateDataUsageSettings;
 
 // @desc    Get data usage statistics
 // @route   GET /api/data-usage/stats
@@ -273,19 +251,5 @@ exports.toggleDataSaver = async (req, res) => {
 // @desc    Reset data usage settings to default
 // @route   POST /api/data-usage/reset
 // @access  Private
-exports.resetDataUsageSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    user.dataUsageSettings = mergeSettings({});
-    user.markModified('dataUsageSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.dataUsageSettings });
-  } catch (error) {
-    console.error('Reset data usage settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.resetDataUsageSettings = resetDataUsageSettings;
 

@@ -5,7 +5,8 @@ jest.mock('../models/User', () => ({
 jest.mock('../models/CallLog', () => ({}));
 
 const User = require('../models/User');
-const callFeatures = require('../controllers/callFeaturesController');
+const callTools = require('../controllers/callToolsController');
+const callFeatures = callTools;
 
 const makeRes = () => {
   const res = { statusCode: 200 };
@@ -36,7 +37,7 @@ const makeUser = (overrides = {}) => ({
   ...overrides
 });
 
-describe('callFeaturesController', () => {
+describe('callToolsController (call features)', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('returns 401 when the user cannot be resolved (auth)', async () => {

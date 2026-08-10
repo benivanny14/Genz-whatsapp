@@ -1,7 +1,7 @@
 const Message = require('../models/Message');
 const User = require('../models/User');
 const Conversation = require('../models/Conversation');
-const { getUser, createSettingsMerger } = require('../services/userScopedService');
+const { getUser } = require('../services/userScopedService');
 
 const includesId = (items = [], id) => {
   if (!Array.isArray(items)) return false;

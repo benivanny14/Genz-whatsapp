@@ -1,7 +1,7 @@
 
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
-const { getUser, createSettingsMerger } = require('../services/userScopedService');
+const { getUser, createSettingsMerger, createSettingsHandlers } = require('../services/userScopedService');
 
 const defaultSettings = {
   cacheCleanerEnabled: true,
@@ -25,40 +25,18 @@ const mergeSettings = createSettingsMerger(defaultSettings);
 // @desc    Get cache cleaner settings
 // @route   GET /api/cache-cleaner/settings
 // @access  Private
-exports.getCacheCleanerSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getCacheCleanerSettings, updateSettings: updateCacheCleanerSettings, resetSettings: resetCacheCleanerSettings } = createSettingsHandlers({
+  field: 'cacheCleanerSettings',
+  label: 'cache cleaner',
+  mergeSettings,
+});
 
-    const settings = mergeSettings(user.cacheCleanerSettings?.toObject?.() || user.cacheCleanerSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get cache cleaner settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getCacheCleanerSettings = getCacheCleanerSettings;
 
 // @desc    Update cache cleaner settings
 // @route   POST /api/cache-cleaner/settings
 // @access  Private
-exports.updateCacheCleanerSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.cacheCleanerSettings?.toObject?.() || user.cacheCleanerSettings || {};
-    
-    user.cacheCleanerSettings = mergeSettings({ ...existing, ...incoming });
-    user.markModified('cacheCleanerSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.cacheCleanerSettings });
-  } catch (error) {
-    console.error('Update cache cleaner settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateCacheCleanerSettings = updateCacheCleanerSettings;
 
 // @desc    Get cache size
 // @route   GET /api/cache-cleaner/size
@@ -212,19 +190,5 @@ exports.setMaxCacheSize = async (req, res) => {
 // @desc    Reset cache cleaner settings to default
 // @route   POST /api/cache-cleaner/reset
 // @access  Private
-exports.resetCacheCleanerSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    user.cacheCleanerSettings = mergeSettings({});
-    user.markModified('cacheCleanerSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.cacheCleanerSettings });
-  } catch (error) {
-    console.error('Reset cache cleaner settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.resetCacheCleanerSettings = resetCacheCleanerSettings;
 

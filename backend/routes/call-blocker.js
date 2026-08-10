@@ -13,7 +13,7 @@ const {
   toggleCallBlocker,
   unblockNumber,
   updateCallBlockerSettings,
-} = require('../controllers/callBlockerController');
+} = require('../controllers/callToolsController');
 
 router.use(protect);
 

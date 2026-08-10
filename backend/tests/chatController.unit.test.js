@@ -894,6 +894,33 @@ describe('chatController — star/lock/keep/pin/archive/search', () => {
     expect(res.body.isArchived).toBe(true);
   });
 
+  it('toggleArchiveConversation archive → unarchive roundtrip', async () => {
+    const conv = makeConv();
+    Conversation.findById.mockResolvedValue(conv);
+    const req = makeReq({ params: { conversationId: 'c1' } });
+
+    // Archive
+    await chat.toggleArchiveConversation(req, makeRes());
+    expect(conv.isArchived['user-1']).toBe(true);
+    expect(conv.save).toHaveBeenCalledTimes(1);
+
+    // Unarchive (toggle back)
+    const res = makeRes();
+    await chat.toggleArchiveConversation(req, res);
+    expect(conv.isArchived['user-1']).toBe(false);
+    expect(res.body.isArchived).toBe(false);
+    expect(conv.save).toHaveBeenCalledTimes(2);
+  });
+
+  it('toggleArchiveConversation is per-user (other participants unaffected)', async () => {
+    const conv = makeConv({ isArchived: { 'user-2': true } });
+    Conversation.findById.mockResolvedValue(conv);
+    const res = makeRes();
+    await chat.toggleArchiveConversation(makeReq({ params: { conversationId: 'c1' } }), res);
+    expect(conv.isArchived['user-1']).toBe(true);
+    expect(conv.isArchived['user-2']).toBe(true);
+  });
+
   it('getArchivedConversations returns only archived chats (happy path)', async () => {
     const archived = makeConv({ _id: 'c2', isArchived: { 'user-1': true } });
     const normal = makeConv({ _id: 'c1' });

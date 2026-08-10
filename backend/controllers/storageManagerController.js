@@ -3,7 +3,7 @@ const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
 const fs = require('fs').promises;
 const path = require('path');
-const { getUser, createSettingsMerger } = require('../services/userScopedService');
+const { getUser, createSettingsMerger, createSettingsHandlers } = require('../services/userScopedService');
 
 const defaultSettings = {
   autoCleanup: false,
@@ -24,40 +24,18 @@ const mergeSettings = createSettingsMerger(defaultSettings);
 // @desc    Get storage manager settings
 // @route   GET /api/storage-manager/settings
 // @access  Private
-exports.getStorageManagerSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getStorageManagerSettings, updateSettings: updateStorageManagerSettings, resetSettings: resetStorageManagerSettings } = createSettingsHandlers({
+  field: 'storageManagerSettings',
+  label: 'storage manager',
+  mergeSettings,
+});
 
-    const settings = mergeSettings(user.storageManagerSettings?.toObject?.() || user.storageManagerSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get storage manager settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getStorageManagerSettings = getStorageManagerSettings;
 
 // @desc    Update storage manager settings
 // @route   POST /api/storage-manager/settings
 // @access  Private
-exports.updateStorageManagerSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.storageManagerSettings?.toObject?.() || user.storageManagerSettings || {};
-    
-    user.storageManagerSettings = mergeSettings({ ...existing, ...incoming });
-    user.markModified('storageManagerSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.storageManagerSettings });
-  } catch (error) {
-    console.error('Update storage manager settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateStorageManagerSettings = updateStorageManagerSettings;
 
 // @desc    Get storage usage
 // @route   GET /api/storage-manager/usage
@@ -276,19 +254,5 @@ exports.toggleAutoCleanup = async (req, res) => {
 // @desc    Reset storage manager settings to default
 // @route   POST /api/storage-manager/reset
 // @access  Private
-exports.resetStorageManagerSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    user.storageManagerSettings = mergeSettings({});
-    user.markModified('storageManagerSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.storageManagerSettings });
-  } catch (error) {
-    console.error('Reset storage manager settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.resetStorageManagerSettings = resetStorageManagerSettings;
 

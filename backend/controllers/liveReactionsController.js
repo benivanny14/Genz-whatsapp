@@ -1,7 +1,7 @@
 
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
-const { getUser, createSettingsMerger } = require('../services/userScopedService');
+const { getUser, createSettingsMerger, createSettingsHandlers } = require('../services/userScopedService');
 
 const defaultSettings = {
   liveReactionsEnabled: true,
@@ -20,40 +20,18 @@ const mergeSettings = createSettingsMerger(defaultSettings);
 // @desc    Get live reactions settings
 // @route   GET /api/live-reactions/settings
 // @access  Private
-exports.getLiveReactionsSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getLiveReactionsSettings, updateSettings: updateLiveReactionsSettings, resetSettings: resetLiveReactionsSettings } = createSettingsHandlers({
+  field: 'liveReactionsSettings',
+  label: 'live reactions',
+  mergeSettings,
+});
 
-    const settings = mergeSettings(user.liveReactionsSettings?.toObject?.() || user.liveReactionsSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get live reactions settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getLiveReactionsSettings = getLiveReactionsSettings;
 
 // @desc    Update live reactions settings
 // @route   POST /api/live-reactions/settings
 // @access  Private
-exports.updateLiveReactionsSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.liveReactionsSettings?.toObject?.() || user.liveReactionsSettings || {};
-    
-    user.liveReactionsSettings = mergeSettings({ ...existing, ...incoming });
-    user.markModified('liveReactionsSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.liveReactionsSettings });
-  } catch (error) {
-    console.error('Update live reactions settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateLiveReactionsSettings = updateLiveReactionsSettings;
 
 // @desc    Send live reaction to message
 // @route   POST /api/live-reactions/message/:messageId
@@ -259,19 +237,5 @@ exports.toggleLiveReactions = async (req, res) => {
 // @desc    Reset live reactions settings to default
 // @route   POST /api/live-reactions/reset
 // @access  Private
-exports.resetLiveReactionsSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    user.liveReactionsSettings = mergeSettings({});
-    user.markModified('liveReactionsSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.liveReactionsSettings });
-  } catch (error) {
-    console.error('Reset live reactions settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.resetLiveReactionsSettings = resetLiveReactionsSettings;
 

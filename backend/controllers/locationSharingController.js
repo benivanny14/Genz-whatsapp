@@ -1,7 +1,7 @@
 const User = require('../models/User');
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
-const { getUser, createSettingsMerger } = require('../services/userScopedService');
+const { getUser, createSettingsMerger, createSettingsHandlers } = require('../services/userScopedService');
 
 const defaultSettings = {
   locationSharingEnabled: true,
@@ -24,40 +24,18 @@ const mergeSettings = createSettingsMerger(defaultSettings);
 // @desc    Get location sharing settings
 // @route   GET /api/location-sharing/settings
 // @access  Private
-exports.getLocationSharingSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getLocationSharingSettings, updateSettings: updateLocationSharingSettings, resetSettings: resetLocationSharingSettings } = createSettingsHandlers({
+  field: 'locationSharingSettings',
+  label: 'location sharing',
+  mergeSettings,
+});
 
-    const settings = mergeSettings(user.locationSharingSettings?.toObject?.() || user.locationSharingSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get location sharing settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getLocationSharingSettings = getLocationSharingSettings;
 
 // @desc    Update location sharing settings
 // @route   POST /api/location-sharing/settings
 // @access  Private
-exports.updateLocationSharingSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.locationSharingSettings?.toObject?.() || user.locationSharingSettings || {};
-    
-    user.locationSharingSettings = mergeSettings({ ...existing, ...incoming });
-    user.markModified('locationSharingSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.locationSharingSettings });
-  } catch (error) {
-    console.error('Update location sharing settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateLocationSharingSettings = updateLocationSharingSettings;
 
 // @desc    Share current location
 // @route   POST /api/location-sharing/share
@@ -465,19 +443,5 @@ exports.toggleLocationSharing = async (req, res) => {
 // @desc    Reset location sharing settings to default
 // @route   POST /api/location-sharing/reset
 // @access  Private
-exports.resetLocationSharingSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    user.locationSharingSettings = mergeSettings({});
-    user.markModified('locationSharingSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.locationSharingSettings });
-  } catch (error) {
-    console.error('Reset location sharing settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.resetLocationSharingSettings = resetLocationSharingSettings;
 

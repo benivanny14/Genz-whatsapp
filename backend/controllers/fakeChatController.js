@@ -1,7 +1,7 @@
 
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
-const { getUser, createSettingsMerger } = require('../services/userScopedService');
+const { getUser, createSettingsMerger, createSettingsHandlers } = require('../services/userScopedService');
 
 const defaultSettings = {
   fakeChatEnabled: false,
@@ -21,40 +21,18 @@ const mergeSettings = createSettingsMerger(defaultSettings);
 // @desc    Get fake chat/calls settings
 // @route   GET /api/fake-chat/settings
 // @access  Private
-exports.getFakeChatSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getFakeChatSettings, updateSettings: updateFakeChatSettings, resetSettings: resetFakeChatSettings } = createSettingsHandlers({
+  field: 'fakeChatSettings',
+  label: 'fake chat',
+  mergeSettings,
+});
 
-    const settings = mergeSettings(user.fakeChatSettings?.toObject?.() || user.fakeChatSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get fake chat settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getFakeChatSettings = getFakeChatSettings;
 
 // @desc    Update fake chat/calls settings
 // @route   POST /api/fake-chat/settings
 // @access  Private
-exports.updateFakeChatSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.fakeChatSettings?.toObject?.() || user.fakeChatSettings || {};
-    
-    user.fakeChatSettings = mergeSettings({ ...existing, ...incoming });
-    user.markModified('fakeChatSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.fakeChatSettings });
-  } catch (error) {
-    console.error('Update fake chat settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateFakeChatSettings = updateFakeChatSettings;
 
 // @desc    Create fake chat
 // @route   POST /api/fake-chat/create
@@ -385,19 +363,5 @@ exports.clearAllFakeData = async (req, res) => {
 // @desc    Reset fake chat settings to default
 // @route   POST /api/fake-chat/reset
 // @access  Private
-exports.resetFakeChatSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    user.fakeChatSettings = mergeSettings({});
-    user.markModified('fakeChatSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.fakeChatSettings });
-  } catch (error) {
-    console.error('Reset fake chat settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.resetFakeChatSettings = resetFakeChatSettings;
 

@@ -11,7 +11,7 @@ const {
   sendBulkMessage,
   toggleBulkSending,
   updateBulkSenderSettings,
-} = require('../controllers/bulkSenderController');
+} = require('../controllers/whatsappSessionController');
 
 router.use(protect);
 

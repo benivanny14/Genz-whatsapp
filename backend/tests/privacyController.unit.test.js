@@ -101,6 +101,54 @@ describe('privacyController — settings', () => {
     expect(res.body.ghostMode).toBe(true);
   });
 
+  it.each([
+    ['toggleFreezeLastSeen', 'freezeLastSeen'],
+    ['toggleHideOnline', 'hideOnline'],
+    ['toggleAntiViewOnce', 'antiViewOnce'],
+    ['toggleDisableForwardedTag', 'disableForwardedTag'],
+    ['toggleHideStatusView', 'hideStatusView'],
+    ['toggleHideReadReceipts', 'hideReadReceipts'],
+    ['toggleWhoViewedProfile', 'whoViewedProfile'],
+    ['toggleContactOnlineNotifier', 'contactOnlineNotifier'],
+    ['toggleAutoDownloadStatus', 'autoDownloadStatus'],
+    ['toggleLanguagePerChat', 'languagePerChat'],
+    ['toggleCustomTickPerContact', 'customTickPerContact'],
+    ['toggleCustomEmojiStyle', 'customEmojiStyle'],
+    ['toggleBlockAlerts', 'blockAlerts']
+  ])('toggles %s (happy path)', async (handler, field) => {
+    const user = makeUser({ privacyModsSettings: { [field]: false } });
+    User.findById.mockResolvedValue(user);
+    const res = makeRes();
+    await privacyController[handler](makeReq(), res);
+    expect(res.body[field]).toBe(true);
+    expect(user.markModified).toHaveBeenCalledWith('privacyModsSettings');
+    expect(user.save).toHaveBeenCalled();
+  });
+
+  it('toggles a field that is already enabled back to false (happy path)', async () => {
+    const user = makeUser({ privacyModsSettings: { hideOnline: true } });
+    User.findById.mockResolvedValue(user);
+    const res = makeRes();
+    await privacyController.toggleHideOnline(makeReq(), res);
+    expect(res.body.hideOnline).toBe(false);
+  });
+
+  it('returns 401 for a toggle when the user cannot be resolved (auth)', async () => {
+    User.findById.mockResolvedValue(null);
+    const res = makeRes();
+    await privacyController.toggleFreezeLastSeen(makeReq(), res);
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('returns 500 for a toggle when saving fails (error)', async () => {
+    const user = makeUser();
+    user.save.mockRejectedValue(new Error('db down'));
+    User.findById.mockResolvedValue(user);
+    const res = makeRes();
+    await privacyController.toggleGhostMode(makeReq(), res);
+    expect(res.statusCode).toBe(500);
+  });
+
   it('returns block alerts (happy path)', async () => {
     User.findById.mockResolvedValue(makeUser());
     const res = makeRes();

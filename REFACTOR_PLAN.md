@@ -225,6 +225,182 @@ nakala ya `getUser` (na ~34 zina `mergeSettings`), zikiwemo:
    zote zinafanya kazi na WhatsApp session management; zinaweza kuunganishwa kwenye
    `whatsappSessionController` (lakini hizi ni kubwa — zifanyike baada ya #1).
 
+### 8. ✅ `callBlockerController` + `callFeaturesController` → `callToolsController` (zimefanyika)
+
+#### Tatizo
+- Controllers mbili zilikuwa na `getUser`/`mergeSettings` sawa (kupitia `userScopedService`)
+  na settings get/update/reset handlers zilizofanana (tofauti ni jina la field kwenye User).
+- `callFeaturesController` ilikuwa na **toggles 16 karibu sawa kabisa** (tofauti ni jina la
+  field tu) + `updateCallTimeout`/`updateMaxCallDuration` zilizofanana.
+
+#### Kitu kilichofanyika
+- **`backend/controllers/callToolsController.js`** (mpya): controllers mbili zimeunganishwa
+  katika moja na `createSettingsMerger` mbili (`callBlockerDefaultSettings` +
+  `callFeaturesDefaultSettings` — fields ni tofauti kwenye User, hivyo kila moja inahitaji
+  merger yake).
+- **Routes** (`call-blocker.js`, `call-features.js`): sasa zina-require kutoka
+  `callToolsController` — route paths zimebaki sawa (11 + 19 = 30 routes).
+- Maelezo: `toggleCallBlocker` ilikuwa imeexported **mara mbili** (moja ina-toggle
+  `callBlockerSettings.callBlockerEnabled`, nyingine `callFeaturesSettings.callBlocker`).
+  Katika merge, features version imebadilishwa jina → `toggleCallFeaturesBlocker`
+  (route `/api/call-features/blocker` haijabadilika — import pekee kwenye route file).
+- **`callBlockerController.js` + `callFeaturesController.js`** zimefutwa (routes pekee
+  ndizo zilizokuwa zikizirequire).
+
+#### Matokeo
+- Faili 2 → 1; toggles 16 sasa ni single-source-of-truth. Hakuna mabadiliko ya API.
+- Tests: **29/29 zinapita** (call blocker + call features suite).
+
+### 9. ✅ `whatsappWebController` + `bulkSenderController` + `multiAccountsController` → `whatsappSessionController` (zimefanyika)
+
+#### Tatizo
+- Controllers tatu zilikuwa na `getUser`/`mergeSettings` sawa na settings handlers
+  zilizofanana; zote tatu zinafanya kazi na WhatsApp session/device management.
+
+#### Kitu kilichofanyika
+- **`backend/controllers/whatsappSessionController.js`** (mpya): controllers tatu
+  zimeunganishwa katika moja na `createSettingsMerger` tatu (whatsappWeb / bulkSender /
+  multiAccounts defaults — kila moja inahifadhiwa kwenye field yake ya User).
+- **Routes** (`whatsapp-web.js`, `bulk-sender.js`, `multi-accounts.js`): sasa zina-require
+  kutoka `whatsappSessionController` — route paths zimebaki sawa (11 + 9 + 12 = 32 routes).
+- **`whatsappWebController.js` + `bulkSenderController.js` + `multiAccountsController.js`**
+  zimefutwa (routes pekee ndizo zilizokuwa zikizirequire).
+
+#### Matokeo
+- Faili 3 → 1; hakuna mabadiliko ya API. Tests: **54/54 zinapita** (3 suites).
+
+### 10. ✅ Coverage expansion (batch 5) — controllers zilizokuwa chini kabisa
+
+#### Tests zilizoongezwa (pattern ya happy path + validation + auth + error)
+- **adminAccessController.unit.test.js** (mpya, +20): permissions (list/set/filter),
+  devices (list pagination/clamp, revoke + socket emit), sessions (list/revoke/revoke-all).
+- **adminBroadcastController.unit.test.js** (mpya, +16): broadcast lists, system
+  announcements (segments all/premium, new-conversation path, per-recipient errors),
+  notification center (overview, segment targeting, broadcast).
+- **adminCallsController.unit.test.js** (mpya, +11): listCalls filters/pagination, call
+  stats aggregates, deleteCallLog.
+- **adminInsightsController.unit.test.js** (mpya, +9): growth report, engagement report,
+  fraud signals.
+- **cacheCleanerController.unit.test.js** (mpya, +11): settings get/update/toggle/max-size/
+  reset, cache size estimation + warning level, 501 clear endpoints.
+- **mediaController.unit.test.js** (mpya, +34): uploads (local + cloudinary + error),
+  deletes (ownership 403 / cloudinary / batch / admin), file info, signed URLs, local
+  signing, transforms, thumbnails, cleanup dry-run + real + error.
+- **manualPaymentController.test.js** (imepanuliwa: 1 → **+40**): payment info, subscription
+  status, SMS preview, submit (new + duplicate + validation), my-payments/replies, admin
+  list/stats/details, approve/reject (+ duplicate guard, expiry extension), admin messages,
+  runExpiryCheck.
+- **privacyController.unit.test.js** (imepanuliwa: **+16**): toggles 13 zilizobaki kwa
+  `it.each`, toggle-back-to-false, 401 auth, 500 error paths.
+
+#### Matokeo ya coverage (kutoka `coverage-final.json`, `npm run coverage`)
+- **Statements: ~76%** • **Branches: ~87%** • **Functions: ~85%**.
+- Controllers **60** (baada ya merges 8–9); **47 ziko ≥75%** statements; **33 ziko ≥80%**.
+- Chini kabisa sasa ni `callToolsController` (54%) — kila controller iko >50% (ilikuwa
+  nyingi chini ya 20%).
+
+### 11. ✅ Extract duplicated settings get/update/reset handlers → `createSettingsHandlers` (zimefanyika)
+
+#### Tatizo
+- Controllers ~25 zilikuwa zikirudia **trio ile ile** ya settings handlers (get/update/reset)
+  kwa kila feature — kila trio ilikuwa nakala ya nyingine (tofauti ni jina la field kwenye
+  User, label ya log, na defaults).
+
+#### Uchambuzi (analysis script, `/tmp/analyze*.js`)
+- Kati ya handlers zote: **36/42 get, 38/44 update, 30/31 reset** zilikuwa canonical
+  (sawa na template). **22 trios kamili** zilibadilishwa kwa codemod.
+- **Zilibaki kama zilivyo** (deviations halali): `userSettingsController` (WhatsApp
+  settings merge + 404), `authController` (WhatsApp settings), `securityController`
+  (`requireUser` ya custom + two-arg merge + composite shape), `genzModsController`
+  (custom field + normalize), `mediaToolsController.getMediaModsSettings` (custom
+  decorator), `whatsappSessionController.updateSyncSettings` (partial-update).
+
+#### Kitu kilichofanyika
+- **`services/userScopedService.js`**: `createSettingsHandlers({ field, label, mergeSettings, defaults })`
+  imeongezwa — inarejesha `{ getSettings, updateSettings, resetSettings }` kwa tabia ile
+  ile ya awali (getUser + 401, markModified + save, `{ success, settings }` shape).
+  Inasaidia `defaults` optional kwa controllers zenye two-arg `mergeSettings`
+  (chatList, chatOrganization, mediaTools).
+- **Controllers 25 zilibadilishwa** na codemod (`scripts/tmp-refactor-settings.js`, kisha
+  kufutwa): kila trio ya ~39 lines → destructure 1 line + re-exports 3 lines (~7 lines).
+  Hii ni ~**800 lines za boilerplate zimeondolewa** (25 × ~32 lines).
+- Majina ya exported handlers **hayakubadilika** — routes zinaendelea ku-destructure
+  majina yale yale (mfano `getAntiBanSettings`), sasa yakiwa re-exported kutoka helpers.
+
+#### Verification
+- `node scripts/verify-route-exports.js` (mpya, permanent): inathibitisha kila handler
+  inayorequirewa na route ipo kwenye controller (handles destructure, renamed
+  destructures, whole-module requires, `exports.x` + `module.exports = {}` styles) —
+  **"All route handler imports resolve to existing exports"**.
+- **1532/1532 tests zinapita.** Hakuna mabadiliko ya API.
+
+### 12. ✅ Extract duplicated toggle handlers → `createToggleHandler` (zimefanyika)
+
+#### Tatizo
+- Toggle handlers (single-field settings toggles) zilikuwa zimerudiwa **~55 mara** kwenye
+  controllers 6: `chatListController` (8), `mediaToolsController` (8), `messageToolsController`
+  (8), `groupToolsController` (8 mods + 5 features), `securityController` (10),
+  `userSettingsController` (8). Kila toggle ilikuwa nakala ya nyingine (tofauti ni jina la
+  field, settingsField, na log label).
+
+#### Kitu kilichofanyika
+- **`services/userScopedService.js`**: `createToggleHandler({ settingsField, merge, loadUser, transform, acceptEnabled })`
+  imeongezwa — inarejesha toggle handler inayotumika kwa wote. Inasaidia variants:
+  - `acceptEnabled: true` kwa group-features toggles (zinazokubali `{ enabled }` na
+    kurudisha settings nzima badala ya `{ [field]: value }`)
+  - `loadUser: requireUser` kwa securityController (badala ya getUser default)
+  - `transform: compactSettings` kwa userSettingsController customization
+- **Controllers 6 zilibadilishwa** na codemod (`scripts/tmp-refactor-toggles.js`, kisha
+  kufutwa): kila `const toggleXField = async (...) => {...}` (~20 lines) → call 4-5 lines
+  ya `createToggleHandler(...)`. Jumla ~**100 lines za boilerplate zimeondolewa**;
+  majina ya exported handlers hayakubadilika (routes hazikuguswa).
+- **Unused imports zimeondolewa**: `createSettingsMerger` kwenye chatListController,
+  chatOrganizationController, mediaToolsController, genzModsController (zilibaki kutoka
+  hatua za awali — sasa safi).
+
+#### Vingine
+- `npm run check:exports` (mpya) — `scripts/verify-route-exports.js` imewekwa kwenye
+  package.json; inathibitisha kila handler inayorequirewa na route ipo kwenye controller.
+- **1532/1532 tests zinapita**; `npm run check` (307 files) OK.
+
+### 13. ✅ WhatsApp-style text formatting kwenye composer + archive/unarchive + block/unblock verification
+
+#### Text formatting (kama WhatsApp: bold/italic/strikethrough/monospace)
+- **`frontend/src/utils/formatText.js`** (mpya): `formatTextTokens()` inaparse WhatsApp
+  markers (`*bold*`, `_italic_`, `~strike~`, `` `mono` ``); `wrapWithMarker()` ina-wrap
+  selected text kwenye composer (na ina-unwrap ikiwa tayari imewrap).
+- **`frontend/src/components/FormattedText.jsx`** (mpya): inarender tokens kama
+  `<strong>`/`<em>`/`<s>`/`<code>`; inakubali `renderText` callback ili @mentions
+  ziendelee kufanya kazi.
+- **`ChatArea.jsx`**: formatting toolbar (B/I/S/M) inaonekana juu ya composer ukiandika
+  (in DM na group); message bubbles (na system messages) sasa zinatuma text kupitia
+  `FormattedText`. Uki-edit message, formatting inahifadhiwa (raw markers hurender tena).
+- **Text-selection menu kwenye messages** (kama WhatsApp): ukichagua (select) text ndani
+  ya bubble, menu inaonekana juu ya selection na **Copy**, **Select all**, na (kwa
+  messages zako) **B / I / S / M** — formatting inafungua edit mode na selection imewrap.
+- **`chatExporter.js`**: structured messages sasa zinaexport caption + media label
+  (na markers za formatting zinahifadhiwa verbatim kwenye .txt).
+- Tests: `src/tests/formatText.test.js` (+8) + `src/tests/chatExporter.test.js` (+3)
+  — **15/15 frontend tests zinapita**; `vite build` OK.
+- Verified live kwenye dev server: `*Hello* _world_` → bubble inaonekana na
+  **Hello** (bold) + *world* (italic); selection menu ilionekana kwenye group chat.
+
+#### Archive/unarchive verification
+- Backend: `chatController.toggleArchiveConversation` imethibitishwa kwa tests mpya
+  (archive→unarchive roundtrip + per-user isolation) kwenye `chatController.unit.test.js`
+  (+2, jumla 127/127).
+- Verified live kwenye dev server: chat ime-archive (inaondoka kwenye list, "Archived 1"
+  inaonekana) → unarchive (inarudi kwenye main list, badge inaondoka).
+
+#### Block/unblock verification
+- Backend: `chatController.blockUser`/`unblockUser` zinafanya kazi (200) na kuweka
+  `blockedUsers` kwenye User; `isConversationBlocked` inazuia blocked user kutuma
+  (403) kwa upande mmoja (WhatsApp semantics: blocker anaweza kuendelea kutuma).
+- Verified live kwenye dev server: block kwa UI (Contact Info → Block → confirm) →
+  DM inaondoka kwenye chat list (WhatsApp behavior) → unblock kupitia Settings →
+  Blocked contacts → chat inarudi → message "message after unblock" inatuma (✓✓).
+- DB verification: `blockedUsers` inaonekana baada ya block, inaondoka baada ya unblock.
+
 ### 7. ✅ Test coverage expansion (batches 1–4) + `npm run coverage`
 
 #### Tests zilizoongezwa (kwa pattern ya happy path + validation + auth)
@@ -240,25 +416,21 @@ nakala ya `getUser` (na ~34 zina `mergeSettings`), zikiwemo:
 
 #### Scripts za coverage (`backend/package.json`)
 - `npm run coverage` — jest coverage (json + text reporters) kwa `controllers/**/*.js`
-- `npm run coverage:scan` — `node scripts/coverage-scan.js`: orodha ya controllers 63
+- `npm run coverage:scan` — `node scripts/coverage-scan.js`: orodha ya controllers zote
   sorted by pct (inatoa rahisia ya ku-prioritize batch inayofuata)
 
 #### Hali ya coverage (kutoka `coverage-final.json`)
-- **Statements: ~49%** (6112/12575) • **Functions: ~52%** (701/1341)
-- Controllers 22+ sasa ziko ≥75% statements; 14 ziko ≥80%.
-- Controllers bado chini (<20%): `statusController` (6%), `phoneContactsController` (7%),
-  `statusAdvancedController` (8%), `chatOrganizationController` (8%), `antiBanController` (8%),
-  `storyHighlightsController` (9%), `fcmController` (10%), `antiRevokeController` (10%),
-  `mediaController` (11%), `deviceController` (11%), `manualPaymentController` (12%),
-  `cacheCleanerController` (13%), `adminAccess`/`adminBroadcast`/`adminCalls` (16%).
-- Kumbuka: `userSettingsController` (merged settings/theme) bado iko ~24% — inahitaji
-  tests zake (batch inayofuata yenye faida kubwa zaidi, pamoja na auth/OTP na
-  `statusController` ambayo ina live-query kubwa).
+- **Statements: ~76%** • **Branches: ~87%** • **Functions: ~85%** (baada ya batch 5).
+- Chini kabisa: `callToolsController` (54%), `advancedController` (58%),
+  `chatListController` (59%), `callController` (63%), `whatsappOtpController` (66%).
+- Batch inayofuata yenye faida kubwa zaidi: `callToolsController` (54% — merged file
+  bado haina tests za toggles nyingi za call-features), `advancedController` (58%),
+  `chatListController` (59%).
 
 ---
 
 ## Vigezo vya "done" kwa kila hatua
 - [x] `node -c` inapita kwa faili zote zilizobadilika
-- [x] `npm test` inapita (**822 tests** kwa sasa)
+- [x] `npm test` inapita (**1532 tests backend + 12 frontend** kwa sasa)
 - [x] Route paths za nje hazijabadilika (diff ya routes ni import-only)
 - [x] Feature smoke test (`scripts/feature-smoke-test.js`) inapita kwa endpoints zilizoguswa

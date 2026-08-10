@@ -1,5 +1,5 @@
 
-const { getUser, createSettingsMerger } = require('../services/userScopedService');
+const { getUser, createSettingsMerger, createSettingsHandlers } = require('../services/userScopedService');
 
 const defaultSettings = {
   gifPlayerEnabled: true,
@@ -22,40 +22,18 @@ const mergeSettings = createSettingsMerger(defaultSettings);
 // @desc    Get GIF player settings
 // @route   GET /api/gif-player/settings
 // @access  Private
-exports.getGIFPlayerSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getGIFPlayerSettings, updateSettings: updateGIFPlayerSettings, resetSettings: resetGIFPlayerSettings } = createSettingsHandlers({
+  field: 'gifPlayerSettings',
+  label: 'GIF player',
+  mergeSettings,
+});
 
-    const settings = mergeSettings(user.gifPlayerSettings?.toObject?.() || user.gifPlayerSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get GIF player settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getGIFPlayerSettings = getGIFPlayerSettings;
 
 // @desc    Update GIF player settings
 // @route   POST /api/gif-player/settings
 // @access  Private
-exports.updateGIFPlayerSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.gifPlayerSettings?.toObject?.() || user.gifPlayerSettings || {};
-    
-    user.gifPlayerSettings = mergeSettings({ ...existing, ...incoming });
-    user.markModified('gifPlayerSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.gifPlayerSettings });
-  } catch (error) {
-    console.error('Update GIF player settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateGIFPlayerSettings = updateGIFPlayerSettings;
 
 // @desc    Toggle GIF player
 // @route   POST /api/gif-player/toggle
@@ -256,19 +234,5 @@ exports.deleteSavedGIF = async (req, res) => {
 // @desc    Reset GIF player settings to default
 // @route   POST /api/gif-player/reset
 // @access  Private
-exports.resetGIFPlayerSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    user.gifPlayerSettings = mergeSettings({});
-    user.markModified('gifPlayerSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.gifPlayerSettings });
-  } catch (error) {
-    console.error('Reset GIF player settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.resetGIFPlayerSettings = resetGIFPlayerSettings;
 

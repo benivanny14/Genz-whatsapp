@@ -1,10 +1,6 @@
-jest.mock('../services/userScopedService', () => ({
-  ...jest.requireActual('../services/userScopedService'),
-  getUser: jest.fn()
-}));
-
 jest.mock('../models/User', () => ({
-  find: jest.fn()
+  find: jest.fn(),
+  findById: jest.fn()
 }));
 
 jest.mock('../models/Conversation', () => ({
@@ -13,7 +9,6 @@ jest.mock('../models/Conversation', () => ({
 
 const User = require('../models/User');
 const Conversation = require('../models/Conversation');
-const { getUser } = require('../services/userScopedService');
 const antiRevoke = require('../controllers/antiRevokeController');
 
 const makeRes = () => {
@@ -54,17 +49,14 @@ beforeEach(() => jest.clearAllMocks());
 describe('antiRevokeController — settings', () => {
   it('returns 401 when the user cannot be resolved (auth)', async () => {
     // userScopedService.getUser sends the 401 itself and returns null
-    getUser.mockImplementation((req, res) => {
-      res.status(401).json({ success: false, message: 'Not authenticated' });
-      return Promise.resolve(null);
-    });
+    User.findById.mockResolvedValue(null);
     const res = makeRes();
     await antiRevoke.getAntiRevokeSettings(makeReq(), res);
     expect(res.statusCode).toBe(401);
   });
 
   it('returns merged settings with defaults (happy path)', async () => {
-    getUser.mockResolvedValue(makeUser({ antiRevokeSettings: { antiRevokeEnabled: true } }));
+    User.findById.mockResolvedValue(makeUser({ antiRevokeSettings: { antiRevokeEnabled: true } }));
     const res = makeRes();
     await antiRevoke.getAntiRevokeSettings(makeReq(), res);
     expect(res.body.settings.antiRevokeEnabled).toBe(true);
@@ -74,7 +66,7 @@ describe('antiRevokeController — settings', () => {
 
   it('handles settings stored as a Mongoose document via toObject()', async () => {
     const doc = { toObject: () => ({ cacheRetentionDays: 3 }) };
-    getUser.mockResolvedValue(makeUser({ antiRevokeSettings: doc }));
+    User.findById.mockResolvedValue(makeUser({ antiRevokeSettings: doc }));
     const res = makeRes();
     await antiRevoke.getAntiRevokeSettings(makeReq(), res);
     expect(res.body.settings.cacheRetentionDays).toBe(3);
@@ -83,7 +75,7 @@ describe('antiRevokeController — settings', () => {
 
   it('updates settings and marks the path modified (happy path)', async () => {
     const user = makeUser({ antiRevokeSettings: { cacheRetentionDays: 7 } });
-    getUser.mockResolvedValue(user);
+    User.findById.mockResolvedValue(user);
     const res = makeRes();
     await antiRevoke.updateAntiRevokeSettings(makeReq({ body: { settings: { cacheRetentionDays: 30 } } }), res);
     expect(user.markModified).toHaveBeenCalledWith('antiRevokeSettings');
@@ -94,14 +86,14 @@ describe('antiRevokeController — settings', () => {
 
   it('accepts a raw body when no settings key is present', async () => {
     const user = makeUser();
-    getUser.mockResolvedValue(user);
+    User.findById.mockResolvedValue(user);
     const res = makeRes();
     await antiRevoke.updateAntiRevokeSettings(makeReq({ body: { notifyOnDelete: true } }), res);
     expect(user.antiRevokeSettings.notifyOnDelete).toBe(true);
   });
 
   it('returns 500 when the service throws', async () => {
-    getUser.mockRejectedValue(new Error('boom'));
+    User.findById.mockRejectedValue(new Error('boom'));
     const res = makeRes();
     await antiRevoke.getAntiRevokeSettings(makeReq(), res);
     expect(res.statusCode).toBe(500);
@@ -111,7 +103,7 @@ describe('antiRevokeController — settings', () => {
 
 describe('antiRevokeController — cacheDeletedMessage', () => {
   it('returns 400 when messageId or conversationId is missing (validation)', async () => {
-    getUser.mockResolvedValue(makeUser());
+    User.findById.mockResolvedValue(makeUser());
     const res = makeRes();
     await antiRevoke.cacheDeletedMessage(makeReq({ body: { messageId: 'm1' } }), res);
     expect(res.statusCode).toBe(400);
@@ -120,7 +112,7 @@ describe('antiRevokeController — cacheDeletedMessage', () => {
 
   it('skips caching when anti-revoke is disabled', async () => {
     const user = makeUser({ antiRevokeSettings: { antiRevokeEnabled: false, cacheDeletedMessages: true } });
-    getUser.mockResolvedValue(user);
+    User.findById.mockResolvedValue(user);
     const res = makeRes();
     await antiRevoke.cacheDeletedMessage(makeReq({ body: { messageId: 'm1', conversationId: 'c1' } }), res);
     expect(res.statusCode).toBe(200);
@@ -130,7 +122,7 @@ describe('antiRevokeController — cacheDeletedMessage', () => {
 
   it('caches the deleted message with retention expiry (happy path)', async () => {
     const user = makeUser({ antiRevokeSettings: { antiRevokeEnabled: true, cacheDeletedMessages: true, cacheRetentionDays: 7 } });
-    getUser.mockResolvedValue(user);
+    User.findById.mockResolvedValue(user);
     const res = makeRes();
     await antiRevoke.cacheDeletedMessage(makeReq({
       body: { messageId: 'm1', conversationId: 'c1', content: 'bye', messageType: 'text', sender: 'user-2', deletedBy: 'user-2' }
@@ -153,7 +145,7 @@ describe('antiRevokeController — getCachedDeletedMessages', () => {
         { messageId: 'm2', conversationId: 'c2', expiresAt: future() }
       ]
     });
-    getUser.mockResolvedValue(user);
+    User.findById.mockResolvedValue(user);
     const res = makeRes();
     await antiRevoke.getCachedDeletedMessages(makeReq(), res);
     expect(res.body.cachedMessages).toHaveLength(2);
@@ -167,7 +159,7 @@ describe('antiRevokeController — getCachedDeletedMessages', () => {
         { messageId: 'm2', conversationId: 'c2', expiresAt: future() }
       ]
     });
-    getUser.mockResolvedValue(user);
+    User.findById.mockResolvedValue(user);
     const res = makeRes();
     await antiRevoke.getCachedDeletedMessages(makeReq({ query: { conversationId: 'c2' } }), res);
     expect(res.body.cachedMessages).toHaveLength(1);
@@ -182,7 +174,7 @@ describe('antiRevokeController — getCachedDeletedMessages', () => {
         { messageId: 'm2', conversationId: 'c1', expiresAt: future() }
       ]
     });
-    getUser.mockResolvedValue(user);
+    User.findById.mockResolvedValue(user);
     const res = makeRes();
     await antiRevoke.getCachedDeletedMessages(makeReq({ query: { conversationId: 'c1' } }), res);
     expect(res.body.cachedMessages).toHaveLength(1);
@@ -193,7 +185,7 @@ describe('antiRevokeController — getCachedDeletedMessages', () => {
 
 describe('antiRevokeController — spyViewDeletedMessages', () => {
   it('returns 403 when the viewer is not enabled', async () => {
-    getUser.mockResolvedValue(makeUser({ antiRevokeSettings: { antiRevokeEnabled: true, showDeletedMessages: false } }));
+    User.findById.mockResolvedValue(makeUser({ antiRevokeSettings: { antiRevokeEnabled: true, showDeletedMessages: false } }));
     const res = makeRes();
     await antiRevoke.spyViewDeletedMessages(makeReq(), res);
     expect(res.statusCode).toBe(403);
@@ -207,7 +199,7 @@ describe('antiRevokeController — spyViewDeletedMessages', () => {
         { messageId: 'm1', conversationId: 'c1', sender: 'user-2', content: 'bye', cachedAt: new Date() }
       ]
     });
-    getUser.mockResolvedValue(user);
+    User.findById.mockResolvedValue(user);
     User.find.mockReturnValue({ select: jest.fn().mockResolvedValue([{ _id: 'user-2', username: 'bob', phoneNumber: '255', profilePicture: 'pic' }]) });
     Conversation.find.mockReturnValue({ select: jest.fn().mockResolvedValue([{ _id: 'c1', name: 'Chat', isGroup: false }]) });
     const res = makeRes();
@@ -225,7 +217,7 @@ describe('antiRevokeController — spyViewDeletedMessages', () => {
         { messageId: 'm1', conversationId: 'c1', sender: 'user-9', content: 'x', cachedAt: new Date() }
       ]
     });
-    getUser.mockResolvedValue(user);
+    User.findById.mockResolvedValue(user);
     User.find.mockReturnValue({ select: jest.fn().mockResolvedValue([]) });
     Conversation.find.mockReturnValue({ select: jest.fn().mockResolvedValue([]) });
     const res = makeRes();
@@ -238,7 +230,7 @@ describe('antiRevokeController — spyViewDeletedMessages', () => {
 describe('antiRevokeController — clearCachedMessages', () => {
   it('returns early when there is no cache', async () => {
     const user = makeUser({ deletedMessagesCache: undefined });
-    getUser.mockResolvedValue(user);
+    User.findById.mockResolvedValue(user);
     const res = makeRes();
     await antiRevoke.clearCachedMessages(makeReq(), res);
     expect(res.statusCode).toBe(200);
@@ -253,7 +245,7 @@ describe('antiRevokeController — clearCachedMessages', () => {
         { messageId: 'm2', conversationId: 'c1' }
       ]
     });
-    getUser.mockResolvedValue(user);
+    User.findById.mockResolvedValue(user);
     const res = makeRes();
     await antiRevoke.clearCachedMessages(makeReq({ query: { messageId: 'm1' } }), res);
     expect(user.deletedMessagesCache).toHaveLength(1);
@@ -268,7 +260,7 @@ describe('antiRevokeController — clearCachedMessages', () => {
         { messageId: 'm2', conversationId: 'c2' }
       ]
     });
-    getUser.mockResolvedValue(user);
+    User.findById.mockResolvedValue(user);
     const res = makeRes();
     await antiRevoke.clearCachedMessages(makeReq({ query: { conversationId: 'c1' } }), res);
     expect(user.deletedMessagesCache).toHaveLength(1);
@@ -277,7 +269,7 @@ describe('antiRevokeController — clearCachedMessages', () => {
 
   it('clears everything when no filter is given', async () => {
     const user = makeUser({ deletedMessagesCache: [{ messageId: 'm1', conversationId: 'c1' }] });
-    getUser.mockResolvedValue(user);
+    User.findById.mockResolvedValue(user);
     const res = makeRes();
     await antiRevoke.clearCachedMessages(makeReq(), res);
     expect(user.deletedMessagesCache).toEqual([]);
@@ -287,7 +279,7 @@ describe('antiRevokeController — clearCachedMessages', () => {
 describe('antiRevokeController — toggleAntiRevoke', () => {
   it('toggles from default (off → on)', async () => {
     const user = makeUser({ antiRevokeSettings: {} });
-    getUser.mockResolvedValue(user);
+    User.findById.mockResolvedValue(user);
     const res = makeRes();
     await antiRevoke.toggleAntiRevoke(makeReq(), res);
     expect(user.antiRevokeSettings.antiRevokeEnabled).toBe(true);
@@ -296,7 +288,7 @@ describe('antiRevokeController — toggleAntiRevoke', () => {
 
   it('toggles from on → off', async () => {
     const user = makeUser({ antiRevokeSettings: { antiRevokeEnabled: true } });
-    getUser.mockResolvedValue(user);
+    User.findById.mockResolvedValue(user);
     const res = makeRes();
     await antiRevoke.toggleAntiRevoke(makeReq(), res);
     expect(user.antiRevokeSettings.antiRevokeEnabled).toBe(false);
@@ -304,7 +296,7 @@ describe('antiRevokeController — toggleAntiRevoke', () => {
 
   it('honors an explicit enabled value', async () => {
     const user = makeUser({ antiRevokeSettings: { antiRevokeEnabled: true } });
-    getUser.mockResolvedValue(user);
+    User.findById.mockResolvedValue(user);
     const res = makeRes();
     await antiRevoke.toggleAntiRevoke(makeReq({ body: { enabled: true } }), res);
     expect(user.antiRevokeSettings.antiRevokeEnabled).toBe(true);
@@ -315,7 +307,7 @@ describe('antiRevokeController — toggleAntiRevoke', () => {
 describe('antiRevokeController — resetAntiRevokeSettings', () => {
   it('resets to defaults (happy path)', async () => {
     const user = makeUser({ antiRevokeSettings: { antiRevokeEnabled: true, cacheRetentionDays: 99 } });
-    getUser.mockResolvedValue(user);
+    User.findById.mockResolvedValue(user);
     const res = makeRes();
     await antiRevoke.resetAntiRevokeSettings(makeReq(), res);
     expect(user.antiRevokeSettings.antiRevokeEnabled).toBe(false);

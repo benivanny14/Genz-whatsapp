@@ -2,7 +2,7 @@
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const { uploadFile: uploadToMediaStorage } = require('../config/cloudinary');
-const { getUser, createSettingsMerger } = require('../services/userScopedService');
+const { getUser, createSettingsMerger, createSettingsHandlers } = require('../services/userScopedService');
 
 const defaultSettings = {
   exportChat: true,
@@ -33,40 +33,18 @@ const mergeSettings = createSettingsMerger(defaultSettings);
 // @desc    Get quick actions settings
 // @route   GET /api/quick-actions/settings
 // @access  Private
-exports.getQuickActionsSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getQuickActionsSettings, updateSettings: updateQuickActionsSettings, resetSettings: resetQuickActionsSettings } = createSettingsHandlers({
+  field: 'quickActionsSettings',
+  label: 'quick actions',
+  mergeSettings,
+});
 
-    const settings = mergeSettings(user.quickActionsSettings?.toObject?.() || user.quickActionsSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get quick actions settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getQuickActionsSettings = getQuickActionsSettings;
 
 // @desc    Update quick actions settings
 // @route   POST /api/quick-actions/settings
 // @access  Private
-exports.updateQuickActionsSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.quickActionsSettings?.toObject?.() || user.quickActionsSettings || {};
-    
-    user.quickActionsSettings = mergeSettings({ ...existing, ...incoming });
-    user.markModified('quickActionsSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.quickActionsSettings });
-  } catch (error) {
-    console.error('Update quick actions settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateQuickActionsSettings = updateQuickActionsSettings;
 
 // @desc    Send mass message
 // @route   POST /api/quick-actions/mass-message
@@ -345,19 +323,5 @@ exports.downloadStatus = async (req, res) => {
 // @desc    Reset quick actions settings to default
 // @route   POST /api/quick-actions/reset
 // @access  Private
-exports.resetQuickActionsSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    user.quickActionsSettings = mergeSettings({});
-    user.markModified('quickActionsSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.quickActionsSettings });
-  } catch (error) {
-    console.error('Reset quick actions settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.resetQuickActionsSettings = resetQuickActionsSettings;
 

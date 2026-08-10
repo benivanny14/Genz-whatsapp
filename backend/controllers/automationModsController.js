@@ -1,5 +1,5 @@
 
-const { getUser, createSettingsMerger } = require('../services/userScopedService');
+const { getUser, createSettingsMerger, createSettingsHandlers } = require('../services/userScopedService');
 
 const defaultSettings = {
   autoReplyEnabled: false,
@@ -21,40 +21,18 @@ const mergeSettings = createSettingsMerger(defaultSettings);
 // @desc    Get automation MODs settings
 // @route   GET /api/automation-mods/settings
 // @access  Private
-exports.getAutomationModsSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getAutomationModsSettings, updateSettings: updateAutomationModsSettings } = createSettingsHandlers({
+  field: 'automationModsSettings',
+  label: 'automation MODs',
+  mergeSettings,
+});
 
-    const settings = mergeSettings(user.automationModsSettings?.toObject?.() || user.automationModsSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get automation MODs settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getAutomationModsSettings = getAutomationModsSettings;
 
 // @desc    Update automation MODs settings
 // @route   POST /api/automation-mods/settings
 // @access  Private
-exports.updateAutomationModsSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.automationModsSettings?.toObject?.() || user.automationModsSettings || {};
-    
-    user.automationModsSettings = mergeSettings({ ...existing, ...incoming });
-    user.markModified('automationModsSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.automationModsSettings });
-  } catch (error) {
-    console.error('Update automation MODs settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateAutomationModsSettings = updateAutomationModsSettings;
 
 // @desc    Toggle Auto-Reply
 // @route   POST /api/automation-mods/auto-reply

@@ -18,7 +18,7 @@
  */
 
 
-const { getUser, mergeSettings, createSettingsMerger } = require('../services/userScopedService');
+const { getUser, mergeSettings, createSettingsHandlers, createToggleHandler } = require('../services/userScopedService');
 const { processAndCompressMedia, applyMediaEdits } = require('../services/mediaProcessingService');
 
 // ── Shared helpers (previously duplicated across all three controllers) ─────
@@ -43,24 +43,10 @@ const getUserModsSettings = (user) =>
 
 // Generic single-field toggle — every media-mods toggle is identical apart
 // from the field name and log label.
-const toggleModsField = async (req, res, field, logLabel) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const existing = user.mediaModsSettings?.toObject?.() || user.mediaModsSettings || {};
-    const newValue = !existing[field];
-
-    user.mediaModsSettings = mergeSettings(MODS_DEFAULTS, { ...existing, [field]: newValue });
-    user.markModified('mediaModsSettings');
-    await user.save();
-
-    res.json({ success: true, [field]: newValue });
-  } catch (error) {
-    console.error(`${logLabel} error:`, error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+const toggleModsField = createToggleHandler({
+  settingsField: 'mediaModsSettings',
+  merge: (s) => mergeSettings(MODS_DEFAULTS, s),
+});
 
 exports.getMediaModsSettings = async (req, res) => {
   try {
@@ -74,24 +60,14 @@ exports.getMediaModsSettings = async (req, res) => {
   }
 };
 
-exports.updateMediaModsSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { updateSettings: updateMediaModsSettings } = createSettingsHandlers({
+  field: 'mediaModsSettings',
+  label: 'media MODs',
+  mergeSettings,
+  defaults: MODS_DEFAULTS,
+});
 
-    const incoming = req.body.settings || req.body;
-    const existing = user.mediaModsSettings?.toObject?.() || user.mediaModsSettings || {};
-
-    user.mediaModsSettings = mergeSettings(MODS_DEFAULTS, { ...existing, ...incoming });
-    user.markModified('mediaModsSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.mediaModsSettings });
-  } catch (error) {
-    console.error('Update media MODs settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateMediaModsSettings = updateMediaModsSettings;
 
 exports.toggleFullResolution = (req, res) => toggleModsField(req, res, 'fullResolutionImages', 'Toggle full resolution');
 exports.toggleOneGBVideo = (req, res) => toggleModsField(req, res, 'oneGBVideoUpload', 'Toggle 1GB video');
@@ -115,37 +91,16 @@ const COMPRESSOR_DEFAULTS = {
   compressOnUpload: true
 };
 
-exports.getCompressorSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getCompressorSettings, updateSettings: updateCompressorSettings, resetSettings: resetCompressorSettings } = createSettingsHandlers({
+  field: 'mediaCompressorSettings',
+  label: 'compressor',
+  mergeSettings,
+  defaults: COMPRESSOR_DEFAULTS,
+});
 
-    const settings = mergeSettings(COMPRESSOR_DEFAULTS, user.mediaCompressorSettings?.toObject?.() || user.mediaCompressorSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get compressor settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getCompressorSettings = getCompressorSettings;
 
-exports.updateCompressorSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.mediaCompressorSettings?.toObject?.() || user.mediaCompressorSettings || {};
-
-    user.mediaCompressorSettings = mergeSettings(COMPRESSOR_DEFAULTS, { ...existing, ...incoming });
-    user.markModified('mediaCompressorSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.mediaCompressorSettings });
-  } catch (error) {
-    console.error('Update compressor settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateCompressorSettings = updateCompressorSettings;
 
 exports.compressMedia = async (req, res) => {
   try {
@@ -218,21 +173,7 @@ exports.getCompressionStats = async (req, res) => {
   }
 };
 
-exports.resetCompressorSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    user.mediaCompressorSettings = mergeSettings(COMPRESSOR_DEFAULTS, {});
-    user.markModified('mediaCompressorSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.mediaCompressorSettings });
-  } catch (error) {
-    console.error('Reset compressor settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.resetCompressorSettings = resetCompressorSettings;
 
 // ── Media editor (route prefix /api/media-editor) ───────────────────────────
 
@@ -307,37 +248,16 @@ const editMedia = async (req, res, { type, enabledField, logLabel }) => {
   }
 };
 
-exports.getMediaEditorSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getMediaEditorSettings, updateSettings: updateMediaEditorSettings, resetSettings: resetMediaEditorSettings } = createSettingsHandlers({
+  field: 'mediaEditorSettings',
+  label: 'media editor',
+  mergeSettings,
+  defaults: EDITOR_DEFAULTS,
+});
 
-    const settings = mergeSettings(EDITOR_DEFAULTS, user.mediaEditorSettings?.toObject?.() || user.mediaEditorSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get media editor settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getMediaEditorSettings = getMediaEditorSettings;
 
-exports.updateMediaEditorSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.mediaEditorSettings?.toObject?.() || user.mediaEditorSettings || {};
-
-    user.mediaEditorSettings = mergeSettings(EDITOR_DEFAULTS, { ...existing, ...incoming });
-    user.markModified('mediaEditorSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.mediaEditorSettings });
-  } catch (error) {
-    console.error('Update media editor settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateMediaEditorSettings = updateMediaEditorSettings;
 
 exports.editImage = (req, res) => editMedia(req, res, {
   type: 'image',
@@ -408,19 +328,5 @@ exports.toggleMediaEditor = async (req, res) => {
   }
 };
 
-exports.resetMediaEditorSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    user.mediaEditorSettings = mergeSettings(EDITOR_DEFAULTS, {});
-    user.markModified('mediaEditorSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.mediaEditorSettings });
-  } catch (error) {
-    console.error('Reset media editor settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.resetMediaEditorSettings = resetMediaEditorSettings;
 

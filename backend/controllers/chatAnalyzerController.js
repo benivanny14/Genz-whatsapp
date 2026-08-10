@@ -1,7 +1,7 @@
 
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
-const { getUser, createSettingsMerger } = require('../services/userScopedService');
+const { getUser, createSettingsMerger, createSettingsHandlers } = require('../services/userScopedService');
 
 const defaultSettings = {
   chatAnalysisEnabled: true,
@@ -24,40 +24,18 @@ const mergeSettings = createSettingsMerger(defaultSettings);
 // @desc    Get chat analyzer settings
 // @route   GET /api/chat-analyzer/settings
 // @access  Private
-exports.getChatAnalyzerSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getChatAnalyzerSettings, updateSettings: updateChatAnalyzerSettings, resetSettings: resetChatAnalyzerSettings } = createSettingsHandlers({
+  field: 'chatAnalyzerSettings',
+  label: 'chat analyzer',
+  mergeSettings,
+});
 
-    const settings = mergeSettings(user.chatAnalyzerSettings?.toObject?.() || user.chatAnalyzerSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get chat analyzer settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getChatAnalyzerSettings = getChatAnalyzerSettings;
 
 // @desc    Update chat analyzer settings
 // @route   POST /api/chat-analyzer/settings
 // @access  Private
-exports.updateChatAnalyzerSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.chatAnalyzerSettings?.toObject?.() || user.chatAnalyzerSettings || {};
-    
-    user.chatAnalyzerSettings = mergeSettings({ ...existing, ...incoming });
-    user.markModified('chatAnalyzerSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.chatAnalyzerSettings });
-  } catch (error) {
-    console.error('Update chat analyzer settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateChatAnalyzerSettings = updateChatAnalyzerSettings;
 
 // @desc    Analyze conversation
 // @route   POST /api/chat-analyzer/analyze
@@ -409,19 +387,5 @@ exports.exportAnalysisData = async (req, res) => {
 // @desc    Reset chat analyzer settings to default
 // @route   POST /api/chat-analyzer/reset
 // @access  Private
-exports.resetChatAnalyzerSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    user.chatAnalyzerSettings = mergeSettings({});
-    user.markModified('chatAnalyzerSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.chatAnalyzerSettings });
-  } catch (error) {
-    console.error('Reset chat analyzer settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.resetChatAnalyzerSettings = resetChatAnalyzerSettings;
 

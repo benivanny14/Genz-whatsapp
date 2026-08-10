@@ -8,7 +8,8 @@ jest.mock('qrcode', () => ({
 
 const User = require('../models/User');
 const qrcode = require('qrcode');
-const whatsappWeb = require('../controllers/whatsappWebController');
+const whatsappSession = require('../controllers/whatsappSessionController');
+const whatsappWeb = whatsappSession;
 
 const makeRes = () => {
   const res = { statusCode: 200 };

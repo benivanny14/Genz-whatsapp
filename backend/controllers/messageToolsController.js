@@ -16,7 +16,7 @@
 
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
-const { getUser, createSettingsMerger } = require('../services/userScopedService');
+const { getUser, createSettingsMerger, createSettingsHandlers, createToggleHandler } = require('../services/userScopedService');
 
 // ── Message MODs (route prefix /api/message-mods) ───────────────────────────
 
@@ -35,56 +35,20 @@ const mergeModsSettings = createSettingsMerger(MODS_DEFAULTS);
 
 // Generic single-field toggle — every message-mods toggle is identical apart
 // from the field name and log label.
-const toggleModsField = async (req, res, field, logLabel) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const toggleModsField = createToggleHandler({
+  settingsField: 'messageModsSettings',
+  merge: mergeModsSettings,
+});
 
-    const existing = user.messageModsSettings?.toObject?.() || user.messageModsSettings || {};
-    const newValue = !existing[field];
+const { getSettings: getMessageModsSettings, updateSettings: updateMessageModsSettings } = createSettingsHandlers({
+  field: 'messageModsSettings',
+  label: 'message MODs',
+  mergeSettings: mergeModsSettings,
+});
 
-    user.messageModsSettings = mergeModsSettings({ ...existing, [field]: newValue });
-    user.markModified('messageModsSettings');
-    await user.save();
+exports.getMessageModsSettings = getMessageModsSettings;
 
-    res.json({ success: true, [field]: newValue });
-  } catch (error) {
-    console.error(`${logLabel} error:`, error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-exports.getMessageModsSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const settings = mergeModsSettings(user.messageModsSettings?.toObject?.() || user.messageModsSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get message MODs settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-exports.updateMessageModsSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.messageModsSettings?.toObject?.() || user.messageModsSettings || {};
-
-    user.messageModsSettings = mergeModsSettings({ ...existing, ...incoming });
-    user.markModified('messageModsSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.messageModsSettings });
-  } catch (error) {
-    console.error('Update message MODs settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateMessageModsSettings = updateMessageModsSettings;
 
 exports.toggleSendAnyFile = (req, res) => toggleModsField(req, res, 'sendAnyFileType', 'Toggle send any file');
 exports.toggleFileSizeLimit = (req, res) => toggleModsField(req, res, 'fileSizeLimitIncrease', 'Toggle file size limit');
@@ -148,37 +112,15 @@ const TRANSLATOR_DEFAULTS = {
 
 const mergeTranslatorSettings = createSettingsMerger(TRANSLATOR_DEFAULTS);
 
-exports.getTranslatorSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getTranslatorSettings, updateSettings: updateTranslatorSettings, resetSettings: resetTranslatorSettings } = createSettingsHandlers({
+  field: 'translatorSettings',
+  label: 'translator',
+  mergeSettings: mergeTranslatorSettings,
+});
 
-    const settings = mergeTranslatorSettings(user.translatorSettings?.toObject?.() || user.translatorSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get translator settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getTranslatorSettings = getTranslatorSettings;
 
-exports.updateTranslatorSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.translatorSettings?.toObject?.() || user.translatorSettings || {};
-
-    user.translatorSettings = mergeTranslatorSettings({ ...existing, ...incoming });
-    user.markModified('translatorSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.translatorSettings });
-  } catch (error) {
-    console.error('Update translator settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateTranslatorSettings = updateTranslatorSettings;
 
 exports.translateMessage = async (req, res) => {
   try {
@@ -303,18 +245,4 @@ exports.getSupportedLanguages = async (req, res) => {
   }
 };
 
-exports.resetTranslatorSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    user.translatorSettings = mergeTranslatorSettings({});
-    user.markModified('translatorSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.translatorSettings });
-  } catch (error) {
-    console.error('Reset translator settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.resetTranslatorSettings = resetTranslatorSettings;

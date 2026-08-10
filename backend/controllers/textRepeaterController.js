@@ -1,7 +1,7 @@
 
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
-const { getUser, createSettingsMerger } = require('../services/userScopedService');
+const { getUser, createSettingsMerger, createSettingsHandlers } = require('../services/userScopedService');
 
 const defaultSettings = {
   textRepeaterEnabled: true,
@@ -24,40 +24,18 @@ const mergeSettings = createSettingsMerger(defaultSettings);
 // @desc    Get text repeater settings
 // @route   GET /api/text-repeater/settings
 // @access  Private
-exports.getTextRepeaterSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getTextRepeaterSettings, updateSettings: updateTextRepeaterSettings, resetSettings: resetTextRepeaterSettings } = createSettingsHandlers({
+  field: 'textRepeaterSettings',
+  label: 'text repeater',
+  mergeSettings,
+});
 
-    const settings = mergeSettings(user.textRepeaterSettings?.toObject?.() || user.textRepeaterSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get text repeater settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getTextRepeaterSettings = getTextRepeaterSettings;
 
 // @desc    Update text repeater settings
 // @route   POST /api/text-repeater/settings
 // @access  Private
-exports.updateTextRepeaterSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.textRepeaterSettings?.toObject?.() || user.textRepeaterSettings || {};
-    
-    user.textRepeaterSettings = mergeSettings({ ...existing, ...incoming });
-    user.markModified('textRepeaterSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.textRepeaterSettings });
-  } catch (error) {
-    console.error('Update text repeater settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateTextRepeaterSettings = updateTextRepeaterSettings;
 
 // @desc    Repeat text
 // @route   POST /api/text-repeater/repeat
@@ -277,19 +255,5 @@ exports.updateMaxRepeatCount = async (req, res) => {
 // @desc    Reset text repeater settings to default
 // @route   POST /api/text-repeater/reset
 // @access  Private
-exports.resetTextRepeaterSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    user.textRepeaterSettings = mergeSettings({});
-    user.markModified('textRepeaterSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.textRepeaterSettings });
-  } catch (error) {
-    console.error('Reset text repeater settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.resetTextRepeaterSettings = resetTextRepeaterSettings;
 

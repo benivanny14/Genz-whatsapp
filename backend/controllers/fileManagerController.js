@@ -1,7 +1,7 @@
 
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
-const { getUser, createSettingsMerger } = require('../services/userScopedService');
+const { getUser, createSettingsMerger, createSettingsHandlers } = require('../services/userScopedService');
 
 const defaultSettings = {
   fileManagerEnabled: true,
@@ -25,40 +25,18 @@ const mergeSettings = createSettingsMerger(defaultSettings);
 // @desc    Get file manager settings
 // @route   GET /api/file-manager/settings
 // @access  Private
-exports.getFileManagerSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getFileManagerSettings, updateSettings: updateFileManagerSettings, resetSettings: resetFileManagerSettings } = createSettingsHandlers({
+  field: 'fileManagerSettings',
+  label: 'file manager',
+  mergeSettings,
+});
 
-    const settings = mergeSettings(user.fileManagerSettings?.toObject?.() || user.fileManagerSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get file manager settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getFileManagerSettings = getFileManagerSettings;
 
 // @desc    Update file manager settings
 // @route   POST /api/file-manager/settings
 // @access  Private
-exports.updateFileManagerSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.fileManagerSettings?.toObject?.() || user.fileManagerSettings || {};
-    
-    user.fileManagerSettings = mergeSettings({ ...existing, ...incoming });
-    user.markModified('fileManagerSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.fileManagerSettings });
-  } catch (error) {
-    console.error('Update file manager settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateFileManagerSettings = updateFileManagerSettings;
 
 // @desc    Get user files
 // @route   GET /api/file-manager/files
@@ -324,19 +302,5 @@ exports.toggleFileManager = async (req, res) => {
 // @desc    Reset file manager settings to default
 // @route   POST /api/file-manager/reset
 // @access  Private
-exports.resetFileManagerSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    user.fileManagerSettings = mergeSettings({});
-    user.markModified('fileManagerSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.fileManagerSettings });
-  } catch (error) {
-    console.error('Reset file manager settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.resetFileManagerSettings = resetFileManagerSettings;
 

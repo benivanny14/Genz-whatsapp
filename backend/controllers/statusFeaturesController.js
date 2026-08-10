@@ -1,6 +1,6 @@
 const User = require('../models/User');
 const Status = require('../models/Status');
-const { getUser, createSettingsMerger } = require('../services/userScopedService');
+const { getUser, createSettingsMerger, createSettingsHandlers } = require('../services/userScopedService');
 
 const defaultSettings = {
   statusPrivacy: 'contacts', // everyone, contacts, nobody
@@ -67,40 +67,18 @@ const mergeSettings = createSettingsMerger(defaultSettings);
 // @desc    Get status features settings
 // @route   GET /api/status-features/settings
 // @access  Private
-exports.getStatusFeaturesSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getStatusFeaturesSettings, updateSettings: updateStatusFeaturesSettings, resetSettings: resetStatusFeaturesSettings } = createSettingsHandlers({
+  field: 'statusFeaturesSettings',
+  label: 'status features',
+  mergeSettings,
+});
 
-    const settings = mergeSettings(user.statusFeaturesSettings?.toObject?.() || user.statusFeaturesSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get status features settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getStatusFeaturesSettings = getStatusFeaturesSettings;
 
 // @desc    Update status features settings
 // @route   POST /api/status-features/settings
 // @access  Private
-exports.updateStatusFeaturesSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.statusFeaturesSettings?.toObject?.() || user.statusFeaturesSettings || {};
-    
-    user.statusFeaturesSettings = mergeSettings({ ...existing, ...incoming });
-    user.markModified('statusFeaturesSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.statusFeaturesSettings });
-  } catch (error) {
-    console.error('Update status features settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateStatusFeaturesSettings = updateStatusFeaturesSettings;
 
 // @desc    Update status privacy
 // @route   POST /api/status-features/privacy
@@ -325,19 +303,5 @@ exports.updateStatusDuration = async (req, res) => {
 // @desc    Reset status features settings to default
 // @route   POST /api/status-features/reset
 // @access  Private
-exports.resetStatusFeaturesSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    user.statusFeaturesSettings = mergeSettings({});
-    user.markModified('statusFeaturesSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.statusFeaturesSettings });
-  } catch (error) {
-    console.error('Reset status features settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.resetStatusFeaturesSettings = resetStatusFeaturesSettings;
 

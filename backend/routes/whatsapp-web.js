@@ -13,7 +13,7 @@ const {
   toggleWhatsAppWeb,
   updateSyncSettings,
   updateWhatsAppWebSettings,
-} = require('../controllers/whatsappWebController');
+} = require('../controllers/whatsappSessionController');
 
 router.use(protect);
 

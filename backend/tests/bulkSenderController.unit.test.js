@@ -15,7 +15,8 @@ jest.mock('../models/Message', () => ({
 const User = require('../models/User');
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
-const bulkSender = require('../controllers/bulkSenderController');
+const whatsappSession = require('../controllers/whatsappSessionController');
+const bulkSender = whatsappSession;
 
 const makeRes = () => {
   const res = { statusCode: 200 };

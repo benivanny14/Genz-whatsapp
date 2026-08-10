@@ -23,6 +23,13 @@ export const exportChatAsTxt = (messages = [], conversationName = 'Chat', curren
       case 'contact': text = `👤 Contact: ${msg.contactData?.name || 'Contact'}`; break;
       case 'sticker': text = '🎭 Sticker'; break;
       case 'gif': text = '🎞️ GIF'; break;
+      case 'structured': {
+        const textPart = (msg.structuredContent || []).find(c => c.type === 'text');
+        const mediaPart = (msg.structuredContent || []).find(c => c.type !== 'text');
+        const caption = textPart?.value || '';
+        text = mediaPart ? `📎 Media${caption ? `: ${caption}` : ''}` : (caption || '[Message]');
+        break;
+      }
       default: text = typeof msg.content === 'string' ? msg.content : '[Message]';
     }
 

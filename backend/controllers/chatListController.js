@@ -18,7 +18,7 @@
 
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
-const { getUser, mergeSettings, createSettingsMerger } = require('../services/userScopedService');
+const { getUser, mergeSettings, createSettingsHandlers, createToggleHandler } = require('../services/userScopedService');
 
 // ── Shared helpers (previously duplicated across all three controllers) ─────
 
@@ -39,56 +39,21 @@ const LIST_MODS_DEFAULTS = {
 
 // Generic single-field toggle — every chat-list-mods toggle is identical
 // apart from the field name and log label.
-const toggleListModsField = async (req, res, field, logLabel) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const toggleListModsField = createToggleHandler({
+  settingsField: 'chatListModsSettings',
+  merge: (s) => mergeSettings(LIST_MODS_DEFAULTS, s),
+});
 
-    const existing = user.chatListModsSettings?.toObject?.() || user.chatListModsSettings || {};
-    const newValue = !existing[field];
+const { getSettings: getChatListModsSettings, updateSettings: updateChatListModsSettings } = createSettingsHandlers({
+  field: 'chatListModsSettings',
+  label: 'chat list MODs',
+  mergeSettings,
+  defaults: LIST_MODS_DEFAULTS,
+});
 
-    user.chatListModsSettings = mergeSettings(LIST_MODS_DEFAULTS, { ...existing, [field]: newValue });
-    user.markModified('chatListModsSettings');
-    await user.save();
+exports.getChatListModsSettings = getChatListModsSettings;
 
-    res.json({ success: true, [field]: newValue });
-  } catch (error) {
-    console.error(`${logLabel} error:`, error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-exports.getChatListModsSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const settings = mergeSettings(LIST_MODS_DEFAULTS, user.chatListModsSettings?.toObject?.() || user.chatListModsSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get chat list MODs settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-exports.updateChatListModsSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.chatListModsSettings?.toObject?.() || user.chatListModsSettings || {};
-
-    user.chatListModsSettings = mergeSettings(LIST_MODS_DEFAULTS, { ...existing, ...incoming });
-    user.markModified('chatListModsSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.chatListModsSettings });
-  } catch (error) {
-    console.error('Update chat list MODs settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateChatListModsSettings = updateChatListModsSettings;
 
 exports.toggleHideChats = (req, res) => toggleListModsField(req, res, 'hideChatsEnabled', 'Toggle hide chats');
 exports.toggleLockChats = (req, res) => toggleListModsField(req, res, 'lockChatsEnabled', 'Toggle lock chats');
@@ -120,37 +85,16 @@ const buildSearchRegex = (query, settings) => {
   return new RegExp(query, flags);
 };
 
-exports.getChatSearchSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getChatSearchSettings, updateSettings: updateChatSearchSettings, resetSettings: resetChatSearchSettings } = createSettingsHandlers({
+  field: 'chatSearchSettings',
+  label: 'chat search',
+  mergeSettings,
+  defaults: SEARCH_DEFAULTS,
+});
 
-    const settings = mergeSettings(SEARCH_DEFAULTS, user.chatSearchSettings?.toObject?.() || user.chatSearchSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get chat search settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getChatSearchSettings = getChatSearchSettings;
 
-exports.updateChatSearchSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.chatSearchSettings?.toObject?.() || user.chatSearchSettings || {};
-
-    user.chatSearchSettings = mergeSettings(SEARCH_DEFAULTS, { ...existing, ...incoming });
-    user.markModified('chatSearchSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.chatSearchSettings });
-  } catch (error) {
-    console.error('Update chat search settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateChatSearchSettings = updateChatSearchSettings;
 
 exports.searchConversations = async (req, res) => {
   try {
@@ -412,21 +356,7 @@ exports.toggleChatSearch = async (req, res) => {
   }
 };
 
-exports.resetChatSearchSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    user.chatSearchSettings = mergeSettings(SEARCH_DEFAULTS, {});
-    user.markModified('chatSearchSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.chatSearchSettings });
-  } catch (error) {
-    console.error('Reset chat search settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.resetChatSearchSettings = resetChatSearchSettings;
 
 // ── Chat folders (route prefix /api/chat-folders) ───────────────────────────
 
@@ -439,37 +369,16 @@ const FOLDERS_DEFAULTS = {
   folderColors: ['#00a884', '#34b7f1', '#a855f7', '#f59e0b', '#ef4444', '#10b981']
 };
 
-exports.getChatFoldersSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getChatFoldersSettings, updateSettings: updateChatFoldersSettings, resetSettings: resetChatFoldersSettings } = createSettingsHandlers({
+  field: 'chatFoldersSettings',
+  label: 'chat folders',
+  mergeSettings,
+  defaults: FOLDERS_DEFAULTS,
+});
 
-    const settings = mergeSettings(FOLDERS_DEFAULTS, user.chatFoldersSettings?.toObject?.() || user.chatFoldersSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get chat folders settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getChatFoldersSettings = getChatFoldersSettings;
 
-exports.updateChatFoldersSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.chatFoldersSettings?.toObject?.() || user.chatFoldersSettings || {};
-
-    user.chatFoldersSettings = mergeSettings(FOLDERS_DEFAULTS, { ...existing, ...incoming });
-    user.markModified('chatFoldersSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.chatFoldersSettings });
-  } catch (error) {
-    console.error('Update chat folders settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateChatFoldersSettings = updateChatFoldersSettings;
 
 exports.createChatFolder = async (req, res) => {
   try {
@@ -798,19 +707,5 @@ exports.toggleChatFolders = async (req, res) => {
   }
 };
 
-exports.resetChatFoldersSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    user.chatFoldersSettings = mergeSettings(FOLDERS_DEFAULTS, {});
-    user.markModified('chatFoldersSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.chatFoldersSettings });
-  } catch (error) {
-    console.error('Reset chat folders settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.resetChatFoldersSettings = resetChatFoldersSettings;
 

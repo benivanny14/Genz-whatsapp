@@ -1,5 +1,5 @@
 
-const { getUser, createSettingsMerger } = require('../services/userScopedService');
+const { getUser, createSettingsMerger, createSettingsHandlers } = require('../services/userScopedService');
 
 const defaultSettings = {
   businessAccountEnabled: false,
@@ -35,40 +35,18 @@ const mergeSettings = createSettingsMerger(defaultSettings);
 // @desc    Get business account settings
 // @route   GET /api/business-account/settings
 // @access  Private
-exports.getBusinessAccountSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getBusinessAccountSettings, updateSettings: updateBusinessAccountSettings, resetSettings: resetBusinessAccountSettings } = createSettingsHandlers({
+  field: 'businessAccountSettings',
+  label: 'business account',
+  mergeSettings,
+});
 
-    const settings = mergeSettings(user.businessAccountSettings?.toObject?.() || user.businessAccountSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get business account settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getBusinessAccountSettings = getBusinessAccountSettings;
 
 // @desc    Update business account settings
 // @route   POST /api/business-account/settings
 // @access  Private
-exports.updateBusinessAccountSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.businessAccountSettings?.toObject?.() || user.businessAccountSettings || {};
-    
-    user.businessAccountSettings = mergeSettings({ ...existing, ...incoming });
-    user.markModified('businessAccountSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.businessAccountSettings });
-  } catch (error) {
-    console.error('Update business account settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateBusinessAccountSettings = updateBusinessAccountSettings;
 
 // @desc    Enable business account
 // @route   POST /api/business-account/enable
@@ -319,19 +297,5 @@ exports.getBusinessAnalytics = async (req, res) => {
 // @desc    Reset business account settings to default
 // @route   POST /api/business-account/reset
 // @access  Private
-exports.resetBusinessAccountSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    user.businessAccountSettings = mergeSettings({});
-    user.markModified('businessAccountSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.businessAccountSettings });
-  } catch (error) {
-    console.error('Reset business account settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.resetBusinessAccountSettings = resetBusinessAccountSettings;
 

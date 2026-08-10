@@ -4,6 +4,8 @@ import { useUser } from '../context/UserContext';
 import { ArrowLeft, MoreVertical, Search, Smile, Paperclip, Send, Mic, Image as ImageIcon, MessageCircle, Ghost, Forward, Square, MapPin, ShieldCheck, Globe, BarChart2, CalendarClock, Info, UserMinus, UserCheck, ShieldAlert, Copy, Link, Pin, X, Edit, Briefcase, Plus, Eye, EyeOff, Clock, Lock, Sticker, Download, FileText, Camera, Headphones, Contact, Trash2, Reply, Share2, Star, Archive, BellOff, Bell, Radio, Users, Languages, Grid3x3, Lock as LockIcon, Unlock, ChevronLeft, AtSign, DollarSign, Video as VideoIcon, Heart, Flag } from 'lucide-react';
 import { formatMessageTime, decryptMessage } from '../utils/formatDate';
 import { exportChatAsTxt } from '../utils/chatExporter';
+import FormattedText from './FormattedText';
+import { wrapWithMarker } from '../utils/formatText';
 import SignedMedia from './SignedMedia';
 import encryptionService from '../services/encryptionService';
 import { getE2EEEnvelope } from '../utils/e2eeContent';
@@ -258,6 +260,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [showContactInfo, setShowContactInfo] = useState(false);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const [activeMessageMenu, setActiveMessageMenu] = useState(null);
+  const [textSelectionMenu, setTextSelectionMenu] = useState(null); // { x, y, messageId, text, ownMessage }
   const [lockPinInput, setLockPinInput] = useState('');
   const [quickReactionMsg, setQuickReactionMsg] = useState(null);
   const [reportTarget, setReportTarget] = useState(null); // message opened in ReportDialog
@@ -358,6 +361,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   // Note: --app-height / --app-offset-top (mobile keyboard handling) is
   // already managed globally by initViewportHeightFix() in App.jsx, using
   // utils/useViewportHeight.js as the single source of truth.
+  const textSelectionMenuRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
   const docInputRef = useRef(null);
@@ -623,6 +627,57 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       olderAnchorRef.current = null;
     }
     prevMessagesCountRef.current = msgsCount;
+  }, [filteredMessages]);
+
+  // WhatsApp-style text-selection menu on messages: detect a non-empty
+  // selection inside a message bubble and offer Copy / Select all / format.
+  useEffect(() => {
+    const onMouseUp = () => {
+      const container = messagesContainerRef.current;
+      if (!container) return;
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || !sel.toString().trim()) {
+        setTextSelectionMenu(null);
+        return;
+      }
+      const anchor = sel.anchorNode?.nodeType === Node.TEXT_NODE ? sel.anchorNode.parentElement : sel.anchorNode;
+      const bubble = anchor?.closest?.('[id^="msg-"]');
+      if (!bubble || !container.contains(bubble)) {
+        setTextSelectionMenu(null);
+        return;
+      }
+      const messageId = bubble.id.replace('msg-', '');
+      const msg = (filteredMessages || []).find(
+        (m) => String(m._id || m.id) === messageId
+      );
+      if (!msg || typeof plaintextOf(msg) !== 'string') {
+        setTextSelectionMenu(null);
+        return;
+      }
+      const rect = sel.getRangeAt(0)?.getBoundingClientRect?.();
+      if (!rect) {
+        setTextSelectionMenu(null);
+        return;
+      }
+      const isOwn = isOwnMessage(msg);
+      setTextSelectionMenu({
+        x: rect.left + rect.width / 2,
+        y: rect.top,
+        messageId,
+        text: sel.toString(),
+        ownMessage: isOwn,
+      });
+    };
+    const onMouseDown = (e) => {
+      if (textSelectionMenuRef.current?.contains(e.target)) return;
+      setTextSelectionMenu(null);
+    };
+    document.addEventListener('mouseup', onMouseUp);
+    document.addEventListener('mousedown', onMouseDown);
+    return () => {
+      document.removeEventListener('mouseup', onMouseUp);
+      document.removeEventListener('mousedown', onMouseDown);
+    };
   }, [filteredMessages]);
   
   // ── Swipe-to-Reply handlers ─────────────────────────────────────────
@@ -979,6 +1034,71 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const handleEmojiClick = (emojiObject) => {
     setMessageInput((prev) => prev + emojiObject.emoji);
     inputRef.current?.focus();
+  };
+
+  // WhatsApp-style text formatting: wrap the selected text (or insert markers
+  // at the cursor) with *bold* / _italic_ / ~strikethrough~ / `monospace`.
+  const handleFormatText = (marker) => {
+    const input = inputRef.current;
+    const start = input?.selectionStart ?? messageInput.length;
+    const end = input?.selectionEnd ?? messageInput.length;
+    const { value, cursorStart, cursorEnd } = wrapWithMarker(messageInput, start, end, marker);
+    setMessageInput(value);
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+      inputRef.current?.setSelectionRange(cursorStart, cursorEnd);
+    });
+  };
+
+  // Format text selected inside a message bubble (text-selection menu): for
+  // own messages this opens the composer in edit mode with the selection
+  // wrapped in the requested marker.
+  const handleFormatSelection = (marker) => {
+    const sel = textSelectionMenu;
+    if (!sel) return;
+    const msg = (filteredMessages || []).find(
+      (m) => String(m._id || m.id) === sel.messageId
+    );
+    const fullText = typeof plaintextOf(msg) === 'string' ? plaintextOf(msg) : '';
+    const selected = sel.text || '';
+    const start = fullText.indexOf(selected);
+    if (!msg || start === -1) {
+      setTextSelectionMenu(null);
+      return;
+    }
+    const { value } = wrapWithMarker(fullText, start, start + selected.length, marker);
+    setTextSelectionMenu(null);
+    // Open edit mode with the formatted text staged in the composer.
+    setEditingMessage({ id: msg._id || msg.id, content: value });
+    setMessageInput(value);
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+      inputRef.current?.setSelectionRange(value.length, value.length);
+    });
+  };
+
+  // Copy the selected text from the message bubble, preserving markers so
+  // formatting survives when pasted back into the composer.
+  const handleCopySelection = () => {
+    const sel = textSelectionMenu;
+    if (!sel) return;
+    navigator.clipboard?.writeText(sel.text).catch(() => {});
+    setTextSelectionMenu(null);
+  };
+
+  // Select all text of the message bubble (WhatsApp text-menu feature).
+  const handleSelectAllSelection = () => {
+    const sel = textSelectionMenu;
+    if (!sel) return;
+    const bubble = document.getElementById(`msg-${sel.messageId}`);
+    if (bubble) {
+      const range = document.createRange();
+      range.selectNodeContents(bubble);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    }
+    setTextSelectionMenu(null);
   };
 
   const startTimer = useCallback(() => {
@@ -2806,7 +2926,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                 message.messageType === 'system' ? (
                   <div key={message.id || message._id} className="flex justify-center my-2">
                     <span className="bg-[#182229] text-[#8696a0] text-xs px-3 py-1.5 rounded-lg shadow-sm text-center max-w-[85%]">
-                      {message.content}
+                      <FormattedText text={typeof message.content === 'string' ? message.content : ''} />
                     </span>
                   </div>
                 ) : (
@@ -3296,10 +3416,15 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                               try { return btoa(unescape(encodeURIComponent(txt))).substring(0, 40) + '... [E2E Encrypted]'; }
                               catch (e) { return '******************* [E2E]'; }
                             })()
-                            : renderTextWithMentions(
-                              plaintextOf(message),
-                              message.mentions || [],
-                              user?.id || user?._id
+                            : (
+                              <FormattedText
+                                text={plaintextOf(message) || ''}
+                                renderText={(segment) => renderTextWithMentions(
+                                  segment,
+                                  message.mentions || [],
+                                  user?.id || user?._id
+                                )}
+                              />
                             )}
                         </p>
                       )}
@@ -3771,6 +3896,41 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           </div>
         )}
 
+        {/* WhatsApp-style text formatting toolbar (shows while typing) */}
+        {!voiceRecorderActive && messageInput.trim() && (
+          <div className="flex items-center gap-1 px-3 py-1.5 bg-dark-surface border border-dark-border rounded-t-xl border-b-0 -mb-px self-end z-50" role="toolbar" aria-label="Text formatting">
+            <span className="text-[10px] uppercase tracking-wide text-dark-textSecondary mr-1 hidden sm:inline">Format</span>
+            <button
+              type="button"
+              onClick={() => handleFormatText('*')}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-dark-text font-bold hover:bg-dark-hover transition-colors"
+              title="Bold (*text*)"
+              aria-label="Bold"
+            >B</button>
+            <button
+              type="button"
+              onClick={() => handleFormatText('_')}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-dark-text italic hover:bg-dark-hover transition-colors"
+              title="Italic (_text_)"
+              aria-label="Italic"
+            >I</button>
+            <button
+              type="button"
+              onClick={() => handleFormatText('~')}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-dark-text hover:bg-dark-hover transition-colors"
+              title="Strikethrough (~text~)"
+              aria-label="Strikethrough"
+            ><span className="line-through">S</span></button>
+            <button
+              type="button"
+              onClick={() => handleFormatText('`')}
+              className="w-8 h-8 flex items-center justify-center rounded-lg font-mono text-sm text-dark-text hover:bg-dark-hover transition-colors"
+              title="Monospace (`text`)"
+              aria-label="Monospace"
+            >&lt;/&gt;</button>
+          </div>
+        )}
+
         <form onSubmit={handleSendMessage} className="flex items-end gap-2 p-1.5 md:p-3 bg-dark-bg border border-dark-border rounded-2xl flex-shrink-0 z-50" role="form" aria-label="Send message">
           {!voiceRecorderActive && (
             <div className="flex items-center gap-1 md:gap-2 overflow-x-auto no-scrollbar max-w-[112px] sm:max-w-[160px] md:max-w-none flex-shrink-0 snap-x">
@@ -4033,6 +4193,83 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
            conversation={selectedConversation}
            onClose={() => setMessageContextMenu(null)}
         />
+      )}
+
+      {/* WhatsApp-style text-selection menu (select text inside a bubble) */}
+      {textSelectionMenu && (
+        <>
+          <div
+            ref={textSelectionMenuRef}
+            className="fixed bg-[#1a2332] border border-gray-600 rounded-lg shadow-xl z-[60] px-1 py-1 flex items-center gap-0.5"
+            style={{
+              top: Math.max(8, (textSelectionMenu.y - 46)) + 'px',
+              left: Math.min(Math.max(8, textSelectionMenu.x - 110), window.innerWidth - 230) + 'px',
+            }}
+            role="menu"
+            aria-label="Text selection menu"
+            onMouseDown={(e) => e.preventDefault()}
+          >
+            <button
+              type="button"
+              onClick={handleCopySelection}
+              className="px-2 py-1.5 flex items-center gap-1.5 rounded-md hover:bg-gray-700 transition text-xs text-gray-200"
+              title="Copy"
+              role="menuitem"
+            >
+              <Copy size={14} /> Copy
+            </button>
+            <button
+              type="button"
+              onClick={handleSelectAllSelection}
+              className="px-2 py-1.5 flex items-center gap-1.5 rounded-md hover:bg-gray-700 transition text-xs text-gray-200"
+              title="Select all"
+              role="menuitem"
+            >
+              Select all
+            </button>
+            {textSelectionMenu.ownMessage && (
+              <>
+                <span className="w-px h-4 bg-gray-600 mx-0.5" />
+                <button
+                  type="button"
+                  onClick={() => handleFormatSelection('*')}
+                  className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-700 transition text-sm font-bold text-gray-200"
+                  title="Bold"
+                  role="menuitem"
+                >B</button>
+                <button
+                  type="button"
+                  onClick={() => handleFormatSelection('_')}
+                  className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-700 transition text-sm italic text-gray-200"
+                  title="Italic"
+                  role="menuitem"
+                >I</button>
+                <button
+                  type="button"
+                  onClick={() => handleFormatSelection('~')}
+                  className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-700 transition text-sm text-gray-200"
+                  title="Strikethrough"
+                  role="menuitem"
+                ><span className="line-through">S</span></button>
+                <button
+                  type="button"
+                  onClick={() => handleFormatSelection('`')}
+                  className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-700 transition text-sm font-mono text-gray-200"
+                  title="Monospace"
+                  role="menuitem"
+                >&lt;/&gt;</button>
+              </>
+            )}
+          </div>
+          <div
+            className="fixed inset-0 z-[55]"
+            onMouseDown={(e) => {
+              if (!textSelectionMenuRef.current?.contains(e.target)) {
+                setTextSelectionMenu(null);
+              }
+            }}
+          />
+        </>
       )}
 
       {/* Report dialog (sticker messages via the message menu) */}

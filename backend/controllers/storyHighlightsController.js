@@ -1,7 +1,7 @@
 
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
-const { getUser, createSettingsMerger } = require('../services/userScopedService');
+const { getUser, createSettingsMerger, createSettingsHandlers } = require('../services/userScopedService');
 
 const defaultSettings = {
   storyHighlightsEnabled: true,
@@ -20,40 +20,18 @@ const mergeSettings = createSettingsMerger(defaultSettings);
 // @desc    Get story highlights settings
 // @route   GET /api/story-highlights/settings
 // @access  Private
-exports.getStoryHighlightsSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getStoryHighlightsSettings, updateSettings: updateStoryHighlightsSettings, resetSettings: resetStoryHighlightsSettings } = createSettingsHandlers({
+  field: 'storyHighlightsSettings',
+  label: 'story highlights',
+  mergeSettings,
+});
 
-    const settings = mergeSettings(user.storyHighlightsSettings?.toObject?.() || user.storyHighlightsSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get story highlights settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getStoryHighlightsSettings = getStoryHighlightsSettings;
 
 // @desc    Update story highlights settings
 // @route   POST /api/story-highlights/settings
 // @access  Private
-exports.updateStoryHighlightsSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.storyHighlightsSettings?.toObject?.() || user.storyHighlightsSettings || {};
-    
-    user.storyHighlightsSettings = mergeSettings({ ...existing, ...incoming });
-    user.markModified('storyHighlightsSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.storyHighlightsSettings });
-  } catch (error) {
-    console.error('Update story highlights settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateStoryHighlightsSettings = updateStoryHighlightsSettings;
 
 // @desc    Create story highlight
 // @route   POST /api/story-highlights/create
@@ -309,19 +287,5 @@ exports.toggleStoryHighlights = async (req, res) => {
 // @desc    Reset story highlights settings to default
 // @route   POST /api/story-highlights/reset
 // @access  Private
-exports.resetStoryHighlightsSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    user.storyHighlightsSettings = mergeSettings({});
-    user.markModified('storyHighlightsSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.storyHighlightsSettings });
-  } catch (error) {
-    console.error('Reset story highlights settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.resetStoryHighlightsSettings = resetStoryHighlightsSettings;
 

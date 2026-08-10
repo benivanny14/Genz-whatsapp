@@ -1,5 +1,5 @@
 
-const { getUser, createSettingsMerger } = require('../services/userScopedService');
+const { getUser, createSettingsMerger, createSettingsHandlers } = require('../services/userScopedService');
 
 const defaultSettings = {
   antiBanEnabled: true,
@@ -37,40 +37,18 @@ const mergeSettings = (settings = {}) => createSettingsMerger(defaultSettings)(c
 // @desc    Get anti-ban settings
 // @route   GET /api/anti-ban/settings
 // @access  Private
-exports.getAntiBanSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getAntiBanSettings, updateSettings: updateAntiBanSettings, resetSettings: resetAntiBanSettings } = createSettingsHandlers({
+  field: 'antiBanSettings',
+  label: 'anti-ban',
+  mergeSettings,
+});
 
-    const settings = mergeSettings(user.antiBanSettings?.toObject?.() || user.antiBanSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get anti-ban settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getAntiBanSettings = getAntiBanSettings;
 
 // @desc    Update anti-ban settings
 // @route   POST /api/anti-ban/settings
 // @access  Private
-exports.updateAntiBanSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.antiBanSettings?.toObject?.() || user.antiBanSettings || {};
-    
-    user.antiBanSettings = mergeSettings({ ...existing, ...incoming });
-    user.markModified('antiBanSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.antiBanSettings });
-  } catch (error) {
-    console.error('Update anti-ban settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateAntiBanSettings = updateAntiBanSettings;
 
 // @desc    Toggle anti-ban
 // @route   POST /api/anti-ban/toggle
@@ -378,19 +356,5 @@ exports.clearWarning = async (req, res) => {
 // @desc    Reset anti-ban settings to default
 // @route   POST /api/anti-ban/reset
 // @access  Private
-exports.resetAntiBanSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    user.antiBanSettings = mergeSettings({});
-    user.markModified('antiBanSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.antiBanSettings });
-  } catch (error) {
-    console.error('Reset anti-ban settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.resetAntiBanSettings = resetAntiBanSettings;
 

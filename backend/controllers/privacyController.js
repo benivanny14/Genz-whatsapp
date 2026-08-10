@@ -1,5 +1,5 @@
 
-const { getUser, createSettingsMerger } = require('../services/userScopedService');
+const { getUser, createSettingsMerger, createSettingsHandlers } = require('../services/userScopedService');
 
 const defaultSettings = {
   freezeLastSeen: false,
@@ -24,40 +24,18 @@ const mergeSettings = createSettingsMerger(defaultSettings);
 // @desc    Get privacy MODs settings
 // @route   GET /api/privacy-mods/settings
 // @access  Private
-exports.getPrivacyModsSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getPrivacyModsSettings, updateSettings: updatePrivacyModsSettings } = createSettingsHandlers({
+  field: 'privacyModsSettings',
+  label: 'privacy MODs',
+  mergeSettings,
+});
 
-    const settings = mergeSettings(user.privacyModsSettings?.toObject?.() || user.privacyModsSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get privacy MODs settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getPrivacyModsSettings = getPrivacyModsSettings;
 
 // @desc    Update privacy MODs settings
 // @route   POST /api/privacy-mods/settings
 // @access  Private
-exports.updatePrivacyModsSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.privacyModsSettings?.toObject?.() || user.privacyModsSettings || {};
-    
-    user.privacyModsSettings = mergeSettings({ ...existing, ...incoming });
-    user.markModified('privacyModsSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.privacyModsSettings });
-  } catch (error) {
-    console.error('Update privacy MODs settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updatePrivacyModsSettings = updatePrivacyModsSettings;
 
 // @desc    Toggle Freeze Last Seen
 // @route   POST /api/privacy-mods/freeze-last-seen

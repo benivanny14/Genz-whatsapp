@@ -17,6 +17,7 @@
 const QRCode = require('qrcode');
 const speakeasy = require('speakeasy');
 const User = require('../models/User');
+const { createToggleHandler } = require('../services/userScopedService');
 
 // ── Shared helpers (previously duplicated across both controllers) ──────────
 
@@ -264,24 +265,11 @@ const availableRegions = ['auto', 'usa', 'europe', 'asia', 'africa', 'middle-eas
 
 // Generic single-field toggle — every security-mods toggle is identical apart
 // from the field name and log label.
-const toggleModsField = async (req, res, field, logLabel) => {
-  try {
-    const user = await requireUser(req, res);
-    if (!user) return;
-
-    const existing = user.securityModsSettings?.toObject?.() || user.securityModsSettings || {};
-    const newValue = !existing[field];
-
-    user.securityModsSettings = mergeSettings(MODS_DEFAULTS, { ...existing, [field]: newValue });
-    user.markModified('securityModsSettings');
-    await user.save();
-
-    res.json({ success: true, [field]: newValue });
-  } catch (error) {
-    console.error(`${logLabel} error:`, error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+const toggleModsField = createToggleHandler({
+  settingsField: 'securityModsSettings',
+  merge: (s) => mergeSettings(MODS_DEFAULTS, s),
+  loadUser: requireUser,
+});
 
 exports.getSecurityModsSettings = async (req, res) => {
   try {

@@ -14,7 +14,7 @@ const {
   toggleUnifiedInbox,
   updateAccount,
   updateMultiAccountsSettings,
-} = require('../controllers/multiAccountsController');
+} = require('../controllers/whatsappSessionController');
 
 router.use(protect);
 

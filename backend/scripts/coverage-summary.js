@@ -28,7 +28,7 @@ const byName = (n) => {
 
 const gte = (p) => files.filter((f) => stmtPct(f) >= p).length;
 
-console.log('=== Overall controller coverage (63 controllers) ===');
+console.log(`=== Overall controller coverage (${files.length} controllers) ===`);
 console.log(`Statements: ${pct('s')}%`);
 console.log(`Branches  : ${pct('b')}%`);
 console.log(`Functions : ${pct('f')}%`);

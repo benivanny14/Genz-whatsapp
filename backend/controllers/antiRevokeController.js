@@ -1,7 +1,7 @@
 const User = require('../models/User');
 const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
-const { getUser, createSettingsMerger } = require('../services/userScopedService');
+const { getUser, createSettingsMerger, createSettingsHandlers } = require('../services/userScopedService');
 
 const defaultSettings = {
   antiRevokeEnabled: false,
@@ -19,40 +19,18 @@ const mergeSettings = createSettingsMerger(defaultSettings);
 // @desc    Get anti-revoke settings
 // @route   GET /api/anti-revoke/settings
 // @access  Private
-exports.getAntiRevokeSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getAntiRevokeSettings, updateSettings: updateAntiRevokeSettings, resetSettings: resetAntiRevokeSettings } = createSettingsHandlers({
+  field: 'antiRevokeSettings',
+  label: 'anti-revoke',
+  mergeSettings,
+});
 
-    const settings = mergeSettings(user.antiRevokeSettings?.toObject?.() || user.antiRevokeSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get anti-revoke settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getAntiRevokeSettings = getAntiRevokeSettings;
 
 // @desc    Update anti-revoke settings
 // @route   POST /api/anti-revoke/settings
 // @access  Private
-exports.updateAntiRevokeSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.antiRevokeSettings?.toObject?.() || user.antiRevokeSettings || {};
-    
-    user.antiRevokeSettings = mergeSettings({ ...existing, ...incoming });
-    user.markModified('antiRevokeSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.antiRevokeSettings });
-  } catch (error) {
-    console.error('Update anti-revoke settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateAntiRevokeSettings = updateAntiRevokeSettings;
 
 // @desc    Cache deleted message (called when message is deleted)
 // @route   POST /api/anti-revoke/cache
@@ -246,19 +224,5 @@ exports.toggleAntiRevoke = async (req, res) => {
 // @desc    Reset anti-revoke settings to default
 // @route   POST /api/anti-revoke/reset
 // @access  Private
-exports.resetAntiRevokeSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    user.antiRevokeSettings = mergeSettings({});
-    user.markModified('antiRevokeSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.antiRevokeSettings });
-  } catch (error) {
-    console.error('Reset anti-revoke settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.resetAntiRevokeSettings = resetAntiRevokeSettings;
 

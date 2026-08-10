@@ -16,7 +16,7 @@
 
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
-const { getUser, createSettingsMerger } = require('../services/userScopedService');
+const { getUser, createSettingsMerger, createSettingsHandlers, createToggleHandler } = require('../services/userScopedService');
 
 // ── Shared helper ────────────────────────────────────────────────────────────
 
@@ -60,37 +60,15 @@ const FEATURES_DEFAULTS = {
 
 const mergeFeaturesSettings = createSettingsMerger(FEATURES_DEFAULTS);
 
-exports.getGroupFeaturesSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const { getSettings: getGroupFeaturesSettings, updateSettings: updateGroupFeaturesSettings, resetSettings: resetGroupFeaturesSettings } = createSettingsHandlers({
+  field: 'groupFeaturesSettings',
+  label: 'group features',
+  mergeSettings: mergeFeaturesSettings,
+});
 
-    const settings = mergeFeaturesSettings(user.groupFeaturesSettings?.toObject?.() || user.groupFeaturesSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get group features settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.getGroupFeaturesSettings = getGroupFeaturesSettings;
 
-exports.updateGroupFeaturesSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.groupFeaturesSettings?.toObject?.() || user.groupFeaturesSettings || {};
-
-    user.groupFeaturesSettings = mergeFeaturesSettings({ ...existing, ...incoming });
-    user.markModified('groupFeaturesSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.groupFeaturesSettings });
-  } catch (error) {
-    console.error('Update group features settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateGroupFeaturesSettings = updateGroupFeaturesSettings;
 
 exports.updateGroupMemberLimit = async (req, res) => {
   try {
@@ -118,27 +96,11 @@ exports.updateGroupMemberLimit = async (req, res) => {
 };
 
 // Generic toggle for a boolean feature setting (accepts optional { enabled }).
-const toggleFeaturesField = async (req, res, field, logLabel) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const { enabled } = req.body;
-    const existing = user.groupFeaturesSettings?.toObject?.() || user.groupFeaturesSettings || {};
-
-    user.groupFeaturesSettings = mergeFeaturesSettings({
-      ...existing,
-      [field]: enabled !== undefined ? enabled : !existing[field]
-    });
-    user.markModified('groupFeaturesSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.groupFeaturesSettings });
-  } catch (error) {
-    console.error(`${logLabel} error:`, error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+const toggleFeaturesField = createToggleHandler({
+  settingsField: 'groupFeaturesSettings',
+  merge: mergeFeaturesSettings,
+  acceptEnabled: true,
+});
 
 exports.toggleGroupAdminControl = (req, res) => toggleFeaturesField(req, res, 'groupAdminControl', 'Toggle group admin control');
 exports.toggleGroupPolls = (req, res) => toggleFeaturesField(req, res, 'groupPolls', 'Toggle group polls');
@@ -351,21 +313,7 @@ exports.rsvpGroupEvent = async (req, res) => {
   }
 };
 
-exports.resetGroupFeaturesSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    user.groupFeaturesSettings = mergeFeaturesSettings({});
-    user.markModified('groupFeaturesSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.groupFeaturesSettings });
-  } catch (error) {
-    console.error('Reset group features settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.resetGroupFeaturesSettings = resetGroupFeaturesSettings;
 
 // ── Group MODs (route prefix /api/group-mods) ───────────────────────────────
 
@@ -384,56 +332,20 @@ const mergeModsSettings = createSettingsMerger(MODS_DEFAULTS);
 
 // Generic single-field toggle — every group-mods toggle is identical apart
 // from the field name and log label.
-const toggleModsField = async (req, res, field, logLabel) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
+const toggleModsField = createToggleHandler({
+  settingsField: 'groupModsSettings',
+  merge: mergeModsSettings,
+});
 
-    const existing = user.groupModsSettings?.toObject?.() || user.groupModsSettings || {};
-    const newValue = !existing[field];
+const { getSettings: getGroupModsSettings, updateSettings: updateGroupModsSettings } = createSettingsHandlers({
+  field: 'groupModsSettings',
+  label: 'group MODs',
+  mergeSettings: mergeModsSettings,
+});
 
-    user.groupModsSettings = mergeModsSettings({ ...existing, [field]: newValue });
-    user.markModified('groupModsSettings');
-    await user.save();
+exports.getGroupModsSettings = getGroupModsSettings;
 
-    res.json({ success: true, [field]: newValue });
-  } catch (error) {
-    console.error(`${logLabel} error:`, error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-exports.getGroupModsSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const settings = mergeModsSettings(user.groupModsSettings?.toObject?.() || user.groupModsSettings);
-    res.status(200).json({ success: true, settings });
-  } catch (error) {
-    console.error('Get group MODs settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-exports.updateGroupModsSettings = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const incoming = req.body.settings || req.body;
-    const existing = user.groupModsSettings?.toObject?.() || user.groupModsSettings || {};
-
-    user.groupModsSettings = mergeModsSettings({ ...existing, ...incoming });
-    user.markModified('groupModsSettings');
-    await user.save();
-
-    res.status(200).json({ success: true, settings: user.groupModsSettings });
-  } catch (error) {
-    console.error('Update group MODs settings error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateGroupModsSettings = updateGroupModsSettings;
 
 exports.toggleAdminTools = (req, res) => toggleModsField(req, res, 'groupAdminTools', 'Toggle admin tools');
 exports.toggleMemberLimit = (req, res) => toggleModsField(req, res, 'groupMemberLimitIncrease', 'Toggle member limit');

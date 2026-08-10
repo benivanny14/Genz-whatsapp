@@ -17,7 +17,7 @@
 
 const User = require('../models/User');
 const { createDefaultWhatsAppSettings, mergeWhatsAppSettings } = require('../utils/whatsappSettings');
-const { getUser, mergeSettings, createSettingsMerger } = require('../services/userScopedService');
+const { getUser, mergeSettings, createToggleHandler } = require('../services/userScopedService');
 
 // ── Shared helpers (previously duplicated across all three controllers) ─────
 
@@ -144,24 +144,11 @@ const CUSTOMIZATION_DEFAULTS = {
 
 // Generic single-field toggle — every customization-mods toggle is identical
 // apart from the field name and log label.
-const toggleCustomizationField = async (req, res, field, logLabel) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const existing = user.customizationModsSettings?.toObject?.() || user.customizationModsSettings || {};
-    const newValue = !existing[field];
-
-    user.customizationModsSettings = mergeSettings(CUSTOMIZATION_DEFAULTS, compactSettings({ ...existing, [field]: newValue }));
-    user.markModified('customizationModsSettings');
-    await user.save();
-
-    res.json({ success: true, [field]: newValue });
-  } catch (error) {
-    console.error(`${logLabel} error:`, error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+const toggleCustomizationField = createToggleHandler({
+  settingsField: 'customizationModsSettings',
+  merge: (s) => mergeSettings(CUSTOMIZATION_DEFAULTS, s),
+  transform: compactSettings,
+});
 
 exports.getCustomizationModsSettings = async (req, res) => {
   try {

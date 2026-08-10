@@ -4,7 +4,7 @@ const { protect } = require('../middleware/auth');
 const {
   getCallFeaturesSettings,
   resetCallFeaturesSettings,
-  toggleCallBlocker,
+  toggleCallFeaturesBlocker,
   toggleCallHistory,
   toggleCallHold,
   toggleCallLink,
@@ -21,7 +21,7 @@ const {
   updateCallFeaturesSettings,
   updateCallTimeout,
   updateMaxCallDuration,
-} = require('../controllers/callFeaturesController');
+} = require('../controllers/callToolsController');
 
 router.use(protect);
 
@@ -34,7 +34,7 @@ router.post('/transfer', toggleCallTransfer);
 router.post('/screen-share', toggleCallScreenShare);
 router.post('/video-toggle', toggleCallVideoToggle);
 router.post('/mute', toggleCallMute);
-router.post('/blocker', toggleCallBlocker);
+router.post('/blocker', toggleCallFeaturesBlocker);
 router.post('/history', toggleCallHistory);
 router.post('/link', toggleCallLink);
 router.post('/hide-button', toggleHideCallButton);
