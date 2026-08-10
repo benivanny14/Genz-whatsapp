@@ -11,7 +11,7 @@ const {
   resetMediaEditorSettings,
   toggleMediaEditor,
   updateMediaEditorSettings,
-} = require('../controllers/mediaEditorController');
+} = require('../controllers/mediaToolsController');
 
 router.use(protect);
 

@@ -68,12 +68,39 @@ shared services/helpers na consolidation ya controllers).
   `backend/services/chatListService.js`.
 - Route paths: `/api/chat-list/*`, `/api/chat-search/*`, `/api/chat-folders/*` — hazibadiliki.
 
-### 2. `mediaModsController` + `mediaCompressorController` + `mediaEditorController` → `mediaToolsController`
-- Zote zinashughulikia processing ya media (compress/edit) na zinashiriki upload/multer
-  setup sawa.
-- Hatua ya kwanza: toa `backend/services/mediaProcessingService.js` (compress/resize/filter
-  logic) — controllers zinabaki lakini zinatumia service moja.
-- Hatua ya pili (baada ya uthibitisho): unganisha controllers katika `mediaToolsController.js`.
+### 2. ✅ `mediaModsController` + `mediaCompressorController` + `mediaEditorController` → `mediaToolsController`
+
+#### Tatizo
+- Controllers tatu zilikuwa na boilerplate sawa kabisa: `getUser()`, `mergeSettings()`,
+  na settings get/update handlers zilizofanana (isipokuwa jina la field kwenye User).
+- `mediaModsController` ilikuwa na **toggles 8 zinazofanana kabisa** — kila moja ilikuwa
+  nakala ya ile nyingine (tofauti ni jina la field tu).
+- `mediaEditorController` ilikuwa na **edit handlers 3 karibu sawa** (`editImage`/
+  `editVideo`/`editAudio`) — kila moja ilirudia mantiki ya validation, enabled check,
+  na auto-save edit history.
+
+#### Kitu kilichofanyika
+- **`backend/controllers/mediaToolsController.js`** (mpya): controllers tatu zimeunganishwa
+  katika moja, na helpers za pamoja:
+  - `getUser(req, res)` — moja badala ya tatu
+  - `mergeSettings(defaults, settings)` — moja badala ya tatu
+  - `toggleModsField(req, res, field, logLabel)` — **toggles 8 za media-mods sasa ni
+    nakala moja ya generic** (hazirudii tena)
+  - `editMedia(req, res, {type, enabledField, logLabel, clientNote})` — **edit handlers
+    3 za editor sasa ni nakala moja ya generic**
+- **`backend/routes/media-mods.js`**, **`media-compressor.js`**, **`media-editor.js`**:
+  sasa zina-require kutoka `mediaToolsController` — majina ya handlers na route paths
+  **zimebaki sawa kabisa** (24 routes: 10 mods + 5 compressor + 9 editor).
+- **`mediaModsController.js` + `mediaCompressorController.js` + `mediaEditorController.js`**:
+  zimefutwa (routes pekee ndizo zilizokuwa zikizirequire).
+
+#### Matokeo
+- Faili 3 + boilerplate maradufu → faili 1 (~350 lines ndogo kuliko jumla ya 3 za awali).
+- Toggles 8 na edit handlers 3 sasa ni single-source-of-truth.
+- Hakuna mabadiliko ya API: `/api/media-mods/*`, `/api/media-compressor/*`,
+  `/api/media-editor/*` zinafanya kazi kama awali. Tests: **192/192 zinapita**.
+- Maelezo: `compressMedia` na editor handlers bado ni mock implementations (kama
+  zilivyokuwa awali) — hazijaongezwa kwenye scope ya refactor hii.
 
 ### 3. `securityController` + `securityModsController` → `securityController` (moja)
 - `securityModsController` ni set ya MODs za user-level kwenye security; `securityController`

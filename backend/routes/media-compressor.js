@@ -7,7 +7,7 @@ const {
   getCompressorSettings,
   resetCompressorSettings,
   updateCompressorSettings,
-} = require('../controllers/mediaCompressorController');
+} = require('../controllers/mediaToolsController');
 
 router.use(protect);
 
