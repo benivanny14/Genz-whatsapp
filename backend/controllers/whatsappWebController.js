@@ -338,13 +338,15 @@ exports.updateSyncSettings = async (req, res) => {
 
     const { syncChats, syncContacts, syncMedia } = req.body;
     const existing = user.whatsappWebSettings?.toObject?.() || user.whatsappWebSettings || {};
-    
-    user.whatsappWebSettings = mergeSettings({
-      ...existing,
-      syncChats: syncChats !== undefined ? syncChats : existing.syncChats,
-      syncContacts: syncContacts !== undefined ? syncContacts : existing.syncContacts,
-      syncMedia: syncMedia !== undefined ? syncMedia : existing.syncMedia
-    });
+
+    // Only set the keys actually provided, so unset fields keep their
+    // defaults instead of being overwritten with undefined.
+    const updated = { ...existing };
+    if (syncChats !== undefined) updated.syncChats = syncChats;
+    if (syncContacts !== undefined) updated.syncContacts = syncContacts;
+    if (syncMedia !== undefined) updated.syncMedia = syncMedia;
+
+    user.whatsappWebSettings = mergeSettings(updated);
     user.markModified('whatsappWebSettings');
     await user.save();
 
