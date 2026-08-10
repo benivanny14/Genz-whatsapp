@@ -1,6 +1,24 @@
+/**
+ * securityController.js
+ * ---------------------
+ * Consolidated security controller (step 3 of REFACTOR_PLAN.md — merges
+ * securityController.js [2FA + account security settings] with
+ * securityModsController.js [security MODs]).
+ *
+ * Both original controllers duplicated getUser/requireUser and
+ * mergeSettings scaffolding, and the MODs controller had 10 near-identical
+ * toggle handlers. This file keeps every exported handler name and route
+ * path intact — only the internal wiring is shared now.
+ *
+ *   /api/security/...        →  2FA + security settings handlers
+ *   /api/security-mods/...   →  security MODs handlers
+ */
+
 const QRCode = require('qrcode');
 const speakeasy = require('speakeasy');
 const User = require('../models/User');
+
+// ── Shared helpers (previously duplicated across both controllers) ──────────
 
 const requireUser = async (req, res) => {
   if (!req.user?._id) {
@@ -16,6 +34,13 @@ const requireUser = async (req, res) => {
 
   return user;
 };
+
+const mergeSettings = (defaults, settings = {}) => ({
+  ...defaults,
+  ...settings
+});
+
+// ── 2FA + account security settings (route prefix /api/security) ────────────
 
 exports.generateTwoFactorSecret = async (req, res) => {
   try {
@@ -156,7 +181,6 @@ exports.verifyTwoFactorLogin = async (req, res) => {
   }
 };
 
-
 exports.getSecuritySettings = async (req, res) => {
   try {
     const user = await requireUser(req, res);
@@ -203,7 +227,6 @@ exports.updateSecuritySettings = async (req, res) => {
   }
 };
 
-
 exports.getTwoFactorStatus = async (req, res) => {
   try {
     const user = await requireUser(req, res);
@@ -216,6 +239,131 @@ exports.getTwoFactorStatus = async (req, res) => {
     });
   } catch (error) {
     console.error('Get 2FA status error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ── Security MODs (route prefix /api/security-mods) ─────────────────────────
+
+const MODS_DEFAULTS = {
+  antiBanProtection: false,
+  proxySupport: false,
+  ipSpoofing: false,
+  deviceSpoofing: false,
+  appLockPattern: false,
+  appLockPIN: false,
+  appLockFingerprint: false,
+  appLockFace: false,
+  antiScreenshot: false,
+  screenRecordingDetection: false,
+  vpnMode: false,
+  vpnRegion: 'auto'
+};
+
+const availableRegions = ['auto', 'usa', 'europe', 'asia', 'africa', 'middle-east'];
+
+// Generic single-field toggle — every security-mods toggle is identical apart
+// from the field name and log label.
+const toggleModsField = async (req, res, field, logLabel) => {
+  try {
+    const user = await requireUser(req, res);
+    if (!user) return;
+
+    const existing = user.securityModsSettings?.toObject?.() || user.securityModsSettings || {};
+    const newValue = !existing[field];
+
+    user.securityModsSettings = mergeSettings(MODS_DEFAULTS, { ...existing, [field]: newValue });
+    user.markModified('securityModsSettings');
+    await user.save();
+
+    res.json({ success: true, [field]: newValue });
+  } catch (error) {
+    console.error(`${logLabel} error:`, error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getSecurityModsSettings = async (req, res) => {
+  try {
+    const user = await requireUser(req, res);
+    if (!user) return;
+
+    const settings = mergeSettings(MODS_DEFAULTS, user.securityModsSettings?.toObject?.() || user.securityModsSettings);
+    res.status(200).json({ success: true, settings });
+  } catch (error) {
+    console.error('Get security MODs settings error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.updateSecurityModsSettings = async (req, res) => {
+  try {
+    const user = await requireUser(req, res);
+    if (!user) return;
+
+    const incoming = req.body.settings || req.body;
+    const existing = user.securityModsSettings?.toObject?.() || user.securityModsSettings || {};
+
+    user.securityModsSettings = mergeSettings(MODS_DEFAULTS, { ...existing, ...incoming });
+    user.markModified('securityModsSettings');
+    await user.save();
+
+    res.status(200).json({ success: true, settings: user.securityModsSettings });
+  } catch (error) {
+    console.error('Update security MODs settings error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.toggleAntiBan = (req, res) => toggleModsField(req, res, 'antiBanProtection', 'Toggle anti ban');
+exports.toggleProxy = (req, res) => toggleModsField(req, res, 'proxySupport', 'Toggle proxy');
+exports.toggleIPSpoofing = (req, res) => toggleModsField(req, res, 'ipSpoofing', 'Toggle IP spoofing');
+exports.toggleDeviceSpoofing = (req, res) => toggleModsField(req, res, 'deviceSpoofing', 'Toggle device spoofing');
+exports.toggleAppLockPattern = (req, res) => toggleModsField(req, res, 'appLockPattern', 'Toggle app lock pattern');
+exports.toggleAppLockPIN = (req, res) => toggleModsField(req, res, 'appLockPIN', 'Toggle app lock PIN');
+exports.toggleAppLockFingerprint = (req, res) => toggleModsField(req, res, 'appLockFingerprint', 'Toggle app lock fingerprint');
+exports.toggleAppLockFace = (req, res) => toggleModsField(req, res, 'appLockFace', 'Toggle app lock face');
+exports.toggleAntiScreenshot = (req, res) => toggleModsField(req, res, 'antiScreenshot', 'Toggle anti screenshot');
+exports.toggleScreenRecordingDetection = (req, res) => toggleModsField(req, res, 'screenRecordingDetection', 'Toggle screen recording detection');
+
+exports.toggleVPN = async (req, res) => {
+  try {
+    const user = await requireUser(req, res);
+    if (!user) return;
+
+    const { enabled, region } = req.body;
+    const existing = user.securityModsSettings?.toObject?.() || user.securityModsSettings || {};
+    const newEnabled = enabled !== undefined ? enabled : !existing.vpnMode;
+    const newRegion = region && availableRegions.includes(region) ? region : (existing.vpnRegion || 'auto');
+
+    user.securityModsSettings = mergeSettings(MODS_DEFAULTS, { ...existing, vpnMode: newEnabled, vpnRegion: newRegion });
+    user.markModified('securityModsSettings');
+    await user.save();
+
+    res.json({ success: true, vpnMode: user.securityModsSettings.vpnMode, vpnRegion: user.securityModsSettings.vpnRegion });
+  } catch (error) {
+    console.error('Toggle VPN error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getVPNStatus = async (req, res) => {
+  try {
+    const user = await requireUser(req, res);
+    if (!user) return;
+
+    const settings = mergeSettings(MODS_DEFAULTS, user.securityModsSettings?.toObject?.() || user.securityModsSettings);
+    res.json({
+      success: true,
+      vpn: {
+        enabled: settings.vpnMode,
+        region: settings.vpnRegion,
+        regions: availableRegions,
+        simulated: true
+      }
+    });
+  } catch (error) {
+    console.error('Get VPN status error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
