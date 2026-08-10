@@ -27,15 +27,21 @@ exports.uploadPhoneContacts = async (req, res) => {
       _id: { $ne: userId }
     }).select('username phoneNumber profilePicture about isOnline lastSeen');
 
-    // Create a map for quick lookup
+    // Create a map for quick lookup. Server numbers may be stored with or
+    // without a leading '+' (legacy accounts vs newer registrations), and
+    // contact-book entries may include it too — index both forms so matching
+    // is resilient (same spirit as authController.phoneCandidates).
     const userMap = {};
     matchedUsers.forEach(user => {
-      if (user.phoneNumber) userMap[user.phoneNumber] = user;
+      if (user.phoneNumber) {
+        userMap[user.phoneNumber] = user;
+        userMap[user.phoneNumber.replace(/^\+/, '')] = user;
+      }
     });
 
     // Match contacts with server users
     const matchedContacts = normalizedContacts.map(contact => {
-      const matchedUser = userMap[contact.phone];
+      const matchedUser = userMap[contact.phone] || userMap[contact.phone.replace(/^\+/, '')];
       if (matchedUser) {
         return {
           ...contact,
@@ -133,11 +139,14 @@ exports.syncContacts = async (req, res) => {
 
     const userMap = {};
     matchedUsers.forEach(user => {
-      if (user.phoneNumber) userMap[user.phoneNumber] = user;
+      if (user.phoneNumber) {
+        userMap[user.phoneNumber] = user;
+        userMap[user.phoneNumber.replace(/^\+/, '')] = user;
+      }
     });
 
     const matchedContacts = normalizedContacts.map(contact => {
-      const matchedUser = userMap[contact.phone];
+      const matchedUser = userMap[contact.phone] || userMap[contact.phone.replace(/^\+/, '')];
       if (matchedUser) {
         return {
           ...contact,

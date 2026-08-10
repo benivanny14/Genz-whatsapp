@@ -21,7 +21,18 @@ const defaultSettings = {
 };
 
 
-const mergeSettings = createSettingsMerger(defaultSettings);
+// Strip explicit `key: undefined` from incoming updates BEFORE merging so
+// defaults are never shadowed (e.g. updateRateLimiting writing
+// maxMessagesPerHour: undefined when the user has no settings yet). Mongoose
+// drops undefined on save anyway — this keeps the in-memory object consistent.
+const compact = (obj) => {
+  Object.keys(obj).forEach((key) => {
+    if (obj[key] === undefined) delete obj[key];
+  });
+  return obj;
+};
+
+const mergeSettings = (settings = {}) => createSettingsMerger(defaultSettings)(compact(settings));
 
 // @desc    Get anti-ban settings
 // @route   GET /api/anti-ban/settings
