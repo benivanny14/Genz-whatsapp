@@ -3457,21 +3457,23 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                             >
                               <Copy size={14} className="text-dark-text" /> Copy
                             </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                try {
-                                  setForwardingMessage(message);
-                                  setShowForwardModal(true);
-                                  setActiveMessageMenu(null);
-                                } catch (err) {
-                                  console.error('Forward error:', err);
-                                }
-                              }}
-                              className="w-full px-4 py-2 text-left text-sm hover:bg-dark-hover flex items-center gap-3"
-                            >
-                              <Forward size={14} className="text-dark-text" /> Forward
-                            </button>
+                            {!message.isViewOnce && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    setForwardingMessage(message);
+                                    setShowForwardModal(true);
+                                    setActiveMessageMenu(null);
+                                  } catch (err) {
+                                    console.error('Forward error:', err);
+                                  }
+                                }}
+                                className="w-full px-4 py-2 text-left text-sm hover:bg-dark-hover flex items-center gap-3"
+                              >
+                                <Forward size={14} className="text-dark-text" /> Forward
+                              </button>
+                            )}
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();

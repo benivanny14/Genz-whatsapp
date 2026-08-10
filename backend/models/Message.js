@@ -240,6 +240,12 @@ const messageSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  // When a receiver first revealed the view-once content (audit trail; the
+  // sender can see the message was opened even before it is marked consumed).
+  revealedAt: {
+    type: Date,
+    default: null
+  },
   isSelfDestruct: {
     type: Boolean,
     default: false
@@ -265,6 +271,9 @@ const messageSchema = new mongoose.Schema({
     type: { type: String, default: 'text' },
     mediaUrl: { type: String, default: null }
   },
+  // How many times this message (chain) has been forwarded. Used to enforce
+  // forwarding limits like WhatsApp ("forwarded many times" -> single chat).
+  forwardCount: { type: Number, default: 0 },
   isForwarded: {
     type: Boolean,
     default: false

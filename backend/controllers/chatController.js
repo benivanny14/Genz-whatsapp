@@ -2082,6 +2082,8 @@ exports.getMessageInfo = async (req, res) => {
       isFavorite: message.isStarred,
       isPinned: conversation.pinnedMessages?.includes(message._id),
       isViewOnce: message.isViewOnce,
+      isConsumed: Boolean(message.isConsumed),
+      revealedAt: message.revealedAt || null,
     };
 
     // View-once privacy: only the sender gets the real content here.
@@ -2236,6 +2238,18 @@ exports.revealViewOnceMessage = async (req, res) => {
         success: false,
         message: "View once message already opened",
       });
+    }
+
+    // Audit trail: record the FIRST reveal so the sender can see the
+    // message was opened even before consumption completes. Subsequent
+    // reveals by other participants keep the original timestamp.
+    if (!message.revealedAt) {
+      message.revealedAt = new Date();
+      try {
+        await message.save();
+      } catch (saveErr) {
+        console.warn('[ChatController] Failed to persist revealedAt:', saveErr?.message || saveErr);
+      }
     }
 
     res.json({
@@ -2415,6 +2429,15 @@ exports.forwardMessage = async (req, res) => {
       return res
         .status(404)
         .json({ success: false, message: "Message not found" });
+    }
+
+    // WhatsApp semantics: view-once messages can never be forwarded — their
+    // content is meant for one viewer in the original conversation only.
+    if (originalMessage.isViewOnce) {
+      return res.status(400).json({
+        success: false,
+        message: "View once messages cannot be forwarded",
+      });
     }
 
     const chainForwardCount = originalMessage.forwardCount || 0;

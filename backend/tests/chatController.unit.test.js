@@ -953,6 +953,15 @@ describe('chatController — forward/clear/delete chat', () => {
     expect(res.body.message).toMatch(/mara nyingi/);
   });
 
+  it('forwardMessage rejects view-once messages (400)', async () => {
+    Message.findById.mockResolvedValue(makeMessage({ isViewOnce: true }));
+    const res = makeRes();
+    await chat.forwardMessage(makeReq({ params: { messageId: 'm1' }, body: { targetConversationIds: ['c2'] } }), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toMatch(/cannot be forwarded/i);
+    expect(Message.create).not.toHaveBeenCalled();
+  });
+
   it('forwardMessage forwards to accessible chats (happy path)', async () => {
     const original = makeMessage({ content: 'fwd me', forwardCount: 1 });
     Message.findById.mockResolvedValueOnce(original);
@@ -1425,6 +1434,41 @@ describe('chatController — view-once privacy', () => {
     const ttl = saved.disappearAt.getTime() - before;
     expect(ttl).toBeGreaterThan(23 * 60 * 60 * 1000);
     expect(ttl).toBeLessThanOrEqual(24 * 60 * 60 * 1000 + 5000);
+  });
+
+  it('revealViewOnceMessage records revealedAt on first reveal (audit)', async () => {
+    const message = viewOnceMsg({ sender: 'user-2' });
+    message.save = jest.fn().mockResolvedValue(undefined);
+    Message.findById.mockResolvedValue(message);
+    Conversation.findById.mockResolvedValue(makeConv());
+    const res = makeRes();
+    await chat.revealViewOnceMessage(makeReq({ params: { messageId: 'm1' } }), res);
+    expect(res.statusCode).toBe(200);
+    expect(message.revealedAt).toBeInstanceOf(Date);
+    expect(message.save).toHaveBeenCalled();
+  });
+
+  it('revealViewOnceMessage keeps the first revealedAt on later reveals', async () => {
+    const first = new Date('2026-08-01T00:00:00Z');
+    const message = viewOnceMsg({ sender: 'user-2', revealedAt: first });
+    message.save = jest.fn().mockResolvedValue(undefined);
+    Message.findById.mockResolvedValue(message);
+    Conversation.findById.mockResolvedValue(makeConv());
+    const res = makeRes();
+    await chat.revealViewOnceMessage(makeReq({ params: { messageId: 'm1' } }), res);
+    expect(res.statusCode).toBe(200);
+    expect(message.revealedAt).toBe(first);
+    expect(message.save).not.toHaveBeenCalled();
+  });
+
+  it('getMessageInfo exposes revealedAt and isConsumed for the sender', async () => {
+    const message = viewOnceMsg({ sender: 'user-1', revealedAt: new Date('2026-08-01T00:00:00Z') });
+    Message.findById.mockReturnValue(msgById3(message));
+    Conversation.findById.mockResolvedValue(makeConv());
+    const res = makeRes();
+    await chat.getMessageInfo(makeReq({ params: { messageId: 'm1' } }), res);
+    expect(res.body.messageInfo.revealedAt).toEqual(new Date('2026-08-01T00:00:00Z'));
+    expect(res.body.messageInfo.isConsumed).toBe(false);
   });
 
   it('sendMessage keeps the conversation disappearing timer over the view-once TTL', async () => {
