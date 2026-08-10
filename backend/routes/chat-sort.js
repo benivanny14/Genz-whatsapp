@@ -10,7 +10,7 @@ const {
   sortConversations,
   toggleChatSort,
   updateChatSortSettings,
-} = require('../controllers/chatSortController');
+} = require('../controllers/chatOrganizationController');
 
 router.use(protect);
 

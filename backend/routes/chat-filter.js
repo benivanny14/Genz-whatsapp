@@ -11,7 +11,7 @@ const {
   saveFilterPreference,
   toggleChatFilter,
   updateChatFilterSettings,
-} = require('../controllers/chatFilterController');
+} = require('../controllers/chatOrganizationController');
 
 router.use(protect);
 
