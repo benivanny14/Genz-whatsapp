@@ -19,6 +19,7 @@
 
 
 const { getUser, mergeSettings, createSettingsMerger } = require('../services/userScopedService');
+const { processAndCompressMedia, applyMediaEdits } = require('../services/mediaProcessingService');
 
 // ── Shared helpers (previously duplicated across all three controllers) ─────
 
@@ -161,18 +162,28 @@ exports.compressMedia = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid file type' });
     }
 
-    // Simulate compression (in real implementation, use sharp, ffmpeg, etc.)
-    const compressionRatio = compressionLevel === 'high' ? 0.5 : compressionLevel === 'medium' ? 0.7 : 0.9;
+    // Real processing: download → sharp/ffmpeg → re-upload (Cloudinary/local).
+    const result = await processAndCompressMedia({ fileUrl, fileType, compressionLevel });
 
-    // Return compressed file URL (simulated)
-    const compressedUrl = fileUrl; // In real implementation, return new compressed URL
+    // Persist per-user compression stats.
+    const stats = user.mediaCompressionStats?.toObject?.() || user.mediaCompressionStats || {};
+    const savedBytes = Math.max(0, result.originalSize - result.compressedSize);
+    stats.totalCompressed = (stats.totalCompressed || 0) + 1;
+    stats.totalSaved = (stats.totalSaved || 0) + savedBytes / (1024 * 1024);
+    stats.byType = stats.byType || {};
+    stats.byType[fileType] = stats.byType[fileType] || { count: 0, saved: 0 };
+    stats.byType[fileType].count += 1;
+    stats.byType[fileType].saved += savedBytes / (1024 * 1024);
+    user.mediaCompressionStats = stats;
+    user.markModified('mediaCompressionStats');
+    await user.save();
 
     res.status(200).json({
       success: true,
-      compressedUrl,
-      originalSize: 100, // Would be actual size
-      compressedSize: Math.round(100 * compressionRatio),
-      compressionRatio: Math.round((1 - compressionRatio) * 100),
+      compressedUrl: result.compressedUrl,
+      originalSize: result.originalSize,
+      compressedSize: result.compressedSize,
+      compressionRatio: result.compressionRatio,
       message: 'Media compressed successfully'
     });
   } catch (error) {
@@ -186,17 +197,19 @@ exports.getCompressionStats = async (req, res) => {
     const user = await getUser(req, res);
     if (!user) return;
 
-    // Simulated statistics
-    const stats = {
+    // Real per-user stats accumulated by compressMedia.
+    const stats = user.mediaCompressionStats?.toObject?.() || user.mediaCompressionStats || {
       totalCompressed: 0,
       totalSaved: 0, // MB
-      averageCompression: 0,
       byType: {
         image: { count: 0, saved: 0 },
         video: { count: 0, saved: 0 },
         audio: { count: 0, saved: 0 }
       }
     };
+    stats.averageCompression = stats.totalCompressed > 0
+      ? Math.round((stats.totalSaved / stats.totalCompressed) * 100) / 100
+      : 0;
 
     res.status(200).json({ success: true, stats });
   } catch (error) {
@@ -240,7 +253,7 @@ const EDITOR_DEFAULTS = {
 
 // Generic edit handler — editImage/editVideo/editAudio were three copies of
 // the same flow differing only in the url field, enabled setting and note.
-const editMedia = async (req, res, { type, enabledField, logLabel, clientNote }) => {
+const editMedia = async (req, res, { type, enabledField, logLabel }) => {
   try {
     const user = await getUser(req, res);
     if (!user) return;
@@ -258,13 +271,8 @@ const editMedia = async (req, res, { type, enabledField, logLabel, clientNote })
       return res.status(403).json({ success: false, message: `${type[0].toUpperCase()}${type.slice(1)} editing is disabled` });
     }
 
-    // In real implementation, use image/video/audio processing libraries
-    const editResult = {
-      originalUrl: mediaUrl,
-      editedUrl: mediaUrl, // Would be the edited media URL
-      edits: edits || {},
-      processedAt: new Date()
-    };
+    // Real processing: download → sharp/ffmpeg edits → re-upload.
+    const editResult = await applyMediaEdits({ fileUrl: mediaUrl, type, edits: edits || {} });
 
     if (settings.autoSaveEdits) {
       const editHistory = {
@@ -290,8 +298,7 @@ const editMedia = async (req, res, { type, enabledField, logLabel, clientNote })
 
     res.status(200).json({
       success: true,
-      message: `${type[0].toUpperCase()}${type.slice(1)} editing requires client-side implementation`,
-      note: clientNote,
+      message: `${type[0].toUpperCase()}${type.slice(1)} edited successfully`,
       editResult
     });
   } catch (error) {
@@ -335,22 +342,19 @@ exports.updateMediaEditorSettings = async (req, res) => {
 exports.editImage = (req, res) => editMedia(req, res, {
   type: 'image',
   enabledField: 'imageEditorEnabled',
-  logLabel: 'Edit image',
-  clientNote: 'Use client-side libraries like fabric.js or sharp for actual image editing'
+  logLabel: 'Edit image'
 });
 
 exports.editVideo = (req, res) => editMedia(req, res, {
   type: 'video',
   enabledField: 'videoEditorEnabled',
-  logLabel: 'Edit video',
-  clientNote: 'Use client-side libraries like ffmpeg.wasm for actual video editing'
+  logLabel: 'Edit video'
 });
 
 exports.editAudio = (req, res) => editMedia(req, res, {
   type: 'audio',
   enabledField: 'audioEditorEnabled',
-  logLabel: 'Edit audio',
-  clientNote: 'Use client-side libraries like Web Audio API for actual audio editing'
+  logLabel: 'Edit audio'
 });
 
 exports.getEditHistory = async (req, res) => {

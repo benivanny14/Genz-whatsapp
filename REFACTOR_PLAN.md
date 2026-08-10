@@ -118,8 +118,12 @@ shared services/helpers na consolidation ya controllers).
 - Toggles 8 na edit handlers 3 sasa ni single-source-of-truth.
 - Hakuna mabadiliko ya API: `/api/media-mods/*`, `/api/media-compressor/*`,
   `/api/media-editor/*` zinafanya kazi kama awali. Tests: **192/192 zinapita**.
-- Maelezo: `compressMedia` na editor handlers bado ni mock implementations (kama
-  zilivyokuwa awali) — hazijaongezwa kwenye scope ya refactor hii.
+- **UPDATE:** mock implementations zimebadilishwa kuwa real — `compressMedia` na
+  editor handlers sasa zinatumia `services/mediaProcessingService.js` (sharp kwa
+  images, ffmpeg kwa video/audio; download → process → re-upload kupitia
+  `config/cloudinary.uploadFile`). `getCompressionStats` sasa inarudisha per-user
+  stats halisi zilizokusanywa na `compressMedia`. Verified end-to-end:
+  `scripts/verify-media-service.js` (1.3MB → 262KB, 80%).
 
 ### 3. ✅ `securityController` + `securityModsController` → `securityController` (moja)
 

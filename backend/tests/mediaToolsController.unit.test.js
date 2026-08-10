@@ -2,7 +2,13 @@ jest.mock('../models/User', () => ({
   findById: jest.fn()
 }));
 
+jest.mock('../services/mediaProcessingService', () => ({
+  processAndCompressMedia: jest.fn(),
+  applyMediaEdits: jest.fn()
+}));
+
 const User = require('../models/User');
+const mediaProcessing = require('../services/mediaProcessingService');
 const mediaTools = require('../controllers/mediaToolsController');
 
 const makeRes = () => {
@@ -110,16 +116,62 @@ describe('mediaToolsController — compressor', () => {
     expect(res.body.message).toBe('Invalid file type');
   });
 
-  it('compresses media and computes ratio (happy path)', async () => {
-    User.findById.mockResolvedValue(makeUser());
+  it('compresses media via the processing service (happy path)', async () => {
+    mediaProcessing.processAndCompressMedia.mockResolvedValue({
+      compressedUrl: 'https://x/compressed.mp4',
+      originalSize: 100,
+      compressedSize: 50,
+      compressionRatio: 50,
+      format: 'mp4',
+      storageProvider: 'cloudinary'
+    });
+    const user = makeUser();
+    User.findById.mockResolvedValue(user);
     const res = makeRes();
     await mediaTools.compressMedia(makeReq({ body: { fileUrl: 'https://x/y.mp4', fileType: 'video', compressionLevel: 'high' } }), res);
     expect(res.body.success).toBe(true);
-    expect(res.body.compressedSize).toBe(50); // 100 * 0.5
+    expect(res.body.compressedUrl).toBe('https://x/compressed.mp4');
+    expect(res.body.compressedSize).toBe(50);
     expect(res.body.compressionRatio).toBe(50);
+    expect(mediaProcessing.processAndCompressMedia).toHaveBeenCalledWith({
+      fileUrl: 'https://x/y.mp4',
+      fileType: 'video',
+      compressionLevel: 'high'
+    });
   });
 
-  it('returns compression stats (happy path)', async () => {
+  it('persists per-user compression stats (happy path)', async () => {
+    mediaProcessing.processAndCompressMedia.mockResolvedValue({
+      compressedUrl: 'https://x/c.jpg',
+      originalSize: 1000,
+      compressedSize: 400,
+      compressionRatio: 60
+    });
+    const user = makeUser();
+    User.findById.mockResolvedValue(user);
+    const res = makeRes();
+    await mediaTools.compressMedia(makeReq({ body: { fileUrl: 'https://x/y.jpg', fileType: 'image' } }), res);
+    expect(user.mediaCompressionStats.totalCompressed).toBe(1);
+    expect(user.mediaCompressionStats.byType.image.count).toBe(1);
+    expect(user.markModified).toHaveBeenCalledWith('mediaCompressionStats');
+    expect(user.save).toHaveBeenCalled();
+  });
+
+  it('returns compression stats from the user record (happy path)', async () => {
+    User.findById.mockResolvedValue(makeUser({
+      mediaCompressionStats: {
+        totalCompressed: 3,
+        totalSaved: 1.5,
+        byType: { image: { count: 2, saved: 1 }, video: { count: 1, saved: 0.5 }, audio: { count: 0, saved: 0 } }
+      }
+    }));
+    const res = makeRes();
+    await mediaTools.getCompressionStats(makeReq(), res);
+    expect(res.body.stats.totalCompressed).toBe(3);
+    expect(res.body.stats.averageCompression).toBe(0.5); // 1.5 / 3
+  });
+
+  it('returns zeroed compression stats when none recorded yet (happy path)', async () => {
     User.findById.mockResolvedValue(makeUser());
     const res = makeRes();
     await mediaTools.getCompressionStats(makeReq(), res);
@@ -162,30 +214,43 @@ describe('mediaToolsController — editor', () => {
   });
 
   it('edits an image and saves history (happy path)', async () => {
+    mediaProcessing.applyMediaEdits.mockResolvedValue({
+      editedUrl: 'https://x/y-edited.png',
+      format: 'png',
+      storageProvider: 'cloudinary'
+    });
     const user = makeUser();
     User.findById.mockResolvedValue(user);
     const res = makeRes();
-    await mediaTools.editImage(makeReq({ body: { imageUrl: 'https://x/y.png', edits: { brightness: 20 } } }), res);
+    await mediaTools.editImage(makeReq({ body: { imageUrl: 'https://x/y.png', edits: { brightness: 1.2 } } }), res);
     expect(res.body.success).toBe(true);
-    expect(res.body.editResult.originalUrl).toBe('https://x/y.png');
+    expect(res.body.editResult.editedUrl).toBe('https://x/y-edited.png');
+    expect(mediaProcessing.applyMediaEdits).toHaveBeenCalledWith({
+      fileUrl: 'https://x/y.png',
+      type: 'image',
+      edits: { brightness: 1.2 }
+    });
     expect(user.editHistory).toHaveLength(1);
+    expect(user.editHistory[0].resultUrl).toBe('https://x/y-edited.png');
     expect(user.save).toHaveBeenCalled();
   });
 
   it('edits a video (happy path)', async () => {
+    mediaProcessing.applyMediaEdits.mockResolvedValue({ editedUrl: 'https://x/y-edited.mp4', format: 'mp4' });
     User.findById.mockResolvedValue(makeUser());
     const res = makeRes();
     await mediaTools.editVideo(makeReq({ body: { videoUrl: 'https://x/y.mp4' } }), res);
     expect(res.body.success).toBe(true);
-    expect(res.body.editResult.originalUrl).toBe('https://x/y.mp4');
+    expect(res.body.editResult.editedUrl).toBe('https://x/y-edited.mp4');
   });
 
   it('edits an audio file (happy path)', async () => {
+    mediaProcessing.applyMediaEdits.mockResolvedValue({ editedUrl: 'https://x/y-edited.mp3', format: 'mp3' });
     User.findById.mockResolvedValue(makeUser());
     const res = makeRes();
     await mediaTools.editAudio(makeReq({ body: { audioUrl: 'https://x/y.mp3' } }), res);
     expect(res.body.success).toBe(true);
-    expect(res.body.editResult.originalUrl).toBe('https://x/y.mp3');
+    expect(res.body.editResult.editedUrl).toBe('https://x/y-edited.mp3');
   });
 
   it('caps edit history to the configured limit', async () => {
