@@ -12,7 +12,7 @@ const {
   searchMessagesInConversation,
   toggleChatSearch,
   updateChatSearchSettings,
-} = require('../controllers/chatSearchController');
+} = require('../controllers/chatListController');
 
 router.use(protect);
 

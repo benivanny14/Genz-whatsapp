@@ -14,7 +14,7 @@ const {
   toggleChatFolders,
   updateChatFolder,
   updateChatFoldersSettings,
-} = require('../controllers/chatFoldersController');
+} = require('../controllers/chatListController');
 
 router.use(protect);
 

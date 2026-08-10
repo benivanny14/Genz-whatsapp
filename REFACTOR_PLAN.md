@@ -61,12 +61,31 @@ shared services/helpers na consolidation ya controllers).
 
 ## Hatua zinazofuata (zinazopendekezwa — zinasubiri idhini)
 
-### 1. `chatListModsController` + `chatSearchController` + `chatFoldersController` → `chatListController`
-- Zote zina `getUser`/`mergeSettings` sawa na zinafanya `Conversation.find({participants})`
-  kwa ajili ya list/search/folders.
-- Merge: `backend/controllers/chatListController.js` + shared helpers katika
-  `backend/services/chatListService.js`.
-- Route paths: `/api/chat-list/*`, `/api/chat-search/*`, `/api/chat-folders/*` — hazibadiliki.
+### 1. ✅ `chatListModsController` + `chatSearchController` + `chatFoldersController` → `chatListController`
+
+#### Tatizo
+- Controllers tatu zilikuwa na `getUser()`/`mergeSettings()` sawa na settings
+  get/update handlers zilizofanana.
+- `chatListModsController` ilikuwa na toggles 8 zinazofanana kabisa (tofauti ni
+  jina la field tu).
+
+#### Kitu kilichofanyika
+- **`backend/controllers/chatListController.js`** (mpya): controllers tatu zimeunganishwa
+  katika moja, na helpers za pamoja:
+  - `getUser`, `mergeSettings(defaults, settings)` — moja badala ya tatu
+  - `toggleListModsField(req, res, field, logLabel)` — toggles 8 za chat-list-mods
+    sasa ni nakala moja ya generic
+  - `buildSearchRegex(query, settings)` — mantiki ya regex ya search (ilirudiwa
+    mara 3 kwenye `chatSearchController`)
+  - `decorateFolderWithChats(user, folder)` — ilirudiwa kwenye `getChatFolders` +
+    `getChatFolder`
+- **Routes** (`chat-list-mods.js`, `chat-search.js`, `chat-folders.js`): sasa zina-require
+  kutoka `chatListController` — route paths zimebaki sawa (10 + 10 + 12 = 32 routes).
+- Controllers 3 za zamani zimefutwa (routes pekee ndizo zilizokuwa zikizirequire).
+
+#### Matokeo
+- Faili 3 → 1; boilerplate maradufu imeondolewa. Hakuna mabadiliko ya API.
+- Tests: **214/214 zinapita**.
 
 ### 2. ✅ `mediaModsController` + `mediaCompressorController` + `mediaEditorController` → `mediaToolsController`
 
@@ -102,24 +121,40 @@ shared services/helpers na consolidation ya controllers).
 - Maelezo: `compressMedia` na editor handlers bado ni mock implementations (kama
   zilivyokuwa awali) — hazijaongezwa kwenye scope ya refactor hii.
 
-### 3. `securityController` + `securityModsController` → `securityController` (moja)
-- `securityModsController` ni set ya MODs za user-level kwenye security; `securityController`
-  ni ya admin-level. Hizi zinaweza kuunganishwa kwa kuweka MODs handlers kwenye sehemu
-  moja ya faili (au kutenganisha `securityService.js`).
-- Tahadhari: hakikisha `superAdminAuth` vs `protect` middleware haichanganyiki kwenye routes.
+### 3. ✅ `securityController` + `securityModsController` → `securityController` (moja)
 
-### 4. `chatFilterController` + `chatSortController` (zilizofanyika) → model kwa wengine
-- Pattern iliyotumika hapo (helpers za pamoja + controller moja + routes zina-point
-  kwake) ndiyo itakayotumika kwa hatua 1–3.
+#### Tatizo
+- `securityController` (2FA + security settings) na `securityModsController` (security
+  MODs) zilikuwa na `getUser`/`requireUser` na `mergeSettings` sawa; MODs ilikuwa na
+  toggles 10 zinazofanana kabisa.
+- Maelezo muhimu: zote mbili ni **user-level** (zinalindwa na `protect` middleware,
+  sio `superAdminAuth`) — kwa hiyo kuunganisha hakuchanganyi auth levels.
 
-### 5. `settingsController` + `customizationModsController` + `themeEngineController` (high-level)
-- Zote zina `getUser`/`mergeSettings` sawa. Hizi ni kubwa, kwa hiyo zifanyike baada ya
-  hatua 1–3 kuthibitishwa.
+#### Kitu kilichofanyika
+- **`backend/controllers/securityController.js`** (iliyounganishwa): 2FA handlers +
+  security settings + security MODs handlers zote katika faili moja:
+  - `requireUser` moja (iliyochukuliwa kutoka securityController — pia inaangalia
+    `req.user?._id` kabla ya User lookup, sawa na getUser ya MODs)
+  - `mergeSettings(defaults, settings)` moja
+  - `toggleModsField(req, res, field, logLabel)` — toggles 10 za MODs sasa ni nakala
+    moja ya generic
+- **Routes**: `securityRoutes.js` (tayari ili-point kwa `securityController`) na
+  `security-mods.js` (sasa ina-point kwa `securityController`). Route paths zimebaki
+  sawa (8 + 14 = 22 routes).
+- **`securityModsController.js`** imefutwa (routes pekee ndizo zilizokuwa zikizirequire).
+
+#### Matokeo
+- Faili 2 → 1; toggles 10 sasa ni single-source-of-truth. Hakuna mabadiliko ya API.
+- Tests: **214/214 zinapita**.
+
+### 4. `settingsController` + `customizationModsController` + `themeEngineController` (next)
+- Zote zina `getUser`/`mergeSettings` sawa. Hizi ni kubwa, kwa hiyo zifanyike kama
+  hatua inayofuata (hatua 1–3 zote zimefanyika na kuthibitishwa).
 
 ---
 
 ## Vigezo vya "done" kwa kila hatua
-- [ ] `node -c` inapita kwa faili zote zilizobadilika
-- [ ] `npm test` inapita (192 tests kwa sasa — inabaki sawa au inaongezeka)
-- [ ] Route paths za nje hazijabadilika (diff ya routes ni import-only)
-- [ ] Feature smoke test (`scripts/feature-smoke-test.js`) inapita kwa endpoints zilizoguswa
+- [x] `node -c` inapita kwa faili zote zilizobadilika
+- [x] `npm test` inapita (214 tests kwa sasa)
+- [x] Route paths za nje hazijabadilika (diff ya routes ni import-only)
+- [x] Feature smoke test (`scripts/feature-smoke-test.js`) inapita kwa endpoints zilizoguswa
