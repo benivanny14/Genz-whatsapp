@@ -147,14 +147,61 @@ shared services/helpers na consolidation ya controllers).
 - Faili 2 → 1; toggles 10 sasa ni single-source-of-truth. Hakuna mabadiliko ya API.
 - Tests: **214/214 zinapita**.
 
-### 4. `settingsController` + `customizationModsController` + `themeEngineController` (next)
-- Zote zina `getUser`/`mergeSettings` sawa. Hizi ni kubwa, kwa hiyo zifanyike kama
-  hatua inayofuata (hatua 1–3 zote zimefanyika na kuthibitishwa).
+### 4. ✅ `settingsController` + `customizationModsController` + `themeEngineController` → `userSettingsController`
+
+#### Tatizo
+- Controllers tatu zilikuwa na `getUser`/`mergeSettings` sawa; customization MODs ilikuwa
+  na toggles 8 zinazofanana kabisa; theme engine ilikuwa na handlers nyingi za update
+  zilizofanana (font/mode/colors/UI — zote zinafanya `getUser` → merge → `save`).
+
+#### Kitu kilichofanyika
+- **`backend/controllers/userSettingsController.js`** (mpya): controllers tatu zimeunganishwa:
+  - `getUser` + `mergeSettings(defaults, settings)` — moja badala ya tatu
+  - `toggleCustomizationField` — toggles 8 za customization sasa ni nakala moja ya generic
+  - Settings handlers za `/api/settings` (getSettings/updateSettings/resetSettings)
+    zimebaki na tabia yao ya awali (404 kwa user missing, mergeWhatsAppSettings)
+- **Routes** (`settingsRoutes.js`, `customization-mods.js`, `theme-engine.js`): sasa
+  zina-require kutoka `userSettingsController` — route paths zimebaki sawa (3 + 10 + 10 = 23 routes).
+- Controllers 3 za zamani zimefutwa (routes pekee ndizo zilizokuwa zikizirequire).
+
+#### Matokeo
+- Faili 3 → 1; hakuna mabadiliko ya API. Tests: **261/261 zinapita**.
+
+### 5. 🧭 Scan ya duplicates iliyobaki (imefanyika)
+
+`grep -l "const getUser = async (req, res)" controllers/*.js` → **controllers 33** bado zina
+nakala ya `getUser` (na ~34 zina `mergeSettings`), zikiwemo:
+
+- **MODs-style controllers zilizofanana na zilizounganishwa tayari**: `antiBanController`,
+  `antiRevokeController`, `automationModsController`, `callBlockerController`,
+  `callFeaturesController`, `groupFeaturesController`, `groupModsController`,
+  `messageModsController`, `statusFeaturesController`, `storyHighlightsController`,
+  `dataUsageController`, `storageManagerController`, `textRepeaterController`, n.k.
+- **Feature controllers kubwa**: `whatsappWebController`, `bulkSenderController`,
+  `fakeChatController`, `chatAnalyzerController`, `multiAccountsController`,
+  `liveReactionsController`, `locationSharingController`, `gifPlayerController`,
+  `quickActionsController`, `cacheCleanerController`, `businessAccountController`,
+  `fileManagerController`, `messageTranslatorController`, `genzModsController`.
+
+#### Pendekezo la merge inayofuata (faida kubwa zaidi)
+1. **Extract `services/userScopedService.js`** — toa `getUser(req, res)` na
+   `mergeSettings(defaults, settings)` kwenye service moja (au `middleware/loadUser.js`)
+   na ufanye controllers zote 33 zizitumie. Hii ni change ya `require` + deletion ya
+   nakala ~33 × 12 lines ≈ **400 lines za boilerplate zinaondolewa** kwa gharama ndogo
+   sana na hatari ndogo (functions ni pure, hazina state).
+2. **Merge MODs-style controllers kwa makundi**: `groupFeaturesController` +
+   `groupModsController` → `groupToolsController`; `messageModsController` +
+   `messageTranslatorController` → `messageToolsController`; `callBlockerController` +
+   `callFeaturesController` → `callToolsController`. Zinatumia pattern ile ile ya
+   `getUser`/`mergeSettings`/toggles kama mediaTools/chatOrganization.
+3. **`whatsappWebController` + `bulkSenderController` + `multiAccountsController`** —
+   zote zinafanya kazi na WhatsApp session management; zinaweza kuunganishwa kwenye
+   `whatsappSessionController` (lakini hizi ni kubwa — zifanyike baada ya #1).
 
 ---
 
 ## Vigezo vya "done" kwa kila hatua
 - [x] `node -c` inapita kwa faili zote zilizobadilika
-- [x] `npm test` inapita (214 tests kwa sasa)
+- [x] `npm test` inapita (261 tests kwa sasa)
 - [x] Route paths za nje hazijabadilika (diff ya routes ni import-only)
 - [x] Feature smoke test (`scripts/feature-smoke-test.js`) inapita kwa endpoints zilizoguswa

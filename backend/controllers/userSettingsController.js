@@ -1,19 +1,224 @@
-const User = require('../models/User');
+/**
+ * userSettingsController.js
+ * -------------------------
+ * Consolidated controller for user settings + customization MODs + theme
+ * engine (step 4 of REFACTOR_PLAN.md — merges settingsController.js +
+ * customizationModsController.js + themeEngineController.js).
+ *
+ * The three original controllers duplicated getUser/mergeSettings
+ * scaffolding and (for customization MODs) 8 near-identical toggle
+ * handlers. This file keeps every exported handler name and route path
+ * intact — only the internal wiring is shared now.
+ *
+ *   /api/settings/...        →  getSettings, updateSettings, resetSettings
+ *   /api/customization-mods/ →  getCustomizationModsSettings, toggle*
+ *   /api/theme-engine/...    →  theme settings + font/mode/colors/UI handlers
+ */
 
-const defaultSettings = {
+const User = require('../models/User');
+const { createDefaultWhatsAppSettings, mergeWhatsAppSettings } = require('../utils/whatsappSettings');
+
+// ── Shared helpers (previously duplicated across all three controllers) ─────
+
+const getUser = async (req, res) => {
+  const user = await User.findById(req.user?._id);
+  if (!user) {
+    res.status(401).json({ success: false, message: 'Authentication required' });
+    return null;
+  }
+  return user;
+};
+
+const mergeSettings = (defaults, settings = {}) => ({
+  ...defaults,
+  ...settings
+});
+
+// ── User settings (route prefix /api/settings) ──────────────────────────────
+// NOTE: these three handlers historically used User.findById(req.user._id)
+// directly and answered 404 (not 401) for a missing user. Behavior preserved.
+
+exports.getSettings = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Return settings, defaulting to empty object if not set
+    const settings = user.settings || createDefaultWhatsAppSettings();
+
+    res.json({
+      success: true,
+      settings
+    });
+  } catch (error) {
+    console.error('Get settings error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve settings'
+    });
+  }
+};
+
+exports.updateSettings = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Merge incoming settings with existing settings (deep merge + option validation)
+    const currentSettings = user.settings || createDefaultWhatsAppSettings();
+    const updatedSettings = mergeWhatsAppSettings(currentSettings, req.body);
+
+    user.settings = updatedSettings;
+    user.markModified('settings');
+    await user.save();
+
+    res.json({
+      success: true,
+      settings: updatedSettings,
+      message: 'Settings updated successfully'
+    });
+  } catch (error) {
+    console.error('Update settings error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update settings'
+    });
+  }
+};
+
+exports.resetSettings = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const defaultSettings = createDefaultWhatsAppSettings();
+    user.settings = defaultSettings;
+    user.markModified('settings');
+    await user.save();
+
+    res.json({
+      success: true,
+      settings: defaultSettings,
+      message: 'Settings reset to defaults'
+    });
+  } catch (error) {
+    console.error('Reset settings error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reset settings'
+    });
+  }
+};
+
+// ── Customization MODs (route prefix /api/customization-mods) ───────────────
+
+const CUSTOMIZATION_DEFAULTS = {
+  customTicksEnabled: false,
+  customFontsEnabled: false,
+  customBubbleColorsEnabled: false,
+  customHeaderEnabled: false,
+  customNavigationEnabled: false,
+  customIconsEnabled: false,
+  customEmojisEnabled: false,
+  themesStoreEnabled: false
+};
+
+// Generic single-field toggle — every customization-mods toggle is identical
+// apart from the field name and log label.
+const toggleCustomizationField = async (req, res, field, logLabel) => {
+  try {
+    const user = await getUser(req, res);
+    if (!user) return;
+
+    const existing = user.customizationModsSettings?.toObject?.() || user.customizationModsSettings || {};
+    const newValue = !existing[field];
+
+    user.customizationModsSettings = mergeSettings(CUSTOMIZATION_DEFAULTS, { ...existing, [field]: newValue });
+    user.markModified('customizationModsSettings');
+    await user.save();
+
+    res.json({ success: true, [field]: newValue });
+  } catch (error) {
+    console.error(`${logLabel} error:`, error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getCustomizationModsSettings = async (req, res) => {
+  try {
+    const user = await getUser(req, res);
+    if (!user) return;
+
+    const settings = mergeSettings(CUSTOMIZATION_DEFAULTS, user.customizationModsSettings?.toObject?.() || user.customizationModsSettings);
+    res.status(200).json({ success: true, settings });
+  } catch (error) {
+    console.error('Get customization MODs settings error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.updateCustomizationModsSettings = async (req, res) => {
+  try {
+    const user = await getUser(req, res);
+    if (!user) return;
+
+    const incoming = req.body.settings || req.body;
+    const existing = user.customizationModsSettings?.toObject?.() || user.customizationModsSettings || {};
+
+    user.customizationModsSettings = mergeSettings(CUSTOMIZATION_DEFAULTS, { ...existing, ...incoming });
+    user.markModified('customizationModsSettings');
+    await user.save();
+
+    res.status(200).json({ success: true, settings: user.customizationModsSettings });
+  } catch (error) {
+    console.error('Update customization MODs settings error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.toggleCustomTicks = (req, res) => toggleCustomizationField(req, res, 'customTicksEnabled', 'Toggle custom ticks');
+exports.toggleCustomFonts = (req, res) => toggleCustomizationField(req, res, 'customFontsEnabled', 'Toggle custom fonts');
+exports.toggleCustomBubbleColors = (req, res) => toggleCustomizationField(req, res, 'customBubbleColorsEnabled', 'Toggle custom bubble colors');
+exports.toggleCustomHeader = (req, res) => toggleCustomizationField(req, res, 'customHeaderEnabled', 'Toggle custom header');
+exports.toggleCustomNavigation = (req, res) => toggleCustomizationField(req, res, 'customNavigationEnabled', 'Toggle custom navigation');
+exports.toggleCustomIcons = (req, res) => toggleCustomizationField(req, res, 'customIconsEnabled', 'Toggle custom icons');
+exports.toggleCustomEmojis = (req, res) => toggleCustomizationField(req, res, 'customEmojisEnabled', 'Toggle custom emojis');
+exports.toggleThemesStore = (req, res) => toggleCustomizationField(req, res, 'themesStoreEnabled', 'Toggle themes store');
+
+// ── Theme engine (route prefix /api/theme-engine) ───────────────────────────
+
+const THEME_DEFAULTS = {
   themeEngineEnabled: true,
   // Font Settings
   customFontEnabled: false,
   fontFamily: 'Inter',
   fontSize: 'medium', // small, medium, large, extra
   customFontSize: 14,
-  
+
   // Theme Settings
   themeMode: 'auto', // dark, light, auto, night
   amoledMode: false,
   customThemeEnabled: false,
   customThemeColor: '#008069',
-  
+
   // Color Customization
   customBubbleColorEnabled: false,
   customBubbleColor: '#008069',
@@ -22,7 +227,7 @@ const defaultSettings = {
   customStatusBarColorEnabled: false,
   customStatusBarColor: '#008069',
   customNavigationBarColor: '#008069',
-  
+
   // UI Customization
   chatBubbleStyle: 'default',
   tickStyle: 'default',
@@ -35,7 +240,7 @@ const defaultSettings = {
   conversationEntryStyle: 'default',
   emojiStyle: 'default',
   legacy2014Mode: false,
-  
+
   // Available Options
   availableFonts: ['Inter', 'Roboto', 'Poppins', 'Comic Neue', 'JetBrains Mono', 'Space Grotesk'],
   availableBubbleStyles: ['default', 'rounded', 'square', 'modern'],
@@ -43,29 +248,12 @@ const defaultSettings = {
   availableEmojiStyles: ['default', 'ios', 'android', 'twitter']
 };
 
-const getUser = async (req, res) => {
-  const user = await User.findById(req.user?._id);
-  if (!user) {
-    res.status(401).json({ success: false, message: 'Authentication required' });
-    return null;
-  }
-  return user;
-};
-
-const mergeSettings = (settings = {}) => ({
-  ...defaultSettings,
-  ...settings
-});
-
-// @desc    Get theme engine settings
-// @route   GET /api/theme-engine/settings
-// @access  Private
 exports.getThemeEngineSettings = async (req, res) => {
   try {
     const user = await getUser(req, res);
     if (!user) return;
 
-    const settings = mergeSettings(user.themeEngineSettings?.toObject?.() || user.themeEngineSettings);
+    const settings = mergeSettings(THEME_DEFAULTS, user.themeEngineSettings?.toObject?.() || user.themeEngineSettings);
     res.status(200).json({ success: true, settings });
   } catch (error) {
     console.error('Get theme engine settings error:', error);
@@ -73,9 +261,6 @@ exports.getThemeEngineSettings = async (req, res) => {
   }
 };
 
-// @desc    Update theme engine settings
-// @route   POST /api/theme-engine/settings
-// @access  Private
 exports.updateThemeEngineSettings = async (req, res) => {
   try {
     const user = await getUser(req, res);
@@ -83,8 +268,8 @@ exports.updateThemeEngineSettings = async (req, res) => {
 
     const incoming = req.body.settings || req.body;
     const existing = user.themeEngineSettings?.toObject?.() || user.themeEngineSettings || {};
-    
-    user.themeEngineSettings = mergeSettings({ ...existing, ...incoming });
+
+    user.themeEngineSettings = mergeSettings(THEME_DEFAULTS, { ...existing, ...incoming });
     user.markModified('themeEngineSettings');
     await user.save();
 
@@ -95,9 +280,6 @@ exports.updateThemeEngineSettings = async (req, res) => {
   }
 };
 
-// @desc    Update font settings
-// @route   POST /api/theme-engine/font
-// @access  Private
 exports.updateFontSettings = async (req, res) => {
   try {
     const user = await getUser(req, res);
@@ -105,8 +287,8 @@ exports.updateFontSettings = async (req, res) => {
 
     const { fontFamily, fontSize, customFontSize, customFontEnabled } = req.body;
     const existing = user.themeEngineSettings?.toObject?.() || user.themeEngineSettings || {};
-    
-    user.themeEngineSettings = mergeSettings({
+
+    user.themeEngineSettings = mergeSettings(THEME_DEFAULTS, {
       ...existing,
       fontFamily: fontFamily || existing.fontFamily,
       fontSize: fontSize || existing.fontSize,
@@ -123,9 +305,6 @@ exports.updateFontSettings = async (req, res) => {
   }
 };
 
-// @desc    Update theme mode
-// @route   POST /api/theme-engine/mode
-// @access  Private
 exports.updateThemeMode = async (req, res) => {
   try {
     const user = await getUser(req, res);
@@ -133,8 +312,8 @@ exports.updateThemeMode = async (req, res) => {
 
     const { themeMode, amoledMode } = req.body;
     const existing = user.themeEngineSettings?.toObject?.() || user.themeEngineSettings || {};
-    
-    user.themeEngineSettings = mergeSettings({
+
+    user.themeEngineSettings = mergeSettings(THEME_DEFAULTS, {
       ...existing,
       themeMode: themeMode || existing.themeMode,
       amoledMode: amoledMode !== undefined ? amoledMode : existing.amoledMode
@@ -149,28 +328,25 @@ exports.updateThemeMode = async (req, res) => {
   }
 };
 
-// @desc    Update custom colors
-// @route   POST /api/theme-engine/colors
-// @access  Private
 exports.updateCustomColors = async (req, res) => {
   try {
     const user = await getUser(req, res);
     if (!user) return;
 
-    const { 
-      customThemeColor, 
-      customBubbleColor, 
-      customHeaderColor, 
+    const {
+      customThemeColor,
+      customBubbleColor,
+      customHeaderColor,
       customStatusBarColor,
       customNavigationBarColor,
       customBubbleColorEnabled,
       customHeaderColorEnabled,
       customStatusBarColorEnabled
     } = req.body;
-    
+
     const existing = user.themeEngineSettings?.toObject?.() || user.themeEngineSettings || {};
-    
-    user.themeEngineSettings = mergeSettings({
+
+    user.themeEngineSettings = mergeSettings(THEME_DEFAULTS, {
       ...existing,
       customThemeColor: customThemeColor || existing.customThemeColor,
       customBubbleColor: customBubbleColor || existing.customBubbleColor,
@@ -191,17 +367,14 @@ exports.updateCustomColors = async (req, res) => {
   }
 };
 
-// @desc    Update UI customization
-// @route   POST /api/theme-engine/ui-customization
-// @access  Private
 exports.updateUICustomization = async (req, res) => {
   try {
     const user = await getUser(req, res);
     if (!user) return;
 
-    const { 
-      chatBubbleStyle, 
-      tickStyle, 
+    const {
+      chatBubbleStyle,
+      tickStyle,
       emojiStyle,
       launcherIconChanged,
       notificationIconChanged,
@@ -211,10 +384,10 @@ exports.updateUICustomization = async (req, res) => {
       homeScreenStyle,
       conversationEntryStyle
     } = req.body;
-    
+
     const existing = user.themeEngineSettings?.toObject?.() || user.themeEngineSettings || {};
-    
-    user.themeEngineSettings = mergeSettings({
+
+    user.themeEngineSettings = mergeSettings(THEME_DEFAULTS, {
       ...existing,
       chatBubbleStyle: chatBubbleStyle || existing.chatBubbleStyle,
       tickStyle: tickStyle || existing.tickStyle,
@@ -237,16 +410,13 @@ exports.updateUICustomization = async (req, res) => {
   }
 };
 
-// @desc    Get available options
-// @route   GET /api/theme-engine/options
-// @access  Private
 exports.getAvailableOptions = async (req, res) => {
   try {
     const user = await getUser(req, res);
     if (!user) return;
 
-    const settings = mergeSettings(user.themeEngineSettings?.toObject?.() || user.themeEngineSettings);
-    
+    const settings = mergeSettings(THEME_DEFAULTS, user.themeEngineSettings?.toObject?.() || user.themeEngineSettings);
+
     res.status(200).json({
       success: true,
       options: {
@@ -264,9 +434,6 @@ exports.getAvailableOptions = async (req, res) => {
   }
 };
 
-// @desc    Toggle theme engine
-// @route   POST /api/theme-engine/toggle
-// @access  Private
 exports.toggleThemeEngine = async (req, res) => {
   try {
     const user = await getUser(req, res);
@@ -274,8 +441,8 @@ exports.toggleThemeEngine = async (req, res) => {
 
     const { enabled } = req.body;
     const existing = user.themeEngineSettings?.toObject?.() || user.themeEngineSettings || {};
-    
-    user.themeEngineSettings = mergeSettings({
+
+    user.themeEngineSettings = mergeSettings(THEME_DEFAULTS, {
       ...existing,
       themeEngineEnabled: enabled !== undefined ? enabled : !existing.themeEngineEnabled
     });
@@ -289,9 +456,6 @@ exports.toggleThemeEngine = async (req, res) => {
   }
 };
 
-// @desc    Toggle legacy 2014 UI mode
-// @route   POST /api/theme-engine/legacy-2014
-// @access  Private
 exports.toggleLegacy2014 = async (req, res) => {
   try {
     const user = await getUser(req, res);
@@ -300,7 +464,7 @@ exports.toggleLegacy2014 = async (req, res) => {
     const { enabled } = req.body;
     const existing = user.themeEngineSettings?.toObject?.() || user.themeEngineSettings || {};
 
-    user.themeEngineSettings = mergeSettings({
+    user.themeEngineSettings = mergeSettings(THEME_DEFAULTS, {
       ...existing,
       legacy2014Mode: enabled !== undefined ? enabled : !existing.legacy2014Mode
     });
@@ -314,15 +478,12 @@ exports.toggleLegacy2014 = async (req, res) => {
   }
 };
 
-// @desc    Reset theme engine settings to default
-// @route   POST /api/theme-engine/reset
-// @access  Private
 exports.resetThemeEngineSettings = async (req, res) => {
   try {
     const user = await getUser(req, res);
     if (!user) return;
 
-    user.themeEngineSettings = mergeSettings({});
+    user.themeEngineSettings = mergeSettings(THEME_DEFAULTS, {});
     user.markModified('themeEngineSettings');
     await user.save();
 

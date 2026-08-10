@@ -4,7 +4,7 @@ const {
   getSettings,
   updateSettings,
   resetSettings
-} = require('../controllers/settingsController');
+} = require('../controllers/userSettingsController');
 const { protect } = require('../middleware/auth');
 
 // All settings routes require authentication

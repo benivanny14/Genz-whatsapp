@@ -12,7 +12,7 @@ const {
   updateThemeEngineSettings,
   updateThemeMode,
   updateUICustomization,
-} = require('../controllers/themeEngineController');
+} = require('../controllers/userSettingsController');
 
 router.use(protect);
 
