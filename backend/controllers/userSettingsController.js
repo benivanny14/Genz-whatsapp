@@ -21,6 +21,18 @@ const { getUser, mergeSettings, createSettingsMerger } = require('../services/us
 
 // ── Shared helpers (previously duplicated across all three controllers) ─────
 
+// Mongoose drops undefined keys on save and JSON.stringify omits them, but the
+// in-memory settings object would otherwise keep explicit `key: undefined`
+// entries that shadow the merged defaults (e.g. `customBubbleColor || existing`
+// when neither is set). Strip them so update responses always carry the full
+// merged defaults — same class of fix as whatsappWeb.updateSyncSettings.
+const compactSettings = (settings) => {
+  Object.keys(settings).forEach((key) => {
+    if (settings[key] === undefined) delete settings[key];
+  });
+  return settings;
+};
+
 
 
 // ── User settings (route prefix /api/settings) ──────────────────────────────
@@ -140,7 +152,7 @@ const toggleCustomizationField = async (req, res, field, logLabel) => {
     const existing = user.customizationModsSettings?.toObject?.() || user.customizationModsSettings || {};
     const newValue = !existing[field];
 
-    user.customizationModsSettings = mergeSettings(CUSTOMIZATION_DEFAULTS, { ...existing, [field]: newValue });
+    user.customizationModsSettings = mergeSettings(CUSTOMIZATION_DEFAULTS, compactSettings({ ...existing, [field]: newValue }));
     user.markModified('customizationModsSettings');
     await user.save();
 
@@ -172,7 +184,7 @@ exports.updateCustomizationModsSettings = async (req, res) => {
     const incoming = req.body.settings || req.body;
     const existing = user.customizationModsSettings?.toObject?.() || user.customizationModsSettings || {};
 
-    user.customizationModsSettings = mergeSettings(CUSTOMIZATION_DEFAULTS, { ...existing, ...incoming });
+    user.customizationModsSettings = mergeSettings(CUSTOMIZATION_DEFAULTS, compactSettings({ ...existing, ...incoming }));
     user.markModified('customizationModsSettings');
     await user.save();
 
@@ -258,7 +270,7 @@ exports.updateThemeEngineSettings = async (req, res) => {
     const incoming = req.body.settings || req.body;
     const existing = user.themeEngineSettings?.toObject?.() || user.themeEngineSettings || {};
 
-    user.themeEngineSettings = mergeSettings(THEME_DEFAULTS, { ...existing, ...incoming });
+    user.themeEngineSettings = mergeSettings(THEME_DEFAULTS, compactSettings({ ...existing, ...incoming }));
     user.markModified('themeEngineSettings');
     await user.save();
 
@@ -284,6 +296,7 @@ exports.updateFontSettings = async (req, res) => {
       customFontSize: customFontSize !== undefined ? customFontSize : existing.customFontSize,
       customFontEnabled: customFontEnabled !== undefined ? customFontEnabled : existing.customFontEnabled
     });
+    user.themeEngineSettings = mergeSettings(THEME_DEFAULTS, compactSettings(user.themeEngineSettings));
     user.markModified('themeEngineSettings');
     await user.save();
 
@@ -307,6 +320,7 @@ exports.updateThemeMode = async (req, res) => {
       themeMode: themeMode || existing.themeMode,
       amoledMode: amoledMode !== undefined ? amoledMode : existing.amoledMode
     });
+    user.themeEngineSettings = mergeSettings(THEME_DEFAULTS, compactSettings(user.themeEngineSettings));
     user.markModified('themeEngineSettings');
     await user.save();
 
@@ -346,6 +360,7 @@ exports.updateCustomColors = async (req, res) => {
       customHeaderColorEnabled: customHeaderColorEnabled !== undefined ? customHeaderColorEnabled : existing.customHeaderColorEnabled,
       customStatusBarColorEnabled: customStatusBarColorEnabled !== undefined ? customStatusBarColorEnabled : existing.customStatusBarColorEnabled
     });
+    user.themeEngineSettings = mergeSettings(THEME_DEFAULTS, compactSettings(user.themeEngineSettings));
     user.markModified('themeEngineSettings');
     await user.save();
 
@@ -389,6 +404,7 @@ exports.updateUICustomization = async (req, res) => {
       homeScreenStyle: homeScreenStyle || existing.homeScreenStyle,
       conversationEntryStyle: conversationEntryStyle || existing.conversationEntryStyle
     });
+    user.themeEngineSettings = mergeSettings(THEME_DEFAULTS, compactSettings(user.themeEngineSettings));
     user.markModified('themeEngineSettings');
     await user.save();
 
@@ -435,6 +451,7 @@ exports.toggleThemeEngine = async (req, res) => {
       ...existing,
       themeEngineEnabled: enabled !== undefined ? enabled : !existing.themeEngineEnabled
     });
+    user.themeEngineSettings = mergeSettings(THEME_DEFAULTS, compactSettings(user.themeEngineSettings));
     user.markModified('themeEngineSettings');
     await user.save();
 
@@ -457,6 +474,7 @@ exports.toggleLegacy2014 = async (req, res) => {
       ...existing,
       legacy2014Mode: enabled !== undefined ? enabled : !existing.legacy2014Mode
     });
+    user.themeEngineSettings = mergeSettings(THEME_DEFAULTS, compactSettings(user.themeEngineSettings));
     user.markModified('themeEngineSettings');
     await user.save();
 
