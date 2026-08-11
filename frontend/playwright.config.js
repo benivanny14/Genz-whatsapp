@@ -7,6 +7,10 @@ export default defineConfig({
   testDir: './e2e',
   timeout: 60_000,
   retries: isCI ? 1 : 0,
+  // The e2e suite registers users against the live backend, which rate-limits
+  // auth endpoints (authSensitiveLimiter, 20 per 15 min in dev). Running the
+  // workers serially avoids parallel bursts tripping that limit.
+  workers: 1,
   use: {
     baseURL,
     trace: 'on-first-retry'
