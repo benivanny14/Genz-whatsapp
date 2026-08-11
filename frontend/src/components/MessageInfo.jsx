@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useChat } from '../context/ChatContext';
 import { X, Check, CheckCheck, Clock, Eye, Forward, Users, History, X as XIcon, RotateCcw } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
 const MessageInfo = ({ messageId, onClose }) => {
   const [info, setInfo] = useState(null);
@@ -23,8 +25,6 @@ const MessageInfo = ({ messageId, onClose }) => {
 
   const fetchEditHistory = async () => {
     try {
-      const { authFetch } = await import('../utils/authFetch');
-      const { resolveApiBase } = await import('../utils/resolveApiBase');
       const API_URL = resolveApiBase();
       const response = await authFetch(`${API_URL}/chat/messages/${messageId}/edit-history`);
       const data = await response.json();

@@ -17,6 +17,8 @@ import {
 import MessageInfo from './MessageInfo';
 import ForwardDialog from './ForwardDialog';
 import ReportDialog from './ReportDialog';
+import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
 const MessageContextMenu = ({
   message,
@@ -128,8 +130,6 @@ const MessageContextMenu = ({
       icon: <FiLock size={18} />,
       label: 'Delete for Everyone',
       onClick: async () => {
-        const { authFetch } = await import('../utils/authFetch');
-        const { resolveApiBase } = await import('../utils/resolveApiBase');
         const API_URL = resolveApiBase();
         try {
           await authFetch(`${API_URL}/chat/messages/${message._id || message.id}/admin-delete-for-everyone`, {
@@ -151,8 +151,6 @@ const MessageContextMenu = ({
       label: message.keptBy && message.keptBy.length > 0 ? 'Unkeep' : 'Keep in chat',
       onClick: async () => {
         try {
-          const { authFetch } = await import('../utils/authFetch');
-          const { resolveApiBase } = await import('../utils/resolveApiBase');
           const API_URL = resolveApiBase();
           await authFetch(`${API_URL}/chat/messages/${message._id || message.id}/keep`, {
             method: 'PUT',

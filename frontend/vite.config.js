@@ -19,19 +19,33 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('framer-motion')) return 'vendor-motion';
-            if (id.includes('lucide-react')) return 'vendor-icons';
-            if (id.includes('socket.io-client')) return 'vendor-socket';
-            if (id.includes('react-dom') || id.includes('react-router')) return 'vendor-react';
-            return 'vendor';
-          }
-          if (id.includes('/components/ChatArea')) return 'chat-area';
+        // Vite 8 (rolldown): manualChunks is deprecated — use advancedChunks
+        // groups. Split vendor libs for caching and the chat subtree into
+        // separately-cached chunks so one panel change doesn't invalidate the
+        // whole chat bundle.
+        advancedChunks: {
+          groups: [
+            { name: 'vendor-motion', test: /framer-motion/ },
+            { name: 'vendor-icons', test: /lucide-react/ },
+            { name: 'vendor-socket', test: /socket\.io-client/ },
+            { name: 'vendor-react', test: /react-dom|react-router/ },
+            { name: 'vendor-maps', test: /leaflet/ },
+            { name: 'vendor', test: /node_modules/ },
+            { name: 'chat-modals', test: /components\/ChatModals/ },
+            { name: 'chat-bubbles', test: /components\/MessageBubbleList/ },
+            { name: 'chat-composer', test: /components\/MessageComposer/ },
+            { name: 'chat-header', test: /components\/ConversationHeader/ },
+            { name: 'chat-list', test: /components\/MessageListArea/ },
+            { name: 'chat-area', test: /components\/ChatArea/ }
+          ]
         }
       }
     },
-    chunkSizeWarningLimit: 600
+    // FeatureLibrary (optional page) is 693 kB raw / ~104 kB gzip — it
+    // statically imports dozens of feature components, so it stays a single
+    // page chunk; the limit is raised past it so only genuinely oversized
+    // bundles warn.
+    chunkSizeWarningLimit: 750
   },
   server: {
     port: devPort,

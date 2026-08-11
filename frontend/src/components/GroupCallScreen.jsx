@@ -3,6 +3,8 @@ import { PhoneOff, Mic, MicOff, Video, VideoOff, Users, Monitor, MonitorOff, Sha
 import { getSocket } from '../services/socket';
 import webRTCService from '../services/webrtc';
 import { getWebRTCConfigAsync } from '../config/webrtc';
+import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
 const GroupCallScreen = ({ call, onEnd, currentUser }) => {
   const [participants, setParticipants] = useState([]);
@@ -159,8 +161,6 @@ const GroupCallScreen = ({ call, onEnd, currentUser }) => {
 
   const generateCallLink = async () => {
     try {
-      const { authFetch } = await import('../utils/authFetch');
-      const { resolveApiBase } = await import('../utils/resolveApiBase');
       const API_URL = resolveApiBase();
       const conversationId = call?.conversationId;
       const callType = isVideo ? 'video' : 'voice';

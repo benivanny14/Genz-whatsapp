@@ -1,5 +1,6 @@
 const DEVICE_ID_KEY = 'genz_device_id';
 const DEVICE_INFO_KEY = 'genz_device_info';
+import db from './indexedDB';
 
 // Get or generate device ID
 export const getDeviceId = () => {
@@ -65,7 +66,6 @@ export const getDeviceHeaders = () => {
 // Check if device is premium
 export const isDevicePremium = async () => {
   try {
-    const db = (await import('./indexedDB')).default;
     const subscription = await db.getSubscription(getDeviceId());
     return subscription && subscription.active && subscription.expiresAt > new Date().toISOString();
   } catch (error) {
@@ -77,7 +77,6 @@ export const isDevicePremium = async () => {
 // Save premium subscription
 export const savePremiumSubscription = async (subscriptionData) => {
   try {
-    const db = (await import('./indexedDB')).default;
     const subscription = {
       deviceId: getDeviceId(),
       ...subscriptionData,
@@ -95,7 +94,6 @@ export const savePremiumSubscription = async (subscriptionData) => {
 // Get all device settings
 export const getDeviceSettings = async () => {
   try {
-    const db = (await import('./indexedDB')).default;
     const settings = await db.getAllSettings();
     const settingsObj = {};
     settings.forEach(setting => {
@@ -111,7 +109,6 @@ export const getDeviceSettings = async () => {
 // Save device setting
 export const saveDeviceSetting = async (key, value) => {
   try {
-    const db = (await import('./indexedDB')).default;
     await db.saveSetting(key, value);
     return true;
   } catch (error) {

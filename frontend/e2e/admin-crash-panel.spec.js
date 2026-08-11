@@ -14,9 +14,13 @@ import crypto from 'node:crypto';
  * The spec reads MONGODB_URI from the environment (CI's e2e job sets it);
  * locally point it at an isolated MongoDB.
  */
-const TOTP_SECRET = 'JBSWY3DPEHPK3PXP'; // must match e2e-admin-prep.js
-const ADMIN_USERNAME = 'e2e_admin';
-const ADMIN_PASSWORD = 'AdminE2E@2026!';
+// Per-spec credentials: this spec provisions its OWN AdminOwner identity so
+// parallel workers never share login state with abuse-report.spec.js. Must
+// match the E2E_ADMIN_* env passed to e2e-admin-prep.js below.
+const TOTP_SECRET = 'JBSWY3DPEHPK3PXA';
+const ADMIN_USERNAME = 'e2e_admin_crash';
+const ADMIN_PASSWORD = 'CrashPanelE2E@2026!';
+const ADMIN_OWNER_KEY = 'E2E_OWNER_CRASH_PANEL';
 
 const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
@@ -60,7 +64,14 @@ test.beforeAll(() => {
   const repoRoot = path.resolve(process.cwd(), '..');
   execFileSync('node', ['backend/scripts/e2e-admin-prep.js'], {
     cwd: repoRoot,
-    env: { ...process.env, MONGODB_URI: uri },
+    env: {
+      ...process.env,
+      MONGODB_URI: uri,
+      E2E_ADMIN_USERNAME: ADMIN_USERNAME,
+      E2E_ADMIN_PASSWORD: ADMIN_PASSWORD,
+      E2E_ADMIN_TOTP_SECRET: TOTP_SECRET,
+      E2E_ADMIN_OWNER_KEY: ADMIN_OWNER_KEY
+    },
     stdio: 'pipe'
   });
 });

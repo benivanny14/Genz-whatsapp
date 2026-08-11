@@ -3,6 +3,8 @@ import { Phone, Video, Mic, MicOff, Camera, CameraOff, PhoneOff, Volume2, Volume
 import webRTCService from '../services/webrtc';
 import { playCallRingtone } from '../utils/soundPlayer';
 import { getSocket } from '../services/socket';
+import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
 const stopStream = (stream) => stream?.getTracks?.().forEach((t) => t.stop());
 
@@ -311,8 +313,6 @@ const CallScreen = ({ call, onEndCall, onAcceptCall, onRejectCall }) => {
 
   const generateCallLink = async () => {
     try {
-      const { authFetch } = await import('../utils/authFetch');
-      const { resolveApiBase } = await import('../utils/resolveApiBase');
       const API_URL = resolveApiBase();
       const conversationId = call?.conversationId;
       const isGroup = call?.isGroup || false;

@@ -1003,8 +1003,7 @@ export const ChatProvider = ({ children }) => {
         try {
           if ('serviceWorker' in navigator && 'PushManager' in window && Notification.permission === 'granted') {
             const reg = await navigator.serviceWorker.ready;
-            const { subscribeToWebPush } = await import('../services/notificationService');
-            await subscribeToWebPush(reg);
+            await notificationService.subscribeToWebPush(reg);
           }
         } catch (pushErr) {
           console.warn('[Push] Auto-subscribe failed:', pushErr?.message);

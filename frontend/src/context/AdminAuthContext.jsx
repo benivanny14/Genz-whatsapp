@@ -65,7 +65,11 @@ export const AdminAuthProvider = ({ children }) => {
   }, [pendingPreAuthToken]);
 
   const logout = useCallback(async () => {
-    try { await adminAuthClient.post('/logout'); } catch { /* best effort */ }
+    // Send the refresh token so the backend revokes THIS owner's session
+    // (multi-owner setups: the token identifies which owner to clear).
+    try {
+      await adminAuthClient.post('/logout', { refreshToken: adminTokenStore.getRefreshToken() });
+    } catch { /* best effort */ }
     adminTokenStore.clear();
     setIsAuthenticated(false);
     setAdmin(null);
