@@ -88,6 +88,39 @@ const ComingSoonPanel = ({ label }) => (
 );
 
 // ---------------------------------------------------------------------
+// Reads the ErrorBoundary's per-route crash counters (localStorage) recorded
+// in this browser — a lightweight frontend-regression signal without an
+// external error service. Shows only what this admin browser has observed.
+const FrontendCrashesPanel = () => {
+  const [crashes, setCrashes] = useState(null);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('genz_boundary_crashes');
+      setCrashes(raw ? JSON.parse(raw) : {});
+    } catch {
+      setCrashes({});
+    }
+  }, []);
+  const entries = Object.entries(crashes || {}).filter(([, count]) => count > 0);
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+      <h3 className="text-gray-800 dark:text-gray-200 font-medium mb-3">Frontend Crashes (browser)</h3>
+      {entries.length === 0 ? (
+        <p className="text-sm text-gray-400">Hakuna crashes zilizorekodiwa katika kivinjari hiki.</p>
+      ) : (
+        <div className="space-y-2">
+          {entries.map(([route, count]) => (
+            <div key={route} className="flex justify-between text-sm border-b border-gray-100 dark:border-gray-800 pb-2">
+              <span className="text-gray-700 dark:text-gray-300 font-mono">{route}</span>
+              <span className="text-red-500 font-medium">{count}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Section: Overview
 // ---------------------------------------------------------------------
 const OverviewSection = () => {
@@ -136,6 +169,8 @@ const OverviewSection = () => {
           ))}
         </div>
       </div>
+
+      <FrontendCrashesPanel />
     </div>
   );
 };
