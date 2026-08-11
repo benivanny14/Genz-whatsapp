@@ -102,9 +102,13 @@ WHATSAPP_CLOUD_API_TOKEN=...   # (see backend/services/whatsappCloudApiService.j
 
 ## 🟡 Security housekeeping
 
-- [ ] `npm audit` cleanup: backend 21 vulns (1 low, 20 moderate), frontend had 4
-      high (removed by dropping the unused `firebase` dependency — re-run
-      `npm audit` after install).
+- [x] `npm audit` cleanup (as of 2026-08-11): backend **0 high / 0 critical**;
+      16 moderate remain, all transitive from `artillery` (load-testing dev
+      tool, via `@opentelemetry/*`) — the only fix is a breaking
+      `artillery@1.7.9` upgrade, so runtime dependencies are clean. Frontend:
+      **0 vulnerabilities** after the `vite@5` → `vite@8.2.1` upgrade (with
+      `@vitejs/plugin-react@6`). Re-run `npm audit` after any dependency
+      change.
 - [ ] `JWT_SECRET`, `JWT_REFRESH_SECRET` (different!), `ADMIN_JWT_SECRET`,
       `ADMIN_BOOTSTRAP_TOKEN` — all strong random strings ≥ 32 chars.
 - [ ] `BACKUP_ENCRYPTION_KEY`, `MESSAGE_ENCRYPTION_SECRET` — strong random

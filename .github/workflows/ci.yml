@@ -64,14 +64,14 @@ jobs:
           cd backend
           npm ci --legacy-peer-deps
 
-      - name: Run deleted-messages integration test (isolated DB)
+      - name: Run integration tests (isolated DB)
         run: |
           cd backend
           MONGO_TEST_URI=mongodb://127.0.0.1:27017/genz-integration-test \
           JWT_SECRET=ci-it-only-jwt-secret-0123456789abcdef \
           JWT_REFRESH_SECRET=ci-it-only-refresh-secret-0123456789abcdef \
           ADMIN_JWT_SECRET=ci-it-only-admin-secret-0123456789abcdef \
-          npx jest tests/deletedMessageIntegration.test.js --runInBand --forceExit
+          npx jest tests/deletedMessageIntegration.test.js tests/adminPrepIntegration.test.js --runInBand --forceExit
 
   frontend-tests:
     name: Frontend tests + build
@@ -139,6 +139,17 @@ jobs:
       # in production. We build the frontend and boot the backend directly
       # (no Vite dev proxy), then Playwright targets http://127.0.0.1:5000
       # (reuseExistingServer skips its own `vite preview` webServer).
+      #
+      # The suite includes DB-backed specs that register real users against the
+      # backend: privacy-selectors, mass-message, abuse-report, admin-crash-
+      # panel, settings-tabs, chat-interactions, bubble-interactions, header-
+      # composer, anti-revoke, block-flow, voice, deleted-messages-boundary.
+      # mass-message exercises the 20-recipient cap and 5/hour rate limit;
+      # abuse-report drives report → admin list → resolve. Both admin specs
+      # provision the shared `e2e_admin` AdminOwner via
+      # backend/scripts/e2e-admin-prep.js against MONGODB_URI below — the prep
+      # upserts atomically, so the specs are safe to run in parallel workers
+      # (proven by tests/adminPrepIntegration.test.js in the integration job).
       - name: Build frontend
         working-directory: frontend
         run: npm run build
@@ -151,7 +162,18 @@ jobs:
           NODE_ENV: development
           PORT: '5000'
           JWT_EXPIRE: 7d
-          MONGODB_URI: mongodb://127.0.0.1:27017/genz-whatsapp
+          # Isolated test database on the throwaway mongo service container
+          # (never the real 'genz-whatsapp' DB). MONGODB_URI (backend) and
+          # MONGO_URI (specs/prep scripts) must point at the SAME database:
+          # e2e/global-setup.js fails the run if they diverge instead of
+          # leaking test users into another database.
+          MONGODB_URI: mongodb://127.0.0.1:27017/genz-e2e-test
+          MONGO_URI: mongodb://127.0.0.1:27017/genz-e2e-test
+          # Raised ONLY for the 8-worker admin-parallel stress step below: the
+          # strict default (10 admin-login requests/15 min per IP) would trip
+          # with 8 concurrent login flows. CI runs throwaway secrets on an
+          # ephemeral runner, so this has zero production impact.
+          ADMIN_LOGIN_MAX: '100'
           PHONE_VERIFICATION_REQUIRED: 'false'
           # CI-only throwaway signing secrets (never used outside this workflow).
           JWT_SECRET: ${{ secrets.CI_JWT_SECRET || 'ci-e2e-only-jwt-secret-0123456789abcdef' }}
@@ -188,6 +210,18 @@ jobs:
           # the dev stack is still up; unique users per run, no DB wiping.
           if ! (cd ../backend && node scripts/e2e-deleted-message.js http://127.0.0.1:5000); then
             echo "::error::Deleted-message socket e2e failed"
+            STATUS=1
+          fi
+
+          # Parallel-admin stress: re-run ONLY the two admin specs with 8
+          # Playwright workers (--repeat-each makes 8 file instances share the
+          # workers). Per-spec credentials + race-safe prep must hold under
+          # maximum parallelism — this is the proof the 2-core default (1
+          # worker) never exercises. ADMIN_LOGIN_MAX above keeps the strict
+          # admin rate limiter from masking the test.
+          if ! PLAYWRIGHT_BASE_URL=http://127.0.0.1:5000 npx playwright test e2e/admin-crash-panel.spec.js e2e/abuse-report.spec.js --workers=8 --repeat-each=4 > /tmp/pw-admin-parallel.log 2>&1; then
+            echo "::error::Parallel admin specs (8 workers) failed"
+            grep -E "passed|failed|Error:|expect\(|Timeout|Too many" /tmp/pw-admin-parallel.log | tail -10 | sed 's/^/::error::/' | head -6
             STATUS=1
           fi
           kill $DEV_PID 2>/dev/null || true

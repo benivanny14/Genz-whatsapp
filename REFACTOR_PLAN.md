@@ -531,6 +531,7 @@ nakala ya `getUser` (na ~34 zina `mergeSettings`), zikiwemo:
 
 ## Vigezo vya "done" kwa kila hatua
 - [x] `node -c` inapita kwa faili zote zilizobadilika
-- [x] `npm test` inapita (**1534 tests backend + 26 frontend** kwa sasa)
+- [x] `npm test` inapita (**1613 tests backend + 71 frontend** kwa sasa)
+- [x] `npm run check:exports` inapita (kila handler inayorequirewa na route ipo kwenye controller)
 - [x] Route paths za nje hazijabadilika (diff ya routes ni import-only)
-- [x] Feature smoke test (`scripts/feature-smoke-test.js`) inapita kwa endpoints zilizoguswa
+- [x] Feature smoke test (`backend/scripts/feature-smoke-test.js`) inapita kwa endpoints zilizoguswa

@@ -6,7 +6,7 @@ This guide will help you set up GENZ WhatsApp for deployment using free services
 
 ## ✅ Issues Fixed
 
-1. **Registration Password Validation** - Relaxed from strict requirements to minimum 6 characters
+1. **Registration Password Validation** - Strict policy: minimum 12 characters, must include uppercase, lowercase, digit, and special character (enforced on register, password change, and reset)
 2. **Schedule Message Modal** - Fixed button click handler with type="button"
 3. **Docker Compose Profiles** - Removed confusing profiles for easier deployment
 4. **Environment Variables** - Added clear instructions for all required services
@@ -254,13 +254,16 @@ VITE_REQUIRE_AUTH=true
 curl https://your-backend-url.onrender.com/api/health
 ```
 
-Expected response: `{"status":"ok"}`
+Expected response:
+```json
+{"success":true,"status":"ok","services":{"mongo":"connected","redis":"connected","mediaStorage":"cloudinary"}}
+```
 
 ### 2. Test Registration
 
 1. Open your frontend URL
 2. Click "Register"
-3. Enter username, phone number, and password (min 6 chars)
+3. Enter username, phone number, and a strong password (min 12 chars + uppercase, lowercase, digit, special)
 4. Click "Sign Up"
 5. You should be logged in successfully
 
@@ -322,7 +325,7 @@ Expected response: `{"status":"ok"}`
 
 ## 📊 System Status After Setup
 
-- ✅ Registration: Working (6+ char passwords)
+- ✅ Registration: Working (min 12 chars + complexity)
 - ✅ Schedule Messages: Working (modal fixed)
 - ✅ Media Storage: Working (Cloudinary)
 - ✅ Database: Working (MongoDB Atlas)

@@ -7,6 +7,42 @@
 
 ---
 
+## Status Update (2026-08-11)
+
+Automated coverage has been added since this report was written:
+
+- **`backend/tests/privacyController.unit.test.js`** covers
+  `privacyContactsController` end-to-end at the unit level: list / add /
+  remove / bulk-add / clear for **both** excluded and allowed contacts,
+  duplicate handling ("Already excluded"), and validation rejections. It
+  also covers the `privacyController` MODs toggles (`it.each` over 13
+  toggles), toggle-back-to-false, 401 auth, and 500 error paths.
+- **`backend/tests/privacyEngine.unit.test.js`** (new) covers the full
+  permission matrix of `applyPrivacyFilter`: everyone / contacts /
+  contacts_except (excluded-list lookup) / nobody / only_share_with
+  (allowed-list lookup), `online: same_as_last_seen` inheritance, unknown-
+  setting fallback, graceful degradation when the excluded/allowed queries
+  fail, PII stripping (contacts/settings/encryptionKeys/publicKey), owner
+  bypass, and mongoose `toObject()` documents. It also covers the
+  `privacyMiddleware` (single user, arrays of users/participants/members,
+  no-auth passthrough) plus `filterUserData`/`checkPrivacyPermission`.
+- **`frontend/src/tests/privacySelectors.test.js`** (new) renders
+  `PrivacyPermissionSelector` (labels/descriptions per option, checkmark on
+  the current value, online sub-section) and `ContactSelectorScreen`
+  (header/subtitle/Done, alphabetical sort, pre-selected count, Select All,
+  empty state) through Vite's SSR loader under `node --test`.
+- **Still outstanding** (per the checklists below): manual/e2e verification
+  of realtime socket sync and the contact-selector interactions
+  (search, toggle, select-all) in a live browser.
+
+Backend suite as of this date: **1613 passed / 3 skipped** (76 suites),
+`npm run check` (321 files) and `npm run check:exports` green, frontend
+**71/71** tests + production build green (vite 8, 0 audit vulnerabilities),
+plus a Playwright e2e spec (`privacy-selectors.spec.js`) that switches
+privacy options in the live UI and verifies server persistence.
+
+---
+
 ## Executive Summary
 
 The WhatsApp-exact privacy permission system has been successfully implemented with all core components in place. This report outlines the implemented features, testing requirements, and validation checklist.
@@ -84,7 +120,8 @@ The WhatsApp-exact privacy permission system has been successfully implemented w
   - WebSocket event handlers
 
 #### 6. Realtime Synchronization
-- **WebSocket Events** (`backend/socket/index.js`)
+- **WebSocket Events** (`backend/socket/index.js` — thin registration layer;
+  handlers live in `backend/socket/handlers/`)
   - `privacy:settings_changed` - Broadcasts permission changes
   - `privacy:excluded_changed` - Broadcasts excluded list changes
   - `privacy:allowed_changed` - Broadcasts allowed list changes
@@ -318,7 +355,7 @@ The WhatsApp-exact privacy permission system has been successfully implemented w
 - `backend/routes/privacyContactsRoutes.js` (Created)
 - `backend/utils/privacyHelper.js` (Modified)
 - `backend/middleware/privacy.js` (Modified)
-- `backend/socket/index.js` (Modified)
+- `backend/socket/index.js` (Modified; since split into `backend/socket/handlers/`)
 - `backend/server.js` (Modified)
 
 ### Frontend

@@ -6,7 +6,12 @@ A WhatsApp-like web application built with React (frontend) and Node.js/Express 
 
 **Current status: BETA — works for small user groups, not yet proven at scale.**
 
-Verified: backend syntax check passes (240 files), backend tests pass (87/87), frontend production build passes.
+Verified (2026-08-11): backend syntax check passes (322 files), backend
+route-export check passes, backend tests pass (1613 passed / 3 skipped),
+frontend tests pass (71/71), frontend production build passes (no chunk
+warnings after the chat-subtree split), frontend `npm audit` is clean (0
+vulnerabilities after the vite 8 upgrade), and the Playwright e2e suite
+runs in CI.
 
 Before onboarding many users, complete the checklist in `PRODUCTION_READINESS.md` (Cloudinary media storage, Redis, TURN for calls, payment-process automation, npm audit cleanup). The React Native app in `react-native/` is a **static mock prototype** — it is not connected to this backend and must not be shipped to users as-is.
 
@@ -101,6 +106,7 @@ The following hardening was applied to the backend:
 
 **Dependency audit (2026-08-11)**
 - `npm audit`: **0 high / 0 critical**. 16 moderate advisories remain, all transitively from `artillery` (load-testing dev tool, via `@opentelemetry/*`); the only fix is a breaking `artillery@1.7.9` upgrade. Runtime dependencies are clean.
+- Frontend `npm audit`: **0 vulnerabilities** after upgrading `vite@5` → `vite@8.2.1` (with `@vitejs/plugin-react@6`) — the previous 1 high + 1 moderate (`vite`/`esbuild`) are gone. Runtime dependencies are clean.
 
 ## 📋 Prerequisites
 
@@ -315,44 +321,60 @@ GENZ/
 
 ## 🔧 API Endpoints
 
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
-- `GET /api/auth/me` - Get current user
-- `PUT /api/auth/profile` - Update profile
-- `POST /api/auth/logout` - Logout user
-- `PUT /api/auth/settings` - Update settings
+Every public route is mounted under **both** `/api/...` (legacy, what the
+current frontend calls) and `/api/v1/...` (versioned namespace — **new code
+should use `/api/v1`**). Routes are declared once in `API_ROUTE_MOUNTS` in
+`backend/server.js`, so adding a route there versions it for free. All
+user-facing endpoints require a JWT (unless noted); responses default to
+`Cache-Control: no-store`.
 
-### Chat
-- `GET /api/chat/conversations` - Get all conversations
-- `GET /api/chat/conversations/:id` - Get single conversation
-- `POST /api/chat/conversation` - Create/get one-to-one conversation
-- `POST /api/chat/groups` - Create group
-- `GET /api/chat/conversations/:id/messages` - Get messages
-- `POST /api/chat/messages` - Send message
-- `PUT /api/chat/messages/:id` - Edit message
-- `DELETE /api/chat/messages/:id` - Delete message
-- `POST /api/chat/messages/:id/reactions` - Add reaction
-- `DELETE /api/chat/messages/:id/reactions` - Remove reaction
-- `GET /api/chat/users/search` - Search users
-- `POST /api/chat/contacts` - Add contact
-- `GET /api/chat/contacts` - Get contacts
+### Core
+- `/api/auth` — register, login, refresh, logout, `/me`, profile, settings, OTP verification, blocked users, passkeys (WebAuthn)
+- `/api/chat` — conversations, messages, groups, contacts, search, archive, block/unblock, reactions, pin/star, read receipts, disappearing messages
+- `/api/media` — upload (single/multiple), delete, file info, signed URLs, transforms, thumbnails, cleanup
+- `/api/advanced` — AI assistant, translate, schedule message, statuses, broadcast, search messages
+- `/api/status` + `/api/status-advanced` — status posts, views, likes, comments, viewer lists
+- `/api/calls` + `/api/webrtc` — call signaling + WebRTC config
+- `/api/voice` — voice/video notes
+- `/api/notifications` — notification settings + web push subscriptions
+- `/api/encryption` — E2EE key exchange (mod, off by default)
+- `/api/device` — linked devices (pair/unpair)
+- `/api/security` — 2FA (TOTP), security settings, sessions
+- `/api/settings` — WhatsApp-style settings get/update/reset
+- `/api/privacy` — privacy permission system (excluded/allowed contacts per privacy type)
+- `/api/contacts` — phone-book contacts sync
+- `/api/communities` + `/api/groups` — communities + group invite links
+- `/api/payments` + `/api/payment/manual` + `/api/admin/manual-payments` + `/api/payment-features` — Premium payment flow (manual mobile-money approval)
+- `/api/products` — product catalog
+- `/api/admin` — admin panel (obscured base path, see `ADMIN_BASE_PATH`)
+- `/api/backup` — chat backup/restore
+- `/api/stickers` — custom sticker packs
+- `/api/channels` — broadcast channels
+- `/api/telemetry` — opt-in client crash reporting
+- `/api/location-sharing` — live location sharing
 
-### Media
-- `POST /api/media/upload` - Upload single file
-- `POST /api/media/upload-multiple` - Upload multiple files
+### GENZ Mods / feature toggles (all under `/api`, each returns settings + toggles)
+- `/api/anti-revoke`, `/api/anti-ban` — anti-revoke (see deleted messages) + anti-ban
+- `/api/privacy-mods`, `/api/media-mods`, `/api/customization-mods`, `/api/automation-mods`,
+  `/api/security-mods`, `/api/chat-list-mods`, `/api/message-mods`, `/api/group-mods`,
+  `/api/genz-mods` — per-feature MODs toggles
+- `/api/chat-filter`, `/api/chat-sort`, `/api/chat-search`, `/api/chat-folders` — chat organization
+- `/api/group-features`, `/api/status-features`, `/api/call-features`, `/api/call-blocker` — feature toggles
+- `/api/message-translator`, `/api/text-repeater`, `/api/live-reactions`, `/api/story-highlights`,
+  `/api/quick-actions`, `/api/chat-analyzer`, `/api/fake-chat`, `/api/gif-player` — feature toggles
+- `/api/bulk-sender`, `/api/multi-accounts`, `/api/whatsapp-web` — WhatsApp session management
+- `/api/business-account`, `/api/file-manager`, `/api/storage-manager`, `/api/data-usage`, `/api/cache-cleaner`
+- `/api/media-compressor` (sharp/ffmpeg compression + stats), `/api/media-editor` (image/video/audio edit)
+- `/api/theme-engine` — theme customization
+- `/api/scheduled-messages` — dedicated scheduled-message routes
 
-### Advanced Features
-- `POST /api/advanced/ai-assistant` - AI assistant
-- `POST /api/advanced/translate` - Translate message
-- `POST /api/advanced/schedule-message` - Schedule message
-- `GET /api/advanced/scheduled-messages` - Get scheduled messages
-- `POST /api/advanced/status` - Create status
-- `GET /api/advanced/status` - Get statuses
-- `POST /api/advanced/broadcast` - Create broadcast
-- `GET /api/advanced/broadcast` - Get broadcasts
-- `PUT /api/advanced/conversations/:id/disappearing-messages` - Set disappearing messages
-- `GET /api/advanced/search-messages` - Search messages
+### Examples
+- `POST /api/v1/auth/register` — register new user
+- `POST /api/v1/auth/login` — login user
+- `GET /api/v1/chat/conversations` — get all conversations
+- `POST /api/v1/chat/messages` — send message
+- `POST /api/v1/media/upload` — upload a file
+- `GET /api/health` — service health (`mongo`/`redis`/`mediaStorage`); also `/api/v1/health`, `/api/health/live`, `/api/health/ready`
 
 ## 🔒 Security Features
 
