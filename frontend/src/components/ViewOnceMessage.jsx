@@ -26,7 +26,7 @@ const ViewOnceMessage = ({ message, onViewed, onClose }) => {
     };
     const handleVisibility = () => {
       const overlay = document.getElementById('viewonce-msg-blur-overlay');
-      if (overlay) overlay.style.display = document.hidden ? 'none' : 'none';
+      if (overlay) overlay.style.display = document.hidden ? 'block' : 'none';
     };
     window.addEventListener('keyup', blockKeys);
     document.addEventListener('visibilitychange', handleVisibility);
