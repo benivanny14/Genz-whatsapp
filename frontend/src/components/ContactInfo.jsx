@@ -30,6 +30,7 @@ import {
 import { authFetch } from '../utils/authFetch';
 import { useChat } from '../context/ChatContext';
 import { resolveApiBase } from '../utils/resolveApiBase';
+import encryptionService from '../services/encryptionService';
 import BlockUserModal from './BlockUserModal';
 
 const API_URL = resolveApiBase() || '/api';
@@ -145,7 +146,44 @@ const FullscreenImageViewer = ({ src, alt, onClose }) => {
 
 /* ───────── Encryption Verification Modal ───────── */
 
-const EncryptionModal = ({ contactName, e2eeEnabled, onClose }) => {
+const EncryptionModal = ({ contactId, contactName, e2eeEnabled, onClose }) => {
+  const [contactFingerprint, setContactFingerprint] = useState(null);
+  const [myFingerprint, setMyFingerprint] = useState(null);
+  const [verified, setVerified] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [cfp, mfp] = await Promise.all([
+          contactId ? encryptionService.getContactKeyFingerprint(contactId) : null,
+          encryptionService.getMyKeyFingerprint()
+        ]);
+        if (!cancelled) {
+          setContactFingerprint(cfp);
+          setMyFingerprint(mfp);
+          setVerified(contactId ? encryptionService.isContactVerified(contactId) : false);
+        }
+      } catch {
+        // Leave fingerprints null on failure.
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [contactId]);
+
+  const toggleVerified = () => {
+    if (!contactId) return;
+    const next = !verified;
+    setVerified(next);
+    encryptionService.setContactVerified(contactId, next);
+    toast.success(next ? `${contactName} marked as verified` : 'Verification removed');
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -187,6 +225,38 @@ const EncryptionModal = ({ contactName, e2eeEnabled, onClose }) => {
               your device before sending.
             </p>
           )}
+
+          {/* Safety-number style fingerprint comparison */}
+          <div className="w-full bg-[#111b21] rounded-xl p-4 border border-white/10">
+            <p className="text-white/50 text-[10px] uppercase tracking-wide mb-2">
+              Compare these fingerprints with {contactName} out-of-band
+            </p>
+            <div className="space-y-2 text-xs font-mono">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-white/40 shrink-0">You</span>
+                <span className="text-white break-all text-right">{loading ? '…' : (myFingerprint || 'No keys registered')}</span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-white/40 shrink-0">{contactName}</span>
+                <span className="text-white break-all text-right">{loading ? '…' : (contactFingerprint || 'No keys registered')}</span>
+              </div>
+            </div>
+            {contactId && (
+              <button
+                onClick={toggleVerified}
+                className={`w-full mt-3 py-2 rounded-lg text-sm font-bold transition-colors ${verified
+                  ? 'bg-white/10 text-[#00a884] hover:bg-white/15'
+                  : 'bg-[#00a884] text-white hover:bg-[#00a884]/80'}`}
+              >
+                {verified ? `✓ ${contactName} verified` : `Mark ${contactName} as verified`}
+              </button>
+            )}
+            {verified && (
+              <p className="text-[#00a884] text-[10px] text-center mt-2">
+                Verified: messages encrypted with this key show a ✓ badge.
+              </p>
+            )}
+          </div>
 
           <button
             onClick={onClose}
@@ -831,6 +901,7 @@ const ContactInfo = ({
         {showEncryptionModal && (
           <EncryptionModal
             key="encryption-modal"
+            contactId={contact?._id}
             contactName={displayName}
             e2eeEnabled={e2eeEnabled}
             onClose={() => setShowEncryptionModal(false)}

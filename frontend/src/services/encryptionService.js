@@ -580,31 +580,100 @@ class EncryptionService {
     }
   }
 
-  // Fetches a sender's key history from the backend (cached per session) and
-  // classifies the key that encrypted a message: 'current' (matches the
-  // registered key), 'old' (matches a rotated key in the backend's
+  // Fetches a user's key history from the backend (cached per session).
+  // Returns { currentPublicKey, history } or null.
+  async getSenderHistory(senderId) {
+    if (!senderId) return null;
+    const cached = this._keyHistoryCache.get(String(senderId));
+    if (cached) return cached;
+    const token = getAuthToken();
+    if (!token) return null;
+    const response = await fetch(`${API_BASE_URL}/encryption/keys/history/${encodeURIComponent(senderId)}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success || !data.history) return null;
+    this._keyHistoryCache.set(String(senderId), data.history);
+    return data.history;
+  }
+
+  // Classifies the key that encrypted a message: 'current' (matches the
+  // sender's registered key), 'old' (matches a rotated key in the backend's
   // encryptionKeyHistory) or 'unknown'.
   async classifySenderKey(senderId, senderPublicKey) {
     if (!senderId || !senderPublicKey) return 'unknown';
     try {
-      let history = this._keyHistoryCache.get(String(senderId));
-      if (!history) {
-        const token = getAuthToken();
-        if (!token) return 'unknown';
-        const response = await fetch(`${API_BASE_URL}/encryption/keys/history/${encodeURIComponent(senderId)}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok || !data.success || !data.history) return 'unknown';
-        history = data.history;
-        this._keyHistoryCache.set(String(senderId), history);
-      }
+      const history = await this.getSenderHistory(senderId);
       return classifyKeyAgainstHistory(senderPublicKey, history);
     } catch (error) {
       console.warn('[EncryptionService] Failed to classify sender key:', error);
       return 'unknown';
+    }
+  }
+
+  // ── Contact verification (safety-number style) ──────────────────────────
+
+  getVerifiedContactsMap() {
+    try {
+      return JSON.parse(localStorage.getItem('genz_e2ee_verified_contacts') || '{}');
+    } catch {
+      return {};
+    }
+  }
+
+  isContactVerified(userId) {
+    if (!userId) return false;
+    return this.getVerifiedContactsMap()[String(userId)] === true;
+  }
+
+  setContactVerified(userId, verified) {
+    if (!userId) return;
+    const map = this.getVerifiedContactsMap();
+    if (verified) {
+      map[String(userId)] = true;
+    } else {
+      delete map[String(userId)];
+    }
+    localStorage.setItem('genz_e2ee_verified_contacts', JSON.stringify(map));
+  }
+
+  // Fingerprint of my own current public key.
+  async getMyKeyFingerprint() {
+    if (!this.keyPair) return null;
+    try {
+      const subtle = ensureCrypto();
+      const pub = await subtle.exportKey('jwk', this.keyPair.publicKey);
+      return await computeKeyFingerprint(pub);
+    } catch {
+      return null;
+    }
+  }
+
+  // Fingerprint of a contact's current registered public key.
+  async getContactKeyFingerprint(userId) {
+    if (!userId) return null;
+    try {
+      const history = await this.getSenderHistory(userId);
+      if (!history?.currentPublicKey) return null;
+      return await computeKeyFingerprint(history.currentPublicKey);
+    } catch {
+      return null;
+    }
+  }
+
+  // True only when the contact is marked verified AND the message was
+  // encrypted with their current registered key (i.e. the key whose
+  // fingerprint you confirmed out-of-band).
+  async isMessageFromVerifiedContact(senderId, senderPublicKey) {
+    if (!senderId || !senderPublicKey) return false;
+    if (!this.isContactVerified(senderId)) return false;
+    try {
+      const history = await this.getSenderHistory(senderId);
+      return classifyKeyAgainstHistory(senderPublicKey, history) === 'current';
+    } catch {
+      return false;
     }
   }
 

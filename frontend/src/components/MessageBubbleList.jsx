@@ -545,7 +545,9 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                       >
                         <ShieldCheck size={10} className={isOwnMessage(message) ? 'text-white/50' : 'text-dark-textSecondary'} />
                         <span className={`text-[10px] uppercase tracking-wide ${isOwnMessage(message) ? 'text-white/50' : 'text-dark-textSecondary'}`}>
-                          {e2eeKeyInfoOf(message).keyStatus === 'old'
+                          {e2eeKeyInfoOf(message).verified ? (
+                            <span className="text-[#00a884] font-bold">✓ verified</span>
+                          ) : e2eeKeyInfoOf(message).keyStatus === 'old'
                             ? 'old key'
                             : e2eeKeyInfoOf(message).keyStatus === 'current'
                               ? 'new key'

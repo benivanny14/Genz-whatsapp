@@ -389,12 +389,20 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         try {
           const r = await encryptionService.decryptMessage(env);
           if (r?.decryptedData !== undefined) updates[mid] = r.decryptedData;
-          if (r?.fingerprint) {
-            const senderId = m.sender?._id || m.sender;
-            const keyStatus = senderId
-              ? await encryptionService.classifySenderKey(senderId, env.senderPublicKey).catch(() => null)
-              : null;
-            metaUpdates[mid] = { fingerprint: r.fingerprint, keyStatus };
+          const senderId = m.sender?._id || m.sender;
+          // Prefer the stamp the server put on the message at send time (works
+          // on any device, including a fresh one before keys are imported);
+          // fall back to live classification against the sender's history.
+          const fingerprint = r?.fingerprint || m.e2eeKeyFingerprint || null;
+          let keyStatus = m.e2eeKeyStatus || null;
+          if (fingerprint && !keyStatus && senderId) {
+            keyStatus = await encryptionService.classifySenderKey(senderId, env.senderPublicKey).catch(() => null);
+          }
+          const verified = fingerprint && senderId && keyStatus === 'current'
+            ? await encryptionService.isMessageFromVerifiedContact(senderId, env.senderPublicKey).catch(() => false)
+            : false;
+          if (fingerprint) {
+            metaUpdates[mid] = { fingerprint, keyStatus, verified };
           }
         } catch {
           updates[mid] = '🔒 Encrypted message';
