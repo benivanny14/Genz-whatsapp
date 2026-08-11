@@ -65,6 +65,8 @@ import {
 } from '../utils/chatTextHelpers';
 import { renderTextWithMentions, LinkPreviewCard } from '../utils/chatText';
 import MessageBubbleList from './MessageBubbleList';
+import MessageComposer from './MessageComposer';
+import ConversationHeader from './ConversationHeader';
 
 
 const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => { // Added mods and onOpenGENZSettings
@@ -2484,6 +2486,39 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     setShowMessageInfoModal, deleteMessage, handleDeleteForEveryone
   };
 
+  const composerCtx = {
+    replyingTo, setReplyingTo, showMediaPanel, setShowMediaPanel,
+    activeMediaTab, setActiveMediaTab, handleEmojiClick,
+    setSelectedMedia, selectedMedia, editingMessage, setEditingMessage,
+    setMessageInput, messageInput, inputRef, voiceRecorderActive,
+    setVoiceRecorderActive, handleFormatText, handleSendMessage,
+    showAttachmentMenu, setShowAttachmentMenu, isViewOnceEnabled,
+    setIsViewOnceEnabled, handleSchedule, attachmentMenuRef, docInputRef,
+    canSendMedia, currentUserIsAdmin, openCamera, fileInputRef,
+    openAudioAttachment, openVideoNoteRecorder, handleShareLocation,
+    handleContactSimulation, canCreatePolls, setShowPollModal,
+    handleSetDisappearingMessages, selectedConversation,
+    setFloatingStickerMode, setShowPaymentModal, mentionState,
+    mentionSuggestions, selectMention, handleFileUpload, audioInputRef,
+    cameraInputRef, adminOnlyMessagingEnabled, handleTyping,
+    handleMentionKeyDown, closeMentionPicker, selectedFont,
+    setShowFontPicker, showFontPicker, handleVoiceNoteSend, safeMods,
+    sendRecordingStatus, sendButtonRef, showStickerPacks, setShowStickerPacks,
+    floatingStickerMode, handleSendStickerWithCaption, AttachmentIcon
+  };
+
+  const headerCtx = {
+    safeMods, selectConversation, sidebarOpen, onOpenSidebar,
+    isSearching, setIsSearching, chatSearchQuery, setChatSearchQuery,
+    selectedConversation, setShowGroupInfo, setShowContactInfo,
+    isLiveLocationActive, getConversationAvatar, getConversationName,
+    peerPresence, isOtherUserTyping, groupOnlineCount, history,
+    typingByConversation, isOtherUserRecording, setShowSearchMessages,
+    setShowMediaGallery, headerMenuRef, setShowHeaderMenu, showHeaderMenu,
+    toggleDNDMode, isDNDMode, handleClearCurrentChat, handleDeleteCurrentChat,
+    handleExportChat
+  };
+
   return (
     <div className="flex-1 flex flex-col bg-dark-bg min-w-0 w-full overflow-hidden relative h-[100dvh] min-h-0" style={{ height: '100dvh', maxHeight: '100dvh' }}>
       <div
@@ -2491,271 +2526,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         style={wallpaperStyle}
       />
 
-      <header
-        style={{ backgroundColor: safeMods.customTheme }}
-        className="border-b border-white/10 px-3 md:px-4 py-2.5 md:py-3 flex items-center gap-2 md:gap-4 shadow-lg transition-all duration-500 z-[100] flex-shrink-0 min-w-0 sticky top-0"
-      >
-        {/* Mobile back arrow to close chat and show list */}
-        <button onClick={() => selectConversation(null)} className="md:hidden p-2 hover:bg-dark-hover rounded-lg flex items-center justify-center flex-shrink-0" aria-label="Back">
-          <ArrowLeft className="w-5 h-5 text-white" />
-        </button>
-
-        {/* Desktop sidebar toggle button */}
-        {!sidebarOpen && (
-          <button onClick={onOpenSidebar} className="hidden md:block p-2 hover:bg-dark-hover rounded-lg" aria-label="Back">
-            <ArrowLeft className="w-5 h-5 text-white" />
-          </button>
-        )}
-        <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
-          {isSearching ? (
-            <div className="flex items-center gap-2 bg-black/20 px-3 py-1 rounded-full flex-1">
-              <Search size={14} className="text-white/60" />
-              <input
-                autoFocus
-                className="bg-transparent border-none focus:ring-0 text-base md:text-xs text-white w-full"
-                placeholder="Search messages..."
-                value={chatSearchQuery}
-                onChange={(e) => setChatSearchQuery(e.target.value)}
-              />
-              <button onClick={() => { setIsSearching(false); setChatSearchQuery(''); }} aria-label="Close"><X size={14} className="text-white" /></button>
-            </div>
-          ) : (
-            <div
-              className="flex items-center gap-2 md:gap-3 flex-1 min-w-0 cursor-pointer hover:bg-white/5 p-1 -ml-1 rounded-lg transition-colors"
-              onClick={() => {
-                if (selectedConversation?.isGroup) {
-                  setShowGroupInfo(true);
-                } else {
-                  setShowContactInfo(true);
-                }
-              }}
-            >
-              {isLiveLocationActive && (
-                <span className="text-red-500 text-xs font-bold animate-pulse flex items-center gap-1 mr-2"><Radio size={14} /> LIVE</span>
-              )}
-              <div className="relative flex-shrink-0">
-                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center overflow-hidden border border-white/10">
-                  {getConversationAvatar() ? (
-                    <img src={getConversationAvatar()} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-white font-semibold">
-                      {getConversationName().charAt(0).toUpperCase()}
-                    </span>
-                  )}
-                </div>
-                {/* GENZ MOD: Online Indicator */}
-                {!selectedConversation.isGroup && peerPresence?.isOnline && (
-                  <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-[2.5px] border-[#202c33] rounded-full z-10 shadow-sm" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h2 className="text-white font-medium truncate leading-tight flex items-center gap-1.5">
-                  {getConversationName()}
-                  {selectedConversation?.isGroup ? (
-                    <ShieldAlert size={13} className="text-amber-400/90 flex-shrink-0" title="Messages za group hazijafichwa end-to-end — server inaziona" aria-label="Group messages not E2E encrypted" />
-                  ) : (
-                    <Lock size={12} className="text-[#00a884] flex-shrink-0" title="Text messages kwenye chat hii zinafichwa kwa njia ya E2EE kwenye device zako" aria-label="Chat encrypted end-to-end" />
-                  )}
-                </h2>
-                {selectedConversation.isGroup && !isOtherUserTyping && (
-                  <p className="text-[10px] text-white/60 truncate">
-                    {groupOnlineCount} online · {(selectedConversation.participants || []).length} members
-                  </p>
-                )}
-                {!selectedConversation.isGroup && peerPresence && !isOtherUserTyping && (
-                  <p className="text-[10px] text-white/60 truncate">
-                    {peerPresence.isOnline
-                      ? 'online'
-                      : peerPresence.lastSeen
-                        ? `last seen ${formatMessageTime(peerPresence.lastSeen)}`
-                        : 'offline'}
-                  </p>
-                )}
-                {!selectedConversation.isGroup && !peerPresence && history.length > 0 && !isOtherUserTyping && (
-                  <p className="text-[10px] text-white/60 truncate">
-                    Last 24h activity: {history.slice(-3).map(h => formatMessageTime(h.time)).join(', ')}
-                  </p>
-                )}
-                {isOtherUserTyping && (
-                  <div className="flex items-center gap-1">
-                    <p className="text-[11px] text-[#00a884] font-medium">
-                      {selectedConversation?.isGroup
-                        ? `${typingByConversation[selectedConversation._id]?.username || 'Someone'} is typing`
-                        : 'typing'}
-                    </p>
-                    <div className="flex gap-0.5 mt-0.5">
-                      {[0,1,2].map(i => (
-                        <span key={i} className="w-1 h-1 bg-[#00a884] rounded-full inline-block"
-                          style={{animation:'typingBounce 1.2s infinite ease-in-out', animationDelay:`${i*0.2}s`}} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {isOtherUserRecording && (
-                  <p className="text-sm text-white/70 animate-pulse">recording audio...</p>
-                )}
-                {safeMods.ghostMode && (
-                  <p className="text-xs text-white/80 flex items-center gap-1">
-                    <Ghost size={10} /> Ghost Mode Active
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-        {/* Header right-side action buttons */}
-        {!isSearching && (
-          <div className="flex items-center gap-0.5 md:gap-1 ml-auto relative flex-shrink-0">
-            {/* Search in chat */}
-            <button onClick={() => setShowSearchMessages(true)} title="Search messages" aria-label="Search messages"
-              className="hidden sm:flex p-2 hover:bg-white/10 rounded-lg transition-colors items-center justify-center">
-              <Search size={18} className="text-white/80" />
-            </button>
-            <button onClick={() => setShowMediaGallery(true)} title="Media gallery" aria-label="Media gallery"
-              className="hidden sm:flex p-2 hover:bg-white/10 rounded-lg transition-colors items-center justify-center">
-              <ImageIcon size={18} className="text-white/80" />
-            </button>
-
-            {/* Actions Dropdown Toggle (Three Dots) */}
-            <div className="relative" ref={headerMenuRef}>
-              <button
-                type="button"
-                onClick={() => setShowHeaderMenu((prev) => !prev)}
-                className="block p-2 hover:bg-white/10 rounded-lg transition-colors"
-                title="More Options" aria-label="More Options"
-              >
-                <MoreVertical size={18} className="text-white/80" />
-              </button>
-
-              {showHeaderMenu && (
-                <>
-                  <div className="fixed inset-0 bg-black/20 z-[80]" onClick={() => setShowHeaderMenu(false)} />
-                  <div className="fixed top-0 right-0 h-full w-[85vw] max-w-[320px] bg-dark-surface/95 backdrop-blur-md border-l border-dark-border shadow-2xl z-[90] overflow-y-auto">
-                  <div className="p-3 border-b border-dark-border flex items-center justify-between">
-                    <h2 className="text-sm font-semibold text-white">Menu</h2>
-                    <button
-                      onClick={() => setShowHeaderMenu(false)}
-                      className="p-1.5 hover:bg-dark-hover rounded-lg transition-colors"
-                     aria-label="Close">
-                      <X size={16} className="text-white/80" />
-                    </button>
-                  </div>
-                  <div className="py-2">
-                  {/* Mobile DND toggle */}
-                  <button
-                    onClick={() => {
-                      toggleDNDMode();
-                      setShowHeaderMenu(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
-                  >
-                    <span className="text-sm font-bold w-4 text-center text-orange-500">
-                      {isDNDMode ? '🌙' : '🔔'}
-                    </span>
-                    <span>{isDNDMode ? 'Disable DND' : 'Do Not Disturb'}</span>
-                  </button>
-
-                  {/* Search messages */}
-                  <button
-                    onClick={() => {
-                      setShowSearchMessages(true);
-                      setShowHeaderMenu(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
-                  >
-                    <Search size={16} className="text-white/60" />
-                    <span>Search Messages</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowMediaGallery(true);
-                      setShowHeaderMenu(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
-                  >
-                    <ImageIcon size={16} className="text-white/60" />
-                    <span>Media Gallery</span>
-                  </button>
-
-                  <button
-                    onClick={handleClearCurrentChat}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white border-t border-white/5 mt-1 pt-3"
-                  >
-                    <Trash2 size={16} className="text-white/60" />
-                    <span>Clear Chat</span>
-                  </button>
-
-                  <button
-                    onClick={handleDeleteCurrentChat}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-red-400"
-                  >
-                    <Trash2 size={16} />
-                    <span>Delete Chat</span>
-                  </button>
-
-                  {/* Export chat */}
-                  <button
-                    onClick={() => {
-                      handleExportChat('txt');
-                      setShowHeaderMenu(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
-                  >
-                    <Download size={16} className="text-white/60" />
-                    <span>Export Chat (.txt)</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleExportChat('whatsapp');
-                      setShowHeaderMenu(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
-                  >
-                    <Download size={16} className="text-white/60" />
-                    <span>Export Chat (WhatsApp .txt)</span>
-                  </button>
-
-                  {/* Edit Wallpaper */}
-                  <button
-                    onClick={() => {
-                      setShowHeaderMenu(false);
-                      const input = document.createElement('input');
-                      input.type = 'file';
-                      input.accept = 'image/*';
-                      input.onchange = (e) => {
-                        const file = e.target.files[0];
-                        if (file) handleUploadWallpaper(file);
-                      };
-                      input.click();
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
-                  >
-                    <ImageIcon size={16} className="text-white/60" />
-                    <span>Edit Wallpaper</span>
-                  </button>
-
-                  {/* Mobile Group Info */}
-                  {selectedConversation?.isGroup && (
-                    <button
-                      onClick={() => {
-                        setShowGroupInfo(true);
-                        setShowHeaderMenu(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white border-t border-white/5"
-                    >
-                      <Users size={16} className="text-white/60" />
-                      <span>Group Info</span>
-                    </button>
-                  )}
-                  </div>
-                </div>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-      </header>
+      <ConversationHeader ctx={headerCtx} />
 
       <div
         ref={messagesContainerRef}
@@ -2882,305 +2653,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       {/* Extra padding to ensure last message is visible above input area */}
       <div className="h-2 flex-shrink-0" />
 
-      {replyingTo && (
-        <div className="bg-dark-surface border-t border-dark-border px-4 py-2 relative z-10">
-          <ReplyMessage replyTo={replyingTo} onCancel={() => setReplyingTo(null)} isReplying />
-        </div>
-      )}
-
-      <div className="bg-dark-surface border-t border-dark-border px-2 py-2 md:p-4 relative z-20 flex-shrink-0" style={{ flex: '0 0 auto', position: 'relative' }}>
-        {showMediaPanel && (
-          <div className="absolute bottom-full left-0 right-0 w-full z-50 overflow-hidden shadow-2xl border-t border-dark-border">
-            <MediaPickerPanel
-              activeTab={activeMediaTab}
-              onTabChange={setActiveMediaTab}
-              onEmojiSelect={handleEmojiClick}
-              onStickerSelect={(stickerUrl, options = {}) => {
-                // TikTok-style: sticker previews in the input so the user can
-                // keep typing; Send delivers sticker + text as ONE message.
-                setSelectedMedia({ type: 'sticker', url: stickerUrl, options });
-                setShowMediaPanel(false);
-              }}
-            />
-          </div>
-        )}
-
-        {showStickerPacks && (
-          <div className="absolute bottom-full left-0 right-0 w-full z-50 overflow-hidden shadow-2xl border-t border-dark-border">
-            <StickerPicker
-              onStickerSelect={(stickerUrl, options) => {
-                if (floatingStickerMode) {
-                  // Floating mode keeps the instant fly-across-screen behavior
-                  handleSendStickerWithCaption(stickerUrl, { ...options, isFloating: true });
-                } else {
-                  // TikTok-style: stage the sticker in the input preview; Send
-                  // delivers sticker + typed text together as one bubble.
-                  setSelectedMedia({ type: 'sticker', url: stickerUrl, options });
-                }
-                setShowStickerPacks(false);
-              }}
-              onClose={() => setShowStickerPacks(false)}
-            />
-          </div>
-        )}
-
-        {selectedMedia && (
-          <div className="mb-2 relative inline-block bg-dark-bg p-2 rounded-xl border border-dark-border max-w-[200px]">
-            <button
-              onClick={() => setSelectedMedia(null)}
-              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-md"
-            >
-              <X size={14} />
-            </button>
-            <img src={selectedMedia.url} alt="selected media" className="w-full h-auto rounded-lg max-h-32 object-contain" />
-            {selectedMedia.type === 'sticker' && (
-              <p className="text-[10px] text-dark-textSecondary mt-1 text-center">
-                Sticker itatumwa pamoja na ujumbe wako ✨
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Editing-message indicator */}
-        {editingMessage && (
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-[#182229] border border-dark-border rounded-t-xl border-b-0 -mb-px self-end z-50">
-            <Edit size={14} className="text-[#25d366]" />
-            <span className="text-xs text-gray-300">Editing message</span>
-            <button
-              type="button"
-              onClick={() => { setEditingMessage(null); setMessageInput(''); inputRef.current?.focus(); }}
-              className="ml-1 text-gray-400 hover:text-white transition-colors"
-              title="Cancel editing"
-              aria-label="Cancel editing"
-            >
-              <X size={14} />
-            </button>
-          </div>
-        )}
-
-        {/* WhatsApp-style text formatting toolbar (shows while typing) */}
-        {!voiceRecorderActive && messageInput.trim() && (
-          <div className="flex items-center gap-1 px-3 py-1.5 bg-dark-surface border border-dark-border rounded-t-xl border-b-0 -mb-px self-end z-50" role="toolbar" aria-label="Text formatting">
-            <span className="text-[10px] uppercase tracking-wide text-dark-textSecondary mr-1 hidden sm:inline">Format</span>
-            <button
-              type="button"
-              onClick={() => handleFormatText('*')}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-dark-text font-bold hover:bg-dark-hover transition-colors"
-              title="Bold (*text*)"
-              aria-label="Bold"
-            >B</button>
-            <button
-              type="button"
-              onClick={() => handleFormatText('_')}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-dark-text italic hover:bg-dark-hover transition-colors"
-              title="Italic (_text_)"
-              aria-label="Italic"
-            >I</button>
-            <button
-              type="button"
-              onClick={() => handleFormatText('~')}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-dark-text hover:bg-dark-hover transition-colors"
-              title="Strikethrough (~text~)"
-              aria-label="Strikethrough"
-            ><span className="line-through">S</span></button>
-            <button
-              type="button"
-              onClick={() => handleFormatText('`')}
-              className="w-8 h-8 flex items-center justify-center rounded-lg font-mono text-sm text-dark-text hover:bg-dark-hover transition-colors"
-              title="Monospace (`text`)"
-              aria-label="Monospace"
-            >&lt;/&gt;</button>
-          </div>
-        )}
-
-        <form onSubmit={handleSendMessage} className="flex items-end gap-2 p-1.5 md:p-3 bg-dark-bg border border-dark-border rounded-2xl flex-shrink-0 z-50" role="form" aria-label="Send message">
-          {!voiceRecorderActive && (
-            <div className="flex items-center gap-1 md:gap-2 overflow-x-auto no-scrollbar max-w-[112px] sm:max-w-[160px] md:max-w-none flex-shrink-0 snap-x">
-              <button
-                type="button"
-                onClick={() => setShowMediaPanel(!showMediaPanel)}
-                className={`p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center ${showMediaPanel ? 'bg-primary-600 text-white' : 'hover:bg-dark-hover text-dark-text'}`}
-                title="Emoji & Media"
-                aria-label="Toggle media picker"
-                aria-expanded={showMediaPanel}
-              >
-                <Smile className="w-5 h-5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => { setShowMediaPanel(false); setShowStickerPacks(!showStickerPacks); }}
-                className={`p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center ${showStickerPacks ? 'bg-primary-600 text-white' : 'hover:bg-dark-hover text-dark-text'}`}
-                title="Stickers (send with text)"
-                aria-label="Open sticker picker"
-                aria-expanded={showStickerPacks}
-              >
-                <Square className="w-5 h-5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
-                className={`p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center ${showAttachmentMenu ? 'bg-primary-600 text-white' : 'hover:bg-dark-hover text-dark-text'}`}
-                title="Attachments"
-                aria-label="Open attachment menu"
-                aria-expanded={showAttachmentMenu}
-              >
-                <Paperclip className="w-5 h-5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsViewOnceEnabled(!isViewOnceEnabled)}
-                className={`p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center ${isViewOnceEnabled ? 'bg-purple-600 text-white' : 'hover:bg-dark-hover text-dark-text'}`}
-                title="Send as View Once"
-                aria-label="Toggle view-once mode"
-                aria-pressed={isViewOnceEnabled}
-              >
-                <Eye size={20} />
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  console.log('Schedule button clicked, calling handleSchedule');
-                  handleSchedule();
-                  console.log('handleSchedule called, showScheduleModal should be true');
-                }}
-                className="p-3 hover:bg-dark-hover rounded-lg transition-colors snap-center shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
-                title="Schedule Message" aria-label="Schedule Message"
-              >
-                <CalendarClock className="w-5 h-5 text-dark-text" />
-              </button>
-            </div>
-          )}
-          {showAttachmentMenu && (
-            <div ref={attachmentMenuRef} className="absolute bottom-14 left-2 right-2 md:left-0 md:right-auto md:w-max md:max-w-2xl bg-dark-surface border border-dark-border rounded-xl shadow-xl p-3 grid grid-cols-4 gap-2 md:flex md:flex-row md:flex-wrap md:gap-2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
-              <AttachmentIcon icon={<FileText className="text-blue-500" />} label="Document" onClick={() => { setShowAttachmentMenu(false); docInputRef.current?.click(); }} disabled={!canSendMedia && !currentUserIsAdmin} />
-              <AttachmentIcon
-                icon={<Camera className="text-pink-500" />}
-                label="Camera"
-                onClick={() => { setShowAttachmentMenu(false); openCamera(); }}
-                disabled={!canSendMedia && !currentUserIsAdmin}
-                title="Camera (Emulator may need permission)"
-              />
-              <AttachmentIcon icon={<ImageIcon className="text-purple-500" />} label="Gallery" onClick={() => { setShowAttachmentMenu(false); fileInputRef.current?.click(); }} disabled={!canSendMedia && !currentUserIsAdmin} />
-              <AttachmentIcon icon={<Headphones className="text-orange-500" />} label="Audio" onClick={() => { setShowAttachmentMenu(false); openAudioAttachment(); }} disabled={!canSendMedia && !currentUserIsAdmin} title="Audio (Emulator may need permission)" />
-              <AttachmentIcon icon={<VideoIcon className="text-cyan-500" />} label="Video Note" onClick={() => openVideoNoteRecorder()} disabled={!canSendMedia && !currentUserIsAdmin} title="Record a short circular video note (like WhatsApp)" />
-              <AttachmentIcon icon={<MapPin className="text-green-500" />} label="Location" onClick={() => { setShowAttachmentMenu(false); handleShareLocation('current'); }} disabled={!canSendMedia && !currentUserIsAdmin} />
-              <AttachmentIcon icon={<MapPin className="text-red-500" />} label="Live Loc." onClick={() => { setShowAttachmentMenu(false); handleShareLocation('live'); }} disabled={!canSendMedia && !currentUserIsAdmin} />
-              <AttachmentIcon icon={<Contact className="text-blue-400" />} label="Contact" onClick={() => { setShowAttachmentMenu(false); handleContactSimulation(); }} disabled={!canSendMedia && !currentUserIsAdmin} />
-              <AttachmentIcon icon={<BarChart2 className="text-yellow-600" />} label="Poll" disabled={!canCreatePolls && !currentUserIsAdmin} onClick={() => { setShowAttachmentMenu(false); setShowPollModal(true); }} />
-              <AttachmentIcon icon={<Clock className="text-purple-600" />} label="Disappear" onClick={() => { setShowAttachmentMenu(false); handleSetDisappearingMessages(); }} disabled={!selectedConversation} />
-              {/* GENZ Ultra Attachments */}
-                <AttachmentIcon icon={<Grid3x3 className="text-pink-400" />} label={floatingStickerMode ? "Stickers (Float)" : "Stickers"} onClick={() => { setShowStickerPacks(true); setShowAttachmentMenu(false); }} title={floatingStickerMode ? "Floating sticker mode ON" : ""} />
-                <AttachmentIcon icon={<Radio size={16} className={floatingStickerMode ? "text-green-400" : "text-gray-500"} />} label="Float" onClick={() => { setShowAttachmentMenu(false); setFloatingStickerMode(!floatingStickerMode); }} title={floatingStickerMode ? "Disable floating stickers" : "Enable floating stickers (TikTok style)"} />
-                <AttachmentIcon icon={<DollarSign className="text-green-500" />} label="Pay" onClick={() => { setShowAttachmentMenu(false); setShowPaymentModal(true); }} disabled={!selectedConversation} title="TM WhatsApp Pay" />
-            </div>
-          )}
-          {/* Quick emoji feature removed as requested */}
-          {mentionState.open && mentionSuggestions.length > 0 && !showAttachmentMenu && (
-            <div className="absolute bottom-16 left-2 right-2 md:left-40 md:right-auto md:w-80 bg-dark-surface border border-dark-border rounded-xl shadow-xl p-2 z-50" style={{ maxHeight: 'calc(var(--app-height, 100vh) - 250px)' }}>
-              <div className="flex items-center gap-2 px-2 pb-2 text-[10px] uppercase tracking-wide text-dark-textSecondary">
-                <AtSign size={12} />
-                Mention
-              </div>
-              <div className="max-h-64 overflow-y-auto">
-                {mentionSuggestions.map((participant, index) => (
-                  <button
-                    key={participant._mentionId}
-                    type="button"
-                    onMouseDown={(event) => {
-                      event.preventDefault();
-                      selectMention(participant);
-                    }}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${index === mentionState.activeIndex ? 'bg-primary-600/20' : 'hover:bg-white/10'
-                      }`}
-                    title={`Mention @${participant._mentionName}`}
-                  >
-                    <div className="w-9 h-9 rounded-full bg-primary-600/20 overflow-hidden flex items-center justify-center text-sm font-semibold text-primary-100">
-                      {participant.profilePicture ? (
-                        <img src={participant.profilePicture} alt={participant._mentionName} className="w-full h-full object-cover" />
-                      ) : (
-                        participant._mentionName.charAt(0).toUpperCase()
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-dark-text truncate">{participant._mentionName}</p>
-                      <p className="text-xs text-dark-textSecondary truncate">@{participant._mentionName}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          {/* Hidden file inputs */}
-          <input type="file" ref={fileInputRef} onChange={(e) => handleFileUpload(e)} className="hidden" accept="image/*,video/*" />
-          <input type="file" ref={docInputRef} onChange={(e) => handleFileUpload(e, 'file')} className="hidden" accept=".pdf,.doc,.docx,.txt" />
-          <input type="file" ref={audioInputRef} onChange={(e) => handleFileUpload(e, 'audio')} className="hidden" accept="audio/*" />
-          <input type="file" ref={cameraInputRef} onChange={(e) => handleFileUpload(e)} className="hidden" accept="image/*,video/*" capture />
-
-          {/* ── Text input — hidden while VoiceRecorder is recording ── */}
-          {!voiceRecorderActive && (
-            <div className="flex-1 flex items-center gap-2">
-              <input
-                ref={inputRef}
-                type="text"
-                inputMode="text"
-                autoCapitalize="off"
-                autoCorrect="off"
-                spellCheck="false"
-                disabled={adminOnlyMessagingEnabled && !currentUserIsAdmin}
-                value={messageInput}
-                onChange={(e) => handleTyping(e.target.value, e.target.selectionStart)}
-                onKeyDown={handleMentionKeyDown}
-                onBlur={() => window.setTimeout(closeMentionPicker, 120)}
-                placeholder="Type a message..."
-                style={{ fontFamily: FONT_OPTIONS.find(f => f.value === selectedFont)?.fontFamily || 'sans-serif' }}
-                className="flex-1 min-w-[100px] px-4 py-2.5 bg-dark-bg border border-dark-border rounded-2xl text-dark-text placeholder-dark-textSecondary focus:outline-none focus:border-primary-500 transition-colors text-base md:text-sm"
-              />
-              <button
-                type="button"
-                onClick={() => setShowFontPicker(!showFontPicker)}
-                className="p-2.5 bg-dark-bg border border-dark-border rounded-2xl text-dark-text hover:bg-dark-hover transition-colors"
-                title="Change font"
-              >
-                <Languages size={18} />
-              </button>
-            </div>
-          )}
-
-          {/* ── TM WhatsApp Voice Recorder ── */}
-          {((!messageInput.trim() && !selectedMedia) || voiceRecorderActive) && (
-            <VoiceRecorder
-              onSend={handleVoiceNoteSend}
-              canSend={canSendMedia || currentUserIsAdmin}
-              ghostMode={safeMods?.ghostMode}
-              sendRecordingStatus={sendRecordingStatus}
-              onActiveChange={setVoiceRecorderActive}
-              voiceEffectMod={safeMods?.voiceEffect ?? 'none'}
-              onFallback={() => audioInputRef.current?.click()}
-              voiceConstraints={{
-                echoCancellation: safeMods?.voiceEchoCancellation !== false,
-                noiseSuppression: safeMods?.voiceNoiseSuppression !== false,
-                autoGainControl: true
-              }}
-            />
-          )}
-
-          {/* ── Send button — hidden while recording; shows when text OR media selected ── */}
-          {!voiceRecorderActive && (messageInput.trim() || selectedMedia) && (
-            <button
-              ref={sendButtonRef}
-              type="submit"
-              disabled={adminOnlyMessagingEnabled && !currentUserIsAdmin}
-              aria-label="Send message"
-              className="w-11 h-11 flex-shrink-0 flex items-center justify-center bg-primary-600 hover:bg-primary-500 rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-90 shadow-md shadow-primary-600/30 min-w-[44px] min-h-[44px]"
-            >
-              <Send className="w-5 h-5 text-white" />
-            </button>
-          )}
-        </form>
-
-      </div>
+      <MessageComposer ctx={composerCtx} />
 
       {
         showForwardModal && forwardingMessage && (
