@@ -78,6 +78,7 @@ describe('genzModsController — settings', () => {
     await genzMods.getGenzModsSettings(makeReq(), res);
     expect(res.body.settings.ghostMode).toBe(true);
     expect(res.body.settings.antiDeleteMessages).toBe(true); // default
+    expect(res.body.settings.antiDelete).toBe(true); // mirrored for the frontend contract
     expect(res.body.settings.hideOnline).toBe(false); // default
   });
 

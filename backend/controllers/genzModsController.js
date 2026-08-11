@@ -89,18 +89,26 @@ const normalizeIncomingMods = (incoming = {}, existing = {}) => {
 };
 
 
-const mergeSettings = (settings = {}) => ({
-  ...defaultSettings,
-  ...settings,
-  autoReply: {
-    ...defaultSettings.autoReply,
-    ...(settings.autoReply || {})
-  },
-  chatBackgroundMusic: {
-    ...defaultSettings.chatBackgroundMusic,
-    ...(settings.chatBackgroundMusic || {})
-  }
-});
+const mergeSettings = (settings = {}) => {
+  const merged = {
+    ...defaultSettings,
+    ...settings,
+    autoReply: {
+      ...defaultSettings.autoReply,
+      ...(settings.autoReply || {})
+    },
+    chatBackgroundMusic: {
+      ...defaultSettings.chatBackgroundMusic,
+      ...(settings.chatBackgroundMusic || {})
+    }
+  };
+  // Frontend contract: GENZMods.jsx toggles on `antiDelete`, while the
+  // canonical stored field is `antiDeleteMessages`. Mirror it so the
+  // toggle/"View Deleted Messages" button state is consistent even for
+  // fresh users (default: anti-delete ON) — not only after a settings save.
+  merged.antiDelete = merged.antiDeleteMessages;
+  return merged;
+};
 
 exports.updateGenzModsSettings = async (req, res) => {
   try {

@@ -5,6 +5,37 @@ import { useNavigate } from 'react-router-dom';
 import modsService from '../services/modsService';
 import ErrorBoundary from '../components/ErrorBoundary';
 
+// Rendered as a child of the scoped ErrorBoundary so that any render error
+// (e.g. a malformed `messages` payload) is thrown from THIS component's render
+// scope and can be caught — an error thrown from the parent's own render
+// cannot be caught by a boundary that lives inside the parent.
+const DeletedMessagesList = ({ messages, onRestore }) => (
+  <div className="flex-1 overflow-y-auto p-4">
+    {messages.length === 0 ? (
+      <p className="text-gray-500 text-center py-8">No deleted messages found</p>
+    ) : (
+      <div className="space-y-3">
+        {messages.map((msg) => (
+          <div key={msg.id} className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
+            <p className="text-sm text-gray-900 dark:text-white mb-2">{msg.originalContent || msg.content}</p>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500">
+                {msg.timestamp ? new Date(msg.timestamp).toLocaleString() : ''}
+              </span>
+              <button
+                onClick={() => onRestore(msg.id)}
+                className="text-xs text-blue-600 hover:text-blue-700"
+              >
+                Restore
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+);
+
 const GENZMods = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -701,7 +732,10 @@ const GENZMods = () => {
           </div>
         </div>
 
-      {/* Deleted Messages Modal */}
+      {/* Deleted Messages Modal. The list lives in its own component so a
+          render error there is thrown from a child of the boundary below —
+          React error boundaries cannot catch errors thrown from the parent's
+          own render scope (which is why the original page used to blank). */}
       {showDeletedMessages && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
@@ -718,30 +752,10 @@ const GENZMods = () => {
                 whole GENZMods page — the modal shell (and its close button)
                 stay alive and the user can Retry or close. */}
             <ErrorBoundary minimal>
-              <div className="flex-1 overflow-y-auto p-4">
-                {deletedMessages.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">No deleted messages found</p>
-                ) : (
-                  <div className="space-y-3">
-                    {deletedMessages.map((msg) => (
-                      <div key={msg.id} className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
-                        <p className="text-sm text-gray-900 dark:text-white mb-2">{msg.originalContent || msg.content}</p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-500">
-                            {msg.timestamp ? new Date(msg.timestamp).toLocaleString() : ''}
-                          </span>
-                          <button
-                            onClick={() => restoreMessage(msg.id)}
-                            className="text-xs text-blue-600 hover:text-blue-700"
-                          >
-                            Restore
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <DeletedMessagesList
+                messages={deletedMessages}
+                onRestore={restoreMessage}
+              />
             </ErrorBoundary>
           </div>
         </div>
