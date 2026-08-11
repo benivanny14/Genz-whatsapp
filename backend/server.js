@@ -1047,6 +1047,10 @@ const socketCorsOrigins = [
   'http://127.0.0.1:5173',
   'http://127.0.0.1:5174',
   'http://127.0.0.1:5175',
+  // Same-origin deployments (backend serves the built frontend) — the page
+  // origin is the backend itself, so its own ports must be handshake-allowed.
+  'http://localhost:5000',
+  'http://127.0.0.1:5000',
   ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
   ...(process.env.PUBLIC_API_URL ? [process.env.PUBLIC_API_URL] : []),
   'https://genz-whatsapp-1.onrender.com'

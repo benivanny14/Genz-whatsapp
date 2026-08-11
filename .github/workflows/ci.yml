@@ -4,6 +4,10 @@ on:
   push:
     branches: ['**']
   pull_request:
+  schedule:
+    # Weekly run so the e2e/integration suites stay verified against the
+    # latest MongoDB image even when the repo is quiet.
+    - cron: '0 3 * * 1'   # Monday 03:00 UTC
 
 jobs:
   backend-tests:
@@ -130,12 +134,15 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      # On CI, Playwright's webServer would run `vite preview` (port 4174, no
-      # /api proxy) which the specs don't support — so we boot the real dev
-      # server (start-dev.js starts backend :5000 + Vite :5176) ourselves first.
-      # The backend inherits the env below (MongoDB service container + phones
-      # auto-verified). Once :5176 answers, Playwright's reuseExistingServer
-      # skips its own webServer entirely.
+      # Production-style single origin: the backend serves the built UI, the
+      # API and Socket.IO on :5000 — the same layout the e2e specs run against
+      # in production. We build the frontend and boot the backend directly
+      # (no Vite dev proxy), then Playwright targets http://127.0.0.1:5000
+      # (reuseExistingServer skips its own `vite preview` webServer).
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
       - name: Run Playwright e2e suite
         working-directory: frontend
         env:
@@ -150,25 +157,25 @@ jobs:
           JWT_SECRET: ${{ secrets.CI_JWT_SECRET || 'ci-e2e-only-jwt-secret-0123456789abcdef' }}
           ADMIN_JWT_SECRET: ${{ secrets.CI_ADMIN_JWT_SECRET || 'ci-e2e-only-admin-secret-0123456789abcdef' }}
         run: |
-          GENZ_DEV_PORT=5176 nohup npm run dev > /tmp/genz-dev.log 2>&1 &
+          (cd ../backend && node server.js) > /tmp/genz-dev.log 2>&1 &
           DEV_PID=$!
           READY=0
           for i in $(seq 1 90); do
-            if curl -sf http://127.0.0.1:5176 >/dev/null 2>&1 && curl -sf http://127.0.0.1:5000/api/health >/dev/null 2>&1; then
+            if curl -sf http://127.0.0.1:5000/api/health >/dev/null 2>&1; then
               READY=1
               break
             fi
             sleep 2
           done
           if [ "$READY" != "1" ]; then
-            echo '--- dev server failed to start ---'
+            echo '--- backend failed to start ---'
             tail -30 /tmp/genz-dev.log | sed 's/^/::error::/' | head -8
-            echo '::error::Dev server never became ready on :5176/:5000'
+            echo '::error::Backend never became ready on :5000'
             kill $DEV_PID 2>/dev/null || true
             exit 1
           fi
           set +e
-          GENZ_DEV_PORT=5176 PLAYWRIGHT_BASE_URL=http://127.0.0.1:5176 npx playwright test > /tmp/pw.log 2>&1
+          PLAYWRIGHT_BASE_URL=http://127.0.0.1:5000 npx playwright test > /tmp/pw.log 2>&1
           STATUS=$?
           set -e
           if [ "$STATUS" != "0" ]; then

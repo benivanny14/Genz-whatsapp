@@ -40,7 +40,7 @@ test('record and upload voice note', async ({ request }) => {
   const phone = `1000${String(ts).slice(-6)}`;
   const password = 'Test123!ABCDef'; // satisfies the 12-char + complexity password policy
 
-  const register = await request.post('http://localhost:5000/api/auth/register', {
+  const register = await request.post('/api/auth/register', {
     data: { username, phoneNumber: phone, password }
   });
   const regBody = await register.json();
@@ -49,7 +49,7 @@ test('record and upload voice note', async ({ request }) => {
   // second user so the first one has a conversation to open
   const usernameB = `e2e_contact_${ts}`;
   const phoneB = `2000${String(ts).slice(-6)}`;
-  const registerB = await request.post('http://localhost:5000/api/auth/register', {
+  const registerB = await request.post('/api/auth/register', {
     data: { username: usernameB, phoneNumber: phoneB, password }
   });
   const regBodyB = await registerB.json();
@@ -58,7 +58,7 @@ test('record and upload voice note', async ({ request }) => {
   expect(contactId).toBeTruthy();
 
   // as user A, create a conversation with user B so the chat opens
-  const conv = await request.post('http://localhost:5000/api/chat/conversation', {
+  const conv = await request.post('/api/chat/conversation', {
     headers: { Authorization: `Bearer ${regBody.token}` },
     data: { userId: contactId }
   });
@@ -84,14 +84,14 @@ test('record and upload voice note', async ({ request }) => {
 
   // Log in through the UI so the httpOnly session cookie is set in the browser
   // (the app no longer restores sessions from localStorage tokens).
-  await page.goto('http://localhost:5176/login');
+  await page.goto('/login');
   await page.getByPlaceholder('+255712345678').fill(username);
   await page.locator('input[autocomplete="current-password"]').fill(password);
   await page.getByRole('button', { name: /login/i }).click();
 
   // go to chat and open the conversation with user B
   await page.waitForURL(/\/chat/, { timeout: 25_000 }).catch(async () => {
-    await page.goto('http://localhost:5176/chat');
+    await page.goto('/chat');
   });
   await page.getByText(usernameB, { exact: true }).first().click({ timeout: 15_000 });
 
