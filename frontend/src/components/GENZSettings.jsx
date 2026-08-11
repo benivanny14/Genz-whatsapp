@@ -7,7 +7,7 @@ import {
   LogOut, Info, Mic, Music, UserCircle, Edit3, Camera, Sun, Moon, BellOff,
   BarChart2, Smartphone as SmartphoneIcon, Mail, Forward, Eye, Globe,
   MessageSquare, Layers, Video, Sparkles, TrendingUp, Star,
-  Activity, BarChart, Upload, DollarSign, ChevronRight
+  Activity, BarChart, Upload, DollarSign, ChevronRight, Bug
 } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
@@ -21,6 +21,7 @@ import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { VOICE_EFFECT_PRESETS, createTestToneBlob, applyVoiceEffect } from '../utils/voiceEffects';
 import { compressImage } from '../utils/imageCompression';
+import ErrorBoundary from './ErrorBoundary';
 
 const API_URL = resolveApiBase() || '/api';
 const SUBSCRIPTION_AMOUNT = 10000; // Tsh 10,000 kwa Premium (siku 30)
@@ -566,6 +567,69 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
   };
 
   // ── Tab definitions ──
+  // Shared context for the extracted tab components — every value a tab
+  // reads is threaded through here so the components stay module-level
+  // (stable identity, scoped error boundaries, no re-mount on re-render).
+  const settingsCtx = {
+    TM_BRIGHT_WALLPAPERS,
+    TM_DARK_WALLPAPERS,
+    TM_SOLID_COLORS,
+    appTheme,
+    applyScope,
+    autoReplyMsg,
+    backupActionLoading,
+    backupError,
+    backupProgress,
+    close,
+    connectedDevices,
+    editProfile,
+    getMessageStats,
+    handleFileWallpaper,
+    handleMusicFileUpload,
+    handleProfilePictureUpload,
+    handleStartCloudBackup,
+    isDNDMode,
+    isPrivacyLocked,
+    lockType,
+    logoutDevice,
+    mods,
+    musicFileInputRef,
+    navigate,
+    notificationSound,
+    previewWallpaper,
+    profilePictureInputRef,
+    renderCloudBackupsList,
+    selectedConversation,
+    setApplyScope,
+    setAutoReplyMsg,
+    setEditProfile,
+    setLockPin,
+    setLockType,
+    setMods,
+    setNotificationSound,
+    setPreviewWallpaper,
+    setShow2FAModal,
+    setShowDashboard,
+    setShowDeviceManagement,
+    setShowGlassManager,
+    setShowPaymentModal,
+    setShowPrivacyAnimation,
+    setShowSystemDashboard,
+    setVoiceFxPreviewBusy,
+    setWallpaperCategory,
+    showMsg,
+    showPrivacyAnimation,
+    startCloudBackup,
+    subscriptionStatus,
+    toggleAppTheme,
+    toggleDNDMode,
+    toggleMod,
+    updateAutoReply,
+    updateUserProfile,
+    voiceFxPreviewBusy,
+    wallpaperCategory,
+    wallpaperInputRef,
+  };
   const TABS = [
     { id: 'profile',    label: 'Profile',    icon: '👤' },
     { id: 'appearance', label: 'Theme Engine', icon: '🎨' },
@@ -623,6 +687,227 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
 
       {/* ────────────── TAB: PROFILE ────────────── */}
       {activeTab === 'profile' && (
+        <ErrorBoundary minimal>
+          <ProfileTab ctx={settingsCtx} />
+        </ErrorBoundary>
+      )}
+
+      {/* ────────────── TAB: APPEARANCE ────────────── */}
+      {activeTab === 'appearance' && (
+        <ErrorBoundary minimal>
+          <AppearanceTab ctx={settingsCtx} />
+        </ErrorBoundary>
+      )}
+
+      {/* ──────────── TAB: PRIVACY ──────────── */}
+      {activeTab === 'privacy' && (
+        <ErrorBoundary minimal>
+          <PrivacyTab ctx={settingsCtx} />
+        </ErrorBoundary>
+      )}
+
+      {/* ──────────── TAB: MODS ──────────── */}
+      {activeTab === 'mods' && (
+        <ErrorBoundary minimal>
+          <ModsTab ctx={settingsCtx} />
+        </ErrorBoundary>
+      )}
+
+      {/* ──────────── TAB: SOCIAL ──────────── */}
+      {activeTab === 'social' && (
+        <ErrorBoundary minimal>
+          <SocialTab ctx={settingsCtx} />
+        </ErrorBoundary>
+      )}
+
+      {/* ──────────── TAB: ADVANCED ──────────── */}
+      {activeTab === 'advanced' && (
+        <ErrorBoundary minimal>
+          <AdvancedTab ctx={settingsCtx} />
+        </ErrorBoundary>
+      )}
+      </div> {/* end overflow-y-auto */}
+
+      {/* ════════════════════════════════════════
+           GLOBAL MODALS (render above all tabs)
+         ════════════════════════════════════════ */}
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-gradient-to-br from-[#0d1b2a] via-[#0a1628] to-black rounded-3xl shadow-2xl w-full max-w-[calc(100vw-2rem)] sm:max-w-md border border-white/10 flex flex-col overflow-hidden max-h-[92vh]">
+
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#008069] to-[#005c4b] p-5 flex items-center justify-between sticky top-0 z-10">
+              <div>
+                <h2 className="text-xl font-black text-white">💎 Premium Subscription</h2>
+                <p className="text-green-200 text-xs mt-0.5">Unlock all GENZ Ultra features</p>
+              </div>
+              <button
+                onClick={() => { setShowPaymentModal(false); setPaymentMessage(''); }}
+                className="text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-all"
+              >✕</button>
+            </div>
+
+            <div className="p-5 space-y-4 overflow-y-auto custom-scrollbar flex-1">
+
+              {/* Price Card */}
+              <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/10 rounded-2xl p-4 border border-green-500/30">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-white/60 text-sm">Subscription Price</span>
+                  <span className="bg-green-500 text-white text-xs px-3 py-1 rounded-full font-bold">2 MONTHS</span>
+                </div>
+                <div className="text-4xl font-black text-white">Tsh 10,000</div>
+                <p className="text-green-400 text-xs mt-1">≈ Tsh 5,000 / month • Discounted price!</p>
+              </div>
+
+              {/* Features */}
+              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                <p className="text-white/50 text-xs font-semibold mb-2 uppercase tracking-wide">You will get:</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {['🔒 High Privacy', '👻 Ghost Mode', '🛡️ Anti-Delete', '💬 Glass Mode',
+                    '📊 Dashboard', '🎵 Chat Music', '⚡ All Mods', '🔄 Auto-Reply'].map(f => (
+                    <div key={f} className="text-xs text-green-300">{f}</div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Step 1 - Manual Payment Instructions */}
+              {manualInfo && (
+                <div className="bg-gradient-to-br from-amber-500/15 to-yellow-500/10 rounded-2xl p-4 border border-amber-500/30">
+                  <p className="text-white/80 text-sm font-bold mb-2">📲 Tuma Malipo kwa:</p>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-white/70">Jina: <span className="text-amber-300 font-semibold">{manualInfo.receiverName}</span></span>
+                    <span className="text-white/70">Namba: <span className="text-amber-300 font-semibold font-mono">{manualInfo.receiverNumber}</span></span>
+                  </div>
+                  <div className="mt-3 space-y-1 text-xs text-white/60">
+                    {(manualInfo.instructions || []).map((inst, i) => (
+                      <div key={i}>➡️ {inst}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2 - Paste SMS */}
+              <div>
+                <p className="text-white/70 text-sm font-semibold mb-2">2️⃣ Andika SMS ya Kuthibitisha Malipo:</p>
+                <textarea
+                  value={manualSms}
+                  onChange={(e) => { setManualSms(e.target.value); setPaymentMessage(''); }}
+                  rows={4}
+                  placeholder="Paste the confirmation SMS you received here..."
+                  className="w-full bg-white/5 border border-white/20 rounded-xl p-3 text-white placeholder-white/25 text-sm focus:outline-none focus:border-amber-400/60 focus:bg-white/10 transition-all resize-none"
+                />
+                <button
+                  onClick={handlePreviewSms}
+                  disabled={paymentLoading || !manualSms.trim()}
+                  className="mt-2 text-xs px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 disabled:opacity-40 transition-all"
+                >
+                  {paymentLoading ? 'Inasoma...' : '👁️ Soma SMS (Preview)'}
+                </button>
+              </div>
+
+              {/* My payments */}
+              {myPayments.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-white/70 text-sm font-semibold">Malipo Yako:</p>
+                    <button onClick={refreshMyPayments} className="text-white/50 hover:text-white text-[11px] flex items-center gap-1">
+                      <RefreshCw size={11} /> Onyesha upya
+                    </button>
+                  </div>
+                  <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
+                    {myPayments.slice(0, 10).map((p) => (
+                      <div key={p._id} className="flex items-center justify-between bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs">
+                        <div>
+                          <div className="text-white font-semibold">Tsh {p.amount}</div>
+                          <div className="text-white/40">{new Date(p.submittedAt).toLocaleString('en-US')}</div>
+                        </div>
+                        <span className={`px-2 py-1 rounded-full font-bold text-[10px] ${
+                          p.status === 'Approved' ? 'bg-green-500/20 text-green-400'
+                          : p.status === 'Rejected' ? 'bg-red-500/20 text-red-400'
+                          : p.status === 'Duplicate' ? 'bg-orange-500/20 text-orange-400'
+                          : p.status === 'Expired' ? 'bg-gray-500/20 text-gray-400'
+                          : 'bg-amber-500/20 text-amber-400'
+                        }`}>{p.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Message feedback */}
+              {paymentMessage && (
+                <div className={`p-3 rounded-xl text-sm flex items-start gap-2 ${
+                  paymentMessage.includes('✅')
+                    ? 'bg-green-500/15 text-green-400 border border-green-500/20'
+                    : 'bg-red-500/15 text-red-400 border border-red-500/20'
+                }`}>
+                  <span>{paymentMessage.includes('✅') ? '✅' : '⚠️'}</span>
+                  <span>{paymentMessage}</span>
+                </div>
+              )}
+
+              {/* Subscription expiry info */}
+              {subscriptionStatus.hasSubscription && subscriptionStatus.expiryDate && (
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 text-xs text-blue-300">
+                  ℹ️ Your subscription: expires {new Date(subscriptionStatus.expiryDate).toLocaleDateString('en-US')}
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <button
+                onClick={handleSubmitManualPayment}
+                disabled={paymentLoading || !manualSms.trim()}
+                className="w-full py-4 bg-gradient-to-r from-[#008069] to-[#25d366] hover:from-[#007a5e] hover:to-[#1ebe5d] text-white font-black text-base rounded-2xl flex items-center justify-center gap-3 transition-all shadow-lg shadow-green-500/20 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
+              >
+                {paymentLoading ? (
+                  <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Inashughulikia...</>
+                ) : (
+                  <>💳 Wasilisha Malipo — Tsh 10,000</>
+                )}
+              </button>
+
+              <p className="text-center text-white/25 text-xs pb-1">
+                🔐 Malipo yatakaguliwa na admin na Premium itawashwa baada ya kuidhinishwa.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {showDashboard && <OnlineHistoryDashboard onClose={() => setShowDashboard(false)} />}
+      {show2FAModal && <TwoFactorAuth onClose={() => setShow2FAModal(false)} />}
+      {showDeviceManagement && <DeviceManagement onClose={() => setShowDeviceManagement(false)} />}
+      {showGlassManager && <GlassThemeManager mods={mods} setMods={setMods} onClose={() => setShowGlassManager(false)} />}
+      {showSystemDashboard && <SystemDashboard onClose={() => setShowSystemDashboard(false)} />}
+
+    </div>
+  );
+};
+
+const ModItem = ({ icon, title, desc, active, onClick }) => (
+  <div className="flex justify-between items-center p-3 hover:bg-white/10 cursor-pointer rounded-lg transition-colors" onClick={onClick}>
+    <div className="flex items-center gap-4">
+      {icon}
+      <div>
+        <h3 className="text-sm font-semibold text-white">{title}</h3>
+        <p className="text-xs text-white/50">{desc}</p>
+      </div>
+    </div>
+    <div className={`w-10 h-5 rounded-full relative transition-colors ${active ? 'bg-[#25d366]' : 'bg-white/20'}`}>
+      <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${active ? 'right-1' : 'left-1'}`} />
+    </div>
+  </div>
+);
+
+// ---------------------------------------------------------------------
+// profile tab content — extracted so a crash in one tab is scoped by
+// <ErrorBoundary> instead of blanking the whole settings panel.
+const ProfileTab = ({ ctx }) => {
+    const { editProfile, setEditProfile, updateUserProfile, handleProfilePictureUpload, profilePictureInputRef } = ctx;
+  return (
         <>
           {/* My Profile */}
           <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
@@ -694,10 +979,15 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
           </div>
         </section>
         </> /* end profile tab */
-      )}
+  );
+};
 
-      {/* ────────────── TAB: APPEARANCE ────────────── */}
-      {activeTab === 'appearance' && (
+// ---------------------------------------------------------------------
+// appearance tab content — extracted so a crash in one tab is scoped by
+// <ErrorBoundary> instead of blanking the whole settings panel.
+const AppearanceTab = ({ ctx }) => {
+    const { TM_SOLID_COLORS, TM_BRIGHT_WALLPAPERS, TM_DARK_WALLPAPERS, applyScope, setApplyScope, lockType, setLockType, setLockPin, mods, previewWallpaper, setPreviewWallpaper, selectedConversation, setMods, setWallpaperCategory, wallpaperCategory, handleFileWallpaper, wallpaperInputRef, showMsg } = ctx;
+  return (
         <>
         {/* Theme Store / Presets */}
         <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
@@ -1248,10 +1538,25 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
           </div>
         </section>
         </> /* end appearance tab */
-      )}
+  );
+};
 
-      {/* ──────────── TAB: PRIVACY ──────────── */}
-      {activeTab === 'privacy' && (
+// ---------------------------------------------------------------------
+// privacy tab content — extracted so a crash in one tab is scoped by
+// <ErrorBoundary> instead of blanking the whole settings panel.
+const PrivacyTab = ({ ctx }) => {
+    const { backupActionLoading, backupError, backupProgress, close, connectedDevices, isPrivacyLocked, logoutDevice, mods, notificationSound, setMods, setNotificationSound, setShowPaymentModal, setShowPrivacyAnimation, setVoiceFxPreviewBusy, showPrivacyAnimation, subscriptionStatus, toggleMod, voiceFxPreviewBusy, handleMusicFileUpload, handleStartCloudBackup, musicFileInputRef, navigate, renderCloudBackupsList } = ctx;
+  // Server-side crash analytics toggle (opt-in): when enabled the ErrorBoundary
+  // POSTs caught render crashes to /api/telemetry/crashes for the admin panel.
+  const [crashReporting, setCrashReporting] = useState(() => {
+    try { return localStorage.getItem('genz_crash_reporting') === '1'; } catch { return false; }
+  });
+  const toggleCrashReporting = () => {
+    const next = !crashReporting;
+    setCrashReporting(next);
+    try { localStorage.setItem('genz_crash_reporting', next ? '1' : '0'); } catch { /* best-effort */ }
+  };
+  return (
         <>
         {/* Privacy & Protection */}
         <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
@@ -1660,11 +1965,32 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
             </button>
           </div>
         </section>
-        </> /* end privacy tab */
-      )}
 
-      {/* ──────────── TAB: MODS ──────────── */}
-      {activeTab === 'mods' && (
+        {/* Crash Reporting (server analytics) — opt-in */}
+        <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10 mt-3">
+          <div className="p-4 bg-blue-900/30 border-b border-white/10 flex items-center gap-2 text-white font-bold">
+            <Activity size={18} /> Crash Reporting
+          </div>
+          <div className="p-2">
+            <ModItem
+              icon={<Bug size={20} className="text-red-400" />}
+              title="Server-side crash analytics"
+              desc="Send anonymous render-crash reports to help fix bugs (admins can see them)"
+              active={crashReporting}
+              onClick={toggleCrashReporting}
+            />
+          </div>
+        </section>
+        </> /* end privacy tab */
+  );
+};
+
+// ---------------------------------------------------------------------
+// mods tab content — extracted so a crash in one tab is scoped by
+// <ErrorBoundary> instead of blanking the whole settings panel.
+const ModsTab = ({ ctx }) => {
+    const { autoReplyMsg, setAutoReplyMsg, mods, setMods, setShowGlassManager, setShowSystemDashboard, toggleMod, updateAutoReply } = ctx;
+  return (
         <>
         {/* Advanced Tools */}
         <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
@@ -1801,10 +2127,15 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
           </div>
         </section>
         </> /* end mods tab */
-      )}
+  );
+};
 
-      {/* ──────────── TAB: SOCIAL ──────────── */}
-      {activeTab === 'social' && (
+// ---------------------------------------------------------------------
+// social tab content — extracted so a crash in one tab is scoped by
+// <ErrorBoundary> instead of blanking the whole settings panel.
+const SocialTab = ({ ctx }) => {
+    const { mods, setMods, toggleMod } = ctx;
+  return (
         <>
         {/* TikTok / Instagram Exclusive Features */}
         <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
@@ -1911,10 +2242,15 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
           </div>
         </section>
         </> /* end social tab */
-      )}
+  );
+};
 
-      {/* ──────────── TAB: ADVANCED ──────────── */}
-      {activeTab === 'advanced' && (
+// ---------------------------------------------------------------------
+// advanced tab content — extracted so a crash in one tab is scoped by
+// <ErrorBoundary> instead of blanking the whole settings panel.
+const AdvancedTab = ({ ctx }) => {
+    const { appTheme, backupProgress, getMessageStats, isDNDMode, mods, setMods, setShow2FAModal, setShowDashboard, setShowDeviceManagement, startCloudBackup, toggleAppTheme, toggleDNDMode } = ctx;
+  return (
         <>
         {/* Online History */}
         <button
@@ -2124,181 +2460,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
           </div>
         </section>
         </> /* end advanced tab */
-      )}
-      </div> {/* end overflow-y-auto */}
-
-      {/* ════════════════════════════════════════
-           GLOBAL MODALS (render above all tabs)
-         ════════════════════════════════════════ */}
-
-      {/* Payment Modal */}
-      {showPaymentModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-gradient-to-br from-[#0d1b2a] via-[#0a1628] to-black rounded-3xl shadow-2xl w-full max-w-[calc(100vw-2rem)] sm:max-w-md border border-white/10 flex flex-col overflow-hidden max-h-[92vh]">
-
-            {/* Header */}
-            <div className="bg-gradient-to-r from-[#008069] to-[#005c4b] p-5 flex items-center justify-between sticky top-0 z-10">
-              <div>
-                <h2 className="text-xl font-black text-white">💎 Premium Subscription</h2>
-                <p className="text-green-200 text-xs mt-0.5">Unlock all GENZ Ultra features</p>
-              </div>
-              <button
-                onClick={() => { setShowPaymentModal(false); setPaymentMessage(''); }}
-                className="text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-all"
-              >✕</button>
-            </div>
-
-            <div className="p-5 space-y-4 overflow-y-auto custom-scrollbar flex-1">
-
-              {/* Price Card */}
-              <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/10 rounded-2xl p-4 border border-green-500/30">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-white/60 text-sm">Subscription Price</span>
-                  <span className="bg-green-500 text-white text-xs px-3 py-1 rounded-full font-bold">2 MONTHS</span>
-                </div>
-                <div className="text-4xl font-black text-white">Tsh 10,000</div>
-                <p className="text-green-400 text-xs mt-1">≈ Tsh 5,000 / month • Discounted price!</p>
-              </div>
-
-              {/* Features */}
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <p className="text-white/50 text-xs font-semibold mb-2 uppercase tracking-wide">You will get:</p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {['🔒 High Privacy', '👻 Ghost Mode', '🛡️ Anti-Delete', '💬 Glass Mode',
-                    '📊 Dashboard', '🎵 Chat Music', '⚡ All Mods', '🔄 Auto-Reply'].map(f => (
-                    <div key={f} className="text-xs text-green-300">{f}</div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Step 1 - Manual Payment Instructions */}
-              {manualInfo && (
-                <div className="bg-gradient-to-br from-amber-500/15 to-yellow-500/10 rounded-2xl p-4 border border-amber-500/30">
-                  <p className="text-white/80 text-sm font-bold mb-2">📲 Tuma Malipo kwa:</p>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-white/70">Jina: <span className="text-amber-300 font-semibold">{manualInfo.receiverName}</span></span>
-                    <span className="text-white/70">Namba: <span className="text-amber-300 font-semibold font-mono">{manualInfo.receiverNumber}</span></span>
-                  </div>
-                  <div className="mt-3 space-y-1 text-xs text-white/60">
-                    {(manualInfo.instructions || []).map((inst, i) => (
-                      <div key={i}>➡️ {inst}</div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Step 2 - Paste SMS */}
-              <div>
-                <p className="text-white/70 text-sm font-semibold mb-2">2️⃣ Andika SMS ya Kuthibitisha Malipo:</p>
-                <textarea
-                  value={manualSms}
-                  onChange={(e) => { setManualSms(e.target.value); setPaymentMessage(''); }}
-                  rows={4}
-                  placeholder="Paste the confirmation SMS you received here..."
-                  className="w-full bg-white/5 border border-white/20 rounded-xl p-3 text-white placeholder-white/25 text-sm focus:outline-none focus:border-amber-400/60 focus:bg-white/10 transition-all resize-none"
-                />
-                <button
-                  onClick={handlePreviewSms}
-                  disabled={paymentLoading || !manualSms.trim()}
-                  className="mt-2 text-xs px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 disabled:opacity-40 transition-all"
-                >
-                  {paymentLoading ? 'Inasoma...' : '👁️ Soma SMS (Preview)'}
-                </button>
-              </div>
-
-              {/* My payments */}
-              {myPayments.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-white/70 text-sm font-semibold">Malipo Yako:</p>
-                    <button onClick={refreshMyPayments} className="text-white/50 hover:text-white text-[11px] flex items-center gap-1">
-                      <RefreshCw size={11} /> Onyesha upya
-                    </button>
-                  </div>
-                  <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
-                    {myPayments.slice(0, 10).map((p) => (
-                      <div key={p._id} className="flex items-center justify-between bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs">
-                        <div>
-                          <div className="text-white font-semibold">Tsh {p.amount}</div>
-                          <div className="text-white/40">{new Date(p.submittedAt).toLocaleString('en-US')}</div>
-                        </div>
-                        <span className={`px-2 py-1 rounded-full font-bold text-[10px] ${
-                          p.status === 'Approved' ? 'bg-green-500/20 text-green-400'
-                          : p.status === 'Rejected' ? 'bg-red-500/20 text-red-400'
-                          : p.status === 'Duplicate' ? 'bg-orange-500/20 text-orange-400'
-                          : p.status === 'Expired' ? 'bg-gray-500/20 text-gray-400'
-                          : 'bg-amber-500/20 text-amber-400'
-                        }`}>{p.status}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Message feedback */}
-              {paymentMessage && (
-                <div className={`p-3 rounded-xl text-sm flex items-start gap-2 ${
-                  paymentMessage.includes('✅')
-                    ? 'bg-green-500/15 text-green-400 border border-green-500/20'
-                    : 'bg-red-500/15 text-red-400 border border-red-500/20'
-                }`}>
-                  <span>{paymentMessage.includes('✅') ? '✅' : '⚠️'}</span>
-                  <span>{paymentMessage}</span>
-                </div>
-              )}
-
-              {/* Subscription expiry info */}
-              {subscriptionStatus.hasSubscription && subscriptionStatus.expiryDate && (
-                <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 text-xs text-blue-300">
-                  ℹ️ Your subscription: expires {new Date(subscriptionStatus.expiryDate).toLocaleDateString('en-US')}
-                </div>
-              )}
-
-              {/* Submit Button */}
-              <button
-                onClick={handleSubmitManualPayment}
-                disabled={paymentLoading || !manualSms.trim()}
-                className="w-full py-4 bg-gradient-to-r from-[#008069] to-[#25d366] hover:from-[#007a5e] hover:to-[#1ebe5d] text-white font-black text-base rounded-2xl flex items-center justify-center gap-3 transition-all shadow-lg shadow-green-500/20 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
-              >
-                {paymentLoading ? (
-                  <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Inashughulikia...</>
-                ) : (
-                  <>💳 Wasilisha Malipo — Tsh 10,000</>
-                )}
-              </button>
-
-              <p className="text-center text-white/25 text-xs pb-1">
-                🔐 Malipo yatakaguliwa na admin na Premium itawashwa baada ya kuidhinishwa.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-
-      {showDashboard && <OnlineHistoryDashboard onClose={() => setShowDashboard(false)} />}
-      {show2FAModal && <TwoFactorAuth onClose={() => setShow2FAModal(false)} />}
-      {showDeviceManagement && <DeviceManagement onClose={() => setShowDeviceManagement(false)} />}
-      {showGlassManager && <GlassThemeManager mods={mods} setMods={setMods} onClose={() => setShowGlassManager(false)} />}
-      {showSystemDashboard && <SystemDashboard onClose={() => setShowSystemDashboard(false)} />}
-
-    </div>
   );
 };
-
-const ModItem = ({ icon, title, desc, active, onClick }) => (
-  <div className="flex justify-between items-center p-3 hover:bg-white/10 cursor-pointer rounded-lg transition-colors" onClick={onClick}>
-    <div className="flex items-center gap-4">
-      {icon}
-      <div>
-        <h3 className="text-sm font-semibold text-white">{title}</h3>
-        <p className="text-xs text-white/50">{desc}</p>
-      </div>
-    </div>
-    <div className={`w-10 h-5 rounded-full relative transition-colors ${active ? 'bg-[#25d366]' : 'bg-white/20'}`}>
-      <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${active ? 'right-1' : 'left-1'}`} />
-    </div>
-  </div>
-);
 
 export default GENZSettings;
