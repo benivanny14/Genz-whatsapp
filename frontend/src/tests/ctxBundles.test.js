@@ -17,13 +17,26 @@ const chatArea = fs.readFileSync(path.join(root, 'components/ChatArea.jsx'), 'ut
 const bundles = [
   { file: 'components/MessageBubbleList.jsx', ctxVar: 'bubbleCtx' },
   { file: 'components/MessageComposer.jsx', ctxVar: 'composerCtx' },
-  { file: 'components/ConversationHeader.jsx', ctxVar: 'headerCtx' }
+  { file: 'components/ConversationHeader.jsx', ctxVar: 'headerCtx' },
+  { file: 'components/MessageListArea.jsx', ctxVar: 'listCtx' },
+  { file: 'components/ChatModals.jsx', ctxVar: 'modalsCtx' }
 ];
 
 function bundleKeys(src, ctxVar) {
-  const m = src.match(new RegExp(`const ${ctxVar} = \\{\\s*([\\s\\S]*?)\\s*\\};`));
-  assert.ok(m, `${ctxVar} bundle not found in ChatArea.jsx`);
-  return [...m[1].matchAll(/\b(\w+)\b/g)].map(x => x[1]);
+  // Works for `const X = { ... };` and `const X = useMemo(() => ({ ... }), [deps]);`
+  const anchor = src.indexOf(`const ${ctxVar} =`);
+  assert.ok(anchor !== -1, `${ctxVar} bundle not found in ChatArea.jsx`);
+  const open = src.indexOf('{', anchor);
+  assert.ok(open !== -1, `${ctxVar} bundle has no object body`);
+  let depth = 0;
+  let i = open;
+  for (; i < src.length; i++) {
+    const ch = src[i];
+    if (ch === '{') depth++;
+    else if (ch === '}') { depth--; if (depth === 0) break; }
+  }
+  const body = src.slice(open + 1, i);
+  return [...body.matchAll(/\b(\w+)\b/g)].map(x => x[1]);
 }
 
 function destructureKeys(componentSrc) {

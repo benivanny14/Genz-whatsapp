@@ -18,7 +18,7 @@ import toast from 'react-hot-toast';
  * expression). Receives a single ctx bundle so the JSX content is untouched;
  * behavior is identical to the inline block.
  */
-export default function MessageBubbleList({ ctx }) {
+const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
   const {
     filteredMessages, visibleCount, safeMods, user, selectedConversation, messages,
     translatedMessages, favoriteStickers, activeMessageMenu, messageMenuRef,
@@ -869,4 +869,6 @@ export default function MessageBubbleList({ ctx }) {
                 </div>
                 )
               ));
-}
+});
+
+export default MessageBubbleList;

@@ -8,7 +8,7 @@ import { formatMessageTime } from '../utils/formatDate';
  * Extracted verbatim from ChatArea.jsx (lines 2494-2758). Receives a single
  * ctx bundle so the JSX content is untouched; behavior is identical.
  */
-export default function ConversationHeader({ ctx }) {
+const ConversationHeader = React.memo(function ConversationHeader({ ctx }) {
   const {
     safeMods, selectConversation, sidebarOpen, onOpenSidebar,
     isSearching, setIsSearching, chatSearchQuery, setChatSearchQuery,
@@ -290,4 +290,6 @@ export default function ConversationHeader({ ctx }) {
         </header>
     </>
   );
-}
+});
+
+export default ConversationHeader;

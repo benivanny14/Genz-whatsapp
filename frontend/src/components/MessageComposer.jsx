@@ -12,7 +12,7 @@ import { FONT_OPTIONS } from '../utils/chatTextHelpers';
  * Extracted verbatim from ChatArea.jsx (lines 2885-3183). Receives a single
  * ctx bundle so the JSX content is untouched; behavior is identical.
  */
-export default function MessageComposer({ ctx }) {
+const MessageComposer = React.memo(function MessageComposer({ ctx }) {
   const {
     replyingTo, setReplyingTo, showMediaPanel, setShowMediaPanel,
     activeMediaTab, setActiveMediaTab, handleEmojiClick,
@@ -337,4 +337,6 @@ export default function MessageComposer({ ctx }) {
         </div>
     </>
   );
-}
+});
+
+export default MessageComposer;
