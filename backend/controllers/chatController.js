@@ -17,6 +17,7 @@ const { serializeOutgoingMessage } = require("../utils/messageSerializer");
 const { sendMentionNotification, sendNewMessageNotification } = require("../services/notificationService");
 const { ensureUnreadMap, getUnreadCount } = require("../utils/unreadCount");
 const { containsProfanity } = require("../utils/contentFilter");
+const { scheduleHardDelete } = require("../utils/hardDelete");
 
 const getCurrentUserId = (req) => {
   if (!req.user?._id) {
@@ -273,10 +274,55 @@ exports.getConversations = async (req, res) => {
   try {
     const userId = getCurrentUserId(req);
     const { includeArchived } = req.query;
+    const userIdObj = mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : userId;
 
-    let conversations = await populateConversation(
-      Conversation.find({ participants: userId, deletedFor: { $ne: userId } }),
-    );
+    // SECURITY (3.2): fetch the conversation list in a single aggregation
+    // (match + lookups) instead of populate + in-JS filtering, so the query
+    // is fully server-side and scales. Per-user privacy filtering of
+    // participants still runs below via transformConversationForUser.
+    let conversations = await Conversation.aggregate([
+      {
+        $match: {
+          participants: userIdObj,
+          deletedFor: { $ne: userIdObj }
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'participants',
+          foreignField: '_id',
+          pipeline: [
+            { $project: { username: 1, phoneNumber: 1, profilePicture: 1, isOnline: 1, lastSeen: 1, about: 1 } }
+          ],
+          as: 'participants'
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'admins',
+          foreignField: '_id',
+          pipeline: [
+            { $project: { username: 1, profilePicture: 1 } }
+          ],
+          as: 'admins'
+        }
+      },
+      {
+        $lookup: {
+          from: 'messages',
+          localField: 'lastMessage',
+          foreignField: '_id',
+          as: 'lastMessage'
+        }
+      },
+      {
+        $addFields: {
+          lastMessage: { $arrayElemAt: ['$lastMessage', 0] }
+        }
+      }
+    ]);
 
     // WhatsApp behavior: 1:1 chats with blocked users are hidden from the list
     // until they are unblocked. Group chats stay visible — you simply stop
@@ -483,6 +529,8 @@ exports.createGroup = async (req, res) => {
       createdBy: localUserId,
       owner: localUserId,
       groupInviteCode: crypto.randomBytes(16).toString("hex"),
+      // SECURITY (3.3): invite codes expire after 7 days.
+      groupInviteCodeExpiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
 
     try {
@@ -1247,11 +1295,25 @@ exports.deleteMessage = async (req, res) => {
           message: "Only sender or group admin can delete for everyone",
         });
       }
+      // SECURITY (1.6): scrub the message content immediately so it can never
+      // be re-read from the database, then schedule a hard delete after 30
+      // days (the server-side sweep in startExpiredMessageCleanup is the
+      // backstop for any timer that is lost on restart).
       message.deletedForEveryone = true;
       message.wasDeletedBySender = message.sender.toString() === localUserId.toString();
       message.deletedByAdmin = !message.wasDeletedBySender;
       message.deletedAt = new Date();
+      // Keep the pre-delete content so the anti-revoke mod can still list
+      // and restore it (GET/POST /genz-mods/deleted-messages). Must be set
+      // BEFORE the content is scrubbed below.
       message.originalContent = message.originalContent || message.content;
+      message.content = '[deleted]';
+      message.caption = '';
+      message.mediaUrl = '';
+      message.fileName = '';
+      message.fileSize = 0;
+      message.duration = 0;
+      scheduleHardDelete(message, localUserId);
     } else if (!includesId(message.deletedFor, localUserId)) {
       message.deletedFor.push(localUserId);
     }
@@ -1398,10 +1460,11 @@ exports.removeReaction = async (req, res) => {
     const conversation = await Conversation.findById(message.conversationId);
     if (!ensureParticipant(conversation, localUserId, res)) return;
 
-    message.reactions = message.reactions.filter(
-      (r) => r.user.toString() !== localUserId,
+    // SECURITY (3.1): atomic removal of this user's reaction.
+    await Message.updateOne(
+      { _id: message._id, 'reactions.user': localUserId },
+      { $pull: { reactions: { user: localUserId } } }
     );
-    await message.save();
 
     const updatedMessage = await Message.findById(message._id)
       .populate("sender", "username profilePicture")
@@ -1502,8 +1565,9 @@ exports.searchUsers = async (req, res) => {
       isBlocked: { $ne: true },
       $or: [{ username: regex }, { phoneNumber: regex }],
     })
+      // SECURITY (3.6): never expose phone numbers in search results.
       .select(
-        "username phoneNumber profilePicture about isOnline lastSeen",
+        "username profilePicture about isOnline lastSeen",
       )
       .limit(25);
 
@@ -2554,22 +2618,33 @@ exports.reportMessage = async (req, res) => {
     const conversation = await Conversation.findById(message.conversationId);
     if (!ensureParticipant(conversation, userId, res)) return;
 
-    // Create report (you might want to save this to a separate collection)
-    const report = {
-      messageId,
-      conversationId: message.conversationId,
-      reportedBy: userId,
-      reportedUser: message.sender,
-      reason,
-      details,
-      reportedAt: new Date(),
-      status: "pending",
-    };
+    // SECURITY (2.7): persist the report instead of only logging it.
+    const validCategories = ['spam', 'harassment', 'inappropriate_content', 'fake_account', 'scam', 'violence', 'hate_speech', 'other'];
+    const category = validCategories.includes(reason) ? reason : 'other';
 
-    // For now, just log it and return success
-    console.log("Message report:", report);
+    const report = new AbuseReport({
+      reporterId: userId,
+      reportedUserId: message.sender,
+      reportedContentId: messageId,
+      contentType: 'message',
+      category,
+      description: typeof details === 'string' ? details.slice(0, 1000) : '',
+      status: 'pending',
+      metadata: {
+        conversationId: message.conversationId,
+        reason,
+        reportedAt: new Date()
+      }
+    });
+    await report.save();
 
-    res.json({ success: true, message: "Message reported successfully" });
+    // Notify admins (if any admin sockets are joined to the admin room).
+    const io = req.app.get('io');
+    if (io) {
+      io.to('admin-room').emit('new:abuse-report', report);
+    }
+
+    res.status(201).json({ success: true, message: "Message reported successfully", reportId: report._id });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -2644,34 +2719,40 @@ exports.addReaction = async (req, res) => {
       r => String(r.user) === String(userId) && r.emoji === emoji
     );
 
+    // SECURITY (3.1): atomic toggle — no read-modify-write race on the shared
+    // message document. Each user holds exactly one reaction.
     if (existingReactionIndex !== -1) {
-      // Remove the reaction (toggle off)
-      message.reactions.splice(existingReactionIndex, 1);
-    } else {
-      // Remove any existing reaction by this user (only one reaction per user)
-      message.reactions = message.reactions.filter(
-        r => String(r.user) !== String(userId)
+      // Toggle off (same emoji tapped again).
+      await Message.updateOne(
+        { _id: message._id, 'reactions.user': userId },
+        { $pull: { reactions: { user: userId, emoji } } }
       );
-      // Add the new reaction
-      message.reactions.push({
-        user: userId,
-        emoji: emoji,
-        createdAt: new Date()
-      });
+    } else {
+      // Toggle on — atomically ensure exactly one reaction per user.
+      const added = await Message.findOneAndUpdate(
+        { _id: message._id, 'reactions.user': { $ne: userId } },
+        { $push: { reactions: { user: userId, emoji, createdAt: new Date() } } }
+      );
+      if (!added) {
+        await Message.updateOne(
+          { _id: message._id, 'reactions.user': userId },
+          { $set: { 'reactions.$.emoji': emoji } }
+        );
+      }
     }
 
-    await message.save();
+    const freshMessage = await Message.findById(message._id);
 
     const io = req.app.get("io");
     if (io) {
       io.to(String(message.conversationId)).emit("message:reaction", {
         messageId: message._id,
         conversationId: message.conversationId,
-        reactions: message.reactions
+        reactions: freshMessage?.reactions || []
       });
     }
 
-    res.json({ success: true, reactions: message.reactions });
+    res.json({ success: true, reactions: freshMessage?.reactions || [] });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -2821,6 +2902,8 @@ exports.regenerateGroupInvite = async (req, res) => {
     }
 
     conversation.groupInviteCode = crypto.randomBytes(16).toString('hex');
+    // SECURITY (3.3): refreshed invite codes expire after 7 days.
+    conversation.groupInviteCodeExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     await conversation.save();
 
     res.json({
@@ -2929,6 +3012,11 @@ exports.joinGroup = async (req, res) => {
       // Already a member â€” just return the conversation so the frontend can open it
       const populated = await populateConversation(Conversation.findById(groupId));
       return res.status(200).json({ success: true, alreadyMember: true, conversation: populated });
+    }
+
+    // SECURITY (3.3): reject expired invite codes.
+    if (conversation.groupInviteCodeExpiry && new Date() > conversation.groupInviteCodeExpiry) {
+      return res.status(403).json({ success: false, message: 'Invite code expired' });
     }
 
     if (!conversation.groupInviteCode || inviteCode !== conversation.groupInviteCode) {

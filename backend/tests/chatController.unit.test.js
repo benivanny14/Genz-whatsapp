@@ -10,6 +10,7 @@ jest.mock('../models/Conversation', () => ({
   findOne: jest.fn(),
   find: jest.fn(),
   create: jest.fn(),
+  aggregate: jest.fn(),
   findByIdAndUpdate: jest.fn(),
   findOneAndUpdate: jest.fn(),
   updateMany: jest.fn(),
@@ -24,6 +25,7 @@ jest.mock('../models/Message', () => ({
   findByIdAndUpdate: jest.fn(),
   findOneAndUpdate: jest.fn(),
   updateMany: jest.fn(),
+  updateOne: jest.fn(),
   countDocuments: jest.fn()
 }));
 
@@ -86,7 +88,7 @@ const chat = require('../controllers/chatController');
 // and restore the pure helper implementations.
 const resetModelMocks = () => {
   [User, Conversation, Message].forEach((model) => {
-    ['findById', 'findOne', 'find', 'create', 'findByIdAndUpdate', 'findOneAndUpdate', 'updateMany', 'updateOne', 'countDocuments'].forEach((k) => {
+    ['findById', 'findOne', 'find', 'create', 'aggregate', 'findByIdAndUpdate', 'findOneAndUpdate', 'updateMany', 'updateOne', 'countDocuments'].forEach((k) => {
       if (typeof model[k] === 'function') model[k].mockReset();
     });
   });
@@ -209,12 +211,13 @@ describe('chatController — conversations', () => {
     expect(res.statusCode).toBe(500);
   });
 
-  it('getConversations lists and transforms conversations (happy path)', async () => {
+  it('getConversations lists and transforms conversations (happy path, SECURITY 3.2 aggregation)', async () => {
     const conv = makeConv({ updatedAt: new Date('2025-06-01T00:00:00Z') });
-    Conversation.find.mockReturnValue(populateChain([conv]));
+    Conversation.aggregate.mockResolvedValue([conv]);
     User.findById.mockReturnValue({ select: jest.fn(() => ({ lean: jest.fn().mockResolvedValue({ blockedUsers: [] }) })) });
     const res = makeRes();
     await chat.getConversations(makeReq(), res);
+    expect(Conversation.aggregate).toHaveBeenCalled();
     expect(res.body.success).toBe(true);
     expect(res.body.conversations).toHaveLength(1);
     expect(applyPrivacyFilter).toHaveBeenCalled();
@@ -223,7 +226,7 @@ describe('chatController — conversations', () => {
   it('getConversations hides 1:1 chats with blocked users but keeps groups', async () => {
     const dm = makeConv({ _id: 'c-dm', participants: ['user-1', 'user-9'] });
     const group = makeConv({ _id: 'c-grp', participants: ['user-1', 'user-9'], isGroup: true });
-    Conversation.find.mockReturnValue(populateChain([dm, group]));
+    Conversation.aggregate.mockResolvedValue([dm, group]);
     User.findById.mockReturnValue({ select: jest.fn(() => ({ lean: jest.fn().mockResolvedValue({ blockedUsers: ['user-9'] }) })) });
     const res = makeRes();
     await chat.getConversations(makeReq(), res);
@@ -604,6 +607,10 @@ describe('chatController — messages', () => {
     expect(message.deletedForEveryone).toBe(true);
     expect(message.wasDeletedBySender).toBe(false);
     expect(message.deletedByAdmin).toBe(true);
+    // SECURITY (1.6): content is scrubbed…
+    expect(message.content).toBe('[deleted]');
+    // …but the pre-delete content is preserved for the deleted-messages mod.
+    expect(message.originalContent).toBe('Hello');
     expect(message.save).toHaveBeenCalled();
   });
 
@@ -658,41 +665,61 @@ describe('chatController — messages', () => {
     expect(res.statusCode).toBe(404);
   });
 
-  it('addReaction adds a new reaction (happy path)', async () => {
+  it('addReaction adds a new reaction atomically (SECURITY 3.1)', async () => {
     const message = makeMessage();
+    const fresh = { ...message, reactions: [{ user: 'user-1', emoji: '🔥' }] };
     Message.findById
       .mockResolvedValueOnce(message)
-      .mockReturnValueOnce(msgById4(message));
+      .mockResolvedValueOnce(fresh);
+    Message.findOneAndUpdate.mockResolvedValue({ _id: 'm1' });
     Conversation.findById.mockResolvedValue(makeConv());
     const res = makeRes();
     await chat.addReaction(makeReq({ params: { id: 'm1' }, body: { emoji: '🔥' } }), res);
-    expect(message.reactions).toHaveLength(1);
-    expect(message.reactions[0].emoji).toBe('🔥');
-    expect(message.save).toHaveBeenCalled();
+    expect(Message.findOneAndUpdate).toHaveBeenCalledWith(
+      { _id: 'm1', 'reactions.user': { $ne: 'user-1' } },
+      { $push: { reactions: { user: 'user-1', emoji: '🔥', createdAt: expect.any(Date) } } }
+    );
+    expect(Message.updateOne).not.toHaveBeenCalled();
+    expect(res.body.reactions).toHaveLength(1);
+    expect(res.body.reactions[0].emoji).toBe('🔥');
   });
 
-  it('addReaction replaces an existing reaction', async () => {
+  it('addReaction replaces an existing reaction atomically (SECURITY 3.1)', async () => {
     const message = makeMessage({ reactions: [{ user: 'user-1', emoji: '😀' }] });
+    const fresh = { ...message, reactions: [{ user: 'user-1', emoji: '🔥' }] };
     Message.findById
       .mockResolvedValueOnce(message)
-      .mockReturnValueOnce(msgById4(message));
+      .mockResolvedValueOnce(fresh);
+    Message.findOneAndUpdate.mockResolvedValue(null); // user already reacted
+    Message.updateOne.mockResolvedValue({});
     Conversation.findById.mockResolvedValue(makeConv());
     const res = makeRes();
     await chat.addReaction(makeReq({ params: { id: 'm1' }, body: { emoji: '🔥' } }), res);
-    expect(message.reactions).toHaveLength(1);
-    expect(message.reactions[0].emoji).toBe('🔥');
+    expect(Message.findOneAndUpdate).toHaveBeenCalledWith(
+      { _id: 'm1', 'reactions.user': { $ne: 'user-1' } },
+      { $push: { reactions: { user: 'user-1', emoji: '🔥', createdAt: expect.any(Date) } } }
+    );
+    expect(Message.updateOne).toHaveBeenCalledWith(
+      { _id: 'm1', 'reactions.user': 'user-1' },
+      { $set: { 'reactions.$.emoji': '🔥' } }
+    );
+    expect(res.body.reactions[0].emoji).toBe('🔥');
   });
 
-  it('removeReaction removes the user reaction (happy path)', async () => {
+  it('removeReaction removes the user reaction atomically (SECURITY 3.1)', async () => {
     const message = makeMessage({ reactions: [{ user: 'user-1', emoji: '🔥' }] });
     Message.findById
       .mockResolvedValueOnce(message)
-      .mockReturnValueOnce(msgById4(message));
+      .mockReturnValueOnce(msgById4({ ...message, reactions: [] }));
+    Message.updateOne.mockResolvedValue({});
     Conversation.findById.mockResolvedValue(makeConv());
     const res = makeRes();
     await chat.removeReaction(makeReq({ params: { id: 'm1' } }), res);
-    expect(message.reactions).toHaveLength(0);
-    expect(message.save).toHaveBeenCalled();
+    expect(Message.updateOne).toHaveBeenCalledWith(
+      { _id: 'm1', 'reactions.user': 'user-1' },
+      { $pull: { reactions: { user: 'user-1' } } }
+    );
+    expect(message.save).not.toHaveBeenCalled();
   });
 });
 
@@ -1351,7 +1378,7 @@ describe('chatController — view-once privacy', () => {
 
   it('getConversations strips view-once lastMessage preview', async () => {
     const conv = makeConv({ updatedAt: new Date('2025-06-01T00:00:00Z'), lastMessage: viewOnceMsg() });
-    Conversation.find.mockReturnValue(populateChain([conv]));
+    Conversation.aggregate.mockResolvedValue([conv]);
     User.findById.mockReturnValue({ select: jest.fn(() => ({ lean: jest.fn().mockResolvedValue({ blockedUsers: [] }) })) });
     const res = makeRes();
     await chat.getConversations(makeReq(), res);
