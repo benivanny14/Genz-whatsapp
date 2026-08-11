@@ -135,12 +135,12 @@ jobs:
             exit 1
           fi
           set +e
-          GENZ_DEV_PORT=5176 PLAYWRIGHT_BASE_URL=http://127.0.0.1:5176 npx playwright test
+          GENZ_DEV_PORT=5176 PLAYWRIGHT_BASE_URL=http://127.0.0.1:5176 npx playwright test > /tmp/pw.log 2>&1
           STATUS=$?
           set -e
           if [ "$STATUS" != "0" ]; then
             echo "::error::Playwright exited with $STATUS"
-            tail -30 /tmp/genz-dev.log | sed 's/^/::error::/' | head -8
+            grep -E "✓|✘|passed|failed|flaky|skipped|Error:|at |expect\(|Timeout|Error \[|> " /tmp/pw.log | tail -20 | sed 's/^/::error::/' | head -8
           fi
           kill $DEV_PID 2>/dev/null || true
           exit $STATUS
