@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Search, X, Heart, Clock, Plus, ChevronLeft, Check, Download, Grid3x3, Wand2 } from 'lucide-react';
 import StickerCreator from './StickerCreator';
+import StickerImage from './StickerImage';
 import { useStickers } from '../context/StickerContext';
 
 // Offline fallback catalog (GIPHY CDN) — used only when the backend catalog
@@ -188,7 +189,7 @@ const StickerPicker = ({
             title={pack.name}
             aria-label={pack.name}
           >
-            <img src={pack.thumbnail || pack.stickers?.[0]?.url} alt={pack.name} className="w-full h-full object-cover" loading="lazy" />
+            <StickerImage src={pack.thumbnail || pack.stickers?.[0]?.url} emoji={pack.stickers?.[0]?.emoji} alt={pack.name} className="w-full h-full object-cover" />
           </button>
         ))}
 
@@ -333,7 +334,7 @@ const StickerGrid = ({ stickers, onPick, isFav, onFav, onLongPressStart, onLongP
             {sticker.isVideo ? (
               <video src={sticker.url} muted autoPlay loop playsInline className="w-full h-full object-contain pointer-events-none rounded" />
             ) : (
-              <img src={sticker.url} alt={sticker.name || sticker.emoji || 'sticker'} className="w-full h-full object-contain pointer-events-none" loading="lazy" />
+              <StickerImage src={sticker.url} emoji={sticker.emoji} alt={sticker.name || sticker.emoji || 'sticker'} className="w-full h-full object-contain pointer-events-none" />
             )}
           </button>
           <button
@@ -375,7 +376,7 @@ const StoreView = ({ packs, isPackDownloaded, onPackAction, onOpenPack, onSticke
       return (
         <div key={pack.id} className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-[#1f2c33] transition-colors">
           <button onClick={() => onOpenPack(pack)} className="flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden border border-[#2a3942]">
-            <img src={pack.thumbnail || pack.stickers?.[0]?.url} alt={pack.name} className="w-full h-full object-cover" loading="lazy" />
+            <StickerImage src={pack.thumbnail || pack.stickers?.[0]?.url} emoji={pack.stickers?.[0]?.emoji} alt={pack.name} className="w-full h-full object-cover" />
           </button>
           <button onClick={() => onOpenPack(pack)} className="flex-1 text-left min-w-0">
             <p className="text-white text-sm font-medium truncate">{pack.name}</p>

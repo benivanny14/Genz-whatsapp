@@ -49,6 +49,25 @@ export const StickerProvider = ({ children }) => {
     } catch (err) {
       console.warn('[StickerContext] fetchStickerPacks failed:', err?.message || err);
     }
+    // Hydrate favorites (and downloads) from the server so favorites follow
+    // the account across devices, like WhatsApp. Server values win — merge
+    // with any local-only favorites (e.g. stickers created on this device).
+    try {
+      const me = await apiService.getMyStickers();
+      if (me?.success) {
+        const serverFavs = me.favoriteStickers || [];
+        setFavoriteStickers((prev) => {
+          const merged = Array.from(new Set([...serverFavs, ...prev]));
+          try { localStorage.setItem(FAV_KEY, JSON.stringify(merged)); } catch (e) { /* ignore quota */ }
+          return merged;
+        });
+        if (me.downloadedStickers?.length) {
+          setDownloadedStickers((prev) => Array.from(new Set([...prev, ...me.downloadedStickers])));
+        }
+      }
+    } catch (err) {
+      console.warn('[StickerContext] getMyStickers failed:', err?.message || err);
+    }
   }, []);
 
   useEffect(() => {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import StickerImage from './StickerImage';
 
 const FloatingStickerOverlay = ({ onStickerReceived, isMobile }) => {
   const [floatingStickers, setFloatingStickers] = useState([]);
@@ -65,11 +66,10 @@ const FloatingStickerOverlay = ({ onStickerReceived, isMobile }) => {
             ease: 'easeOut',
           }}
         >
-          <img
+          <StickerImage
             src={sticker.url || sticker.content}
             alt="floating sticker"
             className="w-full h-full object-contain"
-            loading="lazy"
           />
         </motion.div>
       ))}
