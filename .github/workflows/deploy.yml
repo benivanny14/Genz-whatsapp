@@ -28,6 +28,12 @@ jobs:
           cd frontend
           npm ci
       
+      # ── QUALITY GATES: never ship broken code to production ──
+      - name: Run backend tests
+        run: |
+          cd backend
+          npx jest --runInBand
+      
       - name: Build frontend
         run: |
           cd frontend
