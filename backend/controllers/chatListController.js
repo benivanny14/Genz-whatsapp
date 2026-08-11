@@ -79,10 +79,19 @@ const SEARCH_DEFAULTS = {
   highlightResults: true
 };
 
+// Escape regex metacharacters before building a RegExp from user input.
+// This prevents regex injection and ReDoS (catastrophic backtracking) via
+// search queries. Same pattern as the escapeRegex helper used in
+// adminController.js, manualPaymentController.js, mediaController.js and
+// chatController.js.
+const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 // Shared by searchConversations and searchMessagesInConversation.
 const buildSearchRegex = (query, settings) => {
-  const flags = settings.caseSensitive ? (settings.exactMatch ? '^' + query + '$' : '') : (settings.exactMatch ? '^' + query + '$' : 'i');
-  return new RegExp(query, flags);
+  const escaped = escapeRegex(query);
+  const pattern = settings.exactMatch ? `^${escaped}$` : escaped;
+  const flags = settings.caseSensitive ? '' : 'i';
+  return new RegExp(pattern, flags);
 };
 
 const { getSettings: getChatSearchSettings, updateSettings: updateChatSearchSettings, resetSettings: resetChatSearchSettings } = createSettingsHandlers({

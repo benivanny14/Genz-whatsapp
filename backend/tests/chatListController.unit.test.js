@@ -199,6 +199,95 @@ describe('chatListController — chat search', () => {
   });
 });
 
+describe('chatListController — search regex hardening (ReDoS / injection)', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  const stubModels = (conversations) => {
+    const convChain = { populate: jest.fn().mockResolvedValue(conversations) };
+    Conversation.find.mockReturnValue(convChain);
+    Message.find.mockReturnValue({ populate: jest.fn().mockResolvedValue([]) });
+  };
+
+  it('escapes regex metacharacters so search queries never throw or inject', async () => {
+    User.findById.mockResolvedValue(makeUser());
+    stubModels([
+      { name: 'a+b*c?', isGroup: true },
+      { name: 'literal [dot] {brace}', isGroup: false }
+    ]);
+
+    const res = makeRes();
+    await chatList.searchConversations(
+      makeReq({ body: { query: '.*+?^${}()|[\\]', searchInMessages: false, searchInContacts: false } }),
+      res
+    );
+
+    expect(res.body.success).toBe(true);
+    // Metacharacters are matched literally — no conversation matches this exact string.
+    expect(res.body.results.conversations).toHaveLength(0);
+  });
+
+  it('matches a plain search containing metacharacters literally', async () => {
+    User.findById.mockResolvedValue(makeUser());
+    stubModels([{ name: 'a+b*c?', isGroup: false }]);
+
+    const res = makeRes();
+    await chatList.searchConversations(
+      makeReq({ body: { query: 'a+b*c?', searchInMessages: false, searchInContacts: false } }),
+      res
+    );
+
+    expect(res.body.success).toBe(true);
+    expect(res.body.results.conversations).toHaveLength(1);
+  });
+
+  it('does not throw SyntaxError when exactMatch is enabled', async () => {
+    User.findById.mockResolvedValue(makeUser({ chatSearchSettings: { exactMatch: true } }));
+    stubModels([{ name: 'hello', isGroup: false }]);
+
+    const res = makeRes();
+    await chatList.searchConversations(
+      makeReq({ body: { query: 'hello', searchInMessages: false, searchInContacts: false } }),
+      res
+    );
+
+    expect(res.body.success).toBe(true);
+    expect(res.body.results.conversations).toHaveLength(1);
+  });
+
+  it('anchors exactMatch to the whole string', async () => {
+    User.findById.mockResolvedValue(makeUser({ chatSearchSettings: { exactMatch: true } }));
+    stubModels([{ name: 'not-hello', isGroup: false }]);
+
+    const res = makeRes();
+    await chatList.searchConversations(
+      makeReq({ body: { query: 'hello', searchInMessages: false, searchInContacts: false } }),
+      res
+    );
+
+    expect(res.body.success).toBe(true);
+    expect(res.body.results.conversations).toHaveLength(0);
+  });
+
+  it('returns quickly on a ReDoS-style pattern instead of hanging', async () => {
+    User.findById.mockResolvedValue(makeUser());
+    // (a+)+$ against a long run of a's + a trailing non-matching char is the
+    // classic catastrophic-backtracking case. With the query escaped to a
+    // literal, matching stays linear.
+    stubModels([{ name: 'a'.repeat(30) + '!', isGroup: false }]);
+
+    const res = makeRes();
+    const start = Date.now();
+    await chatList.searchConversations(
+      makeReq({ body: { query: '(a+)+$', searchInMessages: false, searchInContacts: false } }),
+      res
+    );
+    const elapsed = Date.now() - start;
+
+    expect(res.body.success).toBe(true);
+    expect(elapsed).toBeLessThan(1000);
+  });
+});
+
 describe('chatListController — chat folders', () => {
   beforeEach(() => jest.clearAllMocks());
 
