@@ -23,6 +23,8 @@ const Settings = lazy(() => import('./pages/Settings'));
 const NewChat = lazy(() => import('./pages/NewChat'));
 const NewGroup = lazy(() => import('./pages/NewGroup'));
 const Status = lazy(() => import('./pages/Status'));
+const PublicStatusViewer = lazy(() => import('./pages/PublicStatusViewer'));
+const LegalPage = lazy(() => import('./pages/LegalPage'));
 const Broadcast = lazy(() => import('./pages/Broadcast'));
 const Starred = lazy(() => import('./pages/Starred'));
 const Archived = lazy(() => import('./pages/Archived'));
@@ -375,6 +377,7 @@ function App() {
             <Route path="/new-chat" element={<ProtectedRoute><NewChat /></ProtectedRoute>} />
             <Route path="/new-group" element={<ProtectedRoute><NewGroup /></ProtectedRoute>} />
             <Route path="/status" element={<ProtectedRoute><Status /></ProtectedRoute>} />
+            <Route path="/status/:id" element={<PublicStatusViewer />} />
             <Route path="/broadcast" element={<ProtectedRoute><Broadcasts /></ProtectedRoute>} />
             <Route path="/broadcast/simple" element={<ProtectedRoute><Broadcast /></ProtectedRoute>} />
             <Route path="/linked-devices" element={<ProtectedRoute><LinkedDevices /></ProtectedRoute>} />
@@ -397,6 +400,7 @@ function App() {
             <Route path="/channels/:channelId" element={<ProtectedRoute><ChannelView /></ProtectedRoute>} />
             <Route path="/communities" element={<ProtectedRoute><Communities /></ProtectedRoute>} />
             <Route path="/join/:groupId/:code" element={<ProtectedRoute><JoinGroup /></ProtectedRoute>} />
+            <Route path="/legal/:doc" element={<LegalPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />

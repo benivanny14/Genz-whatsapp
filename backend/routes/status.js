@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const { protect } = require('../middleware/auth');
+const { protect, optionalAuth } = require('../middleware/auth');
 const { safeFilename } = require('../utils/safeFilename');
 const {
-  createStatus, getStatuses, viewStatus,
+  createStatus, getStatuses, viewStatus, getSharedStatus,
   reactToStatus, deleteStatus, getViewers,
   uploadStatusMedia, uploadCollageImages
 } = require('../controllers/statusController');
@@ -52,6 +52,8 @@ const collageUpload = multer({
 
 router.post('/', protect, createStatus);
 router.get('/', protect, getStatuses);
+// Public shared-status link (QR / share). Must be declared before /:id routes.
+router.get('/shared/:id', optionalAuth, getSharedStatus);
 router.put('/:id', protect, editStatus);
 router.post('/upload', protect, upload.single('file'), validateFileContent, uploadStatusMedia);
 router.post('/collage-upload', protect, collageUpload.array('files', 4), validateFileContent, uploadCollageImages);

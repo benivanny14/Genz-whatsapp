@@ -258,6 +258,9 @@ const ReportModal = ({ contactName, onClose, onReport }) => {
     { value: 'inappropriate_content', label: 'Inappropriate content' },
     { value: 'scam', label: 'Scam / Fraud' },
     { value: 'fake_account', label: 'Fake account' },
+    { value: 'violence', label: 'Violence / Gore' },
+    { value: 'hate_speech', label: 'Hate speech' },
+    { value: 'csam', label: 'Sexual content involving a minor (CSAM)' },
     { value: 'other', label: 'Other' }
   ];
   return (

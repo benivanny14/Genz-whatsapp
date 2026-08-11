@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
+import jsQR from 'jsqr';
 import { QrCode, Scan, Copy, Download, Share2, RefreshCw, X, Check, Smartphone, Link, User, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -192,26 +193,94 @@ const QRCodeScanner = ({ onScan, onClose }) => {
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [error, setError] = useState(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
+  const rafRef = useRef(null);
+  const scanningRef = useRef(false);
 
-  const handleStartScan = () => {
+  const stopStream = () => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+    scanningRef.current = false;
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  };
+
+  // Stop camera when the modal closes / unmounts
+  useEffect(() => () => stopStream(), []);
+
+  const handleDecoded = (data) => {
+    stopStream();
+    setScanning(false);
+    let parsed = null;
+    try {
+      parsed = JSON.parse(data);
+    } catch (_) {
+      parsed = null;
+    }
+    const result =
+      parsed && typeof parsed === 'object'
+        ? parsed
+        : { type: 'link', data, raw: data };
+    setScanResult(result);
+    if (onScan) {
+      onScan(result);
+    }
+  };
+
+  const scanFrame = () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!scanningRef.current || !video || !canvas) return;
+    if (video.readyState < 2) {
+      rafRef.current = requestAnimationFrame(scanFrame);
+      return;
+    }
+    try {
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: 'dontInvert'
+      });
+      if (code?.data) {
+        handleDecoded(code.data);
+        return;
+      }
+    } catch (e) {
+      // Frame read hiccup — keep scanning
+    }
+    rafRef.current = requestAnimationFrame(scanFrame);
+  };
+
+  const handleStartScan = async () => {
     setScanning(true);
     setError(null);
-    
-    // Simulate QR code scanning
-    setTimeout(() => {
-      const mockResult = {
-        type: 'profile',
-        userId: '123456',
-        phone: '+255123456789',
-        name: 'John Doe'
-      };
-      setScanResult(mockResult);
-      setScanning(false);
-      
-      if (onScan) {
-        onScan(mockResult);
+    scanningRef.current = true;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false
+      });
+      streamRef.current = stream;
+      const video = videoRef.current;
+      if (!video) {
+        stopStream();
+        setScanning(false);
+        setError('Kamera haikufunguka. Jaribu tena.');
+        return;
       }
-    }, 2000);
+      video.srcObject = stream;
+      await video.play();
+      rafRef.current = requestAnimationFrame(scanFrame);
+    } catch (err) {
+      scanningRef.current = false;
+      setScanning(false);
+      setError('Kamera haipatikani. Ruhusu upatikanaji wa kamera ili kuscani QR code.');
+    }
   };
 
   return (
@@ -252,12 +321,26 @@ const QRCodeScanner = ({ onScan, onClose }) => {
               </button>
             </div>
           ) : scanning ? (
-            <div className="text-center">
-              <div className="relative w-32 h-32 mx-auto mb-4">
-                <div className="absolute inset-0 border-2 border-[#00a884] rounded-lg animate-pulse" />
-                <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-[#00a884] animate-[scan_2s_ease-in-out_infinite]" />
+            <div className="relative">
+              <video
+                ref={videoRef}
+                playsInline
+                muted
+                className="w-full h-64 object-cover rounded-lg"
+              />
+              <canvas ref={canvasRef} className="hidden" />
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-40 h-40 border-2 border-[#00a884] rounded-lg relative">
+                  <div className="absolute inset-x-0 top-0 h-0.5 bg-[#00a884] animate-[scan_2s_ease-in-out_infinite]" />
+                </div>
               </div>
-              <p className="text-gray-400 text-sm">Scanning...</p>
+              <button
+                onClick={() => { stopStream(); setScanning(false); }}
+                className="absolute top-2 right-2 bg-black/60 text-white p-2 rounded-full"
+                aria-label="Stop scanning"
+              >
+                <X size={18} />
+              </button>
             </div>
           ) : (
             <div className="text-center">

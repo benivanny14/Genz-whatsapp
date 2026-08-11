@@ -157,6 +157,27 @@ const requirePhoneVerified = async (req, res, next) => {
   next();
 };
 
+// Attach req.user when a valid token is present, but never reject anonymous
+// visitors. Used by public-ish endpoints (e.g. shared status links) that want
+// to apply contact/privacy checks when possible without blocking strangers.
+const optionalAuth = async (req, res, next) => {
+  try {
+    const token = getBearerToken(req);
+    if (token) {
+      const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
+      if (decoded.typ !== 'refresh' && decoded.id) {
+        const user = await User.findById(decoded.id);
+        if (user && !user.isBlocked) {
+          req.user = user;
+        }
+      }
+    }
+  } catch (_) {
+    // Invalid/expired token — treat as anonymous
+  }
+  next();
+};
+
 const isAdmin = async (req, res, next) => {
   try {
     const role = req.user?.role;
@@ -179,6 +200,7 @@ const isAdmin = async (req, res, next) => {
 
 module.exports = {
   protect,
+  optionalAuth,
   isAdmin,
   getBearerToken,
   requirePhoneVerified

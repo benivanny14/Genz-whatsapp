@@ -40,6 +40,7 @@ const CATEGORY_LABELS = {
   scam: 'Udanganyifu',
   violence: 'Vita',
   hate_speech: 'Uchafu',
+  csam: 'Uchafu kwa Mtoto (CSAM)',
   other: 'Nyingine'
 };
 

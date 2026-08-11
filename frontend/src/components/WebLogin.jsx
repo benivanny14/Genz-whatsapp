@@ -8,18 +8,33 @@ const WebLogin = ({ user, onGenerateQR, onVerifyLogin, onClose }) => {
   const [isVerified, setIsVerified] = useState(false);
   const [loginCode, setLoginCode] = useState('');
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState('');
 
   const handleGenerateQR = async () => {
     setIsGenerating(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsGenerating(false);
-
-    // Simulate QR code generation
-    const mockQRCode = `https://web.whatsapp.com/qr/${user?._id || 'user123'}`;
-    setQrCode(mockQRCode);
-
-    if (onGenerateQR) {
-      onGenerateQR(mockQRCode);
+    setError('');
+    try {
+      // Real device-pairing QR from the backend (same flow as Linked Devices)
+      const response = await fetch('/api/device/generate-qr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceName: 'Web Browser', deviceType: 'web' })
+      });
+      const data = await response.json();
+      if (data?.success && (data.qrCode || data.qrCodeImage)) {
+        const qr = data.qrCode || data.qrCodeImage;
+        setQrCode(qr);
+        setLoginCode((data.pairingToken || '').slice(0, 12).toUpperCase());
+        if (onGenerateQR) {
+          onGenerateQR(qr);
+        }
+      } else {
+        setError(data?.message || 'Imeshindikana kuzalisha QR code');
+      }
+    } catch (err) {
+      setError('Imeshindikana kuzalisha QR code: ' + (err?.message || ''));
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -61,13 +76,19 @@ const WebLogin = ({ user, onGenerateQR, onVerifyLogin, onClose }) => {
           <>
             {/* Instructions */}
             <div className="mb-6">
-              <p className="text-white mb-2">To link your web browser:</p>
+              <p className="text-white mb-2">To link this device:</p>
               <ol className="text-gray-400 text-sm space-y-2 list-decimal ml-4">
-                <li>Open WhatsApp Web on your computer</li>
-                <li>Click "Link a device" on your phone</li>
+                <li>Open GENZ on the device you want to link</li>
+                <li>Go to Linked Devices → "Link a device"</li>
                 <li>Scan the QR code displayed</li>
               </ol>
             </div>
+
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-4">
+                <p className="text-red-400 text-sm">{error}</p>
+              </div>
+            )}
 
             {/* Generate QR Button */}
             <button
@@ -93,10 +114,14 @@ const WebLogin = ({ user, onGenerateQR, onVerifyLogin, onClose }) => {
             {/* QR Code Display */}
             <div className="mb-6 flex flex-col items-center">
               <div className="w-48 h-48 bg-white rounded-lg flex items-center justify-center mb-4">
-                <QrCode size={180} className="text-black" />
+                {qrCode && qrCode.startsWith('data:') ? (
+                  <img src={qrCode} alt="Device pairing QR code" className="w-48 h-48" />
+                ) : (
+                  <QrCode size={180} className="text-black" />
+                )}
               </div>
               <p className="text-gray-400 text-sm text-center">
-                Scan this QR code with your WhatsApp app
+                Scan this QR code to link your device
               </p>
             </div>
 
@@ -105,7 +130,7 @@ const WebLogin = ({ user, onGenerateQR, onVerifyLogin, onClose }) => {
               <p className="text-gray-400 text-sm mb-2">Or enter this code on your device:</p>
               <div className="flex items-center gap-2">
                 <code className="flex-1 bg-[#1a2e35] text-[#00a884] px-3 py-2 rounded text-center font-mono text-lg">
-                  {loginCode || 'ABC-DEF-GHI'}
+                  {loginCode || '----'}
                 </code>
                 <button
                   onClick={handleCopyCode}
