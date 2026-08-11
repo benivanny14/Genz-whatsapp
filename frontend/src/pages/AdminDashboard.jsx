@@ -240,10 +240,14 @@ const DashboardSection = () => {
     adminApi.get('/admin/health').then(({ data }) => setHealth(data)).catch(() => toast.error('Imeshindikana kupakua health'));
   }, []);
   if (!health) return <LoadingBlock />;
+  // Nested health fields (services, runtime) are objects — render them as
+  // readable JSON instead of the default "[object Object]" string.
+  const displayValue = (v) =>
+    v !== null && typeof v === 'object' ? JSON.stringify(v) : String(v);
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
       {Object.entries(health).map(([k, v]) => (
-        <StatCard key={k} label={k} value={String(v)} />
+        <StatCard key={k} label={k} value={displayValue(v)} />
       ))}
     </div>
   );

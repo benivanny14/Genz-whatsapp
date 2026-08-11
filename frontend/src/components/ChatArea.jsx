@@ -344,7 +344,16 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     if (id != null && Object.prototype.hasOwnProperty.call(e2eeMeta, id)) {
       return e2eeMeta[id] || null;
     }
-    return null;
+    // Messages decrypted by the ChatContext pipeline never reach the decrypt
+    // loop above (their envelope content is already replaced with plaintext),
+    // so fall back to the server's key stamp carried on the message itself.
+    const fingerprint = m.e2eeKeyFingerprint || null;
+    if (!fingerprint) return null;
+    return {
+      fingerprint,
+      keyStatus: m.e2eeKeyStatus || null,
+      verified: m._e2eeVerified === true
+    };
   }, [e2eeMeta]);
 
   // Standard WhatsApp Web styles
