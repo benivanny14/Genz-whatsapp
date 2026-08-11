@@ -12,8 +12,10 @@ const { setAuthCookies, clearAuthCookies } = require('../utils/authCookies');
 const { deliverOtp } = require('../services/otpDeliveryService');
 const { containsProfanity } = require('../utils/contentFilter');
 
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || process.env.JWT_EXPIRE || '7d';
-const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '30d';
+// SECURITY (2.1): short-lived access tokens (15m) paired with rotating refresh
+// tokens (7d). Values can still be overridden per-environment if needed.
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || process.env.JWT_EXPIRE || '15m';
+const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
 // Normalize a phone number so it matches regardless of leading +, spaces,
 // dashes or parentheses (e.g. "+255 712-345-678" -> "+255712345678").
@@ -53,10 +55,13 @@ const signToken = (user, deviceId) => {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 };
 
+// SECURITY (2.1): refresh tokens embed the user's refreshTokenVersion so a
+// rotated (old) refresh token can be detected and rejected server-side.
 const signRefreshToken = (user) => jwt.sign(
   {
     id: user._id.toString(),
-    typ: 'refresh'
+    typ: 'refresh',
+    version: user.refreshTokenVersion || 0
   },
   JWT_REFRESH_SECRET,
   { expiresIn: JWT_REFRESH_EXPIRES_IN }
@@ -89,23 +94,28 @@ exports.register = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Username ina maneno yasiyoruhusiwa' });
     }
 
-    if (password.length < 6) {
+    // SECURITY (1.4): strict password policy — minimum 12 chars and must
+    // contain uppercase, lowercase, digit and special character. Weak
+    // passwords are rejected outright (no "allow with warning").
+    if (password.length < 12) {
       console.warn('[Auth] Registration failed: Password too short');
       return res.status(400).json({
         success: false,
-        message: 'Password must be at least 6 characters long'
+        message: 'Password must be at least 12 characters'
       });
     }
 
-    // Optional: Warn about weak password but allow registration
     const hasUppercase = /[A-Z]/.test(password);
     const hasLowercase = /[a-z]/.test(password);
     const hasDigit = /[0-9]/.test(password);
     const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
 
     if (!hasUppercase || !hasLowercase || !hasDigit || !hasSpecial) {
-      console.warn('[Auth] Registration: Weak password accepted', { userId: username });
-      // Allow registration but could add warning in response
+      console.warn('[Auth] Registration failed: Weak password rejected', { userId: username });
+      return res.status(400).json({
+        success: false,
+        message: 'Password must contain uppercase, lowercase, number, and special character'
+      });
     }
 
     const existingUser = await User.findOne({
@@ -458,6 +468,14 @@ exports.updateSettings = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
+    // SECURITY (3.4): reject invalid enum-style setting values instead of
+    // silently coercing them to defaults.
+    const { validateSettingsOptions } = require('../utils/whatsappSettings');
+    const validationError = validateSettingsOptions(incoming);
+    if (validationError) {
+      return res.status(400).json({ success: false, message: validationError });
+    }
+
     user.settings = mergeWhatsAppSettings(user.settings || {}, incoming);
 
     if (incoming?.account?.requestAccountInfoAt !== undefined && !user.settings.account.requestAccountInfoAt) {
@@ -591,8 +609,19 @@ exports.changePassword = async (req, res) => {
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ success: false, message: 'Current and new password are required' });
     }
-    if (newPassword.length < 8) {
-      return res.status(400).json({ success: false, message: 'New password must be at least 8 characters long' });
+    // SECURITY (1.4): same strict policy as registration.
+    if (newPassword.length < 12) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 12 characters' });
+    }
+    const hasUppercase = /[A-Z]/.test(newPassword);
+    const hasLowercase = /[a-z]/.test(newPassword);
+    const hasDigit = /[0-9]/.test(newPassword);
+    const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword);
+    if (!hasUppercase || !hasLowercase || !hasDigit || !hasSpecial) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must contain uppercase, lowercase, number, and special character'
+      });
     }
     if (newPassword !== confirmPassword) {
       return res.status(400).json({ success: false, message: 'Passwords do not match' });
@@ -630,12 +659,10 @@ exports.deleteAccount = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // Mark messages as deleted for this user
+    // SECURITY (1.6): hard-delete all messages sent by the user (data
+    // erasure) instead of leaving them soft-deleted in the database.
     const Message = require('../models/Message');
-    await Message.updateMany(
-      { sender: userId },
-      { deletedForEveryone: true } // Or anonymize
-    );
+    await Message.deleteMany({ sender: userId });
 
     // Remove user from groups
     const Conversation = require('../models/Conversation');
@@ -643,6 +670,10 @@ exports.deleteAccount = async (req, res) => {
       { participants: userId },
       { $pull: { participants: userId, admins: userId } }
     );
+
+    // SECURITY (1.6): delete self-chats (single-participant conversations)
+    // that only this user belonged to.
+    await Conversation.deleteMany({ participants: { $size: 1, $all: [userId] } });
 
     // Delete user
     await User.findByIdAndDelete(userId);
@@ -710,6 +741,18 @@ exports.refreshToken = async (req, res) => {
       });
     }
 
+    // SECURITY (2.1): a refresh token is single-use — reject tokens issued
+    // before the latest rotation (version mismatch => token was already used).
+    // Tokens minted before this feature shipped carry no version and are
+    // treated as version 0, so they are invalidated after the first rotation.
+    if (Number(decoded.version ?? 0) !== Number(user.refreshTokenVersion || 0)) {
+      console.warn('[Auth] Refresh rejected: stale token version', { id: decoded.id, expected: user.refreshTokenVersion, got: decoded.version });
+      return res.status(401).json({
+        success: false,
+        message: 'Session expired. Please log in again.'
+      });
+    }
+
     // Invalidate refresh tokens issued before a password change/reset —
     // matches the passwordChangedAt check in middleware/auth.js protect().
     if (user.passwordChangedAt) {
@@ -739,6 +782,11 @@ exports.refreshToken = async (req, res) => {
     const token = signToken(user, deviceId);
     const refreshToken = signRefreshToken(user);
 
+    // SECURITY (2.1): rotate — bump the version so the refresh token that was
+    // just presented is invalidated and cannot be replayed.
+    user.refreshTokenVersion = (user.refreshTokenVersion || 0) + 1;
+    await user.save();
+
     console.log('[Auth] Token refreshed for user:', user._id);
 
     setAuthCookies(res, { token, refreshToken });
@@ -767,6 +815,16 @@ exports.updateBusinessProfile = async (req, res) => {
   try {
     const userId = req.user._id;
     const { businessName, businessCategory, businessAddress, businessWebsite, businessDescription, businessHours } = req.body;
+
+    // SECURITY (3.5): validate the website URL before storing it.
+    if (businessWebsite) {
+      try {
+        const url = new URL(businessWebsite);
+        if (!['http:', 'https:'].includes(url.protocol)) throw new Error('Unsupported protocol');
+      } catch {
+        return res.status(400).json({ success: false, message: 'Invalid website URL' });
+      }
+    }
 
     const user = await User.findById(userId);
     if (!user) {
@@ -1406,8 +1464,8 @@ exports.deletePasskey = async (req, res) => {
 const PASSWORD_STRENGTH_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]).{8,}$/;
 
 function validatePasswordStrength(password) {
-  if (typeof password !== 'string' || password.length < 8) {
-    return 'Password must be at least 8 characters long';
+  if (typeof password !== 'string' || password.length < 12) {
+    return 'Password must be at least 12 characters long';
   }
   if (!PASSWORD_STRENGTH_REGEX.test(password)) {
     return 'Password must include uppercase, lowercase, number, and special character';

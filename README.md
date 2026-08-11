@@ -57,13 +57,50 @@ Note: "End-to-end encryption" claims shown in the UI only apply when the **Clien
 - **Feature Toggles**: Enable/disable any feature
 
 ### Security
-- JWT authentication
-- Protected routes
+- JWT authentication (short-lived 15m access tokens + rotating 7d refresh tokens)
+- Protected routes & Socket.IO connections (JWT-required handshake)
 - Input validation & sanitization
-- Rate limiting (anti-spam)
-- XSS protection
+- Rate limiting (anti-spam, auth, security, and admin surfaces)
+- Output encoding & input validation instead of brittle XSS stripping (xss-clean removed)
 - Secure API design
-- Password hashing with bcrypt
+- Password hashing with bcrypt/scrypt + strict password policy
+
+## 🔐 Security Hardening (2026 audit)
+
+The following hardening was applied to the backend:
+
+**Authentication & sessions**
+- Access tokens expire after **15 minutes**; refresh tokens after **7 days**.
+- Refresh tokens are **rotated and single-use**: every refresh invalidates the previous token via a `refreshTokenVersion` counter on the user document (replay of a used refresh token is rejected).
+- Strict password policy (min 12 chars + uppercase, lowercase, digit, special char) enforced on register, password change, and password reset — weak passwords are rejected outright.
+
+**Socket.IO**
+- **No more global broadcasts.** Status views/likes/comments, block/unblock, online/offline presence, live-stream events, and broadcast-list creation are all emitted to the specific users/rooms involved, never to every connected socket.
+- `call_user` now resolves the conversation, verifies both parties are participants, checks blocks, and signals **only the callee**.
+- `webrtc:offer` and all call signaling include block checks and participant checks.
+- Participant authorization added to typing, recording, edit/delete message, star/pin, archive/mute/lock, role, and join-group events.
+- `update_status` is owner-only; custom roles are admin-only; join-by-invite requires admin approval flow for `requireJoinApproval` groups.
+- Mass messages are capped (max 20 recipients) and rate-limited per user.
+- Message deduplication moves to Redis when configured (shared across instances) with an in-memory fallback.
+
+**Data & privacy**
+- Delete-for-everyone **hard-deletes**: message content/media is scrubbed immediately and the document is removed after 30 days (server-side sweep is the restart-safe backstop).
+- Account deletion erases the user's messages (`deleteMany`) and removes orphan self-chats.
+- Profile-visitor tracking is **opt-in** (`trackProfileVisitors`) and visitor identity always comes from the authenticated session.
+- `onlineHistory` entries expire after 30 days (cron-pruned; a TTL index is intentionally avoided on the array field).
+- Group invite codes **expire after 7 days** and expired codes are rejected on both REST and socket join paths.
+- Phone numbers are no longer returned in user search results.
+- Settings updates are validated (invalid enum values rejected), and business website URLs are validated.
+
+**Transport & media**
+- `/uploads` is same-origin only (`Cross-Origin-Resource-Policy: same-origin`), no wildcard `Access-Control-Allow-Origin`, and remains behind signed-URL/JWT `secureUploads` middleware.
+- Uploads are magic-byte verified (`file-type`) and production defaults cap upload size at 25MB.
+- `trust proxy` defaults to **off** (explicit opt-in) to prevent IP spoofing.
+- Global error handlers now `process.exit(1)` so the process manager restarts a corrupted process; rate-limiter failures fail **closed**.
+- Legacy hardcoded secrets/fallbacks removed (`MESSAGE_ENCRYPTION_SECRET` is required; no phantom `LOCAL_USER_ID`/`DEFAULT_DEVICE_ID` users).
+
+**Dependency audit (2026-08-11)**
+- `npm audit`: **0 high / 0 critical**. 16 moderate advisories remain, all transitively from `artillery` (load-testing dev tool, via `@opentelemetry/*`); the only fix is a breaking `artillery@1.7.9` upgrade. Runtime dependencies are clean.
 
 ## 📋 Prerequisites
 

@@ -40,6 +40,12 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  // SECURITY (2.1): bumped on every refresh-token rotation so old refresh
+  // tokens (which embed this version) are rejected as stale.
+  refreshTokenVersion: {
+    type: Number,
+    default: 0
+  },
   resetOTP: {
     type: String,
     default: null
@@ -168,7 +174,12 @@ const userSchema = new mongoose.Schema({
   onlineHistory: [{
     connectedAt: { type: Date },
     disconnectedAt: { type: Date },
-    duration: { type: Number, default: 0 } // seconds
+    duration: { type: Number, default: 0 }, // seconds
+    // SECURITY (3.8): retention marker — entries older than 30 days are
+    // pruned by the server cron (see startExpiredMessageCleanup). A TTL
+    // index is deliberately NOT used here: MongoDB TTL on an array field
+    // would delete the entire user document when a sub-entry expires.
+    expiresAt: { type: Date, default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) }
   }],
   lastSeen: {
     type: Date,
@@ -423,8 +434,10 @@ userSchema.pre('save', function(next) {
 });
 
 userSchema.methods.setPassword = async function(password) {
-  if (!password || password.length < 8) {
-    throw new Error('Password must be at least 8 characters long');
+  // SECURITY (1.4): matches the controller-level 12-char minimum so no
+  // code path can set a weaker password than the registration policy.
+  if (!password || password.length < 12) {
+    throw new Error('Password must be at least 12 characters long');
   }
 
   const salt = crypto.randomBytes(16).toString('hex');

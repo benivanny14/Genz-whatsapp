@@ -1,11 +1,18 @@
 require('dotenv').config();
 
-// Global error handlers to prevent server crashes
+// SECURITY (2.3): global error handlers. An uncaught exception / unhandled
+// rejection leaves the process in an undefined state — exit non-zero so the
+// process manager restarts it into a clean state instead of serving requests
+// from a corrupted process.
 process.on('uncaughtException', (err) => {
+  // eslint-disable-next-line no-console
   console.error('FATAL UNCAUGHT EXCEPTION:', err);
+  process.exit(1);
 });
 process.on('unhandledRejection', (reason, promise) => {
+  // eslint-disable-next-line no-console
   console.error('UNHANDLED REJECTION:', reason);
+  process.exit(1);
 });
 
 const express = require("express");
@@ -41,12 +48,16 @@ const uploadDir = path.join(__dirname, 'uploads');
 if (!isCloudinaryConfigured()) {
   if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
-    console.log('✅ Uploads directory created:', uploadDir);
-    console.warn('[WARNING] Using local storage. Configure Cloudinary for production to avoid data loss on redeploy.');
+    logger.info('✅ Uploads directory created', { dir: uploadDir });
+    logger.warn('[WARNING] Using local storage. Configure Cloudinary for production to avoid data loss on redeploy.');
   }
 }
 
-const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_BYTES || Math.max(...Object.values(FILE_SIZE_LIMITS)));
+// SECURITY (3.10): cap the default upload size. FILE_SIZE_LIMITS allows video
+// up to 100MB; in production we default to 25MB unless MAX_UPLOAD_BYTES is
+// explicitly configured.
+const DEFAULT_MAX_UPLOAD_BYTES = process.env.NODE_ENV === 'production' ? 25 * 1024 * 1024 : Math.max(...Object.values(FILE_SIZE_LIMITS));
+const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_BYTES || DEFAULT_MAX_UPLOAD_BYTES);
 const UPLOAD_DIR_RESOLVED = path.resolve(uploadDir);
 
 const upload = multer({
@@ -80,7 +91,6 @@ const {
   authRateLimiter,
   apiRateLimiter,
   strictRateLimiter,
-  xssProtection,
   sanitizeInput,
   securityHeaders,
   validateOrigin
@@ -94,7 +104,9 @@ const { buildSignedUploadUrl, signLocalUrlIfNeeded } = require('./utils/mediaAcc
 // The secrets module throws FATAL at startup if it is missing.
 const { JWT_SECRET } = require('./config/secrets');
 
-const DEFAULT_LOCAL_USER_ID = process.env.LOCAL_USER_ID || '60d5ecb8b392cb371c664c12';
+// SECURITY (4.1): no hardcoded fallback user. The local fallback user is only
+// created when LOCAL_USER_ID is explicitly configured.
+const LOCAL_USER_ID = process.env.LOCAL_USER_ID;
 const { resolvePublicBaseUrl } = require('./utils/publicBaseUrl');
 const getPublicBaseUrl = (req) => resolvePublicBaseUrl(req);
 const publicApiOrigin = (process.env.PUBLIC_API_URL || process.env.BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '');
@@ -215,16 +227,22 @@ const User = require('./models/User');
 const { runExpiryCheck } = require('./controllers/manualPaymentController');
 
 const ensureLocalUser = async () => {
+  // SECURITY (4.1): without LOCAL_USER_ID there is no fallback user — the
+  // system simply never creates one (no phantom "GENZ User" account).
+  if (!LOCAL_USER_ID) {
+    return;
+  }
+
   try {
     if (User.db.readyState !== 1) {
       return;
     }
 
     await User.findByIdAndUpdate(
-      DEFAULT_LOCAL_USER_ID,
+      LOCAL_USER_ID,
       {
         $setOnInsert: {
-          _id: DEFAULT_LOCAL_USER_ID,
+          _id: LOCAL_USER_ID,
           username: 'GENZ User',
           phoneNumber: 'local-web-device',
           deviceId: 'local-web-device',
@@ -234,13 +252,14 @@ const ensureLocalUser = async () => {
       { upsert: true, setDefaultsOnInsert: true }
     );
   } catch (error) {
-    console.warn('Could not ensure local fallback user:', error.message);
+    logger.warn('Could not ensure local fallback user:', { message: error.message });
   }
 };
 
 let scheduledMessageInterval = null;
 let manualPaymentExpiryInterval = null;
 let expiredMessageCleanupInterval = null;
+let lastOnlineHistoryPrune = 0;
 
 const startScheduledMessageDispatcher = (ioInstance) => {
   if (scheduledMessageInterval) {
@@ -293,9 +312,9 @@ const startScheduledMessageDispatcher = (ioInstance) => {
             ioInstance.to(scheduledMsg.conversationId._id.toString()).emit('message:received', populatedMessage);
           }
 
-          console.log(`[ScheduledMessage] Sent message ${message._id} for conversation ${scheduledMsg.conversationId._id}`);
+          logger.debug('[ScheduledMessage] Sent message', { messageId: message._id, conversationId: scheduledMsg.conversationId._id });
         } catch (error) {
-          console.error('[ScheduledMessage] Failed to send message:', error);
+          logger.error('[ScheduledMessage] Failed to send message', { message: error.message });
           
           scheduledMsg.status = 'failed';
           scheduledMsg.errorMessage = error.message;
@@ -309,7 +328,7 @@ const startScheduledMessageDispatcher = (ioInstance) => {
         }
       }
     } catch (error) {
-      console.error('Scheduled message dispatcher error:', error.message);
+      logger.error('Scheduled message dispatcher error', { message: error.message });
     }
   }, 30 * 1000);
 
@@ -359,6 +378,48 @@ const startExpiredMessageCleanup = (ioInstance) => {
       if (viewOnceResult.deletedCount > 0) {
         logger.debug('Deleted old view-once messages', { count: viewOnceResult.deletedCount });
       }
+
+      // SECURITY (1.6): hard-delete messages marked deletedForEveryone more
+      // than 30 days ago — backstop for the per-delete setTimeout (which is
+      // lost on restart).
+      const hardDeleteCutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const hardDeleteResult = await Message.deleteMany({
+        deletedForEveryone: true,
+        deletedAt: { $lte: hardDeleteCutoff }
+      });
+      if (hardDeleteResult.deletedCount > 0) {
+        logger.debug('Hard-deleted expired deletedForEveryone messages', { count: hardDeleteResult.deletedCount });
+      }
+
+      // SECURITY (3.8): prune onlineHistory entries older than 30 days (at
+      // most hourly — this interval otherwise runs every minute). A TTL index
+      // is deliberately NOT used: MongoDB TTL on an array field would delete
+      // the entire user document when a sub-entry expires.
+      if (Date.now() - lastOnlineHistoryPrune > 60 * 60 * 1000) {
+        lastOnlineHistoryPrune = Date.now();
+        const historyCutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        const pruneResult = await User.updateMany(
+          {
+            $or: [
+              { 'onlineHistory.expiresAt': { $lt: now } },
+              { 'onlineHistory.connectedAt': { $lt: historyCutoff } }
+            ]
+          },
+          {
+            $pull: {
+              onlineHistory: {
+                $or: [
+                  { expiresAt: { $lt: now } },
+                  { connectedAt: { $lt: historyCutoff } }
+                ]
+              }
+            }
+          }
+        );
+        if (pruneResult.modifiedCount > 0) {
+          logger.debug('Pruned old onlineHistory entries', { modified: pruneResult.modifiedCount });
+        }
+      }
     } catch (error) {
       logger.error('Error cleaning up expired messages', { message: error.message });
     }
@@ -397,7 +458,10 @@ const startBackgroundServices = async (ioInstance) => {
 };
 
 const app = express();
-app.set('trust proxy', process.env.TRUST_PROXY || 1);
+// SECURITY (4.2): trust proxy only when explicitly enabled or when a trusted
+// proxy IP list is provided. Defaults to false so client IPs cannot be spoofed
+// via the X-Forwarded-For header on a directly-exposed server.
+app.set('trust proxy', process.env.TRUST_PROXY === 'true' ? true : (process.env.TRUST_PROXY_IPS ? process.env.TRUST_PROXY_IPS.split(',') : false));
 if (redisClient) {
   app.set('redisClient', redisClient);
 }
@@ -435,7 +499,7 @@ const corsOptions = {
     if (isAllowedAppOrigin(origin)) {
       return callback(null, true);
     } else {
-      console.warn('[CORS] Blocked origin:', origin);
+      logger.warn('[CORS] Blocked origin', { origin });
       return callback(new Error('Not allowed by CORS'));
     }
   },
@@ -522,21 +586,23 @@ const securityLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Apply rate limiting to all API routes (wrapped to avoid crashing on misconfigured limiter)
+// Apply rate limiting to all API routes. SECURITY (4.4): fail CLOSED — if the
+// rate limiter itself errors, reject the request instead of silently allowing
+// it through (never call next() from the error path).
 const safeMiddleware = (mw) => (req, res, next) => {
   try {
     const result = mw(req, res, next);
-    // If the middleware returns a promise, catch rejections so they don't bubble
+    // If the middleware returns a promise, catch rejections and fail closed.
     if (result && typeof result.then === 'function') {
       return result.catch((err) => {
-        console.error('Rate limiter promise error:', err && err.message ? err.message : err);
-        next();
+        logger.error('Rate limiter promise error', { message: err && err.message ? err.message : err });
+        return res.status(500).json({ success: false, message: 'Security check failed' });
       });
     }
     return result;
   } catch (err) {
-    console.error('Rate limiter sync error:', err && err.message ? err.message : err);
-    return next();
+    logger.error('Rate limiter sync error', { message: err && err.message ? err.message : err });
+    return res.status(500).json({ success: false, message: 'Security check failed' });
   }
 };
 
@@ -572,17 +638,25 @@ app.use(cookieParser());
 app.use(mongoSanitize({ replaceWith: '_', allowDots: false }));
 app.use(sanitizeInput);
 
-const getHealthPayload = () => ({
-  success: true,
-  status: 'ok',
-  timestamp: new Date().toISOString(),
-  uptime: process.uptime(),
-  services: {
-    mongo: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-    redis: redisClient?.isOpen ? 'connected' : 'disabled',
-    mediaStorage: isCloudinaryConfigured() ? 'cloudinary' : 'local'
+// SECURITY (4.5): health checks must never throw — wrap the payload builder so
+// a failing dependency reports unhealthy instead of crashing the handler.
+const getHealthPayload = () => {
+  try {
+    return {
+      success: true,
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      services: {
+        mongo: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+        redis: redisClient?.isOpen ? 'connected' : 'disabled',
+        mediaStorage: isCloudinaryConfigured() ? 'cloudinary' : 'local'
+      }
+    };
+  } catch (err) {
+    return { success: false, status: 'unhealthy', error: err.message, timestamp: new Date().toISOString() };
   }
-});
+};
 
 // Health payload is cached 5s so monitoring/polling bursts don't re-run the
 // ready-state check on every request.
@@ -622,12 +696,14 @@ app.get('/api/v1/health/ready', async (req, res) => {
 
 // Serve uploaded files with signed URL or JWT protection in production
 app.use('/uploads', secureUploads, (req, res) => {
-  // Set CORS headers for all uploaded files
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // SECURITY (1.5): uploaded media is protected by secureUploads (signed URL
+  // or JWT). Never allow arbitrary cross-origin reads — same-origin only.
   res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Range, Content-Type');
-  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  // NOTE: access control for who may read a file is enforced by the
+  // secureUploads middleware above (HMAC signature or JWT in production).
   
   // Remove any socket ID suffix from filename (e.g., -user-h-xxx)
   let cleanPath = req.path;
@@ -667,7 +743,7 @@ app.use('/uploads', secureUploads, (req, res) => {
   // Serve the file
   res.sendFile(filePath, (err) => {
     if (err) {
-      console.error('❌ Error serving file:', err);
+      logger.error('❌ Error serving file', { message: err.message });
       if (!res.headersSent) {
         res.status(500).json({
           success: false,
@@ -836,6 +912,18 @@ mountApiRoutes('/api/v1');
 // is already an obscured, non-public path)
 const ADMIN_BASE_PATH = process.env.ADMIN_BASE_PATH || '/api/system-gateway-x9k';
 
+// SECURITY (3.11): aggressive rate limit for the entire admin surface, with
+// localhost whitelisted for operational tooling.
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { success: false, error: 'Too many admin requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.ip === '127.0.0.1' || req.ip === '::1'
+});
+app.use(`${ADMIN_BASE_PATH}`, safeMiddleware(adminLimiter));
+
 app.use(`${ADMIN_BASE_PATH}/auth`, adminAuthRoutes);
 
 // File upload route (mounted under both /api and /api/v1)
@@ -1002,6 +1090,11 @@ const onlineUsers = new Map();
 global.onlineUsers = onlineUsers;
 app.set('onlineUsers', onlineUsers);
 
+// SECURITY (3.12): expose the Redis client globally so the socket layer can
+// use it for cross-instance message deduplication (no-op without Redis).
+global.redisClient = redisClient;
+app.set('redisClient', redisClient);
+
 // Socket authentication middleware - JWT required. There is no tokenless
 // fallback: every connection must present a valid access token (via the
 // handshake auth payload or the httpOnly cookie) or it is rejected.
@@ -1106,21 +1199,14 @@ const gracefulShutdown = async (signal) => {
 if (!isTestEnvironment) {
   process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
   process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-  process.on('unhandledRejection', (reason) => {
-    logger.error('Unhandled promise rejection', {
-      message: reason?.message || String(reason),
-      stack: reason?.stack
-    });
-  });
-  process.on('uncaughtException', (error) => {
-    logger.error('Uncaught exception', { message: error.message, stack: error.stack });
-    gracefulShutdown('uncaughtException');
-  });
+  // NOTE (SECURITY 2.3): uncaughtException / unhandledRejection are handled at
+  // the top of this file with process.exit(1) — the process manager restarts
+  // the service into a clean state. Only graceful-signal handling lives here.
 }
 
 if (require.main === module) {
   server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
+    logger.info('Server running', { port: PORT });
     logger.info('TM Backend started', {
       port: PORT,
       environment: process.env.NODE_ENV || 'development',
@@ -1130,7 +1216,7 @@ if (require.main === module) {
       redisConfigured: Boolean(process.env.REDIS_URL || process.env.REDIS_HOST)
     });
     startBackgroundServices(io).catch((error) => {
-      console.error('Failed to start background services:', error && error.message);
+      logger.error('Failed to start background services', { message: error && error.message });
       if (process.env.NODE_ENV === 'production') {
         gracefulShutdown('startupFailure');
       }

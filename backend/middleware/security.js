@@ -1,7 +1,11 @@
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const xss = require('xss-clean');
 const { ipKeyGenerator } = rateLimit;
+
+// SECURITY (3.9): xss-clean removed — it is unmaintained, mutates user data
+// destructively, and is redundant here. Input validation (express-validator /
+// Joi-style checks in controllers) plus output encoding (React auto-escapes;
+// sanitizeInput strips control chars) cover the same ground safely.
 
 /**
  * Security Middleware Configuration
@@ -88,11 +92,6 @@ const strictRateLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 10 // Limit each IP to 10 requests per windowMs
 });
-
-/**
- * XSS protection middleware
- */
-const xssProtection = xss();
 
 /**
  * CSRF defense via Origin validation (OWASP recommendation for token-based
@@ -252,7 +251,6 @@ module.exports = {
   authRateLimiter,
   apiRateLimiter,
   strictRateLimiter,
-  xssProtection,
   validateOrigin,
   validateCSRF,
   sanitizeInput,

@@ -23,11 +23,13 @@ jest.mock('../models/Device', () => ({
 
 jest.mock('../models/Message', () => ({
   updateMany: jest.fn().mockResolvedValue({}),
+  deleteMany: jest.fn().mockResolvedValue({}),
   countDocuments: jest.fn().mockResolvedValue(0)
 }));
 
 jest.mock('../models/Conversation', () => ({
   updateMany: jest.fn().mockResolvedValue({}),
+  deleteMany: jest.fn().mockResolvedValue({}),
   countDocuments: jest.fn().mockResolvedValue(0)
 }));
 
@@ -183,7 +185,14 @@ describe('authController — register', () => {
     const res = makeRes();
     await auth.register(makeReq({ body: { username: 'alice', phoneNumber: '255700000001', password: '123' } }), res);
     expect(res.statusCode).toBe(400);
-    expect(res.body.message).toMatch(/at least 6 characters/);
+    expect(res.body.message).toMatch(/at least 12 characters/);
+  });
+
+  it('rejects weak passwords that lack complexity (SECURITY 1.4)', async () => {
+    const res = makeRes();
+    await auth.register(makeReq({ body: { username: 'alice', phoneNumber: '255700000001', password: 'twelvechars123' } }), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toMatch(/uppercase, lowercase, number, and special character/);
   });
 
   it('rejects an existing username/phone with 409', async () => {
@@ -568,7 +577,7 @@ describe('authController — changeNumber / changePassword / deleteAccount', () 
     res = makeRes();
     await auth.changePassword(makeReq({ body: { currentPassword: 'a', newPassword: 'short', confirmPassword: 'short' } }), res);
     expect(res.statusCode).toBe(400);
-    expect(res.body.message).toMatch(/at least 8 characters/);
+    expect(res.body.message).toMatch(/at least 12 characters/);
 
     res = makeRes();
     await auth.changePassword(makeReq({ body: { currentPassword: 'a', newPassword: 'LongEnough1!', confirmPassword: 'different' } }), res);
@@ -597,9 +606,9 @@ describe('authController — changeNumber / changePassword / deleteAccount', () 
     const user = makeUser();
     User.findById.mockResolvedValue(user);
     const res = makeRes();
-    await auth.changePassword(makeReq({ body: { currentPassword: 'OldPass1!', newPassword: 'NewPass1!', confirmPassword: 'NewPass1!' } }), res);
+    await auth.changePassword(makeReq({ body: { currentPassword: 'OldPass1234!', newPassword: 'NewPass1234!', confirmPassword: 'NewPass1234!' } }), res);
     expect(res.statusCode).toBe(200);
-    expect(user.setPassword).toHaveBeenCalledWith('NewPass1!');
+    expect(user.setPassword).toHaveBeenCalledWith('NewPass1234!');
     expect(user.save).toHaveBeenCalled();
   });
 
@@ -610,13 +619,14 @@ describe('authController — changeNumber / changePassword / deleteAccount', () 
     expect(res.statusCode).toBe(404);
   });
 
-  it('deleteAccount marks messages, removes from conversations, and deletes the user (happy path)', async () => {
+  it('deleteAccount hard-deletes messages, removes from conversations, and deletes the user (happy path, SECURITY 1.6)', async () => {
     User.findById.mockResolvedValue(makeUser());
     User.findByIdAndDelete.mockResolvedValue({});
     const res = makeRes();
     await auth.deleteAccount(makeReq(), res);
-    expect(Message.updateMany).toHaveBeenCalledWith({ sender: 'user-1' }, { deletedForEveryone: true });
+    expect(Message.deleteMany).toHaveBeenCalledWith({ sender: 'user-1' });
     expect(Conversation.updateMany).toHaveBeenCalledWith({ participants: 'user-1' }, { $pull: { participants: 'user-1', admins: 'user-1' } });
+    expect(Conversation.deleteMany).toHaveBeenCalledWith({ participants: { $size: 1, $all: ['user-1'] } });
     expect(User.findByIdAndDelete).toHaveBeenCalledWith('user-1');
     expect(res.body.message).toBe('Account deleted successfully');
   });
@@ -1080,7 +1090,7 @@ describe('authController — password reset + phone OTP', () => {
     res = makeRes();
     await auth.resetPassword(makeReq({ body: { emailOrPhone: 'alice', otp: '123456', newPassword: 'weak' } }), res);
     expect(res.statusCode).toBe(400);
-    expect(res.body.message).toMatch(/at least 8 characters/);
+    expect(res.body.message).toMatch(/at least 12 characters/);
 
     res = makeRes();
     await auth.resetPassword(makeReq({ body: { emailOrPhone: 'alice', otp: 'abc', newPassword: 'StrongPass1!' } }), res);

@@ -325,6 +325,8 @@ messageSchema.index({ sender: 1, createdAt: -1 });
 messageSchema.index({ createdAt: -1 });
 messageSchema.index({ isStarred: 1 });
 messageSchema.index({ deletedForEveryone: 1 });
+// SECURITY (1.6): speed up the 30-day hard-delete sweep.
+messageSchema.index({ deletedForEveryone: 1, deletedAt: 1 });
 messageSchema.index({ 'mentions.user': 1, createdAt: -1 });
 // Deduplication: clientMessageId prevents the same message being saved twice on reconnect
 // Compound unique (sender+conversation) stops attackers reserving another user's clientMessageId,

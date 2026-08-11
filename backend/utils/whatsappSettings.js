@@ -35,7 +35,10 @@ const DEFAULT_WHATSAPP_SETTINGS = {
     },
     advancedChatPrivacy: false,
     privacyCheckupCompleted: false,
-    privacyCheckupCompletedAt: null
+    privacyCheckupCompletedAt: null,
+    // SECURITY (3.7): consent gate — profile visits are only recorded when
+    // the profile owner explicitly enables tracking.
+    trackProfileVisitors: false
   },
   chats: {
     theme: 'system',
@@ -229,8 +232,49 @@ const mergeWhatsAppSettings = (...sources) => {
   );
 };
 
+/**
+ * SECURITY (3.4): validate enum-style settings before they are merged.
+ * Returns an error message string, or null when the payload is valid.
+ * Only validates paths the app defines rules for; unknown keys are left to
+ * the template-based merge (which drops them).
+ */
+const validateSettingsOptions = (incoming = {}) => {
+  if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) {
+    return 'Invalid settings payload';
+  }
+
+  for (const [path, allowed] of Object.entries(OPTION_RULES)) {
+    const keys = path.split('.');
+    let current = incoming;
+    let found = true;
+    for (const key of keys) {
+      if (current === null || current === undefined || typeof current !== 'object') {
+        found = false;
+        break;
+      }
+      current = current[key];
+      if (current === undefined) {
+        found = false;
+        break;
+      }
+    }
+    if (!found) continue; // not provided — merge fills in the default
+    if (typeof current === 'boolean' || typeof current === 'number') {
+      // numeric/bool rules are validated by coerceByTemplate; skip here
+      continue;
+    }
+    if (!allowed.includes(current)) {
+      return `Invalid value for "${path}"`;
+    }
+  }
+
+  return null;
+};
+
 module.exports = {
   DEFAULT_WHATSAPP_SETTINGS,
+  OPTION_RULES,
   createDefaultWhatsAppSettings,
-  mergeWhatsAppSettings
+  mergeWhatsAppSettings,
+  validateSettingsOptions
 };

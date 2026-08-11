@@ -4,8 +4,10 @@ const { isDeviceAllowed } = require('../utils/deviceSession');
 const { clearAuthCookies } = require('../utils/authCookies');
 const { JWT_SECRET } = require('../config/secrets');
 
-const DEFAULT_DEVICE_ID = process.env.DEFAULT_DEVICE_ID || 'local-web-device';
-const LOCAL_USER_ID = process.env.LOCAL_USER_ID || '60d5ecb8b392cb371c664c12';
+// SECURITY (4.1): the hardcoded DEFAULT_DEVICE_ID / LOCAL_USER_ID fallbacks
+// (and the device-user factory that used them) are removed — no phantom user
+// or predictable device identity can be created. Authenticated device flows
+// go through utils/deviceSession instead.
 
 const getBearerToken = (req) => {
   const header = req.headers.authorization || '';
@@ -16,23 +18,6 @@ const getBearerToken = (req) => {
     }
   }
   return req.cookies?.token || null;
-};
-
-const createOrFindDeviceUser = async (deviceId) => {
-  let user = await User.findOne({ deviceId });
-  if (!user) {
-    const userData = {
-      deviceId,
-      username: `GENZ User ${deviceId.substring(0, 8)}`,
-      phoneNumber: deviceId,
-      status: 'offline'
-    };
-    if (deviceId === DEFAULT_DEVICE_ID) {
-      userData._id = LOCAL_USER_ID;
-    }
-    user = await User.create(userData);
-  }
-  return user;
 };
 
 // Routes that should NEVER check phone verification (essential auth routes)

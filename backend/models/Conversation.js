@@ -39,6 +39,11 @@ const conversationSchema = new mongoose.Schema({
     default: '',
     select: false
   },
+  // SECURITY (3.3): invite codes expire 7 days after being issued.
+  groupInviteCodeExpiry: {
+    type: Date,
+    default: null
+  },
   lastMessage: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Message'
