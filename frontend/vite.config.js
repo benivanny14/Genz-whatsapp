@@ -6,6 +6,11 @@ import react from '@vitejs/plugin-react'
 // so a preview can run against a newer backend without editing this file.
 const backendTarget = process.env.GENZ_BACKEND_TARGET || 'http://localhost:5000';
 
+// Port the dev server listens on (and advertises for HMR). Defaults to 5174;
+// override per worktree (e.g. GENZ_DEV_PORT=5176) so a preview or the e2e
+// suite can run on another port without breaking the HMR WebSocket.
+const devPort = parseInt(process.env.GENZ_DEV_PORT || '5174', 10) || 5174;
+
 export default defineConfig({
   plugins: [react()],
   define: {
@@ -29,11 +34,11 @@ export default defineConfig({
     chunkSizeWarningLimit: 600
   },
   server: {
-    port: 5174,
+    port: devPort,
     strictPort: true,
     host: '0.0.0.0',
     hmr: {
-      clientPort: 5174
+      clientPort: devPort
     },
     proxy: {
       '/api': {
