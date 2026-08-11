@@ -4,6 +4,7 @@ import encryptionService from '../services/encryptionService';
 const E2EEKeysManager = () => {
   const [status, setStatus] = useState('idle');
   const [publicKey, setPublicKey] = useState(null);
+  const [confirmRotate, setConfirmRotate] = useState(false);
 
   const handleGenerate = async () => {
     setStatus('generating');
@@ -28,6 +29,7 @@ const E2EEKeysManager = () => {
       if (res?.success) {
         setPublicKey(res.keyPair.publicKey);
         setStatus('rotated');
+        setConfirmRotate(false);
       } else {
         setStatus('error');
       }
@@ -89,7 +91,7 @@ const E2EEKeysManager = () => {
       <h4 style={{ marginTop: 0 }}>E2EE Key Manager</h4>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button onClick={handleGenerate}>Generate Key Pair</button>
-        <button onClick={handleRotate}>Rotate Key Pair</button>
+        <button onClick={() => setConfirmRotate(true)}>Rotate Key Pair</button>
         <button onClick={handleExport}>Export (private)</button>
         <label style={{ display: 'inline-block' }}>
           <input type="file" accept="application/json" onChange={handleImport} style={{ display: 'none' }} />
@@ -97,6 +99,21 @@ const E2EEKeysManager = () => {
         </label>
         <button onClick={handleShowPublic}>Show / Copy Public Key</button>
       </div>
+      {confirmRotate && (
+        <div style={{ marginTop: 8, padding: 10, border: '1px solid #f59e0b', borderRadius: 6, background: '#fffbeb' }}>
+          <div style={{ marginBottom: 8 }}>
+            <strong>Rotate encryption keys?</strong>
+            <div style={{ marginTop: 4, fontSize: 13 }}>
+              This replaces your active encryption key pair. Your previous keys are
+              archived in this browser so old messages stay readable here, but new
+              messages will be encrypted to the new key — and clearing browser
+              storage permanently loses the archived keys.
+            </div>
+          </div>
+          <button onClick={handleRotate} style={{ marginRight: 8 }}>Confirm Rotation</button>
+          <button onClick={() => setConfirmRotate(false)}>Cancel</button>
+        </div>
+      )}
       <div style={{ marginTop: 8 }}>
         <strong>Status:</strong> {status}
       </div>

@@ -188,7 +188,11 @@ class EncryptionService {
     //    the old key pair stays active locally so nothing desyncs.
     await this.uploadRotatedPublicKey({ publicKey });
 
-    // 3. Commit the rotation locally only after the backend confirmed it.
+    // 3. Archive the previous key pair locally so messages encrypted to the
+    //    old public key can still be decrypted after rotation.
+    await this.archiveCurrentKeys();
+
+    // 4. Commit the rotation locally only after the backend confirmed it.
     this.keyPair = newKeyPair;
     this.isInitialized = true;
     localStorage.setItem(this.getStorageKey(), JSON.stringify({ publicKey, privateKey }));
@@ -226,6 +230,71 @@ class EncryptionService {
     } catch (error) {
       console.error('[EncryptionService] Failed to rotate keys:', error);
       throw error;
+    }
+  }
+
+  getArchiveStorageKey() {
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || 'null');
+      if (u?._id) return `genz_e2ee_keypairs_history_v1_${u._id}`;
+    } catch (_) {
+      /* ignore */
+    }
+    return 'genz_e2ee_keypairs_history_v1_anon';
+  }
+
+  // Loads the private keys of previously rotated pairs from localStorage.
+  // Used as a fallback in decryptMessage so old messages remain readable.
+  async getArchivedPrivateKeys() {
+    try {
+      const raw = localStorage.getItem(this.getArchiveStorageKey());
+      if (!raw) return [];
+      const entries = JSON.parse(raw);
+      if (!Array.isArray(entries)) return [];
+
+      const keys = [];
+      for (const entry of entries) {
+        if (entry?.privateKey) {
+          try {
+            keys.push(await ensureCrypto().importKey(
+              'jwk',
+              entry.privateKey,
+              { name: 'ECDH', namedCurve: 'P-256' },
+              true,
+              ['deriveKey']
+            ));
+          } catch {
+            // Skip any archived entry that no longer imports cleanly.
+          }
+        }
+      }
+      return keys;
+    } catch {
+      return [];
+    }
+  }
+
+  // Moves the current key pair into the rotation history before it is
+  // overwritten. The archive is capped so browser storage stays bounded.
+  async archiveCurrentKeys() {
+    if (!this.keyPair) return;
+    try {
+      const subtle = ensureCrypto();
+      const publicKey = await subtle.exportKey('jwk', this.keyPair.publicKey);
+      const privateKey = await subtle.exportKey('jwk', this.keyPair.privateKey);
+
+      const raw = localStorage.getItem(this.getArchiveStorageKey());
+      const history = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(history)) return;
+
+      history.unshift({
+        publicKey,
+        privateKey,
+        rotatedAt: new Date().toISOString()
+      });
+      localStorage.setItem(this.getArchiveStorageKey(), JSON.stringify(history.slice(0, 10)));
+    } catch (error) {
+      console.warn('[EncryptionService] Failed to archive previous keys:', error);
     }
   }
 
@@ -296,8 +365,8 @@ class EncryptionService {
     }
   }
 
-  async deriveMessageKey(peerPublicKey) {
-    if (!this.keyPair?.privateKey) {
+  async deriveMessageKey(peerPublicKey, privateKey = this.keyPair?.privateKey) {
+    if (!privateKey) {
       throw new Error('Encryption service not initialized');
     }
 
@@ -306,7 +375,7 @@ class EncryptionService {
         name: 'ECDH',
         public: await importPublicKey(peerPublicKey)
       },
-      this.keyPair.privateKey,
+      privateKey,
       { name: 'AES-GCM', length: 256 },
       false,
       ['encrypt', 'decrypt']
@@ -351,17 +420,42 @@ class EncryptionService {
       throw new Error('Invalid encrypted message payload');
     }
 
-    const key = await this.deriveMessageKey(encryptedData.senderPublicKey);
-    const plaintext = await ensureCrypto().decrypt(
-      { name: 'AES-GCM', iv: fromBase64(encryptedData.iv) },
-      key,
-      fromBase64(encryptedData.ciphertext)
-    );
+    // Fast path: try the current private key first.
+    try {
+      const key = await this.deriveMessageKey(encryptedData.senderPublicKey, this.keyPair.privateKey);
+      const plaintext = await ensureCrypto().decrypt(
+        { name: 'AES-GCM', iv: fromBase64(encryptedData.iv) },
+        key,
+        fromBase64(encryptedData.ciphertext)
+      );
+      return {
+        success: true,
+        decryptedData: decoder.decode(plaintext)
+      };
+    } catch (error) {
+      // Fall through to archived keys from previous rotations.
+    }
 
-    return {
-      success: true,
-      decryptedData: decoder.decode(plaintext)
-    };
+    // Older messages were encrypted to a previous public key, so try each
+    // archived private key in turn until one authenticates.
+    for (const privateKey of await this.getArchivedPrivateKeys()) {
+      try {
+        const key = await this.deriveMessageKey(encryptedData.senderPublicKey, privateKey);
+        const plaintext = await ensureCrypto().decrypt(
+          { name: 'AES-GCM', iv: fromBase64(encryptedData.iv) },
+          key,
+          fromBase64(encryptedData.ciphertext)
+        );
+        return {
+          success: true,
+          decryptedData: decoder.decode(plaintext)
+        };
+      } catch (error) {
+        // Wrong key — keep trying older pairs.
+      }
+    }
+
+    throw new Error('Failed to decrypt message with current or archived keys');
   }
 
   async getUserPublicKeys(userId) {
