@@ -7,6 +7,7 @@ export default defineConfig({
   testDir: './e2e',
   timeout: 60_000,
   retries: isCI ? 1 : 0,
+  globalSetup: './e2e/global-setup.js',
   use: {
     baseURL,
     trace: 'on-first-retry',

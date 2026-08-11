@@ -1,4 +1,5 @@
 import { setAuthTokens, clearAuthTokens, getAuthToken, getRefreshToken } from './tokenStore';
+import { shouldSkipLoginRedirect } from './loginRedirect';
 import { getDeviceHeaders } from './deviceIdentity';
 import { resolveApiBase } from './resolveApiBase';
 import db from './indexedDB';
@@ -113,12 +114,7 @@ export const clearSessionAndRedirect = async (options = {}) => {
 
   await clearAllUserData();
   const path = window.location.pathname;
-  // Admin auth pages are reached by a DIFFERENT login (own credentials + TOTP);
-  // a 401 from the user session restore on those pages must never bounce the
-  // admin to the USER /login — the admin router guards handle navigation there.
-  const skipRedirect = ['/login', '/register', '/verify-phone'].some((p) => path === p || path.startsWith(p + '/')) ||
-    ['/system-control-x7k9', '/system-gateway-x9k', '/admin'].some((p) => path === p || path.startsWith(p + '/'));
-  if (!skipRedirect) {
+  if (!shouldSkipLoginRedirect(path)) {
     window.location.href = '/login';
   }
 };
