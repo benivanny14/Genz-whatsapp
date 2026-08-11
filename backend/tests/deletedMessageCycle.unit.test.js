@@ -93,7 +93,7 @@ const Conversation = require('../models/Conversation');
 const User = require('../models/User');
 const chat = require('../controllers/chatController');
 const genzMods = require('../controllers/genzModsController');
-const { antiRevokeRetainsMessage } = require('../utils/hardDelete');
+const { antiRevokeRetainsMessage, hardDeleteDelayFor } = require('../utils/hardDelete');
 
 const makeRes = () => {
   const res = { statusCode: 200 };
@@ -208,14 +208,28 @@ describe('anti-revoke cycle: delete → view → restore', () => {
 });
 
 describe('hard-delete retention rule (anti-revoke)', () => {
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const THIRTY_DAYS_MS = 30 * DAY_MS;
+
   it('retains the doc when the mod is enabled and caching', () => {
     expect(antiRevokeRetainsMessage({ antiRevokeEnabled: true, cacheDeletedMessages: true })).toBe(true);
   });
 
+  it('purges after cacheRetentionDays when the mod is on', () => {
+    expect(hardDeleteDelayFor({ antiRevokeEnabled: true, cacheDeletedMessages: true, cacheRetentionDays: 3 })).toBe(3 * DAY_MS);
+    expect(hardDeleteDelayFor({ antiRevokeEnabled: true, cacheDeletedMessages: true, cacheRetentionDays: 14 })).toBe(14 * DAY_MS);
+  });
+
+  it('defaults to 7 days when the mod is on but retention is unset/invalid', () => {
+    expect(hardDeleteDelayFor({ antiRevokeEnabled: true, cacheDeletedMessages: true })).toBe(7 * DAY_MS);
+    expect(hardDeleteDelayFor({ antiRevokeEnabled: true, cacheDeletedMessages: true, cacheRetentionDays: 0 })).toBe(7 * DAY_MS);
+    expect(hardDeleteDelayFor({ antiRevokeEnabled: true, cacheDeletedMessages: true, cacheRetentionDays: -5 })).toBe(7 * DAY_MS);
+  });
+
   it('purges at 30 days when the mod is off or caching is disabled', () => {
-    expect(antiRevokeRetainsMessage({ antiRevokeEnabled: false, cacheDeletedMessages: true })).toBe(false);
-    expect(antiRevokeRetainsMessage({ antiRevokeEnabled: true, cacheDeletedMessages: false })).toBe(false);
-    expect(antiRevokeRetainsMessage(undefined)).toBe(false);
-    expect(antiRevokeRetainsMessage({})).toBe(false);
+    expect(hardDeleteDelayFor({ antiRevokeEnabled: false, cacheDeletedMessages: true })).toBe(THIRTY_DAYS_MS);
+    expect(hardDeleteDelayFor({ antiRevokeEnabled: true, cacheDeletedMessages: false })).toBe(THIRTY_DAYS_MS);
+    expect(hardDeleteDelayFor(undefined)).toBe(THIRTY_DAYS_MS);
+    expect(hardDeleteDelayFor({})).toBe(THIRTY_DAYS_MS);
   });
 });
