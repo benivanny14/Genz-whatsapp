@@ -38,7 +38,7 @@ test('record and upload voice note', async ({ request }) => {
   const ts = Date.now();
   const username = `e2e_user_${ts}`;
   const phone = `1000${String(ts).slice(-6)}`;
-  const password = 'Test123!A';
+  const password = 'Test123!ABCDef'; // satisfies the 12-char + complexity password policy
 
   const register = await request.post('http://localhost:5000/api/auth/register', {
     data: { username, phoneNumber: phone, password }

@@ -36,6 +36,39 @@ jobs:
           cd backend
           npm test
 
+  integration-tests:
+    name: Integration tests (real MongoDB)
+    runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          npm ci --legacy-peer-deps
+
+      - name: Run deleted-messages integration test (isolated DB)
+        run: |
+          cd backend
+          MONGO_TEST_URI=mongodb://127.0.0.1:27017/genz-integration-test \
+          JWT_SECRET=ci-it-only-jwt-secret-0123456789abcdef \
+          JWT_REFRESH_SECRET=ci-it-only-refresh-secret-0123456789abcdef \
+          ADMIN_JWT_SECRET=ci-it-only-admin-secret-0123456789abcdef \
+          npx jest tests/deletedMessageIntegration.test.js --runInBand --forceExit
+
   frontend-tests:
     name: Frontend tests + build
     runs-on: ubuntu-latest
@@ -141,6 +174,14 @@ jobs:
           if [ "$STATUS" != "0" ]; then
             echo "::error::Playwright exited with $STATUS"
             grep -E "✓|✘|passed|failed|flaky|skipped|Error:|at |expect\(|Timeout|Error \[|> " /tmp/pw.log | tail -20 | sed 's/^/::error::/' | head -8
+          fi
+
+          # Deleted-message anti-revoke e2e via the socket path (frontend's
+          # exact flow: socket 'message:delete' → viewer → restore). Runs while
+          # the dev stack is still up; unique users per run, no DB wiping.
+          if ! (cd ../backend && node scripts/e2e-deleted-message.js http://127.0.0.1:5000); then
+            echo "::error::Deleted-message socket e2e failed"
+            STATUS=1
           fi
           kill $DEV_PID 2>/dev/null || true
           exit $STATUS

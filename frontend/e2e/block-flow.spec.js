@@ -10,7 +10,7 @@ test('block → send blocked → unblock → chat restored and send works', asyn
   test.setTimeout(120_000);
 
   const ts = Date.now();
-  const password = 'Test123!A';
+  const password = 'Test123!ABCDef'; // satisfies the 12-char + complexity password policy
   const userA = { username: `blk_a_${ts}`, phoneNumber: `91${String(ts).slice(-6)}`, password };
   const userB = { username: `blk_b_${ts}`, phoneNumber: `92${String(ts).slice(-6)}`, password };
 
