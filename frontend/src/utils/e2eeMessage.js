@@ -19,9 +19,20 @@ export async function decryptMessageContent(message) {
           ? JSON.stringify(result.decryptedData)
           : '🔒 Encrypted message';
 
-    return { ...message, content: plaintext, _e2eeDecrypted: true };
+    // Whether this message came from a contact the user marked verified AND
+    // was encrypted with that contact's current key — drives the "✓ verified"
+    // state of the key badge below the message.
+    const senderId = message.sender?._id || message.sender;
+    let verified = false;
+    if (senderId) {
+      verified = await encryptionService
+        .isMessageFromVerifiedContact(senderId, envelope.senderPublicKey)
+        .catch(() => false);
+    }
+
+    return { ...message, content: plaintext, _e2eeDecrypted: true, _e2eeVerified: verified };
   } catch {
-    return { ...message, content: '🔒 Encrypted message', _e2eeDecrypted: false };
+    return { ...message, content: '🔒 Encrypted message', _e2eeDecrypted: false, _e2eeVerified: false };
   }
 }
 
