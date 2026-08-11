@@ -406,6 +406,15 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           }
         } catch {
           updates[mid] = '🔒 Encrypted message';
+          // Even when we can't decrypt (e.g. a fresh device before importing
+          // keys), the server-side stamp still lets the key badge render.
+          if (m.e2eeKeyFingerprint) {
+            metaUpdates[mid] = {
+              fingerprint: m.e2eeKeyFingerprint,
+              keyStatus: m.e2eeKeyStatus || null,
+              verified: false
+            };
+          }
         }
       }
       if (!cancelled && Object.keys(updates).length) {
