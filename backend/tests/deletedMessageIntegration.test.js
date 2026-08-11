@@ -41,13 +41,23 @@ if (!URI) {
 
   describe('anti-revoke cycle (integration)', () => {
     beforeAll(async () => {
+      // tests/setup.js may already have connected the default mongoose
+      // connection (memory server / local test Mongo). This suite owns the
+      // connection for its isolated MONGO_TEST_URI, so drop the shared one
+      // first — otherwise mongoose rejects a second connect() with a
+      // different connection string.
+      await mongoose.disconnect().catch(() => {});
       await mongoose.connect(URI, { serverSelectionTimeoutMS: 5000 });
       await Promise.all([User.deleteMany({}), Conversation.deleteMany({}), Message.deleteMany({})]);
     });
 
     afterAll(async () => {
-      await Promise.all([User.deleteMany({}), Conversation.deleteMany({}), Message.deleteMany({})]);
-      await mongoose.disconnect();
+      // setup.js's afterAll may have already disconnected this connection;
+      // guard the wipe so a disconnected pool can't buffer-timeout.
+      if (mongoose.connection.readyState === 1) {
+        await Promise.all([User.deleteMany({}), Conversation.deleteMany({}), Message.deleteMany({})]);
+      }
+      await mongoose.disconnect().catch(() => {});
     });
 
     it('delete-for-everyone → viewer → restore keeps the original text', async () => {
