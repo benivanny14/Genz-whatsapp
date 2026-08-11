@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/start-dev.js",
+    "dev:single": "node scripts/start-single-origin.js",
     "dev:simple": "node scripts/cleanup-dev.js && vite",
     "dev:clean": "node scripts/cleanup-dev.js && vite --force",
     "build": "vite build",

@@ -16,6 +16,21 @@ class ErrorBoundary extends Component {
     // Log to console in dev; replace with Sentry in production
     console.error('[GENZ ErrorBoundary]', error, errorInfo);
 
+    // Lightweight crash analytics: keep a per-route counter in localStorage so
+    // regressions (missing imports, null-unsafe renders) are visible in
+    // staging/dev without an external error service. Best-effort only.
+    try {
+      const key = 'genz_boundary_crashes';
+      const raw = localStorage.getItem(key);
+      const counts = raw ? JSON.parse(raw) : {};
+      const route = window.location.pathname || '/';
+      counts[route] = (counts[route] || 0) + 1;
+      localStorage.setItem(key, JSON.stringify(counts));
+      console.info('[GENZ ErrorBoundary] crash recorded', { route, total: counts[route] });
+    } catch {
+      // Storage unavailable (private mode / quota) — analytics are optional.
+    }
+
     // A lazy-loaded route/chunk failed to import — almost always means the
     // browser still has an old build's index.html/JS in memory while the
     // server now serves newer, differently-hashed asset files (post-deploy).
