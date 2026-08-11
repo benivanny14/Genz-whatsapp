@@ -1,8 +1,4 @@
 const User = require('../models/User');
-const {
-  generateKeyPair,
-  generateSignatureKeyPair
-} = require('../config/encryption');
 
 function normalizeStoredPublicKey(value) {
   if (value == null || value === '') return null;
@@ -127,27 +123,31 @@ const verifySignature = (encryptedData, signature, signaturePublicKey) => {
 };
 
 /**
- * Rotate encryption keys for a user
+ * Rotate a user's encryption keys using a client-generated key pair.
+ * Mirrors registerClientPublicKeys: the client generates the new keys in
+ * the browser and sends only its public keys — the server never generates
+ * or stores private keys.
  * @param {string} userId - User ID
- * @returns {Promise<Object>} New public keys
+ * @param {Object} keys - Client-generated public keys { publicKey, signaturePublicKey }
+ * @returns {Promise<Object>} Stored public keys
  */
-const rotateKeys = async (userId) => {
+const rotateKeys = async (userId, keys = {}) => {
   try {
     const user = await User.findById(userId);
     if (!user) {
       throw new Error('User not found');
     }
 
-    // Generate new key pairs
-    const keyPair = generateKeyPair();
-    const signatureKeyPair = generateSignatureKeyPair();
-
-    // Store old keys in history
-    if (!user.encryptionKeyHistory) {
-      user.encryptionKeyHistory = [];
+    if (!keys.publicKey) {
+      throw new Error('Public key is required');
     }
 
-    if (user.encryptionKeys) {
+    // Move the previous public keys into the rotation history.
+    if (user.encryptionKeys && user.encryptionKeys.publicKey) {
+      if (!user.encryptionKeyHistory) {
+        user.encryptionKeyHistory = [];
+      }
+
       user.encryptionKeyHistory.push({
         publicKey: user.encryptionKeys.publicKey,
         signaturePublicKey: user.encryptionKeys.signaturePublicKey,
@@ -155,19 +155,24 @@ const rotateKeys = async (userId) => {
       });
     }
 
-    // Update with new keys
-    user.encryptionKeys = {
-      publicKey: keyPair.publicKey,
-      privateKey: keyPair.privateKey,
-      signaturePublicKey: signatureKeyPair.publicKey,
-      signaturePrivateKey: signatureKeyPair.privateKey
-    };
+    // Store only the client-provided public keys — never private keys.
+    if (!user.encryptionKeys) {
+      user.encryptionKeys = {};
+    }
+    user.encryptionKeys.publicKey = serializeIncomingPublicKey(keys.publicKey);
+    if (keys.signaturePublicKey) {
+      user.encryptionKeys.signaturePublicKey = serializeIncomingPublicKey(keys.signaturePublicKey);
+    }
+    user.encryptionKeys.privateKey = undefined;
+    user.encryptionKeys.signaturePrivateKey = undefined;
 
     await user.save();
 
     return {
-      publicKey: user.encryptionKeys.publicKey,
+      publicKey: normalizeStoredPublicKey(user.encryptionKeys.publicKey),
       signaturePublicKey: user.encryptionKeys.signaturePublicKey
+        ? normalizeStoredPublicKey(user.encryptionKeys.signaturePublicKey)
+        : null
     };
   } catch (error) {
     console.error('[EncryptionService] Rotate keys failed:', error);

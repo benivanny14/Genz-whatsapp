@@ -39,12 +39,26 @@ describe('encryptionController — key management', () => {
     expect(res.body.keys).toEqual({ publicKey: 'pub' });
   });
 
-  it('rotates keys (happy path)', async () => {
+  it('rotates keys with a client-generated public key (happy path)', async () => {
     encryptionService.rotateKeys.mockResolvedValue({ publicKey: 'new-pub' });
     const res = makeRes();
-    await encryptionController.rotateKeys(makeReq(), res);
-    expect(encryptionService.rotateKeys).toHaveBeenCalledWith('user-1');
+    await encryptionController.rotateKeys(
+      makeReq({ body: { publicKey: 'new-pub', signaturePublicKey: 'new-sig' } }),
+      res
+    );
+    expect(encryptionService.rotateKeys).toHaveBeenCalledWith('user-1', {
+      publicKey: 'new-pub',
+      signaturePublicKey: 'new-sig'
+    });
     expect(res.body.message).toMatch(/rotated/i);
+  });
+
+  it('rejects rotation without a client public key (validation)', async () => {
+    encryptionService.rotateKeys.mockRejectedValue(new Error('Public key is required'));
+    const res = makeRes();
+    await encryptionController.rotateKeys(makeReq({ body: {} }), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe('Public key is required');
   });
 
   it('deletes keys (happy path)', async () => {

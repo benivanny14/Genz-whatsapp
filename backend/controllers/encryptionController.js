@@ -85,13 +85,15 @@ exports.getUserPublicKeys = async (req, res) => {
   }
 };
 
-// @desc    Rotate encryption keys
+// @desc    Rotate encryption keys with a client-generated key pair
 // @route   POST /api/encryption/keys/rotate
 // @access  Private
 exports.rotateKeys = async (req, res) => {
   try {
     const userId = req.user._id;
-    const keys = await rotateKeys(userId);
+    const { publicKey, signaturePublicKey } = req.body;
+
+    const keys = await rotateKeys(userId, { publicKey, signaturePublicKey });
 
     res.status(200).json({
       success: true,
@@ -100,7 +102,7 @@ exports.rotateKeys = async (req, res) => {
     });
   } catch (error) {
     console.error('[EncryptionController] Rotate keys failed:', error);
-    res.status(500).json({
+    res.status(400).json({
       success: false,
       message: error.message
     });
