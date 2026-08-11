@@ -8,6 +8,9 @@ on:
     # Weekly run so the e2e/integration suites stay verified against the
     # latest MongoDB image even when the repo is quiet.
     - cron: '0 3 * * 1'   # Monday 03:00 UTC
+  workflow_dispatch:
+    # Manual trigger from the Actions tab (useful to re-verify the e2e suite
+    # on demand, e.g. after a fix, without waiting for the weekly schedule).
 
 jobs:
   backend-tests:
@@ -131,7 +134,10 @@ jobs:
           cd frontend
           npm ci
 
+      # Runs in the frontend dir so npx resolves the local playwright
+      # (frontend devDependency) instead of fetching/prompting at repo root.
       - name: Install Playwright browsers
+        working-directory: frontend
         run: npx playwright install --with-deps chromium
 
       # Production-style single origin: the backend serves the built UI, the
