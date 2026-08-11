@@ -1,4 +1,8 @@
 const { logInfo, logError, logWarning, logDebug } = require('../../config/winston');
+const {
+  computePublicKeyFingerprint,
+  classifyPublicKeyAgainstHistory
+} = require('../../utils/keyFingerprint');
 
 /**
  * Message-related socket handlers.
@@ -178,6 +182,29 @@ module.exports = function registerMessageHandlers(ctx) {
         safeContent.includes('ciphertext') &&
         safeContent.includes('senderPublicKey');
 
+      // Stamp the E2EE envelope's sender key fingerprint + status (current vs
+      // rotated) onto the message so any device can render the key badge from
+      // the message record itself — no re-fetch of the sender's key history.
+      let e2eeKeyFingerprint;
+      let e2eeKeyStatus;
+      if (isClientE2EE) {
+        try {
+          const envelope = JSON.parse(safeContent);
+          const senderPublicKey = envelope.senderPublicKey;
+          if (senderPublicKey) {
+            const senderDoc = await User.findById(socket.userId).select('encryptionKeys encryptionKeyHistory');
+            e2eeKeyFingerprint = computePublicKeyFingerprint(senderPublicKey);
+            e2eeKeyStatus = classifyPublicKeyAgainstHistory(
+              senderPublicKey,
+              senderDoc?.encryptionKeys?.publicKey,
+              senderDoc?.encryptionKeyHistory || []
+            );
+          }
+        } catch (error) {
+          logWarning('[E2EE] Failed to stamp message key fingerprint', error);
+        }
+      }
+
       let disappearAt = null;
       if (conversation.disappearingMessages?.enabled) {
         const timerHours = Number(conversation.disappearingMessages.timer) || 24;
@@ -193,6 +220,8 @@ module.exports = function registerMessageHandlers(ctx) {
         content: safeContent,
         caption: typeof caption === 'string' ? caption.slice(0, 1000) : '',
         isClientE2EE,
+        e2eeKeyFingerprint: e2eeKeyFingerprint || undefined,
+        e2eeKeyStatus: e2eeKeyStatus || undefined,
         messageType: messageType || 'text',
         mediaUrl: mediaUrl || '',
         fileName: fileName || '',
@@ -768,12 +797,13 @@ module.exports = function registerMessageHandlers(ctx) {
         return ack({ success: false, error: `Maximum ${MAX_MASS_RECIPIENTS} recipients allowed` });
       }
 
-      // SECURITY (2.8): rate-limit mass messages per user per hour.
-      const recentCount = await Message.countDocuments({
+      // SECURITY (2.8): rate-limit mass messages per user per hour (max 5).
+      const recentMassCount = await Message.countDocuments({
         sender: socket.userId,
+        isMassMessage: true,
         createdAt: { $gt: new Date(Date.now() - 60 * 60 * 1000) }
       });
-      if (recentCount > 100) {
+      if (recentMassCount >= 5) {
         return ack({ success: false, error: 'Rate limit exceeded' });
       }
 
@@ -806,6 +836,7 @@ module.exports = function registerMessageHandlers(ctx) {
           sender: socket.userId,
           content: message,
           messageType: 'text',
+          isMassMessage: true,
           timestamp: new Date()
         });
 
