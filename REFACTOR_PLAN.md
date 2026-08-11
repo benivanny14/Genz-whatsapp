@@ -484,6 +484,23 @@ nakala ya `getUser` (na ~34 zina `mergeSettings`), zikiwemo:
   weight 600) + `<strong>` (700) + `<em>` (italic) + `<s>` (line-through) +
   `<code>` (monospace) kwenye bubble moja — kuthibitishwa kwenye DOM na a11y tree.
 
+### 16. ✅ Merge `ci-validation` → `main` + production deploy (imefanyika)
+
+- Fast-forward push `7620e03..ca542bb` (35 commits, 0 behind) — CI validation
+  imekamilika kwenye fresh runner, hivyo merge haikuhitaji PR.
+- Kwenye `main` (commit `ca542bb`):
+  - **CI run `31479861087`** — Backend tests ✓, Frontend tests + build ✓,
+    E2E (Playwright) ✓ — **3/3 green**.
+  - **Deploy run `31479861059`** — `Deploy to Production` ✓ (deploy.yml:
+    `npm ci` ×2 → `npm run build` → `johnbeynon/render-deploy-action` na
+    `wait-for-success: true`). Production imedeploy kwa Render.
+- Notes:
+  - Worktree bado ina WIP isiyocommit kwenye `deploy.yml` (+6 lines: backend jest
+    quality gate kabla ya Render deploy) — haikujumuishwa kwenye merge; ikiwa
+    inatakiwa kwenye production, inahitaji commit tofauti.
+  - Branch `ci-validation` bado ipo kwenye origin (inabaki kama record ya
+    validation) — inaweza kufutwa ikiwa haihitajiki tena.
+
 ### 7. ✅ Test coverage expansion (batches 1–4) + `npm run coverage`
 
 #### Tests zilizoongezwa (kwa pattern ya happy path + validation + auth)
