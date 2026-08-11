@@ -9,7 +9,8 @@ jest.mock('../models/Conversation', () => ({
 
 jest.mock('../models/Message', () => ({
   create: jest.fn(),
-  find: jest.fn()
+  find: jest.fn(),
+  countDocuments: jest.fn()
 }));
 
 jest.mock('../models/Status', () => ({
@@ -103,11 +104,32 @@ describe('quickActionsController — actions', () => {
     User.findById.mockResolvedValue(makeUser());
     Conversation.findOne.mockResolvedValue({ _id: 'conv-1' });
     Message.create.mockResolvedValue({ _id: 'msg-1' });
+    Message.countDocuments.mockResolvedValue(0);
     const res = makeRes();
     await quickActions.sendMassMessage(makeReq({ body: { recipients: ['user-2', 'user-3'], content: 'hi' } }), res);
     expect(res.body.sent).toBe(2);
     expect(res.body.failed).toBe(0);
     expect(Message.create).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects more than 20 recipients (rate limit)', async () => {
+    User.findById.mockResolvedValue(makeUser());
+    const manyRecipients = Array.from({ length: 21 }, (_, i) => `user-${i}`);
+    const res = makeRes();
+    await quickActions.sendMassMessage(makeReq({ body: { recipients: manyRecipients, content: 'hi' } }), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toMatch(/20 recipients/);
+    expect(Message.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects a 6th mass message within the hour (rate limit)', async () => {
+    User.findById.mockResolvedValue(makeUser());
+    Message.countDocuments.mockResolvedValue(5);
+    const res = makeRes();
+    await quickActions.sendMassMessage(makeReq({ body: { recipients: ['user-2'], content: 'hi' } }), res);
+    expect(res.statusCode).toBe(429);
+    expect(res.body.message).toBe('Rate limit exceeded');
+    expect(Message.create).not.toHaveBeenCalled();
   });
 
   it('rejects export chat without a conversationId (validation)', async () => {

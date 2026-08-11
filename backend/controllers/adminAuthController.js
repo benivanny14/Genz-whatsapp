@@ -19,10 +19,32 @@ const loginStep1 = async (req, res) => {
       return res.status(400).json({ success: false, error: 'Username and password are required' });
     }
 
-    const admin = await AdminOwner.findOne({ ownerKey: 'PRIMARY_OWNER' });
+    // Normalize once and use the SAME trimmed value for the query and the
+    // constant-time comparison below (a trailing space used to find the owner
+    // in the query but then fail the compare — a self-lockout footgun).
+    const normalizedUsername = String(username).trim();
+
+    // Look the owner up by username (the singleton `ownerKey` was hard-wired
+    // here, which forced a single owner account). This still resolves the
+    // bootstrapped PRIMARY_OWNER — and lets e2e/prep provision additional
+    // owner identities with fully independent credentials and lockout state.
+    const admin = await AdminOwner.findOne({ username: normalizedUsername });
     if (!admin) {
-      // No owner account exists yet — must be bootstrapped via CLI script.
-      return res.status(503).json({ success: false, error: 'Admin account is not provisioned on this server' });
+      // Distinguish "no owner provisioned at all" (503 — must bootstrap) from
+      // "unknown username" (401 — same response as a bad password) so an
+      // attacker cannot enumerate which usernames exist.
+      const anyOwner = await AdminOwner.exists({});
+      if (!anyOwner) {
+        return res.status(503).json({ success: false, error: 'Admin account is not provisioned on this server' });
+      }
+      // Burn the same scrypt cost as a real password check so response
+      // TIMING does not reveal whether the username exists (a known-username
+      // wrong password takes ~100ms in comparePassword; an unknown username
+      // would otherwise return instantly).
+      const dummy = new AdminOwner({ username: 'dummy-owner', totpSecret: 'DUMMYSECRET' });
+      dummy.passwordHash = '00:00:16384'; // syntactically valid, never matches
+      await dummy.comparePassword(String(password));
+      return res.status(401).json({ success: false, error: 'Invalid credentials' });
     }
 
     if (admin.isLocked()) {
@@ -32,7 +54,7 @@ const loginStep1 = async (req, res) => {
 
     const usernameMatch = crypto.timingSafeEqual(
       Buffer.from(admin.username.padEnd(64, '\0')),
-      Buffer.from(String(username).padEnd(64, '\0').slice(0, 64))
+      Buffer.from(normalizedUsername.padEnd(64, '\0').slice(0, 64))
     );
     const passwordMatch = await admin.comparePassword(password);
 
@@ -129,13 +151,29 @@ const loginStep2 = async (req, res) => {
   }
 };
 
+/**
+ * Resolve the AdminOwner that holds a given refresh token. The token is 48
+ * random bytes (384 bits), so scanning the (tiny) set of owners that carry a
+ * refresh-token hash is safe: only the owner that was issued the token can
+ * match, via the constant-time per-doc verify. This replaces the old
+ * hard-coded PRIMARY_OWNER lookup so additional owner identities (per-spec
+ * e2e owners) get working refresh/logout too.
+ */
+async function findOwnerByRefreshToken(refreshToken) {
+  const candidates = await AdminOwner.find({ refreshTokenHash: { $ne: null } });
+  for (const admin of candidates) {
+    if (await admin.verifyRefreshToken(refreshToken)) return admin;
+  }
+  return null;
+}
+
 const refreshSession = async (req, res) => {
   try {
     const { refreshToken } = req.body || {};
     if (!refreshToken) return res.status(400).json({ success: false, error: 'refreshToken is required' });
 
-    const admin = await AdminOwner.findOne({ ownerKey: 'PRIMARY_OWNER' });
-    if (!admin || !admin.verifyRefreshToken(refreshToken)) {
+    const admin = await findOwnerByRefreshToken(refreshToken);
+    if (!admin) {
       return res.status(401).json({ success: false, error: 'Invalid or expired refresh token' });
     }
 
@@ -152,11 +190,20 @@ const refreshSession = async (req, res) => {
 
 const logout = async (req, res) => {
   try {
-    const admin = await AdminOwner.findOne({ ownerKey: 'PRIMARY_OWNER' });
-    if (admin) {
-      await admin.clearRefreshToken();
-      await logAdminAction(admin._id.toString(), 'admin_logout', {}, null, null, req);
+    // A refresh token is REQUIRED: logout must target the session it actually
+    // revokes. There is deliberately no PRIMARY_OWNER fallback anymore — an
+    // unauthenticated POST must not be able to clear the owner's session.
+    const { refreshToken } = req.body || {};
+    if (!refreshToken || typeof refreshToken !== 'string') {
+      return res.status(400).json({ success: false, error: 'refreshToken is required' });
     }
+
+    const admin = await findOwnerByRefreshToken(refreshToken);
+    if (!admin) {
+      return res.status(401).json({ success: false, error: 'Invalid refresh token' });
+    }
+    await admin.clearRefreshToken();
+    await logAdminAction(admin._id.toString(), 'admin_logout', {}, null, null, req);
     return res.json({ success: true });
   } catch (error) {
     return res.status(500).json({ success: false, error: 'Logout failed' });

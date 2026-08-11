@@ -717,6 +717,28 @@ describe('authController — refreshToken', () => {
     expect(registerDevice).toHaveBeenCalled();
     expect(res.cookie).toHaveBeenCalled();
   });
+
+  it('rotates: bumps refreshTokenVersion and persists it (replay becomes impossible)', async () => {
+    const user = makeUser({ phoneVerified: true, refreshTokenVersion: 0 });
+    jwt.verify.mockReturnValue({ typ: 'refresh', id: 'user-1', version: 0, iat: Math.floor(Date.now() / 1000) });
+    User.findById.mockResolvedValue(user);
+    const res = makeRes();
+    await auth.refreshToken(makeReq({ body: { refreshToken: 'tok' } }), res);
+    expect(res.statusCode).toBe(200);
+    expect(user.refreshTokenVersion).toBe(1);
+    expect(user.save).toHaveBeenCalled();
+  });
+
+  it('rejects a replayed (stale-version) refresh token with 401', async () => {
+    // Token was minted at version 0, but the user has already rotated to 1
+    // (a previous refresh consumed the version-0 token) → replay rejected.
+    jwt.verify.mockReturnValue({ typ: 'refresh', id: 'user-1', version: 0, iat: Math.floor(Date.now() / 1000) });
+    User.findById.mockResolvedValue(makeUser({ phoneVerified: true, refreshTokenVersion: 1 }));
+    const res = makeRes();
+    await auth.refreshToken(makeReq({ body: { refreshToken: 'tok' } }), res);
+    expect(res.statusCode).toBe(401);
+    expect(res.body.message).toBe('Session expired. Please log in again.');
+  });
 });
 
 describe('authController — business profile', () => {

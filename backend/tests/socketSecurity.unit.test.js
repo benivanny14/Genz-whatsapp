@@ -16,7 +16,8 @@
 jest.mock('../models/Message', () => ({
   findById: jest.fn(),
   findOneAndUpdate: jest.fn(),
-  countDocuments: jest.fn().mockResolvedValue(0)
+  countDocuments: jest.fn().mockResolvedValue(0),
+  create: jest.fn()
 }));
 jest.mock('../models/Conversation', () => ({
   findById: jest.fn(),
@@ -311,6 +312,31 @@ describe('socket security — mass messaging (2.8)', () => {
     await handlers['send_mass_message']({ recipients, message: 'hi' }, ack);
 
     expect(ack).toHaveBeenCalledWith({ success: false, error: 'Maximum 20 recipients allowed' });
+  });
+
+  it('rejects a 6th mass message within the hour (rate limit)', async () => {
+    const ack = jest.fn();
+    Message.countDocuments.mockResolvedValue(5);
+
+    await handlers['send_mass_message']({ recipients: ['user-2'], message: 'hi' }, ack);
+
+    expect(ack).toHaveBeenCalledWith({ success: false, error: 'Rate limit exceeded' });
+    expect(Message.create).not.toHaveBeenCalled();
+  });
+
+  it('allows up to 5 mass messages per hour', async () => {
+    const ack = jest.fn();
+    Message.countDocuments.mockResolvedValue(4);
+    Message.create.mockResolvedValue({ _id: 'm1' });
+    Message.findById.mockReturnValue({
+      populate: jest.fn().mockResolvedValue({ _id: 'm1', content: 'hi', sender: 'user-1' })
+    });
+    Conversation.findOne.mockResolvedValue({ _id: 'conv-1', participants: ['user-1', 'user-2'], save: jest.fn().mockResolvedValue(undefined) });
+    Conversation.findById.mockResolvedValue({ _id: 'conv-1', lastMessage: null });
+
+    await handlers['send_mass_message']({ recipients: ['user-2'], message: 'hi' }, ack);
+
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ success: true, sentCount: 1 }));
   });
 });
 

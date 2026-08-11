@@ -60,6 +60,22 @@ exports.sendMassMessage = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Recipients are required' });
     }
 
+    // SECURITY (2.8): cap mass-message recipients per send (same as socket path).
+    const MAX_MASS_RECIPIENTS = 20;
+    if (recipients.length > MAX_MASS_RECIPIENTS) {
+      return res.status(400).json({ success: false, message: `Maximum ${MAX_MASS_RECIPIENTS} recipients allowed` });
+    }
+
+    // SECURITY (2.8): rate-limit mass messages per user per hour (max 5).
+    const recentMassCount = await Message.countDocuments({
+      sender: user._id,
+      isMassMessage: true,
+      createdAt: { $gt: new Date(Date.now() - 60 * 60 * 1000) }
+    });
+    if (recentMassCount >= 5) {
+      return res.status(429).json({ success: false, message: 'Rate limit exceeded' });
+    }
+
     if (!content && !mediaUrl) {
       return res.status(400).json({ success: false, message: 'Content or media URL is required' });
     }
@@ -85,7 +101,7 @@ exports.sendMassMessage = async (req, res) => {
           content: content || '',
           messageType: messageType || 'text',
           mediaUrl: mediaUrl || null,
-          massMessage: true
+          isMassMessage: true
         });
 
         results.push({ recipientId, messageId: message._id });

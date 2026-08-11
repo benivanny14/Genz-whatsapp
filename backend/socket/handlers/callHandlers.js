@@ -173,7 +173,10 @@ module.exports = function registerCallHandlers(ctx) {
     if (conversationId) {
       io.to(conversationId).emit('call:ended', { conversationId });
     }
-    socket.broadcast.emit('call_ended_signal', data);
+    // SECURITY (1.2): the legacy socket.broadcast.emit('call_ended_signal')
+    // global broadcast was removed — nothing consumes it (frontend listens to
+    // 'call:ended' in the conversation room), and it leaked call activity to
+    // every connected client.
   });
 
   // Start live stream handler

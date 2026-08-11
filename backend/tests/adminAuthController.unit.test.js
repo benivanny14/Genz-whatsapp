@@ -1,6 +1,21 @@
-jest.mock('../models/AdminOwner', () => ({
-  findOne: jest.fn()
-}));
+// Constructible mock: loginStep1's unknown-username path instantiates a dummy
+// AdminOwner to burn an equivalent scrypt cost (timing anti-enumeration).
+jest.mock('../models/AdminOwner', () => {
+  class MockAdminOwner {
+    constructor() {}
+    async comparePassword() { return false; }
+    async verifyRefreshToken() { return false; }
+    async setRefreshToken() {}
+    async clearRefreshToken() {}
+    async registerSuccessfulLogin() {}
+    async registerFailedAttempt() {}
+    isLocked() { return false; }
+  }
+  MockAdminOwner.findOne = jest.fn();
+  MockAdminOwner.find = jest.fn();
+  MockAdminOwner.exists = jest.fn();
+  return MockAdminOwner;
+});
 
 jest.mock('../utils/auditLogger', () => ({
   logAdminAction: jest.fn()
@@ -79,11 +94,28 @@ describe('adminAuthController — loginStep1', () => {
     expect(res.statusCode).toBe(400);
   });
 
-  it('returns 503 when no owner account is provisioned', async () => {
+  it('returns 503 when no owner account is provisioned at all', async () => {
     AdminOwner.findOne.mockResolvedValue(null);
+    AdminOwner.exists.mockResolvedValue(false);
     const res = makeRes();
     await loginStep1(makeReq({ body: { username: 'x', password: 'y' } }), res);
     expect(res.statusCode).toBe(503);
+  });
+
+  it('returns 401 for an unknown username when other owners exist (no enumeration leak)', async () => {
+    AdminOwner.findOne.mockResolvedValue(null);
+    AdminOwner.exists.mockResolvedValue(true);
+    const res = makeRes();
+    await loginStep1(makeReq({ body: { username: 'ghost-user', password: 'anything' } }), res);
+    expect(res.statusCode).toBe(401);
+    expect(res.body.error).toBe('Invalid credentials');
+  });
+
+  it('looks the owner up by username', async () => {
+    AdminOwner.findOne.mockResolvedValue(makeAdmin());
+    const res = makeRes();
+    await loginStep1(makeReq({ body: { username: 'owner', password: 'password' } }), res);
+    expect(AdminOwner.findOne).toHaveBeenCalledWith({ username: 'owner' });
   });
 
   it('returns 423 when the account is locked', async () => {
@@ -175,15 +207,27 @@ describe('adminAuthController — refreshSession / logout', () => {
   });
 
   it('rejects an invalid refresh token with 401', async () => {
-    AdminOwner.findOne.mockResolvedValue(makeAdmin({ verifyRefreshToken: jest.fn(() => false) }));
+    AdminOwner.find.mockResolvedValue([makeAdmin({ verifyRefreshToken: jest.fn(() => false) })]);
     const res = makeRes();
     await refreshSession(makeReq({ body: { refreshToken: 'bad' } }), res);
     expect(res.statusCode).toBe(401);
   });
 
+  it('resolves the owner by its refresh token, not PRIMARY_OWNER', async () => {
+    // Two owners hold refresh-token hashes; only the second matches the token.
+    const other = makeAdmin({ _id: 'admin-other', verifyRefreshToken: jest.fn(() => false) });
+    const admin = makeAdmin({ _id: 'admin-2', verifyRefreshToken: jest.fn(() => true) });
+    AdminOwner.find.mockResolvedValue([other, admin]);
+    const res = makeRes();
+    await refreshSession(makeReq({ body: { refreshToken: 'per-spec-token' } }), res);
+    expect(res.body.success).toBe(true);
+    expect(admin.setRefreshToken).toHaveBeenCalled();
+    expect(other.setRefreshToken).not.toHaveBeenCalled();
+  });
+
   it('rotates the refresh token (happy path)', async () => {
     const admin = makeAdmin();
-    AdminOwner.findOne.mockResolvedValue(admin);
+    AdminOwner.find.mockResolvedValue([admin]);
     const res = makeRes();
     await refreshSession(makeReq({ body: { refreshToken: 'good-token' } }), res);
     expect(res.body.success).toBe(true);
@@ -191,12 +235,30 @@ describe('adminAuthController — refreshSession / logout', () => {
     expect(admin.setRefreshToken).toHaveBeenCalled();
   });
 
-  it('clears the refresh token on logout (happy path)', async () => {
-    const admin = makeAdmin();
-    AdminOwner.findOne.mockResolvedValue(admin);
+  it('rejects logout without a refresh token with 400 (no PRIMARY_OWNER fallback)', async () => {
     const res = makeRes();
     await logout(makeReq(), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe('refreshToken is required');
+    expect(AdminOwner.find).not.toHaveBeenCalled();
+    expect(AdminOwner.findOne).not.toHaveBeenCalled();
+  });
+
+  it('logout with a refresh token clears THAT owner, not PRIMARY_OWNER', async () => {
+    const admin = makeAdmin({ _id: 'admin-2' });
+    AdminOwner.find.mockResolvedValue([admin]);
+    const res = makeRes();
+    await logout(makeReq({ body: { refreshToken: 'per-spec-token' } }), res);
     expect(admin.clearRefreshToken).toHaveBeenCalled();
+    expect(AdminOwner.findOne).not.toHaveBeenCalled();
     expect(res.body.success).toBe(true);
+  });
+
+  it('logout with an unknown refresh token returns 401', async () => {
+    AdminOwner.find.mockResolvedValue([]);
+    const res = makeRes();
+    await logout(makeReq({ body: { refreshToken: 'stale-token' } }), res);
+    expect(res.statusCode).toBe(401);
+    expect(res.body.error).toBe('Invalid refresh token');
   });
 });

@@ -21,7 +21,7 @@ if (!URI) {
   });
 } else {
   const AdminOwner = require('../models/AdminOwner');
-  const { loginStep1, loginStep2, refreshSession } = require('../controllers/adminAuthController');
+  const { loginStep1, loginStep2, refreshSession, logout } = require('../controllers/adminAuthController');
 
   const ADMIN_PASSWORD = 'Admin@SuperSecret2026!';
 
@@ -155,6 +155,88 @@ if (!URI) {
       const replay = makeRes();
       await refreshSession(makeReq({ body: { refreshToken: firstRefresh } }), replay);
       expect([400, 401]).toContain(replay.statusCode);
+    });
+
+    it('a NON-PRIMARY owner (per-spec identity) gets working refresh rotation', async () => {
+      // Bootstrapped primary + a second per-spec identity.
+      await createOwner(); // PRIMARY_OWNER / root_admin
+      const specSecret = speakeasy.generateSecret({ length: 20 });
+      const specOwner = new AdminOwner({
+        ownerKey: 'E2E_OWNER_ABUSE_REPORT',
+        username: 'e2e_admin_abuse',
+        totpSecret: specSecret.base32,
+        totpEnabled: true
+      });
+      await specOwner.setPassword('AbuseReportE2E@2026!');
+      await specOwner.save();
+
+      // Log in as the per-spec owner (loginStep1 resolves by username).
+      const step1Res = makeRes();
+      await loginStep1(
+        makeReq({ body: { username: 'e2e_admin_abuse', password: 'AbuseReportE2E@2026!' } }),
+        step1Res
+      );
+      expect(step1Res.statusCode).toBe(200);
+      const step2Res = makeRes();
+      await loginStep2(
+        makeReq({ body: { preAuthToken: step1Res.body.preAuthToken, code: currentTotp(specSecret.base32) } }),
+        step2Res
+      );
+      expect(step2Res.statusCode).toBe(200);
+      const specRefresh = step2Res.body.refreshToken;
+
+      // Refresh must resolve THIS owner (not PRIMARY_OWNER) and rotate.
+      const refreshRes = makeRes();
+      await refreshSession(makeReq({ body: { refreshToken: specRefresh } }), refreshRes);
+      expect(refreshRes.statusCode).toBe(200);
+      expect(refreshRes.body.accessToken).toBeTruthy();
+      expect(refreshRes.body.refreshToken).not.toBe(specRefresh);
+
+      const stored = await AdminOwner.findById(specOwner._id);
+      expect(stored.verifyRefreshToken(specRefresh)).toBe(false); // old one dead
+      expect(stored.verifyRefreshToken(refreshRes.body.refreshToken)).toBe(true); // new one live
+
+      // PRIMARY_OWNER's token (if any) is untouched by the per-spec rotation.
+      const primary = await AdminOwner.findOne({ ownerKey: 'PRIMARY_OWNER' });
+      expect(primary.verifyRefreshToken(refreshRes.body.refreshToken)).toBe(false);
+    });
+
+    it('logout requires a token and revokes it (no PRIMARY_OWNER fallback)', async () => {
+      const { secret } = await createOwner();
+      const step1Res = makeRes();
+      await loginStep1(
+        makeReq({ body: { username: 'root_admin', password: ADMIN_PASSWORD } }),
+        step1Res
+      );
+      const step2Res = makeRes();
+      await loginStep2(
+        makeReq({ body: { preAuthToken: step1Res.body.preAuthToken, code: currentTotp(secret) } }),
+        step2Res
+      );
+      const refreshToken = step2Res.body.refreshToken;
+
+      // Missing token → 400, and the session is NOT cleared by the fallback.
+      const noToken = makeRes();
+      await logout(makeReq(), noToken);
+      expect(noToken.statusCode).toBe(400);
+      const ownerAfterNoToken = await AdminOwner.findOne({ ownerKey: 'PRIMARY_OWNER' });
+      expect(ownerAfterNoToken.verifyRefreshToken(refreshToken)).toBe(true);
+
+      // Logout with the token clears it.
+      const out = makeRes();
+      await logout(makeReq({ body: { refreshToken } }), out);
+      expect(out.statusCode).toBe(200);
+      expect(out.body.success).toBe(true);
+
+      // The revoked token can no longer refresh…
+      const refreshRes = makeRes();
+      await refreshSession(makeReq({ body: { refreshToken } }), refreshRes);
+      expect(refreshRes.statusCode).toBe(401);
+
+      // …and logging out with the now-dead token is a 401, not success.
+      const again = makeRes();
+      await logout(makeReq({ body: { refreshToken } }), again);
+      expect(again.statusCode).toBe(401);
     });
   });
 }
