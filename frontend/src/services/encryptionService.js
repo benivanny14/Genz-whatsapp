@@ -170,6 +170,65 @@ class EncryptionService {
     }
   }
 
+  async rotateKeys() {
+    const subtle = ensureCrypto();
+
+    // 1. Generate a brand-new key pair entirely in the browser (WebCrypto).
+    const newKeyPair = await subtle.generateKey(
+      { name: 'ECDH', namedCurve: 'P-256' },
+      true,
+      ['deriveKey']
+    );
+
+    const publicKey = await subtle.exportKey('jwk', newKeyPair.publicKey);
+    const privateKey = await subtle.exportKey('jwk', newKeyPair.privateKey);
+
+    // 2. Register the new PUBLIC key with the backend first. The private key
+    //    never leaves the browser — and if the backend rejects the rotation,
+    //    the old key pair stays active locally so nothing desyncs.
+    await this.uploadRotatedPublicKey({ publicKey });
+
+    // 3. Commit the rotation locally only after the backend confirmed it.
+    this.keyPair = newKeyPair;
+    this.isInitialized = true;
+    localStorage.setItem(this.getStorageKey(), JSON.stringify({ publicKey, privateKey }));
+
+    return {
+      success: true,
+      keyPair: { publicKey }
+    };
+  }
+
+  async uploadRotatedPublicKey(keyData) {
+    try {
+      const token = getAuthToken();
+      if (!token) throw new Error('Not authenticated');
+
+      // Same E2EE rule as key registration: only the public key is sent.
+      const response = await fetch(`${API_BASE_URL}/encryption/keys/rotate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          publicKey: keyData.publicKey
+        })
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to rotate encryption keys');
+      }
+
+      this.backendKeys = data.keys;
+      return true;
+    } catch (error) {
+      console.error('[EncryptionService] Failed to rotate keys:', error);
+      throw error;
+    }
+  }
+
   async exportKeys(options = {}) {
     if (!this.keyPair) {
       throw new Error('Encryption service not initialized');

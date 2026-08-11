@@ -21,6 +21,22 @@ const E2EEKeysManager = () => {
     }
   };
 
+  const handleRotate = async () => {
+    setStatus('rotating');
+    try {
+      const res = await encryptionService.rotateKeys();
+      if (res?.success) {
+        setPublicKey(res.keyPair.publicKey);
+        setStatus('rotated');
+      } else {
+        setStatus('error');
+      }
+    } catch (e) {
+      console.error('Rotate keys failed:', e);
+      setStatus('error');
+    }
+  };
+
   const handleExport = async () => {
     try {
       const exported = await encryptionService.exportKeys({ includePrivate: true });
@@ -73,6 +89,7 @@ const E2EEKeysManager = () => {
       <h4 style={{ marginTop: 0 }}>E2EE Key Manager</h4>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button onClick={handleGenerate}>Generate Key Pair</button>
+        <button onClick={handleRotate}>Rotate Key Pair</button>
         <button onClick={handleExport}>Export (private)</button>
         <label style={{ display: 'inline-block' }}>
           <input type="file" accept="application/json" onChange={handleImport} style={{ display: 'none' }} />
