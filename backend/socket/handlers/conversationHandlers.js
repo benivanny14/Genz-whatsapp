@@ -1,3 +1,6 @@
+const { logInfo, logError, logWarning, logDebug } = require('../../config/winston');
+
+
 /**
  * Conversation/account utility socket handlers (block, archive, mute, lock,
  * pin, presence, privacy sync, auto-reply, backup, profile visits).
@@ -42,7 +45,7 @@ module.exports = function registerConversationHandlers(ctx) {
         autoReplyMessage: message
       });
     } catch (error) {
-      console.error('Error updating auto reply:', error);
+      logError('Error updating auto reply:', error);
     }
   });
 
@@ -63,7 +66,7 @@ module.exports = function registerConversationHandlers(ctx) {
       io.to(String(socket.userId)).emit('user:blocked', payload);
       io.to(String(userId)).emit('user:blocked', payload);
     } catch (error) {
-      console.error('Error blocking user:', error);
+      logError('Error blocking user:', error);
     }
   });
 
@@ -78,7 +81,7 @@ module.exports = function registerConversationHandlers(ctx) {
       io.to(String(socket.userId)).emit('user:unblocked', payload);
       io.to(String(userId)).emit('user:unblocked', payload);
     } catch (error) {
-      console.error('Error unblocking user:', error);
+      logError('Error unblocking user:', error);
     }
   });
 
@@ -95,7 +98,7 @@ module.exports = function registerConversationHandlers(ctx) {
         socket.emit('chat_archived_signal', { chatId, isArchived: nextValue });
       }
     } catch (error) {
-      console.error('Error archiving chat:', error);
+      logError('Error archiving chat:', error);
     }
   });
 
@@ -122,7 +125,7 @@ module.exports = function registerConversationHandlers(ctx) {
         socket.emit('chat_muted_signal', { chatId, isMuted: shouldMute });
       }
     } catch (error) {
-      console.error('Error muting chat:', error);
+      logError('Error muting chat:', error);
     }
   });
 
@@ -141,7 +144,7 @@ module.exports = function registerConversationHandlers(ctx) {
         socket.emit('chat_lock_signal', { chatId, isLocked: Boolean(isLocked) });
       }
     } catch (error) {
-      console.error('Error toggling chat lock:', error);
+      logError('Error toggling chat lock:', error);
     }
   });
 
@@ -158,7 +161,7 @@ module.exports = function registerConversationHandlers(ctx) {
         socket.emit('chat_pinned_signal', { chatId, isPinned: nextValue });
       }
     } catch (error) {
-      console.error('Error pinning chat:', error);
+      logError('Error pinning chat:', error);
     }
   });
 
@@ -200,7 +203,7 @@ module.exports = function registerConversationHandlers(ctx) {
         socket.broadcast.emit('user:online', payload);
       }
     } catch (error) {
-      console.error('Error setting user online:', error);
+      logError('Error setting user online:', error);
     }
   });
 
@@ -240,7 +243,7 @@ module.exports = function registerConversationHandlers(ctx) {
         ...entry
       });
     } catch (error) {
-      console.error('Error visiting profile:', error);
+      logError('Error visiting profile:', error);
     }
   });
 
@@ -276,7 +279,7 @@ module.exports = function registerConversationHandlers(ctx) {
         }
       }
     } catch (error) {
-      console.error('Error updating presence:', error.message);
+      logError('Error updating presence:', error.message);
     }
   });
 
@@ -286,7 +289,7 @@ module.exports = function registerConversationHandlers(ctx) {
       const visitors = await User.findById(socket.userId).select('profileVisitors');
       socket.emit('profile_visitors', visitors?.profileVisitors || []);
     } catch (error) {
-      console.error('Error getting profile visitors:', error);
+      logError('Error getting profile visitors:', error);
     }
   });
 
@@ -297,7 +300,7 @@ module.exports = function registerConversationHandlers(ctx) {
       const user = await User.findById(userId).select('presenceHistory');
       socket.emit('presence_history', user?.presenceHistory || []);
     } catch (error) {
-      console.error('Error requesting presence history:', error);
+      logError('Error requesting presence history:', error);
     }
   });
 
@@ -329,7 +332,7 @@ module.exports = function registerConversationHandlers(ctx) {
 
       return result;
     } catch (error) {
-      console.error('Error starting backup:', error);
+      logError('Error starting backup:', error);
       socket.emit('backup:error', { message: 'Failed to create backup', error: error.message });
     }
   });
@@ -346,7 +349,7 @@ module.exports = function registerConversationHandlers(ctx) {
         newValue,
         timestamp: new Date().toISOString()
       });
-    } catch (err) { console.error('privacy:settings_changed error:', err); }
+    } catch (err) { logError('privacy:settings_changed error:', err); }
   });
 
   // Excluded contacts changed - broadcast to all user's connected devices
@@ -361,7 +364,7 @@ module.exports = function registerConversationHandlers(ctx) {
         excludedContacts,
         timestamp: new Date().toISOString()
       });
-    } catch (err) { console.error('privacy:excluded_changed error:', err); }
+    } catch (err) { logError('privacy:excluded_changed error:', err); }
   });
 
   // Allowed contacts changed - broadcast to all user's connected devices
@@ -376,6 +379,6 @@ module.exports = function registerConversationHandlers(ctx) {
         allowedContacts,
         timestamp: new Date().toISOString()
       });
-    } catch (err) { console.error('privacy:allowed_changed error:', err); }
+    } catch (err) { logError('privacy:allowed_changed error:', err); }
   });
 };

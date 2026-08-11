@@ -19,6 +19,9 @@ const registerCallHandlers = require('./handlers/callHandlers');
 const registerGroupHandlers = require('./handlers/groupHandlers');
 const registerStatusHandlers = require('./handlers/statusHandlers');
 const registerConversationHandlers = require('./handlers/conversationHandlers');
+const { logInfo, logError, logWarning, logDebug } = require('../config/winston');
+
+
 
 const setupSocket = (io) => {
   if (io[SOCKET_SETUP_FLAG]) {
@@ -27,8 +30,7 @@ const setupSocket = (io) => {
   io[SOCKET_SETUP_FLAG] = true;
 
   io.on('connection', (socket) => {
-    const { logDebug } = require('../config/winston');
-    logDebug('User connected', { socketId: socket.id });
+        logDebug('User connected', { socketId: socket.id });
 
     // ── Per-socket rate limiting (P1-5) ───────────────────────────────────
     // Sliding-window limiter applied to every inbound event. Prevents a
@@ -53,8 +55,7 @@ const setupSocket = (io) => {
       if (typeof handler !== 'function') return _originalOn(event, handler);
       const safeHandler = async (...args) => {
         if (isRateLimited()) {
-          const { logWarning } = require('../config/winston');
-          logWarning('Socket rate limit exceeded, disconnecting', {
+                    logWarning('Socket rate limit exceeded, disconnecting', {
             socketId: socket.id,
             userId: socket.userId,
             event
@@ -66,7 +67,7 @@ const setupSocket = (io) => {
         try {
           await handler(...args);
         } catch (err) {
-          console.error(`[Socket] Unhandled error in "${event}" handler:`, err?.message || err);
+          logError(`[Socket] Unhandled error in "${event}" handler:`, err?.message || err);
           socket.emit('error', { message: 'Server error processing your request', event });
         }
       };
@@ -75,18 +76,15 @@ const setupSocket = (io) => {
 
     // Handle reconnection
     socket.on('reconnect_attempt', () => {
-      const { logDebug } = require('../config/winston');
-      logDebug('Reconnection attempt', { socketId: socket.id });
+            logDebug('Reconnection attempt', { socketId: socket.id });
     });
 
     socket.on('error', (error) => {
-      const { logError } = require('../config/winston');
-      logError('Socket error', { message: error.message, socketId: socket.id });
+            logError('Socket error', { message: error.message, socketId: socket.id });
     });
 
     socket.on('user:join', async (userId) => {
-      const { logError } = require('../config/winston');
-      if (!userId) {
+            if (!userId) {
         logError('No userId provided for user:join');
         return;
       }
@@ -130,7 +128,7 @@ const setupSocket = (io) => {
           socket.broadcast.emit('user:online', { userId });
         }
       } catch (error) {
-        console.error('Error updating user online status:', error);
+        logError('Error updating user online status:', error);
       }
     });
 
@@ -144,19 +142,16 @@ const setupSocket = (io) => {
         }
 
         socket.join(conversationId);
-        const { logDebug } = require('../config/winston');
-        logDebug('User joined conversation', { userId: socket.userId, conversationId });
+                logDebug('User joined conversation', { userId: socket.userId, conversationId });
       } catch (error) {
-        const { logError } = require('../config/winston');
-        logError('Error joining conversation room', { message: error.message, userId: socket.userId, conversationId });
+                logError('Error joining conversation room', { message: error.message, userId: socket.userId, conversationId });
         socket.emit('error', { message: 'Failed to join conversation' });
       }
     });
 
     socket.on('leave:conversation', (conversationId) => {
       socket.leave(conversationId);
-      const { logDebug } = require('../config/winston');
-      logDebug('User left conversation', { userId: socket.userId, conversationId });
+            logDebug('User left conversation', { userId: socket.userId, conversationId });
     });
 
     // FIX (feature add): the new channel feed endpoints emit to
@@ -176,7 +171,7 @@ const setupSocket = (io) => {
         }
         socket.join(`channel:${channelId}`);
       } catch (error) {
-        console.error('Error joining channel room:', error.message);
+        logError('Error joining channel room:', error.message);
       }
     });
 
@@ -206,7 +201,7 @@ const setupSocket = (io) => {
     } = ctx;
 
     socket.on('disconnect', async () => {
-      console.log('User disconnected:', socket.id);
+      logInfo('User disconnected:', socket.id);
 
       // 🔥 MUHIMU: Safisha kumbukumbu ili isijaze RAM (No Memory Leak)
       socket.removeAllListeners();
@@ -242,7 +237,7 @@ const setupSocket = (io) => {
           }
         }
       } catch (err) {
-        console.error('Error cleaning up active calls on disconnect:', err);
+        logError('Error cleaning up active calls on disconnect:', err);
       }
 
       // FIX: same "stuck UI" class of bug as the call-disconnect fix above —
@@ -259,7 +254,7 @@ const setupSocket = (io) => {
           });
         }
       } catch (err) {
-        console.error('Error clearing typing state on disconnect:', err);
+        logError('Error clearing typing state on disconnect:', err);
       }
 
       // Clean up presence/away tracking for this user.
@@ -298,14 +293,14 @@ const setupSocket = (io) => {
             socket.broadcast.emit('user:offline', offlinePayload);
           }
         } catch (error) {
-          console.error('Error updating user offline status:', error);
+          logError('Error updating user offline status:', error);
         }
       }
     });
 
     socket.on('disconnecting', (reason) => {
       try {
-        console.log('User disconnecting:', socket.id, 'reason:', reason);
+        logInfo('User disconnecting:', socket.id, 'reason:', reason);
         // Leave all rooms before disconnect
         const rooms = socket.rooms;
         for (const room of rooms) {
@@ -313,15 +308,15 @@ const setupSocket = (io) => {
             socket.leave(room);
           }
         }
-      } catch (err) { console.error('disconnecting handler error:', err); }
+      } catch (err) { logError('disconnecting handler error:', err); }
     });
 
     // Handle connection errors gracefully
     socket.on('connect_error', (error) => {
       try {
-        console.error('Socket connection error:', error);
+        logError('Socket connection error:', error);
         socket.emit('error', { message: 'Connection error occurred' });
-      } catch (err) { console.error('connect_error handler error:', err); }
+      } catch (err) { logError('connect_error handler error:', err); }
     });
   });
 };

@@ -1,3 +1,5 @@
+const { logInfo, logError, logWarning, logDebug } = require('../../config/winston');
+
 /**
  * Call / WebRTC / live-stream socket handlers.
  *
@@ -30,8 +32,7 @@ module.exports = function registerCallHandlers(ctx) {
         });
       }
     } catch (err) {
-      const { logError } = require('../../config/winston');
-      logError('call:start error', { message: err.message });
+            logError('call:start error', { message: err.message });
     }
   });
 
@@ -75,8 +76,7 @@ module.exports = function registerCallHandlers(ctx) {
         callerId: socket.userId
       });
     } catch (error) {
-      const { logError } = require('../../config/winston');
-      logError('Error in call_user', { message: error.message });
+            logError('Error in call_user', { message: error.message });
       socket.emit('call:error', { message: 'Cannot call this user' });
     }
   });
@@ -118,8 +118,7 @@ module.exports = function registerCallHandlers(ctx) {
         }
       }
     } catch (err) {
-      const { logError } = require('../../config/winston');
-      logError('call:reject log error', { message: err.message });
+            logError('call:reject log error', { message: err.message });
     }
     activeCalls.endCall(socket.userId, conversationId);
   });
@@ -165,8 +164,7 @@ module.exports = function registerCallHandlers(ctx) {
         }
       }
     } catch (err) {
-      const { logError } = require('../../config/winston');
-      logError('call:end log error', { message: err.message });
+            logError('call:end log error', { message: err.message });
     }
   });
 
@@ -184,7 +182,7 @@ module.exports = function registerCallHandlers(ctx) {
       const { chatId, host } = data;
       io.to(chatId).emit('live_stream:started', { chatId, host, timestamp: new Date() });
     } catch (error) {
-      console.error('Error starting live stream:', error);
+      logError('Error starting live stream:', error);
     }
   });
 
@@ -197,7 +195,7 @@ module.exports = function registerCallHandlers(ctx) {
         io.to(chatId).emit('live_stream:stopped', { chatId, timestamp: new Date() });
       }
     } catch (error) {
-      console.error('Error stopping live stream:', error);
+      logError('Error stopping live stream:', error);
     }
   });
 
@@ -240,7 +238,7 @@ module.exports = function registerCallHandlers(ctx) {
         socket.emit('call:error', { message: 'User is offline' });
       }
     } catch (error) {
-      console.error('Error sending call offer:', error);
+      logError('Error sending call offer:', error);
       socket.emit('call:error', { message: error.message });
     }
   });
@@ -263,8 +261,7 @@ module.exports = function registerCallHandlers(ctx) {
         responderId: socket.userId
       });
     } catch (error) {
-      const { logError } = require('../../config/winston');
-      logError('Error answering WebRTC call', { message: error.message });
+            logError('Error answering WebRTC call', { message: error.message });
     }
   });
 
@@ -275,13 +272,11 @@ module.exports = function registerCallHandlers(ctx) {
       const resolvedSocketId = targetSocketId || onlineUsers.get(String(targetUserId));
 
       if (!resolvedSocketId) {
-        const { logWarn } = require('../../config/winston');
-        logWarn('WebRTC ICE candidate target not found', { targetUserId, targetSocketId });
+                logWarn('WebRTC ICE candidate target not found', { targetUserId, targetSocketId });
         return socket.emit('call:error', { message: 'Target user is offline' });
       }
 
-      const { logDebug } = require('../../config/winston');
-      logDebug('Relaying ICE candidate', { from: socket.userId, to: resolvedSocketId });
+            logDebug('Relaying ICE candidate', { from: socket.userId, to: resolvedSocketId });
 
       io.to(resolvedSocketId).emit('call:ice-candidate', {
         candidate,
@@ -293,7 +288,7 @@ module.exports = function registerCallHandlers(ctx) {
         senderId: socket.userId
       });
     } catch (error) {
-      console.error('Error sending ICE candidate:', error);
+      logError('Error sending ICE candidate:', error);
       socket.emit('call:error', { message: 'Failed to relay ICE candidate' });
     }
   });
@@ -311,13 +306,11 @@ module.exports = function registerCallHandlers(ctx) {
       const targetSocketId = onlineUsers.get(String(targetId));
 
       if (!targetSocketId) {
-        const { logError } = require('../../config/winston');
-        logError('WebRTC target user not found', { targetId });
+                logError('WebRTC target user not found', { targetId });
         return socket.emit('call:error', { message: 'Target user is offline' });
       }
 
-      const { logDebug } = require('../../config/winston');
-      logDebug('Sending WebRTC offer', { from: socket.userId, to: targetId, callType });
+            logDebug('Sending WebRTC offer', { from: socket.userId, to: targetId, callType });
       const caller = await User.findById(socket.userId).select('username profilePicture').lean();
 
       io.to(targetSocketId).emit('webrtc:offer', {
@@ -355,13 +348,11 @@ module.exports = function registerCallHandlers(ctx) {
           callId: conversationId || `${socket.userId}-${Date.now()}`,
           offer
         }).catch((notifyErr) => {
-          const { logWarn } = require('../../config/winston');
-          logWarn('Incoming call push notification failed', { message: notifyErr?.message });
+                    logWarn('Incoming call push notification failed', { message: notifyErr?.message });
         });
       }
     } catch (error) {
-      const { logError } = require('../../config/winston');
-      logError('Error relaying WebRTC offer', { message: error.message });
+            logError('Error relaying WebRTC offer', { message: error.message });
       socket.emit('call:error', { message: error.message });
     }
   });
@@ -371,13 +362,11 @@ module.exports = function registerCallHandlers(ctx) {
       const { to, callerSocketId, answer } = data;
       const targetSocketId = callerSocketId || onlineUsers.get(String(to));
       if (!targetSocketId) {
-        const { logError } = require('../../config/winston');
-        logError('WebRTC caller socket not found', { to, callerSocketId });
+                logError('WebRTC caller socket not found', { to, callerSocketId });
         return socket.emit('call:error', { message: 'Caller is offline' });
       }
 
-      const { logDebug } = require('../../config/winston');
-      logDebug('Sending WebRTC answer', { from: socket.userId, to: targetSocketId });
+            logDebug('Sending WebRTC answer', { from: socket.userId, to: targetSocketId });
 
       io.to(targetSocketId).emit('webrtc:answer', {
         from: socket.userId,
@@ -389,8 +378,7 @@ module.exports = function registerCallHandlers(ctx) {
         answer
       });
     } catch (error) {
-      const { logError } = require('../../config/winston');
-      logError('Error relaying WebRTC answer', { message: error.message });
+            logError('Error relaying WebRTC answer', { message: error.message });
       socket.emit('call:error', { message: 'Failed to send answer' });
     }
   });
@@ -400,13 +388,11 @@ module.exports = function registerCallHandlers(ctx) {
       const { to, targetSocketId, candidate } = data;
       const relaySocketId = targetSocketId || onlineUsers.get(String(to)) || to;
       if (!relaySocketId) {
-        const { logWarn } = require('../../config/winston');
-        logWarn('WebRTC ICE candidate relay target not found', { to, targetSocketId });
+                logWarn('WebRTC ICE candidate relay target not found', { to, targetSocketId });
         return;
       }
 
-      const { logDebug } = require('../../config/winston');
-      logDebug('Relaying ICE candidate via webrtc event', { from: socket.userId, to: relaySocketId });
+            logDebug('Relaying ICE candidate via webrtc event', { from: socket.userId, to: relaySocketId });
 
       io.to(relaySocketId).emit('webrtc:ice_candidate', {
         from: socket.userId,
@@ -418,8 +404,7 @@ module.exports = function registerCallHandlers(ctx) {
         candidate
       });
     } catch (error) {
-      const { logError } = require('../../config/winston');
-      logError('Error relaying ICE candidate', { message: error.message });
+            logError('Error relaying ICE candidate', { message: error.message });
     }
   });
 
@@ -436,7 +421,7 @@ module.exports = function registerCallHandlers(ctx) {
         });
       }
     } catch (error) {
-      console.error('Error toggling audio:', error);
+      logError('Error toggling audio:', error);
     }
   });
 
@@ -453,7 +438,7 @@ module.exports = function registerCallHandlers(ctx) {
         });
       }
     } catch (error) {
-      console.error('Error toggling video:', error);
+      logError('Error toggling video:', error);
     }
   });
 
@@ -490,7 +475,7 @@ module.exports = function registerCallHandlers(ctx) {
       socket.join(`call:${conversationId}`);
       socket.emit('group_call:started', { conversationId, callType });
     } catch (err) {
-      console.error('group_call:start error:', err);
+      logError('group_call:start error:', err);
     }
   });
 
@@ -506,7 +491,7 @@ module.exports = function registerCallHandlers(ctx) {
       });
       socket.emit('group_call:joined', { conversationId });
     } catch (err) {
-      console.error('group_call:join error:', err);
+      logError('group_call:join error:', err);
     }
   });
 
@@ -520,7 +505,7 @@ module.exports = function registerCallHandlers(ctx) {
         socketId: socket.id,
       });
     } catch (err) {
-      console.error('group_call:leave error:', err);
+      logError('group_call:leave error:', err);
     }
   });
 

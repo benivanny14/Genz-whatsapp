@@ -8,6 +8,8 @@ const { persistCallFromSocket } = require('../controllers/callController');
 const activeCalls = require('../utils/activeCalls');
 const { resolveMessageMentions } = require('../utils/mentions');
 const { scheduleHardDelete } = require('../utils/hardDelete');
+const { logInfo, logError, logWarning, logDebug } = require('../config/winston');
+
 const {
   sendMentionNotification,
   sendNewMessageNotification,
@@ -103,8 +105,7 @@ const _dedupCleanupInterval = setInterval(() => {
     deleted += toDelete.length;
   }
   if (deleted > 0) {
-    const { logDebug } = require('../config/winston');
-    logDebug('Cleaned up old deduplication entries', { deleted, currentSize: messageDeduplication.size });
+        logDebug('Cleaned up old deduplication entries', { deleted, currentSize: messageDeduplication.size });
   }
 }, 30000); // Run every 30 seconds
 _dedupCleanupInterval.unref?.();
@@ -121,7 +122,7 @@ const safeAsyncHandler = (socket, handler) => async (data) => {
   try {
     await handler(data);
   } catch (error) {
-    console.error('[Socket] Handler error:', error);
+    logError('[Socket] Handler error:', error);
     socket.emit('error', { message: 'Internal server error' });
   }
 };

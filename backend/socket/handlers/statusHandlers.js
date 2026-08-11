@@ -1,3 +1,6 @@
+const { logInfo, logError, logWarning, logDebug } = require('../../config/winston');
+
+
 /**
  * Status (WhatsApp-style stories) socket handlers.
  *
@@ -62,7 +65,7 @@ module.exports = function registerStatusHandlers(ctx) {
         io.to(collabUserId).emit('status:collab_invite', { statusId: status._id, fromUsername: status.username });
       }
     } catch (error) {
-      console.error('Error creating status:', error);
+      logError('Error creating status:', error);
     }
   });
 
@@ -94,7 +97,7 @@ module.exports = function registerStatusHandlers(ctx) {
         socket.emit('status:viewed', statusPayload);
       }
     } catch (error) {
-      console.error('Error viewing status:', error);
+      logError('Error viewing status:', error);
     }
   });
 
@@ -120,7 +123,7 @@ module.exports = function registerStatusHandlers(ctx) {
         }
       }
     } catch (error) {
-      console.error('Error relaying status view:', error);
+      logError('Error relaying status view:', error);
     }
   });
 
@@ -162,7 +165,7 @@ module.exports = function registerStatusHandlers(ctx) {
       }
       socket.emit('status_liked_signal', likePayload);
     } catch (error) {
-      console.error('Error liking status in socket:', error);
+      logError('Error liking status in socket:', error);
     }
   });
 
@@ -200,7 +203,7 @@ module.exports = function registerStatusHandlers(ctx) {
       }
       socket.emit('status_comment_signal', commentPayload);
     } catch (error) {
-      console.error('Error commenting on status in socket:', error);
+      logError('Error commenting on status in socket:', error);
     }
   });
 
@@ -218,7 +221,7 @@ module.exports = function registerStatusHandlers(ctx) {
       // SECURITY (1.2): targeted — only the owner needs this update.
       io.to(String(status.userId)).emit('status:updated', status.toObject ? status.toObject() : JSON.parse(JSON.stringify(status)));
     } catch (error) {
-      console.error('Error updating status:', error);
+      logError('Error updating status:', error);
     }
   });
 
@@ -243,7 +246,7 @@ module.exports = function registerStatusHandlers(ctx) {
       });
       socket.emit('status:deleted', { statusId: String(statusId), userId: String(socket.userId) });
     } catch (error) {
-      console.error('Error deleting status via socket:', error);
+      logError('Error deleting status via socket:', error);
     }
   });
 
@@ -262,7 +265,7 @@ module.exports = function registerStatusHandlers(ctx) {
         createdAt: new Date().toISOString(),
       });
     } catch (err) {
-      console.error('[socket] status_reply error:', err.message);
+      logError('[socket] status_reply error:', err.message);
     }
   });
 };

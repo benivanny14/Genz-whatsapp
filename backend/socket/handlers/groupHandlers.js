@@ -1,3 +1,6 @@
+const { logInfo, logError, logWarning, logDebug } = require('../../config/winston');
+
+
 /**
  * Group, broadcast-list and group-conversation socket handlers.
  *
@@ -34,7 +37,7 @@ module.exports = function registerGroupHandlers(ctx) {
         io.to(chatId).emit('conversation:pinned', { chatId, messageId });
       }
     } catch (error) {
-      console.error('Error pinning message:', error);
+      logError('Error pinning message:', error);
     }
   });
 
@@ -48,7 +51,7 @@ module.exports = function registerGroupHandlers(ctx) {
       await conversation.save();
       io.to(chatId).emit('conversation:unpinned', { chatId });
     } catch (error) {
-      console.error('Error unpinning message:', error);
+      logError('Error unpinning message:', error);
     }
   });
 
@@ -116,7 +119,7 @@ module.exports = function registerGroupHandlers(ctx) {
             sentCount++;
           }
         } catch (recipErr) {
-          console.error('[broadcast:create] Error sending to recipient:', recipErr?.message);
+          logError('[broadcast:create] Error sending to recipient:', recipErr?.message);
         }
       }
 
@@ -128,7 +131,7 @@ module.exports = function registerGroupHandlers(ctx) {
         deliveredCount: sentCount
       });
     } catch (error) {
-      console.error('Error creating broadcast:', error);
+      logError('Error creating broadcast:', error);
       socket.emit('error', { message: 'Broadcast failed' });
     }
   });
@@ -149,7 +152,7 @@ module.exports = function registerGroupHandlers(ctx) {
       // its creator — acknowledge only the creator, never broadcast globally.
       socket.emit('broadcast_list:created', broadcastList.toObject ? broadcastList.toObject() : JSON.parse(JSON.stringify(broadcastList)));
     } catch (error) {
-      console.error('Error creating broadcast list:', error);
+      logError('Error creating broadcast list:', error);
     }
   });
 
@@ -176,7 +179,7 @@ module.exports = function registerGroupHandlers(ctx) {
         io.to(chatId).emit('conversation:updated', updatedConv);
       }
     } catch (error) {
-      console.error('Error creating custom role:', error);
+      logError('Error creating custom role:', error);
     }
   });
 
@@ -206,7 +209,7 @@ module.exports = function registerGroupHandlers(ctx) {
         io.to(chatId).emit('conversation:updated', updatedConv);
       }
     } catch (error) {
-      console.error('Error assigning role:', error);
+      logError('Error assigning role:', error);
     }
   });
 
@@ -234,7 +237,7 @@ module.exports = function registerGroupHandlers(ctx) {
       await conversation.save();
       io.to(chatId).emit('group_setting:updated', { chatId, setting, value });
     } catch (error) {
-      console.error('Error updating group setting:', error);
+      logError('Error updating group setting:', error);
     }
   });
 
@@ -271,7 +274,7 @@ module.exports = function registerGroupHandlers(ctx) {
         });
       }
     } catch (error) {
-      console.error('Error joining group:', error);
+      logError('Error joining group:', error);
     }
   });
 
@@ -297,7 +300,7 @@ module.exports = function registerGroupHandlers(ctx) {
         createdAt: new Date().toISOString(),
       });
     } catch (err) {
-      console.error('[socket] participant:added error:', err.message);
+      logError('[socket] participant:added error:', err.message);
     }
   });
 
@@ -316,7 +319,7 @@ module.exports = function registerGroupHandlers(ctx) {
         createdAt: new Date().toISOString(),
       });
     } catch (err) {
-      console.error('[socket] participant:removed error:', err.message);
+      logError('[socket] participant:removed error:', err.message);
     }
   });
 
@@ -335,7 +338,7 @@ module.exports = function registerGroupHandlers(ctx) {
         createdAt: new Date().toISOString(),
       });
     } catch (err) {
-      console.error('[socket] admin:added error:', err.message);
+      logError('[socket] admin:added error:', err.message);
     }
   });
 
@@ -348,7 +351,7 @@ module.exports = function registerGroupHandlers(ctx) {
       io.to(String(groupId)).emit('group:admin_removed', { groupId, userId });
       io.to(String(userId)).emit('group:your_admin_removed', { groupId });
     } catch (err) {
-      console.error('[socket] admin:removed error:', err.message);
+      logError('[socket] admin:removed error:', err.message);
     }
   });
 
@@ -369,7 +372,7 @@ module.exports = function registerGroupHandlers(ctx) {
       });
       socket.leave(String(groupId));
     } catch (err) {
-      console.error('[socket] group:left error:', err.message);
+      logError('[socket] group:left error:', err.message);
     }
   });
 
@@ -383,7 +386,7 @@ module.exports = function registerGroupHandlers(ctx) {
       if (!canEdit) return;
       io.to(String(groupId)).emit('group:info_updated', { groupId, updates, updatedBy: socket.userId });
     } catch (err) {
-      console.error('[socket] group:updated error:', err.message);
+      logError('[socket] group:updated error:', err.message);
     }
   });
 
@@ -398,7 +401,7 @@ module.exports = function registerGroupHandlers(ctx) {
       if (!isAdmin) return;
       io.to(String(groupId)).emit('group:member_banned', { groupId, userId, bannedBy: socket.userId, reason });
       io.to(String(userId)).emit('group:you_were_banned', { groupId, groupName: conversation.groupName, reason });
-    } catch (err) { console.error('group:ban_member error:', err); }
+    } catch (err) { logError('group:ban_member error:', err); }
   });
 
   // Transfer ownership notification
@@ -408,7 +411,7 @@ module.exports = function registerGroupHandlers(ctx) {
       io.to(String(groupId)).emit('group:ownership_transferred', {
         groupId, newOwnerId, previousOwnerId: socket.userId
       });
-    } catch (err) { console.error('group:transfer_ownership error:', err); }
+    } catch (err) { logError('group:transfer_ownership error:', err); }
   });
 
   // Approve/Reject join request notification
@@ -416,14 +419,14 @@ module.exports = function registerGroupHandlers(ctx) {
     try {
       if (!groupId || !userId) return;
       io.to(String(userId)).emit('group:join_approved', { groupId });
-    } catch (err) { console.error('group:approve_request error:', err); }
+    } catch (err) { logError('group:approve_request error:', err); }
   });
 
   socket.on('group:reject_request', ({ groupId, userId, groupName } = {}) => {
     try {
       if (!groupId || !userId) return;
       io.to(String(userId)).emit('group:join_rejected', { groupId, groupName });
-    } catch (err) { console.error('group:reject_request error:', err); }
+    } catch (err) { logError('group:reject_request error:', err); }
   });
 
   // New group event created notification
@@ -431,6 +434,6 @@ module.exports = function registerGroupHandlers(ctx) {
     try {
       if (!groupId) return;
       io.to(String(groupId)).emit('group:event_created', { groupId, event, createdBy: socket.userId });
-    } catch (err) { console.error('group:event_created error:', err); }
+    } catch (err) { logError('group:event_created error:', err); }
   });
 };

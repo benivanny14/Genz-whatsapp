@@ -157,5 +157,8 @@ module.exports = {
   logError,
   logInfo,
   logWarning,
+  // SECURITY (D.3): several call sites used `logWarn` which was never
+  // exported — calling it threw at runtime. Alias it to logWarning.
+  logWarn: logWarning,
   logDebug
 };

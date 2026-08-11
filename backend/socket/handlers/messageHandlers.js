@@ -1,3 +1,5 @@
+const { logInfo, logError, logWarning, logDebug } = require('../../config/winston');
+
 /**
  * Message-related socket handlers.
  *
@@ -71,14 +73,12 @@ module.exports = function registerMessageHandlers(ctx) {
 
       // Check if message was already processed
       if (await dedupHas(dedupKey)) {
-        const { logDebug } = require('../../config/winston');
-        logDebug('Duplicate message detected, ignoring', { dedupKey });
+                logDebug('Duplicate message detected, ignoring', { dedupKey });
         return;
       }
 
       if (!mongoose.Types.ObjectId.isValid(conversationId)) {
-        const { logWarn } = require('../../config/winston');
-        logWarn('Invalid conversationId provided', { conversationId });
+                logWarn('Invalid conversationId provided', { conversationId });
         return socket.emit('message:error', { error: 'Invalid conversation ID format' });
       }
 
@@ -312,7 +312,7 @@ module.exports = function registerMessageHandlers(ctx) {
         }
         if (notificationTasks.length) {
           Promise.allSettled(notificationTasks).catch((notifyErr) => {
-            console.warn('[Socket] Message push notification failed:', notifyErr?.message || notifyErr);
+            logWarning('[Socket] Message push notification failed:', notifyErr?.message || notifyErr);
           });
         }
       }
@@ -354,13 +354,13 @@ module.exports = function registerMessageHandlers(ctx) {
             io.to(String(socket.userId)).emit('message:received', autoOutgoing);
             io.to(String(participantId)).emit('message:received', autoOutgoing);
           } catch (autoErr) {
-            console.warn('[Socket] Auto-reply skipped:', autoErr?.message || autoErr);
+            logWarning('[Socket] Auto-reply skipped:', autoErr?.message || autoErr);
           }
         }
       }
 
     } catch (error) {
-      console.error('Error sending message:', error);
+      logError('Error sending message:', error);
       if (dedupKey) dedupDelete(dedupKey);
       socket.emit('message:error', { error: error.message, messageId: data?.messageId });
     }
@@ -463,7 +463,7 @@ module.exports = function registerMessageHandlers(ctx) {
         }
       }
     } catch (error) {
-      console.error('Error marking message as delivered:', error);
+      logError('Error marking message as delivered:', error);
     }
   });
 
@@ -512,7 +512,7 @@ module.exports = function registerMessageHandlers(ctx) {
         }
       }
     } catch (error) {
-      console.error('Error marking message as read:', error);
+      logError('Error marking message as read:', error);
     }
   });
 
@@ -536,7 +536,7 @@ module.exports = function registerMessageHandlers(ctx) {
         io.to(message.conversationId.toString()).emit('message:edited', updatedMessage);
       }
     } catch (error) {
-      console.error('Error editing message:', error);
+      logError('Error editing message:', error);
     }
   });
 
@@ -579,7 +579,7 @@ module.exports = function registerMessageHandlers(ctx) {
         deletedBy: socket.userId
       });
     } catch (error) {
-      console.error('Error deleting message:', error);
+      logError('Error deleting message:', error);
     }
   });
 
@@ -612,7 +612,7 @@ module.exports = function registerMessageHandlers(ctx) {
 
       io.to(message.conversationId.toString()).emit('reaction:added', updatedMessage);
     } catch (error) {
-      console.error('Error adding reaction:', error);
+      logError('Error adding reaction:', error);
     }
   });
 
@@ -635,7 +635,7 @@ module.exports = function registerMessageHandlers(ctx) {
 
       io.to(message.conversationId.toString()).emit('reaction:removed', updatedMessage);
     } catch (error) {
-      console.error('Error removing reaction:', error);
+      logError('Error removing reaction:', error);
     }
   });
 
@@ -678,7 +678,7 @@ module.exports = function registerMessageHandlers(ctx) {
         reactions: updatedMessage.reactions
       });
     } catch (error) {
-      console.error('Error handling legacy message reaction:', error);
+      logError('Error handling legacy message reaction:', error);
     }
   });
 
@@ -700,7 +700,7 @@ module.exports = function registerMessageHandlers(ctx) {
         io.to(message.conversationId.toString()).emit('message:starred', updatedMessage);
       }
     } catch (error) {
-      console.error('Error starring message:', error);
+      logError('Error starring message:', error);
     }
   });
 
@@ -842,7 +842,7 @@ module.exports = function registerMessageHandlers(ctx) {
 
         sentCount++;
         } catch (recipientError) {
-          console.error(`Error sending mass message to recipient ${recipientId}:`, recipientError);
+          logError(`Error sending mass message to recipient ${recipientId}:`, recipientError);
           failedRecipients.push({ recipientId, error: recipientError.message });
         }
       }
@@ -855,7 +855,7 @@ module.exports = function registerMessageHandlers(ctx) {
         error: sentCount === 0 ? 'Failed to send to any recipient' : undefined
       });
     } catch (error) {
-      console.error('Error sending mass message:', error);
+      logError('Error sending mass message:', error);
       ack({ success: false, error: error.message || 'Failed to send mass message' });
     }
   });
@@ -880,7 +880,7 @@ module.exports = function registerMessageHandlers(ctx) {
         .populate('sender', 'username profilePicture');
       io.to(conversationId).emit('poll:created', populatedMessage);
     } catch (error) {
-      console.error('Error creating poll:', error);
+      logError('Error creating poll:', error);
     }
   });
 
@@ -911,7 +911,7 @@ module.exports = function registerMessageHandlers(ctx) {
         io.to(message.conversationId.toString()).emit('poll:voted', updatedMessage);
       }
     } catch (error) {
-      console.error('Error voting on poll:', error);
+      logError('Error voting on poll:', error);
     }
   });
 
@@ -936,7 +936,7 @@ module.exports = function registerMessageHandlers(ctx) {
         ...conversation.disappearingMessages
       });
     } catch (error) {
-      console.error('Error setting disappearing messages:', error);
+      logError('Error setting disappearing messages:', error);
     }
   });
 
@@ -955,7 +955,7 @@ module.exports = function registerMessageHandlers(ctx) {
         ...(conversation?.disappearingMessages || normalizeDisappearingMessages(data))
       });
     } catch (error) {
-      console.error('Error updating disappearing messages:', error);
+      logError('Error updating disappearing messages:', error);
     }
   });
 
@@ -999,7 +999,7 @@ module.exports = function registerMessageHandlers(ctx) {
         message: scheduledMessage.toObject ? scheduledMessage.toObject() : JSON.parse(JSON.stringify(scheduledMessage))
       });
     } catch (error) {
-      console.error('Error scheduling message:', error);
+      logError('Error scheduling message:', error);
       socket.emit('message:error', { error: error.message });
     }
   });
@@ -1021,7 +1021,7 @@ module.exports = function registerMessageHandlers(ctx) {
         io.to(message.conversationId.toString()).emit('message:edited', updatedMessage);
       }
     } catch (error) {
-      console.error('Error editing message:', error);
+      logError('Error editing message:', error);
     }
   });
 
@@ -1052,8 +1052,7 @@ module.exports = function registerMessageHandlers(ctx) {
         io.to(message.conversationId.toString()).emit('message:deleted', { messageId, forEveryone: true });
       }
     } catch (error) {
-      const { logError } = require('../../config/winston');
-      logError('Error deleting message', { message: error.message });
+            logError('Error deleting message', { message: error.message });
     }
   });
 
@@ -1062,22 +1061,19 @@ module.exports = function registerMessageHandlers(ctx) {
     const { chatId, skipReadReceipts } = data;
 
     if (!chatId || (!/^[0-9a-fA-F]{24}$/.test(chatId) && !chatId.startsWith('conv-status-'))) {
-      const { logWarn } = require('../../config/winston');
-      logWarn('Invalid chatId format in mark_as_read', { chatId });
+            logWarn('Invalid chatId format in mark_as_read', { chatId });
       return;
     }
 
     // Skip processing if this is a status conversation ID
     if (chatId.startsWith('conv-status-')) {
-      const { logDebug } = require('../../config/winston');
-      logDebug('Skipping status conv-id in mark_as_read', { chatId });
+            logDebug('Skipping status conv-id in mark_as_read', { chatId });
       return;
     }
 
     const conversation = await getConversationIfParticipant(chatId, socket);
     if (!conversation) {
-      const { logDebug } = require('../../config/winston');
-      logDebug('Conversation not found or user not participant', { chatId });
+            logDebug('Conversation not found or user not participant', { chatId });
       return;
     }
 
@@ -1142,7 +1138,7 @@ module.exports = function registerMessageHandlers(ctx) {
         .populate('sender', 'username profilePicture');
       io.to(toConversationId).emit('message:received', populatedMessage);
     } catch (error) {
-      console.error('Error forwarding message:', error);
+      logError('Error forwarding message:', error);
     }
   });
 
@@ -1159,7 +1155,7 @@ module.exports = function registerMessageHandlers(ctx) {
         originalSender,
       });
     } catch (err) {
-      console.error('[socket] message:forwarded error:', err.message);
+      logError('[socket] message:forwarded error:', err.message);
     }
   });
 
@@ -1186,7 +1182,7 @@ module.exports = function registerMessageHandlers(ctx) {
         });
       }
     } catch (err) {
-      console.error('[socket] viewonce:screenshot_attempt error:', err.message);
+      logError('[socket] viewonce:screenshot_attempt error:', err.message);
     }
   });
 
@@ -1204,7 +1200,7 @@ module.exports = function registerMessageHandlers(ctx) {
         at: new Date().toISOString()
       });
     } catch (err) {
-      console.error('[socket] screenshot:attempt error:', err.message);
+      logError('[socket] screenshot:attempt error:', err.message);
     }
   });
 
@@ -1224,7 +1220,7 @@ module.exports = function registerMessageHandlers(ctx) {
         isTyping: true
       });
     } catch (error) {
-      console.error('Error sending typing:', error);
+      logError('Error sending typing:', error);
     }
   });
 
@@ -1251,7 +1247,7 @@ module.exports = function registerMessageHandlers(ctx) {
         socket.to(conversationId).emit('typing_status', payload);
       }
     } catch (error) {
-      console.error('Error stopping typing:', error);
+      logError('Error stopping typing:', error);
     }
   });
 
@@ -1276,7 +1272,7 @@ module.exports = function registerMessageHandlers(ctx) {
         });
       }
     } catch (error) {
-      console.error('Error sending recording:', error);
+      logError('Error sending recording:', error);
     }
   });
 };
