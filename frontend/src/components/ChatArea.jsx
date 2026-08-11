@@ -3,7 +3,7 @@ import { useChat, applyVoiceEffect } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
 import { ArrowLeft, MoreVertical, Search, Smile, Paperclip, Send, Mic, Image as ImageIcon, MessageCircle, Ghost, Forward, Square, MapPin, ShieldCheck, Globe, BarChart2, CalendarClock, Info, UserMinus, UserCheck, ShieldAlert, Copy, Link, Pin, X, Edit, Briefcase, Plus, Eye, EyeOff, Clock, Lock, Sticker, Download, FileText, Camera, Headphones, Contact, Trash2, Reply, Share2, Star, Archive, BellOff, Bell, Radio, Users, Languages, Grid3x3, Lock as LockIcon, Unlock, ChevronLeft, AtSign, DollarSign, Video as VideoIcon, Heart, Flag } from 'lucide-react';
 import { formatMessageTime, decryptMessage } from '../utils/formatDate';
-import { exportChatAsTxt } from '../utils/chatExporter';
+import { exportChatAsTxt, exportChatAsWhatsAppTxt } from '../utils/chatExporter';
 import FormattedText from './FormattedText';
 import { wrapWithMarker } from '../utils/formatText';
 import SignedMedia from './SignedMedia';
@@ -2336,7 +2336,13 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const handleExportChat = (format = 'txt') => {
     const convName = typeof getConversationName === 'function' ? getConversationName() : (selectedConversation?.groupName || 'Chat');
     const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-    exportChatAsTxt(messages, convName, currentUser._id);
+    if (format === 'whatsapp') {
+      // Canonical WhatsApp .txt format — round-trips through Import Chat (chatImporter.js).
+      exportChatAsWhatsAppTxt(messages, convName, currentUser._id);
+    } else {
+      // Rich export with header, sender names and reactions.
+      exportChatAsTxt(messages, convName, currentUser._id);
+    }
   };
 
   const handleTranslate = async (messageId, text) => {
@@ -2829,10 +2835,20 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                       handleExportChat('txt');
                       setShowHeaderMenu(false);
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white border-t border-white/5 mt-1 pt-3"
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
                   >
                     <Download size={16} className="text-white/60" />
                     <span>Export Chat (.txt)</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleExportChat('whatsapp');
+                      setShowHeaderMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
+                  >
+                    <Download size={16} className="text-white/60" />
+                    <span>Export Chat (WhatsApp .txt)</span>
                   </button>
 
                   {/* Edit Wallpaper */}

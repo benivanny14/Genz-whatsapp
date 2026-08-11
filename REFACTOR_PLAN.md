@@ -432,6 +432,39 @@ nakala ya `getUser` (na ~34 zina `mergeSettings`), zikiwemo:
   (convention ya e2e suite); `request.delete()` inatumika kwa unblock (badala ya
   `request.post` + `method` override ambayo Playwright haikuiheshimu).
 
+### 15. ✅ CI workflow + WhatsApp .txt export + live mention/formatting verification
+
+#### GitHub Actions CI (`.github/workflows/ci.yml`)
+- **`backend-tests`**: `npm run check` + `npm run check:exports` + `npm test`
+  (jest `--runInBand --forceExit`, mongodb-memory-server — hakuna DB ya nje).
+- **`frontend-tests`**: `npm test` (node:test) + `npm run build`.
+- **`e2e`**: MongoDB service container (mongo:7) + `npx playwright install --with-deps
+  chromium` + `GENZ_DEV_PORT=5176 PLAYWRIGHT_BASE_URL=http://127.0.0.1:5176
+  npx playwright test`. Backend inarithi env (MONGODB_URI → service container,
+  `PHONE_VERIFICATION_REQUIRED=false` → users wana auto-verify), na inazinduliwa na
+  webServer ya Playwright (`npm run dev` → start-dev.js). CI-only secrets kwa
+  JWT_SECRET/ADMIN_JWT_SECRET (fallback `${{ secrets.X || '...' }}`). Artifact ya
+  Playwright report kwenye failure.
+
+#### WhatsApp-style .txt export (`exportChatAsWhatsAppTxt`)
+- **`chatExporter.js`**: function mpya inayotoa format halisi ya WhatsApp
+  (`[MM/DD/YYYY, hh:mm:ss AM/PM] Sender: message`), `You` kwa messages zako,
+  media kama `image omitted`/`<Media omitted>`, deleted kama `This message was
+  deleted` — ina-round-trip kupitia `parseWhatsAppTxt` (chatImporter).
+- **`ChatArea.jsx`**: header menu sasa inatoa chaguo mbili — "Export Chat
+  (.txt)" (format tajiri: header + reactions) na "Export Chat (WhatsApp .txt)"
+  (format halisi ya WhatsApp, ina-round-trip kupitia import).
+- Tests: `chatExporter.test.js` (+3: line shape, You/media, round-trip
+  export→import inahifadhi markers) — **26/26 frontend tests**.
+
+#### Live verification: mention + formatting kwenye bubble moja ✓
+- Kwenye "Big 50 Test Group" nilituma kwa API:
+  `@settester4181 *bold* _italic_ ~strike~ \`mono\` — mention na formatting kwenye bubble moja`
+  na `mentions: ['settester4181']`.
+- Bubble ilirender: mention chip (`@settester4181`, bg `rgba(0,168,132,0.2)`,
+  weight 600) + `<strong>` (700) + `<em>` (italic) + `<s>` (line-through) +
+  `<code>` (monospace) kwenye bubble moja — kuthibitishwa kwenye DOM na a11y tree.
+
 ### 7. ✅ Test coverage expansion (batches 1–4) + `npm run coverage`
 
 #### Tests zilizoongezwa (kwa pattern ya happy path + validation + auth)
@@ -462,6 +495,6 @@ nakala ya `getUser` (na ~34 zina `mergeSettings`), zikiwemo:
 
 ## Vigezo vya "done" kwa kila hatua
 - [x] `node -c` inapita kwa faili zote zilizobadilika
-- [x] `npm test` inapita (**1534 tests backend + 22 frontend** kwa sasa)
+- [x] `npm test` inapita (**1534 tests backend + 26 frontend** kwa sasa)
 - [x] Route paths za nje hazijabadilika (diff ya routes ni import-only)
 - [x] Feature smoke test (`scripts/feature-smoke-test.js`) inapita kwa endpoints zilizoguswa
