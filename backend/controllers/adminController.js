@@ -7,6 +7,7 @@ const ManualPayment = require('../models/ManualPayment');
 const Status = require('../models/Status');
 const Device = require('../models/Device');
 const AuditLog = require('../models/AuditLog');
+const CrashReport = require('../models/CrashReport');
 const { logAdminAction } = require('../utils/auditLogger');
 
 const clampInt = (value, fallback, min, max) => {
@@ -397,5 +398,28 @@ exports.getSecurityReport = async (req, res) => {
   } catch (error) {
     console.error('Admin security report error:', error);
     return res.status(500).json({ success: false, message: 'Failed to load security report' });
+  }
+};
+
+exports.getFrontendCrashes = async (req, res) => {
+  try {
+    const [recent, grouped] = await Promise.all([
+      CrashReport.find({}).sort({ createdAt: -1 }).limit(50).lean(),
+      CrashReport.aggregate([
+        { $group: { _id: { route: '$route', message: '$message' }, count: { $sum: 1 }, lastSeen: { $max: '$createdAt' } } },
+        { $sort: { count: -1, lastSeen: -1 } },
+        { $limit: 50 }
+      ])
+    ]);
+    res.json({
+      success: true,
+      crashes: {
+        recent,
+        grouped: grouped.map((g) => ({ route: g._id.route, message: g._id.message, count: g.count, lastSeen: g.lastSeen }))
+      }
+    });
+  } catch (error) {
+    console.error('Admin frontend crashes error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to load frontend crashes' });
   }
 };

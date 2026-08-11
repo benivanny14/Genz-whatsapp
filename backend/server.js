@@ -824,6 +824,7 @@ const themeEngineRoutes = require('./routes/theme-engine');
 const whatsappWebRoutes = require('./routes/whatsapp-web');
 const antiBanRoutes = require('./routes/anti-ban');
 const locationSharingRoutes = require('./routes/location-sharing');
+const telemetryRoutes = require('./routes/telemetryRoutes');
 
 // Mount Routes — every public API route is mounted under BOTH /api (legacy,
 // what the current frontend calls) and /api/v1 (the versioned namespace new
@@ -897,6 +898,7 @@ const API_ROUTE_MOUNTS = [
   ['/whatsapp-web', whatsappWebRoutes],
   ['/anti-ban', antiBanRoutes],
   ['/location-sharing', locationSharingRoutes],
+  ['/telemetry', telemetryRoutes],
 ];
 
 const mountApiRoutes = (prefix) => {

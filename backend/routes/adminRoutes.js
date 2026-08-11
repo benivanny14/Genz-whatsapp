@@ -12,7 +12,8 @@ const {
   setUserBlock,
   setUserAdminRole,
   getAuditLogs,
-  getSecurityReport
+  getSecurityReport,
+  getFrontendCrashes
 } = require('../controllers/adminController');
 
 const {
@@ -146,6 +147,9 @@ router.delete('/statuses/:id', strictRateLimiter, deleteStatus);
 router.get('/reports/growth', getGrowthReport);
 router.get('/reports/engagement', getEngagementReport);
 router.get('/fraud/signals', getFraudSignals);
+
+// ── Frontend crash telemetry (opt-in) ──
+router.get('/frontend-crashes', getFrontendCrashes);
 
 // ── Support tickets / direct chats ──
 router.get('/tickets', listTickets);

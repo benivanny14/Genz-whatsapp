@@ -121,6 +121,61 @@ const FrontendCrashesPanel = () => {
   );
 };
 
+// ---------------------------------------------------------------------
+// Server-side crash telemetry (opt-in): every browser that has crash reporting
+// enabled POSTs caught render errors to /api/telemetry/crashes; this panel
+// shows the aggregate across all users via the admin API — unlike the browser
+// panel above, it is not limited to what this admin browser has observed.
+const ServerCrashesPanel = () => {
+  const [crashes, setCrashes] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    try {
+      const { data } = await adminApi.get('/admin/frontend-crashes');
+      setCrashes(data?.crashes || { recent: [], grouped: [] });
+    } catch {
+      setCrashes({ recent: [], grouped: [] });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-gray-800 dark:text-gray-200 font-medium">Frontend Crashes (server)</h3>
+        <button
+          onClick={load}
+          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xs flex items-center gap-1"
+        >
+          <RefreshCcw size={12} /> Refresh
+        </button>
+      </div>
+      {loading ? (
+        <p className="text-sm text-gray-400">Inapakia…</p>
+      ) : crashes.grouped?.length === 0 ? (
+        <p className="text-sm text-gray-400">Hakuna crash reports zilizorekodiwa (opt-in reporting).</p>
+      ) : (
+        <div className="space-y-2 max-h-72 overflow-auto">
+          {crashes.grouped.slice(0, 20).map((g, i) => (
+            <div key={i} className="text-sm border-b border-gray-100 dark:border-gray-800 pb-2">
+              <div className="flex justify-between">
+                <span className="text-red-500 font-medium">{g.count}×</span>
+                <span className="text-gray-400 text-xs">{g.lastSeen ? new Date(g.lastSeen).toLocaleString() : ''}</span>
+              </div>
+              <p className="text-gray-700 dark:text-gray-300 font-mono text-xs break-all">{g.route}</p>
+              <p className="text-gray-400 text-xs break-all">{g.message}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Section: Overview
 // ---------------------------------------------------------------------
 const OverviewSection = () => {
@@ -171,6 +226,7 @@ const OverviewSection = () => {
       </div>
 
       <FrontendCrashesPanel />
+      <ServerCrashesPanel />
     </div>
   );
 };

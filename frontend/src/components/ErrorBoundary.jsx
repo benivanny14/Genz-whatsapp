@@ -1,5 +1,32 @@
 import { Component } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+import { getAuthToken } from '../utils/tokenStore';
+
+// Opt-in server-side crash reporting: the user enables it in GENZSettings
+// (`genz_crash_reporting`), after which each caught render crash POSTs a small
+// { route, message } record to /api/telemetry/crashes so admins can see
+// regressions across all browsers, not just the one in front of them.
+const CRASH_REPORTING_KEY = 'genz_crash_reporting';
+
+function reportCrashToServer(route, message) {
+  try {
+    if (localStorage.getItem(CRASH_REPORTING_KEY) !== '1') return; // opt-in only
+    const token = getAuthToken();
+    if (!token) return; // anonymous visitor — nothing to attribute
+    const base = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
+    fetch(`${base}/telemetry/crashes`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ route, message: String(message || '').slice(0, 2000) }),
+      keepalive: true // fire-and-forget even if the page is being replaced
+    }).catch(() => {});
+  } catch {
+    // Best-effort only — a crash report must never crash the app again.
+  }
+}
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -27,6 +54,7 @@ class ErrorBoundary extends Component {
       counts[route] = (counts[route] || 0) + 1;
       localStorage.setItem(key, JSON.stringify(counts));
       console.info('[GENZ ErrorBoundary] crash recorded', { route, total: counts[route] });
+      reportCrashToServer(route, error?.message);
     } catch {
       // Storage unavailable (private mode / quota) — analytics are optional.
     }
