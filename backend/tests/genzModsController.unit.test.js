@@ -121,13 +121,18 @@ describe('genzModsController — deleted messages', () => {
     Message.find.mockReturnValue({
       populate: jest.fn().mockReturnThis(),
       sort: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockResolvedValue([makeMessage()])
+      limit: jest.fn().mockResolvedValue([makeMessage({ content: '[deleted]' })])
     });
     const res = makeRes();
     await genzMods.getDeletedMessages(makeReq(), res);
     expect(res.statusCode).toBe(200);
     expect(res.body.messages).toHaveLength(1);
     expect(Message.find).toHaveBeenCalledWith(expect.objectContaining({ deletedForEveryone: true }));
+    // The mod viewer must surface the preserved originalContent, not the
+    // scrubbed '[deleted]' placeholder (SECURITY 1.6 scrub).
+    expect(res.body.messages[0].content).toBe('original text');
+    expect(res.body.messages[0].id).toBe('msg-1');
+    expect(res.body.messages[0].timestamp).toBeInstanceOf(Date);
   });
 
   it('returns 404 when restoring an unknown message', async () => {

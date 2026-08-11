@@ -720,9 +720,11 @@ const GENZMods = () => {
                 <div className="space-y-3">
                   {deletedMessages.map((msg) => (
                     <div key={msg.id} className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
-                      <p className="text-sm text-gray-900 dark:text-white mb-2">{msg.content}</p>
+                      <p className="text-sm text-gray-900 dark:text-white mb-2">{msg.originalContent || msg.content}</p>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500">{new Date(msg.timestamp).toLocaleString()}</span>
+                        <span className="text-xs text-gray-500">
+                          {msg.timestamp ? new Date(msg.timestamp).toLocaleString() : ''}
+                        </span>
                         <button
                           onClick={() => restoreMessage(msg.id)}
                           className="text-xs text-blue-600 hover:text-blue-700"

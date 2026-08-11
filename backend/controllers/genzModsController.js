@@ -147,7 +147,7 @@ exports.getGenzModsSettings = async (req, res) => {
 exports.getDeletedMessages = async (req, res) => {
   try {
     const userId = req.user._id.toString();
-    const messages = await Message.find({
+    const docs = await Message.find({
       deletedForEveryone: true,
       originalContent: { $ne: '' },
       $or: [{ sender: userId }, { readBy: { $elemMatch: { user: userId } } }]
@@ -155,6 +155,20 @@ exports.getDeletedMessages = async (req, res) => {
       .populate('sender', 'username profilePicture')
       .sort({ deletedAt: -1 })
       .limit(100);
+
+    // SECURITY (1.6) scrubs message.content to '[deleted]' at delete time,
+    // so the mod viewer must surface the preserved originalContent instead
+    // of the placeholder (the restore endpoint uses the same field).
+    const messages = docs.map((m) => {
+      const plain = typeof m.toObject === 'function' ? m.toObject() : m;
+      const deletedAt = plain.deletedAt || plain.createdAt || null;
+      return {
+        ...plain,
+        id: plain._id,
+        content: plain.originalContent || plain.content,
+        timestamp: deletedAt ? new Date(deletedAt) : undefined
+      };
+    });
 
     res.status(200).json({ success: true, messages });
   } catch (error) {
