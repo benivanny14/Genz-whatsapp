@@ -1,9 +1,5 @@
 const {
-  generateUserKeys,
   getUserPublicKeys,
-  encryptForRecipient,
-  decryptFromSender,
-  encryptForGroup,
   rotateKeys,
   deleteKeys,
   hasEncryptionKeys,
@@ -12,30 +8,16 @@ const {
 
 /**
  * Encryption Controller
- * Handles end-to-end encryption key management and message encryption/decryption
+ * Handles end-to-end encryption key management.
+ *
+ * NOTE: The legacy server-side encryption endpoints were removed — the server
+ * must never generate or use users' private keys, otherwise end-to-end
+ * encryption is meaningless. Removed: POST /keys/generate (generateKeys),
+ * POST /encrypt (encryptMessage), POST /decrypt (decryptMessage) and
+ * POST /encrypt/group (encryptGroupMessage). All crypto happens client-side
+ * (frontend/src/services/encryptionService.js); the server only stores the
+ * public keys clients register here.
  */
-
-// @desc    Generate encryption keys for current user
-// @route   POST /api/encryption/keys/generate
-// @access  Private
-exports.generateKeys = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const keys = await generateUserKeys(userId);
-
-    res.status(200).json({
-      success: true,
-      message: 'Encryption keys generated successfully',
-      keys
-    });
-  } catch (error) {
-    console.error('[EncryptionController] Generate keys failed:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
 
 // @desc    Get current user's public keys
 // @route   GET /api/encryption/keys/public
@@ -96,117 +78,6 @@ exports.getUserPublicKeys = async (req, res) => {
     });
   } catch (error) {
     console.error('[EncryptionController] Get user public keys failed:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
-
-// @desc    Encrypt message for a recipient
-// @route   POST /api/encryption/encrypt
-// @access  Private
-exports.encryptMessage = async (req, res) => {
-  try {
-    const { message, recipientId } = req.body;
-    const senderId = req.user._id;
-
-    if (!message) {
-      return res.status(400).json({
-        success: false,
-        message: 'Message is required'
-      });
-    }
-
-    if (!recipientId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Recipient ID is required'
-      });
-    }
-
-    const encrypted = await encryptForRecipient(message, senderId, recipientId);
-
-    res.status(200).json({
-      success: true,
-      encrypted
-    });
-  } catch (error) {
-    console.error('[EncryptionController] Encrypt message failed:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
-
-// @desc    Decrypt message from a sender
-// @route   POST /api/encryption/decrypt
-// @access  Private
-exports.decryptMessage = async (req, res) => {
-  try {
-    const { encryptedMessage, senderId } = req.body;
-    const recipientId = req.user._id;
-
-    if (!encryptedMessage) {
-      return res.status(400).json({
-        success: false,
-        message: 'Encrypted message is required'
-      });
-    }
-
-    if (!senderId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Sender ID is required'
-      });
-    }
-
-    const decrypted = await decryptFromSender(encryptedMessage, recipientId, senderId);
-
-    res.status(200).json({
-      success: true,
-      message: decrypted
-    });
-  } catch (error) {
-    console.error('[EncryptionController] Decrypt message failed:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
-
-// @desc    Encrypt message for group
-// @route   POST /api/encryption/encrypt/group
-// @access  Private
-exports.encryptGroupMessage = async (req, res) => {
-  try {
-    const { message, recipientIds } = req.body;
-    const senderId = req.user._id;
-
-    if (!message) {
-      return res.status(400).json({
-        success: false,
-        message: 'Message is required'
-      });
-    }
-
-    if (!recipientIds || !Array.isArray(recipientIds) || recipientIds.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Recipient IDs are required'
-      });
-    }
-
-    const encrypted = await encryptForGroup(message, senderId, recipientIds);
-
-    res.status(200).json({
-      success: true,
-      encrypted
-    });
-  } catch (error) {
-    console.error('[EncryptionController] Encrypt group message failed:', error);
     res.status(500).json({
       success: false,
       message: error.message

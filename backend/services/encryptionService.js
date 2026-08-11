@@ -1,10 +1,7 @@
 const User = require('../models/User');
 const {
   generateKeyPair,
-  generateSignatureKeyPair,
-  encryptMessage,
-  decryptMessage,
-  hash
+  generateSignatureKeyPair
 } = require('../config/encryption');
 
 function normalizeStoredPublicKey(value) {
@@ -29,46 +26,16 @@ function serializeIncomingPublicKey(pk) {
 
 /**
  * Encryption Service
- * Handles end-to-end encryption key management and message encryption/decryption
+ * Handles end-to-end encryption key management.
+ *
+ * SECURITY NOTE: The server-side encryption helpers (generateUserKeys,
+ * encryptForRecipient, decryptFromSender, encryptForGroup) were REMOVED.
+ * The server must never generate or use users' private keys — that would
+ * defeat end-to-end encryption. All key generation and message crypto now
+ * happens client-side (frontend/src/services/encryptionService.js); the
+ * server only stores the public keys clients register and serves them back
+ * to other clients.
  */
-
-/**
- * Generate and store encryption keys for a user
- * @param {string} userId - User ID
- * @returns {Promise<Object>} Generated keys
- */
-const generateUserKeys = async (userId) => {
-  try {
-    const user = await User.findById(userId);
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    // Generate encryption key pair (X25519)
-    const keyPair = generateKeyPair();
-    
-    // Generate signature key pair (Ed25519)
-    const signatureKeyPair = generateSignatureKeyPair();
-
-    // Store keys in user document
-    user.encryptionKeys = {
-      publicKey: keyPair.publicKey,
-      privateKey: keyPair.privateKey,
-      signaturePublicKey: signatureKeyPair.publicKey,
-      signaturePrivateKey: signatureKeyPair.privateKey
-    };
-
-    await user.save();
-
-    return {
-      publicKey: user.encryptionKeys.publicKey,
-      signaturePublicKey: user.encryptionKeys.signaturePublicKey
-    };
-  } catch (error) {
-    console.error('[EncryptionService] Generate user keys failed:', error);
-    throw error;
-  }
-};
 
 const registerClientPublicKeys = async (userId, keys = {}) => {
   try {
@@ -134,136 +101,6 @@ const getUserPublicKeys = async (userId) => {
     };
   } catch (error) {
     console.error('[EncryptionService] Get user public keys failed:', error);
-    throw error;
-  }
-};
-
-/**
- * Encrypt message for a recipient
- * @param {string} message - Message to encrypt
- * @param {string} senderId - Sender user ID
- * @param {string} recipientId - Recipient user ID
- * @returns {Promise<Object>} Encrypted message
- */
-const encryptForRecipient = async (message, senderId, recipientId) => {
-  try {
-    const [sender, recipient] = await Promise.all([
-      User.findById(senderId).select('encryptionKeys'),
-      User.findById(recipientId).select('encryptionKeys')
-    ]);
-
-    if (!sender || !recipient) {
-      throw new Error('User not found');
-    }
-
-    if (!sender.encryptionKeys || !sender.encryptionKeys.privateKey) {
-      throw new Error('Sender encryption keys not found');
-    }
-
-    if (!recipient.encryptionKeys || !recipient.encryptionKeys.publicKey) {
-      throw new Error('Recipient encryption keys not found');
-    }
-
-    // Encrypt message
-    const encrypted = encryptMessage(
-      message,
-      recipient.encryptionKeys.publicKey,
-      sender.encryptionKeys.privateKey
-    );
-
-    return {
-      encrypted: true,
-      ...encrypted
-    };
-  } catch (error) {
-    console.error('[EncryptionService] Encrypt for recipient failed:', error);
-    throw error;
-  }
-};
-
-/**
- * Decrypt message from a sender
- * @param {Object} encryptedMessage - Encrypted message object
- * @param {string} recipientId - Recipient user ID
- * @param {string} senderId - Sender user ID
- * @returns {Promise<string>} Decrypted message
- */
-const decryptFromSender = async (encryptedMessage, recipientId, senderId) => {
-  try {
-    const [recipient, sender] = await Promise.all([
-      User.findById(recipientId).select('encryptionKeys'),
-      User.findById(senderId).select('encryptionKeys')
-    ]);
-
-    if (!recipient || !sender) {
-      throw new Error('User not found');
-    }
-
-    if (!recipient.encryptionKeys || !recipient.encryptionKeys.privateKey) {
-      throw new Error('Recipient encryption keys not found');
-    }
-
-    if (!sender.encryptionKeys || !sender.encryptionKeys.publicKey) {
-      throw new Error('Sender encryption keys not found');
-    }
-
-    // Decrypt message
-    const decrypted = decryptMessage(
-      encryptedMessage,
-      sender.encryptionKeys.publicKey,
-      recipient.encryptionKeys.privateKey
-    );
-
-    return decrypted;
-  } catch (error) {
-    console.error('[EncryptionService] Decrypt from sender failed:', error);
-    throw error;
-  }
-};
-
-/**
- * Encrypt group message for multiple recipients
- * @param {string} message - Message to encrypt
- * @param {string} senderId - Sender user ID
- * @param {Array<string>} recipientIds - Recipient user IDs
- * @returns {Promise<Object>} Encrypted message for each recipient
- */
-const encryptForGroup = async (message, senderId, recipientIds) => {
-  try {
-    const sender = await User.findById(senderId).select('encryptionKeys');
-    if (!sender) {
-      throw new Error('Sender not found');
-    }
-
-    if (!sender.encryptionKeys || !sender.encryptionKeys.privateKey) {
-      throw new Error('Sender encryption keys not found');
-    }
-
-    const recipients = await User.find({ _id: { $in: recipientIds } }).select('encryptionKeys');
-    
-    const encryptedMessages = {};
-    
-    for (const recipient of recipients) {
-      if (!recipient.encryptionKeys || !recipient.encryptionKeys.publicKey) {
-        console.warn(`[EncryptionService] Skipping recipient ${recipient._id} - no encryption keys`);
-        continue;
-      }
-
-      const encrypted = encryptMessage(
-        message,
-        recipient.encryptionKeys.publicKey,
-        sender.encryptionKeys.privateKey
-      );
-
-      encryptedMessages[recipient._id.toString()] = encrypted;
-    }
-
-    return {
-      encrypted: true,
-      messages: encryptedMessages
-    };
-  } catch (error) {
-    console.error('[EncryptionService] Encrypt for group failed:', error);
     throw error;
   }
 };
@@ -375,12 +212,8 @@ const hasEncryptionKeys = async (userId) => {
 };
 
 module.exports = {
-  generateUserKeys,
   registerClientPublicKeys,
   getUserPublicKeys,
-  encryptForRecipient,
-  decryptFromSender,
-  encryptForGroup,
   verifySignature,
   rotateKeys,
   deleteKeys,

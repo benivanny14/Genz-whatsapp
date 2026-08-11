@@ -1,12 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const {
-  generateKeys,
   getMyPublicKeys,
   getUserPublicKeys,
-  encryptMessage,
-  decryptMessage,
-  encryptGroupMessage,
   rotateKeys,
   deleteKeys,
   checkKeysStatus,
@@ -19,7 +15,6 @@ const { protect } = require('../middleware/auth');
 router.use(protect);
 
 // Key management routes
-router.post('/keys/generate', generateKeys);
 router.get('/keys/public', getMyPublicKeys);
 router.post('/keys/public', registerPublicKeys);
 router.get('/keys/public/:userId', getUserPublicKeys);
@@ -28,9 +23,11 @@ router.delete('/keys', deleteKeys);
 router.get('/keys/status', checkKeysStatus);
 router.post('/keys/batch', batchGetPublicKeys);
 
-// Message encryption/decryption routes
-router.post('/encrypt', encryptMessage);
-router.post('/decrypt', decryptMessage);
-router.post('/encrypt/group', encryptGroupMessage);
+// NOTE: The legacy server-side encryption endpoints were REMOVED:
+//   POST /keys/generate, POST /encrypt, POST /decrypt, POST /encrypt/group
+// They let the server generate and use users' private keys, which defeats
+// end-to-end encryption. All crypto is now client-side only
+// (frontend/src/services/encryptionService.js) — the server merely stores
+// registered public keys. These routes must not be re-added.
 
 module.exports = router;
