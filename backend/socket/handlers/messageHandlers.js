@@ -1,8 +1,5 @@
 const { logInfo, logError, logWarning, logDebug } = require('../../config/winston');
-const {
-  computePublicKeyFingerprint,
-  classifyPublicKeyAgainstHistory
-} = require('../../utils/keyFingerprint');
+const { isE2EEContent, stampE2EEMessage } = require('../../utils/e2eeStamp');
 
 /**
  * Message-related socket handlers.
@@ -176,11 +173,7 @@ module.exports = function registerMessageHandlers(ctx) {
         mentions
       });
 
-      const isClientE2EE =
-        typeof safeContent === 'string' &&
-        safeContent.trim().startsWith('{') &&
-        safeContent.includes('ciphertext') &&
-        safeContent.includes('senderPublicKey');
+      const isClientE2EE = isE2EEContent(safeContent);
 
       // Stamp the E2EE envelope's sender key fingerprint + status (current vs
       // rotated) onto the message so any device can render the key badge from
@@ -189,16 +182,11 @@ module.exports = function registerMessageHandlers(ctx) {
       let e2eeKeyStatus;
       if (isClientE2EE) {
         try {
-          const envelope = JSON.parse(safeContent);
-          const senderPublicKey = envelope.senderPublicKey;
-          if (senderPublicKey) {
-            const senderDoc = await User.findById(socket.userId).select('encryptionKeys encryptionKeyHistory');
-            e2eeKeyFingerprint = computePublicKeyFingerprint(senderPublicKey);
-            e2eeKeyStatus = classifyPublicKeyAgainstHistory(
-              senderPublicKey,
-              senderDoc?.encryptionKeys?.publicKey,
-              senderDoc?.encryptionKeyHistory || []
-            );
+          const senderDoc = await User.findById(socket.userId).select('encryptionKeys encryptionKeyHistory');
+          const stamp = stampE2EEMessage(safeContent, senderDoc);
+          if (stamp) {
+            e2eeKeyFingerprint = stamp.e2eeKeyFingerprint;
+            e2eeKeyStatus = stamp.e2eeKeyStatus;
           }
         } catch (error) {
           logWarning('[E2EE] Failed to stamp message key fingerprint', error);

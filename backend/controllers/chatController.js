@@ -18,6 +18,7 @@ const { sendMentionNotification, sendNewMessageNotification } = require("../serv
 const { ensureUnreadMap, getUnreadCount } = require("../utils/unreadCount");
 const { containsProfanity } = require("../utils/contentFilter");
 const { scheduleHardDelete } = require("../utils/hardDelete");
+const { isE2EEContent, stampE2EEMessage } = require("../utils/e2eeStamp");
 
 const getCurrentUserId = (req) => {
   if (!req.user?._id) {
@@ -969,6 +970,25 @@ exports.sendMessage = async (req, res) => {
       console.warn('[ChatController] Disappearing timer skipped:', disappearErr?.message || disappearErr);
     }
 
+    // Stamp E2EE envelopes with the sender key fingerprint + status so any
+    // device can render the key badge from the message record itself.
+    let isClientE2EE = false;
+    let e2eeKeyFingerprint;
+    let e2eeKeyStatus;
+    if (isE2EEContent(safeContent)) {
+      isClientE2EE = true;
+      try {
+        const senderDoc = await User.findById(localUserId).select('encryptionKeys encryptionKeyHistory');
+        const stamp = stampE2EEMessage(safeContent, senderDoc);
+        if (stamp) {
+          e2eeKeyFingerprint = stamp.e2eeKeyFingerprint;
+          e2eeKeyStatus = stamp.e2eeKeyStatus;
+        }
+      } catch (stampErr) {
+        console.warn('[ChatController] E2EE stamp failed, continuing:', stampErr?.message || stampErr);
+      }
+    }
+
     // 2. Hifadhi ujumbe rasmi kwenye MongoDB Database
     // Dedup: kama message yenye clientMessageId hii tayari ipo kwa sender+conversation,
     // rudisha ile iliyopo (badala ya kuruhusu E11000 kuwa 500 kwenye network retry).
@@ -993,6 +1013,9 @@ exports.sendMessage = async (req, res) => {
       conversationId: finalConversationId,
       sender: localUserId,
       content: String(safeContent),
+      isClientE2EE,
+      e2eeKeyFingerprint: e2eeKeyFingerprint || undefined,
+      e2eeKeyStatus: e2eeKeyStatus || undefined,
       caption: typeof caption === 'string' ? caption.slice(0, 1000) : '',
       messageType: messageType || "text",
       mediaUrl: mediaUrl || "",
