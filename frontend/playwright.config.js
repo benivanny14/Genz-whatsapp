@@ -9,7 +9,11 @@ export default defineConfig({
   retries: isCI ? 1 : 0,
   use: {
     baseURL,
-    trace: 'on-first-retry'
+    trace: 'on-first-retry',
+    // Block service workers in e2e: the PWA update banner ('Update available!'
+    // toast, bottom-right, infinite duration) otherwise overlaps the composer's
+    // Send button and makes clicks flaky in fresh contexts.
+    serviceWorkers: 'block'
   },
   projects: [
     {
