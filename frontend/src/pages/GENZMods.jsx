@@ -3,6 +3,7 @@ import { ArrowLeft, Shield, Ghost, MessageSquare, Eye, EyeOff, Clock, Users, Dow
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import modsService from '../services/modsService';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 const GENZMods = () => {
   const navigate = useNavigate();
@@ -713,30 +714,35 @@ const GENZMods = () => {
                 <X size={20} />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-4">
-              {deletedMessages.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No deleted messages found</p>
-              ) : (
-                <div className="space-y-3">
-                  {deletedMessages.map((msg) => (
-                    <div key={msg.id} className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
-                      <p className="text-sm text-gray-900 dark:text-white mb-2">{msg.originalContent || msg.content}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500">
-                          {msg.timestamp ? new Date(msg.timestamp).toLocaleString() : ''}
-                        </span>
-                        <button
-                          onClick={() => restoreMessage(msg.id)}
-                          className="text-xs text-blue-600 hover:text-blue-700"
-                        >
-                          Restore
-                        </button>
+            {/* Scoped boundary: a render error in the list must never blank the
+                whole GENZMods page — the modal shell (and its close button)
+                stay alive and the user can Retry or close. */}
+            <ErrorBoundary minimal>
+              <div className="flex-1 overflow-y-auto p-4">
+                {deletedMessages.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">No deleted messages found</p>
+                ) : (
+                  <div className="space-y-3">
+                    {deletedMessages.map((msg) => (
+                      <div key={msg.id} className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
+                        <p className="text-sm text-gray-900 dark:text-white mb-2">{msg.originalContent || msg.content}</p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-500">
+                            {msg.timestamp ? new Date(msg.timestamp).toLocaleString() : ''}
+                          </span>
+                          <button
+                            onClick={() => restoreMessage(msg.id)}
+                            className="text-xs text-blue-600 hover:text-blue-700"
+                          >
+                            Restore
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </ErrorBoundary>
           </div>
         </div>
       )}
