@@ -135,6 +135,13 @@ test('bubble interactions: menu reveal, reply, star, info, copy, delete', async 
   await revealBubbleMenu(pageA, creds.seededId);
   await pageA.getByText('Copy', { exact: true }).last().click();
 
+  // 5b) Forward opens the ForwardDialog modal (rendered by ChatModals); close it.
+  await revealBubbleMenu(pageA, creds.seededId);
+  await pageA.getByText('Forward', { exact: true }).last().click();
+  await expect(pageA.getByText('Forward Message', { exact: true })).toBeVisible({ timeout: 10_000 });
+  await pageA.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(pageA.getByText('Forward Message', { exact: true })).not.toBeVisible();
+
   // 6) Delete for me removes the bubble from the thread.
   await revealBubbleMenu(pageA, creds.seededId);
   await pageA.getByText('Delete for me', { exact: true }).last().click();
