@@ -16,7 +16,7 @@ const formatPhoneForRequest = (phone) => {
 const VerifyPhone = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, setIsAuthenticated, setUser: setAuthUser } = useAuth();
+  const { user, token, completeSession } = useAuth();
   const [phoneNumber, setPhoneNumber] = useState(searchParams.get('phone') || user?.phoneNumber || '');
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
@@ -95,11 +95,13 @@ const VerifyPhone = () => {
       });
 
       if (res?.success) {
-        const updatedUser = { ...user, phoneVerified: true };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-
-        setAuthUser(updatedUser);
-        setIsAuthenticated(true);
+        const updatedUser = { ...(user || {}), phoneVerified: true };
+        // completeSession is the context's official way to persist the
+        // session (saves tokens, sets user, flips isAuthenticated). The
+        // raw setters (setUser/setIsAuthenticated) are not exposed by
+        // AuthContext — calling them threw "setUser is not a function"
+        // right after a successful verification.
+        await completeSession({ token, user: updatedUser });
 
         setSuccess('Phone verified successfully!');
         setTimeout(() => navigate('/chat'), 1500);

@@ -45,7 +45,7 @@ const {
   loginValidators,
   checkAvailabilityValidators
 } = require('../middleware/validators');
-const { authSensitiveLimiter, discoveryLimiter } = require('../middleware/rateLimiters');
+const { authSensitiveLimiter, accountLoginLimiter, discoveryLimiter } = require('../middleware/rateLimiters');
 const {
   sendOtp,
   verifyOtp,
@@ -59,7 +59,7 @@ const {
 // authenticated calls (background polling) can never exhaust the budget for
 // login/registration, and vice-versa.
 router.post('/register', authSensitiveLimiter, registerValidators, register);
-router.post('/login', authSensitiveLimiter, loginValidators, login);
+router.post('/login', authSensitiveLimiter, accountLoginLimiter, loginValidators, login);
 // Refresh uses body.refreshToken only (no Authorization required)
 router.post('/refresh', authSensitiveLimiter, refreshToken);
 router.get('/me', protect, privacyMiddleware, getMe);

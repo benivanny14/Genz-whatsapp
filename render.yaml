@@ -55,6 +55,16 @@ services:
         value: "false"
       - key: ALLOW_MOCK_PAYMENTS
         value: "false"
+      # ── Phone verification gate ────────────────────────────────
+      # Keep OFF until an OTP delivery channel is configured
+      # (WHATSAPP_OTP_ENABLED=true + WHATSAPP_CLOUD_API_* credentials).
+      # With verification ON and no delivery channel, new registrations
+      # never receive an OTP and are locked out of the app; the backend
+      # refuses to start with that combination in production.
+      - key: PHONE_VERIFICATION_REQUIRED
+        value: "false"
+      - key: WHATSAPP_OTP_ENABLED
+        value: "false"
       - key: ADMIN_BASE_PATH
         value: /api/system-gateway-x9k
       - key: ADMIN_JWT_SECRET

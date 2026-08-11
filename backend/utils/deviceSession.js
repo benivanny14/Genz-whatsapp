@@ -42,13 +42,22 @@ const getDeviceName = (req) => {
 // Upsert an active device record so device-scoped tokens always have a record.
 // Re-activates the device on every authenticated hit and refreshes metadata,
 // but never overwrites a user-chosen name (renames are preserved).
+//
+// The Device schema makes deviceId UNIQUE — a physical device is linked to
+// ONE user at a time. If the device is still linked to a previous account
+// (another user registered/logged in on the same browser), re-link it to the
+// current user instead of failing on the unique index. Without this, the
+// second account's device record never gets created, its tokens are rejected
+// by isDeviceAllowed, and that user is locked out of the whole app with
+// "Session has been logged out on this device" (and registerDevice silently
+// logs an E11000 duplicate-key error).
 const registerDevice = async (req, userId) => {
   const deviceId = getRequestDeviceId(req);
   if (!deviceId) return null;
 
   try {
     const device = await Device.findOneAndUpdate(
-      { localUserId: String(userId), deviceId },
+      { deviceId },
       {
         $set: {
           localUserId: String(userId),
