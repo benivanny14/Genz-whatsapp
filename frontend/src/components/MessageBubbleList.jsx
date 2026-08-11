@@ -24,7 +24,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
     translatedMessages, favoriteStickers, activeMessageMenu, messageMenuRef,
     isOwnMessage, handleDoubleClick, setMessageContextMenu, setActiveMessageMenu,
     openViewOnceModal, setViewerMedia, mediaSourceOf, isVideoSticker,
-    plaintextOf, votePoll, markViewOnceViewed, toggleMessageLock,
+    plaintextOf, e2eeKeyInfoOf, votePoll, markViewOnceViewed, toggleMessageLock,
     handleRetryMessage, handleReaction, setReplyingTo, setForwardingMessage,
     setShowForwardModal, unpinMessage, pinMessage, toggleStarMessage,
     toggleFavoriteSticker, setReportTarget, handleEditClick, setMessageInfoId,
@@ -538,6 +538,22 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                             )}
                         </p>
                       )}
+                    {e2eeKeyInfoOf(message) && (
+                      <div
+                        className="flex items-center gap-1 mt-0.5"
+                        title={`Encryption key fingerprint: ${e2eeKeyInfoOf(message).fingerprint}`}
+                      >
+                        <ShieldCheck size={10} className={isOwnMessage(message) ? 'text-white/50' : 'text-dark-textSecondary'} />
+                        <span className={`text-[10px] uppercase tracking-wide ${isOwnMessage(message) ? 'text-white/50' : 'text-dark-textSecondary'}`}>
+                          {e2eeKeyInfoOf(message).keyStatus === 'old'
+                            ? 'old key'
+                            : e2eeKeyInfoOf(message).keyStatus === 'current'
+                              ? 'new key'
+                              : 'e2e'}
+                          <span className="ml-1 font-mono">{e2eeKeyInfoOf(message).fingerprint}</span>
+                        </span>
+                      </div>
+                    )}
                     {/* Link Preview - respect mods.linkPreview toggle */}
                     {message.messageType === 'text' && safeMods?.linkPreview !== false && (() => {
                       const text = plaintextOf(message) || '';

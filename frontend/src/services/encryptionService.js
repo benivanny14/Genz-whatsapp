@@ -1,4 +1,5 @@
 import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
+import { computeKeyFingerprint, classifyKeyAgainstHistory } from '../utils/keyFingerprint';
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
@@ -42,6 +43,7 @@ class EncryptionService {
     this.isInitialized = false;
     this.backendKeys = null;
     this._boundStorageKey = null;
+    this._keyHistoryCache = new Map();
   }
 
   getStorageKey() {
@@ -337,6 +339,68 @@ class EncryptionService {
     };
   }
 
+  // Exports the active key pair plus the archived rotation history as a
+  // single JSON document so keys can be moved between devices.
+  async exportKeyStore() {
+    const data = {
+      exportedAt: new Date().toISOString(),
+      current: null,
+      history: []
+    };
+    try {
+      if (this.keyPair) {
+        const subtle = ensureCrypto();
+        data.current = {
+          publicKey: await subtle.exportKey('jwk', this.keyPair.publicKey),
+          privateKey: await subtle.exportKey('jwk', this.keyPair.privateKey)
+        };
+      }
+      const raw = localStorage.getItem(this.getArchiveStorageKey());
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) data.history = parsed;
+      }
+      return { success: true, data };
+    } catch (error) {
+      console.error('[EncryptionService] Failed to export key store:', error);
+      throw error;
+    }
+  }
+
+  // Imports a full key store (active pair + archived history) — e.g. from
+  // another device. Registers the current public key with the backend so
+  // peers can find it; private keys never leave the browser.
+  async importKeyStore(data) {
+    if (!data?.current?.publicKey || !data?.current?.privateKey) {
+      throw new Error('Key store must include a current key pair');
+    }
+
+    const subtle = ensureCrypto();
+    const [publicKey, privateKey] = await Promise.all([
+      subtle.importKey('jwk', data.current.publicKey, { name: 'ECDH', namedCurve: 'P-256' }, true, []),
+      subtle.importKey('jwk', data.current.privateKey, { name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveKey'])
+    ]);
+
+    this.keyPair = { publicKey, privateKey };
+    this.isInitialized = true;
+    localStorage.setItem(
+      this.getStorageKey(),
+      JSON.stringify({ publicKey: data.current.publicKey, privateKey: data.current.privateKey })
+    );
+
+    if (Array.isArray(data.history)) {
+      localStorage.setItem(this.getArchiveStorageKey(), JSON.stringify(data.history.slice(0, 10)));
+    }
+
+    // Best effort: make sure the backend has this public key registered.
+    await this.uploadKeysToBackend({ publicKey: data.current.publicKey });
+
+    return {
+      success: true,
+      data: { publicKey: data.current.publicKey }
+    };
+  }
+
   async verifyKeys(keyData) {
     try {
       if (keyData?.publicKey) {
@@ -420,6 +484,8 @@ class EncryptionService {
       throw new Error('Invalid encrypted message payload');
     }
 
+    const fingerprint = await computeKeyFingerprint(encryptedData.senderPublicKey);
+
     // Fast path: try the current private key first.
     try {
       const key = await this.deriveMessageKey(encryptedData.senderPublicKey, this.keyPair.privateKey);
@@ -430,7 +496,8 @@ class EncryptionService {
       );
       return {
         success: true,
-        decryptedData: decoder.decode(plaintext)
+        decryptedData: decoder.decode(plaintext),
+        fingerprint
       };
     } catch (error) {
       // Fall through to archived keys from previous rotations.
@@ -513,6 +580,34 @@ class EncryptionService {
     }
   }
 
+  // Fetches a sender's key history from the backend (cached per session) and
+  // classifies the key that encrypted a message: 'current' (matches the
+  // registered key), 'old' (matches a rotated key in the backend's
+  // encryptionKeyHistory) or 'unknown'.
+  async classifySenderKey(senderId, senderPublicKey) {
+    if (!senderId || !senderPublicKey) return 'unknown';
+    try {
+      let history = this._keyHistoryCache.get(String(senderId));
+      if (!history) {
+        const token = getAuthToken();
+        if (!token) return 'unknown';
+        const response = await fetch(`${API_BASE_URL}/encryption/keys/history/${encodeURIComponent(senderId)}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success || !data.history) return 'unknown';
+        history = data.history;
+        this._keyHistoryCache.set(String(senderId), history);
+      }
+      return classifyKeyAgainstHistory(senderPublicKey, history);
+    } catch (error) {
+      console.warn('[EncryptionService] Failed to classify sender key:', error);
+      return 'unknown';
+    }
+  }
+
   isAvailable() {
     return this.isInitialized && Boolean(window.crypto?.subtle);
   }
@@ -522,6 +617,7 @@ class EncryptionService {
     this.isInitialized = false;
     this.backendKeys = null;
     this._boundStorageKey = null;
+    this._keyHistoryCache.clear();
   }
 }
 

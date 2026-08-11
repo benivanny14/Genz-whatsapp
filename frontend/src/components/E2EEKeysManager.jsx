@@ -55,13 +55,31 @@ const E2EEKeysManager = () => {
     }
   };
 
+  const handleExportArchive = async () => {
+    try {
+      const exported = await encryptionService.exportKeyStore();
+      if (!exported?.data) return;
+      const blob = new Blob([JSON.stringify(exported.data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `genz_e2ee_key_store_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Export key store failed:', e);
+    }
+  };
+
   const handleImport = async (ev) => {
     const file = ev.target.files && ev.target.files[0];
     if (!file) return;
     try {
       const text = await file.text();
       const parsed = JSON.parse(text);
-      const res = await encryptionService.importKeys(parsed);
+      const res = parsed?.current
+        ? await encryptionService.importKeyStore(parsed)
+        : await encryptionService.importKeys(parsed);
       if (res?.success) {
         setPublicKey(res.data.publicKey);
         setStatus('imported');
@@ -93,6 +111,7 @@ const E2EEKeysManager = () => {
         <button onClick={handleGenerate}>Generate Key Pair</button>
         <button onClick={() => setConfirmRotate(true)}>Rotate Key Pair</button>
         <button onClick={handleExport}>Export (private)</button>
+        <button onClick={handleExportArchive}>Export Archive (all keys)</button>
         <label style={{ display: 'inline-block' }}>
           <input type="file" accept="application/json" onChange={handleImport} style={{ display: 'none' }} />
           <button type="button">Import Keys</button>

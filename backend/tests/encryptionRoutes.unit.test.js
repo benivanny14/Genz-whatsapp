@@ -39,6 +39,7 @@ describe('encryptionRoutes — legacy server-side encryption endpoints removed',
       expect.arrayContaining([
         '/keys/public',
         '/keys/public/:userId',
+        '/keys/history/:userId',
         '/keys/rotate',
         '/keys',
         '/keys/status',

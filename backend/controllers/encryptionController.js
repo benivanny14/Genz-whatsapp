@@ -1,5 +1,6 @@
 const {
   getUserPublicKeys,
+  getKeyHistory,
   rotateKeys,
   deleteKeys,
   hasEncryptionKeys,
@@ -78,6 +79,27 @@ exports.getUserPublicKeys = async (req, res) => {
     });
   } catch (error) {
     console.error('[EncryptionController] Get user public keys failed:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Get a user's encryption key history (public keys only)
+// @route   GET /api/encryption/keys/history/:userId
+// @access  Private
+exports.getKeyHistory = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const history = await getKeyHistory(userId);
+
+    res.status(200).json({
+      success: true,
+      history
+    });
+  } catch (error) {
+    console.error('[EncryptionController] Get key history failed:', error);
     res.status(500).json({
       success: false,
       message: error.message

@@ -1,6 +1,7 @@
 jest.mock('../services/encryptionService', () => ({
   registerClientPublicKeys: jest.fn(),
   getUserPublicKeys: jest.fn(),
+  getKeyHistory: jest.fn(),
   rotateKeys: jest.fn(),
   deleteKeys: jest.fn(),
   hasEncryptionKeys: jest.fn()
@@ -74,6 +75,19 @@ describe('encryptionController — key management', () => {
     const res = makeRes();
     await encryptionController.checkKeysStatus(makeReq(), res);
     expect(res.body.hasKeys).toBe(true);
+  });
+
+  it('returns a user key history (public keys only)', async () => {
+    encryptionService.getKeyHistory.mockResolvedValue({
+      currentPublicKey: 'pub',
+      history: [{ publicKey: 'old-pub', rotatedAt: new Date('2026-01-01') }]
+    });
+    const res = makeRes();
+    await encryptionController.getKeyHistory(makeReq({ params: { userId: 'user-2' } }), res);
+    expect(encryptionService.getKeyHistory).toHaveBeenCalledWith('user-2');
+    expect(res.body.success).toBe(true);
+    expect(res.body.history.currentPublicKey).toBe('pub');
+    expect(res.body.history.history).toHaveLength(1);
   });
 });
 

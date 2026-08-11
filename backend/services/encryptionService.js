@@ -216,9 +216,39 @@ const hasEncryptionKeys = async (userId) => {
   }
 };
 
+/**
+ * Get a user's encryption key history (current + previously rotated public
+ * keys). Public keys only — never private keys. Used by clients to
+ * fingerprint which key encrypted a message (current vs old).
+ * @param {string} userId - User ID
+ * @returns {Promise<Object>} { currentPublicKey, history: [{ publicKey, rotatedAt }] }
+ */
+const getKeyHistory = async (userId) => {
+  try {
+    const user = await User.findById(userId).select('encryptionKeys encryptionKeyHistory');
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    return {
+      currentPublicKey: user.encryptionKeys?.publicKey
+        ? normalizeStoredPublicKey(user.encryptionKeys.publicKey)
+        : null,
+      history: (user.encryptionKeyHistory || []).map((entry) => ({
+        publicKey: normalizeStoredPublicKey(entry.publicKey),
+        rotatedAt: entry.rotatedAt || null
+      }))
+    };
+  } catch (error) {
+    console.error('[EncryptionService] Get key history failed:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   registerClientPublicKeys,
   getUserPublicKeys,
+  getKeyHistory,
   verifySignature,
   rotateKeys,
   deleteKeys,

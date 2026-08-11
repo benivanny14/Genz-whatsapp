@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   getMyPublicKeys,
   getUserPublicKeys,
+  getKeyHistory,
   rotateKeys,
   deleteKeys,
   checkKeysStatus,
@@ -19,6 +20,7 @@ router.get('/keys/public', getMyPublicKeys);
 router.post('/keys/public', registerPublicKeys);
 router.get('/keys/public/:userId', getUserPublicKeys);
 router.post('/keys/rotate', rotateKeys);
+router.get('/keys/history/:userId', getKeyHistory);
 router.delete('/keys', deleteKeys);
 router.get('/keys/status', checkKeysStatus);
 router.post('/keys/batch', batchGetPublicKeys);
