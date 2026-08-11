@@ -457,6 +457,25 @@ nakala ya `getUser` (na ~34 zina `mergeSettings`), zikiwemo:
 - Tests: `chatExporter.test.js` (+3: line shape, You/media, round-trip
   export→import inahifadhi markers) — **26/26 frontend tests**.
 
+#### CI validation kwenye fresh GitHub runner ✓ (run #31448846657)
+- Backend tests, Frontend tests + build, na E2E (Playwright) **zote zinapita** kwenye
+  fresh runner kwenye branch `ci-validation`.
+- Matatizo yaliyogunduliwa + kurekebishwa wakati wa validation:
+  1. **Faili zisizocommitted zinazoreferiwa na committed code**: `StickerImage.jsx`
+     (ChatArea/FloatingStickerOverlay/StickerPicker) na `contentFilter.js`
+     (auth/chat/status controllers) — fresh clones zilikosewa (Windows iliendelea
+     kwa sababu faili zipo kwenye disk). Zimecommitted.
+  2. **`vite.config.js` GENZ_DEV_PORT override** ilikuwa worktree-only — fresh
+     clone ilibind 5174 tu, e2e ikasubiri 5176. Imecommitted.
+  3. **Backend e2e env**: `validateEnv` inahitaji `PORT`, `JWT_EXPIRE`, `NODE_ENV`
+     (backend/.env inazitoa local) — sasa zimewekwa kwenye e2e step env.
+  4. **smoke.spec** ilikuwa inatafuta heading "GENZ Login" ambayo committed login
+     page hairender; **voice.spec** ilirefer WAV ya dev-only (uploads/ ni
+     gitignored) — sasa ina-generate silent WAV kama haipo. Fixes za worktree
+     zimecommitted.
+- Workflow pia ina diagnostics: dev log + Playwright failures zinaonekana kwenye
+  check-run annotations (public API) bila auth.
+
 #### Live verification: mention + formatting kwenye bubble moja ✓
 - Kwenye "Big 50 Test Group" nilituma kwa API:
   `@settester4181 *bold* _italic_ ~strike~ \`mono\` — mention na formatting kwenye bubble moja`
