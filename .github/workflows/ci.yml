@@ -181,6 +181,10 @@ jobs:
           # with 8 concurrent login flows. CI runs throwaway secrets on an
           # ephemeral runner, so this has zero production impact.
           ADMIN_LOGIN_MAX: '100'
+          # Raised ONLY for the feature-verification step below: it legitimately
+          # exercises ~10 sensitive admin endpoints in one run (strict default is
+          # 10/hour). Throwaway secrets on an ephemeral runner — zero prod impact.
+          ADMIN_STRICT_MAX: '100'
           PHONE_VERIFICATION_REQUIRED: 'false'
           # CI-only throwaway signing secrets (never used outside this workflow).
           JWT_SECRET: ${{ secrets.CI_JWT_SECRET || 'ci-e2e-only-jwt-secret-0123456789abcdef' }}
@@ -225,6 +229,20 @@ jobs:
           # user:online / user:offline while an allowed contact does.
           if ! (cd ../backend && node scripts/e2e-presence-privacy.js http://127.0.0.1:5000); then
             echo "::error::Presence-privacy socket e2e failed"
+            STATUS=1
+          fi
+
+          # Feature verification against the live single-origin stack: the
+          # API smoke test (137 checks) + the full verification (186 checks:
+          # status / chat / group roles / settings / admin 2FA + control).
+          # Both provision throwaway users + a TEST admin owner on the
+          # throwaway e2e DB — never the real 'genz-whatsapp' database.
+          if ! (cd ../backend && node scripts/feature-smoke-test.js); then
+            echo "::error::Feature smoke test failed"
+            STATUS=1
+          fi
+          if ! (cd ../backend && node scripts/feature-full-verification.js); then
+            echo "::error::Feature full verification failed"
             STATUS=1
           fi
 

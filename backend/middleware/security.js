@@ -87,10 +87,17 @@ const apiRateLimiter = createRateLimiter({
 
 /**
  * Strict rate limiter for sensitive operations
+ *
+ * Env-overridable (ADMIN_STRICT_MAX) ONLY for CI: the feature-verification
+ * scripts legitimately exercise ~10 sensitive admin endpoints in one run.
+ * Production keeps the strict default of 10 per hour; the CI override runs
+ * against throwaway secrets on an ephemeral runner (same pattern as
+ * ADMIN_LOGIN_MAX in adminLoginLimiter.js).
  */
+const strictConfiguredMax = parseInt(process.env.ADMIN_STRICT_MAX, 10);
 const strictRateLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10 // Limit each IP to 10 requests per windowMs
+  max: Number.isFinite(strictConfiguredMax) && strictConfiguredMax > 0 ? strictConfiguredMax : 10 // Limit each IP to 10 requests per windowMs
 });
 
 /**
