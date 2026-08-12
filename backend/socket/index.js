@@ -41,11 +41,37 @@ const setupSocket = (io) => {
     // Sliding-window limiter applied to every inbound event. Prevents a
     // single hijacked/faulty client from flooding the event loop. Exceeding
     // the window disconnects the socket.
+    //
+    // PERSISTENT ACROSS RECONNECTS: the budget is tracked per (user, event)
+    // in Redis when available (shared across instances, survives reconnects
+    // and horizontal scaling). Without Redis the system runs in single-instance
+    // mode with the in-memory per-socket window as a fallback.
     const RATE_LIMIT_WINDOW_MS = 10000; // 10 seconds
     const RATE_LIMIT_MAX_EVENTS = 120; // 120 events per window
-    const eventTimestamps = [];
-    const isRateLimited = () => {
+    const eventTimestamps = []; // in-memory fallback (no Redis)
+    const getRateLimitRedis = () => (typeof global !== 'undefined' ? global.redisClient : null) || null;
+    const isRateLimited = async (eventName) => {
       const now = Date.now();
+      const rc = getRateLimitRedis();
+      if (rc && rc.isOpen) {
+        // Redis-backed: per (user, event) budget that survives reconnects.
+        try {
+          const key = `ratelimit:${socket.userId || socket.id}:${eventName || 'all'}`;
+          const current = await rc.get(key);
+          let events = current ? JSON.parse(current) : [];
+          // Safisha events zilizopita 10 seconds
+          events = events.filter((ts) => now - ts < RATE_LIMIT_WINDOW_MS);
+          if (events.length >= RATE_LIMIT_MAX_EVENTS) {
+            return true;
+          }
+          events.push(now);
+          await rc.setEx(key, 10, JSON.stringify(events));
+          return false;
+        } catch (err) {
+          logWarning('Socket rate limit (Redis) check failed, allowing through:', err?.message || err);
+        }
+      }
+      // In-memory fallback (single-instance mode / Redis error).
       while (eventTimestamps.length && now - eventTimestamps[0] > RATE_LIMIT_WINDOW_MS) {
         eventTimestamps.shift();
       }
@@ -59,7 +85,7 @@ const setupSocket = (io) => {
     socket.on = function(event, handler) {
       if (typeof handler !== 'function') return _originalOn(event, handler);
       const safeHandler = async (...args) => {
-        if (isRateLimited()) {
+        if (await isRateLimited(event)) {
                     logWarning('Socket rate limit exceeded, disconnecting', {
             socketId: socket.id,
             userId: socket.userId,
@@ -104,7 +130,7 @@ const setupSocket = (io) => {
 
       const userKey = String(userId);
       socketToUser.set(socket.id, userKey);
-      onlineUsers.set(userKey, socket.id);
+      await onlineUsers.set(userKey, socket.id); // mirrors into Redis (C.1)
       socket.userId = userKey;
       socket.join(userKey);
 
@@ -284,7 +310,7 @@ const setupSocket = (io) => {
       }
 
       if (disconnectedUserId && !isUserStillOnline(disconnectedUserId)) {
-        onlineUsers.delete(disconnectedUserId);
+        await onlineUsers.delete(disconnectedUserId); // mirrors into Redis (C.1)
 
         try {
           await User.findByIdAndUpdate(disconnectedUserId, {

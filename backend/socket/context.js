@@ -29,7 +29,42 @@ const presenceStore = require('../utils/presenceStore');
 // This ensures socket handlers and HTTP controllers share the same online users state
 // Use shared map from server.js — always reference via global to catch late init
 const getOnlineUsers = () => global.onlineUsers || new Map();
-const onlineUsers = { get: (k) => getOnlineUsers().get(k), set: (k,v) => getOnlineUsers().set(k,v), delete: (k) => getOnlineUsers().delete(k), has: (k) => getOnlineUsers().has(k) };
+// Redis-backed onlineUsers (C.1 horizontal scaling). The in-memory Map stays as
+// the fast-path for this process; every set/delete also mirrors into a Redis
+// Hash (online_users) so OTHER instances can see presence. Reads fall back to
+// the local Map when Redis is unavailable (single-instance mode).
+const getPresenceRedis = () => (typeof global !== 'undefined' ? global.redisClient : null) || null;
+const setOnlineUser = async (k, v) => {
+  getOnlineUsers().set(k, v);
+  const rc = getPresenceRedis();
+  if (rc && rc.isOpen) {
+    try { await rc.hSet('online_users', String(k), String(v)); } catch { /* local map is still the fallback */ }
+  }
+};
+const deleteOnlineUser = async (k) => {
+  getOnlineUsers().delete(k);
+  const rc = getPresenceRedis();
+  if (rc && rc.isOpen) {
+    try { await rc.hDel('online_users', String(k)); } catch { /* local map is still the fallback */ }
+  }
+};
+const onlineUsers = {
+  get: (k) => getOnlineUsers().get(k),
+  set: setOnlineUser,
+  delete: deleteOnlineUser,
+  has: (k) => getOnlineUsers().has(k),
+  // Async cross-instance lookup: Redis first (shared presence), then local map.
+  getAcrossInstances: async (k) => {
+    const rc = getPresenceRedis();
+    if (rc && rc.isOpen) {
+      try {
+        const sid = await rc.hGet('online_users', String(k));
+        if (sid) return sid;
+      } catch { /* fall through to local map */ }
+    }
+    return getOnlineUsers().get(k) || null;
+  }
+};
 // Per-user "away" flag for the alwaysOnline mod / idle-presence feature.
 // In-memory only (like onlineUsers) — resets on server restart, which is
 // fine since it's re-established the moment the client reconnects and
