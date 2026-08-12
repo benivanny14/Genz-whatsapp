@@ -18,3 +18,5 @@ backend/backups/
 backend/.wwebjs_auth/
 backend/coverage/
 /.freebuff/
+GITHUB_ISSUES.md
+RENDER_ENV_TEMPLATE.env

@@ -1,6 +1,6 @@
 # Render Blueprint — GENZ WhatsApp
 # Dashboard: New + → Blueprint → connect repo → path: render.yaml
-# Secrets: set in Render Dashboard or via scripts/setup-render-env.js
+# Secrets: set in Render Dashboard → Environment (see RENDER_ENV_TEMPLATE.env + RENDER_RESTORE_CHECKLIST.md)
 
 services:
   - type: web
