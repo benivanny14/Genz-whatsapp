@@ -95,7 +95,7 @@ describe('Settings API audit', () => {
       expect(res.body.settings.notifications.groups).toBe(true);
     });
 
-    it('should reject unknown/invalid keys and fall back options', async () => {
+    it('should reject invalid option values with 400 (unknown keys are still dropped)', async () => {
       const res = await request(app)
         .put('/api/settings')
         .set('Authorization', `Bearer ${alice.token}`)
@@ -105,11 +105,21 @@ describe('Settings API audit', () => {
           app: { language: 'nope' }
         });
 
-      expect(res.statusCode).toBe(200);
-      expect(res.body.settings.hacker).toBeUndefined();
-      expect(res.body.settings.privacy.hacked).toBeUndefined();
-      expect(res.body.settings.privacy.lastSeen).toBe('everyone');
-      expect(res.body.settings.app.language).toBe('system');
+      // SECURITY (3.4): invalid enum-style values are rejected up-front with a
+      // 400 instead of silently falling back to defaults (matches authController).
+      expect(res.statusCode).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(typeof res.body.message).toBe('string');
+
+      // A clean payload still round-trips and drops unknown keys.
+      const ok = await request(app)
+        .put('/api/settings')
+        .set('Authorization', `Bearer ${alice.token}`)
+        .send({ hacker: 'x', privacy: { lastSeen: 'nobody', hacked: true } });
+      expect(ok.statusCode).toBe(200);
+      expect(ok.body.settings.hacker).toBeUndefined();
+      expect(ok.body.settings.privacy.hacked).toBeUndefined();
+      expect(ok.body.settings.privacy.lastSeen).toBe('nobody');
     });
 
     it('should protect against prototype pollution', async () => {
