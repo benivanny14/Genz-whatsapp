@@ -146,3 +146,25 @@ test('ContactSelectorScreen renders the empty state for no contacts', () => {
   const html = renderSelectorScreen({ contacts: [] });
   assert.ok(html.includes('No contacts found'));
 });
+
+test('ContactSelectorScreen windows large lists (only renders the visible slice)', () => {
+  const many = Array.from({ length: 500 }, (_, i) => ({
+    _id: `c${i}`,
+    username: `Contact ${i}`,
+    phoneNumber: `+2557000${String(i).padStart(4, '0')}`
+  }));
+  const html = renderSelectorScreen({ contacts: many });
+  // First alphabetically-sorted row is rendered...
+  assert.ok(html.includes('Contact 0'));
+  // ...but rows far outside the initial window are not (virtual scrolling).
+  assert.ok(!html.includes('Contact 499'));
+  assert.ok(html.includes('Select All'));
+});
+
+test('ContactSelectorScreen windows the filtered result when searching', () => {
+  // Search is internal state; SSR renders the initial window of the full list.
+  // This guards that windowing does not break rendering when contacts change.
+  const html = renderSelectorScreen({ contacts: [...CONTACTS, { _id: 'c9', username: 'Zed', phoneNumber: '+255700000009' }] });
+  assert.ok(html.indexOf('Alice') !== -1);
+  assert.ok(html.indexOf('Zed') !== -1);
+});

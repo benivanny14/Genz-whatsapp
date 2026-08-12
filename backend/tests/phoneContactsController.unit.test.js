@@ -3,7 +3,13 @@ jest.mock('../models/User', () => ({
   findById: jest.fn()
 }));
 
+jest.mock('../models/PrivacyExcludedContact', () => ({
+  findOne: jest.fn(),
+  create: jest.fn()
+}));
+
 const User = require('../models/User');
+const PrivacyExcludedContact = require('../models/PrivacyExcludedContact');
 const contactsCtrl = require('../controllers/phoneContactsController');
 
 const makeRes = () => {
@@ -116,6 +122,108 @@ describe('phoneContactsController — uploadPhoneContacts', () => {
     }), res);
     expect(res.body.matchedCount).toBe(0);
     expect(res.body.matchedContacts[0].matched).toBe(false);
+  });
+});
+
+describe('phoneContactsController — permission inheritance + live socket notify', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  const makeIo = () => {
+    const emit = jest.fn();
+    return { to: jest.fn(() => ({ emit })), emit };
+  };
+
+  const makeReqWithIo = (overrides = {}) => {
+    const io = makeIo();
+    return {
+      ...makeReq(overrides),
+      app: { get: jest.fn((key) => (key === 'io' ? io : undefined)) }
+    };
+  };
+
+  it('uploadPhoneContacts applies contacts_except inheritance to new contacts', async () => {
+    const serverUser = { _id: 'user-2', username: 'bob', phoneNumber: '255700000002' };
+    User.find.mockReturnValue({ select: jest.fn().mockResolvedValue([serverUser]) });
+    const user = makeUser();
+    const ownerDoc = {
+      _id: 'user-1',
+      settings: { privacy: { lastSeen: 'contacts_except', profilePhoto: 'contacts' } }
+    };
+    // 1st findById → the current user doc; later findById().select() → owner privacy
+    User.findById
+      .mockResolvedValueOnce(user)
+      .mockReturnValue({ select: jest.fn().mockResolvedValue(ownerDoc) });
+
+    const res = makeRes();
+    const req = makeReqWithIo({
+      body: { contacts: [{ name: 'Bob', phone: '255700000002' }] }
+    });
+    await contactsCtrl.uploadPhoneContacts(req, res);
+
+    expect(res.body.newContactsCount).toBe(1);
+    // new contact added to excluded list for 'contacts_except' types only
+    expect(PrivacyExcludedContact.findOne).toHaveBeenCalledWith({
+      ownerUserId: 'user-1',
+      privacyType: 'last_seen',
+      excludedContactId: 'user-2'
+    });
+    expect(PrivacyExcludedContact.create).toHaveBeenCalledWith({
+      ownerUserId: 'user-1',
+      privacyType: 'last_seen',
+      excludedContactId: 'user-2',
+      excludedContactName: 'Bob',
+      excludedContactPhone: '255700000002'
+    });
+    // 'contacts' privacy type does not create an excluded record
+    expect(PrivacyExcludedContact.create).not.toHaveBeenCalledWith(expect.objectContaining({ privacyType: 'profile_photo' }));
+
+    // owner's sockets notified so open selectors refresh live
+    const io = req.app.get('io');
+    expect(io.to).toHaveBeenCalledWith('user-1');
+    expect(io.to('user-1').emit).toHaveBeenCalledWith('contacts:updated', { userId: 'user-1' });
+  });
+
+  it('syncContacts applies inheritance and notifies the owner socket', async () => {
+    const serverUser = { _id: 'user-2', username: 'bob', phoneNumber: '255700000002' };
+    User.find.mockReturnValue({ select: jest.fn().mockResolvedValue([serverUser]) });
+    const user = makeUser();
+    const ownerDoc = {
+      _id: 'user-1',
+      settings: { privacy: { status: 'contacts_except' } }
+    };
+    // 1st findById → the current user doc; later findById().select() → owner privacy
+    User.findById
+      .mockResolvedValueOnce(user)
+      .mockReturnValue({ select: jest.fn().mockResolvedValue(ownerDoc) });
+
+    const res = makeRes();
+    const req = makeReqWithIo({
+      body: { contacts: [{ name: 'Bob', phone: '255700000002' }] }
+    });
+    await contactsCtrl.syncContacts(req, res);
+
+    expect(res.body.newContactsCount).toBe(1);
+    expect(PrivacyExcludedContact.create).toHaveBeenCalledWith(expect.objectContaining({ privacyType: 'status' }));
+    expect(req.app.get('io').to('user-1').emit).toHaveBeenCalledWith('contacts:updated', { userId: 'user-1' });
+  });
+
+  it('removeContact notifies the owner socket', async () => {
+    const user = makeUser({ contacts: [{ user: 'user-2', savedName: 'Bob' }] });
+    User.findById.mockResolvedValue(user);
+    const res = makeRes();
+    const req = makeReqWithIo({ params: { contactId: 'user-2' } });
+    await contactsCtrl.removeContact(req, res);
+    expect(user.contacts).toHaveLength(0);
+    expect(req.app.get('io').to('user-1').emit).toHaveBeenCalledWith('contacts:updated', { userId: 'user-1' });
+  });
+
+  it('updateContactName notifies the owner socket', async () => {
+    const user = makeUser({ contacts: [{ user: 'user-2', savedName: 'Bob' }] });
+    User.findById.mockResolvedValue(user);
+    const res = makeRes();
+    const req = makeReqWithIo({ params: { contactId: 'user-2' }, body: { name: 'Bobby' } });
+    await contactsCtrl.updateContactName(req, res);
+    expect(req.app.get('io').to('user-1').emit).toHaveBeenCalledWith('contacts:updated', { userId: 'user-1' });
   });
 });
 

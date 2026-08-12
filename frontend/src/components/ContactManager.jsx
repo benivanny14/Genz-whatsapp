@@ -1,12 +1,21 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useChat } from '../context/ChatContext';
 import { X, UserPlus, Search, UserMinus, Phone, MessageSquare, Edit } from 'lucide-react';
 
 const ContactManager = ({ onClose }) => {
-  const { contacts, addContact, removeContact, updateContact } = useChat();
+  const { contacts, refreshContacts, addContact, removeContact, updateContact } = useChat();
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [newContact, setNewContact] = useState({ name: '', phone: '' });
+
+  // Live refresh: pull the freshest list when the manager opens and whenever
+  // the backend emits 'contacts:updated' (add/remove/rename, phone sync).
+  useEffect(() => {
+    refreshContacts?.();
+    const handler = () => refreshContacts?.();
+    window.addEventListener('contacts:updated', handler);
+    return () => window.removeEventListener('contacts:updated', handler);
+  }, [refreshContacts]);
 
   const filteredContacts = (contacts || []).map((c) => {
     const user = c.user || c;

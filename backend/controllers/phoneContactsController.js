@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Conversation = require('../models/Conversation');
+const { applyPermissionInheritance, notifyContactsUpdated } = require('../services/permissionInheritanceService');
 
 // @desc    Upload phone contacts for matching
 // @route   POST /api/contacts/upload
@@ -77,6 +78,12 @@ exports.uploadPhoneContacts = async (req, res) => {
     
     await user.save();
 
+    // New contacts inherit the owner's privacy rules (contacts_except → excluded by default)
+    await Promise.all(newContacts.map(c =>
+      applyPermissionInheritance(userId, c.userId, c.name || c.username, c.phone)
+    ));
+    notifyContactsUpdated(req, userId);
+
     res.json({
       success: true,
       matchedContacts,
@@ -96,7 +103,9 @@ exports.uploadPhoneContacts = async (req, res) => {
 exports.getMatchedContacts = async (req, res) => {
   try {
     const userId = req.user._id;
-    const user = await User.findById(userId).populate('contacts.user', 'username phoneNumber profilePicture about isOnline lastSeen');
+    // Include settings + contacts so applyPrivacyFilter can enforce privacy
+    // rules on each populated contact (limited selects would leak fields).
+    const user = await User.findById(userId).populate('contacts.user', 'username phoneNumber profilePicture about bio isOnline lastSeen settings contacts');
 
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
@@ -182,6 +191,12 @@ exports.syncContacts = async (req, res) => {
     user.lastSyncAt = new Date();
     await user.save();
 
+    // New contacts inherit the owner's privacy rules (contacts_except → excluded by default)
+    await Promise.all(newContacts.map(c =>
+      applyPermissionInheritance(userId, c.userId, c.name || c.username, c.phone)
+    ));
+    notifyContactsUpdated(req, userId);
+
     res.json({
       success: true,
       synced: true,
@@ -210,6 +225,8 @@ exports.removeContact = async (req, res) => {
     user.contacts = user.contacts.filter(c => String(c.user || c.userId) !== contactId);
     await user.save();
 
+    notifyContactsUpdated(req, userId);
+
     res.json({ success: true, message: 'Contact removed successfully' });
   } catch (error) {
     console.error('Remove contact error:', error);
@@ -236,6 +253,8 @@ exports.updateContactName = async (req, res) => {
       contact.savedName = name;
       await user.save();
     }
+
+    notifyContactsUpdated(req, userId);
 
     res.json({ success: true, contact });
   } catch (error) {

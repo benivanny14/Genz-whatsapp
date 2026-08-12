@@ -1,13 +1,25 @@
 const PrivacyExcludedContact = require('../models/PrivacyExcludedContact');
 const PrivacyAllowedContact = require('../models/PrivacyAllowedContact');
 
+// The frontend sends settings keys (camelCase, e.g. 'profilePhoto') while the
+// permission engine + stored records use snake_case ('profile_photo').
+// Normalize so exclusions saved from the UI are actually honored by the engine.
+const PRIVACY_TYPE_ALIASES = {
+  lastSeen: 'last_seen',
+  lastseen: 'last_seen',
+  profilePhoto: 'profile_photo',
+  profilephoto: 'profile_photo'
+};
+
+const normalizePrivacyType = (type) => PRIVACY_TYPE_ALIASES[type] || type;
+
 
 // @desc    Get excluded contacts for a privacy type
 // @route   GET /api/privacy/excluded/:privacyType
 // @access  Private
 exports.getExcludedContacts = async (req, res) => {
   try {
-    const { privacyType } = req.params;
+    const privacyType = normalizePrivacyType(req.params.privacyType);
     const userId = req.user._id;
 
     const excludedContacts = await PrivacyExcludedContact.find({
@@ -27,7 +39,7 @@ exports.getExcludedContacts = async (req, res) => {
 // @access  Private
 exports.getAllowedContacts = async (req, res) => {
   try {
-    const { privacyType } = req.params;
+    const privacyType = normalizePrivacyType(req.params.privacyType);
     const userId = req.user._id;
 
     const allowedContacts = await PrivacyAllowedContact.find({
@@ -47,7 +59,8 @@ exports.getAllowedContacts = async (req, res) => {
 // @access  Private
 exports.addExcludedContact = async (req, res) => {
   try {
-    const { privacyType, contactId, contactName, contactPhone } = req.body;
+    const { contactId, contactName, contactPhone } = req.body;
+    const privacyType = normalizePrivacyType(req.body.privacyType);
     const userId = req.user._id;
 
     if (!privacyType || !contactId) {
@@ -86,7 +99,7 @@ exports.addExcludedContact = async (req, res) => {
 exports.removeExcludedContact = async (req, res) => {
   try {
     const { contactId } = req.params;
-    const { privacyType } = req.query;
+    const privacyType = normalizePrivacyType(req.query.privacyType);
     const userId = req.user._id;
 
     await PrivacyExcludedContact.findOneAndDelete({
@@ -107,7 +120,8 @@ exports.removeExcludedContact = async (req, res) => {
 // @access  Private
 exports.bulkAddExcludedContacts = async (req, res) => {
   try {
-    const { privacyType, contacts } = req.body; // contacts: [{ id, name, phone }]
+    const { contacts } = req.body; // contacts: [{ id, name, phone }]
+    const privacyType = normalizePrivacyType(req.body.privacyType);
     const userId = req.user._id;
 
     if (!privacyType || !Array.isArray(contacts) || contacts.length === 0) {
@@ -153,7 +167,8 @@ exports.bulkAddExcludedContacts = async (req, res) => {
 // @access  Private
 exports.bulkRemoveExcludedContacts = async (req, res) => {
   try {
-    const { privacyType, contactIds } = req.body;
+    const { contactIds } = req.body;
+    const privacyType = normalizePrivacyType(req.body.privacyType);
     const userId = req.user._id;
 
     await PrivacyExcludedContact.deleteMany({
@@ -174,7 +189,7 @@ exports.bulkRemoveExcludedContacts = async (req, res) => {
 // @access  Private
 exports.clearExcludedContacts = async (req, res) => {
   try {
-    const { privacyType } = req.params;
+    const privacyType = normalizePrivacyType(req.params.privacyType);
     const userId = req.user._id;
 
     await PrivacyExcludedContact.deleteMany({
@@ -194,7 +209,8 @@ exports.clearExcludedContacts = async (req, res) => {
 // @access  Private
 exports.addAllowedContact = async (req, res) => {
   try {
-    const { privacyType, contactId, contactName, contactPhone } = req.body;
+    const { contactId, contactName, contactPhone } = req.body;
+    const privacyType = normalizePrivacyType(req.body.privacyType);
     const userId = req.user._id;
 
     if (!privacyType || !contactId) {
@@ -233,7 +249,7 @@ exports.addAllowedContact = async (req, res) => {
 exports.removeAllowedContact = async (req, res) => {
   try {
     const { contactId } = req.params;
-    const { privacyType } = req.query;
+    const privacyType = normalizePrivacyType(req.query.privacyType);
     const userId = req.user._id;
 
     await PrivacyAllowedContact.findOneAndDelete({
@@ -254,7 +270,8 @@ exports.removeAllowedContact = async (req, res) => {
 // @access  Private
 exports.bulkAddAllowedContacts = async (req, res) => {
   try {
-    const { privacyType, contacts } = req.body; // contacts: [{ id, name, phone }]
+    const { contacts } = req.body; // contacts: [{ id, name, phone }]
+    const privacyType = normalizePrivacyType(req.body.privacyType);
     const userId = req.user._id;
 
     if (!privacyType || !Array.isArray(contacts) || contacts.length === 0) {
@@ -300,7 +317,8 @@ exports.bulkAddAllowedContacts = async (req, res) => {
 // @access  Private
 exports.bulkRemoveAllowedContacts = async (req, res) => {
   try {
-    const { privacyType, contactIds } = req.body;
+    const { contactIds } = req.body;
+    const privacyType = normalizePrivacyType(req.body.privacyType);
     const userId = req.user._id;
 
     await PrivacyAllowedContact.deleteMany({
@@ -321,7 +339,7 @@ exports.bulkRemoveAllowedContacts = async (req, res) => {
 // @access  Private
 exports.clearAllowedContacts = async (req, res) => {
   try {
-    const { privacyType } = req.params;
+    const privacyType = normalizePrivacyType(req.params.privacyType);
     const userId = req.user._id;
 
     await PrivacyAllowedContact.deleteMany({

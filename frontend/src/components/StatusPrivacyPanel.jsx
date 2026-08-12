@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Eye, X, RefreshCw, UserPlus, UserMinus, Search, Clock, Shield, Camera, Lock, Fingerprint } from 'lucide-react';
 import { authFetch } from '../utils/authFetch';
 import userService from '../services/userService';
@@ -222,6 +222,23 @@ const StatusPrivacyPanel = ({ onClose }) => {
       delete window.openContactSelector;
     };
   }, [contacts]);
+
+  // Live-refresh the open contact selector when the contact list changes
+  // elsewhere (socket 'contacts:updated' → ChatContext re-fetches and
+  // dispatches a window event).
+  const openContactSelectorRef = useRef(openContactSelector);
+  openContactSelectorRef.current = openContactSelector;
+
+  useEffect(() => {
+    const handler = () => {
+      const open = openContactSelectorRef.current;
+      if (showContactSelector && contactSelectorConfig?.privacyType) {
+        open?.(contactSelectorConfig.selectorType);
+      }
+    };
+    window.addEventListener('contacts:updated', handler);
+    return () => window.removeEventListener('contacts:updated', handler);
+  }, [showContactSelector, contactSelectorConfig]);
 
   const toggleCloseFriend = async (userId, isMember) => {
     setSaving(true);
