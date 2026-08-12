@@ -7,6 +7,45 @@ by commit.
 
 ---
 
+## [2026-08-12] — Post-audit hardening: targeted block emits, atomic reactions, CSAM urgency, Redis-ready sockets, swagger
+
+**Security / correctness fixes (SEHEMU A + B)**
+- `blockUser`/`unblockUser` now emit `user:blocked`/`user:unblocked` ONLY to the
+  blocker + target sockets — previously a global `io.emit` reached every user.
+- `addReaction` is fully atomic: `findOneAndUpdate` with `{ new: true }` for
+  both the add (`$ne` guard) and the update (`$set`) paths — no
+  read-modify-write race when two users react at the same time. Removed the
+  dead non-atomic duplicate.
+- CSAM / child-abuse reports (`csam`, `child_abuse`, `child exploitation`) are
+  now `priority: urgent` in both `reportMessage` and `reportUser`. Also fixed
+  the AbuseReport model enum which REJECTED `csam`/`child_abuse` — every CSAM
+  report previously failed with a validation error and was silently lost.
+- Removed `xss-clean` dependency (unmaintained; already unused — see
+  middleware/security.js SECURITY 3.9).
+- `onlineHistory` pruning now keys on `expiresAt` (with a `connectedAt` fallback
+  only for legacy entries that have no `expiresAt`) — sessions with a future
+  `expiresAt` are no longer wrongly pruned.
+
+**Architecture (SEHEMU C)**
+- Socket rate limit + `onlineUsers` presence are Redis-backed when Redis is
+  configured (survive reconnects / horizontal scaling) with full in-memory
+  fallback in single-instance mode.
+- Media storage already routes to Cloudinary in production (verified — local
+  disk is dev-only fallback).
+- Added `backend/scripts/db-backup.js` — automated `mongodump` with retention
+  + optional S3/GCS upload, wired for cron.
+- Added Swagger UI at `/api-docs` (OpenAPI 3.0 spec in `backend/swagger/`).
+
+**Verification**
+- Backend: 1854/1854 tests (exit 0) · check:exports ✓ · Frontend: 80/80 + build ✓
+- Feature verification: 186/186 · Presence e2e: 12/12
+- Live API checks: two users reacting concurrently both persist; CSAM report
+  saved with `priority: urgent`; block/unblock emit to the right sockets only.
+- `npm audit --omit=dev`: **0 vulnerabilities** (16 moderate are dev-only
+  artillery→OpenTelemetry transitive deps; no non-breaking fix available).
+
+---
+
 ## [2026-08-12] — Full-feature verification, anti-screenshot wiring, settings validation, CI coverage
 
 **Feature verification harness**

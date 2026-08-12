@@ -649,5 +649,35 @@ crashes, support tickets, audit logs, security report, abuse reports, call logs.
 
 ---
 
+## 2026-08-12 — Post-audit hardening follow-up (SEHEMU A–D)
+
+### Fixed
+- **blockUser/unblockUser**: `user:blocked`/`user:unblocked` no longer broadcast
+  globally — emitted only to the blocker + target sockets (verified via unit
+  tests: 3rd online user never receives it; no emit when nobody is online).
+- **addReaction**: fully atomic via `findOneAndUpdate` `{ new: true }` (add with
+  `$ne` guard, update with `$set`). Live check: user A + user B reacted to the
+  same message concurrently → both reactions persisted (2 reactions), then
+  user A updating their emoji kept both.
+- **CSAM reports**: `reportMessage`/`reportUser` now persist `priority: urgent`
+  for csam / child_abuse / child exploitation. **Also fixed a critical latent
+  bug**: the AbuseReport model enum rejected `csam`/`child_abuse`, so every CSAM
+  report previously failed validation and was silently lost. Verified live:
+  CSAM reports now save with `priority: urgent`, spam with `medium`.
+- **onlineHistory pruning** keys on `expiresAt` (fallback: legacy entries
+  without `expiresAt` pruned after 30 days) — no longer prunes active sessions.
+- **xss-clean** removed from dependencies (already unused).
+- **Socket rate limit + presence** are Redis-backed when Redis is configured
+  (persist across reconnects / scale horizontally) with in-memory fallback.
+- **Swagger UI** at `/api-docs` + OpenAPI spec (`backend/swagger/openapi.js`).
+- **`db-backup.js`**: daily mongodump + retention + optional S3/GCS upload.
+
+### Audit
+- `npm audit --omit=dev` → **0 vulnerabilities** (production runtime clean).
+  16 moderate remain in dev-only artillery→OpenTelemetry transitive deps; no
+  non-breaking fix exists (`npm audit fix --force` would downgrade artillery).
+
+---
+
 **Report Generated**: July 27, 2026  
 **Next Review**: After testing completion
