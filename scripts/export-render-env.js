@@ -8,6 +8,7 @@
  *
  * Usage:
  *   node scripts/export-render-env.js
+ *   node scripts/export-render-env.js --override-mongodb-uri "mongodb+srv://..."
  */
 const fs = require('fs');
 const path = require('path');
@@ -17,13 +18,23 @@ const ROOT = path.join(__dirname, '..');
 const ENV_PATH = path.join(ROOT, 'backend', '.env');
 const OUT_PATH = path.join(__dirname, 'render-env-export.txt');
 
+function getArg(name) {
+  const i = process.argv.indexOf(name);
+  return i >= 0 ? process.argv[i + 1] : null;
+}
+
 function appendToEnvFile(filePath, entries) {
   const header = '\n# ── Auto-generated secrets (from scripts/export-render-env.js) ──\n';
   const block = entries.map(([k, v]) => `${k}=${v}`).join('\n');
   fs.appendFileSync(filePath, header + block + '\n');
 }
 
-const { env, generated, warnings, errors } = buildEnv(ENV_PATH);
+const overrideMongodbUri = getArg('--override-mongodb-uri');
+if (process.argv.includes('--override-mongodb-uri') && !overrideMongodbUri) {
+  console.error('--override-mongodb-uri requires a value (your Atlas connection string).');
+  process.exit(1);
+}
+const { env, generated, warnings, errors } = buildEnv(ENV_PATH, { overrideMongodbUri });
 
 if (errors.length) {
   console.warn('Warnings/errors from build:');

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Trash2, X, AlertTriangle, Check, RefreshCw, Archive } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getChatName, getLastMessageText } from '../utils/chatDisplay';
 
-const ChatDelete = ({ chat, chats, onDelete, onClose }) => {
+const ChatDelete = ({ chat, chats, currentUserId = '', onDelete, onClose }) => {
   const [selectedChats, setSelectedChats] = useState([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -84,7 +85,7 @@ const ChatDelete = ({ chat, chats, onDelete, onClose }) => {
                         {chatItem.avatar ? (
                           <img
                             src={chatItem.avatar}
-                            alt={chatItem.name}
+                            alt={getChatName(chatItem, currentUserId)}
                             className="w-full h-full rounded-full object-cover"
                           />
                         ) : (
@@ -92,8 +93,8 @@ const ChatDelete = ({ chat, chats, onDelete, onClose }) => {
                         )}
                       </div>
                       <div className="flex-1">
-                        <p className="text-white font-medium">{chatItem.name}</p>
-                        <p className="text-gray-400 text-xs">{chatItem.lastMessage}</p>
+                        <p className="text-white font-medium">{getChatName(chatItem, currentUserId)}</p>
+                        <p className="text-gray-400 text-xs">{getLastMessageText(chatItem)}</p>
                       </div>
                       {selectedChats.includes(chatItem._id) && <Check size={18} className="text-red-500" />}
                     </button>
@@ -104,8 +105,8 @@ const ChatDelete = ({ chat, chats, onDelete, onClose }) => {
 
             {chat && (
               <div className="mb-4 p-4 bg-[#0b141a] rounded-lg border border-[#00a884]/20">
-                <p className="text-white font-medium">{chat.name}</p>
-                <p className="text-gray-400 text-sm mt-1">{chat.lastMessage}</p>
+                <p className="text-white font-medium">{getChatName(chat, currentUserId)}</p>
+                <p className="text-gray-400 text-sm mt-1">{getLastMessageText(chat)}</p>
               </div>
             )}
 

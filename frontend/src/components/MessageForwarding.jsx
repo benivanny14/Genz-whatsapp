@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { Forward, X, Search, Send, Users, Check, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getChatName } from '../utils/chatDisplay';
 
-const MessageForwarding = ({ message, chats, contacts, onForward, onClose }) => {
+const MessageForwarding = ({ message, chats, contacts, currentUserId = '', onForward, onClose }) => {
   const [selectedChats, setSelectedChats] = useState([]);
   const [selectedContacts, setSelectedContacts] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all'); // all, chats, contacts
 
   const filteredChats = chats.filter(chat =>
-    chat.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    getChatName(chat, currentUserId).toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const filteredContacts = contacts.filter(contact =>
@@ -148,11 +149,11 @@ const MessageForwarding = ({ message, chats, contacts, onForward, onClose }) => 
                   >
                     <div className="w-10 h-10 bg-[#00a884]/20 rounded-full flex items-center justify-center">
                       <span className="text-white font-medium">
-                        {chat.name?.charAt(0).toUpperCase()}
+                        {getChatName(chat, currentUserId).charAt(0).toUpperCase()}
                       </span>
                     </div>
                     <div className="flex-1">
-                      <p className="text-white font-medium">{chat.name}</p>
+                      <p className="text-white font-medium">{getChatName(chat, currentUserId)}</p>
                       <p className="text-gray-400 text-xs">{chat.isGroup ? 'Group' : 'Individual'}</p>
                     </div>
                     {selectedChats.includes(chat._id) && (

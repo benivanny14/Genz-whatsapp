@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Bell, BellOff, Clock, X, Check, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getChatName } from '../utils/chatDisplay';
 
-const MuteNotifications = ({ chat, onMute, onUnmute, onClose }) => {
+const MuteNotifications = ({ chat, currentUserId = '', onMute, onUnmute, onClose }) => {
   const [muteDuration, setMuteDuration] = useState('8hours');
   const [showMuteOptions, setShowMuteOptions] = useState(false);
 
@@ -247,7 +248,7 @@ export const MuteSettings = ({ settings, onUpdate }) => {
 };
 
 // Muted Chats List Component
-export const MutedChatsList = ({ mutedChats, onUnmute }) => {
+export const MutedChatsList = ({ mutedChats, currentUserId = '', onUnmute }) => {
   return (
     <div className="space-y-3">
       <h3 className="text-white font-semibold flex items-center gap-2">
@@ -268,7 +269,7 @@ export const MutedChatsList = ({ mutedChats, onUnmute }) => {
                 <BellOff size={18} className="text-[#00a884]" />
               </div>
               <div>
-                <p className="text-white font-medium">{chat.name}</p>
+                <p className="text-white font-medium">{getChatName(chat, currentUserId)}</p>
                 <p className="text-gray-400 text-xs">{chat.muteStatus}</p>
               </div>
             </div>

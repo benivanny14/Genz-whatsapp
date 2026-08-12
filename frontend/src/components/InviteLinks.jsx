@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Copy, Share2, RefreshCw, X, Check, Users, Clock, Shield, QrCode, Trash2, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getChatName } from '../utils/chatDisplay';
 
-const InviteLinks = ({ chat, onGenerateLink, onRevokeLink, onShareLink, onClose }) => {
+const InviteLinks = ({ chat, currentUserId = '', onGenerateLink, onRevokeLink, onShareLink, onClose }) => {
   const [inviteLink, setInviteLink] = useState(null);
   const [linkSettings, setLinkSettings] = useState({
     expiresIn: 'never', // never, 1day, 1week, custom
@@ -55,8 +56,8 @@ const InviteLinks = ({ chat, onGenerateLink, onRevokeLink, onShareLink, onClose 
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Join ${chat.name}`,
-          text: `Join my group "${chat.name}" using this link: ${inviteLink.url}`,
+          title: `Join ${getChatName(chat, currentUserId)}`,
+          text: `Join my group "${getChatName(chat, currentUserId)}" using this link: ${inviteLink.url}`,
           url: inviteLink.url
         });
       } catch (err) {

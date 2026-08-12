@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Mail, MailOpen, X, Check, RefreshCw, MessageSquare, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getChatName, getLastMessageText } from '../utils/chatDisplay';
 
-const MarkAsUnread = ({ chats, onMarkAsUnread, onMarkAsRead, onClose }) => {
+const MarkAsUnread = ({ chats, currentUserId = '', onMarkAsUnread, onMarkAsRead, onClose }) => {
   const [selectedChats, setSelectedChats] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -137,14 +138,14 @@ const MarkAsUnread = ({ chats, onMarkAsUnread, onMarkAsRead, onClose }) => {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-white font-medium">{chat.name}</h3>
+                      <h3 className="text-white font-medium">{getChatName(chat, currentUserId)}</h3>
                       {chat.unreadCount > 0 && (
                         <span className="bg-[#00a884] text-white text-xs px-2 py-0.5 rounded-full">
                           {chat.unreadCount}
                         </span>
                       )}
                     </div>
-                    <p className="text-gray-400 text-sm line-clamp-1">{chat.lastMessage}</p>
+                    <p className="text-gray-400 text-sm line-clamp-1">{getLastMessageText(chat)}</p>
                   </div>
                   <div className="flex items-center gap-1">
                     {chat.unreadCount > 0 ? (

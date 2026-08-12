@@ -670,8 +670,9 @@ const FeatureLibrary = () => {
       </div>
 
       <div className="max-w-3xl mx-auto p-4 space-y-8">
-        {categoriesAll.map(cat => (
-          <section key={cat.title}>
+        {categoriesAll.map((cat, index) => (
+          <section key={cat.title + '-' + index}>
+
             <div className="flex items-center gap-2 mb-3">
               <cat.icon size={18} className="text-primary-500" />
               <h2 className="font-semibold">{cat.title}</h2>

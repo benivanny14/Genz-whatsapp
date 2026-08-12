@@ -9,6 +9,9 @@ uploads/
 backend/uploads/
 Microsoft/
 scripts/render-env-export.txt
+# Temp test/debug scripts that may embed live credentials — never commit
+backend/tmp-*.js
+backend/tmp-*.json
 .agents/
 .qodo/
 .sixth/

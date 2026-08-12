@@ -157,6 +157,7 @@ const transformConversationForUser = async (conversation, userId) => {
 
   // Transform Map values to user-specific booleans
   conv.isArchived = Boolean(getMapValue(conv.isArchived, userId));
+  conv.archivedAt = getMapValue(conv.archivedAt, userId) || null;
   conv.isPinned = Boolean(getMapValue(conv.isPinned, userId));
   conv.isLocked = Boolean(getMapValue(conv.lockedBy, userId));
   conv.isMuted =
@@ -1959,11 +1960,23 @@ exports.toggleArchiveConversation = async (req, res) => {
 
     // Get current value and toggle
     const currentValue = Boolean(getMapValue(conversation.isArchived, userId));
-    setMapValue(conversation, "isArchived", userId, !currentValue);
+    const nextValue = !currentValue;
+    setMapValue(conversation, "isArchived", userId, nextValue);
+
+    // Stamp when this user archived the chat; clear it on unarchive.
+    if (nextValue) {
+      setMapValue(conversation, "archivedAt", userId, new Date());
+    } else if (conversation.archivedAt) {
+      if (conversation.archivedAt instanceof Map) {
+        conversation.archivedAt.delete(userId);
+      } else {
+        delete conversation.archivedAt[userId];
+      }
+    }
 
     await conversation.save();
 
-    res.json({ success: true, isArchived: !currentValue, conversation });
+    res.json({ success: true, isArchived: nextValue, conversation });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

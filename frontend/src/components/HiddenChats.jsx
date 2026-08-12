@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, X, Search, Lock, Unlock, RefreshCw, Shield, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getChatName, getLastMessageText } from '../utils/chatDisplay';
 
-const HiddenChats = ({ chats, onHide, onUnhide, onClose }) => {
+const HiddenChats = ({ chats, currentUserId = '', onHide, onUnhide, onClose }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedChats, setSelectedChats] = useState([]);
   const [isHiding, setIsHiding] = useState(false);
 
-  const filteredChats = chats.filter(chat =>
-    chat.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    chat.lastMessage?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredChats = chats.filter(chat => {
+    const q = searchQuery.toLowerCase();
+    return (
+      getChatName(chat, currentUserId).toLowerCase().includes(q) ||
+      getLastMessageText(chat).toLowerCase().includes(q)
+    );
+  });
 
   const handleToggleHide = (chatId) => {
     setSelectedChats(prev =>
@@ -134,10 +138,10 @@ const HiddenChats = ({ chats, onHide, onUnhide, onClose }) => {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <h3 className="text-white font-medium">{chat.name}</h3>
+                          <h3 className="text-white font-medium">{getChatName(chat, currentUserId)}</h3>
                           <EyeOff size={12} className="text-[#00a884]" />
                         </div>
-                        <p className="text-gray-400 text-sm line-clamp-1">{chat.lastMessage}</p>
+                        <p className="text-gray-400 text-sm line-clamp-1">{getLastMessageText(chat)}</p>
                       </div>
                       <button
                         onClick={() => onUnhide?.(chat._id)}
@@ -176,8 +180,8 @@ const HiddenChats = ({ chats, onHide, onUnhide, onClose }) => {
                         <MessageSquare size={20} className="text-[#00a884]" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-white font-medium">{chat.name}</h3>
-                        <p className="text-gray-400 text-sm line-clamp-1">{chat.lastMessage}</p>
+                        <h3 className="text-white font-medium">{getChatName(chat, currentUserId)}</h3>
+                        <p className="text-gray-400 text-sm line-clamp-1">{getLastMessageText(chat)}</p>
                       </div>
                     </div>
                   </motion.div>

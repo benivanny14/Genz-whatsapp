@@ -2055,6 +2055,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
       {showArchiveChats && (
         <ArchiveChats
           chats={conversations}
+          currentUserId={effectiveUserId}
           onArchive={toggleArchiveChat}
           onUnarchive={toggleArchiveChat}
           onPin={togglePinChat}

@@ -2,6 +2,13 @@ import React, { useState } from 'react';
 import { Quote, X, MessageSquare, Reply, Check, Copy, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// sender can be a populated user object ({ _id, username }) or a plain string.
+const senderName = (sender) => {
+  if (!sender) return 'Unknown';
+  if (typeof sender === 'string') return sender;
+  return sender.username || sender.name || sender._id || 'Unknown';
+};
+
 const MessageQuoting = ({ message, onQuote, onCancel }) => {
   const [quoteText, setQuoteText] = useState('');
   const [isQuoting, setIsQuoting] = useState(false);
@@ -43,7 +50,7 @@ const MessageQuoting = ({ message, onQuote, onCancel }) => {
         <div className="bg-[#0b141a] rounded-lg p-4 mb-4 border-l-4 border-[#00a884]">
           <div className="flex items-center gap-2 mb-2">
             <MessageSquare size={14} className="text-[#00a884]" />
-            <span className="text-gray-400 text-xs">{message.sender}</span>
+            <span className="text-gray-400 text-xs">{senderName(message.sender)}</span>
             <span className="text-gray-500 text-xs">•</span>
             <span className="text-gray-500 text-xs">{new Date(message.timestamp).toLocaleTimeString()}</span>
           </div>
@@ -145,7 +152,7 @@ export const QuotedMessageDisplay = ({ quote, onClick }) => {
     >
       <div className="flex items-center gap-2 mb-1">
         <MessageSquare size={12} className="text-[#00a884]" />
-        <span className="text-gray-400 text-xs">{quote.sender}</span>
+        <span className="text-gray-400 text-xs">{senderName(quote.sender)}</span>
         {quote.edited && <span className="text-gray-500 text-xs">(edited)</span>}
       </div>
       <p className="text-gray-300 text-xs italic line-clamp-2">{quote.originalContent}</p>

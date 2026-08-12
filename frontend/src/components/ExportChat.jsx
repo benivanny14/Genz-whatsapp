@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Download, X, Check, FileText, RefreshCw, Calendar, Image as ImageIcon, Video, FileText as FileIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getChatName } from '../utils/chatDisplay';
 
-const ExportChat = ({ chat, onExport, onClose }) => {
+const ExportChat = ({ chat, currentUserId = '', onExport, onClose }) => {
   const [exportFormat, setExportFormat] = useState('txt'); // txt, pdf, json
   const [includeMedia, setIncludeMedia] = useState(true);
   const [dateRange, setDateRange] = useState('all'); // all, custom
@@ -65,7 +66,7 @@ const ExportChat = ({ chat, onExport, onClose }) => {
 
         {/* Chat Info */}
         <div className="bg-[#0b141a] rounded-lg p-4 mb-4 border border-[#00a884]/20">
-          <p className="text-white font-medium">{chat.name}</p>
+          <p className="text-white font-medium">{getChatName(chat, currentUserId)}</p>
           <p className="text-gray-400 text-sm">{chat.messageCount || 0} messages</p>
         </div>
 

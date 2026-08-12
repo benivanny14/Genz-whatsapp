@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
 const API_URL = resolveApiBase();
-import { Upload, X, Camera, Video, MapPin, DollarSign, FileText, Check, XCircle, Clock, Star, Users, Phone, Mail, Edit3, Plus, Filter } from 'lucide-react';
+import { Upload, X, Camera, Video, MapPin, DollarSign, FileText, Check, XCircle, Clock, Star, Users, Phone, Mail, Edit3, Plus, Filter, Eye } from 'lucide-react';
 
 const PaymentFeaturesManager = () => {
   const [features, setFeatures] = useState([]);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, X, Database, Lock, Check, AlertCircle, Key, RefreshCw, Cloud, HardDrive } from 'lucide-react';
+import { Shield, X, Database, Lock, Check, AlertCircle, Key, RefreshCw, Cloud, HardDrive, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const SecureBackup = ({ backupStatus, onCreateBackup, onRestoreBackup, onVerifyBackup, onClose }) => {

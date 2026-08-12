@@ -1125,6 +1125,24 @@ describe('chatController — star/lock/keep/pin/archive/search', () => {
     expect(conv.save).toHaveBeenCalledTimes(2);
   });
 
+  it('toggleArchiveConversation stamps archivedAt on archive and clears it on unarchive', async () => {
+    const conv = makeConv();
+    Conversation.findById.mockResolvedValue(conv);
+    const req = makeReq({ params: { conversationId: 'c1' } });
+
+    // Archive
+    await chat.toggleArchiveConversation(req, makeRes());
+    expect(conv.isArchived['user-1']).toBe(true);
+    expect(conv.archivedAt['user-1']).toBeInstanceOf(Date);
+
+    // Unarchive (toggle back)
+    const res = makeRes();
+    await chat.toggleArchiveConversation(req, res);
+    expect(conv.isArchived['user-1']).toBe(false);
+    expect(conv.archivedAt['user-1']).toBeUndefined();
+    expect(res.body.isArchived).toBe(false);
+  });
+
   it('toggleArchiveConversation is per-user (other participants unaffected)', async () => {
     const conv = makeConv({ isArchived: { 'user-2': true } });
     Conversation.findById.mockResolvedValue(conv);

@@ -62,6 +62,12 @@ const conversationSchema = new mongoose.Schema({
     of: Boolean,
     default: {}
   },
+  // Per-user timestamp of when the chat was archived (mirrors isArchived).
+  archivedAt: {
+    type: Map,
+    of: Date,
+    default: {}
+  },
   isPinned: {
     type: Map,
     of: Boolean,

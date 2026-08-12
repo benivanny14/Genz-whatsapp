@@ -131,8 +131,12 @@ const OPTIONAL = {
  * Build the final env map from a local .env + generation + defaults.
  * Shared by setup-render-env.js and export-render-env.js.
  * Returns { env, generated, warnings, errors }.
+ *
+ * Options:
+ *  - overrideMongodbUri : supply the production Atlas URI explicitly instead
+ *    of the local .env value (e.g. when backend/.env has a localhost URI).
  */
-function buildEnv(envPath) {
+function buildEnv(envPath, options = {}) {
   const fs = require('fs');
 
   const parseEnvFile = (filePath) => {
@@ -161,6 +165,21 @@ function buildEnv(envPath) {
 
   const pick = (key, cfg) => {
     const localValue = local[key];
+
+    // --override-mongodb-uri: explicitly supply the production URI instead of
+    // the local value (or a missing one). Refuse dev hosts here too — the
+    // point of the flag is to push a REAL Atlas connection string.
+    if (key === 'MONGODB_URI' && options.overrideMongodbUri) {
+      if (isDevHost(options.overrideMongodbUri)) {
+        errors.push(`MONGODB_URI: --override-mongodb-uri points to a dev host (${options.overrideMongodbUri}) — refusing`);
+        return;
+      }
+      env[key] = options.overrideMongodbUri;
+      if (localValue && localValue !== options.overrideMongodbUri) {
+        warnings.push(`MONGODB_URI: overriding local value (${localValue}) with --override-mongodb-uri`);
+      }
+      return;
+    }
 
     // Production constants — never take dev values for these.
     if (cfg.force) {

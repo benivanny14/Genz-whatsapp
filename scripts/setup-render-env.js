@@ -9,12 +9,16 @@
  *  - Refuses placeholder values (change-me / your-... / example.com)
  *  - Never derives JWT_REFRESH_SECRET from JWT_SECRET (they must differ in prod)
  *  - --dry-run previews what would be applied without touching Render
+ *  - --override-mongodb-uri supplies the production Atlas URI when backend/.env
+ *    still has a localhost MONGODB_URI (otherwise the plan refuses it)
  *
  * Usage:
  *   set RENDER_API_KEY=rnd_xxx
  *   node scripts/setup-render-env.js --service-id srv-xxx
  *   node scripts/setup-render-env.js --service-name genz-whatsapp
  *   node scripts/setup-render-env.js --service-id srv-xxx --dry-run
+ *   node scripts/setup-render-env.js --service-name genz-whatsapp \
+ *     --override-mongodb-uri "mongodb+srv://user:pass@cluster.mongodb.net/genz"
  */
 const fs = require('fs');
 const path = require('path');
@@ -87,7 +91,12 @@ function printPlan(serviceId, { env, generated, warnings, errors }) {
 
 async function main() {
   const dryRun = process.argv.includes('--dry-run');
-  const { env, generated, warnings, errors } = buildEnv(ENV_PATH);
+  const overrideMongodbUri = getArg('--override-mongodb-uri');
+  if (process.argv.includes('--override-mongodb-uri') && !overrideMongodbUri) {
+    console.error('--override-mongodb-uri requires a value (your Atlas connection string).');
+    process.exit(1);
+  }
+  const { env, generated, warnings, errors } = buildEnv(ENV_PATH, { overrideMongodbUri });
 
   if (!dryRun) {
     const missingRequired = errors.filter((e) => e.includes('REQUIRED'));
@@ -110,9 +119,12 @@ async function main() {
 
   console.log(`\nApplying ${Object.keys(env).length} env vars to ${serviceId}...`);
   for (const [key, value] of Object.entries(env)) {
-    await api(`/services/${serviceId}/env-vars`, {
-      method: 'POST',
-      body: { envVar: { key, value } }
+    // Per-key upsert: PUT /services/{serviceId}/env-vars/{key} with { "value": ... }.
+    // The old POST /env-vars shape is rejected by Render (405), and the replace-all
+    // PUT would drop any vars not in this plan — per-key is the safe choice.
+    await api(`/services/${serviceId}/env-vars/${encodeURIComponent(key)}`, {
+      method: 'PUT',
+      body: { value }
     });
     console.log(`  ✓ ${key}`);
   }

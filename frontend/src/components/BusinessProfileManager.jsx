@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Store, Package, ShoppingCart, Star, Clock, MapPin, Phone, Globe, Edit, Plus, Trash2, Settings, TrendingUp, Users, CreditCard, BarChart3, CheckCircle, XCircle } from 'lucide-react';
+import { Building2, Store, Package, ShoppingCart, Star, Clock, MapPin, Phone, Globe, Edit, Plus, Trash2, Settings, TrendingUp, Users, CreditCard, BarChart3, CheckCircle, XCircle, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const BusinessProfileManager = ({ businessProfile, onUpdate, onClose }) => {

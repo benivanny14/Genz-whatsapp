@@ -1,22 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { Archive, ArchiveRestore, X, Search, Filter, MoreVertical, Trash2, Pin } from 'lucide-react';
+import { Archive, ArchiveRestore, X, Search, Filter, MoreVertical, Trash2, Pin, PinOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getChatName, getLastMessageText } from '../utils/chatDisplay';
 
-const ArchiveChats = ({ chats, onArchive, onUnarchive, onPin, onUnpin, onDelete, onClose }) => {
+const ArchiveChats = ({ chats, currentUserId = '', onArchive, onUnarchive, onPin, onUnpin, onDelete, onClose }) => {
   const [archivedChats, setArchivedChats] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedChats, setSelectedChats] = useState([]);
   const [showOptions, setShowOptions] = useState(null);
 
   useEffect(() => {
-    const archived = chats.filter(chat => chat.isArchived);
+    const archived = chats
+      .filter(chat => chat.isArchived)
+      .sort((a, b) => new Date(b.archivedAt || 0) - new Date(a.archivedAt || 0));
     setArchivedChats(archived);
   }, [chats]);
 
-  const filteredChats = archivedChats.filter(chat =>
-    chat.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    chat.lastMessage?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredChats = archivedChats.filter(chat => {
+    const q = searchQuery.toLowerCase();
+    return (
+      getChatName(chat, currentUserId).toLowerCase().includes(q) ||
+      getLastMessageText(chat).toLowerCase().includes(q)
+    );
+  });
 
   const handleToggleArchive = (chatId) => {
     const chat = chats.find(c => c._id === chatId);
@@ -148,19 +154,19 @@ const ArchiveChats = ({ chats, onArchive, onUnarchive, onPin, onUnpin, onDelete,
                   {/* Chat Avatar */}
                   <div className="w-12 h-12 bg-[#00a884]/20 rounded-full flex items-center justify-center flex-shrink-0">
                     <span className="text-white font-semibold text-lg">
-                      {chat.name?.charAt(0).toUpperCase()}
+                      {getChatName(chat, currentUserId).charAt(0).toUpperCase()}
                     </span>
                   </div>
 
                   {/* Chat Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-white font-medium truncate">{chat.name}</span>
+                      <span className="text-white font-medium truncate">{getChatName(chat, currentUserId)}</span>
                       {chat.isPinned && <Pin size={14} className="text-[#00a884]" />}
                     </div>
-                    <p className="text-gray-400 text-sm truncate">{chat.lastMessage}</p>
+                    <p className="text-gray-400 text-sm truncate">{getLastMessageText(chat)}</p>
                     <p className="text-gray-500 text-xs mt-1">
-                      Archived {new Date(chat.archivedAt).toLocaleDateString()}
+                      {chat.archivedAt ? `Archived ${new Date(chat.archivedAt).toLocaleDateString()}` : 'Archived'}
                     </p>
                   </div>
 
@@ -173,7 +179,7 @@ const ArchiveChats = ({ chats, onArchive, onUnarchive, onPin, onUnpin, onDelete,
                       }}
                       className="text-gray-400 hover:text-[#00a884] transition-colors"
                     >
-                      {chat.isPinned ? <Unpin size={18} /> : <Pin size={18} />}
+                      {chat.isPinned ? <PinOff size={18} /> : <Pin size={18} />}
                     </button>
                     <button
                       onClick={(e) => {

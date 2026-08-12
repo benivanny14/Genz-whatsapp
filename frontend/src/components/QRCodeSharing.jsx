@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { QrCode, X, Download, Share2, Copy, RefreshCw, Scan, User, Smartphone } from 'lucide-react';
+import { QrCode, X, Download, Share2, Copy, RefreshCw, Scan, User, Smartphone, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const QRCodeSharing = ({ qrData, onGenerate, onShare, onCopy, onClose }) => {

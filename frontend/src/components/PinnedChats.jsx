@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
 import { Pin, X, Search, Check, MessageSquare, Users, Clock, MoreHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getChatName, getLastMessageText, getLastMessageTime } from '../utils/chatDisplay';
 
-const PinnedChats = ({ chats, onPin, onUnpin, onClose }) => {
+const PinnedChats = ({ chats, currentUserId = '', onPin, onUnpin, onClose }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedChats, setSelectedChats] = useState([]);
 
-  const filteredChats = chats.filter(chat =>
-    chat.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    chat.lastMessage?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredChats = chats.filter(chat => {
+    const q = searchQuery.toLowerCase();
+    return (
+      getChatName(chat, currentUserId).toLowerCase().includes(q) ||
+      getLastMessageText(chat).toLowerCase().includes(q)
+    );
+  });
 
   const handleTogglePin = (chatId) => {
     const chat = chats.find(c => c._id === chatId);
@@ -91,13 +95,15 @@ const PinnedChats = ({ chats, onPin, onUnpin, onClose }) => {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <h3 className="text-white font-medium">{chat.name}</h3>
+                          <h3 className="text-white font-medium">{getChatName(chat, currentUserId)}</h3>
                           <Pin size={12} className="text-[#00a884]" />
                         </div>
-                        <p className="text-gray-400 text-sm line-clamp-1">{chat.lastMessage}</p>
+                        <p className="text-gray-400 text-sm line-clamp-1">{getLastMessageText(chat)}</p>
                         <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
                           <Clock size={10} />
-                          <span>{new Date(chat.lastMessageTime).toLocaleDateString()}</span>
+                          {getLastMessageTime(chat) && (
+                            <span>{new Date(getLastMessageTime(chat)).toLocaleDateString()}</span>
+                          )}
                         </div>
                       </div>
                       <button
@@ -135,11 +141,13 @@ const PinnedChats = ({ chats, onPin, onUnpin, onClose }) => {
                         )}
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-white font-medium">{chat.name}</h3>
-                        <p className="text-gray-400 text-sm line-clamp-1">{chat.lastMessage}</p>
+                        <h3 className="text-white font-medium">{getChatName(chat, currentUserId)}</h3>
+                        <p className="text-gray-400 text-sm line-clamp-1">{getLastMessageText(chat)}</p>
                         <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
                           <Clock size={10} />
-                          <span>{new Date(chat.lastMessageTime).toLocaleDateString()}</span>
+                          {getLastMessageTime(chat) && (
+                            <span>{new Date(getLastMessageTime(chat)).toLocaleDateString()}</span>
+                          )}
                         </div>
                       </div>
                       <button
@@ -286,7 +294,7 @@ export const PinnedChatIndicator = ({ isPinned }) => {
 };
 
 // Pinned Chats List Component
-export const PinnedChatsList = ({ chats, onChatClick }) => {
+export const PinnedChatsList = ({ chats, currentUserId = '', onChatClick }) => {
   const pinnedChats = chats.filter(chat => chat.isPinned);
 
   if (pinnedChats.length === 0) return null;
@@ -313,10 +321,10 @@ export const PinnedChatsList = ({ chats, onChatClick }) => {
             </div>
             <div className="flex-1 text-left">
               <div className="flex items-center gap-2">
-                <p className="text-white font-medium">{chat.name}</p>
+                <p className="text-white font-medium">{getChatName(chat, currentUserId)}</p>
                 <Pin size={10} className="text-[#00a884]" />
               </div>
-              <p className="text-gray-400 text-sm line-clamp-1">{chat.lastMessage}</p>
+              <p className="text-gray-400 text-sm line-clamp-1">{getLastMessageText(chat)}</p>
             </div>
           </button>
         ))}

@@ -501,7 +501,7 @@ const AccountSync = ({ syncSettings, onSyncSettingsChange, onSyncNow, onClose })
             </>
           ) : (
             <>
-              <Sync size={20} />
+              <RefreshCw size={20} />
               Sync Now
             </>
           )}
@@ -523,7 +523,7 @@ export const AccountManagementSettings = ({ settings, onUpdate }) => {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-white font-medium flex items-center gap-2">
-            <Sync size={18} className="text-[#00a884]" />
+            <RefreshCw size={18} className="text-[#00a884]" />
             Account Sync
           </p>
           <p className="text-gray-400 text-sm">Sync your account data</p>
