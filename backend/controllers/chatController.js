@@ -829,6 +829,7 @@ exports.sendMessage = async (req, res) => {
       mentions,
       messageId,
       selfDestructTimer,
+      allowScreenshot,
     } = req.body;
     
     // 1. Frontend inaweza kuwa inatuma 'conversationId' au 'chatId', tunasoma zote mbili kulinda usalama
@@ -979,6 +980,10 @@ exports.sendMessage = async (req, res) => {
       isVideoNote: Boolean(isVideoNote),
       isSelfDestruct: Boolean(isSelfDestruct),
       mentions: mentionData.mentions || [],
+      // Anti-screenshot: the sender opts OUT of screenshot protection by
+      // allowing screenshots (default true). Persisting the toggle is what
+      // makes POST /messages/:id/screenshot-attempt + the socket event work.
+      ...(typeof allowScreenshot === 'boolean' ? { allowScreenshot } : {}),
       disappearAt,
       clientMessageId: messageId ? String(messageId) : undefined,
     });
@@ -2153,7 +2158,8 @@ exports.getMessageEditHistory = async (req, res) => {
 
     const message = await Message.findById(messageId)
       .populate("editHistory.editedBy", "username profilePicture")
-      .select("editHistory isEdited editedAt content caption");
+      // keep conversationId — it is needed below for the participant check
+      .select("conversationId editHistory isEdited editedAt content caption");
 
     if (!message) {
       return res
