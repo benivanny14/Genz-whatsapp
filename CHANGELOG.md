@@ -7,6 +7,116 @@ by commit.
 
 ---
 
+## [2026-08-12] — Controllers refactor, privacy system hardening + realtime enforcement
+
+**Scope:** this worktree session — controller consolidation (REFACTOR_PLAN step 6),
+privacy permission engine fixes, realtime socket enforcement, call/group privacy,
+coverage + e2e tests, and a privacy regression harness. MongoDB models /
+`config/db.js` / `MONGODB_URI` untouched.
+
+### Changed (refactor)
+- **MODs controllers consolidated 8 → 4** (`messageProtectionController`,
+  `automationToolsController`, `statusToolsController`, `storageToolsController`)
+  using the shared `userScopedService` (`createToggleHandler` / `createSettingsHandlers`)
+  pattern. Route paths and API contracts unchanged — old controllers deleted,
+  routes + unit tests re-pointed.
+
+### Fixed (privacy — security)
+- **"My Contacts" / `contacts_except` silently allowed everyone in production:**
+  (a) `isContact()` compared `c.toString()` on `{ user, savedName }` subdocs
+  (always `[object Object]`); (b) `applyPermissionInheritance` read snake_case
+  keys (`last_seen`) while settings are stored camelCase (`lastSeen`), so
+  inheritance never fired; (c) endpoints populated other users with limited
+  fields, so the engine saw empty `privacySettings` and defaulted to **allow** —
+  leaking `profilePicture`/`lastSeen`/`about` (all call sites now select
+  `settings contacts`).
+- **Realtime leaks closed:** presence broadcasts treated `contacts_except` as
+  `contacts` (excluded contacts saw online/offline) and `user:join` never
+  matched subdoc contacts; `status:create` pushed statuses to excluded viewers;
+  `status:view` recorded views from excluded viewers; `user:offline` was never
+  broadcast (presence cleanup ran after the still-online check).
+- **Call privacy now enforced:** `silencedUnknownCallers` (socket call-offer
+  paths suppress ring + push for non-contacts) and `protectIpAddressInCalls`
+  (`/api/webrtc/config` returns relay-only ICE per user; frontend drops the
+  cached config on toggle) were previously settings defaults with no
+  enforcement.
+- **Group privacy:** `privacy.groups` `contacts_except` exclusions now enforced
+  on `createGroup`/`addParticipant`/`approveJoinRequest`; spoofed
+  `participant:added` relays and non-member `group_call:start` rejected;
+  unanswered/silenced calls now log as **`missed`** (visible in call history).
+
+### Added
+- **Shared privacy engine** `backend/services/privacyEngineService.js` — single
+  source of truth (`isContact`/`isAllowed`/`canSeePresence`/`canViewStatus`/
+  `isSilencedCaller`) used by the permission engine, middleware, and sockets.
+- **Privacy UX:** contact selector now uses the real `/chat/contacts` API with
+  alphabetical sorting + windowed virtualization (10k+ contacts stay fast) and
+  live refresh via `contacts:updated`; `ContactManager` refreshes on mount/socket.
+- **Tests:** backend **1828 passing / 4 skipped** (coverage up: callTools 54→92%,
+  chatList 59→89%, advanced 58→76%); frontend **76/76** + production build;
+  new e2e: `privacy-contact-selector.spec.js` (Playwright, single-origin :5000)
+  and `scripts/e2e-presence-privacy.js` (real socket clients, 12/12).
+- **Tooling:** `npm run privacy:regression[:e2e]` harness
+  (`scripts/privacy-regression.sh`); nightly full-stack job
+  (`.github/workflows/privacy-nightly.yml`, 02:30 UTC); e2e CI comment + presence
+  script wired into `.github/workflows/ci.yml`.
+
+### Deployment notes
+- **Backend restart required** to pick up socket/controller changes (no watch in
+  production). No schema/migration changes — MongoDB untouched.
+- Verification before/after deploy: `npm run check`, `npm run check:exports`,
+  `npm test` (backend), `npm run privacy:regression:e2e` with servers up.
+- New env-independent defaults: `protectIpAddressInCalls` and
+  `silencedUnknownCallers` are per-user settings — no new production secrets.
+
+---
+
+## [2026-08-12] — E2EE badge fix, Dashboard JSON + Render restore guide
+
+**Commits:** `7f719be` (fix + docs), `ee3281f` (CI) — cherry-picked from the
+Freebuff worktree onto `main`; CI run #244 all green (22/22 e2e).
+
+### Fixed
+- **E2EE key fingerprint badge never rendered under decrypted messages.** Root
+  cause: upstream `decryptMessagesList` (ChatContext) replaced the envelope
+  with plaintext before ChatArea's badge loop ever saw it, so `e2eeMeta` was
+  never populated and the badge (fingerprint + NEW KEY / verified state)
+  never drew — even though decryption itself worked. Fix:
+  `e2eeMessage.js` now attaches the verified state during upstream
+  decryption and `ChatArea.jsx` renders the badge from the server stamp.
+  Verified live in the preview (badge `D02A6119` renders) and covered by the
+  updated `e2ee-fingerprint.spec.js`.
+- **Admin Dashboard (System Control) showed `[object Object]`** for the
+  `services` and `runtime` health fields (nested objects stringified with
+  `String(v)`). `AdminDashboard.jsx` now renders them as readable JSON.
+
+### Changed
+- **`header-composer.spec.js`**: the conversation-header badge now expects
+  "Messages encrypted in transit and at rest" by default, matching the
+  documented Client-E2EE mod default (OFF → transit/at-rest label; the
+  "Chat encrypted end-to-end" badge shows only when the mod is on). The
+  previous unconditional expectation was a spec bug, not a product one.
+
+### Docs
+- **`RENDER_DEPLOY_GUIDE.md` rewritten**: removed references to the deleted
+  `setup-render-env.js` / `export-render-env.js` scripts (the guide was
+  stale), replaced the script step with a manual Render Dashboard env
+  workflow, and updated the troubleshooting table.
+- **`RENDER_RESTORE_CHECKLIST.md` added**: step-by-step checklist to restore
+  the downed Render service — full production env key table, secret
+  generation, the fail-closed startup requirements (`MONGODB_URI` not
+  localhost, `JWT_REFRESH_SECRET` ≠ `JWT_SECRET`, `ALLOW_MOCK_PAYMENTS`
+  false, HTTPS URLs, Cloudinary required), deploy + verification steps, and
+  troubleshooting.
+
+### CI
+- **`workflow_dispatch` added** to `.github/workflows/ci.yml` so the full
+  pipeline (incl. e2e) can be triggered manually from the Actions tab.
+- **`npx playwright install` now runs inside `frontend/`** (was executed from
+  the repo root where no Playwright config lives).
+
+---
+
 ## [Unreleased] — Security hardening + frontend refactors (2026-08-11)
 
 ### Added
