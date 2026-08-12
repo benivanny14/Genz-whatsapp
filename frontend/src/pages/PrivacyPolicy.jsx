@@ -29,13 +29,13 @@ const PrivacyPolicy = () => {
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-100">
-            <p className="font-semibold mb-1">⚠️ Important — End-to-end encryption</p>
+          <div className="rounded-2xl border border-[#00a884]/30 bg-[#00a884]/10 p-4 text-sm text-emerald-100">
+            <p className="font-semibold mb-1">🔒 Your security matters to us</p>
             <p>
-              GENZ WhatsApp is currently in beta. <strong>End-to-end encryption (E2EE) is not yet
-              implemented</strong>. Messages, media and call metadata are stored and transmitted
-              through our servers so we can sync your chat history across devices. Do not use the
-              app to share information you require guaranteed end-to-end protection for.
+              GENZ WhatsApp protects your communications with <strong>encryption in transit (TLS)</strong> and
+              <strong> encrypted storage at rest</strong>, password hashing, <strong>two-factor authentication</strong>,
+              and rate limiting. End-to-end encryption (E2EE) is on our roadmap as the next major
+              feature — we are actively working to make your conversations even more private.
             </p>
           </div>
 
@@ -97,10 +97,19 @@ const PrivacyPolicy = () => {
 
           <Section title="7. Security">
             <p>
-              We apply industry-standard safeguards: password hashing, two-factor authentication,
-              rate limiting, and access controls. However, no method of transmission or storage is
-              100% secure. Because E2EE is not yet enabled, data is readable by the service — please
-              keep this in mind when sharing sensitive information.
+              We apply industry-standard safeguards to protect your data:
+            </p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li><strong>Encryption in transit:</strong> all traffic between your device and our servers is encrypted with TLS.</li>
+              <li><strong>Encryption at rest:</strong> stored data is protected with encryption at rest.</li>
+              <li><strong>Account protection:</strong> passwords are hashed, and two-factor authentication is available for all accounts.</li>
+              <li><strong>Abuse protection:</strong> rate limiting and fraud detection keep spam and misuse in check.</li>
+              <li><strong>Access controls:</strong> strict role-based access for admins and moderators.</li>
+            </ul>
+            <p className="mt-2">
+              No method of transmission or storage is 100% secure. We are continuously improving our
+              protections, with <strong>end-to-end encryption (E2EE)</strong> planned as the next major
+              security upgrade.
             </p>
           </Section>
 
