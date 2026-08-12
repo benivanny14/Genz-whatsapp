@@ -48,6 +48,7 @@ kwenye Render, server haianzi kabisa → Render haiwezi kupitisha `/api/health` 
 | `VAPID_SUBJECT` | `mailto:admin@genz-whatsapp.com` | |
 | `ADMIN_BASE_PATH` | `/api/system-gateway-x9k` | Path ya admin API (weka tofauti ikiwa unataka) |
 | `RP_ID` | `genz-whatsapp-1.onrender.com` | Domain halisi (bila `https://`) kwa Passkeys/WebAuthn |
+| `REDIS_URL` | `redis://default:PASS@host:port` *(hiari)* | Inahitajika kwa horizontal scaling tu. **Bila hii server ina-run single-instance mode** (fallback in-memory) — hii ni SAWA kwa sasa |
 | `ALLOW_ANONYMOUS_DEVICE_AUTH` | `false` | |
 | `ALLOW_MOCK_PAYMENTS` | `false` | `true` inakataza server kuanza kwenye production! |
 | `PHONE_VERIFICATION_REQUIRED` | `false` (au weka OTP channel) | Ikiwa `true`, lazima uweke `WHATSAPP_OTP_ENABLED=true` + `WHATSAPP_CLOUD_API_*` — vinginevyo wasajili wapya wote wamefungiwa |
@@ -67,16 +68,41 @@ kwenye Render, server haianzi kabisa → Render haiwezi kupitisha `/api/health` 
 - ❌ Maadili ya placeholder: `change-me`, `your-...`, `example.com`
 - ❌ `CLOUDINARY_*` tupu
 
-## Hatua 4 — Deploy upya
+## Hatua 4 — Weka GitHub Secrets (LAZIMA kwa auto-deploy)
+
+> ⚠️ **Hii ndiyo sababu halisi ya 502 kwenye deploy!** Uchunguzi wa GitHub Actions
+> ulionyesha `RENDER_API_KEY:` na `RENDER_SERVICE_ID:` **tupu** kwenye env ya
+> workflow → deploy action ilirudi **401** → Render haijawahi kupokea deploy.
+> Hata bila secrets, **fix ya deploy.yml iko tayari kwenye main** (`6553c21` +
+> `28018b1`) — unachohitaji ni kusajili secrets.
+
+1. Fungua [github.com/benivanny14/Genz-whatsapp/settings/secrets/actions](https://github.com/benivanny14/Genz-whatsapp/settings/secrets/actions)
+2. Bonyeza **New repository secret** na ongeza hizi mbili:
+
+| Secret | Thamani | Maelezo |
+|---|---|---|
+| `RENDER_API_KEY` | key kutoka [dashboard.render.com](https://dashboard.render.com) → Account Settings → API Keys | Inatumiwa na `deploy.yml` na nightly health check |
+| `RENDER_SERVICE_ID` | `srv-xxxx` (kutoka URL ya service: `dashboard.render.com/web/srv-xxxx`) | ID ya service ya Render |
+
+> Ukipenda pia weka `RENDER_OWNER_ID` (kwa auto-deploy ya render.yaml — hiari).
+>
+> **Kuthibitisha secrets zimesajiliwa**: GitHub → Settings → Secrets → Actions —
+> unapaswa kuona `RENDER_API_KEY` na `RENDER_SERVICE_ID` zimeorodheshwa.
+
+## Hatua 5 — Deploy upya
 
 1. Render → service `genz-whatsapp` → **Manual Deploy → Deploy latest commit**
-   (hakikisha commit ya hivi karibuni iko kwenye branch iliyounganishwa — kwa sasa `7620e03`)
+   (hakikisha commit ya hivi karibuni iko kwenye branch iliyounganishwa — kwa sasa `96a79ea`)
 2. Subiri deploy ikamilike (5–10 min); angalia **Logs** — utaona
    `Environment validation passed (production)` ikiwa env zote ni sahihi
 3. Ukipata `CRITICAL: Environment validation failed:` — log itaonyesha key gani
    imekosekana; rekebisha kwenye Environment → Redeploy
 
-## Hatua 5 — Thibitisha (verification)
+> Kwa deploy otomatiki baada ya kusajili secrets: push commit yoyote kwenye main
+> (au GitHub → Actions → workflow `deploy` → Run workflow) — deploy.yml
+> ita-run na secrets halisi.
+
+## Hatua 6 — Thibitisha (verification)
 
 ```bash
 curl https://genz-whatsapp-1.onrender.com/api/health
@@ -88,8 +114,14 @@ curl https://genz-whatsapp-1.onrender.com/api/health
 ```
 
 - `mongo: connected` → Atlas iko sawa
+- `redis: connected` au `redis: disabled` (single-instance mode inakubalika)
 - `mediaStorage: cloudinary` → media haitapotea kwenye redeploy ✅
 - Ikiwa unaona `mediaStorage: "local"` → Cloudinary haijawekwa → weka na redeploy
+
+**Njia ya pili ya kuthibitisha (auto):** baada ya kusajili secrets, GitHub →
+Actions → **Production Health Nightly** → **Run workflow** — ina-run
+`render-deploy-verify.js` dhidi ya production na kufungua alert issue kama
+kitu kimeharibika.
 
 ## Deploy verification kupitia script (RENDER_API_KEY)
 
