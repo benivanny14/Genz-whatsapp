@@ -22,7 +22,7 @@ const abuseReportSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['spam', 'harassment', 'inappropriate_content', 'fake_account', 'scam', 'violence', 'hate_speech', 'other'],
+    enum: ['spam', 'harassment', 'inappropriate_content', 'fake_account', 'scam', 'violence', 'hate_speech', 'csam', 'child_abuse', 'other'],
     required: true
   },
   description: {

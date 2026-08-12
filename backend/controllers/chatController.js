@@ -1381,50 +1381,9 @@ exports.markAsRead = async (req, res) => {
   }
 };
 
-exports.addReaction = async (req, res) => {
-  try {
-    const localUserId = getCurrentUserId(req);
-    const { emoji } = req.body;
-    const message = await Message.findById(req.params.id);
-
-    if (!message) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Message not found" });
-    }
-
-    const conversation = await Conversation.findById(message.conversationId);
-    if (!ensureParticipant(conversation, localUserId, res)) return;
-
-    const existingReaction = message.reactions.find(
-      (r) => r.user.toString() === localUserId,
-    );
-    if (existingReaction) {
-      existingReaction.emoji = emoji;
-    } else {
-      message.reactions.push({ user: localUserId, emoji });
-    }
-    await message.save();
-
-    const updatedMessage = await Message.findById(message._id)
-      .populate("sender", "username profilePicture")
-      .populate({ path: "replyTo", populate: { path: "sender", select: "username profilePicture" } })
-      .populate("mentions.user", "username profilePicture")
-      .populate("reactions.user", "username profilePicture");
-
-    const io = req.app.get("io");
-    if (io) {
-      io.to(message.conversationId.toString()).emit(
-        "reaction:added",
-        updatedMessage,
-      );
-    }
-
-    res.status(200).json({ success: true, message: updatedMessage });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+// NOTE: addReaction is defined later in this file (the atomic implementation).
+// The old fetch-modify-save version was removed — it was dead code (overridden
+// by the atomic one) and had a read-modify-write race on the reactions array.
 
 exports.removeReaction = async (req, res) => {
   try {
@@ -1750,7 +1709,17 @@ exports.blockUser = async (req, res) => {
 
     const io = req.app.get("io");
     if (io) {
-      io.emit("user:blocked", { blockerId: localUserId, userId: targetId });
+      // Target only the blocker and the blocked user — never a global broadcast.
+      const blockerSocket = global.onlineUsers && global.onlineUsers.get(String(localUserId));
+      const targetSocket = global.onlineUsers && global.onlineUsers.get(String(targetId));
+      const payload = { blockerId: localUserId, userId: targetId };
+
+      if (blockerSocket) {
+        io.to(blockerSocket).emit("user:blocked", payload);
+      }
+      if (targetSocket) {
+        io.to(targetSocket).emit("user:blocked", payload);
+      }
     }
 
     res.status(200).json({ success: true, message: "User blocked" });
@@ -1795,7 +1764,17 @@ exports.unblockUser = async (req, res) => {
 
     const io = req.app.get("io");
     if (io) {
-      io.emit("user:unblocked", { blockerId: localUserId, userId: targetId });
+      // Target only the blocker and the unblocked user — never a global broadcast.
+      const blockerSocket = global.onlineUsers && global.onlineUsers.get(String(localUserId));
+      const targetSocket = global.onlineUsers && global.onlineUsers.get(String(targetId));
+      const payload = { blockerId: localUserId, userId: targetId };
+
+      if (blockerSocket) {
+        io.to(blockerSocket).emit("user:unblocked", payload);
+      }
+      if (targetSocket) {
+        io.to(targetSocket).emit("user:unblocked", payload);
+      }
     }
 
     res.status(200).json({ success: true, message: "User unblocked" });
@@ -2609,8 +2588,12 @@ exports.reportMessage = async (req, res) => {
     if (!ensureParticipant(conversation, userId, res)) return;
 
     // SECURITY (2.7): persist the report instead of only logging it.
-    const validCategories = ['spam', 'harassment', 'inappropriate_content', 'fake_account', 'scam', 'violence', 'hate_speech', 'other'];
+    const validCategories = ['spam', 'harassment', 'inappropriate_content', 'fake_account', 'scam', 'violence', 'hate_speech', 'csam', 'child_abuse', 'other'];
     const category = validCategories.includes(reason) ? reason : 'other';
+
+    // CSAM / child-abuse reports are an urgent, legally-required escalation.
+    const isChildSafety = ['csam', 'child_abuse', 'child exploitation'].includes(String(reason || '').toLowerCase());
+    const priority = isChildSafety ? 'urgent' : 'medium';
 
     const report = new AbuseReport({
       reporterId: userId,
@@ -2619,6 +2602,7 @@ exports.reportMessage = async (req, res) => {
       contentType: 'message',
       category,
       description: typeof details === 'string' ? details.slice(0, 1000) : '',
+      priority,
       status: 'pending',
       metadata: {
         conversationId: message.conversationId,
@@ -2654,7 +2638,7 @@ exports.reportUser = async (req, res) => {
       return res.status(400).json({ success: false, message: 'You cannot report yourself' });
     }
 
-    const validCategories = ['spam', 'harassment', 'inappropriate_content', 'fake_account', 'scam', 'violence', 'hate_speech', 'csam', 'other'];
+    const validCategories = ['spam', 'harassment', 'inappropriate_content', 'fake_account', 'scam', 'violence', 'hate_speech', 'csam', 'child_abuse', 'other'];
     if (!validCategories.includes(category || 'other')) {
       return res.status(400).json({ success: false, message: 'Invalid report category' });
     }
@@ -2668,6 +2652,7 @@ exports.reportUser = async (req, res) => {
     }
 
     // CSAM is an urgent, legally-required escalation path
+    const isChildSafety = ['csam', 'child_abuse', 'child exploitation'].includes(String(category || '').toLowerCase());
     const highPriority = ['violence', 'hate_speech', 'scam'].includes(category);
     const report = new AbuseReport({
       reporterId,
@@ -2675,7 +2660,7 @@ exports.reportUser = async (req, res) => {
       contentType: contentType || 'user_profile',
       category: category || 'other',
       description: description.trim(),
-      priority: category === 'csam' ? 'urgent' : highPriority ? 'high' : 'medium'
+      priority: isChildSafety ? 'urgent' : highPriority ? 'high' : 'medium'
     });
     await report.save();
 
@@ -2689,62 +2674,78 @@ exports.reportUser = async (req, res) => {
 exports.addReaction = async (req, res) => {
   try {
     const userId = getCurrentUserId(req);
-    const messageId = req.params.id || req.params.messageId;
+    const messageId = req.body.messageId || req.params.id || req.params.messageId;
     const { emoji } = req.body;
 
-    if (!emoji) {
-      return res.status(400).json({ success: false, message: "Emoji is required" });
+    if (!messageId || !emoji) {
+      return res.status(400).json({ success: false, message: "Message ID and emoji are required" });
     }
 
+    // 1. Hakikisha message ipo na user ni participant
     const message = await Message.findById(messageId);
     if (!message) {
       return res.status(404).json({ success: false, message: "Message not found" });
     }
 
     const conversation = await Conversation.findById(message.conversationId);
-    if (!ensureParticipant(conversation, userId, res)) return;
-
-    // Check ifç”¨æˆ· already reacted with this emoji
-    const existingReactionIndex = message.reactions.findIndex(
-      r => String(r.user) === String(userId) && r.emoji === emoji
-    );
-
-    // SECURITY (3.1): atomic toggle — no read-modify-write race on the shared
-    // message document. Each user holds exactly one reaction.
-    if (existingReactionIndex !== -1) {
-      // Toggle off (same emoji tapped again).
-      await Message.updateOne(
-        { _id: message._id, 'reactions.user': userId },
-        { $pull: { reactions: { user: userId, emoji } } }
-      );
-    } else {
-      // Toggle on — atomically ensure exactly one reaction per user.
-      const added = await Message.findOneAndUpdate(
-        { _id: message._id, 'reactions.user': { $ne: userId } },
-        { $push: { reactions: { user: userId, emoji, createdAt: new Date() } } }
-      );
-      if (!added) {
-        await Message.updateOne(
-          { _id: message._id, 'reactions.user': userId },
-          { $set: { 'reactions.$.emoji': emoji } }
-        );
-      }
+    if (!conversation || !includesId(conversation.participants, userId)) {
+      return res.status(403).json({ success: false, message: "Not authorized" });
     }
-
-    const freshMessage = await Message.findById(message._id);
 
     const io = req.app.get("io");
-    if (io) {
-      io.to(String(message.conversationId)).emit("message:reaction", {
-        messageId: message._id,
-        conversationId: message.conversationId,
-        reactions: freshMessage?.reactions || []
-      });
+
+    // 2. Jaribu kuweka reaction mpya kwanza (atomic — $ne guard inazuia
+    //    double-push race wakati watu wawili wanatuma same time).
+    const newReactionResult = await Message.findOneAndUpdate(
+      {
+        _id: messageId,
+        "reactions.user": { $ne: userId }
+      },
+      {
+        $push: { reactions: { user: userId, emoji, createdAt: new Date() } }
+      },
+      { new: true }
+    );
+
+    if (newReactionResult) {
+      // Ilifanikiwa kuweka reaction mpya
+      if (io) {
+        io.to(message.conversationId.toString()).emit("message:reaction", {
+          messageId,
+          conversationId: message.conversationId,
+          reactions: newReactionResult.reactions || []
+        });
+      }
+      return res.json({ success: true, message: "Reaction added", reactions: newReactionResult.reactions || [] });
     }
 
-    res.json({ success: true, reactions: freshMessage?.reactions || [] });
+    // 3. Ikiwa ilishafail (reaction tayari ipo), badilisha emoji (atomic)
+    const updatedResult = await Message.findOneAndUpdate(
+      {
+        _id: messageId,
+        "reactions.user": userId
+      },
+      {
+        $set: { "reactions.$.emoji": emoji }
+      },
+      { new: true }
+    );
+
+    if (updatedResult) {
+      if (io) {
+        io.to(message.conversationId.toString()).emit("message:reaction", {
+          messageId,
+          conversationId: message.conversationId,
+          reactions: updatedResult.reactions || []
+        });
+      }
+      return res.json({ success: true, message: "Reaction updated", reactions: updatedResult.reactions || [] });
+    }
+
+    return res.status(404).json({ success: false, message: "Message not found" });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Error adding reaction:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 };
 

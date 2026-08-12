@@ -746,17 +746,18 @@ describe('chatController — messages', () => {
 
   it('addReaction adds a new reaction atomically (SECURITY 3.1)', async () => {
     const message = makeMessage();
-    const fresh = { ...message, reactions: [{ user: 'user-1', emoji: '🔥' }] };
-    Message.findById
-      .mockResolvedValueOnce(message)
-      .mockResolvedValueOnce(fresh);
-    Message.findOneAndUpdate.mockResolvedValue({ _id: 'm1' });
+    const reacted = { ...message, reactions: [{ user: 'user-1', emoji: '🔥' }] };
+    Message.findById.mockResolvedValue(message);
+    // findOneAndUpdate with { new: true } returns the post-update doc.
+    Message.findOneAndUpdate.mockResolvedValue(reacted);
     Conversation.findById.mockResolvedValue(makeConv());
     const res = makeRes();
     await chat.addReaction(makeReq({ params: { id: 'm1' }, body: { emoji: '🔥' } }), res);
-    expect(Message.findOneAndUpdate).toHaveBeenCalledWith(
+    expect(Message.findOneAndUpdate).toHaveBeenNthCalledWith(
+      1,
       { _id: 'm1', 'reactions.user': { $ne: 'user-1' } },
-      { $push: { reactions: { user: 'user-1', emoji: '🔥', createdAt: expect.any(Date) } } }
+      { $push: { reactions: { user: 'user-1', emoji: '🔥', createdAt: expect.any(Date) } } },
+      { new: true }
     );
     expect(Message.updateOne).not.toHaveBeenCalled();
     expect(res.body.reactions).toHaveLength(1);
@@ -765,22 +766,27 @@ describe('chatController — messages', () => {
 
   it('addReaction replaces an existing reaction atomically (SECURITY 3.1)', async () => {
     const message = makeMessage({ reactions: [{ user: 'user-1', emoji: '😀' }] });
-    const fresh = { ...message, reactions: [{ user: 'user-1', emoji: '🔥' }] };
-    Message.findById
-      .mockResolvedValueOnce(message)
-      .mockResolvedValueOnce(fresh);
-    Message.findOneAndUpdate.mockResolvedValue(null); // user already reacted
-    Message.updateOne.mockResolvedValue({});
+    const updated = { ...message, reactions: [{ user: 'user-1', emoji: '🔥' }] };
+    Message.findById.mockResolvedValue(message);
+    // First findOneAndUpdate ($ne push) returns null because the user already
+    // has a reaction; the $set path then updates the emoji atomically.
+    Message.findOneAndUpdate
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(updated);
     Conversation.findById.mockResolvedValue(makeConv());
     const res = makeRes();
     await chat.addReaction(makeReq({ params: { id: 'm1' }, body: { emoji: '🔥' } }), res);
-    expect(Message.findOneAndUpdate).toHaveBeenCalledWith(
+    expect(Message.findOneAndUpdate).toHaveBeenNthCalledWith(
+      1,
       { _id: 'm1', 'reactions.user': { $ne: 'user-1' } },
-      { $push: { reactions: { user: 'user-1', emoji: '🔥', createdAt: expect.any(Date) } } }
+      { $push: { reactions: { user: 'user-1', emoji: '🔥', createdAt: expect.any(Date) } } },
+      { new: true }
     );
-    expect(Message.updateOne).toHaveBeenCalledWith(
+    expect(Message.findOneAndUpdate).toHaveBeenNthCalledWith(
+      2,
       { _id: 'm1', 'reactions.user': 'user-1' },
-      { $set: { 'reactions.$.emoji': '🔥' } }
+      { $set: { 'reactions.$.emoji': '🔥' } },
+      { new: true }
     );
     expect(res.body.reactions[0].emoji).toBe('🔥');
   });
@@ -904,6 +910,107 @@ describe('chatController — contacts and moderation', () => {
     await chat.unblockUser(makeReq({ params: { id: 'user-2' } }), res);
     expect(User.updateOne).toHaveBeenCalledWith({ _id: 'user-1' }, { $pull: { blockedUsers: 'user-2' } });
     expect(res.body.message).toBe('User unblocked');
+  });
+
+  it('blockUser emits user:blocked ONLY to the blocker and target sockets (no global broadcast)', async () => {
+    const user = {
+      _id: 'user-1',
+      username: 'alice',
+      blockedUsers: [],
+      contacts: [],
+      save: jest.fn().mockResolvedValue(undefined)
+    };
+    User.findById
+      .mockReturnValueOnce({ select: jest.fn().mockResolvedValue({ _id: 'user-2' }) })
+      .mockResolvedValueOnce(user);
+    User.updateOne.mockResolvedValue({});
+
+    // Both users online on their own sockets.
+    global.onlineUsers = new Map([['user-1', 'socket-a'], ['user-2', 'socket-b'], ['user-3', 'socket-c']]);
+    const ioTo = jest.fn().mockReturnValue({ emit: jest.fn() });
+    const req = makeReq({ params: { id: 'user-2' }, app: { get: jest.fn(() => ({ to: ioTo })) } });
+    const res = makeRes();
+    await chat.blockUser(req, res);
+
+    // Only the two targeted sockets receive the event — never io.emit (global)
+    // and never user-3's socket.
+    expect(ioTo).toHaveBeenCalledWith('socket-a');
+    expect(ioTo).toHaveBeenCalledWith('socket-b');
+    expect(ioTo).not.toHaveBeenCalledWith('socket-c');
+    expect(ioTo.mock.calls.length).toBe(2);
+  });
+
+  it('unblockUser emits user:unblocked ONLY to the blocker and target sockets (no global broadcast)', async () => {
+    User.updateOne.mockResolvedValue({});
+    User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ username: 'alice' }) });
+
+    global.onlineUsers = new Map([['user-1', 'socket-a'], ['user-2', 'socket-b'], ['user-3', 'socket-c']]);
+    const ioTo = jest.fn().mockReturnValue({ emit: jest.fn() });
+    const req = makeReq({ params: { id: 'user-2' }, app: { get: jest.fn(() => ({ to: ioTo })) } });
+    const res = makeRes();
+    await chat.unblockUser(req, res);
+
+    expect(ioTo).toHaveBeenCalledWith('socket-a');
+    expect(ioTo).toHaveBeenCalledWith('socket-b');
+    expect(ioTo).not.toHaveBeenCalledWith('socket-c');
+    expect(ioTo.mock.calls.length).toBe(2);
+  });
+
+  it('blockUser does not emit at all when neither party is online', async () => {
+    const user = {
+      _id: 'user-1',
+      username: 'alice',
+      blockedUsers: [],
+      contacts: [],
+      save: jest.fn().mockResolvedValue(undefined)
+    };
+    User.findById
+      .mockReturnValueOnce({ select: jest.fn().mockResolvedValue({ _id: 'user-2' }) })
+      .mockResolvedValueOnce(user);
+    User.updateOne.mockResolvedValue({});
+    global.onlineUsers = new Map();
+    const ioTo = jest.fn().mockReturnValue({ emit: jest.fn() });
+    const req = makeReq({ params: { id: 'user-2' }, app: { get: jest.fn(() => ({ to: ioTo })) } });
+    const res = makeRes();
+    await chat.blockUser(req, res);
+    expect(ioTo).not.toHaveBeenCalled();
+  });
+
+  it('reportMessage marks CSAM / child-abuse reports as urgent (SECURITY escalation)', async () => {
+    const message = makeMessage({ sender: 'user-2' });
+    Message.findById.mockResolvedValue(message);
+    Conversation.findById.mockResolvedValue(makeConv());
+    const report = { _id: 'r1', save: jest.fn().mockResolvedValue(undefined) };
+    AbuseReport.mockImplementation(() => report);
+    const res = makeRes();
+
+    await chat.reportMessage(makeReq({ params: { messageId: 'm1' }, body: { reason: 'csam', details: 'child content' } }), res);
+    expect(AbuseReport).toHaveBeenCalledWith(expect.objectContaining({ priority: 'urgent', category: 'csam' }));
+    expect(res.statusCode).toBe(201);
+  });
+
+  it('reportMessage keeps medium priority for non-child-safety reasons', async () => {
+    const message = makeMessage({ sender: 'user-2' });
+    Message.findById.mockResolvedValue(message);
+    Conversation.findById.mockResolvedValue(makeConv());
+    const report = { _id: 'r2', save: jest.fn().mockResolvedValue(undefined) };
+    AbuseReport.mockImplementation(() => report);
+    const res = makeRes();
+
+    await chat.reportMessage(makeReq({ params: { messageId: 'm1' }, body: { reason: 'spam', details: 'ads' } }), res);
+    expect(AbuseReport).toHaveBeenCalledWith(expect.objectContaining({ priority: 'medium', category: 'spam' }));
+  });
+
+  it('reportMessage treats child_abuse and child exploitation as urgent too', async () => {
+    const message = makeMessage({ sender: 'user-2' });
+    Message.findById.mockResolvedValue(message);
+    Conversation.findById.mockResolvedValue(makeConv());
+    const report = { _id: 'r3', save: jest.fn().mockResolvedValue(undefined) };
+    AbuseReport.mockImplementation(() => report);
+    const res = makeRes();
+
+    await chat.reportMessage(makeReq({ params: { messageId: 'm1' }, body: { reason: 'child_abuse', details: 'x' } }), res);
+    expect(AbuseReport).toHaveBeenCalledWith(expect.objectContaining({ priority: 'urgent' }));
   });
 });
 
