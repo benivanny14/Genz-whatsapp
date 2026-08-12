@@ -1,5 +1,5 @@
 import React from 'react';
-import { AtSign, BarChart2, CalendarClock, Camera, Clock, Contact, DollarSign, Edit, Eye, FileText, Grid3x3, Headphones, ImageIcon, Languages, MapPin, Paperclip, Radio, Send, Smile, Square, VideoIcon, X } from 'lucide-react';
+import { AtSign, BarChart2, CalendarClock, Camera, Clock, Contact, DollarSign, Edit, Eye, FileText, Grid3x3, Headphones, ImageIcon, Languages, MapPin, Paperclip, Radio, Send, ShieldCheck, ShieldOff, Smile, Square, VideoIcon, X } from 'lucide-react';
 import MediaPickerPanel from './MediaPickerPanel';
 import ReplyMessage from './ReplyMessage';
 import StickerPicker from './StickerPicker';
@@ -20,7 +20,8 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
     setMessageInput, messageInput, inputRef, voiceRecorderActive,
     setVoiceRecorderActive, handleFormatText, handleSendMessage,
     showAttachmentMenu, setShowAttachmentMenu, isViewOnceEnabled,
-    setIsViewOnceEnabled, handleSchedule, attachmentMenuRef, docInputRef,
+    setIsViewOnceEnabled, allowScreenshotEnabled, setAllowScreenshotEnabled,
+    handleSchedule, attachmentMenuRef, docInputRef,
     canSendMedia, currentUserIsAdmin, openCamera, fileInputRef,
     openAudioAttachment, openVideoNoteRecorder, handleShareLocation,
     handleContactSimulation, canCreatePolls, setShowPollModal,
@@ -190,6 +191,18 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                 >
                   <Eye size={20} />
                 </button>
+                {isViewOnceEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => setAllowScreenshotEnabled(!allowScreenshotEnabled)}
+                    className={`p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center ${allowScreenshotEnabled ? 'hover:bg-dark-hover text-dark-text' : 'bg-emerald-600 text-white'}`}
+                    title={allowScreenshotEnabled ? 'Screenshot protection OFF — receivers may screenshot this view-once message' : 'Screenshot protection ON — receivers cannot screenshot this view-once message'}
+                    aria-label="Toggle screenshot protection for view-once message"
+                    aria-pressed={!allowScreenshotEnabled}
+                  >
+                    {allowScreenshotEnabled ? <ShieldOff size={20} /> : <ShieldCheck size={20} />}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={(e) => {
