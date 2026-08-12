@@ -391,10 +391,17 @@ const startExpiredMessageCleanup = (ioInstance) => {
         logger.debug('Hard-deleted expired deletedForEveryone messages', { count: hardDeleteResult.deletedCount });
       }
 
-      // SECURITY (3.8): prune onlineHistory entries older than 30 days (at
-      // most hourly — this interval otherwise runs every minute). A TTL index
-      // is deliberately NOT used: MongoDB TTL on an array field would delete
-      // the entire user document when a sub-entry expires.
+      // SECURITY (3.8): prune onlineHistory entries (at most hourly — this
+      // interval otherwise runs every minute). A TTL index is deliberately NOT
+      // used: MongoDB TTL on an array field would delete the entire user
+      // document when a sub-entry expires.
+      //
+      // An entry is pruned when:
+      //   - its expiresAt has passed (the primary signal), OR
+      //   - it has NO expiresAt at all (legacy entries) and its connectedAt is
+      //     older than 30 days (fallback so old rows don't live forever).
+      // Entries with a future expiresAt are kept even if connectedAt is old —
+      // connectedAt is the start of a session that may legitimately still run.
       if (Date.now() - lastOnlineHistoryPrune > 60 * 60 * 1000) {
         lastOnlineHistoryPrune = Date.now();
         const historyCutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -402,15 +409,21 @@ const startExpiredMessageCleanup = (ioInstance) => {
           {
             $or: [
               { 'onlineHistory.expiresAt': { $lt: now } },
-              { 'onlineHistory.connectedAt': { $lt: historyCutoff } }
+              {
+                'onlineHistory.connectedAt': { $lt: historyCutoff },
+                'onlineHistory.expiresAt': { $exists: false }
+              }
             ]
           },
           {
             $pull: {
               onlineHistory: {
                 $or: [
-                  { expiresAt: { $lt: now } },
-                  { connectedAt: { $lt: historyCutoff } }
+                  { expiresAt: { $lt: now } }, // expiresAt imepitwa
+                  {
+                    connectedAt: { $lt: historyCutoff },
+                    expiresAt: { $exists: false } // fallback kwa entries za zamani
+                  }
                 ]
               }
             }
@@ -1017,6 +1030,18 @@ app.get('/health', (req, res) => {
   };
   res.json(health);
 });
+
+// ── API documentation (C.4) ────────────────────────────────────────────────
+// OpenAPI 3.0 spec served with swagger-ui-express at /api-docs. Guarded so
+// docs load even if the spec file changes shape — never crashes the app.
+try {
+  const swaggerUi = require('swagger-ui-express');
+  const openApiSpec = require('./swagger/openapi');
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
+  app.get('/api-docs.json', (req, res) => res.json(openApiSpec));
+} catch (docsErr) {
+  logger.warn('Swagger docs unavailable:', docsErr?.message || docsErr);
+}
 
 // IMPORTANT: API Fallback - Never return HTML for API routes
 app.use('/api', (req, res) => {
