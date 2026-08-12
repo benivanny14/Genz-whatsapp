@@ -7,6 +7,39 @@ by commit.
 
 ---
 
+## [2026-08-12] — Full-feature verification, anti-screenshot wiring, settings validation, CI coverage
+
+**Feature verification harness**
+- `backend/scripts/feature-full-verification.js` — 186 live-API checks across
+  status (54), chat (34), group member/admin roles (34), settings (15) and the
+  admin system with 2FA login + content moderation (45).
+- `feature-smoke-test.js` fixed (11-char test password vs 12-char policy) and
+  now green at 137/137.
+- Both scripts run in CI (`ci.yml` e2e job) and in the nightly
+  `privacy-regression` workflow via `scripts/privacy-regression.sh --e2e`.
+
+**Bugs found by verification & fixed**
+- Status media upload failed with ENOENT because `uploads/status/` was never
+  created — `routes/status.js` now ensures it exists.
+- `GET /api/chat/messages/:id/edit-history` always 404'd: the projection
+  dropped `conversationId` so the participant check looked up `undefined`.
+- Anti-screenshot was a dead feature: `allowScreenshot` was never persisted.
+  `sendMessage` (HTTP) and the `message:send` socket handler now persist it;
+  the real composer gains a screenshot-protection toggle for view-once messages
+  (frontend: ChatArea + MessageComposer; default ON for view-once).
+
+**Settings validation unified (SECURITY 3.4)**
+- `/api/settings` now rejects invalid enum values with 400, matching
+  `authController.updateSettings` instead of silently coercing to defaults;
+  `tests/settingsAudit.test.js` updated to assert the 400.
+
+**CI tooling**
+- `ADMIN_STRICT_MAX` env override for the strict admin rate limiter (default
+  stays 10/hour; CI raises it only on throwaway runners — same pattern as
+  `ADMIN_LOGIN_MAX`).
+
+---
+
 ## [2026-08-12] — Controllers refactor, privacy system hardening + realtime enforcement
 
 **Scope:** this worktree session — controller consolidation (REFACTOR_PLAN step 6),
