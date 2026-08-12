@@ -3,7 +3,7 @@ jest.mock('../models/User', () => ({
 }));
 
 const User = require('../models/User');
-const antiBan = require('../controllers/antiBanController');
+const antiBan = require('../controllers/messageProtectionController');
 
 const makeRes = () => {
   const res = { statusCode: 200 };

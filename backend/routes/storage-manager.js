@@ -12,7 +12,7 @@ const {
   resetStorageManagerSettings,
   toggleAutoCleanup,
   updateStorageManagerSettings,
-} = require('../controllers/storageManagerController');
+} = require('../controllers/storageToolsController');
 
 router.use(protect);
 

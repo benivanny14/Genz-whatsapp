@@ -10,7 +10,7 @@ const {
   spyViewDeletedMessages,
   toggleAntiRevoke,
   resetAntiRevokeSettings
-} = require('../controllers/antiRevokeController');
+} = require('../controllers/messageProtectionController');
 
 router.use(protect);
 

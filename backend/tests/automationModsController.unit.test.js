@@ -3,7 +3,7 @@ jest.mock('../models/User', () => ({
 }));
 
 const User = require('../models/User');
-const automationMods = require('../controllers/automationModsController');
+const automationMods = require('../controllers/automationToolsController');
 
 const makeRes = () => {
   const res = { statusCode: 200 };

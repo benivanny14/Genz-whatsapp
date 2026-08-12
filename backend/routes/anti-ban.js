@@ -14,7 +14,7 @@ const {
   toggleSecureMode,
   updateAntiBanSettings,
   updateRateLimiting,
-} = require('../controllers/antiBanController');
+} = require('../controllers/messageProtectionController');
 
 router.use(protect);
 

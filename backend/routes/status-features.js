@@ -13,7 +13,7 @@ const {
   updateStatusDuration,
   updateStatusFeaturesSettings,
   updateStatusPrivacy,
-} = require('../controllers/statusFeaturesController');
+} = require('../controllers/statusToolsController');
 
 router.use(protect);
 

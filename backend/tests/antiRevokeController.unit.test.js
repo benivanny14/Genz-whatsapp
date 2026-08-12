@@ -9,7 +9,7 @@ jest.mock('../models/Conversation', () => ({
 
 const User = require('../models/User');
 const Conversation = require('../models/Conversation');
-const antiRevoke = require('../controllers/antiRevokeController');
+const antiRevoke = require('../controllers/messageProtectionController');
 
 const makeRes = () => {
   const res = { statusCode: 200 };
