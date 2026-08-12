@@ -12,9 +12,17 @@ const { editStatus } = require('../controllers/statusAdvancedController');
 const { validateFileContent } = require('../middleware/fileValidation');
 
 // Multer configuration for status uploads
+// Ensure the destination directory exists (mirrors config/cloudinary.js which
+// creates /uploads for media) — otherwise every status media upload fails with
+// ENOENT on a fresh checkout.
+const fs = require('fs');
+const path = require('path');
+const STATUS_UPLOAD_DIR = path.join(__dirname, '..', 'uploads', 'status');
+fs.mkdirSync(STATUS_UPLOAD_DIR, { recursive: true });
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/status/');
+    cb(null, STATUS_UPLOAD_DIR);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);

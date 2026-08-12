@@ -53,6 +53,14 @@ if [ "$E2E" = "--e2e" ]; then
   step "E2E: presence privacy via real sockets"
   (cd backend && node scripts/e2e-presence-privacy.js http://127.0.0.1:5000 > /tmp/privacy-reg-presence.log 2>&1) \
     && ok "presence privacy socket e2e" || { bad "presence privacy socket e2e"; tail -15 /tmp/privacy-reg-presence.log; }
+
+  step "E2E: feature smoke test (137 checks)"
+  (cd backend && node scripts/feature-smoke-test.js > /tmp/privacy-reg-smoke.log 2>&1) \
+    && ok "feature smoke test" || { bad "feature smoke test"; tail -20 /tmp/privacy-reg-smoke.log; }
+
+  step "E2E: feature full verification (186 checks: status/chat/group/settings/admin)"
+  (cd backend && node scripts/feature-full-verification.js > /tmp/privacy-reg-fv.log 2>&1) \
+    && ok "feature full verification" || { bad "feature full verification"; tail -25 /tmp/privacy-reg-fv.log; }
 fi
 
 echo ""

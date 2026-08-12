@@ -558,5 +558,96 @@ To execute the test plan:
 
 ---
 
+## Full-Feature Verification (Aug 12, 2026) — 186/186 checks green
+
+A new end-to-end verification script (`backend/scripts/feature-full-verification.js`)
+exercises the whole feature surface against a live backend: **54 status checks,
+34 chat checks, 34 group checks, 15 settings checks, 45 admin checks** (plus the
+pre-existing `feature-smoke-test.js` — now **137/137**). Everything runs through
+the real HTTP API with fresh test users; the admin section provisions a dedicated
+TEST admin owner (2FA on) and never touches `PRIMARY_OWNER`.
+
+### Bugs found & fixed during verification
+
+1. **Status media upload was completely broken (ENOENT)** — `routes/status.js`
+   wrote to `uploads/status/` but that directory was never created (only
+   `uploads/` is created by `config/cloudinary.js`). Every status image/video
+   upload failed on a fresh checkout. Fixed: `fs.mkdirSync(..., { recursive: true })`
+   at module load.
+
+2. **`GET /api/chat/messages/:id/edit-history` always 404'd** — the handler's
+   `.select()` dropped `conversationId`, so the participant check ran
+   `Conversation.findById(undefined)` → "Conversation not found". Fixed: include
+   `conversationId` in the projection.
+
+3. **Anti-screenshot feature was dead** — `POST /messages/:id/screenshot-attempt`
+   always returned 403 because every message is created with `allowScreenshot: true`
+   and `sendMessage` never read the flag. Fixed: `sendMessage` now persists
+   `allowScreenshot` from the request body.
+
+4. **Smoke-test script password too short** — `feature-smoke-test.js` used an
+   11-char password against the 12-char policy; corrected.
+
+### Findings (not bugs — documented behavior / wiring gaps)
+
+- **`/api/settings` silently coerces invalid enum values to defaults** instead of
+  rejecting with 400 (the `authController` variant rejects). Documented in
+  `tests/settingsAudit.test.js`; both are safe (no injection, no prototype pollution).
+- **The "Allow screenshot" toggle in `ViewOnceMedia.jsx` is a demo component**
+  (FeatureLibrary) — it is not wired into the real message-compose flow, so the
+  backend fix above is only reachable via API today. Wiring the real composer
+  toggle is the remaining frontend work.
+- External AI features (alt-text, captions, TTS) return 200 via the API surface.
+
+### Admin system verified (45 checks)
+
+2FA login (wrong password → 401, wrong TOTP → 401, valid TOTP → token),
+overview/health, user management (list, premium, block/unblock), permissions,
+devices & sessions, broadcasts (announce + push), content moderation (delete
+chat/group/status on test data), insights/growth/engagement, fraud signals,
+crashes, support tickets, audit logs, security report, abuse reports, call logs.
+
+### Regression after fixes
+
+- Backend: `npm run check` + `1830/1830` tests (exit 0) · `check:exports`
+- Frontend: `76/76` tests · build ✓
+- `feature-full-verification.js`: **186/186** · `feature-smoke-test.js`: **137/137**
+- Presence socket e2e **12/12** · privacy-contact-selector spec **2/2**
+- MongoDB untouched (no schema changes)
+
+---
+
+## Follow-up hardening (Aug 12, 2026) — anti-screenshot wiring, settings validation, CI
+
+### Anti-screenshot feature now works end-to-end
+- Backend: `sendMessage` (HTTP) and the `message:send` socket handler persist
+  `allowScreenshot`; the screenshot-attempt endpoint + socket event now fire
+  for view-once messages sent with `allowScreenshot: false`.
+- Frontend: the real composer (ChatArea/MessageComposer) gained a
+  screenshot-protection toggle next to the View-Once button — **on by default**
+  for view-once sends; ChatContext defaults every view-once send to
+  `allowScreenshot: false` (media/voice/sticker paths included).
+- The `ViewOnceMedia` demo component is left as-is; the real composer now
+  exposes the same control.
+
+### Settings validation unified (SECURITY 3.4)
+- `/api/settings` (userSettingsController) now rejects invalid enum values with
+  400 like `authController` does, instead of silently coercing to defaults.
+  `tests/settingsAudit.test.js` updated to assert the 400.
+
+### CI coverage
+- `ci.yml` e2e job runs both feature scripts (137 + 186 checks) against the
+  live single-origin stack; `privacy-nightly.yml` + `privacy-regression.sh --e2e`
+  too. `ADMIN_STRICT_MAX` env override added to the strict admin limiter so CI
+  runs are deterministic (production default stays 10/hour).
+
+### Verification
+- Backend: `npm run check` ✓ · `check:exports` ✓ · **1830/1830 tests** (exit 0)
+- Frontend: **76/76** · build ✓
+- Feature verification **186/186** · smoke **137/137** · presence e2e **12/12**
+- Privacy spec e2e **2/2**
+
+---
+
 **Report Generated**: July 27, 2026  
 **Next Review**: After testing completion

@@ -23,7 +23,8 @@ jest.mock('../models/Conversation', () => ({
   findById: jest.fn(),
   findOne: jest.fn(),
   find: jest.fn(),
-  findOneAndUpdate: jest.fn()
+  findOneAndUpdate: jest.fn(),
+  findByIdAndUpdate: jest.fn()
 }));
 jest.mock('../models/User', () => ({
   findById: jest.fn(),
@@ -830,5 +831,66 @@ describe('socket calls — missed vs completed call logs', () => {
     await handlers['call:end']({ conversationId: 'mc-2', callType: 'audio' });
 
     expect(persistCallFromSocket).toHaveBeenCalledWith(expect.objectContaining({ status: 'completed' }));
+  });
+});
+
+describe('socket security — message:send persists allowScreenshot', () => {
+  const CONV_ID = '64b9c5f2e4b0a1b2c3d4e5f6';
+  const SENDER_ID = 'user-1'; // socket.userId in the test harness
+  const OTHER_ID = '64b9c5f2e4b0a1b2c3d4e5f8';
+
+  it('stores allowScreenshot=false for view-once messages (anti-screenshot)', async () => {
+    Conversation.findById.mockResolvedValue({
+      _id: CONV_ID,
+      isGroup: false,
+      participants: [SENDER_ID, OTHER_ID],
+      disappearingMessages: { enabled: false },
+      save: jest.fn().mockResolvedValue(undefined)
+    });
+    Message.create.mockResolvedValue({ _id: 'm1', conversationId: CONV_ID });
+    Message.findById.mockReturnValue({
+      populate: jest.fn().mockResolvedValue({ _id: 'm1', content: 'secret', sender: SENDER_ID })
+    });
+    Conversation.findByIdAndUpdate.mockResolvedValue({});
+
+    await handlers['message:send']({
+      conversationId: CONV_ID,
+      content: 'view once secret',
+      messageId: 'client-1',
+      isViewOnce: true,
+      allowScreenshot: false
+    });
+
+    expect(Message.create).toHaveBeenCalledWith(expect.objectContaining({
+      conversationId: CONV_ID,
+      sender: SENDER_ID,
+      isViewOnce: true,
+      allowScreenshot: false
+    }));
+  });
+
+  it('omits allowScreenshot (backend default true) when not supplied', async () => {
+    Conversation.findById.mockResolvedValue({
+      _id: CONV_ID,
+      isGroup: false,
+      participants: [SENDER_ID, OTHER_ID],
+      disappearingMessages: { enabled: false },
+      save: jest.fn().mockResolvedValue(undefined)
+    });
+    Message.create.mockResolvedValue({ _id: 'm2', conversationId: CONV_ID });
+    Message.findById.mockReturnValue({
+      populate: jest.fn().mockResolvedValue({ _id: 'm2', content: 'plain', sender: SENDER_ID })
+    });
+    Conversation.findByIdAndUpdate.mockResolvedValue({});
+
+    await handlers['message:send']({
+      conversationId: CONV_ID,
+      content: 'plain text',
+      messageId: 'client-2'
+    });
+
+    expect(Message.create).toHaveBeenCalledWith(expect.not.objectContaining({ allowScreenshot: true }));
+    const createArgs = Message.create.mock.calls[0][0];
+    expect(createArgs.allowScreenshot).toBeUndefined();
   });
 });

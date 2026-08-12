@@ -2272,6 +2272,13 @@ export const ChatProvider = ({ children }) => {
     if (options.isSelfDestruct) {
       options = { ...options, isViewOnce: false };
     }
+    // View-once messages get anti-screenshot protection by default; the sender
+    // can opt INTO allowing screenshots via the composer toggle
+    // (allowScreenshot: true). The backend persists this flag and reports
+    // screenshot attempts to the sender via POST /messages/:id/screenshot-attempt.
+    if (options.isViewOnce && typeof options.allowScreenshot !== 'boolean') {
+      options = { ...options, allowScreenshot: false };
+    }
     const targetConversationId = options.chatId || selectedConversation?._id;
     const messageType = options.messageType || 'text';
     let outboundContent = content;
@@ -2357,6 +2364,7 @@ export const ChatProvider = ({ children }) => {
         isVideoNote: Boolean(options.isVideoNote),
         isSelfDestruct: Boolean(options.isSelfDestruct),
         selfDestructTimer: options.selfDestructTimer ?? null,
+        allowScreenshot: typeof options.allowScreenshot === 'boolean' ? options.allowScreenshot : undefined,
         mediaUrl: options.mediaUrl || '',
         fileName: options.fileName || '',
         fileSize: options.fileSize || 0,

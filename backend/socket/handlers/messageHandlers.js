@@ -61,7 +61,8 @@ module.exports = function registerMessageHandlers(ctx) {
         latitude,
         longitude,
         isLiveLocation,
-        liveLocationExpiresAt
+        liveLocationExpiresAt,
+        allowScreenshot
       } = data;
       const safeContent = content || fileName || (mediaUrl ? `${messageType || 'media'} message` : '') || (structuredContent && structuredContent.length ? 'Structured Message' : '');
       if (!safeContent) {
@@ -219,6 +220,9 @@ module.exports = function registerMessageHandlers(ctx) {
         isViewOnce: Boolean(isViewOnce),
         isVideoNote: Boolean(isVideoNote),
         isSelfDestruct: Boolean(isSelfDestruct),
+        // Anti-screenshot: persist the sender's toggle so the screenshot-attempt
+        // endpoint + socket event work (same contract as chatController.sendMessage).
+        ...(typeof allowScreenshot === 'boolean' ? { allowScreenshot } : {}),
         disappearAt,
         mentions: mentionData.mentions,
         clientMessageId: messageId ? String(messageId) : undefined,
