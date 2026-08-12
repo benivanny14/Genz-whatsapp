@@ -416,3 +416,326 @@ describe('chatListController — chat folders', () => {
     expect(res.body.settings.maxFolders).toBe(20); // default
   });
 });
+
+describe('chatListController — MODs toggles auth + settings handlers', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  const MOD_TOGGLES = [
+    'toggleHideChats', 'toggleLockChats', 'togglePinUnlimited', 'toggleMarkUnread',
+    'toggleArchiveUnlimited', 'toggleChatBackup', 'toggleChatRestore', 'toggleChatExport'
+  ];
+
+  it.each(MOD_TOGGLES)('%s returns 401 when the user cannot be resolved (auth)', async (handlerName) => {
+    User.findById.mockResolvedValue(null);
+    const res = makeRes();
+    await chatList[handlerName](makeReq(), res);
+    expect(res.statusCode).toBe(401);
+  });
+
+  it.each(MOD_TOGGLES)('%s returns 500 when the DB read fails (error)', async (handlerName) => {
+    User.findById.mockRejectedValue(new Error('db down'));
+    const res = makeRes();
+    await chatList[handlerName](makeReq(), res);
+    expect(res.statusCode).toBe(500);
+  });
+
+  it('returns 401 for getChatListModsSettings (auth)', async () => {
+    User.findById.mockResolvedValue(null);
+    const res = makeRes();
+    await chatList.getChatListModsSettings(makeReq(), res);
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('returns 401 for getChatSearchSettings (auth)', async () => {
+    User.findById.mockResolvedValue(null);
+    const res = makeRes();
+    await chatList.getChatSearchSettings(makeReq(), res);
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('toggles chat search (happy path)', async () => {
+    const user = makeUser({ chatSearchSettings: { chatSearchEnabled: true } });
+    User.findById.mockResolvedValue(user);
+    const res = makeRes();
+    await chatList.toggleChatSearch(makeReq({ body: { enabled: false } }), res);
+    expect(res.body.settings.chatSearchEnabled).toBe(false);
+    expect(user.save).toHaveBeenCalled();
+  });
+
+  it('toggles chat search off by default when no value given', async () => {
+    const user = makeUser({ chatSearchSettings: { chatSearchEnabled: true } });
+    User.findById.mockResolvedValue(user);
+    const res = makeRes();
+    await chatList.toggleChatSearch(makeReq(), res);
+    expect(res.body.settings.chatSearchEnabled).toBe(false);
+  });
+
+  it('returns 401 for toggleChatSearch (auth)', async () => {
+    User.findById.mockResolvedValue(null);
+    const res = makeRes();
+    await chatList.toggleChatSearch(makeReq(), res);
+    expect(res.statusCode).toBe(401);
+  });
+});
+
+describe('chatListController — search edge branches', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('rejects searchMessagesInConversation with an empty query (validation)', async () => {
+    User.findById.mockResolvedValue(makeUser());
+    const res = makeRes();
+    await chatList.searchMessagesInConversation(
+      makeReq({ params: { conversationId: 'c1' }, body: { query: '  ' } }),
+      res
+    );
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('rejects searchMessagesInConversation when search is disabled (403)', async () => {
+    User.findById.mockResolvedValue(makeUser({ chatSearchSettings: { chatSearchEnabled: false } }));
+    const res = makeRes();
+    await chatList.searchMessagesInConversation(
+      makeReq({ params: { conversationId: 'c1' }, body: { query: 'hello' } }),
+      res
+    );
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('matches contacts when searchInContacts is enabled', async () => {
+    User.findById.mockResolvedValue(makeUser({ contacts: [{ username: 'Bob', displayName: 'Bobby Tables' }] }));
+    const convChain = { populate: jest.fn().mockResolvedValue([]) };
+    Conversation.find.mockReturnValue(convChain);
+    Message.find.mockReturnValue({ populate: jest.fn().mockResolvedValue([]) });
+    const res = makeRes();
+    await chatList.searchConversations(
+      makeReq({ body: { query: 'bob', searchInMessages: false, searchInContacts: true, searchInGroups: false } }),
+      res
+    );
+    expect(res.body.success).toBe(true);
+    expect(res.body.results.contacts).toHaveLength(1);
+    expect(res.body.results.totalResults).toBe(1);
+  });
+
+  it('persists search history with dedup and caps the list', async () => {
+    const user = makeUser({ searchHistory: [{ query: 'hello', timestamp: new Date() }] });
+    User.findById.mockResolvedValue(user);
+    Conversation.find.mockReturnValue({ populate: jest.fn().mockResolvedValue([]) });
+    Message.find.mockReturnValue({ populate: jest.fn().mockResolvedValue([]) });
+    const res = makeRes();
+    await chatList.searchConversations(
+      makeReq({ body: { query: 'hello', searchInMessages: false, searchInContacts: false } }),
+      res
+    );
+    // duplicate 'hello' removed, new entry unshifted
+    expect(user.searchHistory).toHaveLength(1);
+    expect(user.searchHistory[0].query).toBe('hello');
+    expect(user.save).toHaveBeenCalled();
+  });
+
+  it('returns 500 when the conversation search fails (error)', async () => {
+    User.findById.mockResolvedValue(makeUser());
+    Conversation.find.mockReturnValue({ populate: jest.fn().mockRejectedValue(new Error('db down')) });
+    const res = makeRes();
+    await chatList.searchConversations(
+      makeReq({ body: { query: 'hello', searchInMessages: false, searchInContacts: false } }),
+      res
+    );
+    expect(res.statusCode).toBe(500);
+  });
+
+  it('respects the history limit query param', async () => {
+    const history = [{ query: 'a' }, { query: 'b' }, { query: 'c' }];
+    User.findById.mockResolvedValue(makeUser({ searchHistory: history }));
+    const res = makeRes();
+    await chatList.getSearchHistory(makeReq({ query: { limit: '2' } }), res);
+    expect(res.body.history).toHaveLength(2);
+  });
+
+  it('returns 401 for getSearchHistory (auth)', async () => {
+    User.findById.mockResolvedValue(null);
+    const res = makeRes();
+    await chatList.getSearchHistory(makeReq(), res);
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('returns 401 for clearSearchHistory (auth)', async () => {
+    User.findById.mockResolvedValue(null);
+    const res = makeRes();
+    await chatList.clearSearchHistory(makeReq(), res);
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('deletes a single search history item (happy path)', async () => {
+    const user = makeUser({ searchHistory: [{ query: 'alpha' }, { query: 'beta' }] });
+    User.findById.mockResolvedValue(user);
+    const res = makeRes();
+    await chatList.deleteSearchHistoryItem(makeReq({ params: { query: 'alpha' } }), res);
+    expect(user.searchHistory).toHaveLength(1);
+    expect(user.searchHistory[0].query).toBe('beta');
+    expect(user.save).toHaveBeenCalled();
+  });
+
+  it('returns 401 for deleteSearchHistoryItem (auth)', async () => {
+    User.findById.mockResolvedValue(null);
+    const res = makeRes();
+    await chatList.deleteSearchHistoryItem(makeReq({ params: { query: 'x' } }), res);
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('returns an empty popular-searches list when there is no history', async () => {
+    User.findById.mockResolvedValue(makeUser());
+    const res = makeRes();
+    await chatList.getPopularSearches(makeReq(), res);
+    expect(res.body.popularSearches).toEqual([]);
+  });
+
+  it('returns 401 for getPopularSearches (auth)', async () => {
+    User.findById.mockResolvedValue(null);
+    const res = makeRes();
+    await chatList.getPopularSearches(makeReq(), res);
+    expect(res.statusCode).toBe(401);
+  });
+});
+
+describe('chatListController — folder CRUD edge cases', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('rejects creating a folder over the max limit (validation)', async () => {
+    const folder = { _id: 'f1', name: 'Work', chatIds: [] };
+    const user = makeUser({ chatFolders: [folder], chatFoldersSettings: { maxFolders: 1 } });
+    User.findById.mockResolvedValue(user);
+    const res = makeRes();
+    await chatList.createChatFolder(makeReq({ body: { name: 'Extra' } }), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe('Maximum 1 folders allowed');
+  });
+
+  it('returns 401 for createChatFolder (auth)', async () => {
+    User.findById.mockResolvedValue(null);
+    const res = makeRes();
+    await chatList.createChatFolder(makeReq({ body: { name: 'Work' } }), res);
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('gets a single folder with decorated chats (happy path)', async () => {
+    const folder = {
+      _id: 'f1',
+      name: 'Work',
+      chatIds: ['c1'],
+      toObject: () => ({ _id: 'f1', name: 'Work', chatIds: ['c1'] })
+    };
+    User.findById.mockResolvedValue(makeUser({ chatFolders: [folder] }));
+    const chain = { populate: jest.fn().mockResolvedValue([{ _id: 'c1', name: 'Conv' }]) };
+    Conversation.find.mockReturnValue(chain);
+    const res = makeRes();
+    await chatList.getChatFolder(makeReq({ params: { id: 'f1' } }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.folder.name).toBe('Work');
+    expect(res.body.folder.chatCount).toBe(1);
+  });
+
+  it('updates a folder (happy path)', async () => {
+    const folder = { _id: 'f1', name: 'Work', chatIds: [], color: '#fff' };
+    const user = makeUser({ chatFolders: [folder] });
+    User.findById.mockResolvedValue(user);
+    const res = makeRes();
+    await chatList.updateChatFolder(makeReq({ params: { id: 'f1' }, body: { name: 'Office', color: '#000' } }), res);
+    expect(res.body.folder.name).toBe('Office');
+    expect(res.body.folder.color).toBe('#000');
+    expect(user.save).toHaveBeenCalled();
+  });
+
+  it('returns 404 when updating a missing folder', async () => {
+    User.findById.mockResolvedValue(makeUser());
+    const res = makeRes();
+    await chatList.updateChatFolder(makeReq({ params: { id: 'nope' }, body: { name: 'X' } }), res);
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('returns 404 when deleting a missing folder', async () => {
+    User.findById.mockResolvedValue(makeUser());
+    const res = makeRes();
+    await chatList.deleteChatFolder(makeReq({ params: { id: 'nope' } }), res);
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('rejects addChatToFolder without a chatId (validation)', async () => {
+    User.findById.mockResolvedValue(makeUser());
+    const res = makeRes();
+    await chatList.addChatToFolder(makeReq({ params: { folderId: 'f1' } }), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe('Chat ID is required');
+  });
+
+  it('returns 404 when adding to a missing folder', async () => {
+    User.findById.mockResolvedValue(makeUser());
+    const res = makeRes();
+    await chatList.addChatToFolder(makeReq({ params: { folderId: 'nope' }, body: { chatId: 'c1' } }), res);
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('rejects adding when the folder is full (validation)', async () => {
+    const folder = { _id: 'f1', name: 'Work', chatIds: Array.from({ length: 50 }, (_, i) => `c${i}`) };
+    User.findById.mockResolvedValue(makeUser({ chatFolders: [folder] }));
+    const res = makeRes();
+    await chatList.addChatToFolder(makeReq({ params: { folderId: 'f1' }, body: { chatId: 'c50' } }), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe('Maximum 50 chats per folder');
+  });
+
+  it('returns 404 when the conversation does not belong to the user', async () => {
+    const folder = { _id: 'f1', name: 'Work', chatIds: [] };
+    User.findById.mockResolvedValue(makeUser({ chatFolders: [folder] }));
+    Conversation.findOne.mockResolvedValue(null);
+    const res = makeRes();
+    await chatList.addChatToFolder(makeReq({ params: { folderId: 'f1' }, body: { chatId: 'c1' } }), res);
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('returns 404 when removing from a missing folder', async () => {
+    User.findById.mockResolvedValue(makeUser());
+    const res = makeRes();
+    await chatList.removeChatFromFolder(makeReq({ params: { folderId: 'nope', chatId: 'c1' } }), res);
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('auto-organizes chats into default folders (happy path)', async () => {
+    const user = makeUser({ chatFoldersSettings: { autoOrganize: true } });
+    User.findById.mockResolvedValue(user);
+    Conversation.find.mockResolvedValue([
+      { _id: 'c1', isGroup: true, name: 'Dev Team' },
+      { _id: 'c2', isGroup: false, name: 'Mom' }
+    ]);
+    const res = makeRes();
+    await chatList.autoOrganizeChats(makeReq(), res);
+    expect(res.statusCode).toBe(200);
+    // 4 default folders created
+    expect(user.chatFolders).toHaveLength(4);
+    const groups = user.chatFolders.find(f => f.name === 'Groups');
+    expect(groups.chatIds).toContain('c1');
+    expect(user.save).toHaveBeenCalled();
+  });
+
+  it('returns 401 for toggleChatFolders (auth)', async () => {
+    User.findById.mockResolvedValue(null);
+    const res = makeRes();
+    await chatList.toggleChatFolders(makeReq(), res);
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('returns 401 for getChatFoldersSettings (auth)', async () => {
+    User.findById.mockResolvedValue(null);
+    const res = makeRes();
+    await chatList.getChatFoldersSettings(makeReq(), res);
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('returns 500 when folder creation save fails (error)', async () => {
+    const user = makeUser();
+    user.save.mockRejectedValue(new Error('db down'));
+    User.findById.mockResolvedValue(user);
+    const res = makeRes();
+    await chatList.createChatFolder(makeReq({ body: { name: 'Work' } }), res);
+    expect(res.statusCode).toBe(500);
+  });
+});

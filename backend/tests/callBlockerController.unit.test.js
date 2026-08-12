@@ -210,4 +210,112 @@ describe('callToolsController (call blocker) — check', () => {
     expect(res.body.shouldBlock).toBe(false);
     expect(res.body.reason).toBe('Number is in allowed list');
   });
+
+  it('allows a normal call when no rule matches', async () => {
+    User.findById.mockResolvedValue(makeUser());
+    const res = makeRes();
+    await callBlocker.checkCallBlock(makeReq({ body: { phoneNumber: '255700000001' } }), res);
+    expect(res.body.shouldBlock).toBe(false);
+    expect(res.body.reason).toBe('Call allowed');
+    expect(res.body.settings.sendToVoicemail).toBe(true); // default
+  });
+
+  it('returns 401 when the user cannot be resolved (auth)', async () => {
+    User.findById.mockResolvedValue(null);
+    const res = makeRes();
+    await callBlocker.checkCallBlock(makeReq({ body: { phoneNumber: '255700000001' } }), res);
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('returns 500 when the DB read fails (error)', async () => {
+    User.findById.mockRejectedValue(new Error('db down'));
+    const res = makeRes();
+    await callBlocker.checkCallBlock(makeReq({ body: { phoneNumber: '255700000001' } }), res);
+    expect(res.statusCode).toBe(500);
+    expect(res.body.message).toBe('db down');
+  });
+});
+
+describe('callToolsController (call blocker) — validation & error paths', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('rejects unblockNumber without a phone number (validation)', async () => {
+    User.findById.mockResolvedValue(makeUser());
+    const res = makeRes();
+    await callBlocker.unblockNumber(makeReq({ body: {} }), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe('Phone number is required');
+  });
+
+  it('returns 404 when unblocking with no blocked list at all', async () => {
+    User.findById.mockResolvedValue(makeUser({ callBlockerSettings: {} }));
+    const res = makeRes();
+    await callBlocker.unblockNumber(makeReq({ body: { phoneNumber: '255700000001' } }), res);
+    expect(res.statusCode).toBe(404);
+    expect(res.body.message).toBe('No blocked numbers found');
+  });
+
+  it('rejects addAllowedNumber without a phone number (validation)', async () => {
+    User.findById.mockResolvedValue(makeUser());
+    const res = makeRes();
+    await callBlocker.addAllowedNumber(makeReq({ body: {} }), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe('Phone number is required');
+  });
+
+  it('rejects adding a number already in the allowed list (400)', async () => {
+    User.findById.mockResolvedValue(makeUser({ callBlockerSettings: { allowedNumbers: ['255700000001'] } }));
+    const res = makeRes();
+    await callBlocker.addAllowedNumber(makeReq({ body: { phoneNumber: '255700000001' } }), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe('Number already in allowed list');
+  });
+
+  it('returns 404 when removing an allowed number with no list at all', async () => {
+    User.findById.mockResolvedValue(makeUser({ callBlockerSettings: {} }));
+    const res = makeRes();
+    await callBlocker.removeAllowedNumber(makeReq({ params: { phoneNumber: '255700000001' } }), res);
+    expect(res.statusCode).toBe(404);
+    expect(res.body.message).toBe('No allowed numbers found');
+  });
+
+  it('returns 401 for blockNumber (auth)', async () => {
+    User.findById.mockResolvedValue(null);
+    const res = makeRes();
+    await callBlocker.blockNumber(makeReq({ body: { phoneNumber: '255700000001' } }), res);
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('returns 500 when saving a blocked number fails (error)', async () => {
+    const user = makeUser();
+    user.save.mockRejectedValue(new Error('db down'));
+    User.findById.mockResolvedValue(user);
+    const res = makeRes();
+    await callBlocker.blockNumber(makeReq({ body: { phoneNumber: '255700000001' } }), res);
+    expect(res.statusCode).toBe(500);
+    expect(res.body.message).toBe('db down');
+  });
+
+  it('returns 401 for getBlockedNumbers (auth)', async () => {
+    User.findById.mockResolvedValue(null);
+    const res = makeRes();
+    await callBlocker.getBlockedNumbers(makeReq(), res);
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('returns 401 for toggleCallBlocker (auth)', async () => {
+    User.findById.mockResolvedValue(null);
+    const res = makeRes();
+    await callBlocker.toggleCallBlocker(makeReq({ body: { enabled: true } }), res);
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('returns 500 for toggleCallBlocker when saving fails (error)', async () => {
+    const user = makeUser();
+    user.save.mockRejectedValue(new Error('db down'));
+    User.findById.mockResolvedValue(user);
+    const res = makeRes();
+    await callBlocker.toggleCallBlocker(makeReq({ body: { enabled: true } }), res);
+    expect(res.statusCode).toBe(500);
+  });
 });

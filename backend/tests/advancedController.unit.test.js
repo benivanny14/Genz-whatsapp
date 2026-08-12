@@ -10,7 +10,8 @@ jest.mock('../models/Conversation', () => ({
   findById: jest.fn(),
   find: jest.fn(),
   findOne: jest.fn(),
-  create: jest.fn()
+  create: jest.fn(),
+  findByIdAndUpdate: jest.fn()
 }));
 
 jest.mock('../models/Status', () => ({
@@ -18,7 +19,9 @@ jest.mock('../models/Status', () => ({
   find: jest.fn(),
   findOne: jest.fn(),
   create: jest.fn(),
-  countDocuments: jest.fn()
+  countDocuments: jest.fn(),
+  aggregate: jest.fn(),
+  findByIdAndDelete: jest.fn()
 }));
 
 jest.mock('../models/Broadcast', () => ({
@@ -127,6 +130,7 @@ const makeStatus = (overrides = {}) => ({
   shares: [],
   shareCount: 0,
   reshares: [],
+  replies: [],
   save: jest.fn().mockResolvedValue(undefined),
   toObject() {
     return { _id: this._id, userId: this.userId, content: this.content, privacy: this.privacy };
@@ -703,5 +707,331 @@ describe('advancedController — link preview, gifs, ai', () => {
     await advanced.aiAssistant(makeReq({ body: { prompt: 'hello there' } }), res);
     expect(res.statusCode).toBe(200);
     expect(res.body.response).toBe('Hello! 👋 How can I help you today?');
+  });
+});
+
+describe('advancedController — status details / replies / privacy / stats', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('getStatusDetails returns 404 for an unknown status', async () => {
+    Status.findById.mockReturnValue({ populate: jest.fn().mockResolvedValue(null) });
+    const res = makeRes();
+    await advanced.getStatusDetails(makeReq({ params: { id: 's-1' } }), res);
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('getStatusDetails allows the owner (happy path)', async () => {
+    const status = makeStatus(); // owner user-1
+    Status.findById.mockReturnValue({ populate: jest.fn().mockResolvedValue(status) });
+    const res = makeRes();
+    await advanced.getStatusDetails(makeReq({ params: { id: 's-1' } }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.status._id).toBe('s-1');
+  });
+
+  it('getStatusDetails blocks only_me statuses from others (403)', async () => {
+    const status = makeStatus({ userId: 'user-2', privacy: 'only_me' });
+    Status.findById.mockReturnValue({ populate: jest.fn().mockResolvedValue(status) });
+    const res = makeRes();
+    await advanced.getStatusDetails(makeReq({ params: { id: 's-1' } }), res);
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('getStatusDetails blocks when the requester is blocked by the poster (403)', async () => {
+    const status = makeStatus({ userId: 'user-2', privacy: 'everyone' });
+    Status.findById.mockReturnValue({ populate: jest.fn().mockResolvedValue(status) });
+    isEitherUserBlocked.mockResolvedValue(true);
+    const res = makeRes();
+    await advanced.getStatusDetails(makeReq({ params: { id: 's-1' } }), res);
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('getStatusDetails blocks non-contacts for contacts privacy (403)', async () => {
+    const status = makeStatus({ userId: 'user-2', privacy: 'contacts' });
+    Status.findById.mockReturnValue({ populate: jest.fn().mockResolvedValue(status) });
+    isEitherUserBlocked.mockResolvedValue(false);
+    User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ contacts: [{ user: 'user-9' }] }) });
+    const res = makeRes();
+    await advanced.getStatusDetails(makeReq({ params: { id: 's-1' } }), res);
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('getStatusDetails blocks excluded contacts for contacts_except (403)', async () => {
+    const status = makeStatus({ userId: 'user-2', privacy: 'contacts_except', excludedViewers: ['user-1'] });
+    Status.findById.mockReturnValue({ populate: jest.fn().mockResolvedValue(status) });
+    isEitherUserBlocked.mockResolvedValue(false);
+    User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ contacts: [{ user: 'user-1' }] }) });
+    const res = makeRes();
+    await advanced.getStatusDetails(makeReq({ params: { id: 's-1' } }), res);
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('getStatusDetails allows an included viewer for only_share_with (happy path)', async () => {
+    const status = makeStatus({ userId: 'user-2', privacy: 'only_share_with', includedViewers: ['user-1'] });
+    Status.findById.mockReturnValue({ populate: jest.fn().mockResolvedValue(status) });
+    isEitherUserBlocked.mockResolvedValue(false);
+    const res = makeRes();
+    await advanced.getStatusDetails(makeReq({ params: { id: 's-1' } }), res);
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('getStatusReplies returns an empty list for an unknown status', async () => {
+    Status.findById.mockReturnValue({ select: jest.fn().mockResolvedValue(null) });
+    const res = makeRes();
+    await advanced.getStatusReplies(makeReq({ params: { id: 's-1' } }), res);
+    expect(res.statusCode).toBe(404);
+    expect(res.body.replies).toEqual([]);
+  });
+
+  it('getStatusReplies blocks replies on other people\'s statuses (403)', async () => {
+    Status.findById.mockReturnValue({ select: jest.fn().mockResolvedValue(makeStatus({ userId: 'user-2' })) });
+    const res = makeRes();
+    await advanced.getStatusReplies(makeReq({ params: { id: 's-1' } }), res);
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('getStatusReplies returns the owner\'s replies (happy path)', async () => {
+    Status.findById.mockReturnValue({
+      select: jest.fn().mockResolvedValue(makeStatus({ replies: [{ userId: 'user-2', content: 'nice' }] }))
+    });
+    const res = makeRes();
+    await advanced.getStatusReplies(makeReq({ params: { id: 's-1' } }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.replies).toHaveLength(1);
+  });
+
+  it('updateStatusPrivacy returns 404 for an unknown status', async () => {
+    Status.findById.mockResolvedValue(null);
+    const res = makeRes();
+    await advanced.updateStatusPrivacy(makeReq({ params: { id: 's-1' }, body: { privacy: 'nobody' } }), res);
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('updateStatusPrivacy blocks updating another user\'s status (403)', async () => {
+    Status.findById.mockResolvedValue(makeStatus({ userId: 'user-2' }));
+    const res = makeRes();
+    await advanced.updateStatusPrivacy(makeReq({ params: { id: 's-1' }, body: { privacy: 'nobody' } }), res);
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('updateStatusPrivacy updates privacy and viewer lists (happy path)', async () => {
+    const status = makeStatus();
+    Status.findById.mockResolvedValue(status);
+    const res = makeRes();
+    await advanced.updateStatusPrivacy(makeReq({
+      params: { id: 's-1' },
+      body: { privacy: 'contacts_except', excludedViewers: ['user-2'], includedViewers: ['user-3'] }
+    }), res);
+    expect(res.statusCode).toBe(200);
+    expect(status.privacy).toBe('contacts_except');
+    expect(status.excludedViewers).toEqual(['user-2']);
+    expect(status.includedViewers).toEqual(['user-3']);
+    expect(status.save).toHaveBeenCalled();
+  });
+
+  it('updateStatusPrivacy ignores an invalid privacy value', async () => {
+    const status = makeStatus({ privacy: 'contacts' });
+    Status.findById.mockResolvedValue(status);
+    const res = makeRes();
+    await advanced.updateStatusPrivacy(makeReq({ params: { id: 's-1' }, body: { privacy: 'bogus' } }), res);
+    expect(status.privacy).toBe('contacts');
+  });
+
+  it('getStatusStats aggregates views and replies (happy path)', async () => {
+    Status.countDocuments
+      .mockResolvedValueOnce(5) // total
+      .mockResolvedValueOnce(3) // active
+      .mockResolvedValueOnce(2); // expired
+    Status.aggregate
+      .mockResolvedValueOnce([{ views: 40, replies: 6 }])
+      .mockResolvedValueOnce([{ replies: 6 }]);
+    const res = makeRes();
+    await advanced.getStatusStats(makeReq(), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.stats).toMatchObject({ total: 5, active: 3, expired: 2, totalViews: 40, totalReplies: 6 });
+  });
+
+  it('getStatusStats defaults aggregates to zero when empty', async () => {
+    Status.countDocuments
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0);
+    Status.aggregate.mockResolvedValue([]);
+    const res = makeRes();
+    await advanced.getStatusStats(makeReq(), res);
+    expect(res.body.stats.totalViews).toBe(0);
+    expect(res.body.stats.totalReplies).toBe(0);
+  });
+});
+
+describe('advancedController — status viewers / media / delete / reply', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('getStatusViewers returns 404 for an unknown status', async () => {
+    const chain = { populate: jest.fn() };
+    chain.populate
+      .mockImplementationOnce(() => chain)
+      .mockReturnValue(Promise.resolve(null));
+    Status.findById.mockReturnValue(chain);
+    const res = makeRes();
+    await advanced.getStatusViewers(makeReq({ params: { id: 's-1' } }), res);
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('getStatusViewers blocks viewers on other people\'s statuses (403)', async () => {
+    const status = makeStatus({ userId: 'user-2', views: [{ user: { _id: 'u9', username: 'x' } }] });
+    const chain = { populate: jest.fn() };
+    chain.populate
+      .mockImplementationOnce(() => chain)
+      .mockReturnValue(Promise.resolve(status));
+    Status.findById.mockReturnValue(chain);
+    const res = makeRes();
+    await advanced.getStatusViewers(makeReq({ params: { id: 's-1' } }), res);
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('getStatusViewers returns viewers and drops null users (happy path)', async () => {
+    const status = makeStatus({
+      views: [{ user: { _id: 'u2', username: 'bob' } }, { user: null }],
+      reactions: [{ user: { _id: 'u3', username: 'carol' } }, { user: null }]
+    });
+    const chain = { populate: jest.fn() };
+    chain.populate
+      .mockImplementationOnce(() => chain)
+      .mockReturnValue(Promise.resolve(status));
+    Status.findById.mockReturnValue(chain);
+    const res = makeRes();
+    await advanced.getStatusViewers(makeReq({ params: { id: 's-1' } }), res);
+    expect(res.body.viewers).toHaveLength(1);
+    expect(res.body.reactions).toHaveLength(1);
+    expect(res.body.viewCount).toBe(1);
+  });
+
+  it('uploadStatusMedia rejects a missing file (validation)', async () => {
+    const res = makeRes();
+    await advanced.uploadStatusMedia(makeReq(), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe('No file uploaded');
+  });
+
+  it('uploadStatusMedia stores locally when cloudinary is not configured (happy path)', async () => {
+    const res = makeRes();
+    await advanced.uploadStatusMedia(makeReq({
+      file: { mimetype: 'image/png', filename: 'pic.png', originalname: 'pic.png', size: 123 }
+    }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.storageProvider).toBe('local');
+    expect(res.body.mediaType).toBe('image');
+    expect(res.body.fileUrl).toContain('/uploads/pic.png');
+  });
+
+  it('uploadStatusMedia uploads to cloudinary when configured', async () => {
+    const { isConfigured, uploadFile, getFileType } = require('../config/cloudinary');
+    isConfigured.mockReturnValue(true);
+    getFileType.mockReturnValue('video');
+    uploadFile.mockResolvedValue({
+      url: 'https://cdn.example.com/v.mp4',
+      publicId: 'p1',
+      storageProvider: 'cloudinary',
+      thumbnailUrl: 'https://cdn.example.com/t.jpg'
+    });
+    const res = makeRes();
+    await advanced.uploadStatusMedia(makeReq({
+      file: { mimetype: 'video/mp4', filename: 'v.mp4', originalname: 'v.mp4', size: 999, path: '/tmp/v.mp4' }
+    }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.storageProvider).toBe('cloudinary');
+    expect(res.body.mediaType).toBe('video');
+    expect(res.body.fileUrl).toBe('https://cdn.example.com/v.mp4');
+  });
+
+  it('deleteStatus returns 404 for an unknown status', async () => {
+    Status.findById.mockResolvedValue(null);
+    const res = makeRes();
+    await advanced.deleteStatus(makeReq({ params: { id: 's-1' } }), res);
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('deleteStatus blocks deleting another user\'s status (403)', async () => {
+    Status.findById.mockResolvedValue(makeStatus({ userId: 'user-2' }));
+    const res = makeRes();
+    await advanced.deleteStatus(makeReq({ params: { id: 's-1' } }), res);
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('deleteStatus deletes and notifies via socket (happy path)', async () => {
+    Status.findById.mockResolvedValue(makeStatus());
+    Status.findByIdAndDelete.mockResolvedValue({});
+    const emit = jest.fn();
+    const io = { emit };
+    const req = makeReq({ params: { id: 's-1' } });
+    req.app.get = jest.fn(() => io);
+    const res = makeRes();
+    await advanced.deleteStatus(req, res);
+    expect(res.statusCode).toBe(200);
+    expect(Status.findByIdAndDelete).toHaveBeenCalledWith('s-1');
+    expect(io.emit).toHaveBeenCalledWith('status:deleted', { statusId: 's-1', userId: 'user-1' });
+  });
+
+  it('replyToStatus returns 404 for an unknown status', async () => {
+    Status.findById.mockResolvedValue(null);
+    const res = makeRes();
+    await advanced.replyToStatus(makeReq({ params: { id: 's-1' }, body: { content: 'hi' } }), res);
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('replyToStatus rejects empty content (validation)', async () => {
+    Status.findById.mockResolvedValue(makeStatus());
+    const res = makeRes();
+    await advanced.replyToStatus(makeReq({ params: { id: 's-1' }, body: { content: '  ' } }), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe('Reply content is required');
+  });
+
+  it('replyToStatus replies to your own status without creating a chat (happy path)', async () => {
+    const status = makeStatus({ userId: 'user-1' });
+    Status.findById.mockResolvedValue(status);
+    const res = makeRes();
+    await advanced.replyToStatus(makeReq({ params: { id: 's-1' }, body: { content: 'hi' } }), res);
+    expect(res.statusCode).toBe(201);
+    expect(status.replies).toHaveLength(1);
+    expect(status.save).toHaveBeenCalled();
+    expect(res.body.reply.content).toBe('hi');
+    expect(Message.create).not.toHaveBeenCalled();
+  });
+
+  it('replyToStatus replies to another user and persists the chat message (happy path)', async () => {
+    const status = makeStatus({ userId: 'user-2' });
+    Status.findById.mockResolvedValue(status);
+    Conversation.findOne.mockResolvedValue(null);
+    const conversation = {
+      _id: 'c-1',
+      participants: ['user-1', 'user-2'],
+      save: jest.fn().mockResolvedValue(undefined)
+    };
+    Conversation.create.mockResolvedValue(conversation);
+    Message.create.mockResolvedValue({ _id: 'm-1' });
+    Message.findById.mockReturnValue({ populate: jest.fn().mockResolvedValue({ _id: 'm-1', content: 'hi', sender: { username: 'alice' } }) });
+    Conversation.findByIdAndUpdate.mockResolvedValue(conversation);
+
+    const res = makeRes();
+    await advanced.replyToStatus(makeReq({ params: { id: 's-1' }, body: { content: 'hi' } }), res);
+    expect(res.statusCode).toBe(201);
+    expect(Message.create).toHaveBeenCalledWith(expect.objectContaining({ quotedStatus: expect.any(Object) }));
+    expect(conversation.lastMessage).toBe('m-1');
+    expect(conversation.save).toHaveBeenCalled();
+  });
+
+  it('replyToStatus returns 403 for a conversation the user is not in', async () => {
+    const status = makeStatus({ userId: 'user-2' });
+    Status.findById.mockResolvedValue(status);
+    Conversation.findById.mockResolvedValue({ _id: 'c-1', participants: ['user-9'] });
+    const res = makeRes();
+    await advanced.replyToStatus(makeReq({
+      params: { id: 's-1' },
+      body: { content: 'hi', conversationId: 'c-1' }
+    }), res);
+    expect(res.statusCode).toBe(403);
+    expect(res.body.message).toBe('Not authorized for this conversation');
   });
 });
