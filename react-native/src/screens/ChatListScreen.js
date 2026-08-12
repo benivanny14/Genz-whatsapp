@@ -11,6 +11,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useSelector, useDispatch } from 'react-redux';
 import { setChats, setActiveChat } from '../store';
+import { getChatName, getLastMessageText } from '../utils/chatDisplay';
 
 const ChatListScreen = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,7 +54,7 @@ const ChatListScreen = ({ navigation }) => {
   }, []);
 
   const filteredChats = chats.filter(chat =>
-    chat.name.toLowerCase().includes(searchQuery.toLowerCase())
+    getChatName(chat).toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const renderChatItem = ({ item }) => (
@@ -61,7 +62,7 @@ const ChatListScreen = ({ navigation }) => {
       style={styles.chatItem}
       onPress={() => {
         dispatch(setActiveChat(item));
-        navigation.navigate('ChatDetail', { name: item.name, chatId: item.id });
+        navigation.navigate('ChatDetail', { name: getChatName(item), chatId: item.id });
       }}
     >
       <View style={styles.avatarContainer}>
@@ -70,12 +71,12 @@ const ChatListScreen = ({ navigation }) => {
       </View>
       <View style={styles.chatInfo}>
         <View style={styles.chatHeader}>
-          <Text style={styles.chatName}>{item.name}</Text>
+          <Text style={styles.chatName}>{getChatName(item)}</Text>
           <Text style={styles.chatTime}>{item.time}</Text>
         </View>
         <View style={styles.chatFooter}>
           <Text style={styles.lastMessage} numberOfLines={1}>
-            {item.lastMessage}
+            {getLastMessageText(item)}
           </Text>
           {item.unread > 0 && (
             <View style={styles.unreadBadge}>
