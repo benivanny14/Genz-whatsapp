@@ -91,6 +91,25 @@ curl https://genz-whatsapp-1.onrender.com/api/health
 - `mediaStorage: cloudinary` → media haitapotea kwenye redeploy ✅
 - Ikiwa unaona `mediaStorage: "local"` → Cloudinary haijawekwa → weka na redeploy
 
+## Deploy verification kupitia script (RENDER_API_KEY)
+
+> 💡 **Ili kuverify deploy kiotomatiki** (si kwa mkono tu): unda Render API key kwenye
+> [dashboard.render.com](https://dashboard.render.com) → **Account Settings** → **API Keys**
+> → **Create API Key**. Kisha:
+>
+> ```bash
+> export RENDER_API_KEY=xxx            # key kutoka dashboard
+> export RENDER_SERVICE_ID=srv-xxxx    # pata kwenye URL ya service: dashboard.render.com/web/srv-xxxx
+> node scripts/render-deploy-verify.js
+> ```
+>
+> Script inaangalia: (1) service + latest deploy + instance kupitia Render API,
+> (2) `GET /api/health` → `mongo: connected` + `mediaStorage: cloudinary`.
+> Bila `RENDER_API_KEY` bado inafanya public health check pekee.
+>
+> ⚠️ `RENDER_API_KEY` ni credential ya dashboard — **usiweke kwenye render.yaml wala ku-commit**;
+> weka tu kwenye shell yako (au CI secrets kwa scheduled verify).
+
 **Kisha jaribu kwa mkono:**
 1. Fungua `https://genz-whatsapp-1.onrender.com/login` → register mtumiaji mpya
 2. Tuma ujumbe → pakia picha → premium (malipo manual)
