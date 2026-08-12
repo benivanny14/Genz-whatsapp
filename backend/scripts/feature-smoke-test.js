@@ -97,9 +97,9 @@ async function main() {
   r = await api.req('PUT', '/api/auth/profile', { about: 'Hello from smoke test', displayName: 'Smoke A' });
   check('update profile', r.status === 200, r, 'message');
 
-  r = await api.req('POST', '/api/auth/change-password', { currentPassword: users[0].password, newPassword: 'NewPass!456', confirmPassword: 'NewPass!456' });
+  r = await api.req('POST', '/api/auth/change-password', { currentPassword: users[0].password, newPassword: 'NewPass!4567', confirmPassword: 'NewPass!4567' });
   check('change password', r.status === 200, r, 'message');
-  r = await api.req('POST', '/api/auth/change-password', { currentPassword: 'NewPass!456', newPassword: users[0].password, confirmPassword: users[0].password });
+  r = await api.req('POST', '/api/auth/change-password', { currentPassword: 'NewPass!4567', newPassword: users[0].password, confirmPassword: users[0].password });
   check('change password back', r.status === 200, r, 'message');
 
   r = await api.req('GET', '/api/device');
