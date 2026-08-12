@@ -20,6 +20,11 @@ const registerGroupHandlers = require('./handlers/groupHandlers');
 const registerStatusHandlers = require('./handlers/statusHandlers');
 const registerConversationHandlers = require('./handlers/conversationHandlers');
 const { logInfo, logError, logWarning, logDebug } = require('../config/winston');
+const {
+  getContactId,
+  isExcluded,
+  resolveOnlineSetting
+} = require('../services/privacyEngineService');
 
 
 
@@ -110,20 +115,28 @@ const setupSocket = (io) => {
         const user = await User.findByIdAndUpdate(userId, { isOnline: true, lastSeen: new Date() }, { new: true }).select('settings contacts');
 
         const privacySettings = user?.settings?.privacy || {};
-        const onlineSetting = privacySettings.online === 'same_as_last_seen'
-          ? privacySettings.lastSeen
-          : privacySettings.online;
+        const onlineSetting = resolveOnlineSetting(privacySettings);
 
         if (onlineSetting === 'nobody') {
           // Do not broadcast
         } else if (onlineSetting === 'contacts' || onlineSetting === 'contacts_except') {
+          // SECURITY: contacts are { user, savedName } subdocs — extract the
+          // nested id (String(subdoc) would be "[object Object]"), and for
+          // contacts_except skip anyone on the owner's exclusion list
+          // (presence follows the last-seen rules + its exclusions).
           const contacts = user?.contacts || [];
-          contacts.forEach(contactId => {
-            const recipientSocketId = onlineUsers.get(contactId.toString());
+          for (const contact of contacts) {
+            const contactId = getContactId(contact);
+            if (!contactId) continue;
+            const contactIdStr = String(contactId);
+            if (onlineSetting === 'contacts_except' && await isExcluded(user._id, 'last_seen', contactIdStr)) {
+              continue;
+            }
+            const recipientSocketId = onlineUsers.get(contactIdStr);
             if (recipientSocketId) {
               io.to(recipientSocketId).emit('user:online', { userId });
             }
-          });
+          }
         } else {
           socket.broadcast.emit('user:online', { userId });
         }
@@ -262,9 +275,16 @@ const setupSocket = (io) => {
         userAwayStatus.delete(String(disconnectedUserId));
       }
 
+      // FIX: presenceStore.removeLocalPresence must run BEFORE the
+      // isUserStillOnline check — the check consults sharedPresence, so a
+      // stale "online" entry there meant the whole offline broadcast below
+      // was skipped and user:offline never reached anyone.
+      if (disconnectedUserId) {
+        presenceStore.removeLocalPresence(disconnectedUserId);
+      }
+
       if (disconnectedUserId && !isUserStillOnline(disconnectedUserId)) {
         onlineUsers.delete(disconnectedUserId);
-        presenceStore.removeLocalPresence(disconnectedUserId);
 
         try {
           await User.findByIdAndUpdate(disconnectedUserId, {
@@ -276,19 +296,24 @@ const setupSocket = (io) => {
           // privacy setting for who may see their presence.
           const offlineUser = await User.findById(disconnectedUserId).select('settings contacts').lean();
           const privacySettings = offlineUser?.settings?.privacy || {};
-          const onlineSetting = privacySettings.online === 'same_as_last_seen'
-            ? privacySettings.lastSeen
-            : privacySettings.online;
+          const onlineSetting = resolveOnlineSetting(privacySettings);
           const offlinePayload = { userId: disconnectedUserId, lastSeen: new Date().toISOString() };
           if (onlineSetting === 'nobody') {
             // Do not broadcast
           } else if (onlineSetting === 'contacts' || onlineSetting === 'contacts_except') {
+            // SECURITY: skip excluded contacts for contacts_except (presence
+            // follows the last-seen exclusion list).
             const contacts = offlineUser?.contacts || [];
-            contacts.forEach(c => {
-              const contactUserId = c?.user ? String(c.user) : String(c);
-              const sid = onlineUsers.get(contactUserId);
+            for (const c of contacts) {
+              const contactUserId = getContactId(c);
+              if (!contactUserId) continue;
+              const contactIdStr = String(contactUserId);
+              if (onlineSetting === 'contacts_except' && await isExcluded(disconnectedUserId, 'last_seen', contactIdStr)) {
+                continue;
+              }
+              const sid = onlineUsers.get(contactIdStr);
               if (sid) io.to(sid).emit('user:offline', offlinePayload);
-            });
+            }
           } else {
             socket.broadcast.emit('user:offline', offlinePayload);
           }

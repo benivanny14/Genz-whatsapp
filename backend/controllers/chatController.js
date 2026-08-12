@@ -3,8 +3,8 @@ const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
 const User = require("../models/User");
 const AbuseReport = require("../models/AbuseReport");
-const PrivacyExcludedContact = require("../models/PrivacyExcludedContact");
-const PrivacyAllowedContact = require("../models/PrivacyAllowedContact");
+const { applyPermissionInheritance, notifyContactsUpdated } = require("../services/permissionInheritanceService");
+const { isAllowed } = require("../services/privacyEngineService");
 const crypto = require("crypto");
 const { applyPrivacyFilter } = require("../utils/privacyHelper");
 const { resolveMessageMentions } = require("../utils/mentions");
@@ -25,48 +25,6 @@ const getCurrentUserId = (req) => {
     throw new Error('Authentication required');
   }
   return req.user._id.toString();
-};
-
-// Helper function to apply permission inheritance for new contacts
-const applyPermissionInheritance = async (ownerUserId, newContactId, newContactName, newContactPhone) => {
-  try {
-    // Get owner's privacy settings
-    const owner = await User.findById(ownerUserId).select('settings.privacy');
-    if (!owner || !owner.settings?.privacy) return;
-
-    const privacySettings = owner.settings.privacy;
-    const privacyTypes = ['last_seen', 'profile_photo', 'about', 'status', 'groups', 'calls'];
-
-    // For each privacy type that uses 'contacts_except', add the new contact to excluded list
-    for (const privacyType of privacyTypes) {
-      const settingValue = privacySettings[privacyType];
-      
-      if (settingValue === 'contacts_except') {
-        // Check if there's an existing excluded list for this privacy type
-        const existingExcluded = await PrivacyExcludedContact.findOne({
-          ownerUserId,
-          privacyType,
-          excludedContactId: newContactId
-        });
-
-        if (!existingExcluded) {
-          // Add new contact to excluded list (WhatsApp behavior: new contacts are excluded by default)
-          await PrivacyExcludedContact.create({
-            ownerUserId,
-            privacyType,
-            excludedContactId: newContactId,
-            excludedContactName: newContactName,
-            excludedContactPhone: newContactPhone
-          });
-        }
-      }
-    }
-
-    // For status privacy with 'only_share_with', new contacts are NOT automatically added
-    // User must manually add them to allowed list
-  } catch (error) {
-    console.error('Error applying permission inheritance:', error);
-  }
 };
 
 const includesId = (items = [], id) => {
@@ -224,9 +182,11 @@ const transformConversationForUser = async (conversation, userId) => {
 
 const populateConversation = (query) =>
   query
+    // settings + contacts are needed by applyPrivacyFilter when participants
+    // are filtered (missing them would silently leak privacy-restricted fields).
     .populate(
       "participants",
-      "username phoneNumber profilePicture isOnline lastSeen about",
+      "username phoneNumber profilePicture isOnline lastSeen about settings contacts",
     )
     .populate("admins", "username profilePicture")
     .populate("lastMessage");
@@ -499,20 +459,15 @@ exports.createGroup = async (req, res) => {
       });
     }
 
-    // Check group privacy settings for all participants
+    // Check group privacy settings for all participants. Delegates to the
+    // shared privacy engine: subdoc-aware contact checks AND the
+    // contacts_except exclusion list (previously exclusions were ignored, so
+    // an excluded contact could still be added to a group).
     for (const user of existingUsers) {
       const groupPrivacy = user?.settings?.privacy?.groups || 'everyone';
       if (groupPrivacy === 'contacts' || groupPrivacy === 'contacts_except') {
-        // FIX: contacts are stored as { user, savedName } subdocuments, so
-        // comparing c.toString() directly always produced "[object Object]"
-        // and never matched â€” meaning this privacy check silently blocked
-        // EVERY add attempt for any user with groupPrivacy === 'contacts',
-        // even actual contacts. Compare against the nested `user` field.
-        const isContact = (user.contacts || []).some(c => {
-          const contactUserId = c?.user ? String(c.user) : String(c);
-          return contactUserId === localUserId;
-        });
-        if (!isContact) {
+        const allowed = await isAllowed(user, localUserId, groupPrivacy, 'groups');
+        if (!allowed) {
           return res.status(403).json({
             success: false,
             message: "Privacy settings of one or more users prevent you from adding them to groups",
@@ -572,12 +527,9 @@ exports.addParticipant = async (req, res) => {
 
     const groupPrivacy = targetUser?.settings?.privacy?.groups || 'everyone';
     if (groupPrivacy === 'contacts' || groupPrivacy === 'contacts_except') {
-      // FIX: same subdocument-comparison bug as createGroup above.
-      const isContact = (targetUser.contacts || []).some(c => {
-        const contactUserId = c?.user ? String(c.user) : String(c);
-        return contactUserId === localUserId;
-      });
-      if (!isContact) {
+      // Shared engine: contact membership + contacts_except exclusions.
+      const allowed = await isAllowed(targetUser, localUserId, groupPrivacy, 'groups');
+      if (!allowed) {
         return res.status(403).json({
           success: false,
           message: "User's privacy settings do not allow you to add them to groups",
@@ -1588,9 +1540,11 @@ exports.searchUsers = async (req, res) => {
       isBlocked: { $ne: true },
       $or: [{ username: regex }, { phoneNumber: regex }],
     })
-      // SECURITY (3.6): never expose phone numbers in search results.
+      // SECURITY (3.6): never expose phone numbers in search results. settings
+      // + contacts are selected so applyPrivacyFilter can enforce each user's
+      // privacy rules instead of leaking restricted fields.
       .select(
-        "username profilePicture about isOnline lastSeen",
+        "username profilePicture about isOnline lastSeen settings contacts",
       )
       .limit(25);
 
@@ -1617,8 +1571,10 @@ exports.addContact = async (req, res) => {
 
     const [user, contact] = await Promise.all([
       User.findById(localUserId),
+      // settings + contacts so the privacy filter below can enforce the
+      // contact's rules (contacts_except / nobody) instead of leaking fields.
       User.findById(userId).select(
-        "username phoneNumber profilePicture about isOnline lastSeen",
+        "username phoneNumber profilePicture about isOnline lastSeen settings contacts",
       ),
     ]);
 
@@ -1642,6 +1598,7 @@ exports.addContact = async (req, res) => {
       
       // Apply permission inheritance for new contact
       await applyPermissionInheritance(localUserId, userId, contact.username, contact.phoneNumber);
+      notifyContactsUpdated(req, localUserId);
     }
 
     const filteredContact = await applyPrivacyFilter(contact, localUserId);
@@ -1684,6 +1641,7 @@ exports.addContactByPhone = async (req, res) => {
     
     // Apply permission inheritance for new contact
     await applyPermissionInheritance(localUserId, contactUser._id, contactUser.username, contactUser.phoneNumber);
+    notifyContactsUpdated(req, localUserId);
 
     let conversation = await Conversation.findOne({
       participants: { $all: [localUserId, contactUser._id] },
@@ -1712,9 +1670,12 @@ exports.addContactByPhone = async (req, res) => {
 exports.getContacts = async (req, res) => {
   try {
     const localUserId = getCurrentUserId(req);
+    // SECURITY: populate settings + contacts so applyPrivacyFilter can enforce
+    // the owner's privacy rules (contacts_except / nobody) on each contact — a
+    // limited-field populate would leave privacySettings empty and leak data.
     const user = await User.findById(localUserId).populate(
       "contacts.user",
-      "username phoneNumber profilePicture about isOnline lastSeen",
+      "username phoneNumber profilePicture about bio isOnline lastSeen settings contacts",
     );
 
     const filteredContacts = (
@@ -3269,6 +3230,21 @@ exports.approveJoinRequest = async (req, res) => {
     const reqIdx = (conversation.pendingJoinRequests || []).findIndex(r => r.user?.toString() === targetUserId);
     if (reqIdx === -1)
       return res.status(404).json({ success: false, message: 'Join request not found' });
+
+    // SECURITY: approving a join request still adds the user to the group,
+    // so the target's privacy.groups rule applies (contacts / contacts_except
+    // exclusions) before they are admitted.
+    const targetUser = await User.findById(targetUserId).select('settings contacts');
+    const targetGroupPrivacy = targetUser?.settings?.privacy?.groups || 'everyone';
+    if (targetGroupPrivacy === 'contacts' || targetGroupPrivacy === 'contacts_except') {
+      const allowed = await isAllowed(targetUser, requesterId, targetGroupPrivacy, 'groups');
+      if (!allowed) {
+        return res.status(403).json({
+          success: false,
+          message: "User's privacy settings do not allow you to add them to groups",
+        });
+      }
+    }
 
     // Remove from pending and add to participants
     conversation.pendingJoinRequests.splice(reqIdx, 1);

@@ -1,4 +1,5 @@
 const { logInfo, logError, logWarning, logDebug } = require('../../config/winston');
+const { isContact, isSilencedCaller } = require('../../services/privacyEngineService');
 
 /**
  * Call / WebRTC / live-stream socket handlers.
@@ -83,6 +84,11 @@ module.exports = function registerCallHandlers(ctx) {
 
   socket.on('call:accept', (data) => {
     const { conversationId, callerId } = data;
+    // Mark the caller's session answered so a later call:end is logged as
+    // 'completed' instead of 'missed'.
+    if (callerId) {
+      activeCalls.markAnswered(callerId, conversationId);
+    }
     const callerSocketId = onlineUsers.get(String(callerId));
     if (callerSocketId) {
       io.to(callerSocketId).emit('call:accepted', { conversationId });
@@ -142,12 +148,15 @@ module.exports = function registerCallHandlers(ctx) {
     try {
       const session = activeCalls.endCall(socket.userId, conversationId);
       if (socket.userId && session) {
+        // SECURITY/privacy: an unanswered call (silenced unknown caller or a
+        // ring nobody picked up) must be logged as 'missed', not 'completed'.
+        const callStatus = session.answered ? 'completed' : 'missed';
         const result = await persistCallFromSocket({
           callerId: socket.userId,
           calleeId: session.calleeId || targetUserId,
           conversationId,
           callType: session.callType || callType,
-          status: 'completed',
+          status: callStatus,
           duration: session.duration || 0,
           startedAt: new Date(session.startedAt)
         });
@@ -216,11 +225,22 @@ module.exports = function registerCallHandlers(ctx) {
       const targetSocketId = onlineUsers.get(targetUserId);
 
       if (targetSocketId) {
+        // SECURITY: respect the callee's "Silence unknown callers" setting —
+        // calls from non-contacts must not ring. The offer is still relayed
+        // so the call completes if the callee answers from history.
+        let silenced = false;
+        try {
+          const callee = await User.findById(targetUserId).select('settings contacts').lean();
+          silenced = isSilencedCaller(callee, socket.userId);
+        } catch (err) {
+          logError('Error checking silence-unknown-callers:', { message: err.message });
+        }
+
         // Only ring the callee for the first offer of this call. Any later
         // offer on the same session is a mid-call ICE renegotiation, not a
         // new call — see markOfferSent in utils/activeCalls.js.
         const isRenegotiation = activeCalls.markOfferSent(socket.userId, conversationId);
-        if (!isRenegotiation) {
+        if (!isRenegotiation && !silenced) {
           io.to(targetSocketId).emit('call:incoming', {
             callerId: socket.userId,
             callerSocketId: socket.id,
@@ -314,7 +334,12 @@ module.exports = function registerCallHandlers(ctx) {
       }
 
             logDebug('Sending WebRTC offer', { from: socket.userId, to: targetId, callType });
-      const caller = await User.findById(socket.userId).select('username profilePicture').lean();
+      const [caller, callee] = await Promise.all([
+        User.findById(socket.userId).select('username profilePicture').lean(),
+        // SECURITY: callee settings + contacts let us respect
+        // "Silence unknown callers" before ringing / pushing.
+        User.findById(targetId).select('settings contacts').lean()
+      ]);
 
       io.to(targetSocketId).emit('webrtc:offer', {
         from: socket.userId,
@@ -325,6 +350,11 @@ module.exports = function registerCallHandlers(ctx) {
         conversationId
       });
 
+      // SECURITY: unknown callers (not in the callee's contacts) must not
+      // ring nor trigger a push notification when the callee enabled
+      // "Silence unknown callers".
+      const silenced = isSilencedCaller(callee, socket.userId);
+
       // Only ring the callee (and send the push notification) for the
       // first offer of this call session. A later offer on the same
       // conversation is a mid-call ICE renegotiation (e.g. after a brief
@@ -333,7 +363,7 @@ module.exports = function registerCallHandlers(ctx) {
       // the connection blipped, forcing them to accept/decline again on a
       // call they had already answered.
       const isRenegotiation = activeCalls.markOfferSent(socket.userId, conversationId);
-      if (!isRenegotiation) {
+      if (!isRenegotiation && !silenced) {
         io.to(targetSocketId).emit('call:incoming', {
           callerId: socket.userId,
           callerSocketId: socket.id,
@@ -453,6 +483,15 @@ module.exports = function registerCallHandlers(ctx) {
       const conversation = await Conversation.findById(conversationId)
         .populate('participants', '_id username profilePicture');
       if (!conversation) return;
+
+      // SECURITY: only a participant may ring a group — otherwise any
+      // connected client could fire fake group-call invites at every member.
+      const callerIsMember = conversation.participants.some((p) =>
+        String(p._id || p) === String(socket.userId)
+      );
+      if (!callerIsMember) {
+        return socket.emit('call:error', { message: 'Not a member of this group' });
+      }
 
       const caller = await User.findById(socket.userId).select('username profilePicture');
 

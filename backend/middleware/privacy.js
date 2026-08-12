@@ -1,4 +1,5 @@
 const { applyPrivacyFilter } = require('../utils/privacyHelper');
+const { isAllowed, getSettingValue } = require('../services/privacyEngineService');
 
 /**
  * Privacy Middleware
@@ -53,10 +54,12 @@ const filterUserData = async (user, requesterId) => {
 };
 
 /**
- * Check if a requester has permission to view a specific privacy field
- * This can be used for granular permission checks
+ * Check if a requester has permission to view a specific privacy field.
+ * `field` may be camelCase ('lastSeen') or snake_case ('last_seen'); the
+ * decision (contact checks + excluded/allowed record lookups) is delegated to
+ * services/privacyEngineService.js — the same rules the socket paths use.
  */
-const checkPrivacyPermission = (user, requesterId, field) => {
+const checkPrivacyPermission = async (user, requesterId, field) => {
   if (!user || !requesterId) return false;
   
   // If requester is the user themselves, allow access
@@ -65,20 +68,8 @@ const checkPrivacyPermission = (user, requesterId, field) => {
   }
   
   const privacySettings = user.settings?.privacy || {};
-  const settingValue = privacySettings[field];
-  
-  // Helper to determine if requester is a contact
-  const isContact = () => {
-    if (!user.contacts) return false;
-    return user.contacts.some(c => c.toString() === requesterId.toString());
-  };
-  
-  // Check permission based on field value
-  if (settingValue === 'everyone') return true;
-  if (settingValue === 'contacts' || settingValue === 'contacts_except') return isContact();
-  if (settingValue === 'nobody') return false;
-  
-  return true; // Default to allowed
+  const settingValue = getSettingValue(privacySettings, field);
+  return isAllowed(user, requesterId, settingValue, field);
 };
 
 module.exports = {

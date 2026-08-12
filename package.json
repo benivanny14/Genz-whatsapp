@@ -2,6 +2,8 @@
   "scripts": {
     "check": "npm --prefix backend run check && npm --prefix frontend run build",
     "start": "npm --prefix backend start",
+    "privacy:regression": "bash scripts/privacy-regression.sh",
+    "privacy:regression:e2e": "bash scripts/privacy-regression.sh --e2e",
     "postinstall": "npm install --prefix backend"
   },
   "dependencies": {

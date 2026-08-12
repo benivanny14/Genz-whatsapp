@@ -26,6 +26,17 @@ exports.endCall = (userId, conversationId) => {
 
 exports.getCall = (userId, conversationId) => activeCalls.get(callKey(userId, conversationId));
 
+// Mark a caller's session as answered (the callee accepted). Used to
+// distinguish completed calls from missed/unanswered ones when the caller
+// hangs up — silenced unknown calls and never-answered rings must be logged
+// as 'missed' so they stay visible in call history.
+exports.markAnswered = (userId, conversationId) => {
+  const key = callKey(userId, conversationId);
+  const session = activeCalls.get(key);
+  if (session) session.answered = true;
+  return Boolean(session);
+};
+
 // FIX: the WebRTC signaling handlers ('call:offer' / 'webrtc:offer') used to
 // treat every incoming SDP offer the same way, so a plain mid-call ICE
 // restart (a normal, harmless reaction to a brief network hiccup) looked

@@ -286,8 +286,17 @@ module.exports = function registerGroupHandlers(ctx) {
     try {
       const { groupId, userId } = data;
       if (!groupId || !userId || !socket.userId) return;
-      const conv = await Conversation.findById(groupId).select('participants admins isGroup');
-      if (!conv?.isGroup || !includesId(conv.participants, socket.userId)) return;
+      // SECURITY: this is a relay emitted by the frontend AFTER the HTTP
+      // addParticipant persisted the change — but any connected client could
+      // spoof it to broadcast a fake "was added" to a group and send
+      // group:you_were_added to an arbitrary user. Only relay when the
+      // emitter is allowed to add (admin or canAddMembers) AND the target is
+      // actually a participant now (i.e. the HTTP add really happened).
+      const conv = await Conversation.findById(groupId).select('participants admins isGroup canAddMembers');
+      if (!conv?.isGroup) return;
+      if (!includesId(conv.participants, socket.userId)) return;
+      if (!includesId(conv.admins, socket.userId) && !conv.canAddMembers) return;
+      if (!includesId(conv.participants, userId)) return;
       const addedUser = await User.findById(userId).select('username profilePicture status');
       const payload = { groupId, userId, user: addedUser };
       io.to(String(groupId)).emit('group:participant_added', payload);

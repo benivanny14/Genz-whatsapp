@@ -167,6 +167,12 @@ describe('approveJoinRequest / rejectJoinRequest', () => {
       save: jest.fn().mockResolvedValue(true),
     };
     Conversation.findById.mockResolvedValue(conv);
+    // approveJoinRequest now checks the target's privacy.groups before
+    // admitting them — default settings (everyone) must let it through.
+    const User = require('../models/User');
+    User.findById.mockReturnValue({
+      select: jest.fn().mockResolvedValue({ _id: 'pending_user_1', settings: {}, contacts: [] })
+    });
 
     const req = mockReq({ params: { id: 'group1', userId: 'pending_user_1' } });
     const res = mockRes();

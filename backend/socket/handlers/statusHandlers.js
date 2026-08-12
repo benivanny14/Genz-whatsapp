@@ -1,4 +1,5 @@
 const { logInfo, logError, logWarning, logDebug } = require('../../config/winston');
+const { canViewStatus } = require('../../services/privacyEngineService');
 
 
 /**
@@ -53,8 +54,13 @@ module.exports = function registerStatusHandlers(ctx) {
         // themselves in real time. Everyone else only saw it whenever they
         // next polled GET /api/status. Extract the nested `user` id so the
         // status reaches all of the poster's contacts the instant it's posted.
+        // SECURITY: also respect the status's own privacy — never push to
+        // viewers the owner excluded (contacts_except / only_share_with /
+        // nobody / only_me), even though the feed API hides the status from
+        // them too.
         contacts.forEach(c => {
           const contactUserId = c?.user ? String(c.user) : String(c);
+          if (!canViewStatus(statusObj, contactUserId, creator)) return;
           const sid = getOnlineUsers().get(contactUserId);
           if (sid) io.to(sid).emit('status:created', statusObj);
         });
@@ -75,6 +81,15 @@ module.exports = function registerStatusHandlers(ctx) {
       const { statusId } = data;
       const status = await Status.findById(statusId);
       if (status) {
+        const viewerId = String(socket.userId);
+        // SECURITY: never record/relay a view from someone the owner's
+        // privacy excludes — mirrors the feed API's visibility rules.
+        const owner = (status.privacy === 'contacts' || status.privacy === 'contacts_except')
+          ? await User.findById(status.userId).select('contacts')
+          : null;
+        if (!canViewStatus(status, viewerId, owner)) {
+          return; // silently ignore unauthorized view attempts
+        }
         const alreadyViewed = status.views.some(view => view.user?.toString() === socket.userId);
         if (!alreadyViewed) {
           // Use atomic update to avoid VersionError
@@ -107,6 +122,14 @@ module.exports = function registerStatusHandlers(ctx) {
       if (statusId) {
         const status = await Status.findById(statusId);
         if (status) {
+          const viewerId = String(socket.userId);
+          // SECURITY: ignore views from viewers the owner's privacy excludes.
+          const owner = (status.privacy === 'contacts' || status.privacy === 'contacts_except')
+            ? await User.findById(status.userId).select('contacts')
+            : null;
+          if (!canViewStatus(status, viewerId, owner)) {
+            return;
+          }
           if (!status.views.some(view => view.user?.toString() === socket.userId)) {
             status.views.push({ user: socket.userId, viewedAt: new Date() });
             status.viewsCount = status.views.length;

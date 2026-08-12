@@ -1,5 +1,4 @@
-const PrivacyExcludedContact = require('../models/PrivacyExcludedContact');
-const PrivacyAllowedContact = require('../models/PrivacyAllowedContact');
+const { isAllowed, canSeePresence } = require('../services/privacyEngineService');
 
 const applyPrivacyFilter = async (user, requesterId) => {
   if (!user) return user;
@@ -13,80 +12,28 @@ const applyPrivacyFilter = async (user, requesterId) => {
   const filteredUser = user.toObject ? user.toObject() : { ...user };
   const privacySettings = filteredUser.settings?.privacy || {};
 
-  // Helper to determine if requester is a contact
-  const isContact = () => {
-    if (!requesterId || !filteredUser.contacts) return false;
-    return filteredUser.contacts.some(c => c.toString() === requesterId.toString());
-  };
-
-  // Helper to check if requester is in excluded list
-  const isExcluded = async (privacyType) => {
-    try {
-      const excluded = await PrivacyExcludedContact.findOne({
-        ownerUserId: user._id,
-        privacyType,
-        excludedContactId: requesterId
-      });
-      return !!excluded;
-    } catch (error) {
-      console.error('Error checking excluded contacts:', error);
-      return false;
-    }
-  };
-
-  // Helper to check if requester is in allowed list
-  const isAllowedContact = async (privacyType) => {
-    try {
-      const allowed = await PrivacyAllowedContact.findOne({
-        ownerUserId: user._id,
-        privacyType,
-        allowedContactId: requesterId
-      });
-      return !!allowed;
-    } catch (error) {
-      console.error('Error checking allowed contacts:', error);
-      return false;
-    }
-  };
-
-  const isAllowed = async (settingValue, privacyType) => {
-    if (settingValue === 'everyone') return true;
-    if (settingValue === 'contacts') return isContact();
-    if (settingValue === 'contacts_except') {
-      if (!isContact()) return false;
-      const excluded = await isExcluded(privacyType);
-      return !excluded;
-    }
-    if (settingValue === 'nobody') return false;
-    if (settingValue === 'only_share_with') {
-      const allowed = await isAllowedContact(privacyType);
-      return allowed;
-    }
-    return true; // Default to allowed
-  };
+  // All permission decisions (isContact / isExcluded / isAllowedContact /
+  // isAllowed) live in services/privacyEngineService.js — the single source of
+  // truth shared with the middleware and the socket paths.
 
   // Filter Last Seen
-  if (!(await isAllowed(privacySettings.lastSeen, 'last_seen'))) {
+  if (!(await isAllowed(filteredUser, requesterId, privacySettings.lastSeen, 'last_seen'))) {
     delete filteredUser.lastSeen;
   }
 
-  // Filter Online Status
-  // If online setting is 'same_as_last_seen', use lastSeen's setting
-  const onlineSetting = privacySettings.online === 'same_as_last_seen' 
-    ? privacySettings.lastSeen 
-    : privacySettings.online;
-  
-  if (!(await isAllowed(onlineSetting, 'online'))) {
+  // Filter Online Status (same_as_last_seen follows last-seen's rules AND its
+  // exclusion list — presence exclusions are stored under 'last_seen').
+  if (!(await canSeePresence(filteredUser, requesterId))) {
     delete filteredUser.isOnline;
   }
 
   // Filter Profile Photo
-  if (!(await isAllowed(privacySettings.profilePhoto, 'profile_photo'))) {
+  if (!(await isAllowed(filteredUser, requesterId, privacySettings.profilePhoto, 'profile_photo'))) {
     delete filteredUser.profilePicture;
   }
 
   // Filter About
-  if (!(await isAllowed(privacySettings.about, 'about'))) {
+  if (!(await isAllowed(filteredUser, requesterId, privacySettings.about, 'about'))) {
     delete filteredUser.about;
     delete filteredUser.bio;
   }
