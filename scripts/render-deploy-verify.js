@@ -7,6 +7,10 @@
  *   2. always: fetch the public /api/health endpoint and assert mongo is
  *      connected + mediaStorage is cloudinary (not local)
  *
+ * Transient failures (network blips, Render 502/503/504 during a rolling
+ * deploy, timeouts) are retried with exponential backoff so a nightly check
+ * does not raise a false-positive alert while the service is still coming up.
+ *
  * Usage:
  *   node scripts/render-deploy-verify.js [serviceUrl]
  *
@@ -16,6 +20,10 @@
  *                    only does the public health check.
  *   RENDER_SERVICE_ID  Render service id (e.g. "srv-xxxx"). Required only if
  *                    RENDER_API_KEY is set — the API needs it.
+ *   VERIFY_MAX_ATTEMPTS   Retry count per HTTP request (default 3, includes the
+ *                    first attempt — i.e. up to 2 retries).
+ *   VERIFY_BASE_DELAY_MS  Base backoff delay (default 2000). Actual wait is
+ *                    baseDelay * 2^(attempt-1) with jitter.
  *
  * Exit code 0 = all checks passed, 1 = something failed.
  */
@@ -24,14 +32,15 @@ const https = require('https');
 const SERVICE_URL = process.argv[2] || 'https://genz-whatsapp-1.onrender.com';
 const API_KEY = process.env.RENDER_API_KEY || '';
 const SERVICE_ID = process.env.RENDER_SERVICE_ID || '';
+const MAX_ATTEMPTS = Math.max(1, parseInt(process.env.VERIFY_MAX_ATTEMPTS, 10) || 3);
+const BASE_DELAY_MS = Math.max(0, parseInt(process.env.VERIFY_BASE_DELAY_MS, 10) || 2000);
 
-const results = [];
-const check = (name, ok, detail = '') => {
-  results.push({ name, ok, detail });
-  console.log(`${ok ? '✅' : '❌'} ${name}${detail ? ` — ${detail}` : ''}`);
-};
+// Transient statuses worth retrying (rolling deploys / proxy hiccups).
+const RETRYABLE_STATUS = new Set([502, 503, 504]);
 
-const getJson = (url, headers = {}, timeoutMs = 20000) =>
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const getJsonOnce = (url, headers = {}, timeoutMs = 20000) =>
   new Promise((resolve, reject) => {
     const req = https.get(url, { headers, timeout: timeoutMs }, (res) => {
       let body = '';
@@ -46,24 +55,64 @@ const getJson = (url, headers = {}, timeoutMs = 20000) =>
     req.on('error', reject);
   });
 
-async function main() {
-  console.log(`\n=== Render deploy verify: ${SERVICE_URL} ===\n`);
+/**
+ * GET with retry + exponential backoff for transient failures.
+ * Retries on: network errors, timeouts, and HTTP 502/503/504.
+ * Non-transient HTTP responses (4xx, 200, 500, ...) are returned as-is.
+ */
+const getJson = async (url, headers = {}, { attempts = MAX_ATTEMPTS, baseDelayMs = BASE_DELAY_MS, timeoutMs = 20000, fetch = getJsonOnce } = {}) => {
+  let lastErr;
+  let lastResponse = null;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      const res = await fetch(url, headers, timeoutMs);
+      if (!RETRYABLE_STATUS.has(res.status)) {
+        return res; // success or a definitive failure — no retry needed
+      }
+      lastResponse = res; // retryable (502/503/504) — remember it for the fallback
+      if (attempt < attempts) {
+        const delay = baseDelayMs * Math.pow(2, attempt - 1) + Math.floor(Math.random() * baseDelayMs * 0.25);
+        await sleep(delay);
+      }
+    } catch (e) {
+      lastErr = e;
+      if (attempt < attempts) {
+        const delay = baseDelayMs * Math.pow(2, attempt - 1) + Math.floor(Math.random() * baseDelayMs * 0.25);
+        await sleep(delay);
+      }
+    }
+  }
+  // Exhausted retries. Prefer the last retryable HTTP response so the caller
+  // can show the real status; synthesize only for pure network errors.
+  if (lastResponse) return lastResponse;
+  return { status: 0, body: null, raw: '', error: lastErr?.message || 'request failed' };
+};
+
+// ── Main verification (exported so it can be unit-tested) ───────────────────
+const results = [];
+const check = (name, ok, detail = '') => {
+  results.push({ name, ok, detail });
+  console.log(`${ok ? '✅' : '❌'} ${name}${detail ? ` — ${detail}` : ''}`);
+};
+
+const verifyHealth = async ({ serviceUrl = SERVICE_URL, apiKey = API_KEY, serviceId = SERVICE_ID, fetch = getJson } = {}) => {
+  results.length = 0; // fresh run — the module-level array must not accumulate across calls
 
   // ── 1. Render API (only when a key is provided) ──────────────────────────
-  if (API_KEY) {
-    if (!SERVICE_ID) {
+  if (apiKey) {
+    if (!serviceId) {
       check('RENDER_SERVICE_ID is set', false, 'set it to use the API layer');
     } else {
       try {
-        const res = await getJson(
-          `https://api.render.com/v1/services/${SERVICE_ID}`,
-          { Authorization: `Bearer ${API_KEY}` }
+        const res = await fetch(
+          `https://api.render.com/v1/services/${serviceId}`,
+          { Authorization: `Bearer ${apiKey}` }
         );
         if (res.status === 200 && res.body) {
-          check('Render API: service found', true, res.body.service?.name || SERVICE_ID);
-          const deploys = await getJson(
-            `https://api.render.com/v1/services/${SERVICE_ID}/deploys?limit=1`,
-            { Authorization: `Bearer ${API_KEY}` }
+          check('Render API: service found', true, res.body.service?.name || serviceId);
+          const deploys = await fetch(
+            `https://api.render.com/v1/services/${serviceId}/deploys?limit=1`,
+            { Authorization: `Bearer ${apiKey}` }
           );
           const latest = deploys.body?.[0];
           if (latest) {
@@ -71,9 +120,9 @@ async function main() {
           } else {
             check('Render API: latest deploy', false, 'no deploy returned');
           }
-          const instances = await getJson(
-            `https://api.render.com/v1/services/${SERVICE_ID}/instances`,
-            { Authorization: `Bearer ${API_KEY}` }
+          const instances = await fetch(
+            `https://api.render.com/v1/services/${serviceId}/instances`,
+            { Authorization: `Bearer ${apiKey}` }
           );
           const inst = instances.body?.[0];
           if (inst) {
@@ -94,7 +143,7 @@ async function main() {
 
   // ── 2. Public health endpoint (always) ───────────────────────────────────
   try {
-    const res = await getJson(`${SERVICE_URL}/api/health`);
+    const res = await fetch(`${serviceUrl}/api/health`);
     if (res.status === 200 && res.body) {
       check('HTTP /api/health returns 200', true);
       check('mongo connected', res.body.services?.mongo === 'connected', res.body.services?.mongo);
@@ -110,7 +159,16 @@ async function main() {
   // ── Summary ──────────────────────────────────────────────────────────────
   const failed = results.filter((r) => !r.ok);
   console.log(`\n${failed.length === 0 ? '🎉 ALL CHECKS PASSED' : `💥 ${failed.length} check(s) failed`} (${results.length - failed.length}/${results.length})\n`);
-  process.exit(failed.length === 0 ? 0 : 1);
+  return { total: results.length, failed: failed.length, results: [...results] };
+};
+
+async function main() {
+  console.log(`\n=== Render deploy verify: ${SERVICE_URL} ===\n`);
+  const { failed } = await verifyHealth();
+  process.exit(failed === 0 ? 0 : 1);
 }
 
-main();
+module.exports = { getJson, verifyHealth, RETRYABLE_STATUS, sleep, check };
+if (require.main === module) {
+  main();
+}
