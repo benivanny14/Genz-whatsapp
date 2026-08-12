@@ -16,7 +16,7 @@
  */
 
 const User = require('../models/User');
-const { createDefaultWhatsAppSettings, mergeWhatsAppSettings } = require('../utils/whatsappSettings');
+const { createDefaultWhatsAppSettings, mergeWhatsAppSettings, validateSettingsOptions } = require('../utils/whatsappSettings');
 const { getUser, mergeSettings, createToggleHandler } = require('../services/userScopedService');
 
 // ── Shared helpers (previously duplicated across all three controllers) ─────
@@ -77,9 +77,18 @@ exports.updateSettings = async (req, res) => {
       });
     }
 
+    // SECURITY (3.4): reject invalid enum-style setting values with a 400
+    // instead of silently coercing them to defaults — same guard as
+    // authController.updateSettings, so /api/settings and the auth route agree.
+    const incoming = req.body?.settings || req.body || {};
+    const validationError = validateSettingsOptions(incoming);
+    if (validationError) {
+      return res.status(400).json({ success: false, message: validationError });
+    }
+
     // Merge incoming settings with existing settings (deep merge + option validation)
     const currentSettings = user.settings || createDefaultWhatsAppSettings();
-    const updatedSettings = mergeWhatsAppSettings(currentSettings, req.body);
+    const updatedSettings = mergeWhatsAppSettings(currentSettings, incoming);
 
     user.settings = updatedSettings;
     user.markModified('settings');
