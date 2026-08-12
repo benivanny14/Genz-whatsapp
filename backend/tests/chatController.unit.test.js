@@ -1648,4 +1648,77 @@ describe('chatController — view-once privacy', () => {
     // 1-hour conversation timer, not the 24h view-once default
     expect(saved.disappearAt.getTime() - Date.now()).toBeLessThan(2 * 60 * 60 * 1000);
   });
+
+  it('sendMessage persists allowScreenshot=false for view-once (anti-screenshot)', async () => {
+    const conv = makeConv({ participants: ['user-1', 'user-2'] });
+    Conversation.findById.mockResolvedValue(conv);
+    User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ blockedUsers: [] }) });
+    const populated = makeMessage({ content: 'secret', sender: { _id: 'user-1', username: 'alice' } });
+    Message.create.mockResolvedValue(makeMessage({ content: 'secret' }));
+    Message.findById.mockReturnValue(msgById3(populated));
+    Conversation.findByIdAndUpdate.mockResolvedValue(conv);
+    const res = makeRes();
+    await chat.sendMessage(makeReq({
+      body: { conversationId: VALID_ID, content: 'secret', isViewOnce: true, allowScreenshot: false }
+    }), res);
+    expect(res.statusCode).toBe(201);
+    const saved = Message.create.mock.calls[0][0];
+    expect(saved.isViewOnce).toBe(true);
+    expect(saved.allowScreenshot).toBe(false);
+  });
+
+  it('sendMessage omits allowScreenshot when the sender does not opt out', async () => {
+    const conv = makeConv({ participants: ['user-1', 'user-2'] });
+    Conversation.findById.mockResolvedValue(conv);
+    User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ blockedUsers: [] }) });
+    const populated = makeMessage({ content: 'plain', sender: { _id: 'user-1', username: 'alice' } });
+    Message.create.mockResolvedValue(makeMessage({ content: 'plain' }));
+    Message.findById.mockReturnValue(msgById3(populated));
+    Conversation.findByIdAndUpdate.mockResolvedValue(conv);
+    const res = makeRes();
+    await chat.sendMessage(makeReq({ body: { conversationId: VALID_ID, content: 'plain' } }), res);
+    expect(res.statusCode).toBe(201);
+    const saved = Message.create.mock.calls[0][0];
+    // backend model default (allowScreenshot true) applies — flag not forced
+    expect(saved.allowScreenshot).toBeUndefined();
+  });
+
+  it('reportScreenshotAttempt records the attempt when protection is ON (200 + socket event)', async () => {
+    const emit = jest.fn();
+    const message = viewOnceMsg({ sender: 'user-2', allowScreenshot: false, conversationId: 'c1' });
+    message.save = jest.fn().mockResolvedValue(undefined);
+    Message.findById.mockResolvedValue(message);
+    Conversation.findById.mockResolvedValue(makeConv());
+    const req = makeReq({ params: { messageId: 'm1' }, app: { get: jest.fn(() => ({ to: jest.fn(() => ({ emit })) })) } });
+    const res = makeRes();
+    await chat.reportScreenshotAttempt(req, res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(message.screenshotAttempts).toHaveLength(1);
+    expect(message.screenshotAttempts[0].attemptedBy).toBe('user-1');
+    expect(message.save).toHaveBeenCalled();
+    expect(emit).toHaveBeenCalledWith('message:screenshot-attempted', expect.objectContaining({
+      messageId: 'm1',
+      attemptedBy: 'user-1'
+    }));
+  });
+
+  it('reportScreenshotAttempt returns 403 when protection is OFF (allowScreenshot true)', async () => {
+    const message = viewOnceMsg({ sender: 'user-2', allowScreenshot: true });
+    Message.findById.mockResolvedValue(message);
+    Conversation.findById.mockResolvedValue(makeConv());
+    const res = makeRes();
+    await chat.reportScreenshotAttempt(makeReq({ params: { messageId: 'm1' } }), res);
+    expect(res.statusCode).toBe(403);
+    expect(res.body.message).toMatch(/not enabled/i);
+    expect(message.save).not.toHaveBeenCalled();
+  });
+
+  it('reportScreenshotAttempt returns 404 for a missing message', async () => {
+    Message.findById.mockResolvedValue(null);
+    const res = makeRes();
+    await chat.reportScreenshotAttempt(makeReq({ params: { messageId: 'nope' } }), res);
+    expect(res.statusCode).toBe(404);
+    expect(res.body.message).toMatch(/not found/i);
+  });
 });
