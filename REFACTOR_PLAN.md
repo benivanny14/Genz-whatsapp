@@ -527,6 +527,65 @@ nakala ya `getUser` (na ~34 zina `mergeSettings`), zikiwemo:
   bado haina tests za toggles nyingi za call-features), `advancedController` (58%),
   `chatListController` (59%).
 
+### 17. ✅ Merges za MODs-style controllers zilizobaki (hatua 6 — imekamilika)
+
+#### Kitu kilichofanyika
+- **Controllers 8 → 4** (kila moja ina defaultSettings + mergeSettings tofauti,
+  lakini toggles zote zilitumia `createToggleHandler` moja):
+  - **`messageProtectionController.js`** (mpya) = `antiBanController` + `antiRevokeController` (20 routes)
+  - **`automationToolsController.js`** (mpya) = `automationModsController` + `textRepeaterController` (18 routes)
+  - **`statusToolsController.js`** (mpya) = `statusFeaturesController` + `storyHighlightsController` (22 routes)
+  - **`storageToolsController.js`** (mpya) = `dataUsageController` + `storageManagerController` (18 routes)
+- Toggle handlers **14 zilizokuwa nakala** (antiBan 4, antiRevoke 1, automation 7,
+  statusFeatures 2, storyHighlights 1, dataUsage 2, storageManager 1, textRepeater 1)
+  sasa ni `createToggleHandler` generic (acceptEnabled variant kwa zile zinazokubali
+  `{ enabled }` na kurudisha `settings`; default variant kwa automation toggles
+  zinazorejesha `{ [field]: value }`).
+- Routes 8 sasa zina-require kutoka controllers mpya (route paths hazijabadilika);
+  tests 8 zina-point kwa controllers mpya; controllers 8 za zamani zimefutwa.
+- Hii ndiyo ilikuwa "pendekezo la merge inayofuata" la hatua 6 — baada ya hii,
+  controllers zote MODs-style zimeunganishwa (groupTools/messageTools/callTools/
+  whatsappSession zilikuwa tayari; sasa messageProtection/automationTools/statusTools/storageTools).
+
+#### Verification
+- `npm run check` (327 files) OK; `npm run check:exports` OK;
+  **1632/1632 tests zinapita** (4 skipped). Hakuna mabadiliko ya API.
+
+### 18. ✅ Privacy system: inheritance fix + live refresh + virtual scrolling
+
+#### Kitu kilichofanyika
+- **`services/permissionInheritanceService.js`** (mpya): `applyPermissionInheritance`
+  imetolewa kutoka `chatController` (sasa inatumika pia na `phoneContactsController`
+  upload/sync) + `notifyContactsUpdated` (ina-emit `contacts:updated` kwenye room ya
+  owner baada ya mabadiliko yoyote ya contact list).
+- **Bug ya snake/camel fix**: inheritance ilikuwa inatafuta `privacySettings['last_seen']`
+  lakini settings zinahifadhiwa camelCase (`lastSeen`, `profilePhoto`) — hivyo
+  haikuwahi kufanya kazi kwa last_seen/profile_photo/about. Sasa inatumia map
+  `[settingsKey, privacyType]` (`lastSeen→last_seen`, `profilePhoto→profile_photo`, ...).
+- **Bug ya `isContact()` fix** (`utils/privacyHelper.js` + `middleware/privacy.js`):
+  contacts zinahifadhiwa kama `{ user, savedName }` subdocuments — `c.toString()`
+  ilirudisha `[object Object]` → "My Contacts"/"contacts_except" zilikata kila mtu
+  production (tests zilipita kwa sababu zilitumia id arrays). Sasa inalinganisha
+  `c.user` ikiwa ipo.
+- **`privacyType` normalization** (`privacyContactsController`): frontend inatuma
+  `profilePhoto` (camelCase) lakini permission engine inaangalia `profile_photo` —
+  sasa backend ina-normalize (`profilePhoto→profile_photo`, `lastSeen→last_seen`)
+  kwenye kila handler, hivyo excluded/allowed lists za UI zinafanya kazi kweli.
+- **Inheritance kwenye bulk sync**: `phoneContactsController.uploadPhoneContacts` +
+  `syncContacts` sasa zina-apply `applyPermissionInheritance` kwa kila contact mpya
+  (hapo awali ni `addContact`/`addContactByPhone` pekee za chatController).
+- **Frontend live refresh**: `ChatContext` inasikiliza `contacts:updated`, ina-refresh
+  `/chat/contacts`, na ina-dispatch `window` CustomEvent; `Settings.jsx` +
+  `StatusPrivacyPanel.jsx` zinasikiliza na kurefresh contact selector iliyofunguliwa.
+- **Virtual scrolling** (`ContactSelectorScreen.jsx`): windowed rendering (ROW_HEIGHT
+  fixed, overscan) — orodha ya 10k+ contacts haijengi DOM nodes zote. Alphabetical
+  sort + search + select-all zimebaki.
+
+#### Verification
+- Backend: **1632/1632 tests** (imeongeza regression tests: privacyEngine subdoc
+  contacts, phoneContacts inheritance + socket notify). Frontend: **76/76 tests**
+  (+virtualization tests) + `npm run build` OK. Hakuna mabadiliko ya API.
+
 ---
 
 ## Vigezo vya "done" kwa kila hatua

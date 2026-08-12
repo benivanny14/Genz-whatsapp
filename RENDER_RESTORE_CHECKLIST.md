@@ -18,6 +18,14 @@ kwenye Render, server haianzi kabisa → Render haiwezi kupitisha `/api/health` 
 
 ## Hatua 2 — Weka env zifuatazo (ZOTE ni sharti kwenye production)
 
+> 💡 **Kuna template iliyo tayari**: `RENDER_ENV_TEMPLATE.env` (repo root, kwenye
+> .gitignore) ina secrets zote muhimu **zilizozalishwa fresh** na placeholders
+> za `CHANGE_ME` pekee (Cloudinary, Atlas, SMTP, namba ya malipo). Fungua faili
+> hiyo, badilisha `CHANGE_ME`, kisha bandika yote kwenye Render Dashboard.
+>
+> Tarehe ya secrets: 2026-08-12. Ikiwa unatumia template hiyo, ruka hatua ya
+> kuzalisha secrets hapa chini.
+
 | Key | Thamani | Maelezo |
 |---|---|---|
 | `NODE_ENV` | `production` | Iko tayari kwenye render.yaml — hakikisha haijabadilishwa |
@@ -62,7 +70,7 @@ kwenye Render, server haianzi kabisa → Render haiwezi kupitisha `/api/health` 
 ## Hatua 4 — Deploy upya
 
 1. Render → service `genz-whatsapp` → **Manual Deploy → Deploy latest commit**
-   (hakikisha commit ya hivi karibuni iko kwenye branch iliyounganishwa — kwa sasa `debf9c5`)
+   (hakikisha commit ya hivi karibuni iko kwenye branch iliyounganishwa — kwa sasa `7620e03`)
 2. Subiri deploy ikamilike (5–10 min); angalia **Logs** — utaona
    `Environment validation passed (production)` ikiwa env zote ni sahihi
 3. Ukipata `CRITICAL: Environment validation failed:` — log itaonyesha key gani

@@ -2,6 +2,7 @@ const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
 const Status = require('../models/Status');
 const Broadcast = require('../models/Broadcast');
+const User = require('../models/User');
 const axios = require('axios');
 const { circuit } = require('../utils/circuitBreaker');
 const { cached: cachedResponse } = require('../utils/responseCache');

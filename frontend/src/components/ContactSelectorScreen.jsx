@@ -1,5 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, X, ArrowLeft, Check } from 'lucide-react';
+
+// Fixed row height (px): avatar 48 + vertical padding 24 + 1px border. Used to
+// window the list so 10k+ contacts render without building thousands of DOM
+// nodes (PRIVACY_SYSTEM_TEST_REPORT known limitation #2 — virtual scrolling).
+const ROW_HEIGHT = 73;
+const OVERSCAN = 10;
+
+const sortByName = (a, b) => {
+  const nameA = (a.username || a.name || '').toLowerCase();
+  const nameB = (b.username || b.name || '').toLowerCase();
+  return nameA.localeCompare(nameB);
+};
 
 const ContactSelectorScreen = ({
   privacyType,
@@ -11,47 +23,60 @@ const ContactSelectorScreen = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContacts, setSelectedContacts] = useState(new Set(initialSelectedContacts || []));
-  const [filteredContacts, setFilteredContacts] = useState(contacts);
   const [selectAll, setSelectAll] = useState(false);
+  const [scrollTop, setScrollTop] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState(600);
+  const scrollRef = useRef(null);
 
-  useEffect(() => {
-    // Filter contacts based on search query
+  // Filter + sort the contact list (WhatsApp-style: alphabetical by name).
+  const sortedContacts = useMemo(() => {
     const validContacts = contacts.filter(c => c && (c._id || c.id));
-    
+
     if (!searchQuery.trim()) {
-      // Sort contacts alphabetically by name
-      const sorted = [...validContacts].sort((a, b) => {
-        const nameA = (a.username || a.name || '').toLowerCase();
-        const nameB = (b.username || b.name || '').toLowerCase();
-        return nameA.localeCompare(nameB);
-      });
-      setFilteredContacts(sorted);
-    } else {
-      const query = searchQuery.toLowerCase();
-      const filtered = validContacts.filter(contact => 
+      return [...validContacts].sort(sortByName);
+    }
+
+    const query = searchQuery.toLowerCase();
+    return validContacts
+      .filter(contact =>
         contact.name?.toLowerCase().includes(query) ||
         contact.phone?.toLowerCase().includes(query) ||
         contact.phoneNumber?.toLowerCase().includes(query) ||
         contact.username?.toLowerCase().includes(query)
-      );
-      // Sort filtered contacts alphabetically
-      const sorted = filtered.sort((a, b) => {
-        const nameA = (a.username || a.name || '').toLowerCase();
-        const nameB = (b.username || b.name || '').toLowerCase();
-        return nameA.localeCompare(nameB);
-      });
-      setFilteredContacts(sorted);
-    }
+      )
+      .sort(sortByName);
   }, [searchQuery, contacts]);
 
   useEffect(() => {
-    // Check if all contacts are selected
-    if (filteredContacts.length > 0 && selectedContacts.size === filteredContacts.length) {
+    // Track the visible viewport so windowed rendering knows how many rows fit.
+    const el = scrollRef.current;
+    if (el) setViewportHeight(el.clientHeight || 600);
+
+    const onResize = () => {
+      if (scrollRef.current) setViewportHeight(scrollRef.current.clientHeight || 600);
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  useEffect(() => {
+    // Check if all filtered contacts are selected
+    if (sortedContacts.length > 0 && selectedContacts.size === sortedContacts.length) {
       setSelectAll(true);
     } else {
       setSelectAll(false);
     }
-  }, [selectedContacts, filteredContacts]);
+  }, [selectedContacts, sortedContacts]);
+
+  // Windowed slice: only render rows near the current scroll position.
+  const total = sortedContacts.length;
+  const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN);
+  const endIndex = Math.min(total, startIndex + Math.ceil(viewportHeight / ROW_HEIGHT) + OVERSCAN * 2);
+  const visibleContacts = sortedContacts.slice(startIndex, endIndex);
+
+  const handleScroll = (e) => {
+    setScrollTop(e.currentTarget.scrollTop);
+  };
 
   const handleToggleContact = (contactId) => {
     const newSelected = new Set(selectedContacts);
@@ -69,7 +94,7 @@ const ContactSelectorScreen = ({
       setSelectedContacts(new Set());
     } else {
       // Select all filtered contacts
-      const allIds = new Set(filteredContacts.map(c => (c._id || c.id)?.toString()).filter(Boolean));
+      const allIds = new Set(sortedContacts.map(c => (c._id || c.id)?.toString()).filter(Boolean));
       setSelectedContacts(allIds);
     }
     setSelectAll(!selectAll);
@@ -85,7 +110,7 @@ const ContactSelectorScreen = ({
       name: c.username || c.name,
       phone: c.phoneNumber || c.phone
     }));
-    
+
     onSave(selectedContactIds, selectedContactData);
   };
 
@@ -120,7 +145,7 @@ const ContactSelectorScreen = ({
             Done
           </button>
         </div>
-        
+
         {/* Selected count */}
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -140,12 +165,18 @@ const ContactSelectorScreen = ({
             type="text"
             placeholder="Search by name or phone number"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setScrollTop(0);
+            }}
             className="w-full pl-10 pr-10 py-2 bg-gray-100 dark:bg-gray-700 border-0 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
           />
           {searchQuery && (
             <button
-              onClick={() => setSearchQuery('')}
+              onClick={() => {
+                setSearchQuery('');
+                setScrollTop(0);
+              }}
               className="absolute right-3 top-1/2 transform -translate-y-1/2"
             >
               <X className="w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
@@ -164,25 +195,36 @@ const ContactSelectorScreen = ({
         </button>
       </div>
 
-      {/* Contact List */}
-      <div className="flex-1 overflow-y-auto">
-        {filteredContacts.length === 0 ? (
+      {/* Contact List (windowed) */}
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto"
+      >
+        {total === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
             <Search className="w-12 h-12 mb-3 opacity-50" />
             <p>No contacts found</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100 dark:divide-gray-700">
-            {filteredContacts.map((contact) => {
+          <div style={{ height: total * ROW_HEIGHT, position: 'relative' }}>
+            {visibleContacts.map((contact, index) => {
               const contactId = (contact._id || contact.id)?.toString();
               if (!contactId) return null;
-              
+
               const isSelected = selectedContacts.has(contactId);
               return (
                 <button
                   key={contactId}
                   onClick={() => handleToggleContact(contactId)}
-                  className="w-full px-4 py-3 flex items-center space-x-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  style={{
+                    position: 'absolute',
+                    top: (startIndex + index) * ROW_HEIGHT,
+                    left: 0,
+                    right: 0,
+                    height: ROW_HEIGHT
+                  }}
+                  className="w-full px-4 flex items-center space-x-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-700"
                 >
                   {/* Profile Picture */}
                   <div className="relative">

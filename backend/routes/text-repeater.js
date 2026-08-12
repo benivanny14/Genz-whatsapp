@@ -9,7 +9,7 @@ const {
   toggleTextRepeater,
   updateMaxRepeatCount,
   updateTextRepeaterSettings,
-} = require('../controllers/textRepeaterController');
+} = require('../controllers/automationToolsController');
 
 router.use(protect);
 

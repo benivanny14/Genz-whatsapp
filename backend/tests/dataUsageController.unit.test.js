@@ -13,7 +13,7 @@ jest.mock('../models/Message', () => ({
 const User = require('../models/User');
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
-const dataUsage = require('../controllers/dataUsageController');
+const dataUsage = require('../controllers/storageToolsController');
 
 const makeRes = () => {
   const res = { statusCode: 200 };

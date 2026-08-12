@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const automationModsController = require('../controllers/automationModsController');
+const automationModsController = require('../controllers/automationToolsController');
 const { protect } = require('../middleware/auth');
 
 // Apply authentication middleware to all routes

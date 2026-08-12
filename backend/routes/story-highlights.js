@@ -13,7 +13,7 @@ const {
   toggleStoryHighlights,
   updateStoryHighlight,
   updateStoryHighlightsSettings,
-} = require('../controllers/storyHighlightsController');
+} = require('../controllers/statusToolsController');
 
 router.use(protect);
 

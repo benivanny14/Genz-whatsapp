@@ -98,12 +98,39 @@ describe('applyPrivacyFilter — permission matrix', () => {
       const result = await applyPrivacyFilter(user, CONTACT_ID);
       expect(result.lastSeen).toBeUndefined();
     });
+
+    it('recognizes contacts stored as { user, savedName } subdocuments (production shape)', async () => {
+      const user = makeUser({
+        contacts: [{ user: CONTACT_ID, savedName: 'Bob' }],
+        settings: { privacy: { lastSeen: 'contacts' } }
+      });
+      const contactResult = await applyPrivacyFilter(user, CONTACT_ID);
+      expect(contactResult.lastSeen).toBeDefined();
+
+      const strangerResult = await applyPrivacyFilter(user, STRANGER_ID);
+      expect(strangerResult.lastSeen).toBeUndefined();
+    });
   });
 
   describe('contacts_except', () => {
     it('allows a contact who is not excluded', async () => {
       PrivacyExcludedContact.findOne.mockResolvedValue(null);
       const user = makeUser({ settings: { privacy: { lastSeen: 'contacts_except' } } });
+      const result = await applyPrivacyFilter(user, CONTACT_ID);
+      expect(result.lastSeen).toBeDefined();
+      expect(PrivacyExcludedContact.findOne).toHaveBeenCalledWith({
+        ownerUserId: OWNER_ID,
+        privacyType: 'last_seen',
+        excludedContactId: CONTACT_ID
+      });
+    });
+
+    it('recognizes subdocument contacts in the excluded-list check (production shape)', async () => {
+      PrivacyExcludedContact.findOne.mockResolvedValue(null);
+      const user = makeUser({
+        contacts: [{ user: CONTACT_ID, savedName: 'Bob' }],
+        settings: { privacy: { lastSeen: 'contacts_except' } }
+      });
       const result = await applyPrivacyFilter(user, CONTACT_ID);
       expect(result.lastSeen).toBeDefined();
       expect(PrivacyExcludedContact.findOne).toHaveBeenCalledWith({
@@ -305,28 +332,37 @@ describe('privacyMiddleware', () => {
 });
 
 describe('checkPrivacyPermission / filterUserData', () => {
-  it('allows the owner for any field', () => {
-    expect(checkPrivacyPermission(makeUser(), OWNER_ID, 'lastSeen')).toBe(true);
+  it('allows the owner for any field', async () => {
+    expect(await checkPrivacyPermission(makeUser(), OWNER_ID, 'lastSeen')).toBe(true);
   });
 
-  it('returns false without a user or requester', () => {
-    expect(checkPrivacyPermission(null, STRANGER_ID, 'lastSeen')).toBe(false);
-    expect(checkPrivacyPermission(makeUser(), null, 'lastSeen')).toBe(false);
+  it('returns false without a user or requester', async () => {
+    expect(await checkPrivacyPermission(null, STRANGER_ID, 'lastSeen')).toBe(false);
+    expect(await checkPrivacyPermission(makeUser(), null, 'lastSeen')).toBe(false);
   });
 
-  it('everyone → true for a stranger', () => {
-    expect(checkPrivacyPermission(makeUser(), STRANGER_ID, 'lastSeen')).toBe(true);
+  it('everyone → true for a stranger', async () => {
+    expect(await checkPrivacyPermission(makeUser(), STRANGER_ID, 'lastSeen')).toBe(true);
   });
 
-  it('contacts → true only for contacts', () => {
+  it('contacts → true only for contacts', async () => {
     const user = makeUser({ settings: { privacy: { lastSeen: 'contacts' } } });
-    expect(checkPrivacyPermission(user, CONTACT_ID, 'lastSeen')).toBe(true);
-    expect(checkPrivacyPermission(user, STRANGER_ID, 'lastSeen')).toBe(false);
+    expect(await checkPrivacyPermission(user, CONTACT_ID, 'lastSeen')).toBe(true);
+    expect(await checkPrivacyPermission(user, STRANGER_ID, 'lastSeen')).toBe(false);
   });
 
-  it('nobody → false for everyone else', () => {
+  it('contacts → recognizes subdocument contacts ({ user, savedName })', async () => {
+    const user = makeUser({
+      contacts: [{ user: CONTACT_ID, savedName: 'Bob' }],
+      settings: { privacy: { lastSeen: 'contacts' } }
+    });
+    expect(await checkPrivacyPermission(user, CONTACT_ID, 'lastSeen')).toBe(true);
+    expect(await checkPrivacyPermission(user, STRANGER_ID, 'lastSeen')).toBe(false);
+  });
+
+  it('nobody → false for everyone else', async () => {
     const user = makeUser({ settings: { privacy: { lastSeen: 'nobody' } } });
-    expect(checkPrivacyPermission(user, CONTACT_ID, 'lastSeen')).toBe(false);
+    expect(await checkPrivacyPermission(user, CONTACT_ID, 'lastSeen')).toBe(false);
   });
 
   it('filterUserData delegates to applyPrivacyFilter', async () => {

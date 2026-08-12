@@ -687,7 +687,9 @@ exports.deleteAccount = async (req, res) => {
 
 exports.getBlockedUsers = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).populate('blockedUsers', 'username phoneNumber profilePicture about isOnline lastSeen');
+    // settings + contacts so applyPrivacyFilter can enforce each blocked user's
+    // own privacy rules (missing them would leak restricted fields).
+    const user = await User.findById(req.user._id).populate('blockedUsers', 'username phoneNumber profilePicture about isOnline lastSeen settings contacts');
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
@@ -1076,7 +1078,9 @@ exports.getMyOnlineHistory = async (req, res) => {
 // @access  Private
 exports.getUserOnlineHistory = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select('onlineHistory lastSeen username');
+    // settings + contacts so checkPrivacyPermission can enforce the owner's
+    // last-seen rule (a limited select would read privacySettings as empty).
+    const user = await User.findById(req.params.id).select('onlineHistory lastSeen username settings contacts');
 
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
@@ -1084,7 +1088,7 @@ exports.getUserOnlineHistory = async (req, res) => {
 
     // Respect the owner's last_seen privacy setting before exposing their
     // online history to any other user.
-    const canView = checkPrivacyPermission(user, req.user._id, 'last_seen');
+    const canView = await checkPrivacyPermission(user, req.user._id, 'last_seen');
     if (!canView) {
       return res.status(403).json({ success: false, message: 'Cannot view online history' });
     }

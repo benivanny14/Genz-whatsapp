@@ -142,6 +142,16 @@ const getRuntimeWebRTCConfig = async () => {
 const getWebRTCConfigAsync = async () => getRuntimeWebRTCConfig();
 
 /**
+ * Drop the cached backend config so the next call fetches fresh. Used when
+ * the user toggles "Protect IP address in calls" (the relay policy is
+ * per-user and must not stay stale from page load).
+ */
+const resetWebRTCConfigCache = () => {
+  runtimeConfigCache = null;
+  runtimeConfigPromise = null;
+};
+
+/**
  * Network profiles for different connection qualities
  */
 const NETWORK_PROFILES = {
@@ -411,6 +421,7 @@ export {
   getIceServers,
   getWebRTCConfig,
   getWebRTCConfigAsync,
+  resetWebRTCConfigCache,
   NETWORK_PROFILES,
   getNetworkProfile,
   detectNetworkProfile,

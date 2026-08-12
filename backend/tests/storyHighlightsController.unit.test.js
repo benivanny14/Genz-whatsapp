@@ -8,7 +8,7 @@ jest.mock('../models/Message', () => ({
 
 const User = require('../models/User');
 const Message = require('../models/Message');
-const storyHighlights = require('../controllers/storyHighlightsController');
+const storyHighlights = require('../controllers/statusToolsController');
 
 const makeRes = () => {
   const res = { statusCode: 200 };

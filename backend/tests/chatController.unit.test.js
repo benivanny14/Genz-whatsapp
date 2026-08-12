@@ -73,6 +73,7 @@ jest.mock('../utils/contentFilter', () => ({
 }));
 
 const User = require('../models/User');
+const PrivacyExcludedContact = require('../models/PrivacyExcludedContact');
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const AbuseReport = require('../models/AbuseReport');
@@ -330,6 +331,42 @@ describe('chatController — groups', () => {
     expect(res.statusCode).toBe(403);
   });
 
+  it('createGroup respects contacts_except exclusions (403)', async () => {
+    // user-2 is a contact of the creator but sits on the groups exclusion list.
+    User.find.mockReturnValue({
+      select: jest.fn().mockResolvedValue([{
+        _id: 'user-2',
+        settings: { privacy: { groups: 'contacts_except' } },
+        contacts: [{ user: 'user-1', savedName: 'Alice' }]
+      }])
+    });
+    PrivacyExcludedContact.findOne.mockResolvedValue({ _id: 'ex' });
+    const res = makeRes();
+    await chat.createGroup(makeReq({ body: { name: 'G', participants: ['user-2'] } }), res);
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('approveJoinRequest respects privacy.groups before admitting (403)', async () => {
+    const conv = makeConv({
+      isGroup: true,
+      admins: ['user-1'],
+      pendingJoinRequests: [{ user: 'user-9' }]
+    });
+    Conversation.findById.mockResolvedValue(conv);
+    // user-9 only lets contacts add them to groups — user-1 is not a contact.
+    User.findById.mockReturnValue({
+      select: jest.fn().mockResolvedValue({
+        _id: 'user-9',
+        settings: { privacy: { groups: 'contacts' } },
+        contacts: []
+      })
+    });
+    const res = makeRes();
+    await chat.approveJoinRequest(makeReq({ params: { id: 'c1', userId: 'user-9' } }), res);
+    expect(res.statusCode).toBe(403);
+    expect(conv.participants).not.toContain('user-9');
+  });
+
   it('createGroup creates the group with a system message (happy path)', async () => {
     // createSystemMessage requires valid ObjectIds for both conversation and actor
     const group = makeConv({ isGroup: true, groupName: 'G', _id: VALID_ID });
@@ -383,6 +420,48 @@ describe('chatController — groups', () => {
     expect(conv.participants).toContain('user-3');
     expect(conv.save).toHaveBeenCalled();
     expect(res.body.success).toBe(true);
+  });
+
+  it('addParticipant respects contacts_except exclusions (403)', async () => {
+    Conversation.findById.mockResolvedValue(makeConv({ isGroup: true }));
+    // user-3 is a contact of the adder but is on the adder's groups exclusion list.
+    User.findById.mockReturnValue({
+      select: jest.fn().mockResolvedValue({
+        _id: 'user-3',
+        settings: { privacy: { groups: 'contacts_except' } },
+        contacts: [{ user: 'user-1', savedName: 'Alice' }]
+      })
+    });
+    PrivacyExcludedContact.findOne.mockResolvedValue({ _id: 'ex' });
+    const res = makeRes();
+    await chat.addParticipant(makeReq({ params: { id: 'c1' }, body: { userId: 'user-3' } }), res);
+    expect(res.statusCode).toBe(403);
+    expect(PrivacyExcludedContact.findOne).toHaveBeenCalledWith({
+      ownerUserId: 'user-3',
+      privacyType: 'groups',
+      excludedContactId: 'user-1'
+    });
+  });
+
+  it('addParticipant allows a contact when groups=contacts_except and no exclusion exists', async () => {
+    const conv = makeConv({ isGroup: true });
+    Conversation.findById
+      .mockResolvedValueOnce(conv)
+      .mockReturnValueOnce(populateChain(conv));
+    User.findById.mockReturnValue({
+      select: jest.fn().mockResolvedValue({
+        _id: 'user-3',
+        username: 'carol',
+        settings: { privacy: { groups: 'contacts_except' } },
+        contacts: [{ user: 'user-1', savedName: 'Alice' }]
+      })
+    });
+    PrivacyExcludedContact.findOne.mockResolvedValue(null);
+    Message.create.mockResolvedValue(makeMessage());
+    const res = makeRes();
+    await chat.addParticipant(makeReq({ params: { id: 'c1' }, body: { userId: 'user-3' } }), res);
+    expect(res.statusCode).toBe(200);
+    expect(conv.participants).toContain('user-3');
   });
 
   it('removeParticipant forbids non-admins (403)', async () => {

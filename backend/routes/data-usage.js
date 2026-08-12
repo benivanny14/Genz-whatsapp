@@ -10,7 +10,7 @@ const {
   toggleDataSaver,
   toggleDataUsageTracking,
   updateDataUsageSettings,
-} = require('../controllers/dataUsageController');
+} = require('../controllers/storageToolsController');
 
 router.use(protect);
 

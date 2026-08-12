@@ -398,6 +398,25 @@ export const ChatProvider = ({ children }) => {
     refreshAllMessagesForStats();
   }, [conversations.length, messages.length, refreshAllMessagesForStats]);
   const [contacts, setContacts] = useState([]);
+
+  // Fetch the current user's matched contacts. Used on initial load, on the
+  // 'contacts:updated' socket event (live refresh), and by ContactManager so
+  // the list is never stale when opened. useCallback keeps the identity
+  // stable so consumers can safely put it in effect deps.
+  const loadContacts = React.useCallback(async () => {
+    try {
+      const contactsResponse = await authFetch(`${BACKEND_URL}/chat/contacts`);
+      const contactsData = await contactsResponse.json();
+      if (contactsData?.success) {
+        setContacts(contactsData.contacts || []);
+        return true;
+      }
+    } catch (err) {
+      console.error('[ChatContext] Failed to refresh contacts:', err);
+    }
+    return false;
+  }, []);
+
   const [blockedUsers, setBlockedUsers] = useState([]);
   const blockedUsersRef = useRef([]);
   const [pinnedMessages, setPinnedMessages] = useState({});
@@ -1063,6 +1082,15 @@ export const ChatProvider = ({ children }) => {
           }
           return m;
         }));
+      });
+
+      // ── Contact list changed (added/removed/renamed elsewhere) ──
+      socket.on('contacts:updated', async () => {
+        await loadContacts();
+        // Notify non-context consumers (Settings privacy selector,
+        // StatusPrivacyPanel, ContactManager) so an open contact list
+        // refreshes live.
+        window.dispatchEvent(new CustomEvent('contacts:updated'));
       });
 
       // ── Incoming message ──
@@ -3390,12 +3418,8 @@ export const ChatProvider = ({ children }) => {
 
         // Fetch contacts from backend
         try {
-          const contactsResponse = await authFetch(`${BACKEND_URL}/chat/contacts`);
-          const contactsData = await contactsResponse.json();
-          if (contactsData?.success) {
-            setContacts(contactsData.contacts || []);
-            console.log('[ChatContext] Contacts loaded successfully:', (contactsData.contacts || []).length);
-          }
+          await loadContacts();
+          console.log('[ChatContext] Contacts loaded successfully:', contacts.length);
         } catch (err) {
           console.error('[ChatContext] Failed to load contacts:', err);
         }
@@ -5213,7 +5237,7 @@ export const ChatProvider = ({ children }) => {
     statuses, addStatus, uploadStatusMedia, uploadCollageImages, statusViewers, viewStatus,
     onlineUsers, awayUsers, lastSeenByUser, callLogs, fetchCallLogs, profileVisitors,
     showProfileEditor, setShowProfileEditor,
-    contacts, addContact, removeContact, updateContact,
+    contacts, refreshContacts: loadContacts, addContact, removeContact, updateContact,
     blockedUsers, blockUser, unblockUser,
     createPoll, votePoll, scheduleMessage, scheduledMessages,
     updateGroupMember, joinGroup, updateDisappearingMessages,

@@ -9,7 +9,7 @@ jest.mock('../models/Status', () => ({
 
 const User = require('../models/User');
 const Status = require('../models/Status');
-const statusFeatures = require('../controllers/statusFeaturesController');
+const statusFeatures = require('../controllers/statusToolsController');
 
 const makeRes = () => {
   const res = { statusCode: 200 };

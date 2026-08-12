@@ -1,4 +1,9 @@
 const { logInfo, logError, logWarning, logDebug } = require('../../config/winston');
+const {
+  getContactId,
+  isExcluded,
+  resolveOnlineSetting
+} = require('../../services/privacyEngineService');
 
 
 /**
@@ -184,21 +189,26 @@ module.exports = function registerConversationHandlers(ctx) {
       await User.findByIdAndUpdate(socket.userId, { isOnline: true, lastSeen: new Date() });
       // SECURITY (1.2): respect privacy settings for the online broadcast.
       const privacySettings = user?.settings?.privacy || {};
-      const onlineSetting = privacySettings.online === 'same_as_last_seen'
-        ? privacySettings.lastSeen
-        : privacySettings.online;
+      const onlineSetting = resolveOnlineSetting(privacySettings);
       const payload = { userId: socket.userId, username: user?.username };
       if (onlineSetting === 'nobody') {
         // Do not broadcast
       } else if (onlineSetting === 'contacts' || onlineSetting === 'contacts_except') {
+        // SECURITY: contacts_except skips excluded contacts (presence follows
+        // the last-seen exclusion list).
         const contacts = user?.contacts || [];
-        contacts.forEach(contact => {
-          const contactUserId = contact?.user ? String(contact.user) : String(contact);
-          const recipientSocketId = onlineUsers.get(contactUserId);
+        for (const contact of contacts) {
+          const contactUserId = getContactId(contact);
+          if (!contactUserId) continue;
+          const contactIdStr = String(contactUserId);
+          if (onlineSetting === 'contacts_except' && await isExcluded(socket.userId, 'last_seen', contactIdStr)) {
+            continue;
+          }
+          const recipientSocketId = onlineUsers.get(contactIdStr);
           if (recipientSocketId) {
             io.to(recipientSocketId).emit('user:online', payload);
           }
-        });
+        }
       } else {
         socket.broadcast.emit('user:online', payload);
       }

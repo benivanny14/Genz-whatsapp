@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Save, User, Lock, Bell, Shield, ShieldCheck, Users, Package, Building2, PhoneCall, Eye,
@@ -28,6 +28,7 @@ import userService from '../services/userService';
 import { checkForUpdate } from '../utils/appUpdate';
 import SettingsHelp from '../components/SettingsHelp';
 import api from '../services/api';
+import { resetWebRTCConfigCache } from '../config/webrtc';
 
 const SETTINGS_KEY = 'genz_user_settings';
 
@@ -507,6 +508,15 @@ const Settings = () => {
       if (path === 'chats.theme') {
         window.dispatchEvent(new CustomEvent('language-changed', { detail: { language: value } }));
       }
+      if (path === 'privacy.protectIpAddressInCalls') {
+        // The relay-only ICE policy is served per-user by /webrtc/config and
+        // cached — drop the cache so the next call honors the new setting.
+        try {
+          resetWebRTCConfigCache();
+        } catch (error) {
+          console.warn('Failed to reset WebRTC config cache:', error);
+        }
+      }
       return next;
     });
   };
@@ -702,6 +712,23 @@ const Settings = () => {
       delete window.openContactSelector;
     };
   }, []);
+
+  // Live-refresh the open contact selector when the contact list changes
+  // elsewhere (socket 'contacts:updated' → ChatContext re-fetches and
+  // dispatches a window event).
+  const openContactSelectorRef = useRef(openContactSelector);
+  openContactSelectorRef.current = openContactSelector;
+
+  useEffect(() => {
+    const handler = () => {
+      const open = openContactSelectorRef.current;
+      if (showContactSelector && contactSelectorConfig?.privacyType) {
+        open?.(contactSelectorConfig.privacyType, contactSelectorConfig.selectorType);
+      }
+    };
+    window.addEventListener('contacts:updated', handler);
+    return () => window.removeEventListener('contacts:updated', handler);
+  }, [showContactSelector, contactSelectorConfig]);
 
   const requestAccountInfo = () => {
     try {

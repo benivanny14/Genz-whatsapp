@@ -147,9 +147,10 @@ jobs:
       # (reuseExistingServer skips its own `vite preview` webServer).
       #
       # The suite includes DB-backed specs that register real users against the
-      # backend: privacy-selectors, mass-message, abuse-report, admin-crash-
-      # panel, settings-tabs, chat-interactions, bubble-interactions, header-
-      # composer, anti-revoke, block-flow, voice, deleted-messages-boundary.
+      # backend: privacy-selectors, privacy-contact-selector, mass-message,
+      # abuse-report, admin-crash-panel, settings-tabs, chat-interactions,
+      # bubble-interactions, header-composer, anti-revoke, block-flow, voice,
+      # deleted-messages-boundary.
       # mass-message exercises the 20-recipient cap and 5/hour rate limit;
       # abuse-report drives report → admin list → resolve. Both admin specs
       # provision the shared `e2e_admin` AdminOwner via
@@ -216,6 +217,14 @@ jobs:
           # the dev stack is still up; unique users per run, no DB wiping.
           if ! (cd ../backend && node scripts/e2e-deleted-message.js http://127.0.0.1:5000); then
             echo "::error::Deleted-message socket e2e failed"
+            STATUS=1
+          fi
+
+          # Presence privacy e2e via REAL socket clients: owner online with
+          # lastSeen=contacts_except → the excluded contact must not receive
+          # user:online / user:offline while an allowed contact does.
+          if ! (cd ../backend && node scripts/e2e-presence-privacy.js http://127.0.0.1:5000); then
+            echo "::error::Presence-privacy socket e2e failed"
             STATUS=1
           fi
 
