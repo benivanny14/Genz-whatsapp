@@ -70,7 +70,7 @@ kwenye Render, server haianzi kabisa → Render haiwezi kupitisha `/api/health` 
 ## Hatua 4 — Deploy upya
 
 1. Render → service `genz-whatsapp` → **Manual Deploy → Deploy latest commit**
-   (hakikisha commit ya hivi karibuni iko kwenye branch iliyounganishwa — kwa sasa `ee3281f`)
+   (hakikisha commit ya hivi karibuni iko kwenye branch iliyounganishwa — kwa sasa `7620e03`)
 2. Subiri deploy ikamilike (5–10 min); angalia **Logs** — utaona
    `Environment validation passed (production)` ikiwa env zote ni sahihi
 3. Ukipata `CRITICAL: Environment validation failed:` — log itaonyesha key gani
