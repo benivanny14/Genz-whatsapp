@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Phone, RefreshCw, ShieldAlert, Check } from 'lucide-react';
 import authService from '../services/authService';
 import { useAuth } from '../context/AuthContext';
@@ -189,6 +189,12 @@ const VerifyPhone = () => {
             <RefreshCw size={14} className={resendLoading ? 'animate-spin' : ''} />
             {resendLoading ? 'Sending...' : canResend ? 'Resend OTP' : `Resend in ${countdown}s`}
           </button>
+        </div>
+
+        <div className="mt-6 flex items-center justify-center gap-4 text-xs text-slate-500">
+          <Link to="/terms" className="hover:text-[#00a884] transition-colors">Terms</Link>
+          <span className="text-white/15">•</span>
+          <Link to="/privacy-policy" className="hover:text-[#00a884] transition-colors">Privacy Policy</Link>
         </div>
       </div>
     </div>

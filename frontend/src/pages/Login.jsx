@@ -219,6 +219,12 @@ const Login = () => {
             <Link to="/forgot-password" className="text-[#00a884] hover:text-white transition-colors">Forgot password?</Link>
             <Link to="/register" className="text-slate-300 hover:text-white transition-colors">Create account</Link>
           </div>
+
+          <div className="mt-6 border-t border-white/10 pt-4 flex items-center justify-center gap-4 text-xs text-slate-500">
+            <Link to="/terms" className="hover:text-[#00a884] transition-colors">Terms</Link>
+            <span className="text-white/15">•</span>
+            <Link to="/privacy-policy" className="hover:text-[#00a884] transition-colors">Privacy Policy</Link>
+          </div>
         </form>
       )}
     </div>

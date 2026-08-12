@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Save, User, Lock, Bell, Shield, ShieldCheck, Users, Package, Building2, PhoneCall, Eye,
   Smartphone, ChevronRight, Database, UserRound, KeyRound, Languages,
@@ -1223,7 +1223,7 @@ const Settings = () => {
 
       {showTerms && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4" onClick={() => setShowTerms(false)}>
-          <div className="w-full max-w-lg max-h-[80vh] overflow-y-auto bg-[#111b21] rounded-xl p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-lg bg-[#111b21] rounded-xl p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-white font-semibold">Terms and Privacy Policy</h2>
               <button
@@ -1234,31 +1234,33 @@ const Settings = () => {
                 <X size={20} />
               </button>
             </div>
-            <div className="space-y-4 text-sm text-blue-100/80">
-              <section>
-                <h3 className="text-white font-medium mb-1">1. Acceptance of Terms</h3>
-                <p>By accessing or using GENZ WhatsApp, you agree to be bound by these Terms and our Privacy Policy. If you do not agree, please do not use the app.</p>
-              </section>
-              <section>
-                <h3 className="text-white font-medium mb-1">2. Use of the Service</h3>
-                <p>You may use the service for lawful, personal purposes only. You agree not to misuse the service, attempt unauthorized access, or interfere with other users' use.</p>
-              </section>
-              <section>
-                <h3 className="text-white font-medium mb-1">3. Privacy</h3>
-                <p>We collect account and messaging data necessary to operate the service. Messages are stored and synced to provide seamless chat history. See our Privacy Policy for details on data we collect and how you can request your information.</p>
-              </section>
-              <section>
-                <h3 className="text-white font-medium mb-1">4. Account Security</h3>
-                <p>You are responsible for safeguarding your account credentials. Enable two-factor authentication to protect your account.</p>
-              </section>
-              <section>
-                <h3 className="text-white font-medium mb-1">5. Termination</h3>
-                <p>We may suspend or terminate accounts that violate these Terms. You may delete your account at any time from Settings.</p>
-              </section>
-              <section>
-                <h3 className="text-white font-medium mb-1">6. Changes</h3>
-                <p>We may update these Terms from time to time. Continued use of the app after changes constitutes acceptance of the updated Terms.</p>
-              </section>
+            <p className="text-sm text-blue-100/70 mb-4">
+              Read the full legal documents for GENZ WhatsApp, including our beta disclaimer on
+              end-to-end encryption.
+            </p>
+            <div className="grid gap-3">
+              <Link
+                to="/terms"
+                onClick={() => setShowTerms(false)}
+                className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-left hover:bg-white/10 transition-colors"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-white">Terms of Service</p>
+                  <p className="text-xs text-blue-100/60">Rules, eligibility, and acceptable use</p>
+                </div>
+                <ChevronRight size={18} className="text-white/40" />
+              </Link>
+              <Link
+                to="/privacy-policy"
+                onClick={() => setShowTerms(false)}
+                className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-left hover:bg-white/10 transition-colors"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-white">Privacy Policy</p>
+                  <p className="text-xs text-blue-100/60">Data we collect and how we use it</p>
+                </div>
+                <ChevronRight size={18} className="text-white/40" />
+              </Link>
             </div>
           </div>
         </div>
