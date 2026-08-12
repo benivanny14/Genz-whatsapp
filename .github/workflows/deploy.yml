@@ -42,9 +42,12 @@ jobs:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
           VITE_SOCKET_URL: ${{ secrets.VITE_SOCKET_URL }}
       
+      # NOTE: johnbeynon/render-deploy-action@v0.0.8 only accepts 'service-id'
+      # and 'api-key' as inputs — 'render-api-key'/'wait-for-success' were
+      # silently ignored, so the deploy step exited 0 while Render returned 401
+      # (no API key sent) and production never actually deployed.
       - name: Deploy to Render
         uses: johnbeynon/render-deploy-action@v0.0.8
         with:
           service-id: ${{ secrets.RENDER_SERVICE_ID }}
-          render-api-key: ${{ secrets.RENDER_API_KEY }}
-          wait-for-success: true
+          api-key: ${{ secrets.RENDER_API_KEY }}
