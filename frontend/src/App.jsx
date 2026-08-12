@@ -31,6 +31,8 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AdminSetup = lazy(() => import('./pages/AdminSetup'));
 const GENZMods = lazy(() => import('./pages/GENZMods'));
 const FeatureLibrary = lazy(() => import('./pages/FeatureLibrary'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
@@ -399,6 +401,8 @@ function App() {
             <Route path="/join/:groupId/:code" element={<ProtectedRoute><JoinGroup /></ProtectedRoute>} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/verify-phone" element={<VerifyPhone />} />
             <Route path="/" element={<Navigate to="/chat" replace />} />

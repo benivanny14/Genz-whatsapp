@@ -159,6 +159,11 @@ const ForgotPassword = () => {
             <p className="text-center text-sm text-slate-400">
               <Link to="/login" className="text-[#00a884] hover:underline">Back to login</Link>
             </p>
+            <div className="flex items-center justify-center gap-4 pt-2 text-xs text-slate-500">
+              <Link to="/terms" className="hover:text-[#00a884] transition-colors">Terms</Link>
+              <span className="text-white/15">•</span>
+              <Link to="/privacy-policy" className="hover:text-[#00a884] transition-colors">Privacy Policy</Link>
+            </div>
           </form>
         )}
 
