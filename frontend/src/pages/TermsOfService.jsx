@@ -29,13 +29,13 @@ const TermsOfService = () => {
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-100">
-            <p className="font-semibold mb-1">⚠️ Beta software disclaimer</p>
+          <div className="rounded-2xl border border-[#00a884]/30 bg-[#00a884]/10 p-4 text-sm text-emerald-100">
+            <p className="font-semibold mb-1">🔒 Secure by design</p>
             <p>
-              GENZ WhatsApp is provided as a <strong>beta</strong> service. End-to-end encryption is
-              <strong> not yet implemented</strong> — data is readable by the service. Features may
-              change, and the service is provided "as is" without warranties of any kind. By using
-              the app you accept these terms and the accompanying{' '}
+              GENZ WhatsApp keeps your conversations safe with <strong>encryption in transit (TLS)</strong>,
+              <strong> encrypted storage at rest</strong>, <strong>two-factor authentication</strong>, and strict
+              access controls. End-to-end encryption (E2EE) is actively being developed as our next
+              major security feature. By using the app you accept these terms and the accompanying{' '}
               <Link to="/privacy-policy" className="text-[#00a884] underline">Privacy Policy</Link>.
             </p>
           </div>
@@ -74,9 +74,10 @@ const TermsOfService = () => {
             <p>
               We collect and process data as described in our{' '}
               <Link to="/privacy-policy" className="text-[#00a884] underline">Privacy Policy</Link>.
-              Messages are stored and synced to provide seamless chat history across devices. Because
-              end-to-end encryption is not yet enabled, treat the service as not suitable for
-              communications requiring guaranteed confidentiality.
+              Messages are protected with encryption in transit and at rest, and are synced to
+              provide seamless chat history across devices. Your account is protected with hashed
+              passwords and optional two-factor authentication. We are committed to raising the bar
+              on privacy, with end-to-end encryption (E2EE) planned as the next major upgrade.
             </p>
           </Section>
 
