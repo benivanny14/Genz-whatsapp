@@ -88,6 +88,14 @@ const apiRateLimiter = createRateLimiter({
 /**
  * Strict rate limiter for sensitive operations
  *
+ * Keyed per ADMIN ACCOUNT (req.admin.id, set by superAdminAuth which runs
+ * before this limiter on every /api/admin route) instead of per-IP — several
+ * admins behind one NAT/campus IP no longer share a single 10/hour budget,
+ * and one admin cannot burn the budget for the others. Unauthenticated
+ * endpoints (e.g. /api/admin/bootstrap, which uses protect not superAdminAuth)
+ * fall back to the IP key. Budgets live in the in-memory store, so a process
+ * restart resets them automatically.
+ *
  * Env-overridable (ADMIN_STRICT_MAX) ONLY for CI: the feature-verification
  * scripts legitimately exercise ~10 sensitive admin endpoints in one run.
  * Production keeps the strict default of 10 per hour; the CI override runs
@@ -97,7 +105,10 @@ const apiRateLimiter = createRateLimiter({
 const strictConfiguredMax = parseInt(process.env.ADMIN_STRICT_MAX, 10);
 const strictRateLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: Number.isFinite(strictConfiguredMax) && strictConfiguredMax > 0 ? strictConfiguredMax : 10 // Limit each IP to 10 requests per windowMs
+  max: Number.isFinite(strictConfiguredMax) && strictConfiguredMax > 0 ? strictConfiguredMax : 10, // Limit each admin to 10 requests per windowMs
+  // Per-admin-account key when authenticated; per-IP otherwise.
+  keyGenerator: (req) =>
+    req.admin?.id ? `admin:${req.admin.id}` : ipKeyGenerator(req)
 });
 
 /**

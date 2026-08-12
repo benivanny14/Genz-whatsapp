@@ -97,6 +97,92 @@ describe('backupScheduler isDue (P4)', () => {
   });
 });
 
+describe('strictRateLimiter (admin sensitive ops)', () => {
+  const originalMax = process.env.ADMIN_STRICT_MAX;
+
+  beforeEach(() => {
+    delete process.env.ADMIN_STRICT_MAX;
+    jest.resetModules();
+  });
+
+  afterAll(() => {
+    if (originalMax === undefined) delete process.env.ADMIN_STRICT_MAX;
+    else process.env.ADMIN_STRICT_MAX = originalMax;
+  });
+
+  const makeReq = (overrides = {}) => ({
+    ip: '203.0.113.50',
+    admin: { id: 'admin-1', username: 'root' },
+    headers: {},
+    body: {},
+    ...overrides
+  });
+
+  const call = (req) =>
+    new Promise((resolve) => {
+      const res = {
+        statusCode: 200,
+        status(code) { this.statusCode = code; return this; },
+        send() { resolve(res); },
+        json() { resolve(res); },
+        setHeader() {}
+      };
+      const { strictRateLimiter } = require('../middleware/security');
+      strictRateLimiter(req, res, () => resolve(res));
+    });
+
+  it('is configured per admin account (10/hour) falling back to IP', () => {
+    const ipKeyGenerator = (req) => `ip:${req.ip}`;
+    const rateLimit = jest.fn((opts) => opts);
+    rateLimit.ipKeyGenerator = ipKeyGenerator;
+    jest.doMock('express-rate-limit', () => rateLimit);
+    let limiter;
+    jest.isolateModules(() => {
+      limiter = require('../middleware/security').strictRateLimiter;
+    });
+    jest.dontMock('express-rate-limit');
+
+    expect(limiter.windowMs).toBe(60 * 60 * 1000);
+    expect(limiter.max).toBe(10);
+    expect(typeof limiter.keyGenerator).toBe('function');
+    // Authenticated admin -> per-account key regardless of IP.
+    expect(limiter.keyGenerator(makeReq({ ip: '9.9.9.9' }))).toBe('admin:admin-1');
+    expect(limiter.keyGenerator(makeReq({ ip: '10.0.0.1' }))).toBe('admin:admin-1');
+    // Unauthenticated (bootstrap) -> IP key.
+    expect(limiter.keyGenerator(makeReq({ admin: undefined }))).toBe('ip:203.0.113.50');
+  });
+
+  it('allows 10 sensitive ops per hour then returns 429', async () => {
+    for (let i = 0; i < 10; i++) {
+      expect((await call(makeReq())).statusCode).toBe(200);
+    }
+    expect((await call(makeReq())).statusCode).toBe(429);
+  });
+
+  it('keeps separate budgets per admin account', async () => {
+    // Exhaust admin-1's budget...
+    for (let i = 0; i < 10; i++) {
+      expect((await call(makeReq())).statusCode).toBe(200);
+    }
+    expect((await call(makeReq())).statusCode).toBe(429);
+    // ...while admin-2 (same IP) is unaffected.
+    const res = await call(makeReq({ admin: { id: 'admin-2', username: 'root2' } }));
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('respects the ADMIN_STRICT_MAX override for CI runs', () => {
+    process.env.ADMIN_STRICT_MAX = '100';
+    const rateLimit = jest.fn((opts) => opts);
+    jest.doMock('express-rate-limit', () => rateLimit);
+    let limiter;
+    jest.isolateModules(() => {
+      limiter = require('../middleware/security').strictRateLimiter;
+    });
+    jest.dontMock('express-rate-limit');
+    expect(limiter.max).toBe(100);
+  });
+});
+
 describe('presenceStore (P2 Redis presence)', () => {
   afterEach(() => {
     const known = ['u1', 'u2', 'gone'];
