@@ -11,10 +11,17 @@ import { Capacitor } from '@capacitor/core';
 
 // Native plugins are imported statically so they are bundled for the APK;
 // the code below never calls them unless Capacitor.isNativePlatform() is true.
+import { App } from '@capacitor/app';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
+
+// Static imports (authSession/authFetch are already in the main chunk — the
+// previous dynamic imports were ineffective and tripped Vite's chunking).
+// The .js extension matters: node --test resolves ESM without a bundler.
+import { API_URL } from '../utils/authSession.js';
+import { authFetch } from '../utils/authFetch.js';
 
 export const isNative = () => !!(Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
 
@@ -58,11 +65,6 @@ let pushListenersAttached = false;
  */
 const registerNativeToken = async (token) => {
   try {
-    // Lazy import keeps this module safe in non-browser (node test) contexts.
-    const [{ authFetch }, { API_URL }] = await Promise.all([
-      import('../utils/authFetch.js'),
-      import('../utils/authSession.js')
-    ]);
     const res = await authFetch(`${API_URL}/notifications/fcm/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -151,6 +153,22 @@ export const initNativePush = async () => {
   } catch (e) {
     console.warn('[CapacitorBridge] Native push unavailable (FCM not configured?):', e?.message || e);
     return { success: false, reason: e?.message || 'push-unavailable' };
+  }
+};
+
+// ── App version (native only) ──────────────────────────────────────────────
+/**
+ * Installed app version inside the native APK/iOS build.
+ * Returns { version, versionCode } (Android) or { version, build } (iOS),
+ * or null on the web where there is no native app to ask.
+ */
+export const getAppInfo = async () => {
+  if (!isNative()) return null;
+  try {
+    return await App.getInfo();
+  } catch (e) {
+    console.warn('[CapacitorBridge] App.getInfo failed:', e?.message || e);
+    return null;
   }
 };
 
@@ -282,6 +300,7 @@ const blobToBase64 = (blob) =>
 
 export default {
   isNative,
+  getAppInfo,
   showNativeNotification,
   initNativePush,
   downloadUrl,

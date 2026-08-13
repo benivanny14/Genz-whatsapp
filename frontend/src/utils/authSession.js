@@ -1,9 +1,9 @@
-import { setAuthTokens, clearAuthTokens, getAuthToken, getRefreshToken } from './tokenStore';
-import { shouldSkipLoginRedirect } from './loginRedirect';
-import { getDeviceHeaders } from './deviceIdentity';
-import { resolveApiBase } from './resolveApiBase';
-import db from './indexedDB';
-import { DB } from '../services/db';
+import { setAuthTokens, clearAuthTokens, getAuthToken, getRefreshToken } from './tokenStore.js';
+import { shouldSkipLoginRedirect } from './loginRedirect.js';
+import { getDeviceHeaders } from './deviceIdentity.js';
+import { resolveApiBase } from './resolveApiBase.js';
+import db from './indexedDB.js';
+import { DB } from '../services/db.js';
 
 export const API_URL = resolveApiBase() || '/api';
 

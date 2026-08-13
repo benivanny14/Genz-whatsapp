@@ -257,6 +257,11 @@ const Login = () => {
               GENZ WhatsApp Android v{apkVersion.version}
             </p>
           )}
+          <p className="mt-1 text-center text-[11px] text-slate-600">
+            <Link to="/install" className="text-[#00a884]/70 hover:text-[#00a884]">
+              How to install — Jinsi ya kusakinisha
+            </Link>
+          </p>
         </form>
       )}
     </div>

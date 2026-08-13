@@ -1,5 +1,5 @@
-import { getDeviceHeaders } from './deviceIdentity';
-import { readAccessToken, tryRefreshAccessToken, clearSessionAndRedirect } from './authSession';
+import { getDeviceHeaders } from './deviceIdentity.js';
+import { readAccessToken, tryRefreshAccessToken, clearSessionAndRedirect } from './authSession.js';
 
 function headersToPlainObject(h) {
   if (!h) return {};

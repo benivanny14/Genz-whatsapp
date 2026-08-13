@@ -4,6 +4,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import InAppNotification from './components/InAppNotification';
 import OfflineBanner from './components/OfflineBanner';
 import InstallAppPrompt from './components/InstallAppPrompt';
+import UpdateBanner from './components/UpdateBanner';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 import MobileBottomNav from './components/MobileBottomNav';
@@ -33,6 +34,7 @@ const GENZMods = lazy(() => import('./pages/GENZMods'));
 const FeatureLibrary = lazy(() => import('./pages/FeatureLibrary'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
+const InstallGuide = lazy(() => import('./pages/InstallGuide'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
@@ -365,6 +367,7 @@ function App() {
       />
       <OfflineBanner />
       <InstallAppPrompt />
+      <UpdateBanner />
       <InAppNotification
         notification={notification}
         onClose={() => setNotification(null)}
@@ -403,6 +406,7 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/install" element={<InstallGuide />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/verify-phone" element={<VerifyPhone />} />
             <Route path="/" element={<Navigate to="/chat" replace />} />

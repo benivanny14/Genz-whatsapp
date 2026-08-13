@@ -1,6 +1,6 @@
 const DEVICE_ID_KEY = 'genz_device_id';
 const DEVICE_INFO_KEY = 'genz_device_info';
-import db from './indexedDB';
+import db from './indexedDB.js';
 
 // Get or generate device ID
 export const getDeviceId = () => {

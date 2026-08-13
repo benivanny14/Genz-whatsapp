@@ -103,7 +103,7 @@ moja.
 | APK ndogo sana / download 404 | `public/genz-whatsapp.apk` haipo kwenye repo au dist haija-built upya. Rebuild + commit. |
 | Play Protect inaonya "untrusted" | Kawaida kwa sideload — usemi "Install anyway". Hakikisha tuna-build na release keystore (sio debug) ili isiwe mbaya zaidi. |
 | Users wanaweka version ya zamani | Onyesha version kwenye login page na u-tangaze update; hatuna auto-update kwa sababu hatuko Play Store. |
-| APK ina-upload polepole | APK ni ~10MB; ina-serve kutoka dist ya Render — hakikisha disk space ya Render inatosha. |
+| APK ina-upload polepole | APK ni ~6MB (imepunguzwa kutoka 10.5MB kwa kuondoa APK iliyojipachika ndani yake); ina-serve kutoka dist ya Render — hakikisha disk space ya Render inatosha. |
 
 ---
 

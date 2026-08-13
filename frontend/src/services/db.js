@@ -1,5 +1,5 @@
 // Native IndexedDB Wrapper for GENZ WhatsApp
-import { hasStaleBlobUrl, messageHasStaleBlobUrl } from '../utils/blobUtils';
+import { hasStaleBlobUrl, messageHasStaleBlobUrl } from '../utils/blobUtils.js';
 
 const DB_BASE_NAME = 'genz_whatsapp_db';
 const DB_VERSION = 2;

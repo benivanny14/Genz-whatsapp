@@ -7,6 +7,40 @@ by commit.
 
 ---
 
+## [2026-08-13] — v1.1.0 APK: in-app update banner, install guide page + 44% smaller APK
+
+**In-app update banner (APK)**
+- `@capacitor/app` + `UpdateBanner.jsx`: the installed APK compares its own
+  versionCode (`App.getInfo()`) against `/version.json` (written by
+  `npm run apk:build`) and shows a dismissible teal banner — "Update
+  available — vX.Y.Z" — with a one-tap APK re-download. Renders nothing on
+  the web and never when up to date.
+
+**How-to-install page**
+- New `/install` route (lazy-loaded): bilingual (Kiswahili/English) guide to
+  the Chrome download flow — unknown-source permission, Play Protect prompt,
+  updates; linked from the login page under the Download button.
+
+**APK size: 10.5 MB → 5.8 MB (−44%)**
+- The previous release APK embedded a 4.6MB copy of itself
+  (`assets/public/genz-whatsapp.apk`); `apk:build` already strips it from
+  dist before `cap sync`, and the rebuilt APK is verified clean (unzip check).
+- Replaced the two ineffective dynamic imports in `capacitorBridge.js` with
+  static imports (fixes Vite's INEFFECTIVE_DYNAMIC_IMPORT warnings); the
+  auth chain is now node-ESM-clean (`.js` extensions on tokenStore/authFetch/
+  deviceIdentity/db/blobUtils) and `resolveApiBase` guards against missing
+  `import.meta.env` — frontend suite grew 75 → 80 tests, all passing.
+
+**Release**
+- v1.1.0 (versionCode 2) built and signed; `version.json` now carries the
+  matching sha256 (users can verify the APK they downloaded).
+
+**Verification**
+- Frontend: 80/80 unit tests · production build ✓ (no ineffective-import
+  warnings) · check:jsx ✓ · login + /install verified in the live preview.
+
+---
+
 ## [2026-08-13] — iOS target, real-FCM guide + release tooling for Chrome-download distribution
 
 **iOS build (Capacitor, Xcode required)**
