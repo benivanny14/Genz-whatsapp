@@ -7,6 +7,25 @@ by commit.
 
 ---
 
+## [2026-08-13] — v1.1.3: fresh version checks, SW cache fix, deploy-lag alerts
+
+**Service worker no longer caches /version.json or the APK (bug fix)**
+- The cache-first SW handler was swallowing `/version.json` — it only refetched
+  on cache miss, so the login version line and the in-app update banner kept
+  showing the version from the user's first visit forever. A new release was
+  invisible until the cache was manually cleared. Worse, a stale cached copy
+  of the APK could be handed to a user clicking Download, installing an old
+  build over a new one. Both requests now bypass the SW entirely (SW v5,
+  cache renamed to force a clean slate).
+- `server.js` now sends `Cache-Control: no-store` for `/version.json` and
+  `/genz-whatsapp.apk`, so the update banner always sees fresh data even when
+  the express static cache would have kept a day-old copy.
+
+**Nightly alert issue now reports deploy lag**
+- When live ≠ repo version, the alert issue includes a version comparison
+  table (repo vs live) plus links to the deploy workflow, Render status
+  workflow, and latest releases — instead of a one-line warning.
+
 ## [2026-08-13] — v1.1.2: smart download fallback, nightly deploy-health alerts, GitHub-first updates
 
 **Smart download fallback (login page)**

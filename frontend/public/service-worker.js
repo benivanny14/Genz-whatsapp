@@ -1,5 +1,14 @@
-// GENZ WhatsApp Service Worker v4
+// GENZ WhatsApp Service Worker v5
 // Handles: Push notifications (foreground+background), offline cache, background sync
+//
+// v5 change: /version.json and the APK must NEVER be served from the cache.
+// The cache-first handler below used to swallow /version.json (only refetching
+// on cache miss), so the login page version line and the in-app update banner
+// kept showing the version from the user's FIRST visit forever — a new
+// release was invisible until the cache was manually cleared. The APK was
+// worse: a stale cached copy could be handed to a user clicking Download,
+// installing an old build over a new one. Both now bypass the SW entirely
+// (the server also sends Cache-Control: no-store for them).
 //
 // v4 change: like WhatsApp, the app itself must open while fully offline —
 // showing cached chats and an in-app "connecting..." indicator — instead of
@@ -11,7 +20,7 @@
 //  2) Any never-before-visited route opened directly while offline (e.g. a
 //     deep link) also fell to offline.html instead of loading the cached
 //     app shell and letting the client-side router take it from there.
-const CACHE_NAME = 'genz-wa-v4';
+const CACHE_NAME = 'genz-wa-v5';
 const APP_SHELL_URL = '/';
 const STATIC_CACHE = ['/manifest.json', APP_SHELL_URL];
 
@@ -67,11 +76,16 @@ const NAV_NETWORK_TIMEOUT_MS = 4000;
 self.addEventListener('fetch', (e) => {
   const { request } = e;
 
-  // Skip API calls, Socket.IO polling, and any non-GET requests
+  // Skip API calls, Socket.IO polling, the update manifest (/version.json) and
+  // the APK — all must hit the network every time — plus any non-GET request.
+  // /version.json is the source of truth for the update banner; the APK must
+  // never come from a stale cache entry (see v5 note above).
   if (
     request.method !== 'GET' ||
     request.url.includes('/api/') ||
-    request.url.includes('/socket.io/')
+    request.url.includes('/socket.io/') ||
+    request.url.includes('/version.json') ||
+    request.url.endsWith('.apk')
   ) {
     return;
   }

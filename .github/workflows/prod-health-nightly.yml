@@ -49,12 +49,16 @@ jobs:
           echo "live: ${LIVE_VER:-UNREACHABLE}"
           REPO_VER=$(grep -o '"version": "[^"]*"' frontend/public/version.json | head -1)
           echo "repo: $REPO_VER"
+          echo "live_ver=$LIVE_VER" >> "$GITHUB_OUTPUT"
+          echo "repo_ver=$REPO_VER" >> "$GITHUB_OUTPUT"
+          echo "run_url=https://github.com/benivanny14/Genz-whatsapp/actions/runs/${{ github.run_id }}" >> "$GITHUB_OUTPUT"
           if [ -z "$LIVE_VER" ]; then
             echo '::error::version.json unreachable on production (UI host)'
             exit 1
           fi
           if [ "$LIVE_VER" != "$REPO_VER" ]; then
-            echo '::warning::deployed version differs from repo — Render deploy may be lagging or failed'
+            echo '::error::deployed version differs from repo — Render deploy may be lagging or failed (see the comparison in the alert issue)'
+            exit 1
           fi
           echo "-- APK reachability (first 1KB) --"
           CODE=$(curl -s -o /dev/null -w '%{http_code}' -m 60 -r 0-1023 "$UI/genz-whatsapp.apk" || true)
@@ -76,6 +80,8 @@ jobs:
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+          LIVE_VER: ${{ steps.apk.outputs.live_ver }}
+          REPO_VER: ${{ steps.apk.outputs.repo_ver }}
         run: node scripts/render-deploy-status.js --limit 3 || echo '::warning::could not read deploy history (credentials?)'
 
       - name: File alert issue on failure
@@ -93,6 +99,9 @@ jobs:
             });
             const alreadyOpen = existing.some((issue) => issue.title === title);
             if (!alreadyOpen) {
+              const liveVer = process.env.LIVE_VER || 'unreachable';
+              const repoVer = process.env.REPO_VER || 'unknown';
+              const lag = liveVer !== repoVer;
               await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -105,7 +114,20 @@ jobs:
                   `- **Workflow run:** ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
                   `- **Service:** https://genz-whatsapp-1.onrender.com`,
                   '',
-                  'Check the workflow run logs for the failing check (deploy state, `/api/health`, mongo connection, media storage).'
+                  lag
+                    ? [
+                        '## ⚠️ Deploy lag detected',
+                        '',
+                        '| | Version |',
+                        '|---|---|',
+                        `| **Repo** (latest code) | ${repoVer} |`,
+                        `| **Live** (production) | ${liveVer} |`,
+                        '',
+                        `- Check the [deploy workflow](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/workflows/deploy.yml) — the Render build may have failed.`,
+                        `- Run the **Render status** workflow (Actions tab) for the deploy history, or check the dashboard.`,
+                        `- Latest release: https://github.com/benivanny14/Genz-whatsapp/releases`
+                      ].join('\n')
+                    : 'Check the workflow run logs for the failing check (deploy state, `/api/health`, mongo connection, media storage, APK reachability).'
                 ].join('\n')
               });
               console.log('Alert issue created');
