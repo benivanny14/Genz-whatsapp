@@ -225,6 +225,20 @@ const Login = () => {
             <span className="text-white/15">•</span>
             <Link to="/privacy-policy" className="hover:text-[#00a884] transition-colors">Privacy Policy</Link>
           </div>
+
+          <a
+            href="/genz-whatsapp.apk"
+            download="genz-whatsapp.apk"
+            className="mt-4 w-full flex items-center justify-center gap-2 rounded-md border border-[#00a884]/40 bg-[#00a884]/10 hover:bg-[#00a884]/20 py-2.5 text-sm font-semibold text-[#00a884] transition-colors"
+            title="Download the Android app (APK)"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Download Android App
+          </a>
         </form>
       )}
     </div>

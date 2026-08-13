@@ -127,12 +127,18 @@ const appOrigins = [
   'http://127.0.0.1:3000',
   'http://127.0.0.1:5173',
   'http://127.0.0.1:5174',
-  'http://127.0.0.1:5175'
+  'http://127.0.0.1:5175',
+  // Capacitor native webview origins (Android uses https://localhost,
+  // older builds used capacitor://localhost)
+  'https://localhost',
+  'capacitor://localhost'
 ].filter(Boolean);
 
 const isAllowedAppOrigin = (origin) => {
   if (!origin) return true;
   if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) return true;
+  // Capacitor webviews report the scheme origin (https://localhost) without a port
+  if (origin === 'https://localhost' || origin === 'capacitor://localhost') return true;
   return appOrigins.includes(origin);
 };
 
