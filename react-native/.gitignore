@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Android build artifacts
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/app/debug/
+android/app/release/
+*.keystore
+!android/app/debug.keystore
+
+# iOS build artifacts
+ios/Pods/
+ios/build/
+
+# Metro
+.metro-health-check*
+
+# Misc
+*.log
+.DS_Store
+npm-debug.*
+yarn-error.*
