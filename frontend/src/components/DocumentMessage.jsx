@@ -1,5 +1,6 @@
 import React from 'react';
 import { FileText, FileSpreadsheet, Image as ImageIcon, File, Download, ExternalLink } from 'lucide-react';
+import { downloadUrl } from '../services/capacitorBridge';
 
 const DocumentMessage = ({ fileName, fileSize, fileUrl, messageType }) => {
   const getFileIcon = (fileName) => {
@@ -24,11 +25,7 @@ const DocumentMessage = ({ fileName, fileSize, fileUrl, messageType }) => {
   const isPdf = fileName?.toLowerCase().endsWith('.pdf');
 
   const handleDownload = () => {
-    const link = document.createElement('a');
-    link.href = fileUrl;
-    link.download = fileName;
-    link.target = '_blank';
-    link.click();
+    downloadUrl(fileUrl, fileName);
   };
 
   const handlePreview = () => {

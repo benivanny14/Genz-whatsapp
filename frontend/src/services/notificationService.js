@@ -7,6 +7,7 @@
 import { authFetch } from '../utils/authFetch';
 import { API_URL } from '../utils/authSession';
 import { getDeviceId } from '../utils/deviceIdentity';
+import { isNative, showNativeNotification, initNativePush } from './capacitorBridge';
 
 const NOTIFICATION_SETTINGS_KEY = 'genz_notification_settings';
 const ENABLE_DEV_SERVICE_WORKER = import.meta.env.VITE_ENABLE_DEV_SERVICE_WORKER === 'true';
@@ -160,6 +161,16 @@ export const requestNotificationPermission = async () => {
 export const showNotification = async (title, body, options = {}) => {
   const settings = getNotificationSettings();
   if (!settings.enabled) return;
+
+  // Native APK: use the platform notification center (works even when the
+  // WebView is backgrounded, unlike the browser Notification API).
+  if (isNative()) {
+    await showNativeNotification(title, body, {
+      ...options,
+      extra: { conversationId: options.data?.conversationId, ...(options.data || {}) }
+    });
+    return;
+  }
 
   const permission = await requestNotificationPermission();
   if (permission !== 'granted') return;
@@ -347,6 +358,13 @@ export const subscribeToWebPush = async (registration) => {
 };
 
 export const initialize = async () => {
+  // Native APK: register the FCM push token with the backend. Without a
+  // Firebase project the plugin degrades gracefully to local notifications.
+  if (isNative()) {
+    const nativePush = await initNativePush();
+    return { permission: 'granted', registration: null, push: nativePush };
+  }
+
   const permission = await requestNotificationPermission();
   const registration = await registerServiceWorker();
   setupBackgroundNotificationHandler();

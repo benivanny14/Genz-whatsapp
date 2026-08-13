@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { QrCode, Scan, Copy, Download, Share2, RefreshCw, X, Check, Smartphone, Link, User, Shield } from 'lucide-react';
+import { saveDataUrl } from '../services/capacitorBridge';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const QRCodeGenerator = ({ data, type = 'profile', onClose }) => {
@@ -48,10 +49,7 @@ const QRCodeGenerator = ({ data, type = 'profile', onClose }) => {
         ctx.drawImage(img, 0, 0);
         
         const pngFile = canvas.toDataURL('image/png');
-        const downloadLink = document.createElement('a');
-        downloadLink.download = `qrcode-${type}.png`;
-        downloadLink.href = pngFile;
-        downloadLink.click();
+        saveDataUrl(pngFile, `qrcode-${type}.png`);
       };
       
       img.src = 'data:image/svg+xml;base64,' + btoa(svgData);

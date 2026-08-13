@@ -1,5 +1,6 @@
 import React from 'react';
 import { FileText, Download, X, Image, Video, Music } from 'lucide-react';
+import { downloadUrl } from '../services/capacitorBridge';
 
 const FilePreview = ({ fileUrl, fileName, onClose }) => {
   const getFileIcon = (fileName, size = 24) => {
@@ -15,7 +16,7 @@ const FilePreview = ({ fileUrl, fileName, onClose }) => {
   };
 
   const handleDownload = () => {
-    window.open(fileUrl, '_blank');
+    downloadUrl(fileUrl, fileName);
   };
 
   return (

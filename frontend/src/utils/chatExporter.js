@@ -1,4 +1,11 @@
 // Chat export utility - exports chat as .txt file (WhatsApp format)
+import { saveBlob } from '../services/capacitorBridge.js';
+
+// Shared download helper: native APK saves via the share sheet, browsers use
+// the classic object-URL anchor click.
+const downloadBlob = (blob, filename) => {
+  saveBlob(blob, filename);
+};
 
 export const exportChatAsTxt = (messages = [], conversationName = 'Chat', currentUserId) => {
   const lines = [
@@ -45,14 +52,7 @@ export const exportChatAsTxt = (messages = [], conversationName = 'Chat', curren
   lines.push('', `${'─'.repeat(40)}`, 'Exported from GENZ WhatsApp');
 
   const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${conversationName.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.txt`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  downloadBlob(blob, `${conversationName.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.txt`);
 };
 
 /**
@@ -107,14 +107,7 @@ export const exportChatAsWhatsAppTxt = (messages = [], conversationName = 'Chat'
   });
 
   const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${conversationName.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.txt`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  downloadBlob(blob, `${conversationName.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.txt`);
 };
 
 export const exportChatAsJson = (messages = [], conversationName = 'Chat') => {
@@ -134,12 +127,5 @@ export const exportChatAsJson = (messages = [], conversationName = 'Chat') => {
   };
 
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${conversationName.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  downloadBlob(blob, `${conversationName.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.json`);
 };

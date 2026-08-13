@@ -114,6 +114,17 @@ React Native runtime needed.
 - **Signing**: release builds are signed with `frontend/android/genz-release.keystore`
   configured via gitignored `frontend/android/keystore.properties`. Back those up —
   they are not in git and are required to ship updates with the same signature.
+- **Native push + media downloads** (`src/services/capacitorBridge.js`): the APK runs
+  the web app in a Capacitor WebView with 4 native plugins wired in:
+  - `@capacitor/push-notifications` — registers an FCM token and POSTs it to
+    `/api/notifications/fcm/register`; incoming pushes feed the same in-app toasts
+    the web app uses. Requires `android/app/google-services.json` + a Firebase
+    project to deliver background pushes (see `capacitor.config.json`).
+  - `@capacitor/local-notifications` — system notifications for messages/calls when
+    the app runs in the WebView (web Notification API is unavailable there).
+  - `@capacitor/filesystem` + `@capacitor/share` — downloads (documents, voice
+    notes, QR codes, chat exports) fetch/save to the device and open the system
+    share sheet; browsers keep the classic anchor download.
 
 ## Live phone preview (dev)
 

@@ -3,6 +3,8 @@
  * Registers Service Worker, requests permission, and sends push notifications
  */
 
+import { isNative, showNativeNotification } from './capacitorBridge';
+
 const SW_URL = '/service-worker.js';
 const ENABLE_DEV_SERVICE_WORKER = import.meta.env.VITE_ENABLE_DEV_SERVICE_WORKER === 'true';
 
@@ -59,6 +61,15 @@ export const requestNotificationPermission = async () => {
 
 // ── Show local notification ───────────────────────────────────────────────
 export const showLocalNotification = async (title, body, options = {}) => {
+  // Native APK: show through the platform notification center.
+  if (isNative()) {
+    await showNativeNotification(title, body, {
+      ...options,
+      extra: { conversationId: options.conversationId }
+    });
+    return;
+  }
+
   const perm = await requestNotificationPermission();
   if (perm !== 'granted') return;
 

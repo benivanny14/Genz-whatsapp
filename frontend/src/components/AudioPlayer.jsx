@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback, memo } from 'react';
 import { Play, Pause, Download, Eye } from 'lucide-react';
+import { downloadUrl } from '../services/capacitorBridge';
 import { resolveMediaPlaybackUrl, ensureSignedMediaUrl } from '../utils/sanitizeMediaUrl';
 import { useAuth } from '../context/AuthContext';
 import { applyAntiScreenshot, initAntiScreenshotListeners, setScreenshotAttemptCallback, getScreenshotAttemptCallback, isAntiScreenshotActive } from '../utils/antiScreenshot';
@@ -267,10 +268,7 @@ const AudioPlayer = ({
 
   const handleDownload = useCallback(() => {
     if (onDownload) { onDownload(audioUrl); return; }
-    const a = document.createElement('a');
-    a.href = audioUrl;
-    a.download = `voice-note-${Date.now()}.webm`;
-    a.click();
+    downloadUrl(audioUrl, `voice-note-${Date.now()}.webm`);
   }, [audioUrl, onDownload]);
 
   const handleToggleLock = useCallback(() => {
