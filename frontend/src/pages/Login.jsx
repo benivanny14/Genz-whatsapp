@@ -54,7 +54,10 @@ const Login = () => {
     const timer = setTimeout(() => controller.abort(), 8000);
     fetch(apkVersion.apkUrl || '/genz-whatsapp.apk', { method: 'HEAD', signal: controller.signal })
       .then((res) => {
-        if (!cancelled) setApkLocalOk(res.ok);
+        if (cancelled) return;
+        const ct = res.headers.get('content-type') || '';
+        const isRealApk = res.ok && !/text\/html/i.test(ct);
+        setApkLocalOk(isRealApk);
       })
       .catch(() => {
         if (!cancelled) setApkLocalOk(false);

@@ -106,7 +106,7 @@ const InstallGuide = () => {
           </Step>
 
           <a
-            href="/genz-whatsapp.apk"
+            href="https://github.com/benivanny14/Genz-whatsapp/releases/latest/download/genz-whatsapp.apk"
             download="genz-whatsapp.apk"
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00a884] py-3 font-bold text-white hover:bg-[#00c795] transition-colors"
           >
@@ -114,11 +114,12 @@ const InstallGuide = () => {
             Download Android App
           </a>
           <a
-            href="https://github.com/benivanny14/Genz-whatsapp/releases/latest/download/genz-whatsapp.apk"
+            href="/genz-whatsapp.apk"
+            download="genz-whatsapp.apk"
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] py-3 text-sm font-semibold text-slate-300 hover:bg-white/10 transition-colors"
           >
             <Download size={18} />
-            Download from GitHub (kasi zaidi / faster)
+            Same-origin download (kama server ipo / if the server is up)
           </a>
           <p className="text-center text-xs text-slate-500">
             Android tu — kwa sasa. iPhone inakuja karibuni. / Android only — iOS is coming soon.
