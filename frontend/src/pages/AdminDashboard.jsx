@@ -259,6 +259,75 @@ const UpdateEventsPanel = () => {
   );
 };
 
+// ---------------------------------------------------------------------
+// Nightly production-health check: last runs of the prod-health-nightly
+// workflow (proxy of GitHub's public API — /api/admin/nightly-status).
+// Shows whether the automated nightly checks are green.
+const NightlyStatusPanel = () => {
+  const [runs, setRuns] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    try {
+      const { data } = await adminApi.get('/admin/nightly-status');
+      setRuns(data?.runs || []);
+    } catch {
+      setRuns([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-gray-800 dark:text-gray-200 font-medium">Nightly Health Check</h3>
+        <button
+          onClick={load}
+          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xs flex items-center gap-1"
+        >
+          <RefreshCcw size={12} /> Refresh
+        </button>
+      </div>
+      {loading ? (
+        <p className="text-sm text-gray-400">Inapakia…</p>
+      ) : runs.length === 0 ? (
+        <p className="text-sm text-gray-400">Hakuna runs (au GitHub API haijibu).</p>
+      ) : (
+        <div className="space-y-1.5 text-sm">
+          {runs.map((r) => {
+            const ok = r.conclusion === 'success';
+            const running = r.status !== 'completed';
+            return (
+              <a
+                key={r.id}
+                href={`https://github.com/benivanny14/Genz-whatsapp/actions/runs/${r.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between rounded-lg border border-gray-100 dark:border-gray-800 px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                <span className="flex items-center gap-2">
+                  <span
+                    className={`h-2 w-2 rounded-full ${running ? 'bg-blue-400' : ok ? 'bg-green-500' : 'bg-red-500'}`}
+                  />
+                  <span className="text-gray-600 dark:text-gray-300">
+                    {running ? 'in_progress' : ok ? 'success' : 'failure'}
+                  </span>
+                </span>
+                <span className="text-xs text-gray-400">
+                  {r.createdAt ? new Date(r.createdAt).toLocaleString() : ''}
+                </span>
+              </a>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Section: Overview
 // ---------------------------------------------------------------------
 const OverviewSection = () => {
@@ -311,6 +380,7 @@ const OverviewSection = () => {
       <FrontendCrashesPanel />
       <ServerCrashesPanel />
       <UpdateEventsPanel />
+      <NightlyStatusPanel />
     </div>
   );
 };

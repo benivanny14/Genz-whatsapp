@@ -14,7 +14,8 @@ const {
   getAuditLogs,
   getSecurityReport,
   getFrontendCrashes,
-  getAppEventSummary
+  getAppEventSummary,
+  getNightlyStatus
 } = require('../controllers/adminController');
 
 const {
@@ -154,6 +155,9 @@ router.get('/frontend-crashes', getFrontendCrashes);
 
 // ── Anonymous update-banner analytics ──
 router.get('/app-events', getAppEventSummary);
+
+// ── Nightly production-health check status ──
+router.get('/nightly-status', getNightlyStatus);
 
 // ── Support tickets / direct chats ──
 router.get('/tickets', listTickets);

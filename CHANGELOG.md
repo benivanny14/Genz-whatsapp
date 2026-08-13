@@ -7,6 +7,28 @@ by commit.
 
 ---
 
+## [2026-08-13] — v1.1.8: nightly self-healing, nightly status in admin, bilingual footer
+
+**Nightly health check now closes its own stale alerts**
+- When the whole check PASSES, the workflow closes any open
+  "Production health check failed" issues (the #10/#17 false positives or
+  any outage that recovered). Stuck-release issues (📉) are never touched.
+  The fix + all nightly steps were re-verified end-to-end against production.
+
+**Nightly status in the admin dashboard**
+- New `GET /api/admin/nightly-status` (admin-protected proxy of GitHub's
+  public Actions API — works without a token since the repo is public) and
+  a **Nightly Health Check** panel in the admin Overview: last 5 runs with
+  ✅/❌/⏳, timestamps, and links to the Actions run.
+
+**Bilingual uptake footer**
+- Login page uptake line now reads `📊 vX: N updated · M shown — masaa 48
+  ya mwisho (last 48h)` (Kiswahili + English, matching the install page).
+
+**QA checklist extended**
+- `docs/QA_UPDATE_BANNER_CHECKLIST.md` gains a section covering the opt-in
+  toggle, login uptake footer, admin analytics panel, and nightly panel.
+
 ## [2026-08-13] — v1.1.7: uptake footer, explain-before-opt-in, analytics docs, nightly fix
 
 **Release uptake on the login page**

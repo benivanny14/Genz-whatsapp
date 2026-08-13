@@ -321,7 +321,7 @@ const Login = () => {
           )}
           {uptake && uptake.shown > 0 && (
             <p className="mt-1 text-center text-[10px] text-slate-600">
-              📊 v{uptake.version}: {uptake.updated} updated · {uptake.shown} shown (last 48h)
+              📊 v{uptake.version}: {uptake.updated} updated · {uptake.shown} shown — masaa 48 ya mwisho (last 48h)
             </p>
           )}
           <p className="mt-1 text-center text-[11px] text-slate-600">

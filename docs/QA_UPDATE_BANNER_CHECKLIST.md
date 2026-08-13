@@ -72,6 +72,20 @@ the WebView service worker — none of which an emulator reproduces faithfully.
 - [ ] On a tab that reloaded into the new version, confirm **no banner**.
 - [ ] Dismiss works the same way on web (per version).
 
+## 3.5 Release uptake & monitoring (optional, needs opt-in data)
+
+- [ ] Settings → Privacy → **Update Analytics** shows the explain-before-opt-in
+      notice; after enabling the toggle, opening the app with a newer release
+      available produces events within seconds.
+- [ ] On the **login page**, once the current release has data, a muted footer
+      appears: `📊 vX.Y.Z: N updated · M shown — masaa 48 ya mwisho (last 48h)`
+      (only when shown > 0 — nothing is displayed with zero data).
+- [ ] **Admin dashboard** → Overview → **Update Analytics (server)** panel
+      shows the 30-day totals and a per-version table matching what the phone
+      just sent.
+- [ ] **Admin dashboard** → Overview → **Nightly Health Check** panel lists the
+      last runs with ✅/❌/⏳ and links to the Actions run.
+
 ## 4. Offline & edge cases
 
 - [ ] Airplane mode + open app (previously used) → app opens with cached chats

@@ -402,6 +402,32 @@ exports.getSecurityReport = async (req, res) => {
   }
 };
 
+// Last nightly health-check runs. The repo is public, so GitHub's REST API
+// serves workflow runs without auth (rate-limited); the admin dashboard uses
+// this to show whether the nightly check is green without opening Actions.
+// A working GITHUB token in env (if ever present) is used when available.
+const GITHUB_API = 'https://api.github.com/repos/benivanny14/Genz-whatsapp/actions/workflows/prod-health-nightly.yml/runs?per_page=5';
+
+exports.getNightlyStatus = async (req, res) => {
+  try {
+    const headers = { Accept: 'application/vnd.github+json', 'User-Agent': 'genz-admin-dashboard' };
+    if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+    const resp = await fetch(GITHUB_API, { headers, signal: AbortSignal.timeout(20000) });
+    if (!resp.ok) throw new Error(`GitHub API HTTP ${resp.status}`);
+    const data = await resp.json();
+    const runs = (data.workflow_runs || []).map((r) => ({
+      id: r.id,
+      createdAt: r.created_at,
+      status: r.status,
+      conclusion: r.conclusion || null
+    }));
+    res.json({ success: true, runs });
+  } catch (error) {
+    console.error('Admin nightly status error:', error.message);
+    res.status(502).json({ success: false, message: 'Failed to load nightly status' });
+  }
+};
+
 // Aggregated anonymous update-banner analytics: how many devices saw,
 // dismissed or acted on an update banner per app version (last 30 days).
 exports.getAppEventSummary = async (req, res) => {

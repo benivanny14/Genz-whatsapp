@@ -13,7 +13,7 @@ jest.mock('../models/AppEvent', () => ({
 const CrashReport = require('../models/CrashReport');
 const AppEvent = require('../models/AppEvent');
 const { reportFrontendCrash, trackUpdateEvent, getUpdateUptake } = require('../controllers/telemetryController');
-const { getFrontendCrashes, getAppEventSummary } = require('../controllers/adminController');
+const { getFrontendCrashes, getAppEventSummary, getNightlyStatus } = require('../controllers/adminController');
 
 const makeRes = () => {
   const res = { statusCode: 200 };
@@ -168,6 +168,46 @@ describe('getUpdateUptake (public per-version counts)', () => {
     const res = makeRes();
     await getUpdateUptake({ query: { version: '1.1.5' } }, res);
     expect(res.statusCode).toBe(500);
+    expect(res.body.success).toBe(false);
+  });
+});
+
+describe('getNightlyStatus (admin)', () => {
+  const origFetch = global.fetch;
+  afterEach(() => {
+    global.fetch = origFetch;
+  });
+
+  it('maps GitHub workflow runs into a compact shape', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        workflow_runs: [
+          { id: 1, created_at: '2026-08-13T05:02:35Z', status: 'completed', conclusion: 'success' },
+          { id: 2, created_at: '2026-08-12T12:19:44Z', status: 'completed', conclusion: 'failure' },
+          { id: 3, created_at: '2026-08-12T11:39:47Z', status: 'in_progress', conclusion: null }
+        ]
+      })
+    });
+    const res = makeRes();
+    await getNightlyStatus({}, res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.runs).toHaveLength(3);
+    expect(res.body.runs[0]).toEqual({
+      id: 1,
+      createdAt: '2026-08-13T05:02:35Z',
+      status: 'completed',
+      conclusion: 'success'
+    });
+    expect(res.body.runs[2].conclusion).toBeNull();
+  });
+
+  it('returns 502 when the GitHub API is unreachable', async () => {
+    global.fetch = jest.fn().mockRejectedValue(new Error('network down'));
+    const res = makeRes();
+    await getNightlyStatus({}, res);
+    expect(res.statusCode).toBe(502);
     expect(res.body.success).toBe(false);
   });
 });

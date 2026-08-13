@@ -110,6 +110,34 @@ jobs:
             echo '::notice::uptake OK (or too few opt-in events to judge)'
           fi
 
+      # Self-healing: when the whole check PASSES, close stale
+      # "Production health check failed" issues (the UI-host /api/health
+      # false positives from #10/#17, or any outage that recovered). Stuck-
+      # release issues (📉) are NOT touched — they need human action.
+      - name: Close stale alert issues when healthy
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: ['prod-health']
+            });
+            const stale = open.filter((i) => i.title.startsWith('⚠️ Production health check failed'));
+            for (const issue of stale) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed',
+                state_reason: 'completed'
+              });
+              console.log('Closed stale issue #' + issue.number);
+            }
+            if (stale.length === 0) console.log('No stale alert issues to close');
+
       - name: Check latest Render deploy status
         if: always()
         env:
