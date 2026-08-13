@@ -7,6 +7,35 @@ by commit.
 
 ---
 
+## [2026-08-13] — v1.1.0 shipped: production alignment, auto-release on tag, version in Settings
+
+**Production investigation (task)**
+- `genz-whatsapp.onrender.com` was the healthy backend (uptime, mongo
+  connected) but was **not serving the frontend** — `/version.json` and
+  `/genz-whatsapp.apk` returned Express 404s. `genz-whatsapp-1.onrender.com`
+  was unreachable (stopped).
+- `render.yaml` pointed `FRONTEND_URL`/`PUBLIC_API_URL` at the dead
+  `genz-whatsapp-1` host while `build-apk.js` defaults, the APK and the docs
+  all use `genz-whatsapp.onrender.com` — aligned to the canonical host.
+  A fresh deploy (backend serves the built dist) fixes both symptoms.
+
+**Auto-release on tag**
+- `.github/workflows/release.yml`: pushing a `v*` tag now publishes the
+  GitHub release with the signed APK automatically (reads version.json +
+  CHANGELOG via `scripts/create-github-release.js`, `permissions:
+  contents: write`). Checklist documents the tag step.
+
+**Version in Settings**
+- Help tab gains an "Android app version" row (from `/version.json`) that
+  opens the `/install` guide — users inside the app can spot stale installs
+  and find the update flow without visiting the login page.
+
+**Verification**
+- 81/81 unit tests · production build ✓ · APK rebuilt with the Settings row
+  (5.8 MB) and re-uploaded to the GitHub release (sha256 re-verified ✓).
+
+---
+
 ## [2026-08-13] — v1.1.0 release: checksum verification, public-page redirect fix, e2e + GitHub release
 
 **APK checksum verification (login page)**

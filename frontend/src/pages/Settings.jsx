@@ -354,6 +354,18 @@ const Settings = () => {
   const [showFakeChat, setShowFakeChat] = useState(false);
   const [showLocationSharing, setShowLocationSharing] = useState(false);
   const [showHelpCenter, setShowHelpCenter] = useState(false);
+  const [apkVersion, setApkVersion] = useState(null);
+
+  // Show the current Android build (from version.json — written by
+  // npm run apk:build) so users can spot a stale install.
+  useEffect(() => {
+    fetch('/version.json')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.version) setApkVersion(data);
+      })
+      .catch(() => {}); // graceful: row simply shows no version
+  }, []);
   const [showTerms, setShowTerms] = useState(false);
 
   // GENZ AFTER WORK Feature States
@@ -1082,6 +1094,13 @@ const Settings = () => {
           description="Get real-time updates, without waiting."
           onClick={handleCheckForUpdate}
           control={checkingUpdate ? <RefreshCw size={16} className="animate-spin text-blue-100/60" /> : undefined}
+        />
+        <SettingRow
+          icon={Smartphone}
+          title="Android app version"
+          description="How to install, download the APK and verify its checksum."
+          onClick={() => navigate('/install')}
+          control={apkVersion ? <span className="text-xs font-semibold text-[#00a884]">v{apkVersion.version}</span> : undefined}
         />
       </SettingSection>
       <ActionButton onClick={() => saveSettings()} disabled={saving}><Save size={16} /> Save help settings</ActionButton>

@@ -71,6 +71,14 @@ Render ina-deploy automatically (web build inakopi `public/` → `dist/`), na
 moja.
 
 ### 5. Publish GitHub release (channel ya pili ya download)
+
+**Njia rahisi (auto):** baada ya commit + push, unda tag na GitHub Actions
+itafanya yote (`.github/workflows/release.yml` ina-trigger kwenye `v*` tag):
+```bash
+git tag v{version} && git push origin v{version}
+```
+
+**Au kwa mkono:**
 ```bash
 npm run release:github          # anza kutoka repo root
 #   au: node scripts/create-github-release.js --dry-run  (hakikisha kwanza)
