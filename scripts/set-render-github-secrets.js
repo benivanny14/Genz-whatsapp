@@ -15,7 +15,18 @@
  * and `libsodium-wrappers` (install with: npm install --no-save libsodium-wrappers).
  */
 const { execSync } = require('child_process');
-const sodium = require('libsodium-wrappers');
+
+let sodium;
+try {
+  sodium = require('libsodium-wrappers');
+} catch {
+  console.error(
+    'libsodium-wrappers is not installed. Install it once with:\n' +
+    '  npm install --no-save libsodium-wrappers\n' +
+    'then re-run this script.'
+  );
+  process.exit(1);
+}
 
 const args = process.argv.slice(2);
 const getArg = (name) => {

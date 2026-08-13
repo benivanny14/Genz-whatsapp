@@ -1,6 +1,8 @@
 const { chromium } = require('playwright');
-const fetch = require('node-fetch');
 const path = require('path');
+// Node 22 global fetch (no node-fetch dep — was resolving from the parent
+// repo's node_modules on fresh clones).
+const fetch = globalThis.fetch;
 
 (async () => {
   const ts = Date.now();
