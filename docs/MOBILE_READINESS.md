@@ -176,5 +176,10 @@ npx playwright test e2e/mobile-layout.spec.js
 npm run check:jsx
 ```
 
+> ⚠️ **After `npm run apk:build`:** the pipeline rebuilds `dist/` with the
+> production `VITE_API_URL` baked in, so the e2e login would hit the live API
+> instead of the local backend. Re-run a plain `npm run build` (no env vars)
+> before running the specs locally — the bundle then falls back to `/api`.
+
 The mobile-layout spec runs automatically in the GitHub Actions e2e job on
 every push/PR.

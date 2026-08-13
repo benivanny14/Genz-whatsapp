@@ -70,10 +70,26 @@ Render ina-deploy automatically (web build inakopi `public/` → `dist/`), na
 `https://genz-whatsapp.onrender.com/genz-whatsapp.apk` inatoa APK mpya mara
 moja.
 
-### 5. Tangaza update kwa watumiaji
+### 5. Publish GitHub release (channel ya pili ya download)
+```bash
+npm run release:github          # anza kutoka repo root
+#   au: node scripts/create-github-release.js --dry-run  (hakikisha kwanza)
+```
+Script inasoma `version.json` + CHANGELOG, inaunda (au kusasisha) release
+inayoitwa `v{version}` na kupakia `genz-whatsapp.apk` kama asset. Token inatoka
+`GITHUB_TOKEN` (CI) au git credential helper. Re-running inabadilisha asset
+badala ya kushindwa (idempotent). Watumiaji wanaweza kupakua kutoka GitHub
+pia — URL ya moja kwa moja:
+`https://github.com/benivanny14/Genz-whatsapp/releases/download/v{version}/genz-whatsapp.apk`
+
+### 6. Tangaza update kwa watumiaji
 - Watumiaji waliopo: fungua tovuti kwenye Chrome → login page inaonyesha
   version ya sasa → **Download Android App** → Chrome ina-install juu ya
   ile ya zamani (data inabaki, kwa sababu sahihi iko sawa).
+- Ndani ya app, banner ya kijani **"Update available"** inaonekana kwa
+  watumiaji walio na versionCode ndogo — bonyeza **Update** kupakua moja kwa
+  moja (inahitaji version.json iwe imesasishwa kwenye server — kwa hiyo
+  **deploy kwanza**, kisha watumiaji waone banner).
 - Unaweza kutuma broadcast/status kwenye app yenyewe kuwaelekeza.
 
 ---
@@ -122,6 +138,26 @@ moja.
    na rebuild — hii inaweza ku-install juu ya 1.0.1 bila tatizo.
 
 ---
+
+## Deploy kwa Render (baada ya commit)
+
+Render ina-deploy automatically kama service inafuatilia branch hii. Ikiwa
+unataka kuitrigger kwa mkono (na RENDER_API_KEY iko kwenye env):
+
+```bash
+curl -s -X POST https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys \
+  -H "Authorization: Bearer $RENDER_API_KEY" \
+  -H "Content-Type: application/json" -d '{"clearCache":false}'
+```
+
+Halafu thibitisha (script iliyopo ya repo):
+
+```bash
+node scripts/render-deploy-verify.js https://GENZ-URL
+```
+
+> **Muhimu kwa banner ya update:** `version.json` ina-serve kutoka dist ya
+> Render — APK mpya + version.json mpya zinakwenda pamoja kwenye deploy moja.
 
 ## Version endpoints (kwa developers)
 

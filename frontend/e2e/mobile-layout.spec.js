@@ -232,6 +232,47 @@ for (const [deviceName, device] of Object.entries(DEVICES)) {
   });
 }
 
+// Public pages for the direct-download (no Play Store) distribution model:
+// the /install guide and the login page's version + checksum display. These
+// need no auth, so each device gets its own lightweight check.
+test.describe('mobile layout — install guide + version display', () => {
+  for (const [deviceName, device] of Object.entries(DEVICES)) {
+    test.describe(`${deviceName}`, () => {
+      test.use(device);
+
+      test('install page + login version info fit the viewport without crashing', async ({ page }) => {
+        test.setTimeout(90_000);
+        const pageErrors = [];
+        page.on('pageerror', (err) => {
+          const text = String(err).slice(0, 300);
+          if (!isBenignPageError(text)) pageErrors.push(text);
+        });
+
+        // /install — bilingual how-to page for the Chrome download flow
+        await page.goto('/install');
+        await page.waitForTimeout(1200);
+        await expect(page.getByRole('heading', { name: /Install GENZ on Android/i })).toBeVisible();
+        await expect(page.getByText(/Download Android App/i).first()).toBeVisible();
+        await expectNoOverflow(page, `${deviceName} install guide`);
+
+        // login — version from /version.json + install link + checksum toggle
+        await page.goto('/login');
+        await page.waitForTimeout(1200);
+        await expect(
+          page.getByText(/GENZ WhatsApp Android v\d+\.\d+\.\d+/)
+        ).toBeVisible({ timeout: 10_000 });
+        await expect(
+          page.getByRole('link', { name: /How to install — Jinsi ya kusakinisha/ })
+        ).toBeVisible();
+        await expect(page.getByRole('button', { name: /Verify checksum — Thibitisha checksum/ })).toBeVisible();
+        await expectNoOverflow(page, `${deviceName} login with version info`);
+
+        expect(pageErrors, 'page errors on install/login mobile').toHaveLength(0);
+      });
+    });
+  }
+});
+
 test.describe('mobile layout — admin panel (iPhone)', () => {
   test.use({ ...DEVICES.iPhone, geolocation: { latitude: -6.7924, longitude: 39.2083 }, permissions: ['geolocation'] });
 

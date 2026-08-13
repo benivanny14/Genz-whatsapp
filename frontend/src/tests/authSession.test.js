@@ -10,6 +10,14 @@ test('user auth pages always skip the redirect (no redirect loop)', () => {
   assert.equal(shouldSkipLoginRedirect('/login/'), true);
 });
 
+test('public pages (no ProtectedRoute) skip the redirect too', () => {
+  assert.equal(shouldSkipLoginRedirect('/forgot-password'), true);
+  assert.equal(shouldSkipLoginRedirect('/privacy-policy'), true);
+  assert.equal(shouldSkipLoginRedirect('/terms'), true);
+  assert.equal(shouldSkipLoginRedirect('/install'), true);
+  assert.equal(shouldSkipLoginRedirect('/pair-device'), true);
+});
+
 test('admin pages skip the redirect (their own login + guards handle it)', () => {
   assert.equal(shouldSkipLoginRedirect('/system-control-x7k9/login'), true);
   assert.equal(shouldSkipLoginRedirect('/system-control-x7k9'), true);

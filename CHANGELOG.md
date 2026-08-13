@@ -7,6 +7,45 @@ by commit.
 
 ---
 
+## [2026-08-13] — v1.1.0 release: checksum verification, public-page redirect fix, e2e + GitHub release
+
+**APK checksum verification (login page)**
+- Login page now shows the published SHA-256 for the current build and a
+  "Verify checksum" panel: pick the APK you downloaded and the browser hashes
+  it (WebCrypto) and compares — ✓ MATCH / ✕ MISMATCH. Perfect for the
+  no-Play-Store model where users sideload from any mirror.
+
+**Bug fix: public pages redirected to /login**
+- `shouldSkipLoginRedirect` only knew the auth + admin paths, so when the
+  backend was reachable a 401 from session restore hard-redirected logged-out
+  users away from `/privacy-policy`, `/terms`, `/forgot-password` and the new
+  `/install` — making the "public" pages unreachable. The skip list now
+  matches every route without `<ProtectedRoute>`; unit tests added.
+
+**E2E coverage (CI)**
+- `mobile-layout.spec.js` gains an "install guide + version display" block
+  (iPhone + Pixel 7): `/install` renders without overflow/crash, and the login
+  page shows the version line, the install link and the checksum toggle.
+
+**GitHub release channel**
+- `scripts/create-github-release.js` (`npm run release:github`): reads
+  `version.json` + the newest CHANGELOG entry, creates/updates a release
+  tagged `v{version}` and uploads the APK (idempotent — replaces the asset on
+  re-runs). Token from `GITHUB_TOKEN` (CI) or the git credential helper.
+- Released: **v1.1.0** at
+  `https://github.com/benivanny14/Genz-whatsapp/releases/tag/v1.1.0` — asset
+  sha256 verified against `version.json` ✓.
+
+**Verification**
+- Frontend: 81/81 unit tests · production build ✓ · **full mobile-layout e2e
+  suite 5/5 ✓** (iPhone + Android sweeps incl. all 130 feature panels, the 2
+  new install-guide tests, and the admin dashboard) against a live stack:
+  isolated MongoDB + backend :5055 + built dist :5176.
+- APK v1.1.0 rebuilt with all of the above, 5.8 MB, signed, sha256 published
+  (re-uploaded to the GitHub release and re-verified ✓).
+
+---
+
 ## [2026-08-13] — v1.1.0 APK: in-app update banner, install guide page + 44% smaller APK
 
 **In-app update banner (APK)**

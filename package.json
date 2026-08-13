@@ -4,6 +4,7 @@
     "start": "npm --prefix backend start",
     "privacy:regression": "bash scripts/privacy-regression.sh",
     "privacy:regression:e2e": "bash scripts/privacy-regression.sh --e2e",
+    "release:github": "node scripts/create-github-release.js",
     "postinstall": "npm install --prefix backend"
   },
   "dependencies": {
