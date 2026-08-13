@@ -95,6 +95,26 @@ CI, so this class of crash cannot regress.
 See `docs/mobile-screenshots/` (iPhone-* and Android-*: chat list, chat area,
 settings, status, feature library, admin dashboard).
 
+## Android APK (installable app)
+
+GENZ ships as a **real signed APK** built with [Capacitor 8](https://capacitorjs.com),
+which wraps the production web app in a native Android WebView — no NDK, no
+React Native runtime needed.
+
+- **Download**: the login page has a *Download Android App* button serving
+  `/genz-whatsapp.apk` (also available at `https://genz-whatsapp.onrender.com/genz-whatsapp.apk`).
+- **API**: the APK build bakes in `VITE_API_URL` (defaults to the production
+  Render URL) — the webview talks to the live API with cookies
+  (`SameSite=None; Secure` in production), and the backend CORS/CSRF allowlist
+  includes the Capacitor webview origins (`https://localhost`,
+  `capacitor://localhost`).
+- **Build**: `npm run apk:build` reproduces the whole pipeline
+  (web build → `cap sync android` → `gradlew assembleRelease` → copy to
+  `public/genz-whatsapp.apk`).
+- **Signing**: release builds are signed with `frontend/android/genz-release.keystore`
+  configured via gitignored `frontend/android/keystore.properties`. Back those up —
+  they are not in git and are required to ship updates with the same signature.
+
 ## Live phone preview (dev)
 
 `frontend/phone-preview.html` (served by the Vite dev server at
