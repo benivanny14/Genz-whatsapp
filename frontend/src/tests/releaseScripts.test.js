@@ -136,8 +136,57 @@ test('writeVersionJson fills the real sha256/size of the built APK', async () =>
 });
 
 test('release scripts parse cleanly (syntax check)', () => {
-  for (const script of ['scripts/bump-app-version.js', 'scripts/build-apk.js', 'scripts/lib/version-json.js']) {
+  for (const script of [
+    'scripts/bump-app-version.js',
+    'scripts/build-apk.js',
+    'scripts/lib/version-json.js',
+    '../scripts/release-engagement-check.js'
+  ]) {
     const check = spawnSync(process.execPath, ['--check', join(frontendRoot, script)], { encoding: 'utf8' });
     assert.equal(check.status, 0, `${script} failed syntax check:\n${check.stderr}`);
   }
+});
+
+test('release-engagement-check compute detects a stale low-engagement release', async () => {
+  const { compute } = await import('../../../scripts/release-engagement-check.js');
+  const daysAgo = (d) => new Date(Date.now() - d * 86400000).toISOString();
+  const releases = [
+    { tag_name: 'v1.1.8', published_at: daysAgo(9) },
+    { tag_name: 'v1.1.7', published_at: daysAgo(20) }
+  ];
+
+  // Live 9 days, nobody saw it, previous release had data → LOW.
+  const low = compute({
+    currentVersion: '1.1.8',
+    releases,
+    uptakes: { '1.1.8': { shown: 0, updated: 0 }, '1.1.7': { shown: 12, updated: 8 } }
+  });
+  assert.equal(low.lowEngagement, true);
+  assert.equal(low.ageDays, 9);
+  assert.equal(low.previousShown, 12);
+
+  // Recent release → never flagged, whatever the counts.
+  const recent = compute({
+    currentVersion: '1.1.8',
+    releases: [{ tag_name: 'v1.1.8', published_at: daysAgo(2) }, { tag_name: 'v1.1.7', published_at: daysAgo(20) }],
+    uptakes: { '1.1.8': { shown: 0, updated: 0 }, '1.1.7': { shown: 12, updated: 8 } }
+  });
+  assert.equal(recent.lowEngagement, false);
+
+  // Old release but NO opt-in baseline on the previous release → not flagged
+  // (opt-in analytics are new; near-zero counts are expected until adoption).
+  const noBaseline = compute({
+    currentVersion: '1.1.8',
+    releases,
+    uptakes: { '1.1.8': { shown: 0, updated: 0 }, '1.1.7': { shown: 0, updated: 0 } }
+  });
+  assert.equal(noBaseline.lowEngagement, false);
+
+  // Old release with real engagement → fine.
+  const engaged = compute({
+    currentVersion: '1.1.8',
+    releases,
+    uptakes: { '1.1.8': { shown: 9, updated: 6 }, '1.1.7': { shown: 12, updated: 8 } }
+  });
+  assert.equal(engaged.lowEngagement, false);
 });

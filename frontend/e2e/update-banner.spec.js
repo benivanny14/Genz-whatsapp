@@ -96,8 +96,12 @@ test.describe('update uptake footer (login page)', () => {
       route.fulfill({ json: { success: true, version: real.version, sinceHours: 48, shown: 5, updated: 2, dismissed: 1 } })
     );
     await page.reload();
-    await expect(
-      page.getByText(new RegExp(`v${real.version}: 2 updated · 5 shown`))
-    ).toBeVisible();
+    const footer = page.getByText(new RegExp(`v${real.version}: 2 updated · 5 shown`));
+    await expect(footer).toBeVisible();
+
+    // The install guide shares the same footer component.
+    await page.goto('/install');
+    await page.waitForTimeout(1200);
+    await expect(page.getByText(new RegExp(`v${real.version}: 2 updated · 5 shown`))).toBeVisible();
   });
 });

@@ -432,39 +432,44 @@ exports.getNightlyStatus = async (req, res) => {
 // dismissed or acted on an update banner per app version (last 30 days).
 exports.getAppEventSummary = async (req, res) => {
   try {
-    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const [byEvent, byVersion] = await Promise.all([
+    const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const since7 = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const groupByVersion = (since) => [
+      { $match: { createdAt: { $gte: since } } },
+      {
+        $group: {
+          _id: { version: '$version', versionCode: '$versionCode' },
+          shown: { $sum: { $cond: [{ $eq: ['$event', 'update_shown'] }, 1, 0] } },
+          dismissed: { $sum: { $cond: [{ $eq: ['$event', 'update_dismissed'] }, 1, 0] } },
+          updated: {
+            $sum: { $cond: [{ $in: ['$event', ['update_tapped', 'update_reload_tapped']] }, 1, 0] }
+          }
+        }
+      },
+      { $sort: { '_id.versionCode': -1 } },
+      { $limit: 20 }
+    ];
+    const mapVersion = (v) => ({
+      version: v._id.version || 'unknown',
+      versionCode: v._id.versionCode || 0,
+      shown: v.shown,
+      dismissed: v.dismissed,
+      updated: v.updated
+    });
+    const [byEvent, byVersion, byVersion7] = await Promise.all([
       AppEvent.aggregate([
-        { $match: { createdAt: { $gte: since } } },
+        { $match: { createdAt: { $gte: since30 } } },
         { $group: { _id: '$event', count: { $sum: 1 } } }
       ]),
-      AppEvent.aggregate([
-        { $match: { createdAt: { $gte: since } } },
-        {
-          $group: {
-            _id: { version: '$version', versionCode: '$versionCode' },
-            shown: { $sum: { $cond: [{ $eq: ['$event', 'update_shown'] }, 1, 0] } },
-            dismissed: { $sum: { $cond: [{ $eq: ['$event', 'update_dismissed'] }, 1, 0] } },
-            updated: {
-              $sum: { $cond: [{ $in: ['$event', ['update_tapped', 'update_reload_tapped']] }, 1, 0] }
-            }
-          }
-        },
-        { $sort: { '_id.versionCode': -1 } },
-        { $limit: 20 }
-      ])
+      AppEvent.aggregate(groupByVersion(since30)),
+      AppEvent.aggregate(groupByVersion(since7))
     ]);
     res.json({
       success: true,
       days: 30,
       byEvent: Object.fromEntries(byEvent.map((e) => [e._id, e.count])),
-      byVersion: byVersion.map((v) => ({
-        version: v._id.version || 'unknown',
-        versionCode: v._id.versionCode || 0,
-        shown: v.shown,
-        dismissed: v.dismissed,
-        updated: v.updated
-      }))
+      byVersion: byVersion.map(mapVersion),
+      byVersion7: byVersion7.map(mapVersion)
     });
   } catch (error) {
     console.error('Admin app events error:', error);

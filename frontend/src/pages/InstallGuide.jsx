@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Download, Smartphone, ShieldAlert, RefreshCw } from 'lucide-react';
+import ReleaseUptake from '../components/ReleaseUptake.jsx';
 
 const Step = ({ icon: Icon, title, children }) => (
   <section className="rounded-2xl border border-white/10 bg-white/[0.06] p-5">
@@ -122,6 +123,7 @@ const InstallGuide = () => {
           <p className="text-center text-xs text-slate-500">
             Android tu — kwa sasa. iPhone inakuja karibuni. / Android only — iOS is coming soon.
           </p>
+          <ReleaseUptake className="mt-3 text-center text-[10px] text-slate-600" />
         </div>
       </div>
     </div>

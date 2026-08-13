@@ -196,7 +196,11 @@ const UpdateEventsPanel = () => {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    const timer = setInterval(load, 60_000); // auto-refresh every minute
+    return () => clearInterval(timer);
+  }, [load]);
 
   const total = events?.byEvent ? Object.values(events.byEvent).reduce((a, b) => a + b, 0) : 0;
 
@@ -278,7 +282,11 @@ const NightlyStatusPanel = () => {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    const timer = setInterval(load, 60_000); // auto-refresh every minute
+    return () => clearInterval(timer);
+  }, [load]);
 
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
@@ -324,6 +332,71 @@ const NightlyStatusPanel = () => {
           })}
         </div>
       )}
+    </div>
+  );
+};
+
+// ---------------------------------------------------------------------
+// Release adoption: per-version uptake table (30 days) with a 7-day trend
+// column and an adoption % (updated/shown) — spot which releases users
+// actually moved to. Feeds from the same /api/admin/app-events call.
+const ReleaseAdoptionPanel = () => {
+  const [events, setEvents] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    try {
+      const { data } = await adminApi.get('/admin/app-events');
+      setEvents(data);
+    } catch {
+      setEvents(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+    const timer = setInterval(load, 60_000); // auto-refresh every minute
+    return () => clearInterval(timer);
+  }, [load]);
+
+  if (loading) return null;
+  const rows = (events?.byVersion || []).map((v) => {
+    const trend = (events.byVersion7 || []).find((t) => t.versionCode === v.versionCode) || {};
+    const adoption = v.shown > 0 ? Math.round((v.updated / v.shown) * 100) : 0;
+    return { ...v, trendUpdated: trend.updated || 0, adoption };
+  });
+  const withData = rows.filter((r) => r.shown > 0 || r.updated > 0);
+  if (withData.length === 0) return null; // nothing to show until opt-in data exists
+
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+      <h3 className="text-gray-800 dark:text-gray-200 font-medium mb-3">Release Adoption (last 30 days)</h3>
+      <div className="overflow-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-left text-gray-400 border-b border-gray-200 dark:border-gray-800">
+              <th className="py-1 pr-3 font-medium">Version</th>
+              <th className="py-1 pr-3 font-medium">Shown</th>
+              <th className="py-1 pr-3 font-medium">Updated</th>
+              <th className="py-1 pr-3 font-medium">Adoption</th>
+              <th className="py-1 font-medium">Updated (7d)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {withData.map((v) => (
+              <tr key={v.version} className="border-b border-gray-100 dark:border-gray-800 last:border-0">
+                <td className="py-1.5 pr-3 text-gray-700 dark:text-gray-300 font-medium">v{v.version}</td>
+                <td className="py-1.5 pr-3 text-gray-600 dark:text-gray-300">{v.shown}</td>
+                <td className="py-1.5 pr-3 text-green-600 dark:text-green-300">{v.updated}</td>
+                <td className="py-1.5 pr-3 text-gray-600 dark:text-gray-300">{v.adoption}%</td>
+                <td className="py-1.5 text-gray-400">{v.trendUpdated}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
@@ -380,6 +453,7 @@ const OverviewSection = () => {
       <FrontendCrashesPanel />
       <ServerCrashesPanel />
       <UpdateEventsPanel />
+      <ReleaseAdoptionPanel />
       <NightlyStatusPanel />
     </div>
   );

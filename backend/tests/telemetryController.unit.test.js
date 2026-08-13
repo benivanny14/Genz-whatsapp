@@ -221,12 +221,14 @@ describe('getAppEventSummary (admin)', () => {
     ]);
   });
 
-  it('returns per-event totals for the last 30 days', async () => {
+  it('returns per-event totals for the last 30 days + 7-day trend', async () => {
     AppEvent.aggregate.mockResolvedValueOnce([
       { _id: 'update_shown', count: 3 },
       { _id: 'update_dismissed', count: 1 }
     ]).mockResolvedValueOnce([
       { _id: { version: '1.1.4', versionCode: 6 }, shown: 3, dismissed: 1, updated: 2 }
+    ]).mockResolvedValueOnce([
+      { _id: { version: '1.1.4', versionCode: 6 }, shown: 1, dismissed: 0, updated: 2 }
     ]);
     const res = makeRes();
     await getAppEventSummary({}, res);
@@ -235,6 +237,7 @@ describe('getAppEventSummary (admin)', () => {
     expect(res.body.days).toBe(30);
     expect(res.body.byEvent).toEqual({ update_shown: 3, update_dismissed: 1 });
     expect(res.body.byVersion[0]).toMatchObject({ version: '1.1.4', versionCode: 6, shown: 3, updated: 2 });
+    expect(res.body.byVersion7[0]).toMatchObject({ version: '1.1.4', shown: 1, updated: 2 });
   });
 
   it('returns 500 when aggregation fails', async () => {

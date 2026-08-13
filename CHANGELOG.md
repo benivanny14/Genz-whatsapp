@@ -7,6 +7,30 @@ by commit.
 
 ---
 
+## [2026-08-13] — v1.1.9: uptake on install page, auto-refresh + adoption trend, low-engagement alert
+
+**Release uptake on the install guide**
+- The uptake line is now a shared `ReleaseUptake` component (login page + `/install`):
+  `📊 v1.1.9: N updated · M shown — masaa 48 ya mwisho (last 48h)`, shown only
+  once data exists.
+
+**Admin dashboard: auto-refresh + release adoption trend**
+- The Update Analytics and Nightly Health Check panels now auto-refresh every
+  60s (no manual Refresh clicks needed).
+- New **Release Adoption** panel: per-version table (last 30 days) with
+  shown / updated / **adoption %** (updated÷shown) and a 7-day updated
+  trend column — spot which releases users actually moved to. Backed by a
+  new 7-day aggregate (`byVersion7`) in `/api/admin/app-events`.
+
+**Low-engagement release warning (nightly)**
+- `scripts/release-engagement-check.js` (public GitHub releases API + uptake):
+  flags a release live **>7 days** whose banner was seen by <5 opt-in devices
+  while the PREVIOUS release had data — users may not be opening the app.
+  The previous-release guard prevents false alarms while the opt-in toggle
+  is still being adopted. Files a dedicated 👀 issue when triggered.
+- Unit tests for the decision logic (5 release-script tests now) + syntax
+  check for the new script.
+
 ## [2026-08-13] — v1.1.8: nightly self-healing, nightly status in admin, bilingual footer
 
 **Nightly health check now closes its own stale alerts**
