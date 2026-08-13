@@ -202,6 +202,34 @@ jobs:
         env:
           ENGAGEMENT: ${{ steps.engagement.outputs.engagement_out }}
 
+      # Email delivery is best-effort on top of the GitHub issues: needs the
+      # ALERT_WEBHOOK_TOKEN secret (backend /api/telemetry/alerts + SMTP env
+      # on Render). Without them the step is skipped and the issue stands.
+      - name: Email stuck-release alert (best-effort)
+        if: steps.uptake.outputs.stuck == 'true' && env.ALERT_TOKEN != '' && github.event_name != 'workflow_dispatch'
+        env:
+          ALERT_TOKEN: ${{ secrets.ALERT_WEBHOOK_TOKEN }}
+          REPO_VER: ${{ steps.apk.outputs.repo_ver }}
+          UPTAKE_SHOWN: ${{ steps.uptake.outputs.uptake_shown }}
+        run: |
+          VER=$(echo "$REPO_VER" | tr -d '"')
+          curl -s -m 20 -X POST https://genz-whatsapp.onrender.com/api/telemetry/alerts \
+            -H "Content-Type: application/json" \
+            -H "x-alert-token: $ALERT_TOKEN" \
+            -d "{\"subject\":\"GENZ alert: users may be stuck on $VER\",\"section\":\"stuck-release\",\"message\":\"Release $VER was shown to $UPTAKE_SHOWN opt-in devices but none updated within 48h. See the GitHub issue for details.\"}" || echo '::warning::email alert send failed (SMTP/token not configured?)'
+
+      - name: Email low-engagement alert (best-effort)
+        if: steps.engagement.outputs.low_engagement == 'true' && env.ALERT_TOKEN != '' && github.event_name != 'workflow_dispatch'
+        env:
+          ALERT_TOKEN: ${{ secrets.ALERT_WEBHOOK_TOKEN }}
+          ENGAGEMENT: ${{ steps.engagement.outputs.engagement_out }}
+        run: |
+          MSG=$(node -e "let d='';try{d=JSON.parse(process.env.ENGAGEMENT||'{}')}catch{};const j=JSON.stringify({subject:'GENZ alert: low engagement for v'+(d.currentVersion||''),section:'low-engagement',message:'Release v'+(d.currentVersion||'?')+' live '+(d.ageDays??'?')+' days but only '+(d.currentShown??0)+' devices saw the banner (previous release had '+(d.previousShown??0)+'). See the GitHub issue for details.'});process.stdout.write(j)")
+          curl -s -m 20 -X POST https://genz-whatsapp.onrender.com/api/telemetry/alerts \
+            -H "Content-Type: application/json" \
+            -H "x-alert-token: $ALERT_TOKEN" \
+            -d "$MSG" || echo '::warning::email alert send failed (SMTP/token not configured?)'
+
       - name: Check latest Render deploy status
         if: always()
         env:

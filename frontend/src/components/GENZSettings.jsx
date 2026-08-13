@@ -21,6 +21,7 @@ import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { VOICE_EFFECT_PRESETS, createTestToneBlob, applyVoiceEffect } from '../utils/voiceEffects';
 import { compressImage } from '../utils/imageCompression';
+import { getAnonId } from '../utils/updateAnalytics';
 import ErrorBoundary from './ErrorBoundary';
 
 const API_URL = resolveApiBase() || '/api';
@@ -1542,6 +1543,59 @@ const AppearanceTab = ({ ctx }) => {
 };
 
 // ---------------------------------------------------------------------
+// This device's own update history (opt-in): fetched from
+// /api/telemetry/events/mine using the random anonId stored in localStorage.
+// Shows only the device's own anonymous events — no other data.
+const UpdateHistory = () => {
+  const [events, setEvents] = useState(null);
+  const EVENT_LABEL = {
+    update_shown: 'Banner ilionekana (banner shown)',
+    update_dismissed: 'Banner ilifungwa (banner dismissed)',
+    update_tapped: 'Update ilibofywa (update tapped)',
+    update_reload_tapped: 'Reload ilibofywa (reload tapped)'
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    const anonId = getAnonId();
+    if (!anonId) {
+      setEvents([]);
+      return undefined;
+    }
+    fetch(`/api/telemetry/events/mine?anonId=${encodeURIComponent(anonId)}&limit=5`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (!cancelled) setEvents(data?.events || []); })
+      .catch(() => { if (!cancelled) setEvents([]); });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (events === null) return null;
+  if (events.length === 0) {
+    return (
+      <div className="px-3 pb-3 pt-1 text-[11px] text-slate-400">
+        Hakuna historia bado — historia inaonekana hapa baada ya banner kuonekana au kubofywa.
+      </div>
+    );
+  }
+  return (
+    <div className="px-3 pb-3 pt-1">
+      <p className="mb-1 text-[11px] font-semibold text-blue-100">Historia yako ya updates (kifaa hiki):</p>
+      <ul className="space-y-1">
+        {events.map((e, i) => (
+          <li key={i} className="flex items-center justify-between gap-2 text-[11px] text-slate-300">
+            <span>
+              <span className="text-[#00a884]">v{e.version}</span> — {EVENT_LABEL[e.event] || e.event}
+            </span>
+            <span className="shrink-0 text-slate-500">
+              {e.createdAt ? new Date(e.createdAt).toLocaleString() : ''}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
 // privacy tab content — extracted so a crash in one tab is scoped by
 // <ErrorBoundary> instead of blanking the whole settings panel.
 const PrivacyTab = ({ ctx }) => {
@@ -2018,6 +2072,7 @@ const PrivacyTab = ({ ctx }) => {
               onClick={toggleUpdateAnalytics}
             />
           </div>
+          {updateAnalytics && <UpdateHistory key={String(updateAnalytics)} />}
         </section>
         </> /* end privacy tab */
   );

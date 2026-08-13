@@ -7,12 +7,18 @@ jest.mock('../models/CrashReport', () => ({
 jest.mock('../models/AppEvent', () => ({
   create: jest.fn(),
   aggregate: jest.fn(),
-  countDocuments: jest.fn()
+  countDocuments: jest.fn(),
+  find: jest.fn()
+}));
+
+jest.mock('../services/alertMailerService', () => ({
+  sendAlertEmail: jest.fn()
 }));
 
 const CrashReport = require('../models/CrashReport');
 const AppEvent = require('../models/AppEvent');
-const { reportFrontendCrash, trackUpdateEvent, getUpdateUptake } = require('../controllers/telemetryController');
+const { sendAlertEmail } = require('../services/alertMailerService');
+const { reportFrontendCrash, trackUpdateEvent, getUpdateUptake, sendProdAlert, getMyUpdateEvents } = require('../controllers/telemetryController');
 const { getFrontendCrashes, getAppEventSummary, getNightlyStatus } = require('../controllers/adminController');
 
 const makeRes = () => {
@@ -209,6 +215,98 @@ describe('getNightlyStatus (admin)', () => {
     await getNightlyStatus({}, res);
     expect(res.statusCode).toBe(502);
     expect(res.body.success).toBe(false);
+  });
+});
+
+describe('sendProdAlert (email alerts)', () => {
+  const origToken = process.env.ALERT_WEBHOOK_TOKEN;
+  const origSmtpHost = process.env.SMTP_HOST;
+  const origSmtpUser = process.env.SMTP_USER;
+  const origAlertTo = process.env.ALERT_EMAIL_TO;
+  beforeEach(() => {
+    jest.clearAllMocks();
+    process.env.ALERT_WEBHOOK_TOKEN = 'secret-token';
+    process.env.SMTP_HOST = 'smtp.example.com';
+    process.env.SMTP_USER = 'alerts@example.com';
+    process.env.ALERT_EMAIL_TO = 'owner@example.com';
+  });
+  afterEach(() => {
+    if (origToken === undefined) delete process.env.ALERT_WEBHOOK_TOKEN; else process.env.ALERT_WEBHOOK_TOKEN = origToken;
+    if (origSmtpHost === undefined) delete process.env.SMTP_HOST; else process.env.SMTP_HOST = origSmtpHost;
+    if (origSmtpUser === undefined) delete process.env.SMTP_USER; else process.env.SMTP_USER = origSmtpUser;
+    if (origAlertTo === undefined) delete process.env.ALERT_EMAIL_TO; else process.env.ALERT_EMAIL_TO = origAlertTo;
+  });
+
+  it('rejects requests without the shared token', async () => {
+    const res = makeRes();
+    await sendProdAlert({ headers: {}, body: {} }, res);
+    expect(res.statusCode).toBe(401);
+    expect(sendAlertEmail).not.toHaveBeenCalled();
+  });
+
+  it('sends the email with the shared token and reports the mailer result', async () => {
+    sendAlertEmail.mockResolvedValue({ sent: true });
+    const res = makeRes();
+    await sendProdAlert(
+      { headers: { 'x-alert-token': 'secret-token' }, body: { subject: 'Stuck release', message: 'v1.1.9 shown but nobody updated', section: 'stuck-release' } },
+      res
+    );
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({ success: true, sent: true });
+    expect(sendAlertEmail).toHaveBeenCalledWith(expect.objectContaining({ subject: 'Stuck release' }));
+  });
+
+  it('returns 200 with sent:false when SMTP is not configured (graceful)', async () => {
+    delete process.env.SMTP_HOST;
+    sendAlertEmail.mockResolvedValue({ sent: false, reason: 'smtp-not-configured' });
+    const res = makeRes();
+    await sendProdAlert(
+      { headers: { 'x-alert-token': 'secret-token' }, body: { subject: 'x', message: 'y' } },
+      res
+    );
+    expect(res.statusCode).toBe(200);
+    expect(res.body.sent).toBe(false);
+  });
+
+  it('requires subject and message', async () => {
+    const res = makeRes();
+    await sendProdAlert({ headers: { 'x-alert-token': 'secret-token' }, body: { subject: '' } }, res);
+    expect(res.statusCode).toBe(400);
+  });
+});
+
+describe('getMyUpdateEvents (this device history)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('returns only the caller\'s own events, newest first', async () => {
+    AppEvent.find.mockReturnValue({
+      sort: jest.fn().mockReturnValue({
+        limit: jest.fn().mockReturnValue({ lean: jest.fn().mockResolvedValue([
+          { event: 'update_tapped', version: '1.1.8', versionCode: 10, platform: 'web', createdAt: new Date('2026-08-13T10:00:00Z') },
+          { event: 'update_shown', version: '1.1.8', versionCode: 10, platform: 'web', createdAt: new Date('2026-08-13T09:00:00Z') }
+        ]) })
+      })
+    });
+    const res = makeRes();
+    await getMyUpdateEvents({ query: { anonId: 'anon-42' } }, res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.events).toHaveLength(2);
+    expect(res.body.events[0]).toMatchObject({ event: 'update_tapped', version: '1.1.8' });
+    expect(AppEvent.find).toHaveBeenCalledWith({ anonId: 'anon-42' });
+  });
+
+  it('requires anonId and handles DB failures', async () => {
+    const missing = makeRes();
+    await getMyUpdateEvents({ query: {} }, missing);
+    expect(missing.statusCode).toBe(400);
+
+    AppEvent.find.mockReturnValue({ sort: jest.fn().mockReturnValue({ limit: jest.fn().mockReturnValue({ lean: jest.fn().mockRejectedValue(new Error('db down')) }) }) });
+    const res = makeRes();
+    await getMyUpdateEvents({ query: { anonId: 'anon-42' } }, res);
+    expect(res.statusCode).toBe(500);
   });
 });
 

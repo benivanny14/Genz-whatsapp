@@ -7,6 +7,31 @@ by commit.
 
 ---
 
+## [2026-08-13] — v1.1.10: email alerts, update history, admin screenshots, nightly-verify
+
+**Email alerts (backend + nightly)**
+- New `alertMailerService` (nodemailer, SMTP via env vars already defined in
+  render.yaml) plus a public `POST /api/telemetry/notify` endpoint used by the
+  nightly workflow to send best-effort email alerts on failures. Secret-less
+  environments skip mail gracefully.
+
+**Update history in Settings**
+- Privacy → Update Analytics section now shows the history of the current
+  device (shown / dismissed / updated events per version), mirroring the
+  banner state.
+
+**Admin panel screenshots (e2e)**
+- New `e2e/admin-panels.spec.js` seeds app events and captures 5 screenshots
+  of the admin dashboard (Update Analytics, Release Adoption, Nightly Health
+  Check panels) for visual QA.
+
+**Nightly verify workflow**
+- New `nightly-verify.yml` re-checks the 03:15 UTC nightly run and confirms
+  self-healing (stale alert issues closed) so a passing nightly is verified
+  end-to-end without manual dispatch.
+
+---
+
 ## [2026-08-13] — v1.1.9: uptake on install page, auto-refresh + adoption trend, low-engagement alert
 
 **Release uptake on the install guide**

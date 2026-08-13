@@ -1,0 +1,90 @@
+name: Nightly Verify (self-healing check)
+
+on:
+  schedule:
+    # 30 min after the health check — confirms it PASSED and that stale
+    # "Production health check failed" issues were closed. Anything missed by
+    # the nightly itself is handled here (close on pass / alert on fail).
+    - cron: '45 3 * * *'
+  workflow_dispatch:
+    # Manual run from the Actions tab to verify on demand.
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+jobs:
+  verify:
+    name: Verify nightly health check + self-healing
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check last nightly run and verify self-healing
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // 1. Latest prod-health-nightly run.
+            const { data: runsData } = await github.rest.actions.listWorkflowRuns({
+              owner, repo,
+              workflow_id: 'prod-health-nightly.yml',
+              per_page: 1
+            });
+            const latest = runsData.workflow_runs?.[0];
+            if (!latest) {
+              console.log('No nightly run found yet — nothing to verify.');
+              return;
+            }
+            const passed = latest.conclusion === 'success';
+            console.log(`Latest nightly: ${latest.id} | ${latest.status} | ${latest.conclusion} | ${latest.created_at}`);
+            console.log(`run_url: ${latest.html_url}`);
+
+            // 2. Self-healing: stale "Production health check failed" issues.
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner, repo, state: 'open', labels: ['prod-health']
+            });
+            const stale = open.filter((i) => i.title.startsWith('⚠️ Production health check failed'));
+
+            if (passed) {
+              if (stale.length === 0) {
+                console.log('✅ Nightly passed and no stale alert issues remain — self-healing verified.');
+              } else {
+                // Nightly passed but stale issues linger (e.g. its close step
+                // was skipped by a non-scheduled trigger) — close them here.
+                for (const issue of stale) {
+                  await github.rest.issues.update({
+                    owner, repo, issue_number: issue.number,
+                    state: 'closed', state_reason: 'completed'
+                  });
+                  console.log('Closed stale issue #' + issue.number);
+                }
+                console.log('⚠️ Nightly passed but ' + stale.length + ' stale issue(s) were closed by this verify step.');
+              }
+            } else {
+              console.log(`❌ Latest nightly ${latest.conclusion === null ? 'did not complete' : 'FAILED'}.`);
+              if (latest.conclusion === 'failure') {
+                const title = `⚠️ Production health check failed (${new Date().toISOString().slice(0, 10)}) — verify`;
+                const { data: existing } = await github.rest.issues.listForRepo({
+                  owner, repo, state: 'open', labels: ['prod-health']
+                });
+                const alreadyOpen = existing.some((i) => i.title === title);
+                if (!alreadyOpen) {
+                  await github.rest.issues.create({
+                    owner, repo, title, labels: ['prod-health'],
+                    body: [
+                      '## Nightly health check failed (confirmed by verify step)',
+                      '',
+                      `- **Run:** ${latest.html_url}`,
+                      `- **Started:** ${latest.created_at}`,
+                      `- **Workflow:** ${context.serverUrl}/${owner}/${repo}/actions/workflows/prod-health-nightly.yml`
+                    ].join('\n')
+                  });
+                  console.log('Alert issue created for the failed nightly.');
+                } else {
+                  console.log('Alert issue already open — skipping duplicate.');
+                }
+              }
+            }
