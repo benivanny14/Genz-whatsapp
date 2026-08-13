@@ -30,6 +30,16 @@ by commit.
   self-healing (stale alert issues closed) so a passing nightly is verified
   end-to-end without manual dispatch.
 
+**Hotfix — CI/deploy failure (nodemailer undeclared)**
+- `alertMailerService` required `nodemailer` at module load but the package
+  was never added to `backend/package.json`. Local tests passed only because
+  the parent repo's `node_modules` happened to contain it; CI's `npm ci`
+  installs strictly from the lockfile, so the backend crashed on boot
+  ("Cannot find module 'nodemailer'") and the backend-tests, e2e and deploy
+  jobs all failed on `main`. Fixed by declaring `nodemailer@^9.0.5` in
+  dependencies + lockfile (backend tests 1880/1880, check + check:exports
+  green).
+
 ---
 
 ## [2026-08-13] — v1.1.9: uptake on install page, auto-refresh + adoption trend, low-engagement alert
