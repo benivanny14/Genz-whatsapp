@@ -7,6 +7,83 @@ by commit.
 
 ---
 
+## [2026-08-13] — iOS target, real-FCM guide + release tooling for Chrome-download distribution
+
+**iOS build (Capacitor, Xcode required)**
+- Added the `@capacitor/ios` target (`frontend/ios/`, `npx cap add ios`) with the
+  same 4 native plugins (push, local notifications, filesystem, share) and the
+  shared `capacitorBridge` web fallbacks. Bundle id `com.benivanny.genzwhatsapp`;
+  display name "GENZ WhatsApp".
+- Branded AppIcon (1024×1024 single-size) + dark `#0c0a1e` splash — regenerable
+  via `frontend/scripts/generate-ios-icons.js` (mirrors the Android assets).
+- Building requires macOS + Xcode (documented); no code changes needed to the
+  web app.
+
+**Push notifications for the installed apps**
+- `docs/FCM_SETUP_GUIDE.md`: step-by-step Firebase wiring — Android
+  `google-services.json` (auto-enables the google-services Gradle plugin when
+  present), iOS `GoogleService-Info.plist` + `FirebaseApp.configure()`, backend
+  service-account env vars (`FIREBASE_*`), and a verify-the-full-loop checklist.
+- `google-services.json` / `GoogleService-Info.plist` added to `.gitignore` so
+  Firebase keys can never be committed.
+
+**Release tooling (Chrome download, no Play Store)**
+- `frontend/scripts/bump-app-version.js` (`npm run bump:apk`): bumps Android
+  versionCode (+1) + versionName **and** iOS build/version, and rewrites
+  `public/version.json`.
+- `build-apk.js` now writes `public/version.json` (version, versionCode, apkUrl,
+  **sha256**, size) after each build; login page shows
+  "GENZ WhatsApp Android vX.Y.Z" under the Download button (graceful when the
+  file is absent) so users can spot stale installs.
+- `docs/APK_RELEASE_CHECKLIST.md`: the direct-download release cycle — keystore
+  backup/continuity, per-release build + verify + deploy, the user install flow
+  in Chrome (unknown-source + Play Protect prompts), troubleshooting, and
+  rollback. `MOBILE_READINESS.md` updated with the iOS target + release steps.
+
+**Verification**
+- Frontend production build ✓ · `check:jsx` ✓ · bump script tested on real
+  gradle/pbxproj (then reverted) ✓ · backend suite untouched (1863 pass).
+
+---
+
+## [2026-08-13] — Android APK: real signed build, GENZ branding, native push + media downloads
+
+**Installable Android app (Capacitor 8)**
+- Replaced the mock APK with a **real signed release APK** (`frontend/public/genz-whatsapp.apk`,
+  ~10MB) that wraps the production web app in a native WebView and talks to the live API.
+  Download button (*Download Android App*) on the login page; also served at
+  `https://genz-whatsapp.onrender.com/genz-whatsapp.apk`.
+- Reproducible pipeline: `npm run apk:build` (web build → `cap sync android` →
+  `gradlew assembleRelease` → copy to `public/`); release builds signed with
+  `frontend/android/genz-release.keystore` via gitignored `keystore.properties`.
+- Backend allows the Capacitor webview origins (`https://localhost`, `capacitor://localhost`)
+  in the shared CORS + CSRF allowlist.
+
+**Branding**
+- Launcher icons (legacy + adaptive with teal `#04785C` glass-bubble glyph) and splash
+  screens (portrait/landscape + Android 12+ system splash, dark `#0c0a1e` with the GENZ
+  icon) — regenerable via `frontend/scripts/generate-android-icons.js`.
+
+**Native behaviour in the WebView** (`frontend/src/services/capacitorBridge.js`, web-safe fallbacks)
+- `@capacitor/push-notifications`: registers an FCM token with the existing
+  `/api/notifications/fcm/register` endpoint; pushes feed the same in-app toasts;
+  degrades gracefully without a Firebase project.
+- `@capacitor/local-notifications`: system notifications for messages/calls inside the
+  WebView (web Notification API unavailable there) + white status-bar icon.
+- `@capacitor/filesystem` + `@capacitor/share`: downloads (documents, voice notes, QR
+  codes, chat exports) save to the device and open the share sheet; browsers keep the
+  classic anchor download.
+- React Native prototype also fixed to install and bundle (`react-native` deps corrected,
+  metro.config.js, .gitignore; clean 1.7MB Android JS bundle).
+
+**Docs / verification**
+- `docs/MOBILE_READINESS.md` documents the APK build, signing/key backups, native plugin
+  wiring, and the live phone preview (`frontend/phone-preview.html`).
+- Full mobile sweep green: 27/27 e2e specs (incl. `mobile-layout.spec.js` on iPhone 13 +
+  Pixel 7 across all 130 feature panels), `npm run check:jsx` import scan wired into CI.
+
+---
+
 ## [2026-08-12] — Post-audit hardening: targeted block emits, atomic reactions, CSAM urgency, Redis-ready sockets, swagger
 
 **Security / correctness fixes (SEHEMU A + B)**

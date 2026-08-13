@@ -16,6 +16,8 @@ backend/tmp-*.json
 .qodo/
 .sixth/
 frontend/test-results/
+frontend/android/app/google-services.json
+frontend/ios/App/App/GoogleService-Info.plist
 push_to_github.ps1
 backend/backups/
 backend/.wwebjs_auth/

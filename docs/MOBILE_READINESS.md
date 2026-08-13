@@ -126,6 +126,32 @@ React Native runtime needed.
     notes, QR codes, chat exports) fetch/save to the device and open the system
     share sheet; browsers keep the classic anchor download.
 
+## iOS build (same web app, Xcode required)
+
+The same Capacitor project also ships an **iOS target** (`frontend/ios/`,
+created with `npx cap add ios`) with the GENZ AppIcon (1024×1024) and a dark
+branded splash — regenerable via `frontend/scripts/generate-ios-icons.js`.
+Building requires macOS + Xcode; `npx cap sync ios` then open
+`ios/App/App.xcworkspace`. Bundle id: `com.benivanny.genzwhatsapp`.
+Push notifications need the Firebase iOS setup — see `docs/FCM_SETUP_GUIDE.md`.
+
+## Releases (Chrome download — no Play Store)
+
+APKs are distributed **directly from the site** (login page *Download Android
+App* button), never through the Play Store. Each release:
+
+1. `npm run bump:apk` (`scripts/bump-app-version.js`) — bumps Android
+   versionCode/versionName + iOS build/version and rewrites
+   `public/version.json`.
+2. `npm run apk:build` — rebuilds the signed APK and fills sha256/size into
+   `public/version.json` (served at `/version.json`; the login page shows
+   `GENZ WhatsApp Android vX.Y.Z` under the download button so users can
+   check for updates).
+3. Commit + push → Render serves the new APK automatically.
+
+Full procedure, keystore-backup warnings, user install flow and rollback:
+`docs/APK_RELEASE_CHECKLIST.md`.
+
 ## Live phone preview (dev)
 
 `frontend/phone-preview.html` (served by the Vite dev server at
