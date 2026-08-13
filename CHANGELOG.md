@@ -7,6 +7,33 @@ by commit.
 
 ---
 
+## [2026-08-13] — v1.1.6: analytics opt-in + admin panel, stuck-release alert, CI smoke tests
+
+**Update analytics are now opt-in (Privacy)**
+- New **Update Analytics** section in Settings → Privacy (next to Crash
+  Reporting): an `Update analytics` toggle that must be on before any
+  anonymous update events are sent — same opt-in pattern as crash reporting.
+  Nothing is collected by default.
+
+**Admin dashboard: Update Analytics panel**
+- The admin Overview now shows an **Update Analytics (server)** panel next to
+  the crash panels: total shown / dismissed / updated in the last 30 days,
+  plus a per-version table (vX: shown · dismissed · updated). Data comes from
+  `GET /api/admin/app-events`.
+
+**Nightly stuck-release alert**
+- New public `GET /api/telemetry/events/uptake?version=X&sinceHours=48`
+  (returns only four integers — shown/dismissed/updated, no PII) and a new
+  nightly step: if the current release was shown to ≥ 3 devices but nobody
+  updated within 48h, the workflow files a dedicated
+  **"Users may be stuck on an old version"** issue with the uptake numbers
+  and likely causes (asset download, keystore, Play Protect).
+
+**Release-script smoke tests in CI**
+- `ci.yml` frontend job gets an explicit **Release-script smoke tests** step
+  (`node --test src/tests/releaseScripts.test.js`) alongside the unit-test
+  glob that already covers them.
+
 ## [2026-08-13] — v1.1.5: update analytics, installed-vs-latest in Settings, e2e + release-script tests
 
 **Anonymous update analytics (how many users actually update)**

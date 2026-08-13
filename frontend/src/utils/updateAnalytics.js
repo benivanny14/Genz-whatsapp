@@ -10,6 +10,7 @@
 
 const ANON_ID_KEY = 'genz_anon_id';
 const SENT_KEY = 'genz_update_analytics_sent';
+const ENABLED_KEY = 'genz_update_analytics'; // === '1' → opt-in, default off
 const MAX_SENT_ENTRIES = 100;
 
 const readJson = (storage, key, fallback) => {
@@ -35,6 +36,18 @@ export const getAnonId = () => {
     return id;
   } catch {
     return '';
+  }
+};
+
+/**
+ * Opt-in gate, mirroring the crash-reporting pattern (Privacy settings →
+ * "Update analytics"): nothing is sent until the user enables it. Default off.
+ */
+export const isUpdateAnalyticsEnabled = () => {
+  try {
+    return globalThis.localStorage?.getItem(ENABLED_KEY) === '1';
+  } catch {
+    return false;
   }
 };
 
@@ -72,6 +85,7 @@ export const trackUpdateEvent = (event, { version = '', versionCode = 0, platfor
   if (!['update_shown', 'update_dismissed', 'update_tapped', 'update_reload_tapped'].includes(event)) {
     return;
   }
+  if (!isUpdateAnalyticsEnabled()) return; // opt-in (Privacy settings)
   if (!shouldSendEvent(event, versionCode)) return;
 
   const apiBase = String(

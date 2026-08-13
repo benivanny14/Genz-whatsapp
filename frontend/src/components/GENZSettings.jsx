@@ -1556,6 +1556,17 @@ const PrivacyTab = ({ ctx }) => {
     setCrashReporting(next);
     try { localStorage.setItem('genz_crash_reporting', next ? '1' : '0'); } catch { /* best-effort */ }
   };
+  // Update-banner analytics toggle (opt-in): when enabled, the update banner
+  // sends anonymous shown/dismissed/updated events to /api/telemetry/events
+  // (see utils/updateAnalytics.js). Same pattern as crash reporting above.
+  const [updateAnalytics, setUpdateAnalytics] = useState(() => {
+    try { return localStorage.getItem('genz_update_analytics') === '1'; } catch { return false; }
+  });
+  const toggleUpdateAnalytics = () => {
+    const next = !updateAnalytics;
+    setUpdateAnalytics(next);
+    try { localStorage.setItem('genz_update_analytics', next ? '1' : '0'); } catch { /* best-effort */ }
+  };
   return (
         <>
         {/* Privacy & Protection */}
@@ -1978,6 +1989,22 @@ const PrivacyTab = ({ ctx }) => {
               desc="Send anonymous render-crash reports to help fix bugs (admins can see them)"
               active={crashReporting}
               onClick={toggleCrashReporting}
+            />
+          </div>
+        </section>
+
+        {/* Update Analytics — opt-in (same pattern as crash reporting) */}
+        <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10 mt-3">
+          <div className="p-4 bg-blue-900/30 border-b border-white/10 flex items-center gap-2 text-white font-bold">
+            <Download size={18} /> Update Analytics
+          </div>
+          <div className="p-2">
+            <ModItem
+              icon={<Smartphone size={20} className="text-green-400" />}
+              title="Anonymous update statistics"
+              desc="Send anonymous data about the update banner (shown / dismissed / updated) so releases can be tracked"
+              active={updateAnalytics}
+              onClick={toggleUpdateAnalytics}
             />
           </div>
         </section>

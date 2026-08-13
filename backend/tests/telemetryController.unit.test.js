@@ -6,12 +6,13 @@ jest.mock('../models/CrashReport', () => ({
 
 jest.mock('../models/AppEvent', () => ({
   create: jest.fn(),
-  aggregate: jest.fn()
+  aggregate: jest.fn(),
+  countDocuments: jest.fn()
 }));
 
 const CrashReport = require('../models/CrashReport');
 const AppEvent = require('../models/AppEvent');
-const { reportFrontendCrash, trackUpdateEvent } = require('../controllers/telemetryController');
+const { reportFrontendCrash, trackUpdateEvent, getUpdateUptake } = require('../controllers/telemetryController');
 const { getFrontendCrashes, getAppEventSummary } = require('../controllers/adminController');
 
 const makeRes = () => {
@@ -129,6 +130,43 @@ describe('trackUpdateEvent (anonymous update analytics)', () => {
     AppEvent.create.mockRejectedValue(new Error('db down'));
     const res = makeRes();
     await trackUpdateEvent({ body: { event: 'update_shown' } }, res);
+    expect(res.statusCode).toBe(500);
+    expect(res.body.success).toBe(false);
+  });
+});
+
+describe('getUpdateUptake (public per-version counts)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    AppEvent.countDocuments.mockResolvedValue(3);
+  });
+
+  it('returns shown/updated/dismissed counts for a version over the window', async () => {
+    AppEvent.countDocuments
+      .mockResolvedValueOnce(10) // shown
+      .mockResolvedValueOnce(2)  // updated
+      .mockResolvedValueOnce(4); // dismissed
+    const res = makeRes();
+    await getUpdateUptake({ query: { version: '1.1.5', sinceHours: '48' } }, res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({ success: true, version: '1.1.5', sinceHours: 48, shown: 10, updated: 2, dismissed: 4 });
+  });
+
+  it('requires a version and clamps sinceHours', async () => {
+    const missing = makeRes();
+    await getUpdateUptake({ query: {} }, missing);
+    expect(missing.statusCode).toBe(400);
+    expect(AppEvent.countDocuments).not.toHaveBeenCalled();
+
+    const res = makeRes();
+    await getUpdateUptake({ query: { version: '1.1.5', sinceHours: '9999' } }, res);
+    expect(res.body.sinceHours).toBe(168);
+  });
+
+  it('returns 500 when the query fails', async () => {
+    AppEvent.countDocuments.mockRejectedValue(new Error('db down'));
+    const res = makeRes();
+    await getUpdateUptake({ query: { version: '1.1.5' } }, res);
     expect(res.statusCode).toBe(500);
     expect(res.body.success).toBe(false);
   });

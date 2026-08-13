@@ -176,6 +176,89 @@ const ServerCrashesPanel = () => {
   );
 };
 
+// ---------------------------------------------------------------------
+// Update-banner analytics (opt-in): devices that have "Update analytics"
+// enabled in Privacy send anonymous shown/dismissed/updated events to
+// /api/telemetry/events; this panel shows the 30-day aggregate per event and
+// per app version via the admin API (/api/admin/app-events).
+const UpdateEventsPanel = () => {
+  const [events, setEvents] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    try {
+      const { data } = await adminApi.get('/admin/app-events');
+      setEvents(data);
+    } catch {
+      setEvents(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const total = events?.byEvent ? Object.values(events.byEvent).reduce((a, b) => a + b, 0) : 0;
+
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-gray-800 dark:text-gray-200 font-medium">Update Analytics (server)</h3>
+        <button
+          onClick={load}
+          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xs flex items-center gap-1"
+        >
+          <RefreshCcw size={12} /> Refresh
+        </button>
+      </div>
+      {loading ? (
+        <p className="text-sm text-gray-400">Inapakia…</p>
+      ) : !events || total === 0 ? (
+        <p className="text-sm text-gray-400">Hakuna update events bado (opt-in reporting).</p>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2 text-xs">
+            <span className="rounded-lg bg-blue-500/10 px-2 py-1 text-blue-600 dark:text-blue-300">
+              Shown: {events.byEvent.update_shown || 0}
+            </span>
+            <span className="rounded-lg bg-amber-500/10 px-2 py-1 text-amber-600 dark:text-amber-300">
+              Dismissed: {events.byEvent.update_dismissed || 0}
+            </span>
+            <span className="rounded-lg bg-green-500/10 px-2 py-1 text-green-600 dark:text-green-300">
+              Updated: {(events.byEvent.update_tapped || 0) + (events.byEvent.update_reload_tapped || 0)}
+            </span>
+            <span className="ml-auto text-gray-400">last {events.days || 30} days</span>
+          </div>
+          {events.byVersion?.length > 0 && (
+            <div className="overflow-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-left text-gray-400 border-b border-gray-200 dark:border-gray-800">
+                    <th className="py-1 pr-3 font-medium">Version</th>
+                    <th className="py-1 pr-3 font-medium">Shown</th>
+                    <th className="py-1 pr-3 font-medium">Dismissed</th>
+                    <th className="py-1 font-medium">Updated</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {events.byVersion.map((v) => (
+                    <tr key={v.version} className="border-b border-gray-100 dark:border-gray-800 last:border-0">
+                      <td className="py-1.5 pr-3 text-gray-700 dark:text-gray-300">v{v.version}</td>
+                      <td className="py-1.5 pr-3 text-gray-600 dark:text-gray-300">{v.shown}</td>
+                      <td className="py-1.5 pr-3 text-gray-600 dark:text-gray-300">{v.dismissed}</td>
+                      <td className="py-1.5 text-green-600 dark:text-green-300">{v.updated}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Section: Overview
 // ---------------------------------------------------------------------
 const OverviewSection = () => {
@@ -227,6 +310,7 @@ const OverviewSection = () => {
 
       <FrontendCrashesPanel />
       <ServerCrashesPanel />
+      <UpdateEventsPanel />
     </div>
   );
 };

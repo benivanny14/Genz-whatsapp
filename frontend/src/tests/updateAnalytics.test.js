@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { trackUpdateEvent, getAnonId, shouldSendEvent } from '../utils/updateAnalytics.js';
+import { trackUpdateEvent, getAnonId, shouldSendEvent, isUpdateAnalyticsEnabled } from '../utils/updateAnalytics.js';
 
 function makeStorage(initial = {}) {
   const store = new Map(Object.entries(initial));
@@ -49,8 +49,25 @@ test('update_shown is deduped per versionCode', () => {
   assert.equal(shouldSendEvent('update_dismissed', 6), true, 'non-shown events always send');
 });
 
+test('update analytics are opt-in (default off, nothing sent until enabled)', () => {
+  const off = makeStorage();
+  assert.equal(isUpdateAnalyticsEnabled(), false, 'default is off');
+  let fetchCalled = false;
+  withGlobals({ storage: off, fetchImpl: () => { fetchCalled = true; } }, () => {
+    trackUpdateEvent('update_tapped', { versionCode: 6 });
+    assert.equal(fetchCalled, false, 'no event sent while disabled');
+  });
+
+  const on = makeStorage({ genz_update_analytics: '1' });
+  withGlobals({ storage: on, fetchImpl: () => { fetchCalled = true; } }, () => {
+    assert.equal(isUpdateAnalyticsEnabled(), true, 'enabled when the key is 1');
+    trackUpdateEvent('update_tapped', { versionCode: 6 });
+    assert.equal(fetchCalled, true, 'events flow once enabled');
+  });
+});
+
 test('trackUpdateEvent POSTs a fire-and-forget anonymous event', () => {
-  const storage = makeStorage();
+  const storage = makeStorage({ genz_update_analytics: '1' });
   let posted = null;
   const fetchImpl = async (url, opts) => {
     posted = { url, opts };
@@ -79,7 +96,7 @@ test('trackUpdateEvent POSTs a fire-and-forget anonymous event', () => {
 });
 
 test('trackUpdateEvent ignores unknown events and never throws', () => {
-  const storage = makeStorage();
+  const storage = makeStorage({ genz_update_analytics: '1' });
   let fetchCalled = false;
   withGlobals(
     { storage, fetchImpl: () => { fetchCalled = true; } },
@@ -100,7 +117,7 @@ test('trackUpdateEvent ignores unknown events and never throws', () => {
 });
 
 test('trackUpdateEvent respects the shown dedupe', () => {
-  const storage = makeStorage();
+  const storage = makeStorage({ genz_update_analytics: '1' });
   let calls = 0;
   withGlobals(
     { storage, fetchImpl: () => { calls += 1; } },

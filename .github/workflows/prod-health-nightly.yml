@@ -75,6 +75,33 @@ jobs:
             exit 1
           fi
 
+      - name: Check update uptake (stuck-release alert)
+        id: uptake
+        env:
+          REPO_VER: ${{ steps.apk.outputs.repo_ver }}
+        run: |
+          # Opt-in update analytics (Privacy → Update Analytics): devices that
+          # SAW the banner for the current release but NONE acted on it within
+          # the last 48h suggests users are stuck on the old version (or the
+          # GitHub release asset failed). Warn and flag for a dedicated issue.
+          REPO_VER_NOQ=$(echo "$REPO_VER" | tr -d '"')
+          echo "-- update uptake for $REPO_VER_NOQ (last 48h) --"
+          UPTAKE=$(curl -s -m 60 "https://genz-whatsapp.onrender.com/api/telemetry/events/uptake?version=$REPO_VER_NOQ&sinceHours=48" || echo '')
+          echo "uptake: ${UPTAKE:-unreachable}"
+          SHOWN=$(echo "$UPTAKE" | grep -o '"shown": [0-9]*' | grep -o '[0-9]*' | head -1 || echo 0)
+          UPDATED=$(echo "$UPTAKE" | grep -o '"updated": [0-9]*' | grep -o '[0-9]*' | head -1 || echo 0)
+          echo "shown=$SHOWN updated=$UPDATED"
+          echo "uptake_shown=$SHOWN" >> "$GITHUB_OUTPUT"
+          echo "uptake_updated=$UPDATED" >> "$GITHUB_OUTPUT"
+          if [ "$UPTAKE" = "" ]; then
+            echo '::warning::uptake endpoint unreachable (analytics disabled or API down) — skipping stuck-release check'
+          elif [ "$SHOWN" -ge 3 ] && [ "$UPDATED" -eq 0 ]; then
+            echo '::warning::update banner shown to multiple devices for the current release but nobody updated — likely stuck (filing issue)'
+            echo "stuck=true" >> "$GITHUB_OUTPUT"
+          else
+            echo '::notice::uptake OK (or too few opt-in events to judge)'
+          fi
+
       - name: Check latest Render deploy status
         if: always()
         env:
@@ -83,6 +110,52 @@ jobs:
           LIVE_VER: ${{ steps.apk.outputs.live_ver }}
           REPO_VER: ${{ steps.apk.outputs.repo_ver }}
         run: node scripts/render-deploy-status.js --limit 3 || echo '::warning::could not read deploy history (credentials?)'
+
+      - name: File stuck-release issue (nobody updated within 48h)
+        if: steps.uptake.outputs.stuck == 'true' && github.event_name != 'workflow_dispatch'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const today = new Date().toISOString().slice(0, 10);
+            const repoVer = process.env.REPO_VER || 'unknown';
+            const shown = process.env.UPTAKE_SHOWN || '0';
+            const updated = process.env.UPTAKE_UPDATED || '0';
+            const title = `📉 Users may be stuck on an old version (${today})`;
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: ['prod-health']
+            });
+            const alreadyOpen = existing.some((issue) => issue.title === title);
+            if (!alreadyOpen) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                labels: ['prod-health'],
+                body: [
+                  '## Update release may be stuck',
+                  '',
+                  `- **Release:** ${repoVer} (repo version)`,
+                  `- **Last 48h uptake (opt-in analytics):** ${shown} devices saw the update banner, **${updated}** updated.`,
+                  '',
+                  'Devices are seeing the banner but none are acting on it. Possible causes:',
+                  '- The GitHub release asset download fails (check [releases](https://github.com/benivanny14/Genz-whatsapp/releases)).',
+                  '- Users tap Update but the install fails (signature/keystore mismatch, Play Protect).',
+                  '- The banner is dismissed or not rendering on affected devices.',
+                  '',
+                  `- **Workflow run:** ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+                ].join('\n')
+              });
+              console.log('Stuck-release issue created');
+            } else {
+              console.log('Stuck-release issue already open — skipping duplicate');
+            }
+        env:
+          REPO_VER: ${{ steps.apk.outputs.repo_ver }}
+          UPTAKE_SHOWN: ${{ steps.uptake.outputs.uptake_shown }}
+          UPTAKE_UPDATED: ${{ steps.uptake.outputs.uptake_updated }}
 
       - name: File alert issue on failure
         if: failure() && github.event_name != 'workflow_dispatch'

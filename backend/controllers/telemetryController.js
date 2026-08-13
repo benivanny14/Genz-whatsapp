@@ -24,6 +24,26 @@ exports.reportFrontendCrash = async (req, res) => {
   }
 };
 
+// Aggregate uptake for one version — public, returns ONLY four integers (no
+// anon ids, no timestamps), used by the nightly health check to spot a
+// release nobody acted on. sinceHours is clamped to [1, 168].
+exports.getUpdateUptake = async (req, res) => {
+  const version = typeof req.query.version === 'string' ? req.query.version.slice(0, 20) : '';
+  if (!version) return res.status(400).json({ success: false, message: 'version query param is required' });
+  const sinceHours = Math.min(168, Math.max(1, Number(req.query.sinceHours) || 48));
+  try {
+    const since = new Date(Date.now() - sinceHours * 60 * 60 * 1000);
+    const [shown, updated, dismissed] = await Promise.all([
+      AppEvent.countDocuments({ version, event: 'update_shown', createdAt: { $gte: since } }),
+      AppEvent.countDocuments({ version, event: { $in: ['update_tapped', 'update_reload_tapped'] }, createdAt: { $gte: since } }),
+      AppEvent.countDocuments({ version, event: 'update_dismissed', createdAt: { $gte: since } })
+    ]);
+    res.json({ success: true, version, sinceHours, shown, updated, dismissed });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to load uptake' });
+  }
+};
+
 // Anonymous update-banner analytics (public endpoint — the banner shows on
 // the login page too, for logged-out users). Only allowlisted event names and
 // tiny, clamped fields are stored; see AppEvent.js. Fire-and-forget from the

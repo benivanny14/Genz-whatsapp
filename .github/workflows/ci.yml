@@ -100,6 +100,15 @@ jobs:
           cd frontend
           npm test
 
+      # Release-script smoke tests run the REAL bump-app-version.js on
+      # throwaway copies (would have caught the v1.1.4 existsSync crash) and
+      # syntax-check the build scripts. Also covered by `npm test` above, but
+      # kept as an explicit step so a broken release script is visible fast.
+      - name: Release-script smoke tests
+        run: |
+          cd frontend
+          node --test src/tests/releaseScripts.test.js
+
       - name: JSX import check (missing lucide/component imports)
         run: |
           cd frontend

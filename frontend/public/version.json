@@ -1,9 +1,9 @@
 {
-  "version": "1.1.5",
-  "versionCode": 7,
+  "version": "1.1.6",
+  "versionCode": 8,
   "apkUrl": "/genz-whatsapp.apk",
-  "downloadUrl": "https://github.com/benivanny14/Genz-whatsapp/releases/download/v1.1.5/genz-whatsapp.apk",
-  "sha256": "e1df312934ad8d8edf505a244093ebff9589e03cf22749b69afef02a131e6c4c",
-  "size": 6130373,
-  "releasedAt": "2026-08-13T14:14:29.618Z"
+  "downloadUrl": "https://github.com/benivanny14/Genz-whatsapp/releases/download/v1.1.6/genz-whatsapp.apk",
+  "sha256": "c8741a256bf7ce3bb40aefb23930605e1a2d468fe162023a6867e48d87359374",
+  "size": 6130965,
+  "releasedAt": "2026-08-13T14:31:13.639Z"
 }
