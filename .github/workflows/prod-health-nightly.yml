@@ -40,6 +40,44 @@ jobs:
           }
           cat /tmp/prod-health.log
 
+      - name: Verify version.json + APK reachability on production
+        id: apk
+        run: |
+          UI=https://genz-whatsapp-1.onrender.com
+          echo "-- version.json --"
+          LIVE_VER=$(curl -sf -m 60 "$UI/version.json" | grep -o '"version": "[^"]*"' | head -1 || true)
+          echo "live: ${LIVE_VER:-UNREACHABLE}"
+          REPO_VER=$(grep -o '"version": "[^"]*"' frontend/public/version.json | head -1)
+          echo "repo: $REPO_VER"
+          if [ -z "$LIVE_VER" ]; then
+            echo '::error::version.json unreachable on production (UI host)'
+            exit 1
+          fi
+          if [ "$LIVE_VER" != "$REPO_VER" ]; then
+            echo '::warning::deployed version differs from repo — Render deploy may be lagging or failed'
+          fi
+          echo "-- APK reachability (first 1KB) --"
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' -m 60 -r 0-1023 "$UI/genz-whatsapp.apk" || true)
+          echo "apk range request: HTTP $CODE"
+          if [ "$CODE" != "206" ] && [ "$CODE" != "200" ]; then
+            echo '::error::APK download from the UI host is failing (free-tier stall?)'
+            exit 1
+          fi
+          echo "-- API host health --"
+          API_CODE=$(curl -s -o /dev/null -w '%{http_code}' -m 60 "https://genz-whatsapp.onrender.com/api/health" || true)
+          echo "api host health: HTTP $API_CODE"
+          if [ "$API_CODE" != "200" ]; then
+            echo '::error::API host (genz-whatsapp.onrender.com) not healthy'
+            exit 1
+          fi
+
+      - name: Check latest Render deploy status
+        if: always()
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+        run: node scripts/render-deploy-status.js --limit 3 || echo '::warning::could not read deploy history (credentials?)'
+
       - name: File alert issue on failure
         if: failure() && github.event_name != 'workflow_dispatch'
         uses: actions/github-script@v7

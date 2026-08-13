@@ -27,6 +27,7 @@ const Login = () => {
   const [locked, setLocked] = useState(false);
   const [lockMinutes, setLockMinutes] = useState(0);
   const [apkVersion, setApkVersion] = useState(null);
+  const [apkLocalOk, setApkLocalOk] = useState(null); // null=probing, true/false
   const [verifyOpen, setVerifyOpen] = useState(false);
   const [verifyResult, setVerifyResult] = useState(null);
 
@@ -41,6 +42,33 @@ const Login = () => {
       })
       .catch(() => {}); // graceful: banner simply won't show
   }, []);
+
+  // Smart fallback: the same-origin APK can stall on the free Render instance
+  // (large static file + sleeping instance). Probe it briefly; if it doesn't
+  // answer, point the primary Download button at the GitHub release instead.
+  useEffect(() => {
+    if (!apkVersion) return;
+    let cancelled = false;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    fetch(apkVersion.apkUrl || '/genz-whatsapp.apk', { method: 'HEAD', signal: controller.signal })
+      .then((res) => {
+        if (!cancelled) setApkLocalOk(res.ok);
+      })
+      .catch(() => {
+        if (!cancelled) setApkLocalOk(false);
+      })
+      .finally(() => clearTimeout(timer));
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [apkVersion]);
+
+  const downloadHref = apkLocalOk === false && apkVersion?.downloadUrl
+    ? apkVersion.downloadUrl
+    : '/genz-whatsapp.apk';
 
   // Verify a downloaded APK against the published SHA-256 checksum.
   // Users sideload the APK (no Play Store), so this lets them confirm the
@@ -264,10 +292,10 @@ const Login = () => {
           </div>
 
           <a
-            href="/genz-whatsapp.apk"
+            href={downloadHref}
             download="genz-whatsapp.apk"
             className="mt-4 w-full flex items-center justify-center gap-2 rounded-md border border-[#00a884]/40 bg-[#00a884]/10 hover:bg-[#00a884]/20 py-2.5 text-sm font-semibold text-[#00a884] transition-colors"
-            title="Download the Android app (APK)"
+            title={apkLocalOk === false ? 'Site download unavailable — using the GitHub mirror' : 'Download the Android app (APK)'}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />

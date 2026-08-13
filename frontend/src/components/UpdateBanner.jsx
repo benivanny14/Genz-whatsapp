@@ -44,7 +44,10 @@ const UpdateBanner = () => {
           if (dismissedVersion !== String(manifest.versionCode)) {
             setUpdate({
               version: manifest.version,
-              apkUrl: manifest.apkUrl || '/genz-whatsapp.apk',
+              // Prefer the GitHub release asset — the same-origin APK can
+              // stall on the free-tier instance. Falls back to the local file.
+              apkUrl: manifest.downloadUrl || manifest.apkUrl || '/genz-whatsapp.apk',
+              localApkUrl: manifest.apkUrl || '/genz-whatsapp.apk',
             });
           }
         }
@@ -80,13 +83,24 @@ const UpdateBanner = () => {
             Kuna version mpya ya GENZ. Install ili kupata features mpya.
           </p>
         </div>
-        <a
-          href={update.apkUrl}
-          download="genz-whatsapp.apk"
-          className="shrink-0 rounded-lg bg-[#00a884] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#00c795]"
-        >
-          Update
-        </a>
+        <div className="shrink-0 flex items-center gap-1.5">
+          <a
+            href={update.apkUrl}
+            className="rounded-lg bg-[#00a884] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#00c795]"
+          >
+            Update
+          </a>
+          {update.localApkUrl && update.apkUrl !== update.localApkUrl && (
+            <a
+              href={update.localApkUrl}
+              download="genz-whatsapp.apk"
+              title="Download from the site (same-origin)"
+              className="rounded-lg border border-white/20 px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10"
+            >
+              Site
+            </a>
+          )}
+        </div>
         <button
           type="button"
           onClick={dismiss}

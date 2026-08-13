@@ -7,6 +7,38 @@ by commit.
 
 ---
 
+## [2026-08-13] — v1.1.2: smart download fallback, nightly deploy-health alerts, GitHub-first updates
+
+**Smart download fallback (login page)**
+- The primary *Download Android App* button now probes the same-origin APK
+  (HEAD, 8s timeout); if the free-tier instance stalls it, the button silently
+  points at the GitHub release (`downloadUrl` from version.json) instead —
+  title changes to explain why.
+
+**GitHub-first in-app updates (APK)**
+- `UpdateBanner` now prefers `downloadUrl` (GitHub release asset, reliable)
+  for its Update button, with a secondary "Site" button when the mirror
+  differs from the local file.
+
+**Nightly deploy-health alerts (task: Render status learnings)**
+- `prod-health-nightly.yml` extended: verifies `/version.json` on the UI host
+  against the repo's version (warns on deploy lag), range-checks the APK
+  download, checks the API host's `/api/health`, and always prints the latest
+  Render deploy status (`render-deploy-status.js`) — any failure files an
+  alert issue as before.
+- `render-status.yml` remains available as a manual workflow_dispatch from the
+  Actions tab (direct API dispatch was rejected by this environment's token).
+
+**v1.1.2 release**
+- Bumped (versionCode 4), rebuilt (5.8 MB, signed, no self-embedding), pushed
+  through the full pipeline: bump → build → push main → deploy → tag →
+  auto-release.
+
+**Verification**
+- 81/81 unit tests · check:jsx ✓ · build ✓.
+
+---
+
 ## [2026-08-13] — v1.1.1: GitHub download mirror, Render status tooling, full pipeline verified
 
 **Reliable APK download (free-tier fix)**
