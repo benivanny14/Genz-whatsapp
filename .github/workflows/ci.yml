@@ -190,6 +190,10 @@ jobs:
           # exercises ~10 sensitive admin endpoints in one run (strict default is
           # 10/hour). Throwaway secrets on an ephemeral runner — zero prod impact.
           ADMIN_STRICT_MAX: '100'
+          # The full suite registers many users in parallel from one runner IP
+          # and would trip the 100/15min auth budget (same throwaway-runner
+          # rationale as ADMIN_* above).
+          AUTH_RATE_MAX: '100000'
           PHONE_VERIFICATION_REQUIRED: 'false'
           # CI-only throwaway signing secrets (never used outside this workflow).
           JWT_SECRET: ${{ secrets.CI_JWT_SECRET || 'ci-e2e-only-jwt-secret-0123456789abcdef' }}

@@ -4,9 +4,15 @@ const rateLimit = require('express-rate-limit');
 // sharing one NAT/campus IP while still capping scripted registration spam.
 // (It used to be 10/IP in production — that blocked everyone behind a shared
 // IP after just 10 sign-ups, which breaks launch on school/office networks.)
+// AUTH_RATE_MAX raises the cap on throwaway CI runners only (same pattern as
+// ADMIN_STRICT_MAX) — the full e2e suite registers many users in parallel
+// from one IP and would otherwise trip the budget.
+const authSensitiveMax = process.env.NODE_ENV === 'test'
+  ? 100000
+  : parseInt(process.env.AUTH_RATE_MAX, 10) || 100;
 const authSensitiveLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'test' ? 100000 : 100,
+  max: authSensitiveMax,
   message: {
     success: false,
     error: 'Too many login/registration attempts, please try again later.'
