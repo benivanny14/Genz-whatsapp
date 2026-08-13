@@ -67,8 +67,20 @@ git commit -m "release: v1.0.1 APK"
 git push
 ```
 Render ina-deploy automatically (web build inakopi `public/` → `dist/`), na
-`https://genz-whatsapp.onrender.com/genz-whatsapp.apk` inatoa APK mpya mara
-moja.
+`https://genz-whatsapp-1.onrender.com/genz-whatsapp.apk` inatoa APK mpya mara
+moja. (Ikiwa free-tier instance iko sleeping na download inachelewa, watumiaji
+wanatumia link ya **GitHub mirror** kwenye login/install pages — `releases/
+latest/download/genz-whatsapp.apk` — ambayo ni ya kudumu na ya kasi.)
+
+> **Production topology (muhimu kujua):** UI ina-serve kutoka
+> `genz-whatsapp-1.onrender.com`, lakini **API + MongoDB iko kwenye
+> `genz-whatsapp.onrender.com`** — ndiyo host iliyobaked kwenye web app na
+> APK (`build-apk.js` default), hivyo watumiaji wa web na APK wanashiriki
+> database moja. **Usibadilishe VITE_API_URL default bila kubadilisha pia
+> backend ambayo data iko.** Kuunganisha services hizo mbili kuwa moja ni
+> kazi ya Render dashboard (sio ya repo). Unaweza kuona deploy history kwa:
+> `node scripts/render-deploy-status.js` (na RENDER_API_KEY/RENDER_SERVICE_ID)
+> au Actions → "Render status".
 
 ### 5. Publish GitHub release (channel ya pili ya download)
 

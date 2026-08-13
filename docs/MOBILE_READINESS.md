@@ -102,7 +102,15 @@ which wraps the production web app in a native Android WebView — no NDK, no
 React Native runtime needed.
 
 - **Download**: the login page has a *Download Android App* button serving
-  `/genz-whatsapp.apk` (also available at `https://genz-whatsapp.onrender.com/genz-whatsapp.apk`).
+  `/genz-whatsapp.apk` (also available at
+  `https://genz-whatsapp-1.onrender.com/genz-whatsapp.apk` — the UI host —
+  with a **GitHub mirror** link (`releases/latest/download/genz-whatsapp.apk`)
+  that is reliable even when the free-tier instance is sleeping).
+- **Production topology**: the UI is served from `genz-whatsapp-1.onrender.com`
+  while the API (and its MongoDB) is `genz-whatsapp.onrender.com` — the host
+  baked into the deployed web app and the APK, so web and APK users share one
+  account database. Merging the two services into one host is a Render
+  dashboard task (`docs/APK_RELEASE_CHECKLIST.md` → “Production topology”).
 - **API**: the APK build bakes in `VITE_API_URL` (defaults to the production
   Render URL) — the webview talks to the live API with cookies
   (`SameSite=None; Secure` in production), and the backend CORS/CSRF allowlist

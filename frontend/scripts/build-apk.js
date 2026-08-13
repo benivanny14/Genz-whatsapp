@@ -32,6 +32,11 @@ const publicApk = resolve(root, 'public/genz-whatsapp.apk');
 
 const run = (cmd, opts = {}) => execSync(cmd, { stdio: 'inherit', shell: true, cwd: root, ...opts });
 
+// The API (and its MongoDB) lives on genz-whatsapp.onrender.com — the same
+// host the deployed web app bakes (Render env VITE_API_URL). The APK must
+// talk to that SAME API so APK and web users share one account database.
+// genz-whatsapp-1.onrender.com is the UI/download host only. Overridable via
+// env (e.g. VITE_API_URL=https://genz-whatsapp-1.onrender.com/api).
 const apiUrl = process.env.VITE_API_URL || 'https://genz-whatsapp.onrender.com/api';
 const socketUrl = process.env.VITE_SOCKET_URL || 'https://genz-whatsapp.onrender.com';
 
@@ -73,6 +78,9 @@ writeFileSync(
       version: versionName,
       versionCode,
       apkUrl: '/genz-whatsapp.apk',
+      // Reliable download channel: the same-origin APK can stall on the free
+      // Render instance, so also point at the permanent GitHub release asset.
+      downloadUrl: `https://github.com/benivanny14/Genz-whatsapp/releases/download/v${versionName}/genz-whatsapp.apk`,
       sha256,
       size: apkBuf.length,
       releasedAt: new Date().toISOString(),

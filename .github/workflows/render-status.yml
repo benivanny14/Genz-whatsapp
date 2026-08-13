@@ -1,0 +1,43 @@
+name: Render status
+
+# Manual: Actions tab → "Render status" → Run workflow.
+# Prints the service's deploy history + current instance state using the
+# repo's RENDER_API_KEY / RENDER_SERVICE_ID secrets — handy when the Render
+# dashboard is unreachable (e.g. to see why a deploy failed or the APK
+# download is slow). No deploy is triggered — read-only.
+#
+# The action step supports --service to inspect a second service (the repo
+# historically has genz-whatsapp AND genz-whatsapp-1).
+
+on:
+  workflow_dispatch:
+    inputs:
+      service_id:
+        description: 'Override RENDER_SERVICE_ID (e.g. a second service)'
+        required: false
+        default: ''
+      limit:
+        description: 'How many deploys to list'
+        required: false
+        default: '5'
+
+permissions:
+  contents: read
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Query Render deploys
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ inputs.service_id || secrets.RENDER_SERVICE_ID }}
+        run: node scripts/render-deploy-status.js --limit ${{ inputs.limit }}

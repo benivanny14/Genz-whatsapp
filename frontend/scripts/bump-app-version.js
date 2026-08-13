@@ -91,6 +91,7 @@ writeFileSync(
       version: nextVersionName,
       versionCode: gradleVersionCode + 1,
       apkUrl: '/genz-whatsapp.apk',
+      downloadUrl: `https://github.com/benivanny14/Genz-whatsapp/releases/download/v${nextVersionName}/genz-whatsapp.apk`,
       sha256: oldJson.sha256 || null,
       size: oldJson.size || null,
       releasedAt: new Date().toISOString(),

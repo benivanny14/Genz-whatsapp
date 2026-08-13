@@ -7,6 +7,39 @@ by commit.
 
 ---
 
+## [2026-08-13] — v1.1.1: GitHub download mirror, Render status tooling, full pipeline verified
+
+**Reliable APK download (free-tier fix)**
+- `version.json` now carries a `downloadUrl` — the permanent GitHub release
+  asset — and the login page shows a "Pakua kutoka GitHub" link under the
+  Download button; the install page gains a second "Download from GitHub"
+  button (`releases/latest/download/...`). Same-origin APK stays primary, but
+  users can switch when the sleeping free-tier instance stalls the 6MB file.
+
+**Production topology documented (investigation result)**
+- Verified live: UI is served from `genz-whatsapp-1.onrender.com` while the
+  API + MongoDB live on `genz-whatsapp.onrender.com` (the host baked into the
+  deployed web app and the APK) — web and APK users share one database, so
+  the APK API default is intentionally unchanged. Merging the two services is
+  a Render dashboard task; the docs + checklist explain why not to "fix" it
+  from the repo side.
+
+**Render status tooling**
+- `scripts/render-deploy-status.js`: queries the Render API for the service's
+  deploy history + instance state (RENDER_API_KEY/RENDER_SERVICE_ID).
+- `.github/workflows/render-status.yml` (workflow_dispatch): runs the same
+  script with the repo's secrets from the Actions tab.
+
+**v1.1.1 release**
+- Bumped (versionCode 3), rebuilt (5.8 MB, signed, no self-embedding, API
+  baked = genz-whatsapp.onrender.com), tagged `v1.1.1` — the full pipeline
+  (bump → build → push main → tag → auto-release → deploy) runs end-to-end.
+
+**Verification**
+- 81/81 unit tests · check:jsx ✓ · release asset sha256 vs version.json ✓.
+
+---
+
 ## [2026-08-13] — v1.1.0 shipped: production alignment, auto-release on tag, version in Settings
 
 **Production investigation (task)**

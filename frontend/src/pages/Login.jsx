@@ -286,6 +286,18 @@ const Login = () => {
               How to install — Jinsi ya kusakinisha
             </Link>
           </p>
+          {apkVersion?.downloadUrl && (
+            <p className="mt-1 text-center text-[11px]">
+              <a
+                href={apkVersion.downloadUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#00a884]/70 hover:text-[#00a884]"
+              >
+                Pakua kutoka GitHub (kasi zaidi) — Download from GitHub
+              </a>
+            </p>
+          )}
           {apkVersion?.sha256 && (
             <div className="mt-2">
               <button
