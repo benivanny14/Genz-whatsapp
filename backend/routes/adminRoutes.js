@@ -13,7 +13,8 @@ const {
   setUserAdminRole,
   getAuditLogs,
   getSecurityReport,
-  getFrontendCrashes
+  getFrontendCrashes,
+  getAppEventSummary
 } = require('../controllers/adminController');
 
 const {
@@ -150,6 +151,9 @@ router.get('/fraud/signals', getFraudSignals);
 
 // ── Frontend crash telemetry (opt-in) ──
 router.get('/frontend-crashes', getFrontendCrashes);
+
+// ── Anonymous update-banner analytics ──
+router.get('/app-events', getAppEventSummary);
 
 // ── Support tickets / direct chats ──
 router.get('/tickets', listTickets);

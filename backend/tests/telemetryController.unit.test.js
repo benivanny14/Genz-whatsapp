@@ -4,9 +4,15 @@ jest.mock('../models/CrashReport', () => ({
   aggregate: jest.fn()
 }));
 
+jest.mock('../models/AppEvent', () => ({
+  create: jest.fn(),
+  aggregate: jest.fn()
+}));
+
 const CrashReport = require('../models/CrashReport');
-const { reportFrontendCrash } = require('../controllers/telemetryController');
-const { getFrontendCrashes } = require('../controllers/adminController');
+const AppEvent = require('../models/AppEvent');
+const { reportFrontendCrash, trackUpdateEvent } = require('../controllers/telemetryController');
+const { getFrontendCrashes, getAppEventSummary } = require('../controllers/adminController');
 
 const makeRes = () => {
   const res = { statusCode: 200 };
@@ -65,6 +71,98 @@ describe('reportFrontendCrash (telemetry)', () => {
     CrashReport.create.mockRejectedValue(new Error('db down'));
     const res = makeRes();
     await reportFrontendCrash({ body: {}, user: {} }, res);
+    expect(res.statusCode).toBe(500);
+    expect(res.body.success).toBe(false);
+  });
+});
+
+describe('trackUpdateEvent (anonymous update analytics)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    AppEvent.create.mockResolvedValue({});
+  });
+
+  it('stores an allowlisted event with clamped fields', async () => {
+    const res = makeRes();
+    await trackUpdateEvent(
+      { body: { event: 'update_tapped', version: '1.1.4', versionCode: 6, platform: 'apk', anonId: 'anon-1' } },
+      res
+    );
+    expect(res.statusCode).toBe(201);
+    expect(res.body).toEqual({ success: true });
+    expect(AppEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'update_tapped',
+        version: '1.1.4',
+        versionCode: 6,
+        platform: 'apk',
+        anonId: 'anon-1'
+      })
+    );
+  });
+
+  it('rejects unknown events (allowlist)', async () => {
+    const res = makeRes();
+    await trackUpdateEvent({ body: { event: 'update_deleted_all' } }, res);
+    expect(res.statusCode).toBe(400);
+    expect(AppEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('clamps long values and defaults malformed fields', async () => {
+    const res = makeRes();
+    await trackUpdateEvent(
+      { body: { event: 'update_shown', version: 'v'.repeat(100), versionCode: -5, platform: 'nonsense', anonId: 'x'.repeat(200) } },
+      res
+    );
+    const arg = AppEvent.create.mock.calls[0][0];
+    expect(arg.version.length).toBeLessThanOrEqual(20);
+    expect(arg.versionCode).toBe(0);
+    expect(arg.platform).toBe('unknown');
+    expect(arg.anonId.length).toBeLessThanOrEqual(64);
+  });
+
+  it('handles a missing body and storage failures gracefully', async () => {
+    const missing = makeRes();
+    await trackUpdateEvent({ body: undefined }, missing);
+    expect(missing.statusCode).toBe(400);
+
+    AppEvent.create.mockRejectedValue(new Error('db down'));
+    const res = makeRes();
+    await trackUpdateEvent({ body: { event: 'update_shown' } }, res);
+    expect(res.statusCode).toBe(500);
+    expect(res.body.success).toBe(false);
+  });
+});
+
+describe('getAppEventSummary (admin)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    AppEvent.aggregate.mockResolvedValue([
+      { _id: 'update_shown', count: 3 },
+      { _id: 'update_dismissed', count: 1 }
+    ]);
+  });
+
+  it('returns per-event totals for the last 30 days', async () => {
+    AppEvent.aggregate.mockResolvedValueOnce([
+      { _id: 'update_shown', count: 3 },
+      { _id: 'update_dismissed', count: 1 }
+    ]).mockResolvedValueOnce([
+      { _id: { version: '1.1.4', versionCode: 6 }, shown: 3, dismissed: 1, updated: 2 }
+    ]);
+    const res = makeRes();
+    await getAppEventSummary({}, res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.days).toBe(30);
+    expect(res.body.byEvent).toEqual({ update_shown: 3, update_dismissed: 1 });
+    expect(res.body.byVersion[0]).toMatchObject({ version: '1.1.4', versionCode: 6, shown: 3, updated: 2 });
+  });
+
+  it('returns 500 when aggregation fails', async () => {
+    AppEvent.aggregate.mockRejectedValue(new Error('agg down'));
+    const res = makeRes();
+    await getAppEventSummary({}, res);
     expect(res.statusCode).toBe(500);
     expect(res.body.success).toBe(false);
   });

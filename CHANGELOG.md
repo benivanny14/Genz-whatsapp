@@ -7,6 +7,35 @@ by commit.
 
 ---
 
+## [2026-08-13] — v1.1.5: update analytics, installed-vs-latest in Settings, e2e + release-script tests
+
+**Anonymous update analytics (how many users actually update)**
+- New `POST /api/telemetry/events` (public, rate-limited, allowlisted event
+  names only) + `AppEvent` model (TTL 180 days) + admin `GET /api/admin/app-events`
+  aggregate: events per name, and per version (shown / dismissed / updated).
+- `frontend/src/utils/updateAnalytics.js`: fire-and-forget beacon with a
+  per-device random id (no PII), `update_shown` deduped per version so the
+  metric is devices, not page loads. Wired into the banner: shown, dismissed,
+  Update tap, Reload tap.
+
+**Installed vs latest in Settings**
+- The Help → "Android app version" row now compares what the device/bundle
+  is RUNNING against the latest release: `v1.1.4 → v1.1.5 [Update]` when
+  stale, plain `v1.1.5` when up to date (native versionCode on the APK,
+  baked-in bundle version on the web).
+
+**E2E coverage for the web update banner**
+- `e2e/update-banner.spec.js` (3 tests): stale bundle shows the banner with
+  Reload and no APK buttons; dismiss persists across reload; up-to-date
+  bundle shows nothing; pre-dismissed versions stay hidden. Intercepts
+  /version.json, so no deploy or backend is needed.
+
+**Release-script smoke tests (regression guard)**
+- `src/tests/releaseScripts.test.js` runs the REAL `bump-app-version.js` on
+  throwaway copies (the existsSync crash from v1.1.4 would have been caught),
+  unit-tests the extracted `scripts/lib/version-json.js` writer (sha/size
+  correctness), and syntax-checks the build scripts.
+
 ## [2026-08-13] — v1.1.4: update banner on web, SW regression tests, honest embedded version.json
 
 **Update banner now works on the web too (not just the APK)**

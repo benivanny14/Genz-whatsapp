@@ -28,6 +28,7 @@ import userService from '../services/userService';
 import { checkForUpdate } from '../utils/appUpdate';
 import SettingsHelp from '../components/SettingsHelp';
 import api from '../services/api';
+import { getAppInfo, isNative } from '../services/capacitorBridge.js';
 import { resetWebRTCConfigCache } from '../config/webrtc';
 
 const SETTINGS_KEY = 'genz_user_settings';
@@ -355,9 +356,13 @@ const Settings = () => {
   const [showLocationSharing, setShowLocationSharing] = useState(false);
   const [showHelpCenter, setShowHelpCenter] = useState(false);
   const [apkVersion, setApkVersion] = useState(null);
+  // The version this device/bundle is RUNNING: the installed native build on
+  // the APK (from @capacitor/app), or the bundle's baked-in build on the web.
+  const [installed, setInstalled] = useState(null);
 
   // Show the current Android build (from version.json — written by
-  // npm run apk:build) so users can spot a stale install.
+  // npm run apk:build) so users can spot a stale install, plus what they are
+  // actually running so the comparison is visible.
   useEffect(() => {
     fetch('/version.json')
       .then((res) => (res.ok ? res.json() : null))
@@ -365,6 +370,24 @@ const Settings = () => {
         if (data?.version) setApkVersion(data);
       })
       .catch(() => {}); // graceful: row simply shows no version
+
+    if (isNative()) {
+      getAppInfo()
+        .then((info) => {
+          if (info) {
+            setInstalled({
+              version: info.version || '',
+              code: info.versionCode ?? info.build ?? 0
+            });
+          }
+        })
+        .catch(() => {});
+    } else {
+      setInstalled({
+        version: __GENZ_VERSION__ || '0.0.0',
+        code: Number(__GENZ_VERSION_CODE__ || 0)
+      });
+    }
   }, []);
   const [showTerms, setShowTerms] = useState(false);
 
@@ -1100,7 +1123,17 @@ const Settings = () => {
           title="Android app version"
           description="How to install, download the APK and verify its checksum."
           onClick={() => navigate('/install')}
-          control={apkVersion ? <span className="text-xs font-semibold text-[#00a884]">v{apkVersion.version}</span> : undefined}
+          control={apkVersion ? (
+            installed && installed.code && apkVersion.versionCode > installed.code ? (
+              <span className="flex items-center gap-1.5 text-xs">
+                <span className="font-semibold text-white/70">v{installed.version || installed.code} →</span>
+                <span className="font-semibold text-[#00a884]">v{apkVersion.version}</span>
+                <span className="rounded-full bg-[#00a884]/20 px-2 py-0.5 text-[10px] font-bold text-[#00a884]">Update</span>
+              </span>
+            ) : (
+              <span className="text-xs font-semibold text-[#00a884]">v{apkVersion.version}</span>
+            )
+          ) : undefined}
         />
       </SettingSection>
       <ActionButton onClick={() => saveSettings()} disabled={saving}><Save size={16} /> Save help settings</ActionButton>

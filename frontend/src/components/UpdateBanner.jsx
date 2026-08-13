@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Download, RefreshCw, X } from 'lucide-react';
 import { getAppInfo, isNative } from '../services/capacitorBridge.js';
+import { trackUpdateEvent } from '../utils/updateAnalytics.js';
 
 const DISMISS_KEY = 'genz-update-dismissed-version';
 
@@ -52,6 +53,12 @@ const UpdateBanner = () => {
       if (cancelled || !manifest) return;
       const latestCode = Number(manifest.versionCode || 0);
 
+      const analytics = {
+        version: manifest.version || '',
+        versionCode: latestCode,
+        platform: isNative() ? 'apk' : 'web',
+      };
+
       if (isNative()) {
         const info = await getAppInfo().catch(() => null);
         if (cancelled || !info) return;
@@ -66,6 +73,7 @@ const UpdateBanner = () => {
             apkUrl: manifest.downloadUrl || manifest.apkUrl || '/genz-whatsapp.apk',
             localApkUrl: manifest.apkUrl || '/genz-whatsapp.apk',
           });
+          trackUpdateEvent('update_shown', analytics);
         }
         return;
       }
@@ -81,6 +89,7 @@ const UpdateBanner = () => {
           versionCode: latestCode,
           isWeb: true,
         });
+        trackUpdateEvent('update_shown', analytics);
       }
     })();
 
@@ -96,6 +105,11 @@ const UpdateBanner = () => {
     try {
       localStorage.setItem(DISMISS_KEY, String(update.versionCode || update.version));
     } catch { /* ignore */ }
+    trackUpdateEvent('update_dismissed', {
+      version: update.version,
+      versionCode: update.versionCode,
+      platform: isNative() ? 'apk' : 'web',
+    });
   };
 
   return (
@@ -123,7 +137,14 @@ const UpdateBanner = () => {
           {update.isWeb ? (
             <button
               type="button"
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                trackUpdateEvent('update_reload_tapped', {
+                  version: update.version,
+                  versionCode: update.versionCode,
+                  platform: 'web',
+                });
+                window.location.reload();
+              }}
               className="rounded-lg bg-[#00a884] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#00c795]"
             >
               Reload
@@ -132,6 +153,13 @@ const UpdateBanner = () => {
             <>
               <a
                 href={update.apkUrl}
+                onClick={() =>
+                  trackUpdateEvent('update_tapped', {
+                    version: update.version,
+                    versionCode: update.versionCode,
+                    platform: 'apk',
+                  })
+                }
                 className="rounded-lg bg-[#00a884] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#00c795]"
               >
                 Update

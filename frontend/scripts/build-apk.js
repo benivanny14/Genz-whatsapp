@@ -19,10 +19,10 @@
  *   npm run apk:build            # uses VITE_API_URL/VITE_SOCKET_URL from env (defaults to prod Render URL)
  */
 import { execSync } from 'node:child_process';
-import { existsSync, copyFileSync, rmSync, statSync, readFileSync, writeFileSync } from 'node:fs';
-import { createHash } from 'node:crypto';
+import { existsSync, copyFileSync, rmSync, statSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { writeVersionJson } from './lib/version-json.js';
 
 const root = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const androidDir = resolve(root, 'android');
@@ -65,28 +65,18 @@ console.log(`[apk] Done → ${publicApk} (${existsSync(publicApk) ? (statSync(pu
 // ── 6/6 Write public/version.json so users can see/verify the build ──
 // Served at /version.json and shown next to the Download button on the login
 // page (see src/pages/Login.jsx). sha256 lets users verify the file they got
-// really is the one we signed.
+// really is the one we signed. The writer lives in scripts/lib/version-json.js
+// (shared with the release-script smoke tests).
 const gradle = readFileSync(resolve(androidDir, 'app/build.gradle'), 'utf8');
 const versionName = gradle.match(/versionName\s+"([^"]+)"/)?.[1] || '0.0.0';
 const versionCode = Number(gradle.match(/versionCode\s+(\d+)/)?.[1] || 0);
-const apkBuf = readFileSync(publicApk);
-const sha256 = createHash('sha256').update(apkBuf).digest('hex');
-writeFileSync(
-  resolve(root, 'public/version.json'),
-  JSON.stringify(
-    {
-      version: versionName,
-      versionCode,
-      apkUrl: '/genz-whatsapp.apk',
-      // Reliable download channel: the same-origin APK can stall on the free
-      // Render instance, so also point at the permanent GitHub release asset.
-      downloadUrl: `https://github.com/benivanny14/Genz-whatsapp/releases/download/v${versionName}/genz-whatsapp.apk`,
-      sha256,
-      size: apkBuf.length,
-      releasedAt: new Date().toISOString(),
-    },
-    null,
-    2
-  ) + '\n'
-);
-console.log(`[apk] version.json → v${versionName} (code ${versionCode}, sha256 ${sha256.slice(0, 12)}…, ${(apkBuf.length / 1024 / 1024).toFixed(1)} MB)`);
+const { sha256 } = writeVersionJson({
+  root,
+  versionName,
+  versionCode,
+  apkPath: publicApk,
+  // Reliable download channel: the same-origin APK can stall on the free
+  // Render instance, so also point at the permanent GitHub release asset.
+  downloadUrl: `https://github.com/benivanny14/Genz-whatsapp/releases/download/v${versionName}/genz-whatsapp.apk`,
+});
+console.log(`[apk] version.json → v${versionName} (code ${versionCode}, sha256 ${sha256.slice(0, 12)}…)`);

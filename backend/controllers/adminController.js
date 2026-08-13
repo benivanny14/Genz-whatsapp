@@ -8,6 +8,7 @@ const Status = require('../models/Status');
 const Device = require('../models/Device');
 const AuditLog = require('../models/AuditLog');
 const CrashReport = require('../models/CrashReport');
+const AppEvent = require('../models/AppEvent');
 const { logAdminAction } = require('../utils/auditLogger');
 
 const clampInt = (value, fallback, min, max) => {
@@ -398,6 +399,50 @@ exports.getSecurityReport = async (req, res) => {
   } catch (error) {
     console.error('Admin security report error:', error);
     return res.status(500).json({ success: false, message: 'Failed to load security report' });
+  }
+};
+
+// Aggregated anonymous update-banner analytics: how many devices saw,
+// dismissed or acted on an update banner per app version (last 30 days).
+exports.getAppEventSummary = async (req, res) => {
+  try {
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const [byEvent, byVersion] = await Promise.all([
+      AppEvent.aggregate([
+        { $match: { createdAt: { $gte: since } } },
+        { $group: { _id: '$event', count: { $sum: 1 } } }
+      ]),
+      AppEvent.aggregate([
+        { $match: { createdAt: { $gte: since } } },
+        {
+          $group: {
+            _id: { version: '$version', versionCode: '$versionCode' },
+            shown: { $sum: { $cond: [{ $eq: ['$event', 'update_shown'] }, 1, 0] } },
+            dismissed: { $sum: { $cond: [{ $eq: ['$event', 'update_dismissed'] }, 1, 0] } },
+            updated: {
+              $sum: { $cond: [{ $in: ['$event', ['update_tapped', 'update_reload_tapped']] }, 1, 0] }
+            }
+          }
+        },
+        { $sort: { '_id.versionCode': -1 } },
+        { $limit: 20 }
+      ])
+    ]);
+    res.json({
+      success: true,
+      days: 30,
+      byEvent: Object.fromEntries(byEvent.map((e) => [e._id, e.count])),
+      byVersion: byVersion.map((v) => ({
+        version: v._id.version || 'unknown',
+        versionCode: v._id.versionCode || 0,
+        shown: v.shown,
+        dismissed: v.dismissed,
+        updated: v.updated
+      }))
+    });
+  } catch (error) {
+    console.error('Admin app events error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to load app events' });
   }
 };
 
