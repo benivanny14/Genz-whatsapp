@@ -142,7 +142,6 @@ function isBenignPageError(text) {
 
 async function sweepFeatureLibrary(page, label) {
   await page.goto('/features');
-  await page.waitForTimeout(1500);
 
   const pageErrors = [];
   page.on('pageerror', (err) => {
@@ -150,11 +149,14 @@ async function sweepFeatureLibrary(page, label) {
     if (!isBenignPageError(text)) pageErrors.push(text);
   });
 
-  await expectNoOverflow(page, `${label} feature library grid`);
-
+  // FeatureLibrary is lazy-loaded — wait for the grid to actually render
+  // instead of a blind timeout (it can be slow under suite-wide load).
   const items = page.locator('section .grid button');
+  await expect(items.first()).toBeVisible({ timeout: 30_000 });
   const count = await items.count();
   expect(count, 'feature library should have items').toBeGreaterThan(50);
+
+  await expectNoOverflow(page, `${label} feature library grid`);
 
   for (let i = 0; i < count; i++) {
     const name = (await items.nth(i).innerText().catch(() => `item-${i}`)).split('\n')[0].slice(0, 30);
@@ -209,6 +211,14 @@ async function mobileSweepTest(page, deviceName) {
   await page.goto('/settings');
   await page.waitForTimeout(1200);
   await expectNoOverflow(page, `${deviceName} settings`);
+
+  await page.goto('/status');
+  await page.waitForTimeout(1200);
+  await expectNoOverflow(page, `${deviceName} status`);
+
+  await page.goto('/broadcast');
+  await page.waitForTimeout(1200);
+  await expectNoOverflow(page, `${deviceName} broadcast`);
 
   await sweepFeatureLibrary(page, deviceName);
 }
