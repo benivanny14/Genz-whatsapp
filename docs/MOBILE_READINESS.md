@@ -93,7 +93,7 @@ CI, so this class of crash cannot regress.
 ## Screenshots
 
 See `docs/mobile-screenshots/` (iPhone-* and Android-*: chat list, chat area,
-settings, status, feature library).
+settings, status, feature library, admin dashboard).
 
 ## Live phone preview (dev)
 
