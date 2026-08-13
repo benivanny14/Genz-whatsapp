@@ -1998,6 +1998,17 @@ const PrivacyTab = ({ ctx }) => {
           <div className="p-4 bg-blue-900/30 border-b border-white/10 flex items-center gap-2 text-white font-bold">
             <Download size={18} /> Update Analytics
           </div>
+          {!updateAnalytics && (
+            <div className="mx-2 mt-2 rounded-lg border border-blue-400/20 bg-blue-500/10 px-3 py-2 text-[11px] leading-relaxed text-blue-100/90">
+              <p className="font-semibold text-blue-100 mb-0.5">Nini kinakusanywa kabla ya kuwasha:</p>
+              <p>
+                Ukiiwasha, kila wakati banner ya update inaonekana au inabofywa (shown / dismissed /
+                updated), app inatuma <span className="font-mono">4 maneno tu</span>: tukio, version,
+                na namba ya random ya kifaa (sio namba yako ya simu, sio jina, sio ujumbe wako).
+                Data inatumika tu kuona kama watumiaji wanaweza kusasisha — na inafutwa baada ya siku 180.
+              </p>
+            </div>
+          )}
           <div className="p-2">
             <ModItem
               icon={<Smartphone size={20} className="text-green-400" />}

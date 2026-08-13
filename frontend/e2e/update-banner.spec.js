@@ -77,3 +77,27 @@ test.describe('update banner (web)', () => {
     await expect(page.getByRole('status').filter({ hasText: 'Update available — v' })).toHaveCount(0);
   });
 });
+
+test.describe('update uptake footer (login page)', () => {
+  test('renders aggregate uptake only when data exists', async ({ page }) => {
+    const real = await (await page.request.get('/version.json')).json();
+
+    // No data → no footer.
+    await page.route('**/api/telemetry/events/uptake**', (route) =>
+      route.fulfill({ json: { success: true, version: real.version, sinceHours: 48, shown: 0, updated: 0, dismissed: 0 } })
+    );
+    await page.goto('/login');
+    await page.waitForTimeout(1200);
+    await expect(page.getByText(/updated · .* shown/)).toHaveCount(0);
+
+    // With data → footer with aggregate counts.
+    await page.unroute('**/api/telemetry/events/uptake**');
+    await page.route('**/api/telemetry/events/uptake**', (route) =>
+      route.fulfill({ json: { success: true, version: real.version, sinceHours: 48, shown: 5, updated: 2, dismissed: 1 } })
+    );
+    await page.reload();
+    await expect(
+      page.getByText(new RegExp(`v${real.version}: 2 updated · 5 shown`))
+    ).toBeVisible();
+  });
+});

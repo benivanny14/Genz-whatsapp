@@ -27,6 +27,7 @@ const Login = () => {
   const [locked, setLocked] = useState(false);
   const [lockMinutes, setLockMinutes] = useState(0);
   const [apkVersion, setApkVersion] = useState(null);
+  const [uptake, setUptake] = useState(null);
   const [apkLocalOk, setApkLocalOk] = useState(null); // null=probing, true/false
   const [verifyOpen, setVerifyOpen] = useState(false);
   const [verifyResult, setVerifyResult] = useState(null);
@@ -38,7 +39,16 @@ const Login = () => {
     fetch('/version.json')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data?.version) setApkVersion(data);
+        if (data?.version) {
+          setApkVersion(data);
+          // Release uptake footer (opt-in analytics): how many devices saw /
+          // updated to this release in the last 48h. Only rendered once there
+          // is real data — aggregate integers only, no PII.
+          fetch(`/api/telemetry/events/uptake?version=${encodeURIComponent(data.version)}&sinceHours=48`)
+            .then((r) => (r.ok ? r.json() : null))
+            .then((u) => { if (u?.success) setUptake(u); })
+            .catch(() => {});
+        }
       })
       .catch(() => {}); // graceful: banner simply won't show
   }, []);
@@ -307,6 +317,11 @@ const Login = () => {
           {apkVersion && (
             <p className="mt-2 text-center text-[11px] text-slate-500">
               GENZ WhatsApp Android v{apkVersion.version}
+            </p>
+          )}
+          {uptake && uptake.shown > 0 && (
+            <p className="mt-1 text-center text-[10px] text-slate-600">
+              📊 v{uptake.version}: {uptake.updated} updated · {uptake.shown} shown (last 48h)
             </p>
           )}
           <p className="mt-1 text-center text-[11px] text-slate-600">

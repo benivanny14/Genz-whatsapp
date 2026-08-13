@@ -7,6 +7,31 @@ by commit.
 
 ---
 
+## [2026-08-13] — v1.1.7: uptake footer, explain-before-opt-in, analytics docs, nightly fix
+
+**Release uptake on the login page**
+- Under the version line, a muted footer shows aggregate uptake for the
+  current release when data exists: `📊 v1.1.7: 2 updated · 5 shown (last 48h)`
+  (from the public `/api/telemetry/events/uptake`; shown only when `shown > 0`).
+
+**Explain-before-opt-in (Privacy)**
+- The Update Analytics section now shows a notice (in Kiswahili) explaining
+  exactly what is collected — 4 fields, random device id, no phone/name/
+  messages, deleted after 180 days — before the toggle is switched on.
+
+**Analytics documentation**
+- New `docs/UPDATE_ANALYTICS.md`: the event model, endpoints, opt-in flow,
+  admin panel, stuck-release alert, and how to query the data.
+
+**Nightly health check fixed (false positives)**
+- The nightly's render-deploy-verify step checked `/api/health` on the UI
+  host (`genz-whatsapp-1`), which sleeps on the free tier and returns
+  502/000 while cold — filing false alert issues (#10, #17) every night.
+  It now checks the real API host (`genz-whatsapp.onrender.com`, where
+  MongoDB lives and which stays warm) with longer retries. The nightly's
+  new uptake + stuck-release steps were exercised end-to-end against
+  production and pass.
+
 ## [2026-08-13] — v1.1.6: analytics opt-in + admin panel, stuck-release alert, CI smoke tests
 
 **Update analytics are now opt-in (Privacy)**

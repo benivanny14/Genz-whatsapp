@@ -32,8 +32,16 @@ jobs:
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+          # The UI host (genz-whatsapp-1) sleeps on the free tier and returns
+          # 502/000 for /api/health while cold — that raised FALSE-POSITIVE
+          # alerts. The real API (with MongoDB) lives on genz-whatsapp.onrender.com
+          # and stays warm, so the public health check targets THAT host. The
+          # Render API layer still verifies the deploy service by ID (UI host).
+          # Long retries give free-tier cold starts room to wake up.
+          VERIFY_MAX_ATTEMPTS: '6'
+          VERIFY_BASE_DELAY_MS: '5000'
         run: |
-          node scripts/render-deploy-verify.js > /tmp/prod-health.log 2>&1 || {
+          node scripts/render-deploy-verify.js https://genz-whatsapp.onrender.com > /tmp/prod-health.log 2>&1 || {
             echo '::error::Production health check FAILED'
             tail -20 /tmp/prod-health.log | sed 's/^/::error::/' | head -10
             exit 1
