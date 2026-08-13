@@ -83,7 +83,11 @@ if (existsSync(pbxprojPath)) {
 }
 
 // ── write public/version.json (sha256/size are filled in by build-apk.js) ─
-const oldJson = existsSync(versionJsonPath) ? JSON.parse(readFileSync(versionJsonPath, 'utf8')) : {};
+// sha256/size are deliberately null here, NOT carried over from the previous
+// release: apk:build.js fills them with the real values for the NEW apk.
+// Carrying the old sha was actively misleading — the copy of version.json
+// bundled inside the APK (via vite build → cap sync) would claim the
+// PREVIOUS release's checksum. Null makes the placeholder unambiguous.
 writeFileSync(
   versionJsonPath,
   JSON.stringify(
@@ -92,8 +96,8 @@ writeFileSync(
       versionCode: gradleVersionCode + 1,
       apkUrl: '/genz-whatsapp.apk',
       downloadUrl: `https://github.com/benivanny14/Genz-whatsapp/releases/download/v${nextVersionName}/genz-whatsapp.apk`,
-      sha256: oldJson.sha256 || null,
-      size: oldJson.size || null,
+      sha256: null,
+      size: null,
       releasedAt: new Date().toISOString(),
     },
     null,

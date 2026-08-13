@@ -1,5 +1,21 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { readFileSync } from 'node:fs'
+
+// The version this bundle was BUILT with, baked in from public/version.json
+// (written by bump-app-version.js / build-apk.js). UpdateBanner uses it on the
+// web: when the served /version.json reports a newer versionCode than the
+// bundle's own, the app is running a stale build and offers a Reload. Falls
+// back to 0.0.0/0 if version.json is somehow absent at build time.
+let bundleVersion = '0.0.0'
+let bundleVersionCode = 0
+try {
+  const v = JSON.parse(readFileSync(new URL('./public/version.json', import.meta.url), 'utf8'))
+  bundleVersion = v.version || bundleVersion
+  bundleVersionCode = Number(v.versionCode) || 0
+} catch {
+  // version.json missing — fallbacks above keep the build safe
+}
 
 // Backend the dev proxy forwards /api, /uploads and /socket.io to.
 // Overridable per-worktree (e.g. GENZ_BACKEND_TARGET=http://localhost:5055)
@@ -15,6 +31,10 @@ export default defineConfig({
   plugins: [react()],
   define: {
     global: 'globalThis',
+    // Injected bundle version (see above) — used by UpdateBanner to detect a
+    // stale web build without a native versionCode.
+    __GENZ_VERSION__: JSON.stringify(bundleVersion),
+    __GENZ_VERSION_CODE__: JSON.stringify(bundleVersionCode),
   },
   build: {
     rollupOptions: {

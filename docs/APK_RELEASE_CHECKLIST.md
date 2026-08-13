@@ -37,10 +37,19 @@ Hii inabumia:
 - `android/app/build.gradle` → `versionCode` +1, `versionName`
 - `ios/App/App.xcodeproj/project.pbxproj` → `CURRENT_PROJECT_VERSION` +1,
   `MARKETING_VERSION`
-- `public/version.json` → version mpya (sha256/size zitajazwa na build)
+- `public/version.json` → version mpya (**sha256/size = `null`** hapa —
+  zilizokuwa zikibebwa kutoka release ya zamani, jambo linaloweza
+  kudanganya; `apk:build` ndiyo inayojaza maadili halisi ya APK mpya)
 
 > **Muhimu:** `versionCode` lazima iongezeke kila release — ndiyo njia pekee
 > Android inayojua kuna update kwenye reinstall.
+>
+> **Kuhusu `version.json` iliyobundled ndani ya APK:** copy ya `version.json`
+> inayopita kwenye web assets za APK (vite build → `cap sync`) ni ile ya
+> muda wa `npm run build` — kwa hiyo itaonyesha `sha256: null`. Hii ni sawa
+> na ya kukusudia: app yenyewe **haiisomi kamwe** (inasoma `/version.json` ya
+> network), na `null` inaonyesha wazi kuwa ni placeholder — si checksum ya
+> release ya zamani.
 
 ### 2. Build APK
 ```bash

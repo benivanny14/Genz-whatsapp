@@ -7,6 +7,36 @@ by commit.
 
 ---
 
+## [2026-08-13] — v1.1.4: update banner on web, SW regression tests, honest embedded version.json
+
+**Update banner now works on the web too (not just the APK)**
+- The bundle version (versionCode from `public/version.json`) is baked in at
+  build time (`__GENZ_VERSION_CODE__` in vite.config). On the web, a stale
+  cached bundle — a tab or PWA that never reloaded since a deploy — compares
+  the served `/version.json` against its own build version and shows the
+  update banner with a **Reload** button. Up-to-date bundles show nothing.
+- **Dismiss bug fixed**: the banner stored the version *string* but compared
+  against the numeric versionCode, so dismiss never actually worked — the
+  banner came back on every visit. It now stores/compares the versionCode
+  consistently on both platforms.
+
+**Service worker regression tests**
+- New `src/tests/serviceWorker.test.js` (6 tests): the SW fetch handler is
+  driven in a vm sandbox and verified to never intercept `/version.json`, the
+  APK, `/api/*` or non-GET requests, while still handling navigation and
+  hashed assets. Guards the v1.1.3 cache-fix against regressions.
+
+**Honest embedded version.json in the APK**
+- `bump-app-version.js` no longer carries the previous release's sha256/size
+  into the new `version.json` — the copy bundled inside the APK used to claim
+  the OLD release's checksum. It now writes `null` (clearly a placeholder)
+  and `apk:build` fills the real values only in the served file.
+
+**Manual QA checklist for real devices**
+- New `docs/QA_UPDATE_BANNER_CHECKLIST.md`: step-by-step verification of the
+  update banner, sideloading, checksum, dismiss, web reload flow, offline and
+  edge cases on a real Android phone.
+
 ## [2026-08-13] — v1.1.3: fresh version checks, SW cache fix, deploy-lag alerts
 
 **Service worker no longer caches /version.json or the APK (bug fix)**
