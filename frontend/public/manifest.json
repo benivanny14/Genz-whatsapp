@@ -1,21 +1,56 @@
 {
+  "id": "/",
   "name": "GENZ WhatsApp",
   "short_name": "GENZ",
   "description": "WhatsApp clone with GENZ Ultra features",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#075E54",
   "theme_color": "#128C7E",
+  "orientation": "portrait",
+  "categories": ["social", "communication", "messaging"],
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/login.png",
+      "sizes": "1082x2202",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "GENZ WhatsApp login"
+    },
+    {
+      "src": "/screenshots/after-login.png",
+      "sizes": "1082x2202",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "GENZ WhatsApp chats"
     }
   ]
 }
