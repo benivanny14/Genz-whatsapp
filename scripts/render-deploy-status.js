@@ -64,6 +64,13 @@ const STATUS_LABEL = {
 
 const stamp = (iso) => (iso ? new Date(iso).toISOString().slice(0, 19) : '?');
 
+// The API returns cursor-wrapped items: [{ deploy: {...}, cursor }, ...] and
+// [{ event: {...}, cursor }, ...] — unwrap to the inner object.
+const unwrap = (body, key) => {
+  const arr = Array.isArray(body) ? body : (body && body[key]) || [];
+  return arr.map((x) => (x && x[key] ? x[key] : x));
+};
+
 async function inspectService(id) {
   const svc = await getJson(`https://api.render.com/v1/services/${id}`);
   if (svc.status !== 200) {
@@ -83,7 +90,7 @@ async function inspectService(id) {
   if (deploys.status !== 200) {
     console.error(`  Deploys query failed (${deploys.status}): ${JSON.stringify(deploys.body).slice(0, 300)}`);
   } else {
-    const list = Array.isArray(deploys.body) ? deploys.body : deploys.body?.deploys || [];
+    const list = unwrap(deploys.body, 'deploys');
     console.log(`\n  Last ${LIMIT} deploys (newest first):`);
     for (const d of list) {
       const status = STATUS_LABEL[d.status] || d.status || 'unknown';
@@ -95,9 +102,7 @@ async function inspectService(id) {
     const latest = list[0];
     if (latest) {
       console.log(`  Latest deploy: ${STATUS_LABEL[latest.status] || latest.status}`);
-      if (latest.status === 'failed' && latest.finishedAt) {
-        console.log(`  ⚠️  Latest deploy FAILED at ${stamp(latest.finishedAt)} — check logs below.`);
-      }
+      if (latest.status === 'failed') console.log('  ⚠️  Latest deploy FAILED — check logs below.');
     } else {
       console.log('  No deploys found.');
     }
@@ -105,13 +110,21 @@ async function inspectService(id) {
 
   // Service events (instance crashes, deploy triggers, etc.)
   try {
-    const ev = await getJson(`https://api.render.com/v1/services/${id}/events?limit=10`);
+    const ev = await getJson(`https://api.render.com/v1/services/${id}/events?limit=12`);
     if (ev.status === 200) {
-      const events = Array.isArray(ev.body) ? ev.body : ev.body?.events || [];
+      const events = unwrap(ev.body, 'events');
       if (events.length) {
         console.log(`\n  Recent events (last ${events.length}):`);
         for (const e of events) {
-          console.log(`    ${stamp(e.timestamp)}  ${e.type || '?'}  ${(e.details?.message || e.details?.description || '').toString().slice(0, 140)}`);
+          const det = e.details || {};
+          const extra = det.deployStatus
+            ? ` deployStatus=${det.deployStatus}`
+            : det.message
+              ? ` ${det.message.toString().slice(0, 100)}`
+              : det.reason && det.reason.message
+                ? ` ${det.reason.message.toString().slice(0, 100)}`
+                : '';
+          console.log(`    ${stamp(e.timestamp)}  ${e.type || '?'}${extra}`);
         }
       }
     }
@@ -121,7 +134,7 @@ async function inspectService(id) {
 
   // Runtime log tail — often shows the boot failure (e.g. Mongo connect error)
   try {
-    const logs = await getJson(`https://api.render.com/v1/services/${id}/logs?limit=${LOG_LINES}`);
+    const logs = await getJson(`https://api.render.com/v1/logs?resource=service:${id}&limit=${LOG_LINES}`);
     const entries = Array.isArray(logs.body) ? logs.body : logs.body?.logs || [];
     if (entries.length) {
       console.log(`\n  Runtime log tail (${entries.length} lines):`);
