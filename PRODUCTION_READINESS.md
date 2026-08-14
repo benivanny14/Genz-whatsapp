@@ -63,16 +63,9 @@ REDIS_URL=redis://...
 ```
 The server auto-attaches the Redis Socket.IO adapter + presence store when set.
 
-### 6. TURN server (voice/video calls behind NAT)
-Calls will fail for many mobile networks without a TURN server:
-```
-METERED_TURN_USERNAME=...
-METERED_TURN_PASSWORD=...
-# or
-TURN_SERVER_URL=...
-TURN_USERNAME=...
-TURN_CREDENTIAL=...
-```
+### 6. ~~TURN server~~ — voice/video calls removed
+GENZ is a **pure messaging app**: voice/video/group calls were removed entirely
+(v1.1.14), so no TURN/STUN/ICE configuration is needed anymore.
 
 ### 7. SMTP (password reset / notifications)
 ```

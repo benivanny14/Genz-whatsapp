@@ -1,8 +1,8 @@
 {
-  "version": "1.1.13",
-  "versionCode": 15,
+  "version": "1.1.14",
+  "versionCode": 16,
   "apkUrl": "/genz-whatsapp.apk",
-  "sha256": "e336da1287cf612075dbe9673d8886d742ce9ce9d09e9e7ad199805ee72db214",
-  "size": 10595824,
-  "releasedAt": "2026-08-14T11:18:52.589Z"
+  "sha256": "8435fd037f49d327c994a68c00210096fd339ce8eb10e97be8c7b3a3a89f60b5",
+  "size": 10697267,
+  "releasedAt": "2026-08-14T14:36:28.664Z"
 }

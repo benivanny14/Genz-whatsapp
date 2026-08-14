@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { fetchVersionManifest } from '../utils/versionManifest';
 
 /**
  * Aggregate release uptake (opt-in analytics) — a single muted line like
@@ -13,8 +14,7 @@ const ReleaseUptake = ({ className = 'mt-1 text-center text-[10px] text-slate-60
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/version.json')
-      .then((res) => (res.ok ? res.json() : null))
+    fetchVersionManifest()
       .then((data) => {
         if (!data?.version) return null;
         return fetch(

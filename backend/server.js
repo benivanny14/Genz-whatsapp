@@ -789,8 +789,6 @@ const adminRoutes = require('./routes/adminRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const mediaRoutes = require('./routes/media');
 const encryptionRoutes = require('./routes/encryptionRoutes');
-const webrtcRoutes = require('./routes/webrtcRoutes');
-const callRoutes = require('./routes/callRoutes');
 const productRoutes = require('./routes/productRoutes');
 const scheduledMessageRoutes = require('./routes/scheduledMessageRoutes');
 const stickerRoutes = require('./routes/stickerRoutes');
@@ -817,8 +815,6 @@ const groupModsRoutes = require('./routes/group-mods');
 const bulkSenderRoutes = require('./routes/bulk-sender');
 const businessAccountRoutes = require('./routes/business-account');
 const cacheCleanerRoutes = require('./routes/cache-cleaner');
-const callBlockerRoutes = require('./routes/call-blocker');
-const callFeaturesRoutes = require('./routes/call-features');
 const chatAnalyzerRoutes = require('./routes/chat-analyzer');
 const chatFilterRoutes = require('./routes/chat-filter');
 const chatFoldersRoutes = require('./routes/chat-folders');
@@ -879,8 +875,6 @@ const API_ROUTE_MOUNTS = [
   ['/voice', voiceRoutes],
   ['/notifications', notificationRoutes],
   ['/encryption', encryptionRoutes],
-  ['/webrtc', webrtcRoutes],
-  ['/calls', callRoutes],
   ['/products', productRoutes],
   ['/scheduled-messages', scheduledMessageRoutes],
   ['/status', statusRoutes],
@@ -891,8 +885,6 @@ const API_ROUTE_MOUNTS = [
   ['/bulk-sender', bulkSenderRoutes],
   ['/business-account', businessAccountRoutes],
   ['/cache-cleaner', cacheCleanerRoutes],
-  ['/call-blocker', callBlockerRoutes],
-  ['/call-features', callFeaturesRoutes],
   ['/chat-analyzer', chatAnalyzerRoutes],
   ['/chat-filter', chatFilterRoutes],
   ['/chat-folders', chatFoldersRoutes],

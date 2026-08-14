@@ -115,11 +115,3 @@ export const notifyNewMessage = (senderName, messagePreview, conversationId) => 
   );
 };
 
-// ── Auto-show notification for incoming calls ─────────────────────────────
-export const notifyIncomingCall = (callerName, callType = 'audio') => {
-  showLocalNotification(
-    `${callerName}`,
-    `${callType === 'video' ? 'Video call' : 'Voice call'}`,
-    { tag: 'genz-call', type: 'call', callerName, callType, requireInteraction: true }
-  );
-};

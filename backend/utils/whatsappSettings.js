@@ -19,8 +19,6 @@ const DEFAULT_WHATSAPP_SETTINGS = {
     defaultMessageTimer: 'off',
     groups: 'everyone',
     blockedUsers: [],
-    silenceUnknownCallers: false,
-    protectIpAddressInCalls: false,
     disableLinkPreviews: false,
     blockUnknownAccountMessages: false,
     appLock: {
@@ -67,7 +65,6 @@ const DEFAULT_WHATSAPP_SETTINGS = {
   notifications: {
     messages: true,
     groups: true,
-    calls: true,
     sounds: true,
     conversationTones: true,
     showPreview: true,
@@ -76,7 +73,6 @@ const DEFAULT_WHATSAPP_SETTINGS = {
     reminders: true,
     messageTone: 'default',
     groupTone: 'default',
-    callRingtone: 'default',
     vibration: 'default'
   },
   storageData: {
@@ -85,7 +81,6 @@ const DEFAULT_WHATSAPP_SETTINGS = {
     roamingAutoDownload: [],
     photoUploadQuality: 'standard',
     videoUploadQuality: 'standard',
-    useLessDataForCalls: false,
     proxy: {
       enabled: false,
       host: '',
@@ -118,7 +113,6 @@ const OPTION_RULES = {
   'chats.history.exportFormat': ['json', 'txt'],
   'notifications.messageTone': ['default', 'classic', 'bell', 'chime', 'silent'],
   'notifications.groupTone': ['default', 'classic', 'bell', 'chime', 'silent'],
-  'notifications.callRingtone': ['default', 'classic', 'bell', 'chime', 'silent'],
   'notifications.vibration': ['off', 'default', 'short', 'long'],
   'storageData.photoUploadQuality': ['standard', 'hd'],
   'storageData.videoUploadQuality': ['standard', 'hd'],

@@ -10,26 +10,18 @@ import { App } from '@capacitor/app';
  *   2. WebView can go back          → history.back() (settings, sub-pages)
  *   3. Main chat screen             → minimize the app (WhatsApp-style)
  *
- * `isCallActive` is passed by the caller: while a call screen is up we skip
- * registration so the OS/WebView keeps its default back behaviour (the call
- * screen owns the lifecycle).
- *
  * @param {object} opts
  * @param {boolean} opts.isConversationOpen  true when a chat is open
  * @param {() => void} [opts.onCloseConversation]  closes the open chat
  * @param {() => void} [opts.onExitRequest]   optional custom exit (e.g. confirm dialog)
- * @param {boolean} [opts.isCallActive]       skip while a call screen is visible
  */
 export const useNativeBackButton = ({
   isConversationOpen = false,
   onCloseConversation,
   onExitRequest,
-  isCallActive = false,
 }) => {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return undefined;
-    // During a call the call screen handles back itself — do not swallow it.
-    if (isCallActive) return undefined;
 
     let handle;
     let removed = false;
@@ -54,7 +46,7 @@ export const useNativeBackButton = ({
       removed = true;
       if (handle) handle.remove();
     };
-  }, [isConversationOpen, onCloseConversation, onExitRequest, isCallActive]);
+  }, [isConversationOpen, onCloseConversation, onExitRequest]);
 };
 
 export default useNativeBackButton;

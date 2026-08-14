@@ -9,6 +9,10 @@
  * Checks (exit code 1 only for hard failures; warnings are non-fatal):
  *   [REQUIRED]  PWA icons exist (icon-192/512, favicon-32, apple-touch-icon)
  *   [REQUIRED]  public/manifest.json is valid JSON with required fields
+ *   [REQUIRED]  every icon referenced by manifest.json actually exists
+ *   [REQUIRED]  public/screenshots/ has at least 2 images (PWA install)
+ *   [REQUIRED]  capacitor.config.json has NO server.url (bundled/offline APK)
+ *   [REQUIRED]  vite.config.js registers VitePWA in its plugins array
  *   [WARN]      keystore.properties / genz-release.keystore missing (build
  *               would fall back to the debug signature — never ship that)
  *   [WARN]      google-services.json missing (FCM push disabled — no crash)
@@ -16,7 +20,7 @@
  *               build.gradle versionCode (bump via `npm run bump:apk`)
  *   [WARN]      VITE_API_URL, if set, is HTTPS (production URL)
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -33,7 +37,7 @@ const REQUIRED_ICONS = [
   'public/icons/favicon-32x32.png',
   'public/icons/apple-touch-icon.png',
 ];
-console.log('[pre-build] 1/5 PWA icons');
+console.log('[pre-build] 1/8 PWA icons');
 for (const icon of REQUIRED_ICONS) {
   if (!existsSync(resolve(root, icon))) fail(`Missing icon: ${icon}`);
 }
@@ -41,21 +45,65 @@ if (REQUIRED_ICONS.every((i) => existsSync(resolve(root, i)))) {
   console.log(`  ✓ ${REQUIRED_ICONS.length} icons present`);
 }
 
-// ── 2. manifest.json validity ────────────────────────────────────────────
-console.log('[pre-build] 2/5 manifest.json');
+// ── 2. manifest.json validity + referenced icons ─────────────────────────
+console.log('[pre-build] 2/8 manifest.json');
 const manifestPath = resolve(root, 'public/manifest.json');
 try {
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
   for (const field of ['name', 'short_name', 'start_url', 'display', 'icons']) {
     if (!manifest[field]) fail(`manifest.json missing required field "${field}"`);
   }
-  if (!failed) console.log(`  ✓ manifest.json valid (${manifest.name})`);
+  // Every icon src listed in the manifest must exist on disk (a missing icon
+  // silently degrades the PWA install / splash on some devices).
+  const iconSrcs = (manifest.icons || []).map((i) => i?.src).filter(Boolean);
+  for (const src of iconSrcs) {
+    // Manifest srcs are site-relative (/icons/… → public/icons/…).
+    const clean = src.replace(/^\//, '');
+    if (!existsSync(resolve(root, 'public', clean))) {
+      fail(`manifest.json references missing icon: ${src}`);
+    }
+  }
+  if (!failed) console.log(`  ✓ manifest.json valid (${manifest.name}) — ${iconSrcs.length} icons referenced and present`);
 } catch (err) {
   fail(`manifest.json is not valid JSON: ${err.message}`);
 }
 
-// ── 3. Keystore (warn only) ──────────────────────────────────────────────
-console.log('[pre-build] 3/5 keystore');
+// ── 3. PWA screenshots (Chrome install prompt wants >= 2) ─────────────────
+console.log('[pre-build] 3/8 screenshots');
+const screenshotsDir = resolve(root, 'public/screenshots');
+if (existsSync(screenshotsDir)) {
+  const shots = readdirSync(screenshotsDir).filter((f) => /\.(png|jpe?g|webp)$/i.test(f));
+  if (shots.length >= 2) console.log(`  ✓ ${shots.length} screenshots present`);
+  else fail(`public/screenshots/ has only ${shots.length} image(s) — Chrome's install prompt wants at least 2`);
+} else {
+  fail('public/screenshots/ directory missing — Chrome install prompt wants at least 2 screenshots');
+}
+
+// ── 4. capacitor.config.json — bundled APK only ──────────────────────────
+console.log('[pre-build] 4/8 capacitor.config.json');
+const capacitorPath = resolve(root, 'capacitor.config.json');
+try {
+  const cap = JSON.parse(readFileSync(capacitorPath, 'utf8'));
+  if (cap.server?.url) {
+    fail('capacitor.config.json has server.url — the APK must BUNDLE the web app for true offline support. Remove the "server.url" key (see docs).');
+  } else {
+    console.log('  ✓ no server.url — APK bundles the built app (offline-capable)');
+  }
+} catch (err) {
+  fail(`capacitor.config.json is not valid JSON: ${err.message}`);
+}
+
+// ── 5. vite.config.js registers VitePWA ──────────────────────────────────
+console.log('[pre-build] 5/8 vite.config.js VitePWA');
+const viteConfig = readFileSync(resolve(root, 'vite.config.js'), 'utf8');
+if (/VitePWA/.test(viteConfig) && /plugins\s*:/.test(viteConfig)) {
+  console.log('  ✓ VitePWA registered in plugins');
+} else {
+  fail('vite.config.js does not register VitePWA in its plugins array — add VitePWA (registerType autoUpdate, manifest false).');
+}
+
+// ── 6. Keystore (warn only) ──────────────────────────────────────────────
+console.log('[pre-build] 6/8 keystore');
 const keystoreProps = resolve(root, 'android/keystore.properties');
 const keystoreFile = resolve(root, 'android/genz-release.keystore');
 if (existsSync(keystoreProps) && existsSync(keystoreFile)) {
@@ -64,16 +112,16 @@ if (existsSync(keystoreProps) && existsSync(keystoreFile)) {
   warn('keystore.properties / genz-release.keystore missing — the build will sign with the DEBUG key. Do NOT ship a debug-signed APK (users cannot update it later). See docs/MWONGOZO_APK_NA_DEPLOY.md');
 }
 
-// ── 4. google-services.json (warn only — FCM optional) ───────────────────
-console.log('[pre-build] 4/5 google-services.json (FCM)');
+// ── 7. google-services.json (warn only — FCM optional) ───────────────────
+console.log('[pre-build] 7/8 google-services.json (FCM)');
 if (existsSync(resolve(root, 'android/app/google-services.json'))) {
   console.log('  ✓ FCM configured (push notifications enabled)');
 } else {
   warn('google-services.json missing — FCM push disabled (app works fine, no crash). See docs/FCM_SETUP_GUIDE.md');
 }
 
-// ── 5. version.json vs build.gradle ──────────────────────────────────────
-console.log('[pre-build] 5/5 version.json');
+// ── 8. version.json vs build.gradle ──────────────────────────────────────
+console.log('[pre-build] 8/8 version.json');
 try {
   const versionJson = JSON.parse(readFileSync(resolve(root, 'public/version.json'), 'utf8'));
   const gradle = readFileSync(resolve(root, 'android/app/build.gradle'), 'utf8');

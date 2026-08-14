@@ -128,7 +128,7 @@ React Native runtime needed.
     `/api/notifications/fcm/register`; incoming pushes feed the same in-app toasts
     the web app uses. Requires `android/app/google-services.json` + a Firebase
     project to deliver background pushes (see `capacitor.config.json`).
-  - `@capacitor/local-notifications` — system notifications for messages/calls when
+  - `@capacitor/local-notifications` — system notifications for messages when
     the app runs in the WebView (web Notification API is unavailable there).
   - `@capacitor/filesystem` + `@capacitor/share` — downloads (documents, voice
     notes, QR codes, chat exports) fetch/save to the device and open the system

@@ -317,8 +317,6 @@ async function main() {
   r = await api.req('POST', '/api/message-translator/translate', { text: 'Hello friend', targetLanguage: 'sw' });
   check('translate message', r.status === 200 || r.status === 201, r, 'message');
 
-  r = await api.req('GET', '/api/webrtc/config');
-  check('webrtc config', r.status === 200, r, 'message');
 
   // ── G. MODS & ADVANCED ─────────────────────────────────────────────
   console.log('\n[G] MODS & ADVANCED');
@@ -481,10 +479,6 @@ async function main() {
   r = await api.req('GET', '/api/notifications/vapid-public-key');
   check('vapid public key', r.status === 200, r, 'message');
 
-  r = await api.req('GET', '/api/call-features/settings');
-  check('call features settings', r.status === 200, r, 'message');
-  r = await api.req('GET', '/api/call-blocker/settings');
-  check('call blocker settings', r.status === 200, r, 'message');
   r = await api.req('GET', '/api/anti-ban/settings');
   check('anti-ban settings', r.status === 200, r, 'message');
   r = await api.req('GET', '/api/whatsapp-web/settings');

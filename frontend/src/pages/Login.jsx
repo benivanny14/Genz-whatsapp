@@ -4,6 +4,7 @@ import { Eye, EyeOff, Lock, LogIn, Phone, ShieldCheck, ArrowLeft } from 'lucide-
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import ReleaseUptake from '../components/ReleaseUptake.jsx';
+import { fetchVersionManifest, apkDownloadUrl } from '../utils/versionManifest';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -35,17 +36,15 @@ const Login = () => {
   // npm run apk:build) next to the download button so users can check
   // whether they have the latest version.
   useEffect(() => {
-    fetch('/version.json')
-      .then((res) => (res.ok ? res.json() : null))
+    fetchVersionManifest()
       .then((data) => {
         if (data?.version) setApkVersion(data);
-      })
-      .catch(() => {}); // graceful: banner simply won't show
+      });
   }, []);
 
-  // The APK is served by the app itself (same-origin /genz-whatsapp.apk) —
-  // no external download channel.
-  const downloadHref = '/genz-whatsapp.apk';
+  // The APK is served by the app itself (same-origin /genz-whatsapp.apk —
+  // absolute production URL inside the bundled APK) — no external channel.
+  const downloadHref = apkDownloadUrl();
 
   // Verify a downloaded APK against the published SHA-256 checksum.
   // Users sideload the APK (no Play Store), so this lets them confirm the

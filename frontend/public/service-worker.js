@@ -145,52 +145,34 @@ self.addEventListener('push', (e) => {
   let payload = {};
   try { payload = e.data?.json() || {}; } catch { payload = { title: 'GENZ', body: e.data?.text() || 'New notification' }; }
 
-  // BUG FIX: the backend (webPushService.buildPayload) nests everything
-  // except title/body/icon/badge/tag inside a `data` object, and uses
-  // 'incoming_call' (not 'call') as the type for ringing calls. This code
-  // was reading `payload.type` / `payload.callType` from the top level,
-  // which never existed there, so `isCall` was always false for every real
-  // push sent by the backend — incoming calls fell back to a plain message
-  // notification with no ringtone vibration and no Answer/Decline buttons.
+  // The backend (webPushService.buildPayload) nests everything except
+  // title/body/icon/badge/tag inside a `data` object.
   const info = payload.data || payload;
   const notifType = info.type || payload.type;
-  const callType = info.callType || payload.callType;
 
-  const title = payload.title || info.callerName || info.senderName || 'GENZ WhatsApp';
-  const isCall = notifType === 'incoming_call' || notifType === 'call' || Boolean(callType);
+  const title = payload.title || info.senderName || 'GENZ WhatsApp';
   let body = payload.body || info.text || info.message || '';
   body = String(body).replace(/https?:\/\/[^\s]+/g, '').replace(/www\.[^\s]+/g, '').trim();
-  if (!body) body = isCall ? 'Incoming call' : 'New message';
-  if (isCall) {
-    body = `${info.callerName || title} • ${callType === 'video' ? 'Video call' : 'Voice call'}`;
-  }
-  const isMessage = !isCall && (notifType === 'message' || notifType === 'group_message' || !notifType);
+  if (!body) body = 'New message';
+  const isMessage = notifType === 'message' || notifType === 'group_message' || !notifType;
 
   const options = {
     body,
-    icon: info.callerPicture || info.senderAvatar || '/icons/icon-192x192.png',
+    icon: info.senderAvatar || '/icons/icon-192x192.png',
     badge: '/icons/favicon-32x32.png',
     tag: info.conversationId || payload.tag || 'genz-msg',
     renotify: true,
-    requireInteraction: isCall,
+    requireInteraction: false,
     silent: false,
-    // FIX: Add priority for calls to ensure they show as full-screen/heads-up on Android
-    priority: isCall ? 'high' : 'normal',
-    vibrate: isCall ? [300, 100, 300, 100, 300] : isMessage ? [100, 50, 100] : [50],
+    priority: 'normal',
+    vibrate: isMessage ? [100, 50, 100] : [50],
     data: {
       url: info.clickAction || info.url || payload.url || '/',
       conversationId: info.conversationId,
       senderId: info.senderId,
-      type: isCall ? 'call' : (notifType || 'message'),
-      callType: callType,
-      callerId: info.callerId,
-      callerName: info.callerName,
-      callerPicture: info.callerPicture,
-      offer: info.offer,
+      type: notifType || 'message',
     },
-    actions: isCall
-      ? [{ action: 'accept', title: 'Answer' }, { action: 'decline', title: 'Decline' }]
-      : [{ action: 'open', title: 'Open' }],
+    actions: [{ action: 'open', title: 'Open' }],
     timestamp: Date.now(),
   };
 
@@ -201,59 +183,6 @@ self.addEventListener('push', (e) => {
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();
   const data = e.notification.data || {};
-
-  if (e.action === 'decline') {
-    // Post to app to reject call. Include callerId (not just conversationId)
-    // so the app can actually emit a valid call:reject to the right caller —
-    // without it the decline silently did nothing and the caller kept ringing.
-    clients.matchAll({ type: 'window' }).then(wcs => {
-      wcs.forEach(c => c.postMessage({
-        type: 'CALL_DECLINE',
-        conversationId: data.conversationId,
-        callerId: data.callerId,
-      }));
-    });
-    return;
-  }
-
-  // FIX: this used to only open the full incoming-call screen when the
-  // person tapped the "Answer" action button specifically. Tapping anywhere
-  // else on the notification (the title/body, which is what most people
-  // instinctively tap) fell through to the generic branch below and just
-  // opened the chat list — so with the app closed, a call could only ever
-  // be answered by hitting the tiny "Answer" action, never by opening the
-  // notification itself. Any tap on a call notification (body or the
-  // 'accept' action) should bring the person to the ringing call screen so
-  // they can accept or decline there; only 'decline' should skip it.
-  if (data.type === 'call' && e.action !== 'decline') {
-    const callData = {
-      type: data.callType || 'audio',
-      callerId: data.callerId,
-      callerName: data.callerName,
-      callerPicture: data.callerPicture,
-      conversationId: data.conversationId,
-      offer: data.offer,
-      status: 'incoming',
-      user: { _id: data.callerId, username: data.callerName, profilePicture: data.callerPicture }
-    };
-
-    e.waitUntil(
-      clients.matchAll({ type: 'window', includeUncontrolled: true }).then(wcs => {
-        // Focus existing window if open and send call data
-        for (const wc of wcs) {
-          if (wc.url.startsWith(self.location.origin)) {
-            wc.postMessage({ type: 'INCOMING_CALL', call: callData });
-            return wc.focus();
-          }
-        }
-        // Open new window with call data in URL
-        const url = new URL('/', self.location.origin);
-        url.searchParams.set('call', JSON.stringify(callData));
-        return clients.openWindow(url.toString());
-      })
-    );
-    return;
-  }
 
   const targetUrl = data.conversationId ? `/?chat=${data.conversationId}` : (data.url || '/');
 
