@@ -135,7 +135,8 @@ kutoka kwenye site yenyewe: `https://genz-whatsapp-1.onrender.com/genz-whatsapp.
 | Tatizo | Suluhisho |
 |---|---|
 | "App not installed" wakati wa update | versionCode haijaongezeka, au keystore tofauti. Rejesha keystore sahihi, bump versionCode. |
-| APK ndogo sana / download 404 | `public/genz-whatsapp.apk` haipo kwenye repo au dist haija-built upya. Rebuild + commit. |
+| APK ndogo sana / download inarudisha HTML | `public/genz-whatsapp.apk` haipo kwenye repo — **APK lazima iwe committed** (site-only model inajenga dist kutoka git checkout). Usiongeze kwenye `.gitignore`! Mfano wa v1.1.12: gitignore ilifanya production iserve `index.html` kwa `/genz-whatsapp.apk`. |
+| APK inafunguka lakini inaonyesha "Cannot GET /" | `frontend/capacitor.config.json` → `server.url` lazima ielekeze kwenye **UI host** (`genz-whatsapp-1.onrender.com`), si API-only host (`genz-whatsapp.onrender.com` — hiyo haina frontend). Thibitisha: weka APK kwenye emulator na angalia WebView URL. |
 | Play Protect inaonya "untrusted" | Kawaida kwa sideload — usemi "Install anyway". Hakikisha tuna-build na release keystore (sio debug) ili isiwe mbaya zaidi. |
 | Users wanaweka version ya zamani | Onyesha version kwenye login page na u-tangaze update; hatuna auto-update kwa sababu hatuko Play Store. |
 | APK ina-upload polepole | APK ni ~6MB (imepunguzwa kutoka 10.5MB kwa kuondoa APK iliyojipachika ndani yake); ina-serve kutoka dist ya Render — hakikisha disk space ya Render inatosha. |

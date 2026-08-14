@@ -7,6 +7,56 @@ by commit.
 
 ---
 
+## [2026-08-14] — v1.1.13: production APK pipeline fixes (v1.1.12 superseded)
+
+**v1.1.12 was broken for APK users and superseded by v1.1.13 (versionCode 15).**
+Three production issues found during live verification were fixed and deployed:
+
+**1. APK download served HTML instead of the APK**
+- `public/genz-whatsapp.apk` was gitignored ("the site itself serves
+  /genz-whatsapp.apk"), so CI builds — which run from the git checkout — never
+  included it and production served the SPA fallback (`index.html`) for
+  `/genz-whatsapp.apk`, while `version.json` claimed a valid sha256.
+- **Fix**: the APK is deliberately tracked again and committed with every
+  release (as `docs/APK_RELEASE_CHECKLIST.md` always said). The gitignore
+  comment that caused the confusion was replaced with an explanation.
+
+**2. APK WebView showed "Cannot GET /"**
+- `capacitor.config.json` `server.url` pointed at `genz-whatsapp.onrender.com`
+  — the API-only host, which serves no frontend. The WebView loaded it and
+  rendered Express's 404 (`Cannot GET /`), making the app unusable.
+- **Fix**: point `server.url` at the UI host `genz-whatsapp-1.onrender.com` so
+  the APK loads the same site as the web app, with `/version.json` and
+  `/genz-whatsapp.apk` served same-origin for the update banner. Verified on
+  an Android 14 emulator via Chrome DevTools: the WebView loads
+  `/login` and shows "GENZ WhatsApp Android v1.1.13".
+
+**3. False "Update available" toast on first-time install**
+- The service worker calls `skipWaiting()` + `clients.claim()`, so a fresh
+  install fires `controllerchange` and `main.jsx` showed the "Update
+  available / Reload Now" toast even though the user just installed the
+  latest version.
+- **Fix**: only dispatch `pwa-update-available` when the page was already
+  controlled by a previous service worker (a genuine update).
+
+**Also in this line of work (v1.1.12 → v1.1.13)**
+- Native Android back button (close chat → history → minimize; skipped in calls).
+- Pre-build checks in `apk:build` (icons, manifest, keystore, version sync).
+- WhatsApp-green launcher icon + splash across Android/iOS/PWA (SVG gradient
+  switched from teal/violet to #075E54 → #128C7E → #25D366).
+- FCM auto-detection: adding `frontend/android/app/google-services.json` alone
+  enables native push on the next build (no code change).
+- Fixed `cleanup-dev.js` overwriting `public/manifest.json` (it stripped
+  maskable icons + screenshots on every dev-server start).
+
+**Deployment pipeline**
+- `.github/workflows/deploy.yml` deploys to Render on every push to `main`
+  (quality gates: backend jest + frontend build, then Render deploy action).
+- PRs #20–#23 merged; production verified serving v1.1.13 with the APK
+  sha256 (`e336da12…`) matching `version.json` and the committed APK.
+
+---
+
 ## [2026-08-14] — v1.1.11: real native fingerprint lock in the APK
 
 **Native biometric authentication (@capgo/capacitor-native-biometric)**
