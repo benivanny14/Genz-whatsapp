@@ -26,7 +26,10 @@ const Chat = () => {
   const [showGENZSettings, setShowGENZSettings] = useState(false);
 
   const [isLocked, setIsLocked] = useState(() => {
-    return localStorage.getItem('genz_lock_type') === 'pin' && !!localStorage.getItem('genz_pin_hash');
+    const lockType = localStorage.getItem('genz_lock_type');
+    if (lockType === 'pin') return !!localStorage.getItem('genz_pin_hash');
+    if (lockType === 'fingerprint') return localStorage.getItem('genz_fingerprint_lock') === '1';
+    return false;
   });
   const [lockPin, setLockPin] = useState('');
   const [lockType, setLockType] = useState(() => localStorage.getItem('genz_lock_type') || 'none');
@@ -47,7 +50,7 @@ const Chat = () => {
   };
 
   if (isLocked) {
-    return <LockScreen onUnlock={unlockApp} correctPin={lockPin} />;
+    return <LockScreen onUnlock={unlockApp} correctPin={lockPin} lockType={lockType} />;
   }
 
   return (

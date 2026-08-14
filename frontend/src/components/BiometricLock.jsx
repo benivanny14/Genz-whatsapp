@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Fingerprint, X, Check, AlertTriangle, RefreshCw, Shield, Lock, Unlock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { isBiometricAvailable, authenticateWithBiometric } from '../services/capacitorBridge';
 
 const BiometricLock = ({ isEnabled, onToggle, onClose }) => {
   const [isScanning, setIsScanning] = useState(false);
@@ -12,10 +13,25 @@ const BiometricLock = ({ isEnabled, onToggle, onClose }) => {
     setError('');
     setScanResult(null);
 
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // Simulate biometric scan
-    const success = Math.random() > 0.2; // 80% success rate
+    // Real device biometrics when running inside the APK (native fingerprint /
+    // Face ID prompt); graceful simulation fallback on the web.
+    const { native, isAvailable } = await isBiometricAvailable();
+    let success = false;
+    if (native && isAvailable) {
+      const result = await authenticateWithBiometric({
+        reason: isEnabled
+          ? 'Confirm your identity to disable Biometric Lock'
+          : 'Confirm your identity to enable Biometric Lock',
+        description: isEnabled
+          ? 'Disabling removes fingerprint protection from this device.'
+          : 'Your fingerprint unlocks the app on this device.'
+      });
+      success = result.verified === true;
+    } else {
+      // Web / no biometric hardware: keep the old demo simulation.
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      success = Math.random() > 0.2; // 80% success rate
+    }
     setIsScanning(false);
 
     if (success) {
@@ -278,12 +294,31 @@ export const BiometricLockIndicator = ({ isEnabled }) => {
 // Biometric Auth Prompt Component
 export const BiometricAuthPrompt = ({ onAuthenticate, onCancel }) => {
   const [isScanning, setIsScanning] = useState(false);
+  const [error, setError] = useState('');
 
   const handleAuthenticate = async () => {
     setIsScanning(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    setError('');
+
+    // Native OS biometric prompt inside the APK; simulated scan on the web.
+    const { native, isAvailable } = await isBiometricAvailable();
+    let success = false;
+    if (native && isAvailable) {
+      const result = await authenticateWithBiometric({
+        reason: 'Confirm your identity to continue'
+      });
+      success = result.verified === true;
+    } else {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      success = true;
+    }
     setIsScanning(false);
-    onAuthenticate?.();
+
+    if (success) {
+      onAuthenticate?.();
+    } else {
+      setError('Biometric authentication failed. Please try again.');
+    }
   };
 
   return (
@@ -308,7 +343,11 @@ export const BiometricAuthPrompt = ({ onAuthenticate, onCancel }) => {
         </div>
         <h3 className="text-white font-semibold mb-2">Authenticate</h3>
         <p className="text-gray-400 text-sm mb-6">Use your fingerprint to continue</p>
-        
+
+        {error && (
+          <p className="text-red-400 text-sm mb-4">{error}</p>
+        )}
+
         <div className="flex gap-3">
           <button
             onClick={onCancel}

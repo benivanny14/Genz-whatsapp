@@ -28,7 +28,6 @@ const Login = () => {
   const [locked, setLocked] = useState(false);
   const [lockMinutes, setLockMinutes] = useState(0);
   const [apkVersion, setApkVersion] = useState(null);
-  const [apkLocalOk, setApkLocalOk] = useState(null); // null=probing, true/false
   const [verifyOpen, setVerifyOpen] = useState(false);
   const [verifyResult, setVerifyResult] = useState(null);
 
@@ -44,35 +43,9 @@ const Login = () => {
       .catch(() => {}); // graceful: banner simply won't show
   }, []);
 
-  // Smart fallback: the same-origin APK can stall on the free Render instance
-  // (large static file + sleeping instance). Probe it briefly; if it doesn't
-  // answer, point the primary Download button at the GitHub release instead.
-  useEffect(() => {
-    if (!apkVersion) return;
-    let cancelled = false;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 8000);
-    fetch(apkVersion.apkUrl || '/genz-whatsapp.apk', { method: 'HEAD', signal: controller.signal })
-      .then((res) => {
-        if (cancelled) return;
-        const ct = res.headers.get('content-type') || '';
-        const isRealApk = res.ok && !/text\/html/i.test(ct);
-        setApkLocalOk(isRealApk);
-      })
-      .catch(() => {
-        if (!cancelled) setApkLocalOk(false);
-      })
-      .finally(() => clearTimeout(timer));
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [apkVersion]);
-
-  const downloadHref = apkLocalOk === false && apkVersion?.downloadUrl
-    ? apkVersion.downloadUrl
-    : '/genz-whatsapp.apk';
+  // The APK is served by the app itself (same-origin /genz-whatsapp.apk) —
+  // no external download channel.
+  const downloadHref = '/genz-whatsapp.apk';
 
   // Verify a downloaded APK against the published SHA-256 checksum.
   // Users sideload the APK (no Play Store), so this lets them confirm the
@@ -299,7 +272,7 @@ const Login = () => {
             href={downloadHref}
             download="genz-whatsapp.apk"
             className="mt-4 w-full flex items-center justify-center gap-2 rounded-md border border-[#00a884]/40 bg-[#00a884]/10 hover:bg-[#00a884]/20 py-2.5 text-sm font-semibold text-[#00a884] transition-colors"
-            title={apkLocalOk === false ? 'Site download unavailable — using the GitHub mirror' : 'Download the Android app (APK)'}
+            title="Download the Android app (APK)"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -319,18 +292,6 @@ const Login = () => {
               How to install — Jinsi ya kusakinisha
             </Link>
           </p>
-          {apkVersion?.downloadUrl && (
-            <p className="mt-1 text-center text-[11px]">
-              <a
-                href={apkVersion.downloadUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#00a884]/70 hover:text-[#00a884]"
-              >
-                Pakua kutoka GitHub (kasi zaidi) — Download from GitHub
-              </a>
-            </p>
-          )}
           {apkVersion?.sha256 && (
             <div className="mt-2">
               <button

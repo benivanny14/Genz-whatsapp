@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug-only manifest overlay: allows cleartext HTTP traffic so the debug APK
+  can talk to a local dev backend (http://10.0.2.2:5000). Release builds do
+  NOT get this attribute — production always uses HTTPS.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:usesCleartextTraffic="true" />
+</manifest>

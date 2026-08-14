@@ -138,70 +138,6 @@ jobs:
             }
             if (stale.length === 0) console.log('No stale alert issues to close');
 
-      - name: Check release engagement (low-engagement alert)
-        id: engagement
-        env:
-          REPO_VER: ${{ steps.apk.outputs.repo_ver }}
-        run: |
-          # A release live >7 days whose banner was barely seen (<5 opt-in
-          # devices) while the PREVIOUS release had data suggests users may
-          # not be opening the app at all. The previous-release guard avoids
-          # false alarms while the opt-in toggle is still being adopted.
-          REPO_VER_NOQ=$(echo "$REPO_VER" | tr -d '"')
-          OUT=$(node scripts/release-engagement-check.js "$REPO_VER_NOQ" 2>/dev/null || echo '{"lowEngagement":false,"reason":"script failed"}')
-          echo "$OUT"
-          echo "engagement_out=$OUT" >> "$GITHUB_OUTPUT"
-          if echo "$OUT" | grep -q '"lowEngagement": true'; then
-            echo '::warning::low engagement — release live >7 days but few devices saw the banner (filing issue)'
-            echo "low_engagement=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: File low-engagement issue (users may not be opening the app)
-        if: steps.engagement.outputs.low_engagement == 'true' && github.event_name != 'workflow_dispatch'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const today = new Date().toISOString().slice(0, 10);
-            let detail = {};
-            try { detail = JSON.parse(process.env.ENGAGEMENT || '{}'); } catch {}
-            const title = `👀 Low engagement for release ${detail.currentVersion || ''} (${today})`;
-            const { data: existing } = await github.rest.issues.listForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open',
-              labels: ['prod-health']
-            });
-            const alreadyOpen = existing.some((issue) => issue.title === title);
-            if (!alreadyOpen) {
-              await github.rest.issues.create({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                title,
-                labels: ['prod-health'],
-                body: [
-                  '## Low engagement detected',
-                  '',
-                  `- **Release:** v${detail.currentVersion || '?'} — live **${detail.ageDays ?? '?'} days**`,
-                  `- **Banner shown (7d, opt-in):** ${detail.currentShown ?? 0} devices`,
-                  `- **Previous release (v${detail.previousVersion || '?'}):** ${detail.previousShown ?? 0} devices saw it`,
-                  '',
-                  'The current release is old enough that its banner should have been seen,',
-                  'but (nearly) no opt-in device saw it — while the previous release did have data.',
-                  'Possible causes:',
-                  '- Users have stopped opening the app (engagement drop).',
-                  '- The login/install pages fail to load for existing users (SW shell issue).',
-                  '- `/version.json` or the banner logic broke on the live site.',
-                  '',
-                  `- **Workflow run:** ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
-                ].join('\n')
-              });
-              console.log('Low-engagement issue created');
-            } else {
-              console.log('Low-engagement issue already open — skipping duplicate');
-            }
-        env:
-          ENGAGEMENT: ${{ steps.engagement.outputs.engagement_out }}
-
       # Email delivery is best-effort on top of the GitHub issues: needs the
       # ALERT_WEBHOOK_TOKEN secret (backend /api/telemetry/alerts + SMTP env
       # on Render). Without them the step is skipped and the issue stands.
@@ -217,18 +153,6 @@ jobs:
             -H "Content-Type: application/json" \
             -H "x-alert-token: $ALERT_TOKEN" \
             -d "{\"subject\":\"GENZ alert: users may be stuck on $VER\",\"section\":\"stuck-release\",\"message\":\"Release $VER was shown to $UPTAKE_SHOWN opt-in devices but none updated within 48h. See the GitHub issue for details.\"}" || echo '::warning::email alert send failed (SMTP/token not configured?)'
-
-      - name: Email low-engagement alert (best-effort)
-        if: steps.engagement.outputs.low_engagement == 'true' && env.ALERT_TOKEN != '' && github.event_name != 'workflow_dispatch'
-        env:
-          ALERT_TOKEN: ${{ secrets.ALERT_WEBHOOK_TOKEN }}
-          ENGAGEMENT: ${{ steps.engagement.outputs.engagement_out }}
-        run: |
-          MSG=$(node -e "let d='';try{d=JSON.parse(process.env.ENGAGEMENT||'{}')}catch{};const j=JSON.stringify({subject:'GENZ alert: low engagement for v'+(d.currentVersion||''),section:'low-engagement',message:'Release v'+(d.currentVersion||'?')+' live '+(d.ageDays??'?')+' days but only '+(d.currentShown??0)+' devices saw the banner (previous release had '+(d.previousShown??0)+'). See the GitHub issue for details.'});process.stdout.write(j)")
-          curl -s -m 20 -X POST https://genz-whatsapp.onrender.com/api/telemetry/alerts \
-            -H "Content-Type: application/json" \
-            -H "x-alert-token: $ALERT_TOKEN" \
-            -d "$MSG" || echo '::warning::email alert send failed (SMTP/token not configured?)'
 
       - name: Check latest Render deploy status
         if: always()
@@ -269,7 +193,7 @@ jobs:
                   `- **Last 48h uptake (opt-in analytics):** ${shown} devices saw the update banner, **${updated}** updated.`,
                   '',
                   'Devices are seeing the banner but none are acting on it. Possible causes:',
-                  '- The GitHub release asset download fails (check [releases](https://github.com/benivanny14/Genz-whatsapp/releases)).',
+                  '- The site APK download fails (`/genz-whatsapp.apk` unreachable or stale).',
                   '- Users tap Update but the install fails (signature/keystore mismatch, Play Protect).',
                   '- The banner is dismissed or not rendering on affected devices.',
                   '',
@@ -326,7 +250,7 @@ jobs:
                         '',
                         `- Check the [deploy workflow](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/workflows/deploy.yml) — the Render build may have failed.`,
                         `- Run the **Render status** workflow (Actions tab) for the deploy history, or check the dashboard.`,
-                        `- Latest release: https://github.com/benivanny14/Genz-whatsapp/releases`
+                        `- APK channel: https://genz-whatsapp-1.onrender.com/genz-whatsapp.apk (site only, no GitHub)`
                       ].join('\n')
                     : 'Check the workflow run logs for the failing check (deploy state, `/api/health`, mongo connection, media storage, APK reachability).'
                 ].join('\n')

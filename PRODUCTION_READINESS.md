@@ -39,10 +39,12 @@ SMS and an admin approves it by hand. That does not scale.
   parse + verify the transaction ID against the operator, or move to a real
   payment provider API.
 
-### 3. React Native app
-`react-native/` is a **static mock prototype** (hardcoded data, no backend
-connection). Do not publish the APK (`frontend/public/genz-whatsapp.apk`) to
-users. Either build out the real integration or remove it from the release.
+### 3. Native app = the Capacitor web APK
+There is no separate native codebase — the Android APK is built from this web
+app via Capacitor (`frontend/android` + `frontend/scripts/build-apk.js`).
+(The old `react-native/` static mock was removed in v1.1.11.)
+Release the APK only after `npm run apk:build` produces a signed build; the
+download button on the login page points at the matching GitHub release.
 
 ### 4. Honest encryption messaging
 Client-side E2EE is a mod, **off by default**. The UI has been corrected to say

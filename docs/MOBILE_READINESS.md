@@ -103,9 +103,9 @@ React Native runtime needed.
 
 - **Download**: the login page has a *Download Android App* button serving
   `/genz-whatsapp.apk` (also available at
-  `https://genz-whatsapp-1.onrender.com/genz-whatsapp.apk` — the UI host —
-  with a **GitHub mirror** link (`releases/latest/download/genz-whatsapp.apk`)
-  that is reliable even when the free-tier instance is sleeping).
+  `https://genz-whatsapp-1.onrender.com/genz-whatsapp.apk` — the UI host).
+  There is **no GitHub download channel** — the site is the only source of
+  the APK.
 - **Production topology**: the UI is served from `genz-whatsapp-1.onrender.com`
   while the API (and its MongoDB) is `genz-whatsapp.onrender.com` — the host
   baked into the deployed web app and the APK, so web and APK users share one

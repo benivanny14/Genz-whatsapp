@@ -22,8 +22,7 @@ test.describe('update banner (web)', () => {
     const newer = {
       ...real,
       version: '99.0.0',
-      versionCode: Number(real.versionCode) + 1000,
-      downloadUrl: 'https://example.invalid/genz-whatsapp.apk'
+      versionCode: Number(real.versionCode) + 1000
     };
     await page.route('**/version.json', (route) => route.fulfill({ json: newer }));
 

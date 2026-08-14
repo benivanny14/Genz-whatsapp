@@ -42,7 +42,16 @@ export const clearAllUserData = async () => {
     'device-id',
     'genz_theme',
     'tempUsername',
-    'tempPassword'
+    'tempPassword',
+    // Device-level App Lock keys: the lock must SURVIVE logout / session
+    // clear (like WhatsApp/TM WhatsApp), otherwise enabling App Lock then
+    // logging out silently removes the protection.
+    'genz_lock_type',
+    'genz_fingerprint_lock',
+    'genz_lock_pin',
+    'genz_pin_hash',
+    'genz_last_unlock',
+    'genz_last_activity'
   ];
 
   // Get current user ID before clearing to delete user-specific keys

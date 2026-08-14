@@ -5,15 +5,15 @@ phone** (not an emulator) because it exercises sideloading, Play Protect and
 the WebView service worker — none of which an emulator reproduces faithfully.
 
 > Prerequisites: a phone running Android 8+, Chrome installed, and the APK
-> from the GitHub release (`https://github.com/benivanny14/Genz-whatsapp/releases`).
-> You need to be able to trigger a deploy (push to `main`) to test the
-> "new version available" cases.
+> from the site itself (`/genz-whatsapp.apk` on the deployed host — there is
+> **no GitHub download channel** since v1.1.11). You need to be able to
+> trigger a deploy (push to `main`) to test the "new version available" cases.
 
 ---
 
 ## 0. Fresh install (first time)
 
-- [ ] Download `genz-whatsapp.apk` from the GitHub release page on the phone.
+- [ ] Download `genz-whatsapp.apk` from the site (Download Android App button).
 - [ ] Chrome asks about unknown sources → allow it (Settings → Apps → Chrome →
       Install unknown apps → allow) and tap **Install anyway** if Play Protect
       warns.
@@ -32,8 +32,7 @@ the WebView service worker — none of which an emulator reproduces faithfully.
 
 ## 2. New release detection (APK)
 
-1. Install an OLD build (e.g. v1.1.2 APK from an older GitHub release) on the
-   phone.
+1. Install an OLD build (e.g. v1.1.2 APK from an older release) on the phone.
 2. Push a NEWER version to `main` (triggers the Render deploy) or bump the
    version and release.
 3. Wait for `https://genz-whatsapp-1.onrender.com/version.json` to report the
@@ -47,7 +46,7 @@ the WebView service worker — none of which an emulator reproduces faithfully.
 
 ### Update flow
 
-- [ ] Tap **Update** → download starts from **GitHub** (reliable channel).
+- [ ] Tap **Update** → download starts from the **site itself** (`/genz-whatsapp.apk`).
 - [ ] Android installs the new APK **over the old one** (same signature) —
       **no data loss**: chats, contacts, settings all still there.
 - [ ] After updating, open the app → **no banner** (you are now on the latest).
@@ -94,8 +93,8 @@ the WebView service worker — none of which an emulator reproduces faithfully.
 - [ ] `https://genz-whatsapp-1.onrender.com/version.json` returns
       `Cache-Control: no-cache` (curl -I) — the banner can never be stuck on a
       stale cached copy.
-- [ ] The APK download from the site works OR gracefully redirects to GitHub
-      when the free-tier instance stalls (the login button's smart fallback).
+- [ ] The APK download from the site works (`/genz-whatsapp.apk` serves the
+      APK — no GitHub fallback exists anymore).
 
 ## 5. Regression checks after an update
 
@@ -115,6 +114,6 @@ the WebView service worker — none of which an emulator reproduces faithfully.
   may take a few seconds to appear on a cold instance.
 - The APK bundled inside itself is **intentionally absent** (removed at build
   time to keep the APK small) — the app never downloads itself.
-- A version that is deployed but whose APK release wasn't created yet will
-  show the banner with a **Site** button only (GitHub asset 404s until
-  `release.yml` finishes — usually < 2 min after the tag).
+- A version that is deployed but whose APK wasn't uploaded to the server yet
+  shows the banner but the Update link may 404 until `npm run apk:build`
+  output is deployed.

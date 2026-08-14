@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Lock, Shield, Eye, EyeOff } from 'lucide-react';
+import { Lock, Shield, Eye, EyeOff, Fingerprint } from 'lucide-react';
+import { isBiometricAvailable, authenticateWithBiometric } from '../services/capacitorBridge';
 
 // ── Secure PIN hashing (no external lib needed) ──
 const hashPin = async (pin) => {
@@ -25,13 +26,55 @@ export const verifySecurePin = async (pin) => {
 
 const INACTIVITY_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
-const LockScreen = ({ onUnlock, correctPin }) => {
+const LockScreen = ({ onUnlock, correctPin, lockType = 'pin' }) => {
   const [enteredPin, setEnteredPin] = useState('');
   const [error, setError] = useState('');
   const [attempts, setAttempts] = useState(0);
   const [locked, setLocked] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [showPin, setShowPin] = useState(false);
+  // Fingerprint mode: show the native prompt first; fall back to PIN on the
+  // web (no biometric hardware) or after a failed/cancelled scan.
+  const [usePinFallback, setUsePinFallback] = useState(lockType !== 'fingerprint');
+  const [biometricChecking, setBiometricChecking] = useState(lockType === 'fingerprint');
+  const hasPinBackup = !!localStorage.getItem('genz_lock_pin') || !!localStorage.getItem('genz_pin_hash');
+
+  // When the app lock is fingerprint-based, run the native OS biometric prompt
+  // automatically as soon as the lock screen appears (APK only).
+  useEffect(() => {
+    if (lockType !== 'fingerprint') return;
+    let cancelled = false;
+    setBiometricChecking(true);
+    (async () => {
+      const { native, isAvailable } = await isBiometricAvailable();
+      if (cancelled) return;
+      if (native && isAvailable) {
+        const result = await authenticateWithBiometric({
+          reason: 'Unlock GENZ WhatsApp',
+          description: 'Scan your fingerprint to open the app.'
+        });
+        if (cancelled) return;
+        setBiometricChecking(false);
+        if (result.verified === true) {
+          localStorage.setItem('genz_last_unlock', Date.now().toString());
+          onUnlock();
+        } else {
+          setUsePinFallback(true);
+        }
+      } else {
+        setBiometricChecking(false);
+        // No biometrics (e.g. web). If there is no PIN backup configured the
+        // lock has nothing protecting it — unlock rather than trap the user.
+        if (!hasPinBackup) {
+          localStorage.setItem('genz_last_unlock', Date.now().toString());
+          onUnlock();
+        } else {
+          setUsePinFallback(true);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [lockType, onUnlock]);
 
   // Lockout after 5 failed attempts
   useEffect(() => {
@@ -79,6 +122,22 @@ const LockScreen = ({ onUnlock, correctPin }) => {
     />
   ));
 
+  const runBiometricPrompt = async () => {
+    setError('');
+    setBiometricChecking(true);
+    const result = await authenticateWithBiometric({
+      reason: 'Unlock GENZ WhatsApp',
+      description: 'Scan your fingerprint to open the app.'
+    });
+    setBiometricChecking(false);
+    if (result.verified === true) {
+      localStorage.setItem('genz_last_unlock', Date.now().toString());
+      onUnlock();
+    } else {
+      setError('Biometric authentication failed. Please try again.');
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-[200] flex items-center justify-center flex-col p-4"
@@ -86,18 +145,54 @@ const LockScreen = ({ onUnlock, correctPin }) => {
     >
       <div className="w-full max-w-sm bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8 flex flex-col items-center gap-6 shadow-2xl">
         <div className="w-20 h-20 bg-blue-600/20 rounded-full flex items-center justify-center border border-blue-500/30">
-          <Shield size={40} className="text-blue-400" />
+          {lockType === 'fingerprint' ? <Fingerprint size={40} className="text-blue-400" /> : <Shield size={40} className="text-blue-400" />}
         </div>
 
         <div className="text-center">
           <h2 className="text-2xl font-bold text-white mb-1">GENZ WhatsApp</h2>
-          <p className="text-sm text-blue-300/70">Enter your PIN to unlock</p>
+          {lockType === 'fingerprint' && !usePinFallback ? (
+            <p className="text-sm text-blue-300/70">
+              {biometricChecking ? 'Checking fingerprint...' : 'Unlock with your fingerprint'}
+            </p>
+          ) : (
+            <p className="text-sm text-blue-300/70">Enter your PIN to unlock</p>
+          )}
         </div>
 
-        {/* PIN dots display */}
+        {/* Fingerprint mode: native prompt + retry / PIN fallback */}
+        {lockType === 'fingerprint' && !usePinFallback && (
+          <>
+            <button
+              onClick={runBiometricPrompt}
+              disabled={biometricChecking}
+              className="w-24 h-24 rounded-full bg-blue-600/20 border-2 border-blue-500/40 flex items-center justify-center hover:bg-blue-600/30 transition-colors disabled:opacity-50"
+              aria-label="Unlock with fingerprint"
+            >
+              {biometricChecking ? (
+                <Fingerprint size={48} className="text-blue-400 animate-pulse" />
+              ) : (
+                <Fingerprint size={48} className="text-blue-400" />
+              )}
+            </button>
+            {hasPinBackup ? (
+              <button
+                onClick={() => setUsePinFallback(true)}
+                className="text-sm text-blue-300/60 hover:text-blue-300 underline underline-offset-2"
+              >
+                Use PIN instead
+              </button>
+            ) : (
+              <p className="text-xs text-blue-300/50">No PIN backup configured</p>
+            )}
+          </>
+        )}
+
+        {/* PIN dots display (PIN mode or fallback) */}
+        {usePinFallback && (
         <div className="flex gap-4">
           {pinDots}
         </div>
+        )}
 
         <div className="relative w-full max-w-[200px]">
           <input
@@ -106,7 +201,7 @@ const LockScreen = ({ onUnlock, correctPin }) => {
             value={enteredPin}
             onChange={handlePinChange}
             disabled={locked}
-            className="w-full text-center bg-white/10 border border-white/20 rounded-xl p-3 text-white text-2xl tracking-[0.5em] focus:outline-none focus:border-blue-500 placeholder-white/20 disabled:opacity-50"
+            className={`w-full text-center bg-white/10 border border-white/20 rounded-xl p-3 text-white text-2xl tracking-[0.5em] focus:outline-none focus:border-blue-500 placeholder-white/20 disabled:opacity-50 ${usePinFallback ? '' : 'hidden'}`}
             placeholder="••••"
             autoFocus
           />

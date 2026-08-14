@@ -1503,11 +1503,17 @@ const AppearanceTab = ({ ctx }) => {
                 onClick={() => {
                   const newEnableState = !mods.enableAppLock;
                   setMods(prev => ({ ...prev, enableAppLock: newEnableState }));
-                  const newLockType = newEnableState ? 'pin' : 'none';
-                  setLockType(newLockType);
-                  localStorage.setItem('genz_lock_type', newLockType);
-                  if (!newEnableState) {
+                  if (newEnableState) {
+                    const current = localStorage.getItem('genz_lock_type');
+                    const newLockType = current === 'fingerprint' ? 'fingerprint' : 'pin';
+                    setLockType(newLockType);
+                    localStorage.setItem('genz_lock_type', newLockType);
+                    if (newLockType === 'fingerprint') localStorage.setItem('genz_fingerprint_lock', '1');
+                  } else {
+                    setLockType('none');
+                    localStorage.setItem('genz_lock_type', 'none');
                     localStorage.removeItem('genz_lock_pin');
+                    localStorage.removeItem('genz_fingerprint_lock');
                     setLockPin('');
                   }
                 }}
@@ -1518,23 +1524,59 @@ const AppearanceTab = ({ ctx }) => {
             </div>
 
             {mods.enableAppLock && (
-              <div>
-                <label className="text-xs text-blue-300 mb-1 block">Set PIN (4 digits)</label>
-                <input
-                  type="password"
-                  maxLength="4"
-                  value={lockType === 'pin' ? localStorage.getItem('genz_lock_pin') || '' : ''}
-                  onChange={(e) => {
-                    const newPin = e.target.value;
-                    if (/^\d*$/.test(newPin) && newPin.length <= 4) {
-                      localStorage.setItem('genz_lock_pin', newPin);
-                      setLockPin(newPin);
-                    }
-                  }}
-                  className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 text-white placeholder-blue-200/50"
-                  placeholder="Enter 4-digit PIN"
-                />
-              </div>
+              <>
+                <div>
+                  <label className="text-xs text-blue-300 mb-1 block">Lock method</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLockType('pin');
+                        localStorage.setItem('genz_lock_type', 'pin');
+                      }}
+                      className={`px-3 py-2 rounded-lg text-sm transition-colors ${lockType === 'pin' ? 'bg-blue-600 text-white' : 'bg-white/10 text-blue-200 hover:bg-white/20'}`}
+                    >
+                      🔢 PIN
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLockType('fingerprint');
+                        localStorage.setItem('genz_lock_type', 'fingerprint');
+                        localStorage.setItem('genz_fingerprint_lock', '1');
+                      }}
+                      className={`px-3 py-2 rounded-lg text-sm transition-colors ${lockType === 'fingerprint' ? 'bg-blue-600 text-white' : 'bg-white/10 text-blue-200 hover:bg-white/20'}`}
+                    >
+                      👆 Fingerprint
+                    </button>
+                  </div>
+                  {lockType === 'fingerprint' && (
+                    <p className="text-[11px] text-blue-300/60 mt-1">
+                      In the APK this unlocks with your device fingerprint. On the web it falls back to your PIN.
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs text-blue-300 mb-1 block">
+                    {lockType === 'fingerprint' ? 'Backup PIN (4 digits — used on the web / if fingerprint fails)' : 'Set PIN (4 digits)'}
+                  </label>
+                  <input
+                    type="password"
+                    maxLength="4"
+                    value={localStorage.getItem('genz_lock_pin') || ''}
+                    onChange={(e) => {
+                      const newPin = e.target.value;
+                      if (/^\d*$/.test(newPin) && newPin.length <= 4) {
+                        localStorage.setItem('genz_lock_pin', newPin);
+                        setLockPin(newPin);
+                      }
+                    }}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 text-white placeholder-blue-200/50"
+                    placeholder="Enter 4-digit PIN"
+                  />
+                </div>
+              </>
             )}
           </div>
         </section>

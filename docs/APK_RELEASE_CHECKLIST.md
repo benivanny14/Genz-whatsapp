@@ -77,9 +77,8 @@ git push
 ```
 Render ina-deploy automatically (web build inakopi `public/` → `dist/`), na
 `https://genz-whatsapp-1.onrender.com/genz-whatsapp.apk` inatoa APK mpya mara
-moja. (Ikiwa free-tier instance iko sleeping na download inachelewa, watumiaji
-wanatumia link ya **GitHub mirror** kwenye login/install pages — `releases/
-latest/download/genz-whatsapp.apk` — ambayo ni ya kudumu na ya kasi.)
+moja. **Hakuna channel ya GitHub** — download zote zinakuja kutoka kwenye
+site yenyewe (`/genz-whatsapp.apk`, same-origin).
 
 > **Production topology (muhimu kujua):** UI ina-serve kutoka
 > `genz-whatsapp-1.onrender.com`, lakini **API + MongoDB iko kwenye
@@ -91,25 +90,16 @@ latest/download/genz-whatsapp.apk` — ambayo ni ya kudumu na ya kasi.)
 > `node scripts/render-deploy-status.js` (na RENDER_API_KEY/RENDER_SERVICE_ID)
 > au Actions → "Render status".
 
-### 5. Publish GitHub release (channel ya pili ya download)
+### 5. Hakuna GitHub release channel (imeondolewa)
 
-**Njia rahisi (auto):** baada ya commit + push, unda tag na GitHub Actions
-itafanya yote (`.github/workflows/release.yml` ina-trigger kwenye `v*` tag):
-```bash
-git tag v{version} && git push origin v{version}
-```
+**Watumiaji hawapakui APK kupitia GitHub** — channel hii imeondolewa kabisa
+(no `downloadUrl` kwenye `version.json`, hakuna GitHub link kwenye login /
+install pages, hakuna GitHub asset kwenye update banner). APK inapakuliwa tu
+kutoka kwenye site yenyewe: `https://genz-whatsapp-1.onrender.com/genz-whatsapp.apk`.
 
-**Au kwa mkono:**
-```bash
-npm run release:github          # anza kutoka repo root
-#   au: node scripts/create-github-release.js --dry-run  (hakikisha kwanza)
-```
-Script inasoma `version.json` + CHANGELOG, inaunda (au kusasisha) release
-inayoitwa `v{version}` na kupakia `genz-whatsapp.apk` kama asset. Token inatoka
-`GITHUB_TOKEN` (CI) au git credential helper. Re-running inabadilisha asset
-badala ya kushindwa (idempotent). Watumiaji wanaweza kupakua kutoka GitHub
-pia — URL ya moja kwa moja:
-`https://github.com/benivanny14/Genz-whatsapp/releases/download/v{version}/genz-whatsapp.apk`
+> CI scripts za GitHub release (`scripts/create-github-release.js`, `release.yml`,
+> `release-engagement-check.js`) **zimefutwa kabisa** pamoja na `npm run
+> release:github` — hakuna channel ya GitHub tena.
 
 ### 6. Tangaza update kwa watumiaji
 - Watumiaji waliopo: fungua tovuti kwenye Chrome → login page inaonyesha
@@ -191,6 +181,7 @@ node scripts/render-deploy-verify.js https://GENZ-URL
 ## Version endpoints (kwa developers)
 
 - `https://GENZ-URL/version.json` → `{ version, versionCode, apkUrl, sha256, size, releasedAt }`
+  (hakuna `downloadUrl` — GitHub channel imeondolewa)
 - `https://GENZ-URL/genz-whatsapp.apk` → APK yenyewe (kwa Chrome download)
 
 Scripts: `frontend/scripts/bump-app-version.js` · `frontend/scripts/build-apk.js`

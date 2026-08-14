@@ -13,7 +13,9 @@ warnings after the chat-subtree split), frontend `npm audit` is clean (0
 vulnerabilities after the vite 8 upgrade), and the Playwright e2e suite
 runs in CI.
 
-Before onboarding many users, complete the checklist in `PRODUCTION_READINESS.md` (Cloudinary media storage, Redis, TURN for calls, payment-process automation, npm audit cleanup). The React Native app in `react-native/` is a **static mock prototype** — it is not connected to this backend and must not be shipped to users as-is.
+Before onboarding many users, complete the checklist in `PRODUCTION_READINESS.md` (Cloudinary media storage, Redis, TURN for calls, payment-process automation, npm audit cleanup).
+
+The Android APK is built from this web app via **Capacitor** (`frontend/android` + `frontend/scripts/build-apk.js`) — there is no separate native codebase. (The old React Native prototype in `react-native/` was removed in v1.1.11; it was a static mock never connected to this backend.)
 
 Note: "End-to-end encryption" claims shown in the UI only apply when the **Client E2EE** mod is enabled (it is OFF by default). By default messages are encrypted in transit and at rest on the server.
 

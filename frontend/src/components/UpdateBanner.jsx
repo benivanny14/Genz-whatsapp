@@ -68,10 +68,8 @@ const UpdateBanner = () => {
             version: manifest.version,
             versionCode: latestCode,
             isWeb: false,
-            // Prefer the GitHub release asset — the same-origin APK can
-            // stall on the free-tier instance. Falls back to the local file.
-            apkUrl: manifest.downloadUrl || manifest.apkUrl || '/genz-whatsapp.apk',
-            localApkUrl: manifest.apkUrl || '/genz-whatsapp.apk',
+            // The new APK is served by the app host itself (same-origin).
+            apkUrl: manifest.apkUrl || '/genz-whatsapp.apk',
           });
           trackUpdateEvent('update_shown', analytics);
         }
@@ -164,16 +162,6 @@ const UpdateBanner = () => {
               >
                 Update
               </a>
-              {update.localApkUrl && update.apkUrl !== update.localApkUrl && (
-                <a
-                  href={update.localApkUrl}
-                  download="genz-whatsapp.apk"
-                  title="Download from the site (same-origin)"
-                  className="rounded-lg border border-white/20 px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10"
-                >
-                  Site
-                </a>
-              )}
             </>
           )}
         </div>

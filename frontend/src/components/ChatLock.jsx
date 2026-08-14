@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, Unlock, Eye, EyeOff, Clock, Shield, Check, X, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { isBiometricAvailable, authenticateWithBiometric } from '../services/capacitorBridge';
 
 const ChatLock = ({ chat, onLockChat, onUnlockChat, onLockSettings, isLocked }) => {
   const [showLockModal, setShowLockModal] = useState(false);
@@ -41,7 +42,18 @@ const ChatLock = ({ chat, onLockChat, onUnlockChat, onLockSettings, isLocked }) 
     setStep(1);
   };
 
-  const handleUnlock = () => {
+  const handleUnlock = async () => {
+    // Fingerprint-locked chats must verify the real device biometric in the
+    // APK before unlocking (simulation fallback on the web).
+    if (chat?.lockType === 'fingerprint') {
+      const { native, isAvailable } = await isBiometricAvailable();
+      if (native && isAvailable) {
+        const result = await authenticateWithBiometric({
+          reason: 'Unlock this chat with your fingerprint'
+        });
+        if (result.verified !== true) return;
+      }
+    }
     onUnlockChat(chat._id);
   };
 
@@ -408,6 +420,28 @@ export const ChatLockSettings = ({ settings, onUpdate }) => {
 
 // Locked Chat Placeholder Component
 export const LockedChatPlaceholder = ({ chat, onUnlock }) => {
+  const [unlocking, setUnlocking] = useState(false);
+
+  const handleUnlock = async () => {
+    setUnlocking(true);
+    try {
+      // Fingerprint-locked chats must verify the real device biometric in the
+      // APK before unlocking (simulation fallback on the web).
+      if (chat?.lockType === 'fingerprint') {
+        const { native, isAvailable } = await isBiometricAvailable();
+        if (native && isAvailable) {
+          const result = await authenticateWithBiometric({
+            reason: 'Unlock this chat with your fingerprint'
+          });
+          if (result.verified !== true) return;
+        }
+      }
+      onUnlock?.();
+    } finally {
+      setUnlocking(false);
+    }
+  };
+
   return (
     <div className="flex-1 flex items-center justify-center bg-[#0b141a]">
       <div className="text-center">
@@ -419,11 +453,12 @@ export const LockedChatPlaceholder = ({ chat, onUnlock }) => {
           This chat is locked with {chat.lockType === 'pin' ? 'PIN' : 'fingerprint'}
         </p>
         <button
-          onClick={onUnlock}
-          className="bg-[#00a884] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#008f72] transition-colors flex items-center gap-2 mx-auto"
+          onClick={handleUnlock}
+          disabled={unlocking}
+          className="bg-[#00a884] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#008f72] transition-colors flex items-center gap-2 mx-auto disabled:opacity-50"
         >
           <Unlock size={20} />
-          Unlock Chat
+          {unlocking ? 'Unlocking...' : 'Unlock Chat'}
         </button>
       </div>
     </div>

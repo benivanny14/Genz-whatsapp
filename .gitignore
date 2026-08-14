@@ -33,3 +33,6 @@ frontend/android/build/
 frontend/android/.gradle/
 
 .gradle/
+
+# Local APK build artifact — the site itself serves /genz-whatsapp.apk
+frontend/public/genz-whatsapp.apk

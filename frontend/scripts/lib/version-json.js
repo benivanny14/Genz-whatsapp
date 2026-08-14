@@ -19,10 +19,9 @@ import { resolve } from 'node:path';
  * @param {string} opts.versionName  e.g. "1.1.4"
  * @param {number} opts.versionCode  Android versionCode
  * @param {string} opts.apkPath      path of the built signed APK (sha/size come from it)
- * @param {string} opts.downloadUrl  reliable GitHub release asset URL
  * @returns {{sha256: string, size: number}}
  */
-export function writeVersionJson({ root, versionName, versionCode, apkPath, downloadUrl }) {
+export function writeVersionJson({ root, versionName, versionCode, apkPath }) {
   const apkBuf = readFileSync(apkPath);
   const sha256 = createHash('sha256').update(apkBuf).digest('hex');
   writeFileSync(
@@ -32,7 +31,6 @@ export function writeVersionJson({ root, versionName, versionCode, apkPath, down
         version: versionName,
         versionCode,
         apkUrl: '/genz-whatsapp.apk',
-        downloadUrl,
         sha256,
         size: apkBuf.length,
         releasedAt: new Date().toISOString(),

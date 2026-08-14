@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 
 // The version this bundle was BUILT with, baked in from public/version.json
 // (written by bump-app-version.js / build-apk.js). UpdateBanner uses it on the
@@ -27,6 +27,12 @@ const backendTarget = process.env.GENZ_BACKEND_TARGET || 'http://localhost:5000'
 // suite can run on another port without breaking the HMR WebSocket.
 const devPort = parseInt(process.env.GENZ_DEV_PORT || '5174', 10) || 5174;
 
+// Native FCM push is only safe to call when the Android project has a
+// google-services.json (Firebase). Without it, PushNotifications.register()
+// throws IllegalStateException on the native side and crashes the app on
+// login. This flag tells capacitorBridge whether it may touch Firebase.
+const fcmConfigured = existsSync(new URL('./android/app/google-services.json', import.meta.url));
+
 export default defineConfig({
   plugins: [react()],
   define: {
@@ -35,6 +41,9 @@ export default defineConfig({
     // stale web build without a native versionCode.
     __GENZ_VERSION__: JSON.stringify(bundleVersion),
     __GENZ_VERSION_CODE__: JSON.stringify(bundleVersionCode),
+    // True only when google-services.json is present at build time — native
+    // push registration must never run without it.
+    __GENZ_FCM_ENABLED__: JSON.stringify(fcmConfigured),
   },
   build: {
     rollupOptions: {

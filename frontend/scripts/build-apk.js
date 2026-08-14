@@ -75,8 +75,5 @@ const { sha256 } = writeVersionJson({
   versionName,
   versionCode,
   apkPath: publicApk,
-  // Reliable download channel: the same-origin APK can stall on the free
-  // Render instance, so also point at the permanent GitHub release asset.
-  downloadUrl: `https://github.com/benivanny14/Genz-whatsapp/releases/download/v${versionName}/genz-whatsapp.apk`,
 });
 console.log(`[apk] version.json → v${versionName} (code ${versionCode}, sha256 ${sha256.slice(0, 12)}…)`);

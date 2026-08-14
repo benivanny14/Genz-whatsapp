@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, Unlock, Eye, EyeOff, Clock, Shield, Check, X, RefreshCw, Smartphone } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { isBiometricAvailable, authenticateWithBiometric } from '../services/capacitorBridge';
 
 const AppLock = ({ isEnabled, onToggle, onUnlock, onClose }) => {
   const [lockType, setLockType] = useState('pin'); // 'pin', 'pattern', 'fingerprint'
@@ -33,7 +34,25 @@ const AppLock = ({ isEnabled, onToggle, onUnlock, onClose }) => {
     }
 
     setIsVerifying(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Real device biometric when enabling fingerprint lock in the APK;
+    // simulation fallback on the web.
+    if (lockType === 'fingerprint') {
+      const { native, isAvailable } = await isBiometricAvailable();
+      if (native && isAvailable) {
+        const result = await authenticateWithBiometric({
+          reason: 'Enable App Lock with your fingerprint'
+        });
+        if (result.verified !== true) {
+          setIsVerifying(false);
+          setError('Biometric authentication failed. Please try again.');
+          return;
+        }
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    } else {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
     setIsVerifying(false);
 
     if (onToggle) {

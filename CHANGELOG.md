@@ -7,6 +7,55 @@ by commit.
 
 ---
 
+## [2026-08-14] — v1.1.11: real native fingerprint lock in the APK
+
+**Native biometric authentication (@capgo/capacitor-native-biometric)**
+- New `capacitorBridge` helpers (`isBiometricAvailable`, `authenticateWithBiometric`)
+  that show the real Android/iOS biometric prompt (BiometricPrompt /
+  LocalAuthentication) inside the APK; web falls back gracefully.
+- **App Lock** (Settings → App Lock) now offers a lock method: **PIN** or
+  **Fingerprint**. Fingerprint unlocks via the native OS prompt in the APK and
+  falls back to the backup PIN on the web (or when the scan fails). The lock
+  screen shows the fingerprint icon and auto-prompts on appear.
+- `BiometricLock`, `BiometricAuthPrompt`, `ChatLock` fingerprint unlock, and
+  the `AppLock` demo component now call the real device biometric in the APK
+  instead of the old simulated scan.
+- Payments, view-once, anti-screenshot, and every other feature are unchanged
+  (manual mobile-money payment flow untouched).
+
+**Bugs found by real emulator testing & fixed**
+- **FCM crash on login**: the APK crashed every login with
+  `IllegalStateException: Default FirebaseApp is not initialized` because
+  `PushNotifications.register()` ran without `google-services.json`. New
+  `__GENZ_FCM_ENABLED__` flag (vite.config) + guard in `capacitorBridge`
+  skip FCM registration when Firebase isn't configured — no crash, push
+  arrives once `frontend/android/app/google-services.json` exists.
+- **App Lock wiped on logout**: `clearAllUserData()` purged localStorage
+  without keeping the lock keys — lock settings now survive relaunches.
+- **Cleartext/mixed-content in debug builds only**: `src/debug/AndroidManifest.xml`
+  + mixed-content mode for local testing; release stays HTTPS-only.
+- Release APK v1.1.11 (versionCode 13) built, signed, installed and verified
+  on an Android 14 emulator (install, launch, login, lock screen, PIN
+  unlock, native BiometricPrompt shown).
+
+**GitHub download channel removed entirely**
+- `downloadUrl` dropped from `version.json` and its writers (`build-apk.js`,
+  `bump-app-version.js`, `lib/version-json.js`).
+- Login page, Install Guide and UpdateBanner no longer link to GitHub — the
+  APK is served only by the app host itself (`/genz-whatsapp.apk`, same-origin).
+- Deleted `scripts/create-github-release.js`, `scripts/release-engagement-check.js`,
+  `.github/workflows/release.yml` and the `npm run release:github` script;
+  engagement steps removed from the nightly health workflow.
+
+**Docs**
+- New `docs/MWONGOZO_APK_NA_DEPLOY.md` (Swahili): keystore creation, APK
+  build, site-only distribution, Render diagnosis + env checklist, FCM quick steps.
+- New `docs/KUSAKINISHA_APK_SIMU.md` (Swahili): installing the APK on a real
+  Android phone (file transfer + USB/ADB).
+- New `docs/QA_APK_111_EMULATOR.md`: full emulator QA report for v1.1.11.
+
+---
+
 ## [2026-08-13] — v1.1.10: email alerts, update history, admin screenshots, nightly-verify
 
 **Email alerts (backend + nightly)**

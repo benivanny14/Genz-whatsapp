@@ -16,6 +16,7 @@ import { PushNotifications } from '@capacitor/push-notifications';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
+import { NativeBiometric } from '@capgo/capacitor-native-biometric';
 
 // Static imports (authSession/authFetch are already in the main chunk — the
 // previous dynamic imports were ineffective and tripped Vite's chunking).
@@ -24,6 +25,67 @@ import { API_URL } from '../utils/authSession.js';
 import { authFetch } from '../utils/authFetch.js';
 
 export const isNative = () => !!(Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
+
+// FCM push is only wired up when google-services.json exists in the Android
+// project at build time (see vite.config.js). Calling
+// PushNotifications.register() without Firebase configured throws
+// IllegalStateException on the native side and CRASHES the app, so we must
+// never touch the plugin unless this flag is true.
+const FCM_ENABLED = typeof __GENZ_FCM_ENABLED__ !== 'undefined' && __GENZ_FCM_ENABLED__ === true;
+
+// ── Native biometric (fingerprint / Face ID) ───────────────────────────────
+// Real device biometrics inside the APK via the native Android/iOS biometric
+// prompt (BiometricPrompt / LocalAuthentication). On the web these helpers
+// report { native: false } so callers can fall back to a simulation/PIN.
+
+/**
+ * Check whether the device has native biometrics (fingerprint / Face ID)
+ * available. Returns { native, isAvailable, hasFaceId } — native is false on
+ * the web, where the caller decides its own fallback.
+ */
+export const isBiometricAvailable = async () => {
+  if (!isNative()) return { native: false, isAvailable: false };
+
+  try {
+    const res = await NativeBiometric.isAvailable({ useFallback: false });
+    return {
+      native: true,
+      isAvailable: res?.isAvailable === true,
+      hasFaceId: res?.biometryType === 2 /* BiometryType.FACE_ID */,
+      hasBiometrics: res?.strongBiometryIsAvailable === true
+    };
+  } catch (e) {
+    console.warn('[CapacitorBridge] Biometric availability check failed:', e?.message || e);
+    return { native: true, isAvailable: false };
+  }
+};
+
+/**
+ * Show the native OS biometric prompt (fingerprint / Face ID). Only runs in
+ * the APK; on the web it returns { used: false } so the caller falls back.
+ *
+ * On success: { used: true, verified: true }
+ * On failure/cancel: { used: true, verified: false, error }
+ */
+export const authenticateWithBiometric = async (options = {}) => {
+  if (!isNative()) return { used: false, verified: false };
+
+  try {
+    const res = await NativeBiometric.verifyIdentity({
+      reason: options.reason || 'Scan your fingerprint to continue',
+      title: options.title || 'GENZ WhatsApp',
+      subtitle: options.subtitle || 'Biometric authentication',
+      description: options.description || 'Confirm your identity to unlock',
+      negativeButtonText: options.negativeButtonText || 'Cancel',
+      maxAttempts: options.maxAttempts || 3,
+      useFallback: false
+    });
+    return { used: true, verified: res?.verified === true };
+  } catch (e) {
+    console.warn('[CapacitorBridge] Biometric verification failed:', e?.message || e);
+    return { used: true, verified: false, error: e?.message || 'Biometric authentication failed' };
+  }
+};
 
 // ── Local notifications (native) ───────────────────────────────────────────
 /**
@@ -121,6 +183,9 @@ const hashCode = (str) => {
  */
 export const initNativePush = async () => {
   if (!isNative()) return { success: false, reason: 'not-native' };
+  // No google-services.json → Firebase not configured → register() would
+  // crash the app. Skip push entirely (local notifications still work).
+  if (!FCM_ENABLED) return { success: false, reason: 'fcm-not-configured' };
 
   try {
     const perm = await PushNotifications.requestPermissions();
@@ -300,6 +365,8 @@ const blobToBase64 = (blob) =>
 
 export default {
   isNative,
+  isBiometricAvailable,
+  authenticateWithBiometric,
   getAppInfo,
   showNativeNotification,
   initNativePush,

@@ -1,8 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, ShieldCheck, KeyRound, Lock, Bell, QrCode, Smartphone, Check, Shield, X } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, KeyRound, Lock, Bell, QrCode, Smartphone, Check, Shield, X, Fingerprint } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
+import { isBiometricAvailable, authenticateWithBiometric } from '../services/capacitorBridge';
+
+// Ask for the real device biometric (APK) before a sensitive security action.
+// On the web (no native biometric) this simply allows the action.
+const confirmWithBiometric = async (reason) => {
+  const { native, isAvailable } = await isBiometricAvailable();
+  if (!native || !isAvailable) return true;
+  const result = await authenticateWithBiometric({ reason });
+  return result.verified === true;
+};
 
 const API_URL = resolveApiBase();
 
@@ -27,6 +37,9 @@ const SecuritySettings = () => {
   useEffect(() => { loadTwoFactorStatus(); }, []);
 
   const enableTwoFactor = async () => {
+    // Sensitive action: confirm identity with the device fingerprint in the APK.
+    const ok = await confirmWithBiometric('Confirm your identity to enable two-factor authentication');
+    if (!ok) { setErrorMsg('Biometric authentication failed. Please try again.'); return; }
     setTwoFactorLoading(true);
     setErrorMsg('');
     try {
@@ -73,6 +86,9 @@ const SecuritySettings = () => {
   };
 
   const disableTwoFactor = async () => {
+    // Sensitive action: confirm identity with the device fingerprint in the APK.
+    const ok = await confirmWithBiometric('Confirm your identity to disable two-factor authentication');
+    if (!ok) { setErrorMsg('Biometric authentication failed. Please try again.'); return; }
     if (!window.confirm('Disable two-factor authentication? You will no longer need an authenticator app to log in.')) return;
     setTwoFactorLoading(true);
     setErrorMsg('');
@@ -154,6 +170,9 @@ const SecuritySettings = () => {
               </div>
               <div className="flex-1">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Two-factor authentication</h2>
+                <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1 mt-0.5">
+                  <Fingerprint size={12} /> Enabled/disabled actions confirm with your device fingerprint inside the APK
+                </p>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   Add an extra layer of security to your account using an authenticator app (TOTP).
                 </p>
