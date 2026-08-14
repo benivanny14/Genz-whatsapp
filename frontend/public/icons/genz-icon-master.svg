@@ -1,11 +1,11 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <!-- Background gradient: deep teal -> emerald -> a hint of violet for a GenZ pop -->
+    <!-- Background gradient: WhatsApp greens (dark teal -> bright green) -->
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0a3d3a"/>
-      <stop offset="45%" stop-color="#04785c"/>
-      <stop offset="78%" stop-color="#00d69a"/>
-      <stop offset="100%" stop-color="#7c5cff"/>
+      <stop offset="0%" stop-color="#075E54"/>
+      <stop offset="45%" stop-color="#128C7E"/>
+      <stop offset="78%" stop-color="#25D366"/>
+      <stop offset="100%" stop-color="#1FBF7D"/>
     </linearGradient>
 
     <!-- Soft radial glow behind the glass panel -->

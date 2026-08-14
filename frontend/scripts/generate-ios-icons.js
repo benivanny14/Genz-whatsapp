@@ -5,8 +5,8 @@
  *
  * Generates (writes into ios/App/App/Assets.xcassets):
  *   - AppIcon.appiconset/AppIcon-512@2x.png   → 1024×1024 (Xcode 14+ single-size)
- *   - Splash.imageset/splash-2732x2732{,-1,-2}.png → 2732×2732 dark #0c0a1e
- *     background + centered icon (same look as the Android splash screens)
+ *   - Splash.imageset/splash-2732x2732{,-1,-2}.png → 2732×2732 WhatsApp-green
+ *     #075e54 background + centered icon (same look as the Android splash screens)
  *
  * Requires `sharp` (available in backend/node_modules — the repo's standard
  * install runs `npm install --prefix backend` via root postinstall).
@@ -44,7 +44,7 @@ async function render(svg, size) {
 async function renderSplash(size) {
   const iconSize = Math.round(size * 0.3);
   const iconBuf = await render(masterSvg, iconSize);
-  const bg = sharp({ create: { width: size, height: size, channels: 4, background: { r: 12, g: 10, b: 30, alpha: 1 } } }); // #0c0a1e
+  const bg = sharp({ create: { width: size, height: size, channels: 4, background: { r: 7, g: 94, b: 84, alpha: 1 } } }); // #075e54 WhatsApp green
   return bg
     .composite([{ input: iconBuf, left: Math.round((size - iconSize) / 2), top: Math.round((size - iconSize) / 2) }])
     .png()
@@ -56,7 +56,7 @@ async function main() {
   mkdirSync(dirname(appIconPath), { recursive: true });
   writeFileSync(appIconPath, await render(masterSvg, 1024));
 
-  console.log('[ios-icons] splash → 2732×2732 (dark #0c0a1e + centered icon)');
+  console.log('[ios-icons] splash → 2732×2732 (WhatsApp green #075e54 + centered icon)');
   mkdirSync(splashDir, { recursive: true });
   const splashBuf = await renderSplash(2732);
   writeFileSync(resolve(splashDir, 'splash-2732x2732.png'), splashBuf);
