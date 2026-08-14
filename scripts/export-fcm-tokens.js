@@ -25,7 +25,8 @@ if (!uri) {
 const outFile = path.resolve(process.argv[2] || 'fcm-tokens-export.csv');
 
 (async () => {
-  const mongoose = require('mongoose');
+  // mongoose iko kwenye backend/node_modules — resolve kutoka huko
+  const mongoose = require(path.join(__dirname, '..', 'backend', 'node_modules', 'mongoose'));
   await mongoose.connect(uri);
   const User = require('../backend/models/User');
   const users = await User.find({ fcmTokens: { $exists: true, $ne: [] } })
