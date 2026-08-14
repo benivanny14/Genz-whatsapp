@@ -78,17 +78,27 @@ async function main() {
     console.error(`Deploys query failed (${deploys.status}): ${JSON.stringify(deploys.body).slice(0, 300)}`);
     process.exit(1);
   }
+  // The v1 endpoint returns an array; some accounts/proxies wrap it. Normalize
+  // defensively instead of crashing on `d.status.padEnd(...)`.
+  const raw = deploys.body;
+  const list = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.deploys) ? raw.deploys : []);
+  if (!Array.isArray(raw)) {
+    console.log(`  (raw deploys response keys: ${raw ? Object.keys(raw).join(', ') : 'empty'})`);
+  }
   console.log(`\nLast ${LIMIT} deploys (newest first):`);
-  for (const d of deploys.body || []) {
-    const status = STATUS_LABEL[d.status] || d.status;
-    const commit = (d.commit && d.commit.slice(0, 8)) || '?';
-    const created = d.createdAt ? new Date(d.createdAt).toISOString().slice(0, 19) : '?';
-    const finished = d.finishedAt ? new Date(d.finishedAt).toISOString().slice(0, 19) : '';
-    console.log(`  ${created}  ${status.padEnd(10)}  commit ${commit}  ${d.trigger || ''} ${finished ? '→ ' + finished : ''}`);
+  for (const d of list) {
+    const status = (d && (STATUS_LABEL[d.status] || d.status)) || 'unknown';
+    const commit = (d && d.commit && d.commit.slice(0, 8)) || '?';
+    const created = d && d.createdAt ? new Date(d.createdAt).toISOString().slice(0, 19) : '?';
+    const finished = d && d.finishedAt ? new Date(d.finishedAt).toISOString().slice(0, 19) : '';
+    console.log(`  ${created}  ${String(status).padEnd(10)}  commit ${commit}  ${(d && d.trigger) || ''} ${finished ? '→ ' + finished : ''}`);
+  }
+  if (list.length === 0) {
+    console.log(`  (no deploy objects in response — body: ${JSON.stringify(raw).slice(0, 200)})`);
   }
 
   // Exit nonzero if the latest deploy failed
-  const latest = (deploys.body || [])[0];
+  const latest = list[0];
   if (latest && latest.status === 'failed') {
     console.error('\n⚠️  Latest deploy FAILED — check the Render dashboard build logs.');
     process.exit(1);
