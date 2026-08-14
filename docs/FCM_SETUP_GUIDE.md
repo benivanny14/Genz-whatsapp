@@ -44,11 +44,17 @@ and local notifications still fire while the app is open.
    ```
    > ⚠️ This file is **gitignored** — it contains API keys. Never commit it.
    > Keep a backup somewhere private (password manager / secure drive).
-4. No need to add the Firebase SDK snippet — the Capacitor Push Notifications
+4. **Auto-detection:** `frontend/vite.config.js` checks for this file at build
+   time and sets `__GENZ_FCM_ENABLED__`. `capacitorBridge.initNativePush()`
+   only calls `PushNotifications.register()` when the flag is `true` — so
+   without the file the APK skips Firebase entirely (no crash), and the
+   moment you add the file and rebuild, native push is enabled automatically.
+   No code changes needed.
+5. No need to add the Firebase SDK snippet — the Capacitor Push Notifications
    plugin already bundles it. `frontend/android/app/build.gradle`
    auto-applies the `com.google.gms.google-services` plugin the moment the
    file exists.
-5. **Rebuild the APK** so the plugin is baked in:
+6. **Rebuild the APK** so the plugin is baked in:
    ```bash
    cd frontend
    npm run apk:build     # web build → cap sync → gradle assembleRelease → public/genz-whatsapp.apk

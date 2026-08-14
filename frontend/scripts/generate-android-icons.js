@@ -6,9 +6,10 @@
  * Generates (writes into android/app/src/main/res):
  *   - Legacy launcher icons  mipmap-{dpi}/ic_launcher.png + ic_launcher_round.png
  *   - Adaptive foreground    mipmap-{dpi}/ic_launcher_foreground.png (glyph at ~56% width)
- *   - Adaptive background    values/ic_launcher_background.xml  → #04785c (brand teal)
+ *   - Adaptive background    values/ic_launcher_background.xml  → #075e54 (WhatsApp green)
  *   - Splash screens         drawable{, -port-*, -land-*}/splash.png
- *                            (#0c0a1e dark bg + centered icon, matching the app's login bg)
+ *                            (#075e54 WhatsApp-green bg + centered icon, matching the
+ *                            Android 12+ splash in values/styles.xml)
  *
  * Requires `sharp` (available in backend/node_modules — the repo's standard
  * install runs `npm install --prefix backend` via root postinstall).
@@ -95,7 +96,7 @@ async function renderGlyphOnCanvas(canvasPx) {
 async function renderSplash(width, height) {
   const iconSize = Math.round(Math.min(width, height) * 0.3);
   const iconBuf = await render(masterSvg, iconSize);
-  const bg = sharp({ create: { width, height, channels: 4, background: { r: 12, g: 10, b: 30, alpha: 1 } } }); // #0c0a1e
+  const bg = sharp({ create: { width, height, channels: 4, background: { r: 7, g: 94, b: 84, alpha: 1 } } }); // #075e54 WhatsApp green
   return bg.composite([{ input: iconBuf, left: Math.round((width - iconSize) / 2), top: Math.round((height - iconSize) / 2) }]).png().toBuffer();
 }
 
@@ -134,13 +135,13 @@ async function main() {
     console.log(`  mipmap-${dpi}: launcher ${px}px, foreground ${canvas}px`);
   }
 
-  console.log('[icons] adaptive background color → brand teal #04785c');
+  console.log('[icons] adaptive background color → WhatsApp green #075e54');
   writeFileSync(
     res('values/ic_launcher_background.xml'),
-    '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#04785C</color>\n</resources>\n'
+    '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#075E54</color>\n</resources>\n'
   );
 
-  console.log('[icons] splash screens (dark #0c0a1e + centered icon)');
+  console.log('[icons] splash screens (WhatsApp green #075e54 + centered icon)');
   for (const [folder, w, h] of SPLASH_SIZES) {
     const dir = res(folder);
     mkdirSync(dir, { recursive: true });

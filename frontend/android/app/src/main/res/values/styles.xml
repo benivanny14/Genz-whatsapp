@@ -13,13 +13,19 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <!-- WhatsApp green system bars. Light status-bar icons stay OFF
+             (windowLightStatusBar=false) because the background is dark green. -->
+        <item name="android:statusBarColor">@color/genz_status_bar</item>
+        <item name="android:navigationBarColor">@color/genz_navigation_bar</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
     </style>
 
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
-        <!-- Android 12+ system splash: brand background + GENZ launcher icon -->
-        <item name="windowSplashScreenBackground">#0C0A1E</item>
+        <!-- Android 12+ system splash: WhatsApp green background + launcher icon -->
+        <item name="windowSplashScreenBackground">@color/genz_splash_background</item>
         <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
         <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
     </style>

@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 import { readFileSync, existsSync } from 'node:fs'
 
 // The version this bundle was BUILT with, baked in from public/version.json
@@ -34,7 +35,37 @@ const devPort = parseInt(process.env.GENZ_DEV_PORT || '5174', 10) || 5174;
 const fcmConfigured = existsSync(new URL('./android/app/google-services.json', import.meta.url));
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    // PWA plugin. The app already ships a complete hand-written PWA setup
+    // (public/manifest.json + public/service-worker.js v5, registered manually
+    // in src/main.jsx), so this plugin only provides the PWA lifecycle
+    // plumbing WITHOUT generating a competing manifest or service worker:
+    //   - manifest: false        → keep the existing public/manifest.json
+    //   - injectRegister: false  → main.jsx still registers service-worker.js
+    //   - globPatterns: []       → the plugin's generated sw.js precaches
+    //                              nothing; our v5 SW owns all caching
+    VitePWA({
+      registerType: 'autoUpdate',
+      manifest: false,
+      injectRegister: false,
+      strategies: 'generateSW',
+      workbox: {
+        globPatterns: [],
+        maximumFileSizeToCacheInBytes: 50 * 1024 * 1024,
+        // workbox-build refuses an empty SW: one no-op runtime entry keeps
+        // the generated (never-registered) sw.js valid while our custom v5
+        // service worker keeps owning all real caching.
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkOnly'
+          }
+        ]
+      },
+      devOptions: { enabled: false }
+    })
+  ],
   define: {
     global: 'globalThis',
     // Injected bundle version (see above) — used by UpdateBanner to detect a
