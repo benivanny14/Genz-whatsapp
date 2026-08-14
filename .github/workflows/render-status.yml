@@ -39,5 +39,5 @@ jobs:
       - name: Query Render deploys
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-          RENDER_SERVICE_ID: ${{ inputs.service_id || secrets.RENDER_SERVICE_ID }}
-        run: node scripts/render-deploy-status.js --limit ${{ inputs.limit }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+        run: node scripts/render-deploy-status.js --limit ${{ inputs.limit }} ${{ inputs.service_id && format('--service {0}', inputs.service_id) }}
