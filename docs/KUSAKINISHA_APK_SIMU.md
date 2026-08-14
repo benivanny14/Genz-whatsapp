@@ -10,6 +10,25 @@ Kuna njia mbili: **file transfer** (rahisi zaidi) na **USB + ADB** (kwa develope
 
 ---
 
+## ✅ Checklist ya haraka (kifaa halisi — v1.1.14)
+
+- [ ] **Update**: v1.1.13 (code 15) → v1.1.14 (code 16) kwa `install -r`
+      (data inabaki — USIFUTE app).
+- [ ] App inafunguka **mara moja** bila loading ndefu.
+- [ ] **Airplane mode ON** → app bado inafunguka (login page / chats za
+      mwisho) — v1.1.14 haitegemei mtandao kufunguka.
+- [ ] Airplane mode OFF → login/register, kutuma na kupokea ujumbe
+      zinafanya kazi (API: `https://genz-whatsapp.onrender.com/api`).
+- [ ] Picha, video, files na voice notes zinatuma zinapofanya kazi.
+- [️] Status/stories zinaonekana na kusoma kama kawaida.
+- [ ] Hakuna kitufe cha simu (calls) — v1.1.14 ni pure messaging.
+- [ ] Settings → App Lock (PIN/Fingerprint) inafanya kazi kama ulivyoiweka.
+
+> Ukigundua tatizo lolote kwenye kifaa halisi, andika hapa chini katika
+> sehemu ya "Troubleshooting" ya mwongozo huu au andika issue kwenye GitHub.
+
+---
+
 ## UPDATE kutoka version ya zamani (k.m. v1.1.13 → v1.1.14)
 
 Kama tayari umeweka version ya zamani ya GENZ, **usifute app** — update
