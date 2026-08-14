@@ -184,6 +184,10 @@ proxy iko, lakini **origin service haijibu kabisa**. Hii ina maana service iko:
 
 ### Hatua za kurekebisha (unahitaji kuingia Render)
 
+> 👀 **Hujui wapi kubofya kwenye dashboard?** Angalia
+> `docs/CHECKLIST_DASHBOARD_RENDER.md` — mwongozo wa hatua kwa hatua wa
+> navigation (Events, Environment, Logs, Manual Deploy) kwa mtu asiyejua Render.
+
 1. Fungua **https://dashboard.render.com** na uingie na akaunti yako.
 2. Angalia kama service `genz-whatsapp` iko. Kama haipo → **unda upya** kwa
    kutumia `render.yaml` (New + → Blueprint → chagua repo yako).
