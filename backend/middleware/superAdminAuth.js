@@ -13,7 +13,13 @@ function getAllowlist() {
 }
 
 function clientIp(req) {
-  return (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || req.connection?.remoteAddress;
+  // Prefer req.ip: with Express `trust proxy` enabled (Render sets
+  // TRUST_PROXY=1) it resolves the REAL client IP through X-Forwarded-For
+  // (which Render overwrites); with trust proxy disabled (local/direct) it
+  // is the socket address — either way a client-supplied X-Forwarded-For
+  // header cannot spoof the allowlist. Raw XFF parsing is only a fallback
+  // for proxies Express does not know about.
+  return req.ip || (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.connection?.remoteAddress;
 }
 
 function checkIpAllowlist(req) {
