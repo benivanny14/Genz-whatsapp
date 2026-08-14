@@ -12,32 +12,38 @@ const __dirname = path.dirname(__filename);
 
 console.log('🧹 Cleaning up development environment...');
 
-// 1. Clear browser caches by creating a clean manifest
+// 1. Ensure a valid PWA manifest exists — but NEVER overwrite the tracked
+// production manifest (public/manifest.json ships maskable icons + install
+// screenshots). Only create a minimal one when the file is absent so a fresh
+// clone / build without it still gets a valid manifest.
 const manifestPath = path.join(__dirname, '../public/manifest.json');
-const manifest = {
-  name: 'GENZ WhatsApp',
-  short_name: 'GENZ',
-  description: 'WhatsApp clone with GENZ Ultra features',
-  start_url: '/',
-  display: 'standalone',
-  background_color: '#075E54',
-  theme_color: '#128C7E',
-  icons: [
-    {
-      src: '/icons/icon-192x192.png',
-      sizes: '192x192',
-      type: 'image/png'
-    },
-    {
-      src: '/icons/icon-512x512.png',
-      sizes: '512x512',
-      type: 'image/png'
-    }
-  ]
-};
-
-fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
-console.log('✅ Manifest cleaned');
+if (!fs.existsSync(manifestPath)) {
+  const manifest = {
+    name: 'GENZ WhatsApp',
+    short_name: 'GENZ',
+    description: 'WhatsApp clone with GENZ Ultra features',
+    start_url: '/',
+    display: 'standalone',
+    background_color: '#075E54',
+    theme_color: '#128C7E',
+    icons: [
+      {
+        src: '/icons/icon-192x192.png',
+        sizes: '192x192',
+        type: 'image/png'
+      },
+      {
+        src: '/icons/icon-512x512.png',
+        sizes: '512x512',
+        type: 'image/png'
+      }
+    ]
+  };
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+  console.log('✅ Minimal manifest created (public/manifest.json was missing)');
+} else {
+  console.log('✅ Manifest exists — left untouched');
+}
 
 // 2. Ensure service worker is clean
 const swPath = path.join(__dirname, '../public/service-worker.js');

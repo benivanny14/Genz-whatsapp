@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Genz-whatsapp</string>
+    <string name="app_name">GENZ WhatsApp</string>
     <string name="title_activity_main">Genz-whatsapp</string>
     <string name="package_name">com.benivanny.genzwhatsapp</string>
     <string name="custom_url_scheme">com.benivanny.genzwhatsapp</string>

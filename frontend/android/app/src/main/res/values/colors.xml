@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- WhatsApp-style green brand colors -->
+    <color name="colorPrimary">#128C7E</color>
+    <color name="colorPrimaryDark">#075E54</color>
+    <color name="colorAccent">#25D366</color>
+
+    <!-- Status / navigation bar colors -->
+    <color name="genz_status_bar">#128C7E</color>
+    <color name="genz_navigation_bar">#075E54</color>
+    <color name="genz_splash_background">#075E54</color>
+</resources>

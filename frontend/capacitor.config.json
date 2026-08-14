@@ -1,11 +1,16 @@
 {
   "appId": "com.benivanny.genzwhatsapp",
-  "appName": "Genz-whatsapp",
+  "appName": "GENZ WhatsApp",
   "webDir": "dist",
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "url": "https://genz-whatsapp.onrender.com"
   },
   "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#075E54"
+    },
     "LocalNotifications": {
       "smallIcon": "ic_stat_icon_config_sample",
       "iconColor": "#00a884",

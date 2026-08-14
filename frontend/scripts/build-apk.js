@@ -40,22 +40,26 @@ const run = (cmd, opts = {}) => execSync(cmd, { stdio: 'inherit', shell: true, c
 const apiUrl = process.env.VITE_API_URL || 'https://genz-whatsapp.onrender.com/api';
 const socketUrl = process.env.VITE_SOCKET_URL || 'https://genz-whatsapp.onrender.com';
 
-console.log(`[apk] 1/5 Building web app (API: ${apiUrl})`);
+console.log('[apk] 0/6 Pre-build checks (icons, manifest, keystore, version.json)');
+// Fail fast before the expensive web build + gradle run. See pre-build-check.js.
+run('node scripts/pre-build-check.js');
+
+console.log(`[apk] 1/6 Building web app (API: ${apiUrl})`);
 run('npm run build', { env: { ...process.env, VITE_API_URL: apiUrl, VITE_SOCKET_URL: socketUrl } });
 
-console.log('[apk] 2/5 Removing embedded APK from dist (avoid self-bundling)');
+console.log('[apk] 2/6 Removing embedded APK from dist (avoid self-bundling)');
 if (existsSync(resolve(distDir, 'genz-whatsapp.apk'))) rmSync(resolve(distDir, 'genz-whatsapp.apk'));
 
-console.log('[apk] 3/5 npx cap sync android');
+console.log('[apk] 3/6 npx cap sync android');
 run('npx cap sync android');
 
-console.log('[apk] 4/5 gradlew assembleRelease');
+console.log('[apk] 4/6 gradlew assembleRelease');
 // On Windows, cmd.exe cannot resolve a bare batch name when the cwd path
 // contains spaces, so always invoke the wrapper by its full quoted path.
 const gradlew = resolve(androidDir, process.platform === 'win32' ? 'gradlew.bat' : 'gradlew');
 run(`"${gradlew}" assembleRelease --no-daemon`, { cwd: androidDir });
 
-console.log('[apk] 5/5 Copying signed APK → public/genz-whatsapp.apk');
+console.log('[apk] 5/6 Copying signed APK → public/genz-whatsapp.apk');
 // On Windows a running dev server can hold a lock on the destination file;
 // unlink first (best-effort) so the copy always lands fresh.
 try { rmSync(publicApk, { force: true }); } catch { /* ignore */ }

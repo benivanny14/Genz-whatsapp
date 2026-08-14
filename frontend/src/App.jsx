@@ -1,5 +1,7 @@
 import React, { lazy, Suspense, useEffect, useState, useCallback } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { App as CapacitorApp } from '@capacitor/app';
+import { useNativeBackButton } from './hooks/useNativeBackButton';
 import ErrorBoundary from './components/ErrorBoundary';
 import InAppNotification from './components/InAppNotification';
 import OfflineBanner from './components/OfflineBanner';
@@ -83,8 +85,18 @@ const readStoredMods = () => {
 
 function App() {
   const [notification, setNotification] = useState(null);
-  const { activeCall, endCall, acceptCall, rejectCall, activeGroupCall, setActiveGroupCall, setActiveCall } = useChat();
+  const { activeCall, endCall, acceptCall, rejectCall, activeGroupCall, setActiveGroupCall, setActiveCall, selectedConversation, selectConversation } = useChat();
   const { user } = useUser();
+
+  // Native Android back button (APK only): closes an open chat first, then
+  // navigates back through history, then minimizes the app on the main
+  // screen. Skipped entirely while a call screen is visible.
+  useNativeBackButton({
+    isConversationOpen: Boolean(selectedConversation),
+    onCloseConversation: () => selectConversation(null),
+    onExitRequest: () => CapacitorApp.minimizeApp(),
+    isCallActive: Boolean(activeCall || activeGroupCall),
+  });
 
   const setDynamicAppIcon = useCallback(async (profilePicture) => {
     const fallbackIcon = '/icons/favicon-32x32.png';
