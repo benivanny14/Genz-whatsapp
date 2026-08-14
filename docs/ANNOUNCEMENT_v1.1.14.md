@@ -60,6 +60,26 @@ Asante kwa kutumia GENZ! 💚
 
 ## 3. Amri tayari za kutuma (zinahitaji admin credentials ZAKO)
 
+### Njia rahisi (script ya amri moja — inafanya hatua 3 kiotomatiki)
+
+```bash
+ADMIN_USERNAME=<username> ADMIN_PASSWORD=<password> TOTP_CODE=<6-digit> \
+  npm run announce:dry      # kwanza: test ya creds bila kutuma (inachapisha maandishi)
+
+ADMIN_USERNAME=<username> ADMIN_PASSWORD=<password> TOTP_CODE=<6-digit> \
+  npm run announce          # kisha: tuma kwa watumiaji wote
+
+# Inaweza kuverify production kwanza (version.json = 1.1.14):
+ADMIN_USERNAME=<username> ADMIN_PASSWORD=<password> TOTP_CODE=<6-digit> \
+  node scripts/send-announcement.js --verify
+```
+
+Script inasoma `ANNOUNCEMENT_CONTENT` / `ANNOUNCEMENT_SEGMENT` / `API_BASE` kama
+env vars (defaults: maandishi ya sehemu ya 2, segment `all`, backend ya
+production). Exit 1 ikiwa creds si sahihi au production haiserve v1.1.14 bado.
+
+### Njia ya mkono (curl — hatua kwa hatua)
+
 Mchakato ni hatua 3: login → 2FA → tangazo. Badilisha tu mabano `<...>`.
 
 ### 3a. Login (hatua 1) — unapata `preAuthToken`
