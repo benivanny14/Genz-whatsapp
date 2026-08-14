@@ -67,10 +67,13 @@ const request = (method, url, body) =>
 async function main() {
   console.log(`Service: ${SERVICE_ID}`);
   console.log(`Setting GENZ_BACKEND_TARGET=${TARGET} ...`);
+  // Per-key endpoint — the bulk PUT /env-vars endpoint REPLACES all env
+  // vars, so it must never be used for a single var (it would wipe
+  // MONGODB_URI, JWT_SECRET etc.).
   const up = await request(
     'PUT',
-    `https://api.render.com/v1/services/${SERVICE_ID}/env-vars`,
-    [{ envVarKey: 'GENZ_BACKEND_TARGET', value: TARGET }]
+    `https://api.render.com/v1/services/${SERVICE_ID}/env-vars/GENZ_BACKEND_TARGET`,
+    { value: TARGET }
   );
   if (up.status !== 200 && up.status !== 201) {
     console.error(`env update failed (${up.status}): ${JSON.stringify(up.body).slice(0, 300)}`);
