@@ -12,12 +12,16 @@
  *
  * Usage (from frontend/):
  *   npm run fcm:enable
+ *
+ * NOTE: frontend/package.json is "type": "module", so this file is ESM.
  */
-const { existsSync, readFileSync } = require('node:fs');
-const { execSync } = require('node:child_process');
-const path = require('node:path');
+import { existsSync, readFileSync } from 'node:fs';
+import { execSync } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const FILE = path.join(__dirname, '..', 'android', 'app', 'google-services.json');
+const dir = path.dirname(fileURLToPath(import.meta.url));
+const FILE = path.join(dir, '..', 'android', 'app', 'google-services.json');
 
 function fail(msg) {
   console.error(`\n❌ ${msg}`);
