@@ -90,6 +90,25 @@ site yenyewe (`/genz-whatsapp.apk`, same-origin).
 > `node scripts/render-deploy-status.js` (na RENDER_API_KEY/RENDER_SERVICE_ID)
 > au Actions → "Render status".
 
+### 4b. (Optional) Build APK kwenye GitHub Actions
+
+Ukiwa na Android SDK kwenye CI, unaweza ku-build APK kwenye GitHub Actions
+bila kutumia mashine yako (`.github/workflows/build-apk.yml`):
+
+1. Ongeza **secrets mbili** kwenye GitHub repo → Settings → Secrets:
+   - `ANDROID_KEYSTORE_BASE64` — `genz-release.keystore` kwa base64:
+     ```bash
+     base64 -w0 frontend/android/genz-release.keystore   # Linux/Mac
+     certutil -encode -f frontend/android/genz-release.keystore tmp.b64 && type tmp.b64
+     ```
+   - `ANDROID_KEYSTORE_PROPERTIES` — maudhui ya `keystore.properties`
+     (keyAlias / keyPassword / storeFile / storePassword).
+   - (hiari) `VITE_API_URL` + `VITE_SOCKET_URL` kama unavyotumia kwenye
+     deploy.
+2. Endesha workflow: **Actions → Build APK → Run workflow** (au `git tag vX.Y.Z
+   && git push --tags`). APK inapakuliwa kwenye **Artifacts**.
+3. ⚠️ Kama secrets hazipo, CI ina-build APK **debug-signed** — usiipe watumiaji.
+
 ### 5. Hakuna GitHub release channel (imeondolewa)
 
 **Watumiaji hawapakui APK kupitia GitHub** — channel hii imeondolewa kabisa
