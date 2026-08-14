@@ -83,6 +83,7 @@ async function inspectService(id) {
   console.log(`  URL: ${s.serviceDetails?.url || s.url || '?'}`);
   console.log(`  repo: ${s.repo || '?'}  branch: ${s.branch || '?'}`);
   console.log(`  suspended: ${s.suspended || false}`);
+  console.log(`  ownerId: ${s.ownerId || '?'}`);
   const inst = s.serviceDetails?.envSpecificDetails?.instance?.state;
   if (inst) console.log(`  instance: ${inst}`);
 
@@ -136,16 +137,21 @@ async function inspectService(id) {
   // Runtime log tail — often shows the boot failure (e.g. Mongo connect error).
   // The /v1/logs endpoint requires ownerId + resource (= raw service id).
   try {
-    let ownerId = '';
-    try {
-      const owners = await getJson('https://api.render.com/v1/owners');
-      if (owners.status === 200) {
-        const list = Array.isArray(owners.body) ? owners.body : owners.body?.owners || [];
-        if (list[0]) ownerId = list[0].id || '';
-      }
-    } catch { /* ignore */ }
+    let ownerId = s.ownerId || '';
     if (!ownerId) {
-      console.log('  (logs query skipped — no ownerId from /v1/owners)');
+      try {
+        const owners = await getJson('https://api.render.com/v1/owners');
+        if (owners.status === 200) {
+          const list = Array.isArray(owners.body) ? owners.body : owners.body?.owners || [];
+          if (list[0]) ownerId = list[0].id || '';
+          else console.log(`  (owners response: ${JSON.stringify(owners.body).slice(0, 200)})`);
+        } else {
+          console.log(`  (owners query failed (${owners.status}): ${JSON.stringify(owners.body).slice(0, 200)})`);
+        }
+      } catch (e) { /* ignore */ }
+    }
+    if (!ownerId) {
+      console.log('  (logs query skipped — no ownerId)');
     } else {
       const qs = `ownerId=${encodeURIComponent(ownerId)}&resource=${encodeURIComponent(id)}&limit=${LOG_LINES}`;
       const logs = await getJson(`https://api.render.com/v1/logs?${qs}`);
