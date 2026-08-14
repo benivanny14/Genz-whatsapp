@@ -84,6 +84,13 @@ async function inspectService(id) {
     console.error(`  Deploys query failed (${deploys.status}): ${JSON.stringify(deploys.body).slice(0, 300)}`);
   } else {
     const list = Array.isArray(deploys.body) ? deploys.body : deploys.body?.deploys || [];
+    if (list[0]) {
+      // Raw shape dump — the API schema is not always what we expect.
+      console.log(`\n  first deploy keys: ${Object.keys(list[0]).join(', ')}`);
+      console.log(`  raw: ${JSON.stringify(list[0]).slice(0, 700)}`);
+    } else {
+      console.log(`  (deploys endpoint returned ${typeof deploys.body}: ${JSON.stringify(deploys.body).slice(0, 200)})`);
+    }
     console.log(`\n  Last ${LIMIT} deploys (newest first):`);
     for (const d of list) {
       const status = STATUS_LABEL[d.status] || d.status || 'unknown';
@@ -108,6 +115,10 @@ async function inspectService(id) {
     const ev = await getJson(`https://api.render.com/v1/services/${id}/events?limit=10`);
     if (ev.status === 200) {
       const events = Array.isArray(ev.body) ? ev.body : ev.body?.events || [];
+      if (events[0]) {
+        console.log(`  first event keys: ${Object.keys(events[0]).join(', ')}`);
+        console.log(`  raw: ${JSON.stringify(events[0]).slice(0, 500)}`);
+      }
       if (events.length) {
         console.log(`\n  Recent events (last ${events.length}):`);
         for (const e of events) {
