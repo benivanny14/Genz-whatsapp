@@ -7,6 +7,24 @@ by commit.
 
 ---
 
+## [2026-08-14] — One-command announcement + genz-whatsapp-2 auto-sync docs
+
+**`npm run announce` (script ya amri moja)** — `scripts/send-announcement.js`
+inafanya mchakato mzima wa tangazo kiotomatiki: login (username + password) →
+2FA (TOTP) → `POST /api/admin/broadcasts/announce` kwa watumiaji wote.
+Msaada: `--dry-run` (test ya creds bila kutuma), `--verify` (hakikisha
+production inaserve v1.1.14 kabla), env vars `ANNOUNCEMENT_CONTENT` /
+`ANNOUNCEMENT_SEGMENT` / `API_BASE`. Docs (`docs/ANNOUNCEMENT_v1.1.14.md`)
+imesasishwa na njia rahisi ya script + njia ya mkono ya curl.
+
+**`genz-whatsapp-2` auto-sync imeandikwa** — RENDER_DEPLOY_GUIDE.md sasa ina
+nyaraka kamili ya services 3 (architecture ya sasa): `genz-whatsapp` (backend,
+auto-deploy na paths filter), `genz-whatsapp-1` (frontend web service, proxy
+`GENZ_BACKEND_TARGET`), na `genz-whatsapp-2` (static site, **auto-deploy kutoka
+main** kupitia `new_commit` trigger — hakuna redeploy ya mkono tena).
+
+---
+
 ## [2026-08-14] — v1.1.14: frontend proxy fix + Render diagnostics
 
 **Web app API proxy fixed (production incident)** — `genz-whatsapp-1` serves the
