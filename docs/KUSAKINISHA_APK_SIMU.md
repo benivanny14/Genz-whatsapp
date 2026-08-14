@@ -1,12 +1,80 @@
 # Kusakinisha GENZ WhatsApp APK kwenye Simu Halisi (Kiswahili)
 
 Mwongozo huu unaelezea hatua kwa hatua jinsi ya kusakinisha
-`frontend/public/genz-whatsapp.apk` (v1.1.11) kwenye **simu halisi ya Android**.
+`frontend/public/genz-whatsapp.apk` (v1.1.14) kwenye **simu halisi ya Android**.
 Kuna njia mbili: **file transfer** (rahisi zaidi) na **USB + ADB** (kwa developers).
 
 > APK unayohitaji: `frontend/public/genz-whatsapp.apk` (uliyojenga) — au
 > pakua moja kwa moja kutoka kwenye tovuti ya GENZ (`/genz-whatsapp.apk`).
 > Hakuna download kupitia GitHub.
+
+---
+
+## ✅ Checklist ya haraka (kifaa halisi — v1.1.14)
+
+- [ ] **Update**: v1.1.13 (code 15) → v1.1.14 (code 16) kwa `install -r`
+      (data inabaki — USIFUTE app).
+- [ ] App inafunguka **mara moja** bila loading ndefu.
+- [ ] **Airplane mode ON** → app bado inafunguka (login page / chats za
+      mwisho) — v1.1.14 haitegemei mtandao kufunguka.
+- [ ] Airplane mode OFF → login/register, kutuma na kupokea ujumbe
+      zinafanya kazi (API: `https://genz-whatsapp.onrender.com/api`).
+- [ ] Picha, video, files na voice notes zinatuma zinapofanya kazi.
+- [️] Status/stories zinaonekana na kusoma kama kawaida.
+- [ ] Hakuna kitufe cha simu (calls) — v1.1.14 ni pure messaging.
+- [ ] Settings → App Lock (PIN/Fingerprint) inafanya kazi kama ulivyoiweka.
+
+> Ukigundua tatizo lolote kwenye kifaa halisi, andika hapa chini katika
+> sehemu ya "Troubleshooting" ya mwongozo huu au andika issue kwenye GitHub.
+
+---
+
+## UPDATE kutoka version ya zamani (k.m. v1.1.13 → v1.1.14)
+
+Kama tayari umeweka version ya zamani ya GENZ, **usifute app** — update
+inakaa juu ya ile ya zamani na **data yako (chats, settings) inabaki**, kwa
+sababu: (1) signature ni ile ile (release keystore sawa), na (2) versionCode ya
+mpya ni **juu** (v1.1.14 = code 16 > v1.1.13 = code 15) — Android inakubali tu
+install juu ikiwa versionCode imeongezeka.
+
+> 🚫 **v1.1.14 ni pure messaging**: voice/video calls zimeondolewa kabisa
+> (kama WhatsApp ya zamani kabla ya calls). Vitu vyote vya messaging
+> (ujumbe, picha, video, files, voice notes, status) vimebaki. Na APK hii
+> **haitegemei mtandao tena** — ina-bundle app nzima ndani yake.
+
+Njia tatu za kupata update:
+
+1. **Banner ya kijani ndani ya app** — ukiwa kwenye version ya zamani, app
+   inaonyesha "Update available" → bonyeza **Update** (inapakua APK mpya moja
+   kwa moja kutoka kwenye tovuti).
+2. **Login page → "Download Android App"** — pakua `genz-whatsapp.apk` mpya
+   kutoka kwenye tovuti na uifungue kama Njia ya 1 (data inabaki).
+3. **ADB**: `"$ADB" install -r frontend/public/genz-whatsapp.apk` (replace —
+   data inabaki).
+
+> ⚠️ **Usifute app kwanza** unapoupdate — uninstall inafuta chats zako zote
+> za ndani. Update ya moja kwa moja juu yake ndiyo njia sahihi.
+
+---
+
+## Kuthibitisha APK inafanya kazi BILA mtandao (v1.1.14+)
+
+Tangu v1.1.14, APK ina-bundle web app nzima ndani yake (haielekei tena kwenye
+Render) — hivyo inafunguka mara moja na inafanya kazi hata bila internet.
+Hivi ndivyo unavyothibitisha:
+
+1. Sakinisha v1.1.14 (Njia 1 au 2 juu).
+2. Washa **Airplane mode** kwenye simu (au zima Wi-Fi + data).
+3. Fungua GENZ WhatsApp → **login page inapaswa kuonekana mara moja**
+   (hakuna "loading..." ya muda mrefu, hakuna kosa la mtandao).
+4. Ukiwa tayari umewahi kuingia, chats zako za mwisho zinaonekana (offline
+   cache) — kutumaliza ujumbe unahitaji mtandao tu, lakini **app yenyewe
+   inafanya kazi bila mtandao**. Version ya zamani (v1.1.13 na chini) haikuweza
+   hata kufungua login page bila mtandao.
+
+> ⚠️ Kumbuka: *kutuma* ujumbe bado unahitaji mtandao (hivyo ndivyo ilivyo
+> kwa WhatsApp yoyote) — lakini kufungua app, kuona UI, na kusoma chats za
+> mwisho kunafanya kazi offline.
 
 ---
 
@@ -121,5 +189,5 @@ certutil -hashfile frontend/public/genz-whatsapp.apk SHA256   # Windows
 | "Install blocked" / Play Protect inazuia | Settings → Apps → Chrome/Files → Install unknown apps → washa; kisha Install anyway |
 | `unauthorized` kwenye `adb devices` | Fungua dialog kwenye simu → Allow; kama haionekani, ondoa cable na jaribu tena |
 | `INSTALL_FAILED_UPDATE_INCOMPATIBLE` | Signature hailingani (debug vs release) → `adb uninstall` kisha `install` tena |
-| App inafunguka lakini login inashindwa | APK inaelekeza kwenye Render (`https://genz-whatsapp.onrender.com/api`) — kama Render iko down, subiri irekebishwe (tazama `docs/MWONGOZO_APK_NA_DEPLOY.md` Sehemu ya 6) |
+| App inafunguka lakini login inashindwa | App yenyewe haitegemei Render (ime-bundle offline) — lakini **login/API inahitaji Render** (`https://genz-whatsapp-1.onrender.com/api`). Kama Render iko down, subiri irekebishwe (tazama `docs/MWONGOZO_APK_NA_DEPLOY.md` Sehemu ya 6) |
 | Fingerprint haijitokeza | Simu → Settings → Security → Fingerprint — lazima uweke angalau fingerprint moja; kwenye app: Settings → App Lock → chagua Fingerprint |

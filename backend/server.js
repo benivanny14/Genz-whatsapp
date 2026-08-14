@@ -480,7 +480,19 @@ const app = express();
 // SECURITY (4.2): trust proxy only when explicitly enabled or when a trusted
 // proxy IP list is provided. Defaults to false so client IPs cannot be spoofed
 // via the X-Forwarded-For header on a directly-exposed server.
-app.set('trust proxy', process.env.TRUST_PROXY === 'true' ? true : (process.env.TRUST_PROXY_IPS ? process.env.TRUST_PROXY_IPS.split(',') : false));
+//
+// The flag is parsed leniently ('1', 'true', 'yes', 'on' all enable it):
+// render-env-config.js and .env.example set TRUST_PROXY=1, and a strict
+// `=== 'true'` comparison silently disabled it in production. With trust
+// proxy off, every request behind the Render proxy resolves to the SAME
+// req.ip (the proxy's address), so every express-rate-limit instance keyed
+// by IP shares ONE budget across all users — a handful of sign-ups or API
+// calls throttles the whole app. Enabling it makes req.ip the real client
+// IP (resolved through X-Forwarded-For, which Render overwrites) and per-IP
+// limits work per user again.
+const trustProxyValue = String(process.env.TRUST_PROXY || '').trim().toLowerCase();
+const trustProxyEnabled = ['1', 'true', 'yes', 'on'].includes(trustProxyValue);
+app.set('trust proxy', trustProxyEnabled ? true : (process.env.TRUST_PROXY_IPS ? process.env.TRUST_PROXY_IPS.split(',') : false));
 if (redisClient) {
   app.set('redisClient', redisClient);
 }
@@ -789,8 +801,6 @@ const adminRoutes = require('./routes/adminRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const mediaRoutes = require('./routes/media');
 const encryptionRoutes = require('./routes/encryptionRoutes');
-const webrtcRoutes = require('./routes/webrtcRoutes');
-const callRoutes = require('./routes/callRoutes');
 const productRoutes = require('./routes/productRoutes');
 const scheduledMessageRoutes = require('./routes/scheduledMessageRoutes');
 const stickerRoutes = require('./routes/stickerRoutes');
@@ -817,8 +827,6 @@ const groupModsRoutes = require('./routes/group-mods');
 const bulkSenderRoutes = require('./routes/bulk-sender');
 const businessAccountRoutes = require('./routes/business-account');
 const cacheCleanerRoutes = require('./routes/cache-cleaner');
-const callBlockerRoutes = require('./routes/call-blocker');
-const callFeaturesRoutes = require('./routes/call-features');
 const chatAnalyzerRoutes = require('./routes/chat-analyzer');
 const chatFilterRoutes = require('./routes/chat-filter');
 const chatFoldersRoutes = require('./routes/chat-folders');
@@ -879,8 +887,6 @@ const API_ROUTE_MOUNTS = [
   ['/voice', voiceRoutes],
   ['/notifications', notificationRoutes],
   ['/encryption', encryptionRoutes],
-  ['/webrtc', webrtcRoutes],
-  ['/calls', callRoutes],
   ['/products', productRoutes],
   ['/scheduled-messages', scheduledMessageRoutes],
   ['/status', statusRoutes],
@@ -891,8 +897,6 @@ const API_ROUTE_MOUNTS = [
   ['/bulk-sender', bulkSenderRoutes],
   ['/business-account', businessAccountRoutes],
   ['/cache-cleaner', cacheCleanerRoutes],
-  ['/call-blocker', callBlockerRoutes],
-  ['/call-features', callFeaturesRoutes],
   ['/chat-analyzer', chatAnalyzerRoutes],
   ['/chat-filter', chatFilterRoutes],
   ['/chat-folders', chatFoldersRoutes],

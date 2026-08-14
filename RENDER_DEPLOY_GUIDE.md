@@ -169,7 +169,7 @@ curl https://genz-whatsapp-1.onrender.com/api/health
 | `RP_ID` | Domain kwa passkeys (WebAuthn) |
 
 ### OPTIONAL (feature-specific)
-Sentry (`SENTRY_DSN`), TURN/Metered (`METERED_TURN_*`, `TURN_*`, `ICE_*`),
+Sentry (`SENTRY_DSN`),
 Firebase FCM (`FIREBASE_*`), GIPHY (`GIPHY_API_KEY`), S3 backups
 (`AWS_*`, `S3_BUCKET_NAME`), `ADMIN_IP_ALLOWLIST`, `LOG_LEVEL`, `MAX_UPLOAD_BYTES`,
 `SMTP_*` (bado haitumiki kwenye code — OTP inaenda kupitia WhatsApp).
@@ -186,6 +186,26 @@ Firebase FCM (`FIREBASE_*`), GIPHY (`GIPHY_API_KEY`), S3 backups
 | `mediaStorage: "local"` baada ya deploy | Cloudinary haijawekwa — weka `CLOUDINARY_*` na redeploy |
 | Passkeys hazifanyi kazi | `RP_ID` lazima iwe domain halisi (bila `https://`), na lazima Render URL iwe HTTPS |
 | OTP hazifiki | Angalia `WHATSAPP_OTP_ENABLED` na provider; kwa cloud-api thibitisha token + phone number ID |
+| Web app inafunguka lakini `/api` inarudisha **502 ECONNREFUSED** | Frontend service (`genz-whatsapp-1`) ina-serve SPA kwa `vite preview`, na proxy yake ya `/api` inaelekea `http://localhost:5000` kwa default (hakuna backend ndani ya container yake). Weka env **`GENZ_BACKEND_TARGET`** = URL ya backend (e.g. `https://genz-whatsapp.onrender.com`) kwenye service hiyo na redeploy — au endesha workflow ya **"Render fix proxy"** (Actions tab) kwa `service_id` ya frontend. `vite preview` inasoma env hii kila startup, hakuna rebuild ya code inayohitajika.
+| `[vite] http proxy error: /api/health` ECONNREFUSED kwenye logs za frontend | Sawa na juu — `GENZ_BACKEND_TARGET` haijaelekezwa kwa backend halisi. |
+| APK inafanya kazi lakini web app haifanyi | APK ina-bake `VITE_API_URL=https://genz-whatsapp.onrender.com/api` kwenye build (`scripts/build-apk.js`) — inaenda moja kwa moja kwa backend. Web app inapita kwenye proxy ya frontend — angalia `GENZ_BACKEND_TARGET` (row hapo juu). |
+| Services nyingi zinafanana (`genz-whatsapp`, `genz-whatsapp-1`, `genz-whatsapp-2`) | `genz-whatsapp` = backend API (inadeploy na GitHub workflow). `genz-whatsapp-1` = frontend web service (SPA + proxy ya `/api`). `genz-whatsapp-2` = static copy ya frontend (**ina-auto-deploy kutoka main** — `new_commit` trigger; ukibaki nyuma endesha **"Render fix proxy"** workflow na `deploy_only: true`). Kila moja inahitaji env zake: backend inahitaji `MONGODB_URI`/`JWT_SECRET` n.k.; frontend inahitaji `GENZ_BACKEND_TARGET`. |
+
+---
+
+## Nyaraka za Services (architecture ya sasa)
+
+| Service | Aina | Inadeployje? | Inatumika kwa? |
+|---|---|---|---|
+| `genz-whatsapp` | Web (backend Express) | GitHub workflow `deploy.yml` (paths filter: `backend/**` + `render.yaml` + root package files pekee) | API ya app + `/api` endpoint zote |
+| `genz-whatsapp-1` | Web (frontend `vite preview`) | Mkono tu (au workflow **"Render fix proxy"**) — proxy `/api` → `GENZ_BACKEND_TARGET` | Web app ya production (SPA + version.json + APK download) |
+| `genz-whatsapp-2` | Static site | **Auto-deploy kutoka main** (`new_commit` trigger) | Static backup copy ya SPA + version.json |
+
+> 💡 Kwa nini `genz-whatsapp-2` haihitaji mkono: static sites kwenye Render
+> hupata `new_commit` trigger — kila push kwenye `main` inajenga upya build ya
+> static site kiotomatiki. Ikiwa imebaki nyuma (e.g. build imeshindwa),
+> endesha **"Render fix proxy"** workflow na `deploy_only: true` + service_id
+> yake (inaweza kuonekana kupitia **"Render status"** workflow).
 
 ---
 

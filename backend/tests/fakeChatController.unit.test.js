@@ -15,18 +15,9 @@ jest.mock('../models/Message', () => ({
   deleteMany: jest.fn()
 }));
 
-jest.mock('../models/CallLog', () => ({
-  create: jest.fn(),
-  find: jest.fn(),
-  findById: jest.fn(),
-  findByIdAndDelete: jest.fn(),
-  deleteMany: jest.fn()
-}));
-
 const User = require('../models/User');
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
-const Call = require('../models/CallLog');
 const fakeChat = require('../controllers/fakeChatController');
 
 const makeRes = () => {
@@ -87,13 +78,12 @@ describe('fakeChatController — settings', () => {
     expect(res.body.settings.notifyOnFake).toBe(true);
   });
 
-  it('toggles fake chat and calls (happy path)', async () => {
+  it('toggles fake chat (happy path)', async () => {
     const user = makeUser();
     User.findById.mockResolvedValue(user);
     const res = makeRes();
-    await fakeChat.toggleFakeChat(makeReq({ body: { chatEnabled: true, callsEnabled: true } }), res);
+    await fakeChat.toggleFakeChat(makeReq({ body: { chatEnabled: true } }), res);
     expect(res.body.settings.fakeChatEnabled).toBe(true);
-    expect(res.body.settings.fakeCallsEnabled).toBe(true);
   });
 
   it('resets settings to defaults (happy path)', async () => {
@@ -135,30 +125,6 @@ describe('fakeChatController — create/delete', () => {
     expect(Conversation.create).toHaveBeenCalledWith(expect.objectContaining({ isFake: true }));
   });
 
-  it('rejects createFakeCall without callType (validation)', async () => {
-    User.findById.mockResolvedValue(makeUser());
-    const res = makeRes();
-    await fakeChat.createFakeCall(makeReq({ body: { contactName: 'Bob' } }), res);
-    expect(res.statusCode).toBe(400);
-  });
-
-  it('rejects creating a fake call when calls are disabled (403)', async () => {
-    User.findById.mockResolvedValue(makeUser());
-    const res = makeRes();
-    await fakeChat.createFakeCall(makeReq({ body: { contactName: 'Bob', callType: 'voice' } }), res);
-    expect(res.statusCode).toBe(403);
-  });
-
-  it('creates a fake call (happy path)', async () => {
-    User.findById.mockResolvedValue(makeUser({ fakeChatSettings: { fakeCallsEnabled: true } }));
-    Call.create.mockResolvedValue({ _id: 'call1' });
-    const res = makeRes();
-    await fakeChat.createFakeCall(makeReq({ body: { contactName: 'Bob', callType: 'voice', duration: 60 } }), res);
-    expect(res.body.success).toBe(true);
-    expect(res.body.callId).toBe('call1');
-    expect(Call.create).toHaveBeenCalledWith(expect.objectContaining({ isFake: true, status: 'completed' }));
-  });
-
   it('lists fake chats (happy path)', async () => {
     User.findById.mockResolvedValue(makeUser());
     Conversation.find.mockReturnValue(makeSortQuery([{
@@ -170,14 +136,6 @@ describe('fakeChatController — create/delete', () => {
     await fakeChat.getFakeChats(makeReq(), res);
     expect(res.body.success).toBe(true);
     expect(res.body.fakeChats[0].contactName).toBe('Bob');
-  });
-
-  it('lists fake calls (happy path)', async () => {
-    User.findById.mockResolvedValue(makeUser());
-    Call.find.mockReturnValue({ sort: jest.fn().mockResolvedValue([{ toObject: () => ({ direction: 'incoming' }), fakeContactName: 'Bob' }]) });
-    const res = makeRes();
-    await fakeChat.getFakeCalls(makeReq(), res);
-    expect(res.body.fakeCalls[0].type).toBe('incoming');
   });
 
   it('returns 404 when deleting a missing fake chat', async () => {
@@ -204,10 +162,8 @@ describe('fakeChatController — create/delete', () => {
     Conversation.find.mockResolvedValue([{ _id: 'fc1' }]);
     Message.deleteMany.mockResolvedValue({});
     Conversation.deleteMany.mockResolvedValue({});
-    Call.deleteMany.mockResolvedValue({});
     const res = makeRes();
     await fakeChat.clearAllFakeData(makeReq(), res);
     expect(res.body.success).toBe(true);
-    expect(Call.deleteMany).toHaveBeenCalled();
   });
 });

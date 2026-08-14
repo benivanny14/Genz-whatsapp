@@ -5,9 +5,7 @@ const { getUser, createSettingsMerger, createSettingsHandlers } = require('../se
 
 const defaultSettings = {
   fakeChatEnabled: false,
-  fakeCallsEnabled: false,
   saveFakeChats: true,
-  saveFakeCalls: true,
   markAsFake: true,
   autoDeleteFake: false,
   fakeRetentionDays: 7,
@@ -90,53 +88,6 @@ exports.createFakeChat = async (req, res) => {
   }
 };
 
-// @desc    Create fake call
-// @route   POST /api/fake-chat/call
-// @access  Private
-exports.createFakeCall = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const { contactName, contactPhone, callType, duration, timestamp, isIncoming } = req.body;
-
-    if (!contactName || !callType) {
-      return res.status(400).json({ success: false, message: 'Contact name and call type are required' });
-    }
-
-    const settings = mergeSettings(user.fakeChatSettings?.toObject?.() || user.fakeChatSettings);
-    
-    if (!settings.fakeCallsEnabled) {
-      return res.status(403).json({ success: false, message: 'Fake calls are disabled' });
-    }
-
-    const Call = require('../models/CallLog');
-    
-    const fakeCall = await Call.create({
-      callerId: isIncoming ? user._id : user._id,
-      calleeId: isIncoming ? null : null,
-      participants: [user._id],
-      direction: isIncoming ? 'incoming' : 'outgoing',
-      callType,
-      duration: duration || 0,
-      status: duration > 0 ? 'completed' : 'missed',
-      isFake: true,
-      fakeContactName: contactName,
-      fakeContactPhone: contactPhone,
-      createdAt: timestamp ? new Date(timestamp) : new Date()
-    });
-
-    res.status(200).json({
-      success: true,
-      callId: fakeCall._id,
-      message: 'Fake call created successfully'
-    });
-  } catch (error) {
-    console.error('Create fake call error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
 // @desc    Get fake chats
 // @route   GET /api/fake-chat/chats
 // @access  Private
@@ -185,55 +136,6 @@ exports.getFakeChats = async (req, res) => {
   }
 };
 
-// @desc    Get fake calls
-// @route   GET /api/fake-chat/calls
-// @access  Private
-exports.getFakeCalls = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const Call = require('../models/CallLog');
-
-    const settings = mergeSettings(user.fakeChatSettings?.toObject?.() || user.fakeChatSettings);
-
-    // Enforce "auto delete fake" — purge fake calls older than retention window.
-    if (settings.autoDeleteFake) {
-      const cutoff = Date.now() - (Number(settings.fakeRetentionDays) || 7) * 24 * 60 * 60 * 1000;
-      await Call.deleteMany({
-        $or: [
-          { callerId: user._id },
-          { calleeId: user._id }
-        ],
-        isFake: true,
-        createdAt: { $lt: cutoff }
-      });
-    }
-    
-    const calls = await Call.find({
-      $or: [
-        { callerId: user._id },
-        { calleeId: user._id }
-      ],
-      isFake: true
-    }).sort({ createdAt: -1 });
-
-    const fakeCalls = calls.map((call) => {
-      const obj = call.toObject ? call.toObject() : call;
-      return {
-        ...obj,
-        contactName: obj.fakeContactName || 'Unknown Contact',
-        type: obj.direction || 'incoming'
-      };
-    });
-
-    res.status(200).json({ success: true, fakeCalls });
-  } catch (error) {
-    console.error('Get fake calls error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
 // @desc    Delete fake chat
 // @route   DELETE /api/fake-chat/chat/:id
 // @access  Private
@@ -264,36 +166,6 @@ exports.deleteFakeChat = async (req, res) => {
   }
 };
 
-// @desc    Delete fake call
-// @route   DELETE /api/fake-chat/call/:id
-// @access  Private
-exports.deleteFakeCall = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const { id } = req.params;
-
-    const Call = require('../models/CallLog');
-    
-    const call = await Call.findById(id);
-    if (!call || !call.isFake) {
-      return res.status(404).json({ success: false, message: 'Fake call not found' });
-    }
-
-    if (call.callerId?.toString() !== user._id.toString() && call.calleeId?.toString() !== user._id.toString()) {
-      return res.status(403).json({ success: false, message: 'You do not have permission to delete this call' });
-    }
-
-    await Call.findByIdAndDelete(id);
-
-    res.status(200).json({ success: true, message: 'Fake call deleted' });
-  } catch (error) {
-    console.error('Delete fake call error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
 // @desc    Toggle fake chat
 // @route   POST /api/fake-chat/toggle
 // @access  Private
@@ -302,13 +174,12 @@ exports.toggleFakeChat = async (req, res) => {
     const user = await getUser(req, res);
     if (!user) return;
 
-    const { chatEnabled, callsEnabled } = req.body;
+    const { chatEnabled } = req.body;
     const existing = user.fakeChatSettings?.toObject?.() || user.fakeChatSettings || {};
     
     user.fakeChatSettings = mergeSettings({
       ...existing,
-      fakeChatEnabled: chatEnabled !== undefined ? chatEnabled : existing.fakeChatEnabled,
-      fakeCallsEnabled: callsEnabled !== undefined ? callsEnabled : existing.fakeCallsEnabled
+      fakeChatEnabled: chatEnabled !== undefined ? chatEnabled : existing.fakeChatEnabled
     });
     user.markModified('fakeChatSettings');
     await user.save();
@@ -340,16 +211,6 @@ exports.clearAllFakeData = async (req, res) => {
 
     await Conversation.deleteMany({
       participants: user._id,
-      isFake: true
-    });
-
-    // Delete fake calls
-    const Call = require('../models/CallLog');
-    await Call.deleteMany({
-      $or: [
-        { callerId: user._id },
-        { calleeId: user._id }
-      ],
       isFake: true
     });
 

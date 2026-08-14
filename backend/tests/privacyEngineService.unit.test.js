@@ -25,7 +25,6 @@ const {
   resolveOnlineSetting,
   canSeePresence,
   canViewStatus,
-  isSilencedCaller
 } = require('../services/privacyEngineService');
 
 const OWNER_ID = 'owner-1';
@@ -271,29 +270,3 @@ describe('canViewStatus', () => {
   });
 });
 
-describe('isSilencedCaller', () => {
-  const callee = (overrides = {}) => ({
-    _id: OWNER_ID,
-    contacts: [{ user: 'contact-1', savedName: 'Bob' }],
-    settings: { privacy: { silenceUnknownCallers: true } },
-    ...overrides
-  });
-
-  it('silences non-contacts when the setting is enabled', () => {
-    expect(isSilencedCaller(callee(), 'stranger-1')).toBe(true);
-  });
-
-  it('never silences contacts', () => {
-    expect(isSilencedCaller(callee(), 'contact-1')).toBe(false);
-  });
-
-  it('never silences anyone when the setting is off', () => {
-    const user = callee({ settings: { privacy: { silenceUnknownCallers: false } } });
-    expect(isSilencedCaller(user, 'stranger-1')).toBe(false);
-  });
-
-  it('is false without a callee or with missing settings', () => {
-    expect(isSilencedCaller(null, 'x')).toBe(false);
-    expect(isSilencedCaller({ _id: 'u' }, 'x')).toBe(false);
-  });
-});

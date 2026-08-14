@@ -13,7 +13,7 @@ warnings after the chat-subtree split), frontend `npm audit` is clean (0
 vulnerabilities after the vite 8 upgrade), and the Playwright e2e suite
 runs in CI.
 
-Before onboarding many users, complete the checklist in `PRODUCTION_READINESS.md` (Cloudinary media storage, Redis, TURN for calls, payment-process automation, npm audit cleanup).
+Before onboarding many users, complete the checklist in `PRODUCTION_READINESS.md` (Cloudinary media storage, Redis, payment-process automation, npm audit cleanup).
 
 The Android APK is built from this web app via **Capacitor** (`frontend/android` + `frontend/scripts/build-apk.js`) — there is no separate native codebase. (The old React Native prototype in `react-native/` was removed in v1.1.11; it was a static mock never connected to this backend.)
 
@@ -83,8 +83,6 @@ The following hardening was applied to the backend:
 
 **Socket.IO**
 - **No more global broadcasts.** Status views/likes/comments, block/unblock, online/offline presence, live-stream events, and broadcast-list creation are all emitted to the specific users/rooms involved, never to every connected socket.
-- `call_user` now resolves the conversation, verifies both parties are participants, checks blocks, and signals **only the callee**.
-- `webrtc:offer` and all call signaling include block checks and participant checks.
 - Participant authorization added to typing, recording, edit/delete message, star/pin, archive/mute/lock, role, and join-group events.
 - `update_status` is owner-only; custom roles are admin-only; join-by-invite requires admin approval flow for `requireJoinApproval` groups.
 - Mass messages are capped (max 20 recipients) and rate-limited per user.
@@ -336,7 +334,6 @@ user-facing endpoints require a JWT (unless noted); responses default to
 - `/api/media` — upload (single/multiple), delete, file info, signed URLs, transforms, thumbnails, cleanup
 - `/api/advanced` — AI assistant, translate, schedule message, statuses, broadcast, search messages
 - `/api/status` + `/api/status-advanced` — status posts, views, likes, comments, viewer lists
-- `/api/calls` + `/api/webrtc` — call signaling + WebRTC config
 - `/api/voice` — voice/video notes
 - `/api/notifications` — notification settings + web push subscriptions
 - `/api/encryption` — E2EE key exchange (mod, off by default)
@@ -361,7 +358,7 @@ user-facing endpoints require a JWT (unless noted); responses default to
   `/api/security-mods`, `/api/chat-list-mods`, `/api/message-mods`, `/api/group-mods`,
   `/api/genz-mods` — per-feature MODs toggles
 - `/api/chat-filter`, `/api/chat-sort`, `/api/chat-search`, `/api/chat-folders` — chat organization
-- `/api/group-features`, `/api/status-features`, `/api/call-features`, `/api/call-blocker` — feature toggles
+- `/api/group-features`, `/api/status-features` — feature toggles
 - `/api/message-translator`, `/api/text-repeater`, `/api/live-reactions`, `/api/story-highlights`,
   `/api/quick-actions`, `/api/chat-analyzer`, `/api/fake-chat`, `/api/gif-player` — feature toggles
 - `/api/bulk-sender`, `/api/multi-accounts`, `/api/whatsapp-web` — WhatsApp session management

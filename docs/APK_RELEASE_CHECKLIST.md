@@ -90,6 +90,25 @@ site yenyewe (`/genz-whatsapp.apk`, same-origin).
 > `node scripts/render-deploy-status.js` (na RENDER_API_KEY/RENDER_SERVICE_ID)
 > au Actions → "Render status".
 
+### 4b. (Optional) Build APK kwenye GitHub Actions
+
+Ukiwa na Android SDK kwenye CI, unaweza ku-build APK kwenye GitHub Actions
+bila kutumia mashine yako (`.github/workflows/build-apk.yml`):
+
+1. Ongeza **secrets mbili** kwenye GitHub repo → Settings → Secrets:
+   - `ANDROID_KEYSTORE_BASE64` — `genz-release.keystore` kwa base64:
+     ```bash
+     base64 -w0 frontend/android/genz-release.keystore   # Linux/Mac
+     certutil -encode -f frontend/android/genz-release.keystore tmp.b64 && type tmp.b64
+     ```
+   - `ANDROID_KEYSTORE_PROPERTIES` — maudhui ya `keystore.properties`
+     (keyAlias / keyPassword / storeFile / storePassword).
+   - (hiari) `VITE_API_URL` + `VITE_SOCKET_URL` kama unavyotumia kwenye
+     deploy.
+2. Endesha workflow: **Actions → Build APK → Run workflow** (au `git tag vX.Y.Z
+   && git push --tags`). APK inapakuliwa kwenye **Artifacts**.
+3. ⚠️ Kama secrets hazipo, CI ina-build APK **debug-signed** — usiipe watumiaji.
+
 ### 5. Hakuna GitHub release channel (imeondolewa)
 
 **Watumiaji hawapakui APK kupitia GitHub** — channel hii imeondolewa kabisa
@@ -135,7 +154,8 @@ kutoka kwenye site yenyewe: `https://genz-whatsapp-1.onrender.com/genz-whatsapp.
 | Tatizo | Suluhisho |
 |---|---|
 | "App not installed" wakati wa update | versionCode haijaongezeka, au keystore tofauti. Rejesha keystore sahihi, bump versionCode. |
-| APK ndogo sana / download 404 | `public/genz-whatsapp.apk` haipo kwenye repo au dist haija-built upya. Rebuild + commit. |
+| APK ndogo sana / download inarudisha HTML | `public/genz-whatsapp.apk` haipo kwenye repo — **APK lazima iwe committed** (site-only model inajenga dist kutoka git checkout). Usiongeze kwenye `.gitignore`! Mfano wa v1.1.12: gitignore ilifanya production iserve `index.html` kwa `/genz-whatsapp.apk`. |
+| APK inafunguka lakini inaonyesha "Cannot GET /" | `frontend/capacitor.config.json` → `server.url` lazima ielekeze kwenye **UI host** (`genz-whatsapp-1.onrender.com`), si API-only host (`genz-whatsapp.onrender.com` — hiyo haina frontend). Thibitisha: weka APK kwenye emulator na angalia WebView URL. |
 | Play Protect inaonya "untrusted" | Kawaida kwa sideload — usemi "Install anyway". Hakikisha tuna-build na release keystore (sio debug) ili isiwe mbaya zaidi. |
 | Users wanaweka version ya zamani | Onyesha version kwenye login page na u-tangaze update; hatuna auto-update kwa sababu hatuko Play Store. |
 | APK ina-upload polepole | APK ni ~6MB (imepunguzwa kutoka 10.5MB kwa kuondoa APK iliyojipachika ndani yake); ina-serve kutoka dist ya Render — hakikisha disk space ya Render inatosha. |

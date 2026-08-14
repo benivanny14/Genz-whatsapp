@@ -83,6 +83,30 @@ jobs:
             exit 1
           fi
 
+      # The web app's ONLY path to the API is the vite-preview proxy on the UI
+      # host (frontend → GENZ_BACKEND_TARGET → backend). A backend that is up
+      # while genz-whatsapp-1's proxy is misconfigured (e.g. GENZ_BACKEND_TARGET
+      # reset to localhost:5000 — the Aug 2026 incident) leaves users unable to
+      # log in, so the nightly must check /api THROUGH the proxy too. Free-tier
+      # cold starts return 502/000 for a minute or two, hence long retries.
+      - name: Verify proxy path (UI host /api → backend)
+        env:
+          VERIFY_MAX_ATTEMPTS: '10'
+          VERIFY_BASE_DELAY_MS: '10000'
+        run: |
+          # Same retry-with-backoff verify script as the direct check, but hit
+          # the UI host so the request goes THROUGH the vite proxy (the only
+          # path the web app has to the API). Single curls are too flaky on
+          # this network (intermittent Cloudflare errors); the script's
+          # exponential backoff is what makes the direct check reliable.
+          node scripts/render-deploy-verify.js https://genz-whatsapp-1.onrender.com > /tmp/proxy-health.log 2>&1 || {
+            echo '::error::PROXY PATH FAILED: genz-whatsapp-1.onrender.com/api/health did not return success via the proxy. Check GENZ_BACKEND_TARGET on the UI host (see RENDER_DEPLOY_GUIDE.md) — the Aug 2026 incident was exactly this.'
+            tail -20 /tmp/proxy-health.log | sed 's/^/::error::/' | head -10
+            exit 1
+          }
+          cat /tmp/proxy-health.log
+          echo '::notice::proxy path OK — UI host /api reaches the backend'
+
       - name: Check update uptake (stuck-release alert)
         id: uptake
         env:

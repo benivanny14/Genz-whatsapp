@@ -34,5 +34,8 @@ frontend/android/.gradle/
 
 .gradle/
 
-# Local APK build artifact — the site itself serves /genz-whatsapp.apk
-frontend/public/genz-whatsapp.apk
+# NOTE: public/genz-whatsapp.apk is deliberately TRACKED, NOT ignored.
+# The site-only distribution model serves /genz-whatsapp.apk from the deployed
+# dist/, which is built from the git checkout — so the APK must be committed
+# with every release (see docs/APK_RELEASE_CHECKLIST.md). Ignoring it made the
+# production download serve the SPA fallback (index.html) instead of the APK.

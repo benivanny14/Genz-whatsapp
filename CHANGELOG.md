@@ -7,6 +7,195 @@ by commit.
 
 ---
 
+## [2026-08-14] — One-command announcement + genz-whatsapp-2 auto-sync docs
+
+**`npm run announce` (script ya amri moja)** — `scripts/send-announcement.js`
+inafanya mchakato mzima wa tangazo kiotomatiki: login (username + password) →
+2FA (TOTP) → `POST /api/admin/broadcasts/announce` kwa watumiaji wote.
+Msaada: `--dry-run` (test ya creds bila kutuma), `--verify` (hakikisha
+production inaserve v1.1.14 kabla), env vars `ANNOUNCEMENT_CONTENT` /
+`ANNOUNCEMENT_SEGMENT` / `API_BASE`. Docs (`docs/ANNOUNCEMENT_v1.1.14.md`)
+imesasishwa na njia rahisi ya script + njia ya mkono ya curl.
+
+**`genz-whatsapp-2` auto-sync imeandikwa** — RENDER_DEPLOY_GUIDE.md sasa ina
+nyaraka kamili ya services 3 (architecture ya sasa): `genz-whatsapp` (backend,
+auto-deploy na paths filter), `genz-whatsapp-1` (frontend web service, proxy
+`GENZ_BACKEND_TARGET`), na `genz-whatsapp-2` (static site, **auto-deploy kutoka
+main** kupitia `new_commit` trigger — hakuna redeploy ya mkono tena).
+
+---
+
+## [2026-08-14] — v1.1.14: frontend proxy fix + Render diagnostics
+
+**Web app API proxy fixed (production incident)** — `genz-whatsapp-1` serves the
+SPA with `vite preview`, and its `/api` proxy defaults to
+`http://localhost:5000` (there is no backend inside the frontend container), so
+every API call failed with `ECONNREFUSED` (502) and the web app could not log in
+or sync. The service now has `GENZ_BACKEND_TARGET=https://genz-whatsapp.onrender.com`
+set (vite preview reads it at startup) and was redeployed from `main`.
+Verified from an independent network: `genz-whatsapp-1.onrender.com/api/health`
+→ 200 (proxied to the backend), SPA `/` → 200, `/version.json` → 200 (v1.1.14,
+code 16). The **APK is unaffected** — `scripts/build-apk.js` bakes
+`VITE_API_URL=https://genz-whatsapp.onrender.com/api` at build time, so the app
+in the bundled APK talks to the backend directly.
+
+- `scripts/render-deploy-status.js` overhauled: lists every service in the
+  workspace, real deploy statuses/commits (the API is cursor-wrapped
+  `{deploy, cursor}` — previously every field printed `?`), service events
+  (deploy_started/build/deploy_ended with status), and the runtime log tail via
+  `/v1/logs` (needs `ownerId` + the raw service id as `resource`).
+- New `scripts/render-fix-proxy.js` + `workflow render-fix.yml`: point a frontend
+  service's proxy at the backend and redeploy it. Uses the **per-key**
+  env-var endpoint `PUT /v1/services/{id}/env-vars/{key}` with `{value}` — the
+  bulk `PUT /v1/services/{id}/env-vars` *replaces ALL* env vars and must never
+  be used for a single var (it would wipe secrets).
+- `render-status` workflow now also curls `/api/health`, `/version.json` and `/`
+  on all three onrender hosts from GitHub Actions for authoritative checks.
+
+## [2026-08-14] — v1.1.14: security hardening (post-audit)
+
+**Per-IP rate limiting fixed in production** — `TRUST_PROXY=1` was configured
+but `server.js` only accepted `=== 'true'`, so Express trust-proxy was
+silently DISABLED: every request behind the Render proxy resolved to the same
+`req.ip`, making every IP-keyed rate limiter (auth 100/15min, API 2000/15min,
+admin 20/15min, login 10/15min) share ONE budget across ALL users — a few
+sign-ups or API calls would throttle the whole app. The flag now parses
+`'1'/'true'/'yes'/'on'`; with it enabled `req.ip` resolves the real client IP
+(Express reads X-Forwarded-For, which Render overwrites) and per-IP limits
+work per user again.
+
+- `superAdminAuth.clientIp()` now prefers `req.ip` — a client-supplied
+  `X-Forwarded-For` header can no longer spoof the admin IP allowlist on a
+  directly-exposed server.
+- Removed the dead unauthenticated `POST /auth/bootstrap` route (it could
+  never succeed — `bootstrapAdmin` needs `req.user` from `protect`, so it
+  500'd — and only widened the admin attack surface). Admin bootstrap remains
+  on `adminRoutes.js` behind `protect` + `strictRateLimiter`.
+- New Swahili guide `docs/FCM_SETUP_KISWAHILI.md`: step-by-step Firebase
+  console walkthrough to obtain `google-services.json` and enable FCM push.
+
+---
+
+## [2026-08-14] — v1.1.14: calls removed (pure messaging) + true offline APK
+
+**GENZ is now a pure messaging app — all voice/video/group call features were
+removed completely (frontend, backend, sockets, permissions, service worker,
+CSS, docs).** Messaging (text, photos, videos, files, voice notes, status),
+auth, contacts, push notifications for messages and offline mode are
+unchanged and verified.
+
+**Offline APK**
+- `capacitor.config.json` `server.url` removed — the APK now BUNDLES the built
+  web app (`dist/` → `assets/public/` inside the APK) instead of loading the
+  site from Render. The app opens instantly and works fully offline; API calls
+  still reach the live backend over the network when it is available.
+- Version rows, the update banner and the APK download link now fall back to
+  the production origin inside the bundled APK (`src/utils/versionManifest.js`)
+  so updates stay discoverable. Splash config: `launchAutoHide`, `CENTER_CROP`,
+  `#128C7E` icon color.
+- Pre-build check extended (8 checks): every manifest icon must exist,
+  `public/screenshots/` needs ≥ 2 images, `capacitor.config.json` must NOT have
+  `server.url` (fails otherwise), and `vite.config.js` must register `VitePWA`.
+- Maskable PWA icons generated with safe-zone padding
+  (`scripts/generate-maskable-icons.js`, 60% scale on #075E54) and wired into
+  `manifest.json` as separate `purpose: "maskable"` entries.
+
+**Calls removed — frontend**
+- Deleted: `CallScreen`, `GroupCallScreen`, `CallFeaturesPanel`, admin
+  `CallsManagement`, `pages/Calls`, `services/callService`, `services/webrtc`,
+  `config/webrtc`, `utils/callUi` (+ its tests).
+- `App.jsx`: no call screens, no call URL/SW-message handling, no call state;
+  `useNativeBackButton` lost its `isCallActive` skip.
+- `ChatContext`: `activeCall`/`activeGroupCall`/`callLogs` state, all call
+  socket listeners (`call:incoming`, `call:accepted`, `call:rejected`,
+  `call:ended`, `call:log:created`, `webrtc:offer`, `group_call:incoming`) and
+  the call actions (`initiateCall`, `acceptCall`, `rejectCall`, `endCall`,
+  `fetchCallLogs`) removed.
+- Chat header/composer/bubbles had no call buttons (verified); Settings Calls
+  tab, Status "Call Features" panel, admin Calls panel, Sidebar calls tab,
+  FakeChat fake-calls, notification call sounds/vibrations, and call CSS
+  classes removed. `simple-peer` + TURN env vars gone from both package.json
+  files and lockfile.
+
+**Calls removed — backend**
+- Deleted: `callController`, `callToolsController`, `webrtcController`,
+  `adminCallsController`, `CallLog` model, `callRoutes`, `webrtcRoutes`,
+  `call-blocker`, `call-features`, `callHandlers` socket module, `activeCalls`,
+  `config/webrtc`, `call-signaling-test` + 5 call test suites.
+- `/webrtc`, `/calls`, `/call-blocker`, `/call-features` route mounts removed;
+  `call:start/accept/reject/end`, `webrtc:offer`, `incoming_call` push, and the
+  disconnect call-cleanup removed from sockets; `sendIncomingCallNotification`
+  and `isSilencedCaller` deleted; TURN validation removed from `validateEnv`;
+  fake-chat fake calls and group voice/video/screen-share toggles removed.
+
+**Android**
+- `MODIFY_AUDIO_SETTINGS`, `FOREGROUND_SERVICE_CAMERA` and
+  `FOREGROUND_SERVICE_MICROPHONE` permissions removed from the manifest.
+  `CAMERA` + `RECORD_AUDIO` stay — photos/video messages and voice notes need
+  them.
+
+**Service worker**
+- Incoming-call push handling, Answer/Decline actions, and the
+  `INCOMING_CALL`/`CALL_DECLINE` click handlers removed; message notifications
+  and offline app-shell caching unchanged.
+
+**Verification**
+- Backend 1741/1741 tests · frontend 95/95 · check:jsx ✓ · production build ✓
+- APK v1.1.14 (code 16) rebuilt with the bundled app (`assets/public/`
+  contains index.html + the full dist) and verified on the Android emulator.
+
+---
+
+## [2026-08-14] — v1.1.13: production APK pipeline fixes (v1.1.12 superseded)
+
+**v1.1.12 was broken for APK users and superseded by v1.1.13 (versionCode 15).**
+Three production issues found during live verification were fixed and deployed:
+
+**1. APK download served HTML instead of the APK**
+- `public/genz-whatsapp.apk` was gitignored ("the site itself serves
+  /genz-whatsapp.apk"), so CI builds — which run from the git checkout — never
+  included it and production served the SPA fallback (`index.html`) for
+  `/genz-whatsapp.apk`, while `version.json` claimed a valid sha256.
+- **Fix**: the APK is deliberately tracked again and committed with every
+  release (as `docs/APK_RELEASE_CHECKLIST.md` always said). The gitignore
+  comment that caused the confusion was replaced with an explanation.
+
+**2. APK WebView showed "Cannot GET /"**
+- `capacitor.config.json` `server.url` pointed at `genz-whatsapp.onrender.com`
+  — the API-only host, which serves no frontend. The WebView loaded it and
+  rendered Express's 404 (`Cannot GET /`), making the app unusable.
+- **Fix**: point `server.url` at the UI host `genz-whatsapp-1.onrender.com` so
+  the APK loads the same site as the web app, with `/version.json` and
+  `/genz-whatsapp.apk` served same-origin for the update banner. Verified on
+  an Android 14 emulator via Chrome DevTools: the WebView loads
+  `/login` and shows "GENZ WhatsApp Android v1.1.13".
+
+**3. False "Update available" toast on first-time install**
+- The service worker calls `skipWaiting()` + `clients.claim()`, so a fresh
+  install fires `controllerchange` and `main.jsx` showed the "Update
+  available / Reload Now" toast even though the user just installed the
+  latest version.
+- **Fix**: only dispatch `pwa-update-available` when the page was already
+  controlled by a previous service worker (a genuine update).
+
+**Also in this line of work (v1.1.12 → v1.1.13)**
+- Native Android back button (close chat → history → minimize; skipped in calls).
+- Pre-build checks in `apk:build` (icons, manifest, keystore, version sync).
+- WhatsApp-green launcher icon + splash across Android/iOS/PWA (SVG gradient
+  switched from teal/violet to #075E54 → #128C7E → #25D366).
+- FCM auto-detection: adding `frontend/android/app/google-services.json` alone
+  enables native push on the next build (no code change).
+- Fixed `cleanup-dev.js` overwriting `public/manifest.json` (it stripped
+  maskable icons + screenshots on every dev-server start).
+
+**Deployment pipeline**
+- `.github/workflows/deploy.yml` deploys to Render on every push to `main`
+  (quality gates: backend jest + frontend build, then Render deploy action).
+- PRs #20–#23 merged; production verified serving v1.1.13 with the APK
+  sha256 (`e336da12…`) matching `version.json` and the committed APK.
+
+---
+
 ## [2026-08-14] — v1.1.11: real native fingerprint lock in the APK
 
 **Native biometric authentication (@capgo/capacitor-native-biometric)**

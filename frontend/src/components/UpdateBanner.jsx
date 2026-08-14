@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Download, RefreshCw, X } from 'lucide-react';
 import { getAppInfo, isNative } from '../services/capacitorBridge.js';
 import { trackUpdateEvent } from '../utils/updateAnalytics.js';
+import { fetchVersionManifest, apkDownloadUrl } from '../utils/versionManifest.js';
 
 const DISMISS_KEY = 'genz-update-dismissed-version';
 
@@ -43,10 +44,7 @@ const UpdateBanner = () => {
       }
     };
 
-    const fetchManifest = () =>
-      fetch('/version.json')
-        .then((res) => (res.ok ? res.json() : null))
-        .catch(() => null);
+    const fetchManifest = () => fetchVersionManifest();
 
     (async () => {
       const manifest = await fetchManifest();
@@ -68,8 +66,9 @@ const UpdateBanner = () => {
             version: manifest.version,
             versionCode: latestCode,
             isWeb: false,
-            // The new APK is served by the app host itself (same-origin).
-            apkUrl: manifest.apkUrl || '/genz-whatsapp.apk',
+            // The new APK is served by the app host itself (same-origin on
+            // web; absolute production URL inside the bundled APK).
+            apkUrl: manifest.apkUrl || apkDownloadUrl(),
           });
           trackUpdateEvent('update_shown', analytics);
         }

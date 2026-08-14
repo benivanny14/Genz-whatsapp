@@ -1,0 +1,53 @@
+name: Production Smoke (Playwright)
+
+# Verifies the DEPLOYED web app on genz-whatsapp-1: SPA boots, /api/health
+# succeeds THROUGH the UI host's vite proxy (mongo connected), and
+# /version.json matches the repo. This is the exact path that broke in the
+# Aug 2026 incident (proxy pointed at localhost:5000 → ECONNREFUSED), which
+# the direct-host health checks do not exercise. Free-tier cold starts are
+# handled by the spec's long polling + retries.
+on:
+  schedule:
+    - cron: '0 12 * * *' # daily 12:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Production smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Install Chromium
+        run: |
+          cd frontend
+          npx playwright install --with-deps chromium
+
+      - name: Run production smoke tests
+        run: |
+          cd frontend
+          PROD_SMOKE=1 npx playwright test --config=playwright.prod.config.js
+
+      - name: Upload test report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-smoke-results
+          path: frontend/test-results/
+          retention-days: 7

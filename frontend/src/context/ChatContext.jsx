@@ -4,14 +4,13 @@ import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
 import { setSocketInstance, clearSocketInstance } from '../services/socket';
 import { DB } from '../services/db';
-import { registerServiceWorker, notifyNewMessage, notifyIncomingCall, showLocalNotification } from '../services/notifications';
+import { registerServiceWorker, notifyNewMessage, showLocalNotification } from '../services/notifications';
 import { isOffline } from '../services/api';
 import apiService from '../services/apiService';
 import backupService from '../services/backupService';
 import { useAuth } from './AuthContext';
 import { authFetch } from '../utils/authFetch';
 import { playMessageSound, playSentSound } from '../utils/notificationSounds';
-import webRTCService from '../services/webrtc';
 import api, { mediaAPI } from '../services/api';
 import { cleanupLocalBlobUrls, sanitizeBlobUrls } from '../utils/sanitizeStorage';
 import encryptionService from '../services/encryptionService';
@@ -286,7 +285,6 @@ export const ChatProvider = ({ children }) => {
   const socketRef = useRef(null);
   const markReadDebouncedRef = useRef(null);
   const modsRef = useRef({});  // keep mods accessible in socket callbacks
-  const activeCallRef = useRef(null);  // keep active call state accessible in socket callbacks
   const currentUserIdRef = useRef(null);
   const { isAuthenticated, loading: authLoading, user: authUser, isAuthReady, completeSession } = useAuth();
 
@@ -315,11 +313,6 @@ export const ChatProvider = ({ children }) => {
   const historyPageRef = useRef(1);
   const loadingOlderRef = useRef(false);
   const [loading, setLoading] = useState(false);
-  const [activeCall, setActiveCall] = useState(null);
-  useEffect(() => {
-    activeCallRef.current = activeCall;
-  }, [activeCall]);
-  const [activeGroupCall, setActiveGroupCall] = useState(null);
   const [onlineNotification, setOnlineNotification] = useState(null);
   const [broadcasts, setBroadcasts] = useState([]);
   const [statuses, setStatuses] = useState([]);
@@ -334,7 +327,6 @@ export const ChatProvider = ({ children }) => {
   // FEATURE ADD: backs the alwaysOnline mod — tracks which online contacts
   // are currently "away" (idle) so UI can distinguish online vs away.
   const [awayUsers, setAwayUsers] = useState([]);
-  const [callLogs, setCallLogs] = useState([]);
   const [profileVisitors, setProfileVisitors] = useState([]);
   const [allMessagesForStats, setAllMessagesForStats] = useState([]);
   const [showProfileEditor, setShowProfileEditor] = useState(false);
@@ -1813,40 +1805,6 @@ export const ChatProvider = ({ children }) => {
         setTimeout(() => setIsOtherUserRecording(false), 3000);
       });
 
-      // ── Calls (Phase 8 WebRTC signaling) ──
-      socket.on('group_call:incoming', (data) => {
-        setActiveGroupCall({ ...data, status: 'incoming' });
-        notifyIncomingCall(data.callerName, data.callType);
-      });
-
-      socket.on('call:incoming', ({ callerId, callType, conversationId, offer, callerName: socketCallerName, callerPicture: socketCallerPicture, callerSocketId } = {}) => {
-        // Use server-provided name first, fallback to conversations list
-        let callerName = socketCallerName || 'Unknown';
-        let callerPicture = socketCallerPicture || '';
-        if (!socketCallerName) {
-          const matchingConv = conversationsRef.current?.find(c =>
-            c.participants?.some(p => (p?._id || p)?.toString() === callerId?.toString())
-          );
-          if (matchingConv) {
-            const p = matchingConv.participants.find(p => (p?._id || p)?.toString() === callerId?.toString());
-            callerName = p?.username || 'Unknown';
-            callerPicture = p?.profilePicture || '';
-          }
-        }
-        setActiveCall({
-          type: callType,
-          callerId,
-          callerName,
-          callerPicture,
-          callerSocketId,
-          conversationId,
-          status: 'incoming',
-          offer,
-          user: { _id: callerId, username: callerName, profilePicture: callerPicture }
-        });
-        notifyIncomingCall(callerName, callType);
-      });
-
       // ── Block / Unblock (live sync) ──
       // Without this, a participant's cached `blockedUsers` array inside
       // `conversations`/`selectedConversation` (fetched once when the chat
@@ -1976,59 +1934,6 @@ export const ChatProvider = ({ children }) => {
       socket.on('poll:voted', (updatedMsg) => {
         if (!updatedMsg?._id) return;
         setMessages(prev => prev.map(m => String(m._id) === String(updatedMsg._id) ? updatedMsg : m));
-      });
-
-      // ── Calls (Phase 8 WebRTC signaling) ──
-      socket.on('call:accepted', ({ answer } = {}) => {
-        // Only advance to 'connected' when a real SDP answer arrived.
-        // Bare 'call:accepted' without answer must not flip the UI early —
-        // CallScreen/WebRTC still need to finish negotiation first.
-        if (answer?.type && answer?.sdp) {
-          setActiveCall(prev => prev ? { ...prev, status: 'connected' } : prev);
-        } else {
-          setActiveCall(prev => prev && prev.status === 'calling'
-            ? { ...prev, status: 'connecting' }
-            : prev);
-        }
-      });
-      socket.on('call:rejected', () => setActiveCall(null));
-      socket.on('call:ended', () => setActiveCall(null));
-
-      socket.on('call:log:created', (log) => {
-        if (!log?._id) return;
-        setCallLogs((prev) => {
-          if (prev.some((c) => c._id === log._id)) return prev;
-          return [log, ...prev];
-        });
-      });
-
-      // ── WebRTC signaling ──
-      socket.on('webrtc:offer', async (data) => {
-        // Handle renegotiation if already connected
-        if (activeCallRef.current?.status === 'connected' && 
-            String(activeCallRef.current.callerId) === String(data.from || data.callerId)) {
-          try {
-            await webRTCService.handleRenegotiation(data.offer, data.from || data.callerId);
-          } catch (err) {
-            console.error('Renegotiation failed', err);
-          }
-          return;
-        }
-
-        setActiveCall(prev => {
-          if (prev) {
-            return { ...prev, offer: data.offer };
-          }
-          // If webrtc:offer arrives before call:incoming
-          return {
-            type: data.callType || 'audio',
-            callerId: data.from || data.callerId,
-            status: 'incoming',
-            offer: data.offer,
-            conversationId: data.conversationId,
-            user: { _id: data.from || data.callerId }
-          };
-        });
       });
 
       // ── Unread count sync (server is source of truth) ──
@@ -2822,93 +2727,6 @@ export const ChatProvider = ({ children }) => {
     setIsOtherUserRecording(isRecording);
   };
 
-  // ── Calls (Phase 8) ──
-  const getOtherParticipant = useCallback((conversation) => {
-    if (!conversation?.participants?.length) return null;
-    const me = currentUserId;
-    return conversation.participants.find((p) => {
-      const id = p?._id || p;
-      return id?.toString() !== me?.toString();
-    }) || null;
-  }, [currentUserId]);
-
-  const getOtherParticipantId = useCallback((conversation) => {
-    const other = getOtherParticipant(conversation);
-    return other?._id || other || null;
-  }, [getOtherParticipant]);
-
-  const initiateCall = (type, conversationOrUser) => {
-    const conversation = conversationOrUser?.participants
-      ? conversationOrUser
-      : selectedConversation;
-    const callee = getOtherParticipant(conversation) || conversationOrUser;
-    const calleeId = getOtherParticipantId(conversation);
-    if (!conversation?._id || !calleeId) {
-      console.warn('[ChatContext] Cannot start call without conversation and callee');
-      return;
-    }
-    const callData = {
-      type,
-      user: callee,
-      status: 'calling',
-      conversationId: conversation?._id,
-      calleeId
-    };
-    setActiveCall(callData);
-    emitSafe('call:start', {
-      conversationId: conversation?._id,
-      callType: type,
-      calleeId,
-      targetUserId: calleeId
-    });
-  };
-
-  const endCall = () => {
-    if (activeCall) {
-      const targetUserId = activeCall.calleeId || activeCall.callerId;
-      emitSafe('call:end', {
-        conversationId: activeCall.conversationId,
-        targetUserId,
-        callType: activeCall.type
-      });
-    }
-    webRTCService.endCall();
-    setActiveCall(null);
-  };
-
-  const fetchCallLogs = useCallback(async () => {
-    try {
-      const data = await apiService.getCallLogs();
-      if (data?.success) setCallLogs(data.callLogs || []);
-    } catch (err) {
-      console.warn('[ChatContext] Failed to load call logs:', err?.message);
-    }
-  }, []);
-  // NOTE: the actual WebRTC answer (real SDP negotiation) happens inside
-  // CallScreen's own handleAccept, which calls this afterwards purely to let
-  // the caller-side "call:accepted" notice go out and to mark the call no
-  // longer 'incoming'. It's guarded to run only once (status must still be
-  // 'incoming') so a second call — e.g. from CallScreen re-notifying — can't
-  // clobber the status and doesn't re-emit 'call:accept' twice.
-  const acceptCall = () => {
-    if (activeCall && activeCall.status === 'incoming') {
-      emitSafe('call:accept', { conversationId: activeCall.conversationId, callerId: activeCall.callerId });
-      setActiveCall(prev => (prev && prev.status === 'incoming') ? { ...prev, status: 'connecting' } : prev);
-    }
-  };
-  const rejectCall = () => {
-    if (activeCall) {
-      emitSafe('call:reject', {
-        conversationId: activeCall.conversationId,
-        callerId: activeCall.callerId,
-        callerSocketId: activeCall.callerSocketId,
-        callType: activeCall.type || 'audio'
-      });
-    }
-    webRTCService.endCall();
-    setActiveCall(null);
-  };
-
   // ── DND Mode: Real socket disconnect/reconnect (Item 16) ──
   const toggleDNDMode = () => {
     setIsDNDMode(prev => {
@@ -3331,13 +3149,12 @@ export const ChatProvider = ({ children }) => {
         console.log('[ChatContext] Loading initial data with optimized API service...');
 
         // Use Promise.all for parallel loading instead of sequential
-        const [devicesData, modsData, broadcastsData, statusesData, conversationsData, callsData] = await Promise.allSettled([
+        const [devicesData, modsData, broadcastsData, statusesData, conversationsData] = await Promise.allSettled([
           apiService.getDevices(),
           apiService.getGENZSettings(),
           apiService.getBroadcasts(),
           apiService.getStatuses(),
-          apiService.getConversations(),
-          apiService.getCallLogs()
+          apiService.getConversations()
         ]);
 
         // Process results
@@ -3408,11 +3225,6 @@ export const ChatProvider = ({ children }) => {
           console.log('[ChatContext] Conversations loaded successfully');
         }
 
-        if (callsData.status === 'fulfilled' && callsData.value?.success) {
-          setCallLogs(callsData.value.callLogs || []);
-          console.log('[ChatContext] Call logs loaded successfully');
-        }
-
         // Fetch scheduled messages
         try {
           const scheduledData = await apiService.getScheduledMessages();
@@ -3433,7 +3245,7 @@ export const ChatProvider = ({ children }) => {
         }
 
         // Log any errors
-        const errors = [devicesData, modsData, broadcastsData, statusesData, conversationsData, callsData]
+        const errors = [devicesData, modsData, broadcastsData, statusesData, conversationsData]
           .filter(result => result.status === 'rejected')
           .map(result => result.reason);
 
@@ -3835,9 +3647,8 @@ export const ChatProvider = ({ children }) => {
     if (!isAuthReady || (REQUIRE_AUTH && (authLoading || !isAuthenticated))) return;
     fetchGENZModsSettings();
     fetchBroadcasts();
-    fetchCallLogs();
     fetchStatuses();
-  }, [isAuthReady, authLoading, isAuthenticated, fetchCallLogs, fetchStatuses]);
+  }, [isAuthReady, authLoading, isAuthenticated, fetchStatuses]);
 
   // ── Auto-refresh system like WhatsApp ─────────────────────────────────────
   useEffect(() => {
@@ -5239,11 +5050,9 @@ export const ChatProvider = ({ children }) => {
     isOtherUserTyping, sendTypingStatus, typingByConversation,
     isOtherUserRecording, sendRecordingStatus,
     isAutoRefreshing,
-    activeCall, initiateCall, endCall, acceptCall, rejectCall,
-    activeGroupCall, setActiveGroupCall,
     onlineNotification, broadcasts, sendMassMessage, createBroadcastList,
     statuses, addStatus, uploadStatusMedia, uploadCollageImages, statusViewers, viewStatus,
-    onlineUsers, awayUsers, lastSeenByUser, callLogs, fetchCallLogs, profileVisitors,
+    onlineUsers, awayUsers, lastSeenByUser, profileVisitors,
     showProfileEditor, setShowProfileEditor,
     contacts, refreshContacts: loadContacts, addContact, removeContact, updateContact,
     blockedUsers, blockUser, unblockUser,
@@ -5293,9 +5102,9 @@ export const ChatProvider = ({ children }) => {
     setDisappearingTimer
   }), [
     user, conversations, selectedConversation, messages, loading,
-    isOtherUserTyping, isOtherUserRecording, typingByConversation, activeCall, activeGroupCall,
+    isOtherUserTyping, isOtherUserRecording, typingByConversation,
     onlineNotification, broadcasts, statuses, statusViewers,
-    onlineUsers, awayUsers, lastSeenByUser, callLogs, fetchCallLogs, profileVisitors, showProfileEditor,
+    onlineUsers, awayUsers, lastSeenByUser, profileVisitors, showProfileEditor,
     contacts, blockedUsers, scheduledMessages, pinnedMessages,
     presenceHistory, unlockedSessionChats,
     connectedDevices, sessions, notifications,

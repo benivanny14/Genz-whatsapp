@@ -4,16 +4,13 @@ const Conversation = require('../models/Conversation');
 const User = require('../models/User');
 const Status = require('../models/Status');
 const Broadcast = require('../models/Broadcast');
-const { persistCallFromSocket } = require('../controllers/callController');
-const activeCalls = require('../utils/activeCalls');
 const { resolveMessageMentions } = require('../utils/mentions');
 const { scheduleHardDelete } = require('../utils/hardDelete');
 const { logInfo, logError, logWarning, logDebug } = require('../config/winston');
 
 const {
   sendMentionNotification,
-  sendNewMessageNotification,
-  sendIncomingCallNotification
+  sendNewMessageNotification
 } = require('../services/notificationService');
 const { ensureUnreadMap, getUnreadCount, setUnreadCount } = require('../utils/unreadCount');
 const { serializeOutgoingMessage } = require('../utils/messageSerializer');
@@ -277,12 +274,9 @@ const createContext = (io, socket) => ({
   User,
   Status,
   Broadcast,
-  persistCallFromSocket,
-  activeCalls,
   resolveMessageMentions,
   sendMentionNotification,
   sendNewMessageNotification,
-  sendIncomingCallNotification,
   ensureUnreadMap,
   getUnreadCount,
   setUnreadCount,

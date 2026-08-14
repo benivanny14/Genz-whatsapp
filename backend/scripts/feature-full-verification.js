@@ -541,7 +541,7 @@ async function main() {
     privacy: {
       lastSeen: 'contacts', profilePhoto: 'nobody', about: 'contacts', status: 'only_share_with',
       readReceipts: false, defaultMessageTimer: '24h', groups: 'contacts',
-      silenceUnknownCallers: true, protectIpAddressInCalls: true, disableLinkPreviews: true,
+      disableLinkPreviews: true,
       blockUnknownAccountMessages: true,
       appLock: { enabled: true, lockAfter: '15m', requireBiometric: false },
       chatLock: { enabled: true, secretCodeEnabled: true, hideLockedChats: false },
@@ -554,13 +554,13 @@ async function main() {
       history: { exportFormat: 'json' }
     },
     notifications: {
-      messages: false, groups: false, calls: false, sounds: false, showPreview: false,
+      messages: false, groups: false, sounds: false, showPreview: false,
       highPriority: false, reactionNotifications: false, reminders: true,
-      messageTone: 'chime', groupTone: 'bell', callRingtone: 'classic', vibration: 'short'
+      messageTone: 'chime', groupTone: 'bell', vibration: 'short'
     },
     storageData: {
       mobileAutoDownload: ['photos'], wifiAutoDownload: ['photos', 'documents'], roamingAutoDownload: [],
-      photoUploadQuality: 'hd', videoUploadQuality: 'hd', useLessDataForCalls: true
+      photoUploadQuality: 'hd', videoUploadQuality: 'hd'
     },
     app: { language: 'sw', inviteFriends: false },
     help: { diagnostics: true, contactSupportAllowed: false }
@@ -575,10 +575,10 @@ async function main() {
   const ch = got.chats || {};
   const nt = got.notifications || {};
   const st = got.storageData || {};
-  check('T3 privacy round-trip', p.lastSeen === 'contacts' && p.profilePhoto === 'nobody' && p.silenceUnknownCallers === true, r, 'message');
+  check('T3 privacy round-trip', p.lastSeen === 'contacts' && p.profilePhoto === 'nobody', r, 'message');
   check('T4 chats round-trip', ch.theme === 'dark' && ch.fontSize === 'large' && ch.chatColor === '#123456', r, 'message');
   check('T5 notifications round-trip', nt.messageTone === 'chime' && nt.messages === false, r, 'message');
-  check('T6 storage round-trip', st.photoUploadQuality === 'hd' && st.useLessDataForCalls === true, r, 'message');
+  check('T6 storage round-trip', st.photoUploadQuality === 'hd', r, 'message');
   check('T7 app language round-trip', (got.app || {}).language === 'sw', r, 'message');
 
   // settings validation: invalid enum values are rejected with 400
@@ -593,13 +593,6 @@ async function main() {
   r = await api.req('POST', '/api/theme-engine/mode', { mode: 'dark' });
   check('T11 theme mode dark', r.status === 200, r, 'message');
 
-  // webrtc config reflects protectIpAddressInCalls (set true above)
-  r = await api.req('GET', '/api/webrtc/config');
-  const webrtcPolicy = pick(r.json, ['config', 'webrtc', 'data']) || r.json;
-  const policyVal = pick(webrtcPolicy, ['iceTransportPolicy', 'iceServers', 'transportPolicy']);
-  check('T12 webrtc config reachable', r.status === 200, r, 'message');
-  info('T13 webrtc iceTransportPolicy', `${JSON.stringify(policyVal).slice(0, 60)}`);
-
   // notifications subscribe
   r = await api.req('POST', '/api/notifications/subscribe', { subscription: { endpoint: 'https://example.com/fv-push', keys: { p256dh: 'abc', auth: 'def' } } });
   check('T14 subscribe push notifications', r.status === 200 || r.status === 201, r, 'message');
@@ -608,7 +601,7 @@ async function main() {
 
   // reset back to safe defaults-ish for privacy-critical toggles we turned on
   r = await api.req('PUT', '/api/settings', {
-    privacy: { lastSeen: 'everyone', profilePhoto: 'everyone', about: 'everyone', status: 'contacts', readReceipts: true, silenceUnknownCallers: false, protectIpAddressInCalls: false },
+    privacy: { lastSeen: 'everyone', profilePhoto: 'everyone', about: 'everyone', status: 'contacts', readReceipts: true },
     chats: { theme: 'system', fontSize: 'medium' },
     app: { language: 'system' }
   });
@@ -764,11 +757,6 @@ async function main() {
   check('AD43 abuse reports', r.status === 200, r, 'message');
   r = await api.req('GET', `${ADMIN_BASE}/abuse-reports/stats`);
   check('AD44 abuse report stats', r.status === 200, r, 'message');
-
-  r = await api.req('GET', `${ADMIN_BASE}/calls`);
-  check('AD45 call logs (admin)', r.status === 200, r, 'message');
-  r = await api.req('GET', `${ADMIN_BASE}/calls/stats`);
-  check('AD46 call stats (admin)', r.status === 200, r, 'message');
 
   // ═══════════════════════════════════════════════════════════════════
   // SUMMARY

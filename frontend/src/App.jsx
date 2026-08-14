@@ -18,7 +18,6 @@ import toast, { Toaster } from 'react-hot-toast';
 import { useChat } from './context/ChatContext';
 import { useUser } from './context/UserContext';
 import { getSocket } from './services/socket';
-import { shouldShowCallScreen } from './utils/callUi';
 
 // Lazy load pages for performance optimization
 const Chat = lazy(() => import('./pages/Chat'));
@@ -49,8 +48,6 @@ const Channels = lazy(() => import('./pages/Channels'));
 const ChannelView = lazy(() => import('./pages/ChannelView'));
 const Communities = lazy(() => import('./pages/Communities'));
 const JoinGroup = lazy(() => import('./pages/JoinGroup'));
-const CallScreen = lazy(() => import('./components/CallScreen'));
-const GroupCallScreen = lazy(() => import('./components/GroupCallScreen'));
 const SubscriptionPayment = lazy(() => import('./components/PaidFeatures/SubscriptionPayment'));
 const GenzAfterWork = lazy(() => import('./components/PaidFeatures/GenzAfterWork'));
 const AdminPaymentManagement = lazy(() => import('./pages/AdminPaymentManagement'));
@@ -85,17 +82,16 @@ const readStoredMods = () => {
 
 function App() {
   const [notification, setNotification] = useState(null);
-  const { activeCall, endCall, acceptCall, rejectCall, activeGroupCall, setActiveGroupCall, setActiveCall, selectedConversation, selectConversation } = useChat();
+  const { selectedConversation, selectConversation } = useChat();
   const { user } = useUser();
 
   // Native Android back button (APK only): closes an open chat first, then
   // navigates back through history, then minimizes the app on the main
-  // screen. Skipped entirely while a call screen is visible.
+  // screen.
   useNativeBackButton({
     isConversationOpen: Boolean(selectedConversation),
     onCloseConversation: () => selectConversation(null),
     onExitRequest: () => CapacitorApp.minimizeApp(),
-    isCallActive: Boolean(activeCall || activeGroupCall),
   });
 
   const setDynamicAppIcon = useCallback(async (profilePicture) => {
@@ -141,23 +137,6 @@ function App() {
   useEffect(() => {
     setDynamicAppIcon(user?.profilePicture || user?.avatar || '').catch(() => {});
   }, [setDynamicAppIcon, user?.profilePicture, user?.avatar]);
-
-  // --- Handle incoming calls from URL (when app is opened from notification) ---
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const callParam = urlParams.get('call');
-    if (callParam) {
-      try {
-        const callData = JSON.parse(decodeURIComponent(callParam));
-        console.log('[App] Incoming call from URL:', callData);
-        setActiveCall(callData);
-        // Clean URL to prevent re-processing
-        window.history.replaceState({}, document.title, window.location.pathname);
-      } catch (err) {
-        console.error('[App] Failed to parse call data from URL:', err);
-      }
-    }
-  }, [setActiveCall]);
 
   // Real viewport height tracking (fixes the mobile keyboard black-bar bug)
   // is already initialized once in main.jsx, before React even mounts, and
@@ -232,10 +211,10 @@ function App() {
       // subscribed to Web Push inside ChatContext's socket 'reconnect'
       // handler, which most sessions never trigger. Without a push
       // subscription the OS/browser has nothing to show when the tab/app is
-      // closed, so calls (and messages) only ever appeared while the app
-      // was open in the foreground. Subscribing here, right after the
-      // service worker is ready, is what actually enables background/locked
-      // -screen notifications, including incoming calls.
+      // closed, so messages only ever appeared while the app was open in the
+      // foreground. Subscribing here, right after the service worker is
+      // ready, is what actually enables background/locked-screen
+      // notifications.
       if (permission === 'granted' && registration) {
         notificationService.subscribeToWebPush(registration).catch(() => {});
       }
@@ -244,33 +223,6 @@ function App() {
     // Handle messages posted from the service worker (background push clicks)
     const handleServiceWorkerMessage = (event) => {
       const data = event.data || {};
-
-      // BUG FIX: this used to just console.log and do nothing, so tapping
-      // "Answer" on a background call notification (with the app already
-      // open in another tab/window) never actually opened the call screen.
-      if (data.type === 'INCOMING_CALL' && data.call) {
-        setActiveCall(data.call);
-        return;
-      }
-
-      // BUG FIX: was never handled at all — declining a call from the
-      // notification's "Decline" action silently did nothing, so the
-      // caller's phone kept ringing even after the callee declined.
-      if (data.type === 'CALL_DECLINE') {
-        try {
-          const socket = getSocket();
-          if (socket && data.conversationId) {
-            socket.emit('call:reject', {
-              conversationId: data.conversationId,
-              callerId: data.callerId,
-            });
-          }
-        } catch (_) { /* ignore */ }
-        setActiveCall((prev) => (
-          prev && String(prev.conversationId) === String(data.conversationId) ? null : prev
-        ));
-        return;
-      }
 
       // BUG FIX: was never handled — tapping a message notification opened
       // the app but never navigated to the actual conversation.
@@ -309,7 +261,7 @@ function App() {
       }
       window.removeEventListener('genz-in-app-notification', handleInAppNotification);
     };
-  }, [setActiveCall, setNotification]);
+  }, [setNotification]);
 
   // --- PWA Updates ---
   useEffect(() => {
@@ -426,29 +378,6 @@ function App() {
           </Routes>
         </Suspense>
       </AdminAuthProvider>
-      {/* Global Call Screen - shows incoming/active calls across all pages.
-          CallScreen owns the full incoming->connected lifecycle itself (see
-          utils/callUi.js for why IncomingCallPopup was removed from here). */}
-      {shouldShowCallScreen(activeCall) && (
-        <Suspense fallback={<PageLoader />}>
-          <CallScreen 
-            call={activeCall} 
-            onEndCall={endCall} 
-            onAcceptCall={acceptCall} 
-            onRejectCall={rejectCall} 
-          />
-        </Suspense>
-      )}
-      {/* Global Group Call Screen */}
-      {activeGroupCall && ['calling', 'incoming', 'connected'].includes(activeGroupCall.status) && (
-        <Suspense fallback={<PageLoader />}>
-          <GroupCallScreen 
-            call={activeGroupCall} 
-            onEnd={() => setActiveGroupCall(null)} 
-            currentUser={user}
-          />
-        </Suspense>
-      )}
       <MobileBottomNav />
     </ErrorBoundary>
   );

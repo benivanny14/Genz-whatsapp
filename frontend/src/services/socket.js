@@ -151,19 +151,3 @@ export const addReaction = (messageId, emoji) => {
 export const removeReaction = (messageId) => {
   socket?.emit('reaction:remove', { messageId });
 };
-
-export const startCall = (conversationId, callType) => {
-  socket?.emit('call:start', { conversationId, callType });
-};
-
-export const acceptCall = (conversationId, callerId) => {
-  socket?.emit('call:accept', { conversationId, callerId });
-};
-
-export const rejectCall = (conversationId, callerId) => {
-  socket?.emit('call:reject', { conversationId, callerId });
-};
-
-export const endCall = (conversationId) => {
-  socket?.emit('call:end', { conversationId });
-};

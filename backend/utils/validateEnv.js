@@ -167,19 +167,6 @@ const validateEnv = () => {
     });
   }
 
-  if (isProduction() && !hasValue('TURN_SERVER_URL')) {
-    warnings.push({
-      key: 'TURN_SERVER_URL',
-      description: 'TURN server is not configured; voice/video calls may fail behind NAT/firewalls'
-    });
-  } else if (isProduction() && hasValue('TURN_SERVER_URL')) {
-    const { validateTurnConfig } = require('../config/webrtc');
-    const turnCheck = validateTurnConfig();
-    turnCheck.errors.forEach((message) => {
-      warnings.push({ key: 'TURN_SERVER_URL', description: message });
-    });
-  }
-
   if (isProduction() && process.env.ALLOW_MOCK_PAYMENTS === 'true') {
     invalidValues.push({
       key: 'ALLOW_MOCK_PAYMENTS',

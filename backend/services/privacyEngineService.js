@@ -145,18 +145,6 @@ const canSeePresence = async (user, requesterId) => {
 };
 
 /**
- * Should an incoming call from `callerId` be silenced for `calleeUser`?
- * True when the callee enabled "Silence unknown callers" and the caller is
- * not in their contact list. Used by the socket call-offer paths before
- * ringing / sending push notifications.
- */
-const isSilencedCaller = (calleeUser, callerId) => {
-  const privacy = calleeUser?.settings?.privacy || {};
-  if (!privacy.silenceUnknownCallers) return false;
-  return !isContact(calleeUser, callerId);
-};
-
-/**
  * Status-visibility decision used by socket status:create broadcasts and
  * status:view recording. `ownerUser` (with contacts) is required only for the
  * 'contacts' / 'contacts_except' modes.
@@ -193,6 +181,5 @@ module.exports = {
   getSettingValue,
   resolveOnlineSetting,
   canSeePresence,
-  canViewStatus,
-  isSilencedCaller
+  canViewStatus
 };

@@ -29,6 +29,10 @@ const getArg = (name) => {
 };
 const SERVICE_ID = getArg('--service') || '';
 const TARGET = getArg('--target') || 'https://genz-whatsapp.onrender.com';
+// --deploy-only: skip the env-var update, just trigger a fresh deploy.
+// Useful for services that don't run the vite preview proxy (e.g. the
+// static site genz-whatsapp-2) — they just need a rebuild from main.
+const DEPLOY_ONLY = args.includes('--deploy-only');
 const API_KEY = process.env.RENDER_API_KEY || '';
 
 if (!SERVICE_ID || !API_KEY) {
@@ -66,29 +70,39 @@ const request = (method, url, body) =>
 
 async function main() {
   console.log(`Service: ${SERVICE_ID}`);
-  console.log(`Setting GENZ_BACKEND_TARGET=${TARGET} ...`);
-  // Per-key endpoint — the bulk PUT /env-vars endpoint REPLACES all env
-  // vars, so it must never be used for a single var (it would wipe
-  // MONGODB_URI, JWT_SECRET etc.).
-  const up = await request(
-    'PUT',
-    `https://api.render.com/v1/services/${SERVICE_ID}/env-vars/GENZ_BACKEND_TARGET`,
-    { value: TARGET }
-  );
-  if (up.status !== 200 && up.status !== 201) {
-    console.error(`env update failed (${up.status}): ${JSON.stringify(up.body).slice(0, 300)}`);
-    process.exit(1);
+  if (!DEPLOY_ONLY) {
+    console.log(`Setting GENZ_BACKEND_TARGET=${TARGET} ...`);
+    // Per-key endpoint — the bulk PUT /env-vars endpoint REPLACES all env
+    // vars, so it must never be used for a single var (it would wipe
+    // MONGODB_URI, JWT_SECRET etc.).
+    const up = await request(
+      'PUT',
+      `https://api.render.com/v1/services/${SERVICE_ID}/env-vars/GENZ_BACKEND_TARGET`,
+      { value: TARGET }
+    );
+    if (up.status !== 200 && up.status !== 201) {
+      console.error(`env update failed (${up.status}): ${JSON.stringify(up.body).slice(0, 300)}`);
+      process.exit(1);
+    }
+    console.log('env var updated ✓');
+  } else {
+    console.log('--deploy-only: skipping env update, deploying latest commit from main');
   }
-  console.log('env var updated ✓');
 
   console.log('Triggering deploy of latest commit ...');
   const dep = await request('POST', `https://api.render.com/v1/services/${SERVICE_ID}/deploys`, {});
-  if (dep.status !== 201 && dep.status !== 200) {
+  // 200/201 = full deploy object; 202 = Accepted (static sites return this
+  // with an empty body — the deploy IS queued). Anything else = real error.
+  if (![200, 201, 202].includes(dep.status)) {
     console.error(`deploy trigger failed (${dep.status}): ${JSON.stringify(dep.body).slice(0, 300)}`);
     process.exit(1);
   }
   const d = dep.body?.deploy || dep.body || {};
-  console.log(`deploy triggered: ${d.id || '?'} status=${d.status || '?'} commit=${(d.commit?.id || '').slice(0, 8) || '?'}`);
+  if (dep.status === 202) {
+    console.log('deploy accepted (202) — queued by Render');
+  } else {
+    console.log(`deploy triggered: ${d.id || '?'} status=${d.status || '?'} commit=${(d.commit?.id || '').slice(0, 8) || '?'}`);
+  }
 }
 
 main().catch((err) => {

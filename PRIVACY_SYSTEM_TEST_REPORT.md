@@ -125,9 +125,13 @@ gating). Backend suite: **1808 passed / 4 skipped**. The privacy e2e spec
 (`privacy-contact-selector.spec.js`) now also runs against the single-origin
 `:5000` stack (CI layout) and is listed in `.github/workflows/ci.yml`.
 
+> **Superseded (v1.1.14): all call features were removed from the app**
+> (pure messaging). The call privacy audit below documents the state of the
+> now-deleted call system and is kept for history only.
+
 **Call privacy audit (2026-08-12)** — `silencedUnknownCallers` and
 `protectIpAddressInCalls` existed only as settings defaults with **no
-enforcement anywhere**. Both are now enforced:
+enforcement anywhere**. Both were then enforced:
 
 1. **Silence unknown callers** — the socket `call:offer` / `webrtc:offer`
    paths load the callee's `settings contacts` and, when the setting is on

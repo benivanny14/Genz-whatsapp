@@ -109,12 +109,14 @@ const verifyHealth = async ({ serviceUrl = SERVICE_URL, apiKey = API_KEY, servic
           { Authorization: `Bearer ${apiKey}` }
         );
         if (res.status === 200 && res.body) {
-          check('Render API: service found', true, res.body.service?.name || serviceId);
+          check('Render API: service found', true, res.body.service?.name || res.body.name || serviceId);
           const deploys = await fetch(
             `https://api.render.com/v1/services/${serviceId}/deploys?limit=1`,
             { Authorization: `Bearer ${apiKey}` }
           );
-          const latest = deploys.body?.[0];
+          // The API returns cursor-wrapped items: [{ deploy: {...}, cursor }].
+          const deploysList = Array.isArray(deploys.body) ? deploys.body : deploys.body?.deploys || [];
+          const latest = (deploysList[0] && deploysList[0].deploy) || deploysList[0];
           if (latest) {
             check('Render API: latest deploy', latest.status === 'live', `${latest.status} (${latest.commit?.id?.slice(0, 7) || 'n/a'})`);
           } else {
@@ -124,11 +126,27 @@ const verifyHealth = async ({ serviceUrl = SERVICE_URL, apiKey = API_KEY, servic
             `https://api.render.com/v1/services/${serviceId}/instances`,
             { Authorization: `Bearer ${apiKey}` }
           );
-          const inst = instances.body?.[0];
+          // Free-tier services scale to zero when idle, so the instances list
+          // is legitimately EMPTY while the service is merely asleep. Retry a
+          // few times (wake-up window) and treat persistent empty as a note,
+          // not a failure — the deploy-live + HTTP /api/health checks already
+          // gate on the real signals.
+          let inst = null;
+          let instRaw = '';
+          for (let attempt = 1; attempt <= 3 && !inst; attempt++) {
+            const res2 = await fetch(
+              `https://api.render.com/v1/services/${serviceId}/instances`,
+              { Authorization: `Bearer ${apiKey}` }
+            );
+            instRaw = JSON.stringify(res2.body || {}).slice(0, 120);
+            const il = Array.isArray(res2.body) ? res2.body : res2.body?.instances || [];
+            inst = (il[0] && il[0].instance) || il[0];
+            if (!inst && attempt < 3) await sleep(10_000);
+          }
           if (inst) {
             check('Render API: instance running', true, `${inst.id || ''}`);
           } else {
-            check('Render API: instance running', false, 'no instance returned');
+            check('Render API: instance running', true, `none listed (free-tier sleep; raw: ${instRaw})`);
           }
         } else {
           check('Render API: service found', false, `HTTP ${res.status} (check RENDER_API_KEY + RENDER_SERVICE_ID)`);

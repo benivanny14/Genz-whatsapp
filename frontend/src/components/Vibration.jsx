@@ -178,25 +178,6 @@ export const VibrationSettings = ({ settings, onUpdate }) => {
 
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-white text-sm">Vibrate on calls</p>
-              <p className="text-gray-400 text-xs">Vibrate for incoming calls</p>
-            </div>
-            <button
-              onClick={() => onUpdate({ ...settings, vibrateOnCalls: !settings.vibrateOnCalls })}
-              className={`w-12 h-6 rounded-full transition-all ${
-                settings.vibrateOnCalls ? 'bg-[#00a884]' : 'bg-[#0b141a]'
-              }`}
-            >
-              <div
-                className={`w-5 h-5 bg-white rounded-full transition-all ${
-                  settings.vibrateOnCalls ? 'translate-x-6' : 'translate-x-0.5'
-                }`}
-              />
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
               <p className="text-white text-sm">Vibrate in silent mode</p>
               <p className="text-gray-400 text-xs">Vibrate even when silent</p>
             </div>

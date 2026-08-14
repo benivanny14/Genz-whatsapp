@@ -52,7 +52,7 @@ const PrivacyPolicy = () => {
           <Section title="2. How we use your information">
             <p>We use your information to provide, maintain and improve the service:</p>
             <ul className="list-disc pl-5 space-y-1">
-              <li>Delivering messages, calls, statuses, and notifications in real time.</li>
+              <li>Delivering messages, statuses, and notifications in real time.</li>
               <li>Syncing your chats and settings across your devices.</li>
               <li>Security: fraud detection, abuse reporting, and protecting against spam or misuse.</li>
               <li>Support: responding to help requests and troubleshooting.</li>

@@ -210,7 +210,7 @@ const DoNotDisturb = ({ settings, onUpdate, onClose }) => {
               <div className="flex items-start gap-2">
                 <AlertCircle className="text-yellow-500 flex-shrink-0 mt-0.5" size={16} />
                 <p className="text-yellow-500 text-xs">
-                  You won't receive notifications while Do Not Disturb is enabled. Emergency calls may still come through.
+                  You won't receive notifications while Do Not Disturb is enabled.
                 </p>
               </div>
             </div>

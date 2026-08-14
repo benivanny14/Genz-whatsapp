@@ -62,9 +62,16 @@ if ('serviceWorker' in navigator) {
       // When a new SW version activates and takes control, reload once so
       // this tab picks up the fresh app shell + asset hashes instead of
       // continuing to run on a stale bundle (which breaks lazy-loaded routes).
+      //
+      // Only treat controllerchange as an UPDATE when the page was already
+      // controlled by a previous service worker. A first-time install (fresh
+      // APK / first visit) also fires controllerchange — the new SW calls
+      // skipWaiting() + clients.claim() and takes control immediately — and
+      // must NOT show a false "Update available" toast.
+      const wasControlled = !!navigator.serviceWorker.controller;
       let hasReloaded = false;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (hasReloaded) return;
+        if (hasReloaded || !wasControlled) return;
         hasReloaded = true;
         // Dispatch event instead of forcing a disruptive reload
         window.dispatchEvent(new CustomEvent('pwa-update-available'));
