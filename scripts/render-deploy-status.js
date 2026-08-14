@@ -187,7 +187,7 @@ async function main() {
       console.error(`Services query failed (${all.status}): ${JSON.stringify(all.body).slice(0, 300)}`);
       process.exit(1);
     }
-    const services = Array.isArray(all.body) ? all.body : all.body?.services || [];
+    const services = unwrap(all.body, 'services', 'service');
     console.log(`Found ${services.length} service(s) for this API key:`);
     for (const s of services) {
       console.log(`  - ${s.name || s.id}  (${s.type})  ${s.serviceDetails?.url || s.url || ''}  suspended=${s.suspended || false}`);
