@@ -1,0 +1,38 @@
+name: Render fix proxy
+
+# Manual: Actions tab → "Render fix proxy" → Run workflow.
+# Points a frontend web service's vite preview proxy (GENZ_BACKEND_TARGET)
+# at the backend URL and triggers a fresh deploy, so /api, /uploads and
+# /socket.io stop dialing localhost:5000 inside the frontend container.
+# Uses the repo's RENDER_API_KEY secret.
+
+on:
+  workflow_dispatch:
+    inputs:
+      service_id:
+        description: 'Service to fix (srv-xxxx)'
+        required: true
+      target:
+        description: 'Backend URL to proxy to'
+        required: false
+        default: 'https://genz-whatsapp.onrender.com'
+
+permissions:
+  contents: read
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Point proxy at backend + redeploy
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: node scripts/render-fix-proxy.js --service ${{ inputs.service_id }} --target ${{ inputs.target }}
