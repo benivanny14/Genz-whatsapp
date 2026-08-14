@@ -17,7 +17,9 @@ const dir = path.dirname(fileURLToPath(import.meta.url));
 const repoVersion = () => {
   try {
     const v = JSON.parse(readFileSync(path.resolve(dir, '../public/version.json'), 'utf8'));
-    return { version: v.version, versionCode: String(v.versionCode) };
+    // version.json ships versionCode as a JSON number; the deployed copy is
+    // identical, so compare numerically.
+    return { version: v.version, versionCode: Number(v.versionCode) };
   } catch {
     return null;
   }
