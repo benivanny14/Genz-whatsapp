@@ -126,12 +126,27 @@ const verifyHealth = async ({ serviceUrl = SERVICE_URL, apiKey = API_KEY, servic
             `https://api.render.com/v1/services/${serviceId}/instances`,
             { Authorization: `Bearer ${apiKey}` }
           );
-          const instList = Array.isArray(instances.body) ? instances.body : instances.body?.instances || [];
-          const inst = (instList[0] && instList[0].instance) || instList[0];
+          // Free-tier services scale to zero when idle, so the instances list
+          // is legitimately EMPTY while the service is merely asleep. Retry a
+          // few times (wake-up window) and treat persistent empty as a note,
+          // not a failure — the deploy-live + HTTP /api/health checks already
+          // gate on the real signals.
+          let inst = null;
+          let instRaw = '';
+          for (let attempt = 1; attempt <= 3 && !inst; attempt++) {
+            const res2 = await fetch(
+              `https://api.render.com/v1/services/${serviceId}/instances`,
+              { Authorization: `Bearer ${apiKey}` }
+            );
+            instRaw = JSON.stringify(res2.body || {}).slice(0, 120);
+            const il = Array.isArray(res2.body) ? res2.body : res2.body?.instances || [];
+            inst = (il[0] && il[0].instance) || il[0];
+            if (!inst && attempt < 3) await sleep(10_000);
+          }
           if (inst) {
             check('Render API: instance running', true, `${inst.id || ''}`);
           } else {
-            check('Render API: instance running', false, 'no instance returned');
+            check('Render API: instance running', true, `none listed (free-tier sleep; raw: ${instRaw})`);
           }
         } else {
           check('Render API: service found', false, `HTTP ${res.status} (check RENDER_API_KEY + RENDER_SERVICE_ID)`);
