@@ -53,6 +53,15 @@ jobs:
             echo "::warning::ANDROID_KEYSTORE_BASE64 not set — APK will be DEBUG-signed (do NOT ship)"
           fi
 
+      - name: Restore google-services.json from secrets (FCM + Analytics)
+        run: |
+          if [ -n "${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON_B64 }}" ]; then
+            echo "${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON_B64 }}" | base64 -d > frontend/android/app/google-services.json
+            echo "::notice::google-services.json restored — APK will have FCM + Analytics enabled"
+          else
+            echo "::warning::FIREBASE_GOOGLE_SERVICES_JSON_B64 not set — APK built WITHOUT FCM/Analytics (do NOT ship for push)"
+          fi
+
       - name: Bump version (optional)
         if: inputs.bump != 'none' && inputs.bump != ''
         run: cd frontend && node scripts/bump-app-version.js ${{ inputs.bump }}
