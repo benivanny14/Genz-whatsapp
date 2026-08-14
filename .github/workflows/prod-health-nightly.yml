@@ -90,27 +90,21 @@ jobs:
       # log in, so the nightly must check /api THROUGH the proxy too. Free-tier
       # cold starts return 502/000 for a minute or two, hence long retries.
       - name: Verify proxy path (UI host /api → backend)
+        env:
+          VERIFY_MAX_ATTEMPTS: '10'
+          VERIFY_BASE_DELAY_MS: '10000'
         run: |
-          UI=https://genz-whatsapp-1.onrender.com
-          API=https://genz-whatsapp.onrender.com
-          ok=0
-          for i in $(seq 1 10); do
-            PROXY=$(curl -s -m 30 "$UI/api/health" || echo '')
-            DIRECT=$(curl -s -m 30 "$API/api/health" || echo '')
-            P_OK=$(echo "$PROXY" | grep -o '"success": true' | head -1)
-            P_MONGO=$(echo "$PROXY" | grep -o '"mongo": "connected"' | head -1)
-            D_OK=$(echo "$DIRECT" | grep -o '"success": true' | head -1)
-            echo "try $i: proxy ok=${P_OK:-NO} mongo=${P_MONGO:-NO} | direct ok=${D_OK:-NO}"
-            if [ -n "$P_OK" ] && [ -n "$P_MONGO" ] && [ -n "$D_OK" ]; then
-              ok=1
-              break
-            fi
-            sleep 20
-          done
-          if [ "$ok" != "1" ]; then
+          # Same retry-with-backoff verify script as the direct check, but hit
+          # the UI host so the request goes THROUGH the vite proxy (the only
+          # path the web app has to the API). Single curls are too flaky on
+          # this network (intermittent Cloudflare errors); the script's
+          # exponential backoff is what makes the direct check reliable.
+          node scripts/render-deploy-verify.js https://genz-whatsapp-1.onrender.com > /tmp/proxy-health.log 2>&1 || {
             echo '::error::PROXY PATH FAILED: genz-whatsapp-1.onrender.com/api/health did not return success via the proxy. Check GENZ_BACKEND_TARGET on the UI host (see RENDER_DEPLOY_GUIDE.md) — the Aug 2026 incident was exactly this.'
+            tail -20 /tmp/proxy-health.log | sed 's/^/::error::/' | head -10
             exit 1
-          fi
+          }
+          cat /tmp/proxy-health.log
           echo '::notice::proxy path OK — UI host /api reaches the backend'
 
       - name: Check update uptake (stuck-release alert)
