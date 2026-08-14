@@ -4,7 +4,7 @@
   "webDir": "dist",
   "server": {
     "androidScheme": "https",
-    "url": "https://genz-whatsapp.onrender.com"
+    "url": "https://genz-whatsapp-1.onrender.com"
   },
   "plugins": {
     "SplashScreen": {
