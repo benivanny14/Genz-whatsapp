@@ -2,15 +2,15 @@ const express = require('express');
 const router = express.Router();
 const { adminLoginLimiter } = require('../middleware/adminLoginLimiter');
 const { loginStep1, loginStep2, refreshSession, logout } = require('../controllers/adminAuthController');
-const { bootstrapAdmin } = require('../controllers/adminController');
 
 // NOTE: this router is mounted at an obscure, configurable base path
 // (see ADMIN_BASE_PATH in server.js) — NOT at a guessable /api/admin/auth.
 
-// Bootstrap endpoint - allows creating admin account via API with valid token
-// This is the only way to create admin account without shell access
-router.post('/bootstrap', bootstrapAdmin);
-
+// Bootstrap lives on adminRoutes.js ONLY, behind `protect` + strictRateLimiter:
+// promoting a user to admin must require a logged-in session (bootstrapAdmin
+// reads req.user._id). An unauthenticated /auth/bootstrap here could never
+// succeed (req.user is undefined → it 500s) and only widened the admin
+// attack surface — removed.
 router.post('/login', adminLoginLimiter, loginStep1);
 router.post('/verify-2fa', adminLoginLimiter, loginStep2);
 router.post('/refresh', adminLoginLimiter, refreshSession);

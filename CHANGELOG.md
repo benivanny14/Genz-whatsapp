@@ -7,6 +7,30 @@ by commit.
 
 ---
 
+## [2026-08-14] — v1.1.14: security hardening (post-audit)
+
+**Per-IP rate limiting fixed in production** — `TRUST_PROXY=1` was configured
+but `server.js` only accepted `=== 'true'`, so Express trust-proxy was
+silently DISABLED: every request behind the Render proxy resolved to the same
+`req.ip`, making every IP-keyed rate limiter (auth 100/15min, API 2000/15min,
+admin 20/15min, login 10/15min) share ONE budget across ALL users — a few
+sign-ups or API calls would throttle the whole app. The flag now parses
+`'1'/'true'/'yes'/'on'`; with it enabled `req.ip` resolves the real client IP
+(Express reads X-Forwarded-For, which Render overwrites) and per-IP limits
+work per user again.
+
+- `superAdminAuth.clientIp()` now prefers `req.ip` — a client-supplied
+  `X-Forwarded-For` header can no longer spoof the admin IP allowlist on a
+  directly-exposed server.
+- Removed the dead unauthenticated `POST /auth/bootstrap` route (it could
+  never succeed — `bootstrapAdmin` needs `req.user` from `protect`, so it
+  500'd — and only widened the admin attack surface). Admin bootstrap remains
+  on `adminRoutes.js` behind `protect` + `strictRateLimiter`.
+- New Swahili guide `docs/FCM_SETUP_KISWAHILI.md`: step-by-step Firebase
+  console walkthrough to obtain `google-services.json` and enable FCM push.
+
+---
+
 ## [2026-08-14] — v1.1.14: calls removed (pure messaging) + true offline APK
 
 **GENZ is now a pure messaging app — all voice/video/group call features were

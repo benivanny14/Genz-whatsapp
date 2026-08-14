@@ -480,7 +480,19 @@ const app = express();
 // SECURITY (4.2): trust proxy only when explicitly enabled or when a trusted
 // proxy IP list is provided. Defaults to false so client IPs cannot be spoofed
 // via the X-Forwarded-For header on a directly-exposed server.
-app.set('trust proxy', process.env.TRUST_PROXY === 'true' ? true : (process.env.TRUST_PROXY_IPS ? process.env.TRUST_PROXY_IPS.split(',') : false));
+//
+// The flag is parsed leniently ('1', 'true', 'yes', 'on' all enable it):
+// render-env-config.js and .env.example set TRUST_PROXY=1, and a strict
+// `=== 'true'` comparison silently disabled it in production. With trust
+// proxy off, every request behind the Render proxy resolves to the SAME
+// req.ip (the proxy's address), so every express-rate-limit instance keyed
+// by IP shares ONE budget across all users — a handful of sign-ups or API
+// calls throttles the whole app. Enabling it makes req.ip the real client
+// IP (resolved through X-Forwarded-For, which Render overwrites) and per-IP
+// limits work per user again.
+const trustProxyValue = String(process.env.TRUST_PROXY || '').trim().toLowerCase();
+const trustProxyEnabled = ['1', 'true', 'yes', 'on'].includes(trustProxyValue);
+app.set('trust proxy', trustProxyEnabled ? true : (process.env.TRUST_PROXY_IPS ? process.env.TRUST_PROXY_IPS.split(',') : false));
 if (redisClient) {
   app.set('redisClient', redisClient);
 }
