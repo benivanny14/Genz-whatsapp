@@ -133,18 +133,36 @@ async function inspectService(id) {
     console.log(`  (events query failed: ${e.message})`);
   }
 
-  // Runtime log tail — often shows the boot failure (e.g. Mongo connect error)
+  // Runtime log tail — often shows the boot failure (e.g. Mongo connect error).
+  // The /v1/logs endpoint requires ownerId + resource (= raw service id).
   try {
-    const logs = await getJson(`https://api.render.com/v1/logs?resource=service:${id}&limit=${LOG_LINES}`);
-    const entries = Array.isArray(logs.body) ? logs.body : logs.body?.logs || [];
-    if (entries.length) {
-      console.log(`\n  Runtime log tail (${entries.length} lines):`);
-      for (const l of entries.slice(-LOG_LINES)) {
-        const line = (l.message || l.body || '').toString().replace(/\n/g, ' ');
-        console.log(`    ${stamp(l.timestamp)}  ${line.slice(0, 220)}`);
+    let ownerId = '';
+    try {
+      const owners = await getJson('https://api.render.com/v1/owners');
+      if (owners.status === 200) {
+        const list = Array.isArray(owners.body) ? owners.body : owners.body?.owners || [];
+        if (list[0]) ownerId = list[0].id || '';
       }
+    } catch { /* ignore */ }
+    if (!ownerId) {
+      console.log('  (logs query skipped — no ownerId from /v1/owners)');
     } else {
-      console.log('\n  (no log entries returned — service may never have started)');
+      const qs = `ownerId=${encodeURIComponent(ownerId)}&resource=${encodeURIComponent(id)}&limit=${LOG_LINES}`;
+      const logs = await getJson(`https://api.render.com/v1/logs?${qs}`);
+      if (logs.status !== 200) {
+        console.log(`  (logs query failed (${logs.status}): ${JSON.stringify(logs.body).slice(0, 200)})`);
+      } else {
+        const entries = Array.isArray(logs.body) ? logs.body : logs.body?.logs || [];
+        if (entries.length) {
+          console.log(`\n  Runtime log tail (${entries.length} lines):`);
+          for (const l of entries.slice(-LOG_LINES)) {
+            const line = (l.message || l.body || '').toString().replace(/\n/g, ' ');
+            console.log(`    ${stamp(l.timestamp)}  ${line.slice(0, 220)}`);
+          }
+        } else {
+          console.log('  (no log entries returned — service may never have started)');
+        }
+      }
     }
   } catch (e) {
     console.log(`  (logs query failed: ${e.message})`);
