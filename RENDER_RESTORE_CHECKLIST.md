@@ -70,6 +70,10 @@ kwenye Render, server haianzi kabisa → Render haiwezi kupitisha `/api/health` 
 
 ## Hatua 4 — Weka GitHub Secrets (LAZIMA kwa auto-deploy)
 
+> 👀 **Hujui jinsi ya kuweka secrets?** Angalia `docs/MWONGOZO_GITHUB_SECRETS.md`
+> — mwongozo wa hatua kwa hatua (kupata API key kwenye Render, kupata
+> `srv-...`, kuweka kwenye github.com/settings/secrets/actions).
+
 > ⚠️ **Hii ndiyo sababu halisi ya 502 kwenye deploy!** Uchunguzi wa GitHub Actions
 > ulionyesha `RENDER_API_KEY:` na `RENDER_SERVICE_ID:` **tupu** kwenye env ya
 > workflow → deploy action ilirudi **401** → Render haijawahi kupokea deploy.
