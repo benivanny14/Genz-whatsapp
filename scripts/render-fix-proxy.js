@@ -91,12 +91,18 @@ async function main() {
 
   console.log('Triggering deploy of latest commit ...');
   const dep = await request('POST', `https://api.render.com/v1/services/${SERVICE_ID}/deploys`, {});
-  if (dep.status !== 201 && dep.status !== 200) {
+  // 200/201 = full deploy object; 202 = Accepted (static sites return this
+  // with an empty body — the deploy IS queued). Anything else = real error.
+  if (![200, 201, 202].includes(dep.status)) {
     console.error(`deploy trigger failed (${dep.status}): ${JSON.stringify(dep.body).slice(0, 300)}`);
     process.exit(1);
   }
   const d = dep.body?.deploy || dep.body || {};
-  console.log(`deploy triggered: ${d.id || '?'} status=${d.status || '?'} commit=${(d.commit?.id || '').slice(0, 8) || '?'}`);
+  if (dep.status === 202) {
+    console.log('deploy accepted (202) — queued by Render');
+  } else {
+    console.log(`deploy triggered: ${d.id || '?'} status=${d.status || '?'} commit=${(d.commit?.id || '').slice(0, 8) || '?'}`);
+  }
 }
 
 main().catch((err) => {
