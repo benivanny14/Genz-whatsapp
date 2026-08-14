@@ -186,6 +186,10 @@ Firebase FCM (`FIREBASE_*`), GIPHY (`GIPHY_API_KEY`), S3 backups
 | `mediaStorage: "local"` baada ya deploy | Cloudinary haijawekwa — weka `CLOUDINARY_*` na redeploy |
 | Passkeys hazifanyi kazi | `RP_ID` lazima iwe domain halisi (bila `https://`), na lazima Render URL iwe HTTPS |
 | OTP hazifiki | Angalia `WHATSAPP_OTP_ENABLED` na provider; kwa cloud-api thibitisha token + phone number ID |
+| Web app inafunguka lakini `/api` inarudisha **502 ECONNREFUSED** | Frontend service (`genz-whatsapp-1`) ina-serve SPA kwa `vite preview`, na proxy yake ya `/api` inaelekea `http://localhost:5000` kwa default (hakuna backend ndani ya container yake). Weka env **`GENZ_BACKEND_TARGET`** = URL ya backend (e.g. `https://genz-whatsapp.onrender.com`) kwenye service hiyo na redeploy — au endesha workflow ya **"Render fix proxy"** (Actions tab) kwa `service_id` ya frontend. `vite preview` inasoma env hii kila startup, hakuna rebuild ya code inayohitajika.
+| `[vite] http proxy error: /api/health` ECONNREFUSED kwenye logs za frontend | Sawa na juu — `GENZ_BACKEND_TARGET` haijaelekezwa kwa backend halisi. |
+| APK inafanya kazi lakini web app haifanyi | APK ina-bake `VITE_API_URL=https://genz-whatsapp.onrender.com/api` kwenye build (`scripts/build-apk.js`) — inaenda moja kwa moja kwa backend. Web app inapita kwenye proxy ya frontend — angalia `GENZ_BACKEND_TARGET` (row hapo juu). |
+| Services nyingi zinafanana (`genz-whatsapp`, `genz-whatsapp-1`, `genz-whatsapp-2`) | `genz-whatsapp` = backend API (inadeploy na GitHub workflow). `genz-whatsapp-1` = frontend web service (SPA + proxy ya `/api`). `genz-whatsapp-2` = static copy ya frontend. Kila moja inahitaji env zake: backend inahitaji `MONGODB_URI`/`JWT_SECRET` n.k.; frontend inahitaji `GENZ_BACKEND_TARGET`. |
 
 ---
 

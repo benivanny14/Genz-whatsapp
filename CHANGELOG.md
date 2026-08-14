@@ -7,6 +7,33 @@ by commit.
 
 ---
 
+## [2026-08-14] — v1.1.14: frontend proxy fix + Render diagnostics
+
+**Web app API proxy fixed (production incident)** — `genz-whatsapp-1` serves the
+SPA with `vite preview`, and its `/api` proxy defaults to
+`http://localhost:5000` (there is no backend inside the frontend container), so
+every API call failed with `ECONNREFUSED` (502) and the web app could not log in
+or sync. The service now has `GENZ_BACKEND_TARGET=https://genz-whatsapp.onrender.com`
+set (vite preview reads it at startup) and was redeployed from `main`.
+Verified from an independent network: `genz-whatsapp-1.onrender.com/api/health`
+→ 200 (proxied to the backend), SPA `/` → 200, `/version.json` → 200 (v1.1.14,
+code 16). The **APK is unaffected** — `scripts/build-apk.js` bakes
+`VITE_API_URL=https://genz-whatsapp.onrender.com/api` at build time, so the app
+in the bundled APK talks to the backend directly.
+
+- `scripts/render-deploy-status.js` overhauled: lists every service in the
+  workspace, real deploy statuses/commits (the API is cursor-wrapped
+  `{deploy, cursor}` — previously every field printed `?`), service events
+  (deploy_started/build/deploy_ended with status), and the runtime log tail via
+  `/v1/logs` (needs `ownerId` + the raw service id as `resource`).
+- New `scripts/render-fix-proxy.js` + `workflow render-fix.yml`: point a frontend
+  service's proxy at the backend and redeploy it. Uses the **per-key**
+  env-var endpoint `PUT /v1/services/{id}/env-vars/{key}` with `{value}` — the
+  bulk `PUT /v1/services/{id}/env-vars` *replaces ALL* env vars and must never
+  be used for a single var (it would wipe secrets).
+- `render-status` workflow now also curls `/api/health`, `/version.json` and `/`
+  on all three onrender hosts from GitHub Actions for authoritative checks.
+
 ## [2026-08-14] — v1.1.14: security hardening (post-audit)
 
 **Per-IP rate limiting fixed in production** — `TRUST_PROXY=1` was configured
