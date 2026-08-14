@@ -80,10 +80,36 @@ async function inspectService(id) {
   }
   const s = svc.body;
   console.log(`\nService: ${s.name || id} — ${s.type || '?'}`);
+  console.log(`  id: ${s.id || id}`);
   console.log(`  URL: ${s.serviceDetails?.url || s.url || '?'}`);
   console.log(`  repo: ${s.repo || '?'}  branch: ${s.branch || '?'}`);
   console.log(`  suspended: ${s.suspended || false}`);
   console.log(`  ownerId: ${s.ownerId || '?'}`);
+
+  // Env var names + sanitized hints (never print secret values). Useful to
+  // see whether a service was built with VITE_API_URL / GENZ_BACKEND_TARGET
+  // pointing at localhost vs an onrender host.
+  try {
+    const ev = await getJson(`https://api.render.com/v1/services/${id}/env-vars`);
+    if (ev.status === 200) {
+      const vars = Array.isArray(ev.body) ? ev.body : ev.body?.envVars || [];
+      if (vars.length) {
+        console.log('  env vars:');
+        for (const v of vars) {
+          const name = v.envVarKey || v.key || '?';
+          let hint = 'set';
+          const val = (v.value || '').toString().toLowerCase();
+          if (!val) hint = 'EMPTY';
+          else if (val.includes('localhost') || val.includes('127.0.0.1')) hint = 'localhost';
+          else if (val.includes('onrender')) hint = 'onrender';
+          else if (val.includes('://')) hint = 'absolute-url';
+          if (/VITE_|GENZ_|PUBLIC_|API_|SOCKET|FRONTEND_URL/.test(name)) {
+            console.log(`    ${name}: ${hint}`);
+          }
+        }
+      }
+    }
+  } catch { /* ignore */ }
   const inst = s.serviceDetails?.envSpecificDetails?.instance?.state;
   if (inst) console.log(`  instance: ${inst}`);
 
