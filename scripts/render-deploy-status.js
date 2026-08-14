@@ -65,10 +65,11 @@ const STATUS_LABEL = {
 const stamp = (iso) => (iso ? new Date(iso).toISOString().slice(0, 19) : '?');
 
 // The API returns cursor-wrapped items: [{ deploy: {...}, cursor }, ...] and
-// [{ event: {...}, cursor }, ...] — unwrap to the inner object.
-const unwrap = (body, key) => {
-  const arr = Array.isArray(body) ? body : (body && body[key]) || [];
-  return arr.map((x) => (x && x[key] ? x[key] : x));
+// [{ event: {...}, cursor }, ...] — unwrap to the inner object. topKey is
+// the wrapper key on the body itself (if any), innerKey the per-item key.
+const unwrap = (body, topKey, innerKey) => {
+  const arr = Array.isArray(body) ? body : (body && body[topKey]) || [];
+  return arr.map((x) => (x && x[innerKey] ? x[innerKey] : x));
 };
 
 async function inspectService(id) {
@@ -90,7 +91,7 @@ async function inspectService(id) {
   if (deploys.status !== 200) {
     console.error(`  Deploys query failed (${deploys.status}): ${JSON.stringify(deploys.body).slice(0, 300)}`);
   } else {
-    const list = unwrap(deploys.body, 'deploys');
+    const list = unwrap(deploys.body, 'deploys', 'deploy');
     console.log(`\n  Last ${LIMIT} deploys (newest first):`);
     for (const d of list) {
       const status = STATUS_LABEL[d.status] || d.status || 'unknown';
@@ -112,7 +113,7 @@ async function inspectService(id) {
   try {
     const ev = await getJson(`https://api.render.com/v1/services/${id}/events?limit=12`);
     if (ev.status === 200) {
-      const events = unwrap(ev.body, 'events');
+      const events = unwrap(ev.body, 'events', 'event');
       if (events.length) {
         console.log(`\n  Recent events (last ${events.length}):`);
         for (const e of events) {
