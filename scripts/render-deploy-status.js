@@ -153,7 +153,9 @@ async function inspectService(id) {
     if (!ownerId) {
       console.log('  (logs query skipped — no ownerId)');
     } else {
-      const qs = `ownerId=${encodeURIComponent(ownerId)}&resource=${encodeURIComponent(id)}&limit=${LOG_LINES}`;
+      const startTime = new Date(Date.now() - 7 * 60 * 60 * 1000).toISOString();
+      const endTime = new Date().toISOString();
+      const qs = `ownerId=${encodeURIComponent(ownerId)}&resource=${encodeURIComponent(id)}&limit=200&startTime=${encodeURIComponent(startTime)}&endTime=${encodeURIComponent(endTime)}&type=app&direction=backward`;
       const logs = await getJson(`https://api.render.com/v1/logs?${qs}`);
       if (logs.status !== 200) {
         console.log(`  (logs query failed (${logs.status}): ${JSON.stringify(logs.body).slice(0, 200)})`);
