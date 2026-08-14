@@ -3,11 +3,16 @@
  *
  * Useful when the dashboard isn't reachable: shows the last N deploys with
  * their status (created → building → update_in_progress → live / failed),
- * which commit each one built, and the current instance state.
+ * which commit each one built, the current instance state, recent service
+ * events, and the tail of the runtime logs (which often shows why a service
+ * is failing to boot — e.g. a MongoDB connection error).
  *
  * Usage (from repo root):
  *   RENDER_API_KEY=rnd_xxx RENDER_SERVICE_ID=srv-xxx \
- *     node scripts/render-deploy-status.js [--limit 5] [--service srv-xxx]
+ *     node scripts/render-deploy-status.js [--limit 5] [--service srv-xxx] [--logs 30]
+ *
+ * Without --service / RENDER_SERVICE_ID it lists every service the API key
+ * can see (handy for the repo's genz-whatsapp + genz-whatsapp-1 pair).
  *
  * Env:
  *   RENDER_API_KEY     dashboard.render.com → Account Settings → API Keys
@@ -24,22 +29,23 @@ const getArg = (name) => {
   return i >= 0 ? args[i + 1] : null;
 };
 const LIMIT = Number(getArg('--limit') || process.env.RENDER_DEPLOY_LIMIT || 5);
+const LOG_LINES = Number(getArg('--logs') || process.env.RENDER_DEPLOY_LOGS || 30);
 const SERVICE_ID = getArg('--service') || process.env.RENDER_SERVICE_ID || '';
 const API_KEY = process.env.RENDER_API_KEY || '';
 
-if (!SERVICE_ID || !API_KEY) {
-  console.error('RENDER_SERVICE_ID and RENDER_API_KEY are required (env or --service).');
+if (!API_KEY) {
+  console.error('RENDER_API_KEY is required (env or --service).');
   process.exit(1);
 }
 
 const getJson = (url) =>
   new Promise((resolve, reject) => {
-    const req = https.get(url, { headers: { Authorization: `Bearer ${API_KEY}` }, timeout: 20000 }, (res) => {
+    const req = https.get(url, { headers: { Authorization: `Bearer ${API_KEY}` }, timeout: 25000 }, (res) => {
       let body = '';
       res.on('data', (c) => (body += c));
       res.on('end', () => {
         try { resolve({ status: res.statusCode, body: JSON.parse(body) }); }
-        catch { reject(new Error(`Bad JSON (${res.statusCode}): ${body.slice(0, 200)}`)); }
+        catch { reject(new Error(`Bad JSON (${res.statusCode}): ${body.slice(0, 300)}`)); }
       });
     });
     req.on('error', reject);
@@ -56,54 +62,100 @@ const STATUS_LABEL = {
   cancelled: 'cancelled'
 };
 
-async function main() {
-  // Service info + current instance state
-  const svc = await getJson(`https://api.render.com/v1/services/${SERVICE_ID}`);
+const stamp = (iso) => (iso ? new Date(iso).toISOString().slice(0, 19) : '?');
+
+async function inspectService(id) {
+  const svc = await getJson(`https://api.render.com/v1/services/${id}`);
   if (svc.status !== 200) {
-    console.error(`Service query failed (${svc.status}): ${JSON.stringify(svc.body).slice(0, 300)}`);
-    process.exit(1);
+    console.error(`\nService ${id} query failed (${svc.status}): ${JSON.stringify(svc.body).slice(0, 300)}`);
+    return;
   }
   const s = svc.body;
-  console.log(`Service: ${s.name || SERVICE_ID} — ${s.type || '?'}`);
+  console.log(`\nService: ${s.name || id} — ${s.type || '?'}`);
   console.log(`  URL: ${s.serviceDetails?.url || s.url || '?'}`);
   console.log(`  repo: ${s.repo || '?'}  branch: ${s.branch || '?'}`);
   console.log(`  suspended: ${s.suspended || false}`);
-  if (s.serviceDetails?.envSpecificDetails?.instance?.state) {
-    console.log(`  instance: ${s.serviceDetails.envSpecificDetails.instance.state}`);
-  }
+  const inst = s.serviceDetails?.envSpecificDetails?.instance?.state;
+  if (inst) console.log(`  instance: ${inst}`);
 
   // Deploy history (newest first)
-  const deploys = await getJson(`https://api.render.com/v1/services/${SERVICE_ID}/deploys?limit=${LIMIT}`);
+  const deploys = await getJson(`https://api.render.com/v1/services/${id}/deploys?limit=${LIMIT}`);
   if (deploys.status !== 200) {
-    console.error(`Deploys query failed (${deploys.status}): ${JSON.stringify(deploys.body).slice(0, 300)}`);
-    process.exit(1);
-  }
-  // The v1 endpoint returns an array; some accounts/proxies wrap it. Normalize
-  // defensively instead of crashing on `d.status.padEnd(...)`.
-  const raw = deploys.body;
-  const list = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.deploys) ? raw.deploys : []);
-  if (!Array.isArray(raw)) {
-    console.log(`  (raw deploys response keys: ${raw ? Object.keys(raw).join(', ') : 'empty'})`);
-  }
-  console.log(`\nLast ${LIMIT} deploys (newest first):`);
-  for (const d of list) {
-    const status = (d && (STATUS_LABEL[d.status] || d.status)) || 'unknown';
-    const commit = (d && d.commit && d.commit.slice(0, 8)) || '?';
-    const created = d && d.createdAt ? new Date(d.createdAt).toISOString().slice(0, 19) : '?';
-    const finished = d && d.finishedAt ? new Date(d.finishedAt).toISOString().slice(0, 19) : '';
-    console.log(`  ${created}  ${String(status).padEnd(10)}  commit ${commit}  ${(d && d.trigger) || ''} ${finished ? '→ ' + finished : ''}`);
-  }
-  if (list.length === 0) {
-    console.log(`  (no deploy objects in response — body: ${JSON.stringify(raw).slice(0, 200)})`);
+    console.error(`  Deploys query failed (${deploys.status}): ${JSON.stringify(deploys.body).slice(0, 300)}`);
+  } else {
+    const list = Array.isArray(deploys.body) ? deploys.body : deploys.body?.deploys || [];
+    console.log(`\n  Last ${LIMIT} deploys (newest first):`);
+    for (const d of list) {
+      const status = STATUS_LABEL[d.status] || d.status || 'unknown';
+      const commit = (d.commit?.id || d.commit || '').toString().slice(0, 8) || '?';
+      const trigger = d.trigger || d.triggerDetails?.type || '';
+      const finished = d.finishedAt ? ' → ' + stamp(d.finishedAt) : '';
+      console.log(`    ${stamp(d.createdAt)}  ${String(status).padEnd(10)}  commit ${commit}  ${trigger}${finished}`);
+    }
+    const latest = list[0];
+    if (latest) {
+      console.log(`  Latest deploy: ${STATUS_LABEL[latest.status] || latest.status}`);
+      if (latest.status === 'failed' && latest.finishedAt) {
+        console.log(`  ⚠️  Latest deploy FAILED at ${stamp(latest.finishedAt)} — check logs below.`);
+      }
+    } else {
+      console.log('  No deploys found.');
+    }
   }
 
-  // Exit nonzero if the latest deploy failed
-  const latest = list[0];
-  if (latest && latest.status === 'failed') {
-    console.error('\n⚠️  Latest deploy FAILED — check the Render dashboard build logs.');
-    process.exit(1);
+  // Service events (instance crashes, deploy triggers, etc.)
+  try {
+    const ev = await getJson(`https://api.render.com/v1/services/${id}/events?limit=10`);
+    if (ev.status === 200) {
+      const events = Array.isArray(ev.body) ? ev.body : ev.body?.events || [];
+      if (events.length) {
+        console.log(`\n  Recent events (last ${events.length}):`);
+        for (const e of events) {
+          console.log(`    ${stamp(e.timestamp)}  ${e.type || '?'}  ${(e.details?.message || e.details?.description || '').toString().slice(0, 140)}`);
+        }
+      }
+    }
+  } catch (e) {
+    console.log(`  (events query failed: ${e.message})`);
   }
-  console.log(latest ? `\nLatest deploy: ${STATUS_LABEL[latest.status] || latest.status}` : '\nNo deploys found.');
+
+  // Runtime log tail — often shows the boot failure (e.g. Mongo connect error)
+  try {
+    const logs = await getJson(`https://api.render.com/v1/services/${id}/logs?limit=${LOG_LINES}`);
+    const entries = Array.isArray(logs.body) ? logs.body : logs.body?.logs || [];
+    if (entries.length) {
+      console.log(`\n  Runtime log tail (${entries.length} lines):`);
+      for (const l of entries.slice(-LOG_LINES)) {
+        const line = (l.message || l.body || '').toString().replace(/\n/g, ' ');
+        console.log(`    ${stamp(l.timestamp)}  ${line.slice(0, 220)}`);
+      }
+    } else {
+      console.log('\n  (no log entries returned — service may never have started)');
+    }
+  } catch (e) {
+    console.log(`  (logs query failed: ${e.message})`);
+  }
+}
+
+async function main() {
+  if (SERVICE_ID) {
+    await inspectService(SERVICE_ID);
+  } else {
+    // No service given — list everything the key can see.
+    const all = await getJson('https://api.render.com/v1/services?limit=50');
+    if (all.status !== 200) {
+      console.error(`Services query failed (${all.status}): ${JSON.stringify(all.body).slice(0, 300)}`);
+      process.exit(1);
+    }
+    const services = Array.isArray(all.body) ? all.body : all.body?.services || [];
+    console.log(`Found ${services.length} service(s) for this API key:`);
+    for (const s of services) {
+      console.log(`  - ${s.name || s.id}  (${s.type})  ${s.serviceDetails?.url || s.url || ''}  suspended=${s.suspended || false}`);
+    }
+    for (const s of services) {
+      await inspectService(s.id);
+    }
+  }
 }
 
 main().catch((err) => {
