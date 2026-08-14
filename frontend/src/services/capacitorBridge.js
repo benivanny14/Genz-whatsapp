@@ -133,7 +133,18 @@ const registerNativeToken = async (token) => {
       body: JSON.stringify({ token })
     });
     const data = await res.json().catch(() => ({}));
-    return res.ok && data?.success !== false;
+    if (res.ok && data?.success !== false) {
+      // Best-effort: subscribe this device to the "all" topic so Firebase
+      // console campaigns can reach every device in one shot (the backend
+      // route subscribes all of the user's registered tokens). Fire-and-forget.
+      authFetch(`${API_URL}/notifications/fcm/subscribe-topic`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: 'all' })
+      }).catch(() => {});
+      return true;
+    }
+    return false;
   } catch (e) {
     console.warn('[CapacitorBridge] FCM token registration failed:', e?.message || e);
     return false;
