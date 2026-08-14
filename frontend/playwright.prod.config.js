@@ -11,9 +11,11 @@ const prodBase = process.env.PROD_BASE_URL || 'https://genz-whatsapp-1.onrender.
 export default defineConfig({
   testDir: './e2e',
   testMatch: 'production-smoke.spec.js',
-  // Free-tier cold starts + render deploy windows need patience.
-  timeout: 240_000,
-  retries: 2,
+  // Free-tier cold starts + render deploy windows need some patience, but
+  // keep it bounded so a genuinely broken host fails in a few minutes
+  // instead of hanging the workflow for half an hour.
+  timeout: 120_000,
+  retries: 1,
   workers: 1,
   use: {
     baseURL: prodBase,

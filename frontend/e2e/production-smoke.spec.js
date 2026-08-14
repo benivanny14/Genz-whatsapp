@@ -30,7 +30,7 @@ test.describe('production smoke (via UI host proxy)', () => {
     const pageErrors = [];
     page.on('pageerror', (e) => pageErrors.push(String(e)));
     // Free-tier cold start can take a while — generous navigation timeout.
-    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 120_000 });
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60_000 });
     await expect(page).toHaveTitle(/GENZ WhatsApp/);
     await expect(page.locator('body')).not.toBeEmpty();
     // No uncaught exceptions: a bundle that references a missing define or
@@ -42,11 +42,11 @@ test.describe('production smoke (via UI host proxy)', () => {
     await expect
       .poll(
         async () => {
-          const res = await request.get('/api/health', { timeout: 60_000 });
+          const res = await request.get('/api/health', { timeout: 20_000 });
           if (!res.ok()) return null;
           return await res.json();
         },
-        { timeout: 240_000, intervals: [15_000] }
+        { timeout: 90_000, intervals: [10_000] }
       )
       .toEqual(
         expect.objectContaining({
@@ -63,11 +63,11 @@ test.describe('production smoke (via UI host proxy)', () => {
     await expect
       .poll(
         async () => {
-          const res = await request.get('/version.json', { timeout: 60_000 });
+          const res = await request.get('/version.json', { timeout: 20_000 });
           if (!res.ok()) return null;
           return await res.json();
         },
-        { timeout: 240_000, intervals: [15_000] }
+        { timeout: 90_000, intervals: [10_000] }
       )
       .toEqual(expect.objectContaining({ version: repo.version, versionCode: repo.versionCode }));
   });

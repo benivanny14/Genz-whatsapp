@@ -109,12 +109,14 @@ const verifyHealth = async ({ serviceUrl = SERVICE_URL, apiKey = API_KEY, servic
           { Authorization: `Bearer ${apiKey}` }
         );
         if (res.status === 200 && res.body) {
-          check('Render API: service found', true, res.body.service?.name || serviceId);
+          check('Render API: service found', true, res.body.service?.name || res.body.name || serviceId);
           const deploys = await fetch(
             `https://api.render.com/v1/services/${serviceId}/deploys?limit=1`,
             { Authorization: `Bearer ${apiKey}` }
           );
-          const latest = deploys.body?.[0];
+          // The API returns cursor-wrapped items: [{ deploy: {...}, cursor }].
+          const deploysList = Array.isArray(deploys.body) ? deploys.body : deploys.body?.deploys || [];
+          const latest = (deploysList[0] && deploysList[0].deploy) || deploysList[0];
           if (latest) {
             check('Render API: latest deploy', latest.status === 'live', `${latest.status} (${latest.commit?.id?.slice(0, 7) || 'n/a'})`);
           } else {
@@ -124,7 +126,8 @@ const verifyHealth = async ({ serviceUrl = SERVICE_URL, apiKey = API_KEY, servic
             `https://api.render.com/v1/services/${serviceId}/instances`,
             { Authorization: `Bearer ${apiKey}` }
           );
-          const inst = instances.body?.[0];
+          const instList = Array.isArray(instances.body) ? instances.body : instances.body?.instances || [];
+          const inst = (instList[0] && instList[0].instance) || instList[0];
           if (inst) {
             check('Render API: instance running', true, `${inst.id || ''}`);
           } else {
