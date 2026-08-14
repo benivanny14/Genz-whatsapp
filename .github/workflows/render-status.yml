@@ -41,3 +41,12 @@ jobs:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
         run: node scripts/render-deploy-status.js --limit ${{ inputs.limit }} ${{ inputs.service_id && format('--service {0}', inputs.service_id) }}
+
+      - name: Public endpoint health check
+        run: |
+          for HOST in genz-whatsapp.onrender.com genz-whatsapp-1.onrender.com genz-whatsapp-2.onrender.com; do
+            for PATH in /api/health /version.json /; do
+              CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "https://$HOST$PATH" || echo ERR)
+              echo "$HOST $PATH -> $CODE"
+            done
+          done
