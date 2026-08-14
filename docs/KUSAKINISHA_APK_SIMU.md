@@ -1,12 +1,35 @@
 # Kusakinisha GENZ WhatsApp APK kwenye Simu Halisi (Kiswahili)
 
 Mwongozo huu unaelezea hatua kwa hatua jinsi ya kusakinisha
-`frontend/public/genz-whatsapp.apk` (v1.1.11) kwenye **simu halisi ya Android**.
+`frontend/public/genz-whatsapp.apk` (v1.1.13) kwenye **simu halisi ya Android**.
 Kuna njia mbili: **file transfer** (rahisi zaidi) na **USB + ADB** (kwa developers).
 
 > APK unayohitaji: `frontend/public/genz-whatsapp.apk` (uliyojenga) — au
 > pakua moja kwa moja kutoka kwenye tovuti ya GENZ (`/genz-whatsapp.apk`).
 > Hakuna download kupitia GitHub.
+
+---
+
+## UPDATE kutoka version ya zamani (k.m. v1.1.12 → v1.1.13)
+
+Kama tayari umeweka version ya zamani ya GENZ, **usifute app** — update
+inakaa juu ya ile ya zamani na **data yako (chats, settings) inabaki**, kwa
+sababu: (1) signature ni ile ile (release keystore sawa), na (2) versionCode ya
+mpya ni **juu** (v1.1.13 = code 15 > v1.1.12 = code 14) — Android inakubali tu
+install juu ikiwa versionCode imeongezeka.
+
+Njia tatu za kupata update:
+
+1. **Banner ya kijani ndani ya app** — ukiwa kwenye version ya zamani, app
+   inaonyesha "Update available" → bonyeza **Update** (inapakua APK mpya moja
+   kwa moja kutoka kwenye tovuti).
+2. **Login page → "Download Android App"** — pakua `genz-whatsapp.apk` mpya
+   kutoka kwenye tovuti na uifungue kama Njia ya 1 (data inabaki).
+3. **ADB**: `"$ADB" install -r frontend/public/genz-whatsapp.apk` (replace —
+   data inabaki).
+
+> ⚠️ **Usifute app kwanza** unapoupdate — uninstall inafuta chats zako zote
+> za ndani. Update ya moja kwa moja juu yake ndiyo njia sahihi.
 
 ---
 
