@@ -19,6 +19,36 @@ process.env.MONGOMS_PREFER_GLOBAL_PATH = process.env.MONGOMS_PREFER_GLOBAL_PATH 
 
 const mongoose = require('mongoose');
 
+// whatsapp-web.js pulls in puppeteer 25 (ESM-only) to drive a real WhatsApp
+// Web session. Jest's CJS runtime cannot require(ESM) — plain Node 22 can —
+// so loading the real module crashes the whole suite at import time. Tests
+// never run a real WhatsApp session (WHATSAPP_OTP_ENABLED is unset), so stub
+// the module here with the small Client/LocalAuth API surface it uses.
+// Production is unaffected: backend runs on node:22 where require(ESM) works.
+jest.mock('whatsapp-web.js', () => {
+  const { EventEmitter } = require('events');
+  class MockWhatsAppClient extends EventEmitter {
+    constructor(opts = {}) {
+      super();
+      this.opts = opts;
+      this.info = null;
+    }
+    initialize() {
+      return Promise.resolve();
+    }
+    sendMessage() {
+      return Promise.resolve({ id: { _serialized: 'mock-message-id' } });
+    }
+    destroy() {
+      return Promise.resolve();
+    }
+  }
+  return {
+    Client: MockWhatsAppClient,
+    LocalAuth: (opts) => opts || {}
+  };
+});
+
 let mongoServer;
 const testMongoUri = process.env.TEST_MONGODB_URI || 'mongodb://127.0.0.1:27017/genz-jest';
 

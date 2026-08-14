@@ -170,7 +170,10 @@ curl https://genz-whatsapp-1.onrender.com/api/health
 
 ### OPTIONAL (feature-specific)
 Sentry (`SENTRY_DSN`),
-Firebase FCM (`FIREBASE_*`), GIPHY (`GIPHY_API_KEY`), S3 backups
+Firebase FCM (`FIREBASE_*` — `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`,
+`FIREBASE_PRIVATE_KEY`, `FIREBASE_PRIVATE_KEY_ID`, `FIREBASE_CLIENT_ID`; pata
+kwa `node scripts/import-firebase-service-account.js /njia/faili.json` kisha
+nakili kutoka `backend/.env`), GIPHY (`GIPHY_API_KEY`), S3 backups
 (`AWS_*`, `S3_BUCKET_NAME`), `ADMIN_IP_ALLOWLIST`, `LOG_LEVEL`, `MAX_UPLOAD_BYTES`,
 `SMTP_*` (bado haitumiki kwenye code — OTP inaenda kupitia WhatsApp).
 

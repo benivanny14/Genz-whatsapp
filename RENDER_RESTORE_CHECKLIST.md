@@ -54,6 +54,11 @@ kwenye Render, server haianzi kabisa → Render haiwezi kupitisha `/api/health` 
 | `PHONE_VERIFICATION_REQUIRED` | `false` (au weka OTP channel) | Ikiwa `true`, lazima uweke `WHATSAPP_OTP_ENABLED=true` + `WHATSAPP_CLOUD_API_*` — vinginevyo wasajili wapya wote wamefungiwa |
 | `MANUAL_PAYMENT_RECEIVER_NAME` | `Jina Lako Rasmi` | Namba ya mobile money ya kupokea malipo |
 | `MANUAL_PAYMENT_RECEIVER_NUMBER` | `0XXXXXXXXX` | Namba ya mobile money |
+| `FIREBASE_PROJECT_ID` | `genz-whatsapp` | Backend push (FCM). Pata: Firebase console → ⚙️ Project settings → Service accounts → Generate new private key (faili ya JSON). Ingiza kwa `node scripts/import-firebase-service-account.js /njia/faili.json` — script inaandika keys 5 kwenye `backend/.env`; nakili hizi kwenye Render |
+| `FIREBASE_CLIENT_EMAIL` | `firebase-adminsdk-fbsvc@genz-whatsapp.iam.gserviceaccount.com` | Kutoka service account JSON (`client_email`) |
+| `FIREBASE_PRIVATE_KEY` | `-----BEGIN PRIVATE KEY-----...` | Kutoka service account JSON (`private_key`). Weka ndani ya double quotes; `\n` zinabaki literal (dotenv inazigeuza) |
+| `FIREBASE_PRIVATE_KEY_ID` | (kutoka JSON) | Kutoka service account JSON (`private_key_id`) |
+| `FIREBASE_CLIENT_ID` | (kutoka JSON) | Kutoka service account JSON (`client_id`) |
 
 > 💡 **Kutengeneza secrets kwenye Windows (Git Bash / WSL):**
 > `openssl rand -hex 32` — endesha mara kadhaa kwa kila secret. Usitumie tena

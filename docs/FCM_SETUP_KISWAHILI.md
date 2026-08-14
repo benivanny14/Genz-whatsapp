@@ -18,6 +18,10 @@ GENZ WhatsApp. **Hii ndiyo kazi pekee iliyobaki** — code iko tayari kabisa
 - Token hiyo inatumwa kwa backend (`POST /api/notifications/fcm/register`).
 - Ujumbe mpya unapofika, push notification inafika **hata kama app imefungwa**
   (kama WhatsApp halisi).
+- **Firebase Analytics pia inawashwa kiotomatiki** kwenye APK (SDK ya
+  `firebase-analytics` imeongezwa kwenye `build.gradle`). Baada ya watumiaji
+  kufungua APK mpya, dashboard ya Firebase → **Analytics** itaanza kuonyesha
+  data (first_open, session_start, n.k.) bila code yoyote ya ziada.
 
 ---
 
@@ -119,6 +123,7 @@ npm run apk:build
 | Faili | Hali |
 |---|---|
 | `frontend/android/app/google-services.json` | **Mpya — wewe unaiweka** (gitignored) |
+| `frontend/android/app/build.gradle` | Imeandaa tayari — `firebase-analytics` inaongezwa pamoja na FCM |
 | `frontend/vite.config.js` | Imeandaa tayari — inagundua faili kiotomatiki |
 | `frontend/src/services/capacitorBridge.js` | Imeandaa tayari — inasajili token kiotomatiki |
 | `backend/routes/notificationRoutes.js` | Imeandaa tayari — `POST /fcm/register` iko |

@@ -21,6 +21,8 @@ frontend/ios/App/App/GoogleService-Info.plist
 push_to_github.ps1
 backend/backups/
 backend/.wwebjs_auth/
+# Keystore backup folder kwa USB transfer — ina secrets, kamwe usiweke git
+keystore-usb/
 backend/coverage/
 /.freebuff/
 GITHUB_ISSUES.md

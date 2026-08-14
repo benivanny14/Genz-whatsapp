@@ -15,7 +15,7 @@ android {
         applicationId "com.benivanny.genzwhatsapp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 16
+        versionCode 17
         versionName "1.1.14"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
@@ -67,6 +67,15 @@ try {
     def servicesJSON = file('google-services.json')
     if (servicesJSON.text) {
         apply plugin: 'com.google.gms.google-services'
+        // Firebase Analytics: automatic app-level events (first_open,
+        // session_start, screen_view) once google-services.json is present,
+        // so the Firebase console Analytics dashboard starts showing data.
+        // Guarded by the same file check — builds without Firebase stay clean.
+        // 22.4.0 is the same BOM era as firebase-messaging 25.0.1 used by
+        // @capacitor/push-notifications (mid-2025 release line).
+        dependencies {
+            implementation 'com.google.firebase:firebase-analytics:22.4.0'
+        }
     }
 } catch(Exception e) {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")

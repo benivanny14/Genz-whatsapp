@@ -76,7 +76,9 @@
   },
   "overrides": {
     "uuid": "^11.1.1",
-    "@opentelemetry/core": "^2.8.0"
+    "@opentelemetry/core": "^2.8.0",
+    "puppeteer": "25.7.0",
+    "puppeteer-core": "25.7.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",
