@@ -1,9 +1,20 @@
 name: Deploy to Production
 
+# Only deploy the backend when backend-relevant code changes. The free-tier
+# instance is single-instance: every deploy deactivates the live one for the
+# ~2 min build+swap, so docs/scripts/frontend-only merges caused repeated
+# outages. The frontend hosts (genz-whatsapp-1/2) are NOT auto-deployed by
+# this workflow — they are redeployed via "Render fix proxy" / the Render
+# dashboard — so a frontend-only change does not reach production here anyway.
 on:
   push:
     branches:
       - main
+    paths:
+      - 'backend/**'
+      - 'render.yaml'
+      - 'package.json'
+      - 'package-lock.json'
 
 jobs:
   deploy:
