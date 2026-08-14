@@ -178,7 +178,7 @@ async function inspectService(id) {
 }
 
 async function main() {
-  if (SERVICE_ID) {
+  if (SERVICE_ID && SERVICE_ID !== 'all') {
     await inspectService(SERVICE_ID);
   } else {
     // No service given — list everything the key can see.
