@@ -20,7 +20,8 @@
     "bump:apk": "node scripts/bump-app-version.js",
     "test": "node --test \"src/tests/*.test.js\"",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "fcm:enable": "node scripts/enable-fcm.js"
   },
   "dependencies": {
     "@capacitor-community/contacts": "^8.0.0",

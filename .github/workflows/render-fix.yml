@@ -16,6 +16,10 @@ on:
         description: 'Backend URL to proxy to'
         required: false
         default: 'https://genz-whatsapp.onrender.com'
+      deploy_only:
+        description: 'Deploy only (skip GENZ_BACKEND_TARGET env update) — for static sites'
+        required: false
+        default: 'false'
 
 permissions:
   contents: read
@@ -35,4 +39,4 @@ jobs:
       - name: Point proxy at backend + redeploy
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-        run: node scripts/render-fix-proxy.js --service ${{ inputs.service_id }} --target ${{ inputs.target }}
+        run: node scripts/render-fix-proxy.js --service ${{ inputs.service_id }} --target ${{ inputs.target }} ${{ inputs.deploy_only == 'true' && '--deploy-only' }}
