@@ -25,7 +25,6 @@ import StatusPrivacyPanel from '../components/StatusPrivacyPanel';
 import StatusManagementPanel from '../components/StatusManagementPanel';
 import ChatFeaturesPanel from '../components/ChatFeaturesPanel';
 import CustomUIPanel from '../components/CustomUIPanel';
-import CallFeaturesPanel from '../components/CallFeaturesPanel';
 import ContactsPanel from '../components/ContactsPanel';
 import AdvancedChatFeaturesPanel from '../components/AdvancedChatFeaturesPanel';
 import VoiceFeaturesPanel from '../components/VoiceFeaturesPanel';
@@ -2253,7 +2252,6 @@ const Status = () => {
                   <button onClick={() => setActivePanel('management')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Status Management</button>
                   <button onClick={() => setActivePanel('chat')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Chat Features</button>
                   <button onClick={() => setActivePanel('customui')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Custom UI</button>
-                  <button onClick={() => setActivePanel('calls')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Call Features</button>
                   <button onClick={() => setActivePanel('contacts')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Contacts</button>
                   <button onClick={() => setActivePanel('advancedChat')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Advanced Chat</button>
                   <button onClick={() => setActivePanel('voice')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Voice Features</button>
@@ -2282,7 +2280,6 @@ const Status = () => {
                   {activePanel === 'management' && <StatusManagementPanel onClose={() => setActivePanel(null)} status={selectedStatusForPanel} onSave={handleStatusManageSave} />}
                   {activePanel === 'chat' && <ChatFeaturesPanel onClose={() => setActivePanel(null)} onSave={(data) => handlePanelSave('chatFeatures', data)} />}
                   {activePanel === 'customui' && <CustomUIPanel onClose={() => setActivePanel(null)} onSave={(data) => handlePanelSave('customUI', data)} />}
-                  {activePanel === 'calls' && <CallFeaturesPanel onClose={() => setActivePanel(null)} />}
                   {activePanel === 'contacts' && <ContactsPanel onClose={() => setActivePanel(null)} onSave={(data) => handlePanelSave('contacts', data)} />}
                   {activePanel === 'advancedChat' && <AdvancedChatFeaturesPanel onClose={() => setActivePanel(null)} onSave={(data) => handlePanelSave('advancedChat', data)} />}
                   {activePanel === 'voice' && <VoiceFeaturesPanel onClose={() => setActivePanel(null)} onSave={(data) => handlePanelSave('voiceFeatures', data)} />}

@@ -4,7 +4,6 @@
  * This file owns the connection lifecycle (auth join, rooms, rate limiting,
  * disconnect cleanup) and wires the feature handler modules:
  *   - handlers/messageHandlers.js      → messages, reactions, typing, polls…
- *   - handlers/callHandlers.js         → calls, WebRTC signaling, live streams
  *   - handlers/groupHandlers.js        → groups, roles, broadcasts, members
  *   - handlers/statusHandlers.js       → WhatsApp-style statuses
  *   - handlers/conversationHandlers.js → block/archive/mute/lock, presence,
@@ -15,7 +14,6 @@
  */
 const { createContext, SOCKET_SETUP_FLAG } = require('./context');
 const registerMessageHandlers = require('./handlers/messageHandlers');
-const registerCallHandlers = require('./handlers/callHandlers');
 const registerGroupHandlers = require('./handlers/groupHandlers');
 const registerStatusHandlers = require('./handlers/statusHandlers');
 const registerConversationHandlers = require('./handlers/conversationHandlers');
@@ -222,7 +220,6 @@ const setupSocket = (io) => {
     // ── Feature handlers (split into modules, see header comment) ─────────
     const ctx = createContext(io, socket);
     registerMessageHandlers(ctx);
-    registerCallHandlers(ctx);
     registerGroupHandlers(ctx);
     registerStatusHandlers(ctx);
     registerConversationHandlers(ctx);
@@ -230,7 +227,6 @@ const setupSocket = (io) => {
     const {
       Conversation,
       User,
-      activeCalls,
       onlineUsers,
       userAwayStatus,
       socketToUser,
@@ -248,38 +244,7 @@ const setupSocket = (io) => {
       const disconnectedUserId = socketToUser.get(socket.id) || socket.userId;
       socketToUser.delete(socket.id);
 
-      // FIX: if the disconnected user was mid-call, the other party never
-      // found out — their call screen would hang indefinitely with no
-      // 'call:ended' event. Clean up any active call sessions and tell
-      // whoever was on the other end.
-      try {
-        if (disconnectedUserId) {
-          const endedSessions = activeCalls.endAllCallsForUser(disconnectedUserId);
-          for (const session of endedSessions) {
-            const otherPartyId = String(session.userId) === String(disconnectedUserId)
-              ? session.calleeId
-              : session.userId;
-            if (otherPartyId) {
-              const otherSocketId = onlineUsers.get(String(otherPartyId));
-              if (otherSocketId) {
-                io.to(otherSocketId).emit('call:ended', {
-                  conversationId: session.conversationId,
-                  reason: 'peer_disconnected',
-                  duration: session.duration
-                });
-                io.to(otherSocketId).emit('call:ended_all', {
-                  conversationId: session.conversationId,
-                  reason: 'peer_disconnected'
-                });
-              }
-            }
-          }
-        }
-      } catch (err) {
-        logError('Error cleaning up active calls on disconnect:', err);
-      }
-
-      // FIX: same "stuck UI" class of bug as the call-disconnect fix above —
+      // FIX: same "stuck UI" class of bug as the call-disconnect fix —
       // if a user was typing and their connection dropped, the recipient's
       // screen would show "typing..." indefinitely since stop_typing only
       // ever fired on an explicit client event, never on disconnect.

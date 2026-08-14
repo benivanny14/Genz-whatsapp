@@ -46,12 +46,6 @@ const {
 } = require('../controllers/adminBroadcastController');
 
 const {
-  listCalls,
-  getCallStats,
-  deleteCallLog: deleteAdminCallLog
-} = require('../controllers/adminCallsController');
-
-const {
   listConversations,
   getConversationMessages,
   deleteConversation,
@@ -119,11 +113,6 @@ router.delete('/broadcasts/:id', strictRateLimiter, deleteBroadcast);
 router.post('/broadcasts/announce', strictRateLimiter, sendSystemAnnouncement);
 router.get('/notifications/overview', getNotificationOverview);
 router.post('/notifications/send', strictRateLimiter, sendPushNotification);
-
-// ── Calls ──
-router.get('/calls', listCalls);
-router.get('/calls/stats', getCallStats);
-router.delete('/calls/:id', strictRateLimiter, deleteAdminCallLog);
 
 // ── Content moderation: chats, groups, channels, statuses ──
 router.get('/chats', listConversations);

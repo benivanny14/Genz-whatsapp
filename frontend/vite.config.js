@@ -53,13 +53,24 @@ export default defineConfig({
       workbox: {
         globPatterns: [],
         maximumFileSizeToCacheInBytes: 50 * 1024 * 1024,
-        // workbox-build refuses an empty SW: one no-op runtime entry keeps
+        // workbox-build refuses an empty SW: the runtime entries below keep
         // the generated (never-registered) sw.js valid while our custom v5
-        // service worker keeps owning all real caching.
+        // service worker keeps owning all real caching. The api-cache entry
+        // only exists inside the generated file — the real SW deliberately
+        // skips /api/* (see public/service-worker.js + serviceWorker.test.js)
+        // so live data is never served stale.
         runtimeCaching: [
           {
             urlPattern: ({ request }) => request.mode === 'navigate',
             handler: 'NetworkOnly'
+          },
+          {
+            urlPattern: /^https:\/\/genz-whatsapp-1\.onrender\.com\/api\/.*/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              expiration: { maxEntries: 100, maxAgeSeconds: 86400 }
+            }
           }
         ]
       },

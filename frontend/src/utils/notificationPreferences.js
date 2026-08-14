@@ -21,9 +21,7 @@ export const getEffectiveNotificationPreferences = (kind = 'message') => {
     ? (legacySettings.vibration ? 'default' : 'off')
     : legacySettings?.vibration;
 
-  const enabled = kind === 'call'
-    ? (notifications.calls ?? true)
-    : (notifications.messages ?? true);
+  const enabled = notifications.messages ?? true;
 
   const vibrationMode = notifications.vibration ?? legacyVibration ?? 'default';
   const vibrationEnabled = String(vibrationMode).toLowerCase() !== 'off';

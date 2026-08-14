@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Save, User, Lock, Bell, Shield, ShieldCheck, Users, Package, Building2, PhoneCall, Eye,
+  ArrowLeft, Save, User, Lock, Bell, Shield, ShieldCheck, Users, Package, Building2, Eye,
   Smartphone, ChevronRight, Database, UserRound, KeyRound, Languages,
   HelpCircle, Download, Trash2, Phone, Wifi, Image as ImageIcon,
   HardDrive, CheckCircle2, EyeOff, Archive, Clock, FileText, Globe2,
@@ -9,10 +9,10 @@ import {
   DollarSign, Star, Search, Plus, Camera, Video, Upload as UploadIcon, Mail, Crown, LayoutGrid
 } from 'lucide-react';
 import ContactManager from '../components/ContactManager';
+import { fetchVersionManifest } from '../utils/versionManifest';
 import { BlockedUsersList } from '../components/BlockUnblock';
 import ProductCatalogue from '../components/ProductCatalogue';
 import BusinessAccountPanel from '../components/BusinessAccountPanel';
-import CallFeaturesPanel from '../components/CallFeaturesPanel';
 import AntiBanPanel from '../components/AntiBanPanel';
 import StatusPrivacyPanel from '../components/StatusPrivacyPanel';
 import StorageManagement from '../components/StorageManagement';
@@ -29,7 +29,6 @@ import { checkForUpdate } from '../utils/appUpdate';
 import SettingsHelp from '../components/SettingsHelp';
 import api from '../services/api';
 import { getAppInfo, isNative } from '../services/capacitorBridge.js';
-import { resetWebRTCConfigCache } from '../config/webrtc';
 
 const SETTINGS_KEY = 'genz_user_settings';
 
@@ -51,8 +50,6 @@ const DEFAULT_SETTINGS = {
     defaultMessageTimer: 'off',
     groups: 'everyone',
     blockedUsers: [],
-    silenceUnknownCallers: false,
-    protectIpAddressInCalls: false,
     disableLinkPreviews: false,
     blockUnknownAccountMessages: false,
     appLock: {
@@ -105,7 +102,6 @@ const DEFAULT_SETTINGS = {
     reminders: true,
     messageTone: 'default',
     groupTone: 'default',
-    callRingtone: 'default',
     vibration: 'default'
   },
   storageData: {
@@ -114,7 +110,6 @@ const DEFAULT_SETTINGS = {
     roamingAutoDownload: [],
     photoUploadQuality: 'standard',
     videoUploadQuality: 'standard',
-    useLessDataForCalls: false,
     proxy: {
       enabled: false,
       host: '',
@@ -204,7 +199,7 @@ const bridgeNotificationSettings = (settings) => {
   if (!notifications) return;
   try {
     localStorage.setItem('genz_notification_settings', JSON.stringify({
-      enabled: Boolean(notifications.messages || notifications.groups || notifications.calls),
+      enabled: Boolean(notifications.messages || notifications.groups),
       vibration: String(notifications.vibration || 'default').toLowerCase() !== 'off',
       sound: notifications.sounds !== false,
       showPreview: notifications.showPreview !== false
@@ -364,12 +359,10 @@ const Settings = () => {
   // npm run apk:build) so users can spot a stale install, plus what they are
   // actually running so the comparison is visible.
   useEffect(() => {
-    fetch('/version.json')
-      .then((res) => (res.ok ? res.json() : null))
+    fetchVersionManifest()
       .then((data) => {
         if (data?.version) setApkVersion(data);
-      })
-      .catch(() => {}); // graceful: row simply shows no version
+      });
 
     if (isNative()) {
       getAppInfo()
@@ -428,7 +421,6 @@ const Settings = () => {
     { id: 'privacy', label: 'Privacy', icon: Lock },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'storage', label: 'Storage and data', icon: Database },
-    { id: 'calls', label: 'Calls', icon: PhoneCall },
     { id: 'language', label: 'App language', icon: Languages },
     { id: 'linked', label: 'Linked devices', icon: Smartphone },
     { id: 'contacts', label: 'Contacts', icon: Users },
@@ -543,15 +535,6 @@ const Settings = () => {
       if (path === 'chats.theme') {
         window.dispatchEvent(new CustomEvent('language-changed', { detail: { language: value } }));
       }
-      if (path === 'privacy.protectIpAddressInCalls') {
-        // The relay-only ICE policy is served per-user by /webrtc/config and
-        // cached — drop the cache so the next call honors the new setting.
-        try {
-          resetWebRTCConfigCache();
-        } catch (error) {
-          console.warn('Failed to reset WebRTC config cache:', error);
-        }
-      }
       return next;
     });
   };
@@ -610,8 +593,6 @@ const Settings = () => {
         about: 'contacts',
         groups: 'contacts',
         status: 'contacts',
-        silenceUnknownCallers: true,
-        protectIpAddressInCalls: true,
         disableLinkPreviews: true,
         blockUnknownAccountMessages: true,
         advancedChatPrivacy: true,
@@ -995,8 +976,6 @@ const Settings = () => {
           />
         </div>
         
-        <SettingRow icon={Phone} title="Silence unknown callers" description="Unknown calls will not ring, but stay visible in calls." control={<Toggle checked={settingsData.privacy.silenceUnknownCallers} onChange={() => toggleSetting('privacy.silenceUnknownCallers')} />} />
-        <SettingRow icon={Shield} title="Protect IP address in calls" description="Relay calls for extra call privacy." control={<Toggle checked={settingsData.privacy.protectIpAddressInCalls} onChange={() => toggleSetting('privacy.protectIpAddressInCalls')} />} />
       </SettingSection>
 
       <SettingSection title="Advanced privacy" description="Newer WhatsApp-style controls for links, unknown accounts, and advanced chat privacy.">
@@ -1012,10 +991,9 @@ const Settings = () => {
 
   const renderNotifications = () => (
     <div className="space-y-4">
-      <SettingSection title="Notifications" description="Message, group, call, preview, vibration, and reactions.">
+      <SettingSection title="Notifications" description="Message, group, preview, vibration, and reactions.">
         <SettingRow icon={Bell} title="Message notifications" control={<Toggle checked={settingsData.notifications.messages} onChange={() => toggleSetting('notifications.messages')} />} />
         <SettingRow icon={Users} title="Group notifications" control={<Toggle checked={settingsData.notifications.groups} onChange={() => toggleSetting('notifications.groups')} />} />
-        <SettingRow icon={Phone} title="Call notifications" control={<Toggle checked={settingsData.notifications.calls} onChange={() => toggleSetting('notifications.calls')} />} />
         <SettingRow icon={Bell} title="Conversation tones" control={<Toggle checked={settingsData.notifications.conversationTones} onChange={() => toggleSetting('notifications.conversationTones')} />} />
         <SettingRow icon={Bell} title="Sounds" control={<Toggle checked={settingsData.notifications.sounds} onChange={() => toggleSetting('notifications.sounds')} />} />
         <SettingRow icon={EyeOff} title="Show preview" description="Show message text in notifications." control={<Toggle checked={settingsData.notifications.showPreview} onChange={() => toggleSetting('notifications.showPreview')} />} />
@@ -1033,7 +1011,6 @@ const Settings = () => {
     <div className="space-y-4">
       <SettingSection title="Manage storage" description="Open the existing storage manager and tune data usage.">
         <SettingRow icon={Database} title="Manage storage" description="Review large files and cached media by chat." onClick={() => setShowStorage(true)} />
-        <SettingRow icon={Wifi} title="Use less data for calls" control={<Toggle checked={settingsData.storageData.useLessDataForCalls} onChange={() => toggleSetting('storageData.useLessDataForCalls')} />} />
       </SettingSection>
 
       <SettingSection title="Media upload quality and proxy" description="HD media preferences, proxy settings, and network usage reset.">
@@ -1140,17 +1117,8 @@ const Settings = () => {
     </div>
   );
 
-  const [showCallsPanel, setShowCallsPanel] = useState(false);
   const [showAntiBanPanel, setShowAntiBanPanel] = useState(false);
   const [showStatusPrivacyPanel, setShowStatusPrivacyPanel] = useState(false);
-
-  const renderCalls = () => (
-    <div className="space-y-4">
-      <SettingSection title="Calls" description="Call waiting, call blocking, ring timeout and more.">
-        <SettingRow icon={PhoneCall} title="Call settings" description="Manage call waiting, blocking, recording and limits." onClick={() => setShowCallsPanel(true)} />
-      </SettingSection>
-    </div>
-  );
 
   const renderActiveTab = () => {
     if (activeTab === 'profile') return renderProfile();
@@ -1159,7 +1127,6 @@ const Settings = () => {
     if (activeTab === 'privacy') return renderPrivacy();
     if (activeTab === 'notifications') return renderNotifications();
     if (activeTab === 'storage') return renderStorage();
-    if (activeTab === 'calls') return renderCalls();
     if (activeTab === 'language') return renderLanguage();
     if (activeTab === 'linked') return renderLinked();
     if (activeTab === 'contacts') return renderContacts();
@@ -1254,7 +1221,6 @@ const Settings = () => {
       )}
       {showCatalogue && <ProductCatalogue onClose={() => setShowCatalogue(false)} onSendProduct={() => setShowCatalogue(false)} />}
       {showBusinessPanel && <BusinessAccountPanel onClose={() => setShowBusinessPanel(false)} />}
-      {showCallsPanel && <CallFeaturesPanel onClose={() => setShowCallsPanel(false)} />}
       {showAntiBanPanel && <AntiBanPanel onClose={() => setShowAntiBanPanel(false)} />}
       {showStatusPrivacyPanel && <StatusPrivacyPanel onClose={() => setShowStatusPrivacyPanel(false)} />}
       {showStorage && <StorageManagement onClose={() => setShowStorage(false)} />}

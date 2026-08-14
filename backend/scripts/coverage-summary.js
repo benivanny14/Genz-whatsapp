@@ -36,7 +36,6 @@ console.log('');
 console.log('=== Highlights (statements) ===');
 console.log(`authController        : ${byName('authController.js')}%`);
 console.log(`userSettingsController: ${byName('userSettingsController.js')}%`);
-console.log(`webrtcController      : ${byName('webrtcController.js')}%`);
 console.log('');
 console.log(`Controllers >= 75% statements: ${gte(75)}`);
 console.log(`Controllers >= 80% statements: ${gte(80)}`);

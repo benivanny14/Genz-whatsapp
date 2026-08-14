@@ -251,13 +251,6 @@ async function main() {
   }
 
   try {
-    const logs = await request('/calls', { token: tokenA });
-    pass(`Call logs API (${(logs.callLogs || []).length} entries)`);
-  } catch (e) {
-    fail('Call logs API', e);
-  }
-
-  try {
     const blob = new Blob([Buffer.alloc(128, 0)], { type: 'audio/webm' });
     const form = new FormData();
     form.append('audio', blob, 'voice.webm');

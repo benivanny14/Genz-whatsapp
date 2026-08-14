@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useChat, applyVoiceEffect } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
-import { ArrowLeft, MoreVertical, Search, Smile, Paperclip, Send, Mic, Image as ImageIcon, MessageCircle, Ghost, Forward, Square, MapPin, ShieldCheck, Globe, BarChart2, CalendarClock, Info, UserMinus, UserCheck, ShieldAlert, Copy, Link, Pin, X, Edit, Briefcase, Plus, Eye, EyeOff, Clock, Lock, Sticker, Download, FileText, Camera, Headphones, Contact, Trash2, Reply, Share2, Star, Archive, BellOff, Bell, Radio, Users, Languages, Grid3x3, Lock as LockIcon, Unlock, ChevronLeft, AtSign, DollarSign, Video as VideoIcon, Heart, Flag } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Search, Smile, Paperclip, Send, Mic, Image as ImageIcon, MessageCircle, Ghost, Forward, Square, MapPin, ShieldCheck, Globe, BarChart2, CalendarClock, Info, UserMinus, UserCheck, ShieldAlert, Copy, Link, Pin, X, Edit, Briefcase, Plus, Eye, EyeOff, Clock, Lock, Sticker, Download, FileText, Camera, Contact, Trash2, Reply, Share2, Star, Archive, BellOff, Bell, Radio, Users, Languages, Grid3x3, Lock as LockIcon, Unlock, ChevronLeft, AtSign, DollarSign, Video as VideoIcon, Heart, Flag } from 'lucide-react';
 import { formatMessageTime, decryptMessage } from '../utils/formatDate';
 import { exportChatAsTxt, exportChatAsWhatsAppTxt } from '../utils/chatExporter';
 import FormattedText from './FormattedText';
@@ -84,7 +84,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     sendRecordingStatus, isOtherUserTyping, isOtherUserRecording, typingByConversation,
     onlineUsers, lastSeenByUser, blockedUsers, blockUser, unblockUser,
     createPoll, votePoll, scheduleMessage, scheduledMessages, cancelScheduledMessage,
-    initiateCall, endCall,
     updateGroupMember, joinGroup, updateDisappearingMessages, toggleAdminOnlyMessaging, updateGroupPermission, createCustomRole, assignRole, viewProfile,
     pinMessage, unpinMessage, pinnedMessages, presenceHistory, unlockedSessionChats, verifyChatUnlock, toggleChatLock, toggleStarMessage, toggleMessageLock, toggleMuteChat, toggleArchiveChat, markAsRead, revealViewOnce, markViewOnceViewed, getUserStatusWithGhostMode, reportMessage,
     sendFloatingSticker, floatingStickerHandlers, setFloatingStickerHandlers,

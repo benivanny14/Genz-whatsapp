@@ -7,6 +7,76 @@ by commit.
 
 ---
 
+## [2026-08-14] — v1.1.14: calls removed (pure messaging) + true offline APK
+
+**GENZ is now a pure messaging app — all voice/video/group call features were
+removed completely (frontend, backend, sockets, permissions, service worker,
+CSS, docs).** Messaging (text, photos, videos, files, voice notes, status),
+auth, contacts, push notifications for messages and offline mode are
+unchanged and verified.
+
+**Offline APK**
+- `capacitor.config.json` `server.url` removed — the APK now BUNDLES the built
+  web app (`dist/` → `assets/public/` inside the APK) instead of loading the
+  site from Render. The app opens instantly and works fully offline; API calls
+  still reach the live backend over the network when it is available.
+- Version rows, the update banner and the APK download link now fall back to
+  the production origin inside the bundled APK (`src/utils/versionManifest.js`)
+  so updates stay discoverable. Splash config: `launchAutoHide`, `CENTER_CROP`,
+  `#128C7E` icon color.
+- Pre-build check extended (8 checks): every manifest icon must exist,
+  `public/screenshots/` needs ≥ 2 images, `capacitor.config.json` must NOT have
+  `server.url` (fails otherwise), and `vite.config.js` must register `VitePWA`.
+- Maskable PWA icons generated with safe-zone padding
+  (`scripts/generate-maskable-icons.js`, 60% scale on #075E54) and wired into
+  `manifest.json` as separate `purpose: "maskable"` entries.
+
+**Calls removed — frontend**
+- Deleted: `CallScreen`, `GroupCallScreen`, `CallFeaturesPanel`, admin
+  `CallsManagement`, `pages/Calls`, `services/callService`, `services/webrtc`,
+  `config/webrtc`, `utils/callUi` (+ its tests).
+- `App.jsx`: no call screens, no call URL/SW-message handling, no call state;
+  `useNativeBackButton` lost its `isCallActive` skip.
+- `ChatContext`: `activeCall`/`activeGroupCall`/`callLogs` state, all call
+  socket listeners (`call:incoming`, `call:accepted`, `call:rejected`,
+  `call:ended`, `call:log:created`, `webrtc:offer`, `group_call:incoming`) and
+  the call actions (`initiateCall`, `acceptCall`, `rejectCall`, `endCall`,
+  `fetchCallLogs`) removed.
+- Chat header/composer/bubbles had no call buttons (verified); Settings Calls
+  tab, Status "Call Features" panel, admin Calls panel, Sidebar calls tab,
+  FakeChat fake-calls, notification call sounds/vibrations, and call CSS
+  classes removed. `simple-peer` + TURN env vars gone from both package.json
+  files and lockfile.
+
+**Calls removed — backend**
+- Deleted: `callController`, `callToolsController`, `webrtcController`,
+  `adminCallsController`, `CallLog` model, `callRoutes`, `webrtcRoutes`,
+  `call-blocker`, `call-features`, `callHandlers` socket module, `activeCalls`,
+  `config/webrtc`, `call-signaling-test` + 5 call test suites.
+- `/webrtc`, `/calls`, `/call-blocker`, `/call-features` route mounts removed;
+  `call:start/accept/reject/end`, `webrtc:offer`, `incoming_call` push, and the
+  disconnect call-cleanup removed from sockets; `sendIncomingCallNotification`
+  and `isSilencedCaller` deleted; TURN validation removed from `validateEnv`;
+  fake-chat fake calls and group voice/video/screen-share toggles removed.
+
+**Android**
+- `MODIFY_AUDIO_SETTINGS`, `FOREGROUND_SERVICE_CAMERA` and
+  `FOREGROUND_SERVICE_MICROPHONE` permissions removed from the manifest.
+  `CAMERA` + `RECORD_AUDIO` stay — photos/video messages and voice notes need
+  them.
+
+**Service worker**
+- Incoming-call push handling, Answer/Decline actions, and the
+  `INCOMING_CALL`/`CALL_DECLINE` click handlers removed; message notifications
+  and offline app-shell caching unchanged.
+
+**Verification**
+- Backend 1741/1741 tests · frontend 95/95 · check:jsx ✓ · production build ✓
+- APK v1.1.14 (code 16) rebuilt with the bundled app (`assets/public/`
+  contains index.html + the full dist) and verified on the Android emulator.
+
+---
+
 ## [2026-08-14] — v1.1.13: production APK pipeline fixes (v1.1.12 superseded)
 
 **v1.1.12 was broken for APK users and superseded by v1.1.13 (versionCode 15).**

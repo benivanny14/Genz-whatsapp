@@ -92,7 +92,6 @@ export const apiService = {
   // Content management
   getBroadcasts: () => apiCall('/advanced/broadcast'),
   getStatuses: () => apiCall('/advanced/status'),
-  getCallLogs: (limit = 50) => apiCall(`/calls?limit=${limit}`),
   getStickerPacks: () => apiCall('/stickers/packs'),
   getMyStickers: () => apiCall('/stickers/me'),
   downloadStickerPack: (packId) => apiCall(`/stickers/packs/${packId}/download`, { method: 'POST' }),

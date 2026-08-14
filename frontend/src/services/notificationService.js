@@ -20,7 +20,6 @@ const defaultSettings = {
   showPreview: true,
   vibrationPattern: [50, 30, 50], // Short vibration for typing
   messageVibrationPattern: [100, 50, 100, 50, 100], // Longer for messages
-  callVibrationPattern: [200, 100, 200, 100, 200], // Longest for calls
 };
 
 /**
@@ -94,22 +93,6 @@ export const vibrateMessage = () => {
   const settings = getNotificationSettings();
   if (settings.vibration) {
     vibrate(settings.messageVibrationPattern);
-  }
-};
-
-/**
- * Long vibration for incoming call
- */
-export const vibrateCall = () => {
-  const settings = getNotificationSettings();
-  if (settings.vibration) {
-    // Continuous vibration for calls (repeat pattern)
-    const callPattern = settings.callVibrationPattern;
-    vibrate(callPattern);
-    // Repeat after pattern ends
-    setTimeout(() => {
-      vibrate(callPattern);
-    }, callPattern.reduce((a, b) => a + b, 0));
   }
 };
 
@@ -233,29 +216,6 @@ export const showMessageNotification = async (senderName, messagePreview, conver
   );
 
   vibrateMessage();
-};
-
-/**
- * Show call notification
- */
-export const showCallNotification = async (callerName, callType = 'audio') => {
-  const icon = callType === 'video' ? '📹' : '📞';
-
-  await showNotification(
-    `${icon} Incoming ${callType} call`,
-    `${callerName} is calling you`,
-    {
-      tag: 'incoming-call',
-      data: { type: 'call', callerName, callType },
-      requireInteraction: true, // Keep notification visible until user acts
-      vibratePattern: [200, 100, 200, 100, 200],
-      force: true,
-      priority: 'high'
-    }
-  );
-
-  // Continuous vibration for calls
-  vibrateCall();
 };
 
 /**
@@ -400,12 +360,10 @@ export default {
   vibrate,
   vibrateTyping,
   vibrateMessage,
-  vibrateCall,
   stopVibration,
   requestNotificationPermission,
   showNotification,
   showMessageNotification,
-  showCallNotification,
   showTypingNotification,
   registerServiceWorker,
   subscribeToWebPush,

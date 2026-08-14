@@ -175,34 +175,6 @@ const sendMissedCallNotification = async (userId, callData) => {
 };
 
 /**
- * Send incoming call notification
- * @param {string} userId - Recipient user ID
- * @param {Object} callData - Call data
- * @returns {Promise<Object>} Send result
- */
-const sendIncomingCallNotification = async (userId, callData) => {
-  const notification = {
-    title: `${callData.callerName || 'Incoming Call'}`,
-    body: callData.callType === 'video' ? 'Video call' : 'Audio call',
-    type: 'incoming_call',
-    clickAction: callData.conversationId ? `/chat?conversationId=${callData.conversationId}` : '/calls',
-    tag: `call-${callData.callId}`,
-    priority: 'high',
-    sound: 'ringtone'
-  };
-
-  const data = {
-    callId: callData.callId,
-    callerId: callData.callerId,
-    conversationId: callData.conversationId,
-    callType: callData.callType || 'audio',
-    offer: callData.offer
-  };
-
-  return sendToUser(userId, notification, data);
-};
-
-/**
  * Send new status notification
  * @param {string} userId - Recipient user ID
  * @param {Object} statusData - Status data
@@ -438,7 +410,6 @@ module.exports = {
   sendToUsers,
   sendNewMessageNotification,
   sendMissedCallNotification,
-  sendIncomingCallNotification,
   sendNewStatusNotification,
   sendMentionNotification,
   sendGroupNotification,

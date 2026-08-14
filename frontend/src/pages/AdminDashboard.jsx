@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   LayoutDashboard, Gauge, Users, CreditCard, BadgeDollarSign, MessageSquare,
-  UsersRound, Radio, CircleDot, PhoneCall, Sparkles, Megaphone, Bell,
+  UsersRound, Radio, CircleDot, Sparkles, Megaphone, Bell,
   LifeBuoy, MessagesSquare, BarChart3, TrendingUp, ShieldAlert, Copy,
   ScrollText, ShieldCheck, KeyRound, Smartphone, Timer, Sun, Moon,
   Menu, X, LogOut, RefreshCcw, Search, CheckCircle2, XCircle, AlertTriangle,
@@ -15,7 +15,6 @@ import ChatManagement from '../components/admin/ChatManagement';
 import GroupManagement from '../components/admin/GroupManagement';
 import ChannelManagement from '../components/admin/ChannelManagement';
 import StatusStoriesManagement from '../components/admin/StatusStoriesManagement';
-import CallsManagement from '../components/admin/CallsManagement';
 import BroadcastSystem from '../components/admin/BroadcastSystem';
 import NotificationCenter from '../components/admin/NotificationCenter';
 import SupportTickets from '../components/admin/SupportTickets';
@@ -47,7 +46,6 @@ const SECTIONS = [
   { key: 'channels', label: 'Channel Management', icon: Radio, group: 'Maudhui', implemented: true },
   { key: 'status', label: 'Status Management', icon: CircleDot, group: 'Maudhui', implemented: true },
   { key: 'stories', label: 'Stories Management', icon: Sparkles, group: 'Maudhui', implemented: true },
-  { key: 'calls', label: 'Calls Management', icon: PhoneCall, group: 'Maudhui', implemented: true },
   { key: 'broadcast', label: 'Broadcast System', icon: Megaphone, group: 'Mawasiliano', implemented: true },
   { key: 'notifications', label: 'Notification Center', icon: Bell, group: 'Mawasiliano', implemented: true },
   { key: 'tickets', label: 'Support Ticket System', icon: LifeBuoy, group: 'Mawasiliano', implemented: true },
@@ -810,7 +808,6 @@ const AdminDashboard = () => {
       case 'channels': return <ChannelManagement />;
       case 'status': return <StatusStoriesManagement mode="status" />;
       case 'stories': return <StatusStoriesManagement mode="stories" />;
-      case 'calls': return <CallsManagement />;
       case 'broadcast': return <BroadcastSystem />;
       case 'notifications': return <NotificationCenter />;
       case 'tickets': return <SupportTickets />;
