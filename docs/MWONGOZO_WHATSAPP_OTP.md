@@ -57,6 +57,26 @@ Pointi muhimu za code:
 > token → nakili (hauonekani tena!). Weka huu token kwenye env badala ya
 > temporary.
 
+## Hatua 1b — Sakinisha Webhook (inahitajika ili kupita "Configure Webhooks")
+
+Kwenye dashboard ya Meta app → **WhatsApp → Configuration**, ukifika kwenye
+hatua **Configure Webhooks**, jaza hivi:
+
+- **Callback URL**:
+  `https://<your-app>.onrender.com/webhook/whatsapp`
+  (badilisha `<your-app>` na jina la Render app yako — kwa genz-whatsapp-1
+  ni `https://genz-whatsapp-1.onrender.com/webhook/whatsapp`).
+- **Verify token**: andika **siri yoyote** unayoitengeneza mwenyewe (e.g.
+  `genz_webhook_verify_2026`) — token ileile lazima iwe kwenye env
+  `WHATSAPP_WEBHOOK_VERIFY_TOKEN` ya server.
+- Bonyeza **Verify and save**. Meta itatumia GET kwenye callback URL; ikiwa
+  token inalingana, endpoint itarudisha `hub.challenge` na Meta itakubali.
+
+> ✅ Endpoint hii ipo tayari kwenye repo: `backend/routes/whatsapp-webhook.js`
+> (mounted kwenye `/webhook/whatsapp`). Inafanya verification handshake na
+> inaloga events (messages / status updates) — hakuna haja ya kuandika code
+> yoyote mpya, weka tu env na u-deploy.
+
 ## Hatua 2 — Weka environment variables
 
 Weka kwenye `backend/.env` (na kisha kwenye **Render Dashboard →
@@ -71,6 +91,7 @@ WHATSAPP_OTP_TTL_MINUTES=5
 WHATSAPP_CLOUD_API_ACCESS_TOKEN=EAAG...   # token KAMILI (sio kukatwa)
 WHATSAPP_CLOUD_API_PHONE_NUMBER_ID=1234567890  # ID halisi ya Meta
 WHATSAPP_CLOUD_API_VERSION=v21.0
+WHATSAPP_WEBHOOK_VERIFY_TOKEN=genz_webhook_verify_2026  # siri yako mwenyewe (ilingane na Meta dashboard)
 
 # ── Phone verification gate ──
 PHONE_VERIFICATION_REQUIRED=true

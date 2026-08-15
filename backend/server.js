@@ -849,6 +849,7 @@ const storyHighlightsRoutes = require('./routes/story-highlights');
 const textRepeaterRoutes = require('./routes/text-repeater');
 const themeEngineRoutes = require('./routes/theme-engine');
 const whatsappWebRoutes = require('./routes/whatsapp-web');
+const whatsappWebhookRoutes = require('./routes/whatsapp-webhook');
 const antiBanRoutes = require('./routes/anti-ban');
 const locationSharingRoutes = require('./routes/location-sharing');
 const telemetryRoutes = require('./routes/telemetryRoutes');
@@ -932,6 +933,11 @@ const mountApiRoutes = (prefix) => {
 
 mountApiRoutes('/api');
 mountApiRoutes('/api/v1');
+
+// WhatsApp Cloud API webhook — Meta calls this exact URL during webhook
+// verification and for every event (messages, status updates). Mounted
+// OUTSIDE /api so the strict API rate limiter never throttles Meta's retries.
+app.use('/webhook/whatsapp', whatsappWebhookRoutes);
 
 // Admin auth routes with a single secret base path (kept outside /api/v1 — it
 // is already an obscured, non-public path)

@@ -75,7 +75,8 @@ const RECOMMENDED = {
   WHATSAPP_OTP_COUNTRY_CODE: { value: '255', desc: 'Default country code for OTP numbers' },
   WHATSAPP_CLOUD_API_ACCESS_TOKEN: { desc: 'Meta WhatsApp Business Cloud API token' },
   WHATSAPP_CLOUD_API_PHONE_NUMBER_ID: { desc: 'Meta WhatsApp Business phone number ID' },
-  WHATSAPP_CLOUD_API_VERSION: { value: 'v21.0', desc: 'Meta Graph API version' }
+  WHATSAPP_CLOUD_API_VERSION: { value: 'v21.0', desc: 'Meta Graph API version' },
+  WHATSAPP_WEBHOOK_VERIFY_TOKEN: { generate: true, desc: 'Meta WhatsApp webhook verify token (paste the same value into the Meta dashboard Webhook fields)' }
 };
 
 const OPTIONAL = {
