@@ -235,6 +235,7 @@ export const LiveLocationMapView = ({ shares, onUserClick }) => {
           live
           zoom={14}
           height="100%"
+          showLayerControl
         />
       </div>
 

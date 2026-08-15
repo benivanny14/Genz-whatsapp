@@ -147,7 +147,18 @@ const DEFAULT_GENZ_SETTINGS = {
     fontSize: 'medium',
     highResMedia: false,
     chatMusic: false,
-    chatMusicUrl: ''
+    chatMusicUrl: '',
+    // Keys shared with the GENZ Mods page / backend (kept in sync so a save
+    // from either side never drops the other side's toggles).
+    antiDeleteStatus: true,
+    hideSecondTick: false,
+    hideViewStatus: false,
+    typingIndicators: true,
+    onlineStatusVisible: true,
+    hideOnline: false,
+    hideTyping: false,
+    hideRecording: false,
+    autoReplyKeywords: []
   },
   appTheme: 'dark',
   statusPrivacy: 'everyone',

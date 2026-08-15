@@ -95,6 +95,21 @@ describe('genzModsController — settings', () => {
     expect(res.body.settings.hideRecording).toBe(true);
   });
 
+  it('mirrors a ghostMode OBJECT (GENZ Mods page) to the top-level flags', async () => {
+    const user = makeUser();
+    User.findById.mockResolvedValue(user);
+    const res = makeRes();
+    await genzMods.updateGenzModsSettings(makeReq({
+      body: { ghostMode: { hideOnline: true, hideTyping: false, hideRecording: true, freezeLastSeen: true } }
+    }), res);
+    expect(res.body.settings.hideOnline).toBe(true);
+    expect(res.body.settings.hideTyping).toBe(false);
+    expect(res.body.settings.hideRecording).toBe(true);
+    expect(res.body.settings.freezeLastSeen).toBe(true);
+    // the object itself is preserved so the GENZ Mods page still reads it
+    expect(res.body.settings.ghostMode).toEqual({ hideOnline: true, hideTyping: false, hideRecording: true, freezeLastSeen: true });
+  });
+
   it('normalizes autoReply boolean into an object (happy path)', async () => {
     const user = makeUser();
     User.findById.mockResolvedValue(user);

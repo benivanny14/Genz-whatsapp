@@ -365,6 +365,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                            live={isLive}
                            zoom={15}
                            height="100%"
+                           showLayerControl
                            onClick={() => { if (mapsUrl) window.open(mapsUrl, '_blank'); }}
                          />
                          {/* Live Timer Badge */}

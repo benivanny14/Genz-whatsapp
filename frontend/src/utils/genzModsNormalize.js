@@ -8,6 +8,9 @@ export function flattenModsFromServer(settings = {}) {
   if (settings.autoReply && typeof settings.autoReply === 'object') {
     flat.autoReply = Boolean(settings.autoReply.enabled);
     flat.autoReplyMsg = settings.autoReply.message || '';
+    // FIX: keywords used to be dropped here, so any ChatContext save re-created
+    // them as [] and silently wiped auto-reply keywords set on the GENZ Mods page.
+    flat.autoReplyKeywords = Array.isArray(settings.autoReply.keywords) ? settings.autoReply.keywords : [];
   }
 
   if (settings.chatBackgroundMusic && typeof settings.chatBackgroundMusic === 'object') {
@@ -23,8 +26,14 @@ export function flattenModsFromServer(settings = {}) {
     flat.hideReadReceipts = true;
   }
 
-  if (settings.hideOnline && flat.ghostMode === undefined) {
-    flat.ghostMode = Boolean(settings.hideOnline || settings.hideTyping);
+  // Ghost mode summary: one boolean that reflects the granular
+  // hideOnline/hideTyping/hideRecording flags, no matter which UI set them
+  // (app GENZ Settings sends a boolean, GENZ Mods page sends an object of
+  // sub-options which the backend mirrors to the top-level flags).
+  if (typeof settings.ghostMode === 'object' && settings.ghostMode !== null) {
+    flat.ghostMode = Boolean(settings.ghostMode.hideOnline || settings.ghostMode.hideTyping || settings.ghostMode.hideRecording);
+  } else if (settings.hideOnline !== undefined || settings.hideTyping !== undefined || settings.hideRecording !== undefined) {
+    flat.ghostMode = Boolean(settings.hideOnline || settings.hideTyping || settings.hideRecording);
   }
 
   return flat;
@@ -62,9 +71,14 @@ export function normalizeModsForServer(mods = {}) {
 
   if (typeof mods.ghostMode === 'boolean') {
     if (mods.ghostMode) {
-      out.hideOnline = true;
-      out.hideTyping = true;
-      out.hideRecording = true;
+      // ghostMode boolean is a summary flag. Only fall back to "all on" for
+      // legacy flat states that don't carry the granular flags; modern flat
+      // state (which includes hideOnline/hideTyping/hideRecording) must keep
+      // its per-option values or saving from the app would clobber choices
+      // made on the GENZ Mods page.
+      if (mods.hideOnline === undefined) out.hideOnline = true;
+      if (mods.hideTyping === undefined) out.hideTyping = true;
+      if (mods.hideRecording === undefined) out.hideRecording = true;
     }
   }
 

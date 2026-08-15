@@ -1,6 +1,20 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+
+// Tile providers — street (OpenStreetMap) and satellite (Esri World Imagery, free, no API key)
+const TILE_PROVIDERS = {
+  street: {
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  },
+  satellite: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    maxZoom: 19,
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community'
+  }
+};
 
 // Green pin matching the app's accent color
 const liveIcon = L.divIcon({
@@ -38,6 +52,8 @@ const pinIcon = L.divIcon({
  *  - live: bool — render pulsing live pin instead of static pin
  *  - onClick: fired on any click on the map container (native listener,
  *             works even though Leaflet stops propagation to parents)
+ *  - mapType: 'street' | 'satellite' — initial tile layer
+ *  - showLayerControl: bool — render a Map/Satellite toggle (like WhatsApp)
  */
 const LeafletMap = ({
   center,
@@ -48,11 +64,15 @@ const LeafletMap = ({
   zoom = 15,
   className = '',
   live = false,
-  height = '100%'
+  height = '100%',
+  mapType = 'satellite',
+  showLayerControl = false
 }) => {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const markerRef = useRef(null);
+  const tileLayerRef = useRef(null);
+  const [currentMapType, setCurrentMapType] = useState(mapType);
   const centerRef = useRef(center);
   centerRef.current = center;
 
@@ -72,11 +92,6 @@ const LeafletMap = ({
       boxZoom: interactive,
       keyboard: interactive
     });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-    }).addTo(map);
-
     if (interactive) {
       map.on('click', (e) => {
         if (onMapClick) onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
@@ -115,6 +130,21 @@ const LeafletMap = ({
     }
   }, [marker, live]);
 
+  // Swap tile layer when map type changes (street <-> satellite)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (tileLayerRef.current) {
+      map.removeLayer(tileLayerRef.current);
+      tileLayerRef.current = null;
+    }
+    const provider = TILE_PROVIDERS[currentMapType] || TILE_PROVIDERS.street;
+    tileLayerRef.current = L.tileLayer(provider.url, {
+      maxZoom: provider.maxZoom,
+      attribution: provider.attribution
+    }).addTo(map);
+  }, [currentMapType]);
+
   // Recenter when center changes (used by search results / user location)
   useEffect(() => {
     const map = mapRef.current;
@@ -133,11 +163,31 @@ const LeafletMap = ({
   }, [onClick]);
 
   return (
-    <div
-      ref={containerRef}
-      className={`leaflet-container ${className}`}
-      style={{ height, width: '100%', background: '#0b141a' }}
-    />
+    <div className="relative" style={{ height, width: '100%' }}>
+      <div
+        ref={containerRef}
+        className={`leaflet-container ${className}`}
+        style={{ height: '100%', width: '100%', background: '#0b141a' }}
+      />
+      {showLayerControl && (
+        <div className="absolute bottom-2 left-2 z-[1000] flex items-stretch overflow-hidden rounded-lg bg-[#1a2e35]/95 border border-white/20 shadow-lg text-xs font-semibold select-none">
+          <button
+            type="button"
+            onClick={() => setCurrentMapType('street')}
+            className={`px-3 py-1.5 transition-colors ${currentMapType === 'street' ? 'bg-[#00a884] text-white' : 'text-[#8696a0] hover:text-white'}`}
+          >
+            Map
+          </button>
+          <button
+            type="button"
+            onClick={() => setCurrentMapType('satellite')}
+            className={`px-3 py-1.5 transition-colors ${currentMapType === 'satellite' ? 'bg-[#00a884] text-white' : 'text-[#8696a0] hover:text-white'}`}
+          >
+            Satellite
+          </button>
+        </div>
+      )}
+    </div>
   );
 };
 

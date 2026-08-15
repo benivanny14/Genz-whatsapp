@@ -84,6 +84,27 @@ describe('automationModsController — toggles', () => {
     expect(user.save).toHaveBeenCalled();
   });
 
+  it('toggleAutoReply mirrors into the canonical auto-reply fields the socket reads', async () => {
+    const user = makeUser({
+      automationModsSettings: { autoReplyEnabled: false },
+      genzMods: { autoReply: { enabled: false, message: 'Busy', keywords: ['hi'] } },
+      autoReplyEnabled: false,
+      autoReplyMessage: ''
+    });
+    User.findById.mockResolvedValue(user);
+    const res = makeRes();
+    await automationMods.toggleAutoReply(makeReq(), res);
+    expect(res.body.autoReplyEnabled).toBe(true);
+    expect(user.automationModsSettings.autoReplyEnabled).toBe(true);
+    // The message pipeline reads these canonical fields — they must be in sync.
+    expect(user.autoReplyEnabled).toBe(true);
+    expect(user.autoReplyMessage).toBe('Busy');
+    expect(user.genzMods.autoReply.enabled).toBe(true);
+    expect(user.genzMods.autoReply.message).toBe('Busy');
+    expect(user.genzMods.autoReply.keywords).toEqual(['hi']);
+    expect(user.save).toHaveBeenCalled();
+  });
+
   it('flips a setting back to false when already enabled', async () => {
     const user = makeUser({ automationModsSettings: { autoArchiveChats: true } });
     User.findById.mockResolvedValue(user);

@@ -162,6 +162,7 @@ const LocationPicker = ({ onClose, onLocationSelect, currentUser, selectedChat }
                 onMapClick={handleMapClick}
                 zoom={13}
                 height="100%"
+                showLayerControl
               />
               {/* Click to select instruction */}
               {!selectedLocation && (

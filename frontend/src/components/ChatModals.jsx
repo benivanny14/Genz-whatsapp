@@ -6,6 +6,7 @@ import ChunkedUploader from './ChunkedUploader';
 import ContactInfo from './ContactInfo';
 import ContactPickerModal from './ContactPickerModal';
 import DrawingPanel from './DrawingPanel';
+import LeafletMap from './LeafletMap';
 import FilePreview from './FilePreview';
 import ForwardDialog from './ForwardDialog';
 import GroupInfo from './GroupInfo';
@@ -653,13 +654,23 @@ const ChatModals = React.memo(function ChatModals({ ctx }) {
                 </button>
               </div>
               <div className="relative h-56 bg-[#0b141a]">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-16 h-16 rounded-full border-[3px] border-[#00a884] overflow-hidden shadow-lg z-10 bg-[#202c33]">
-                    <img src={user?.profilePicture || `https://ui-avatars.com/api/?name=${user?.username}`} className="w-full h-full object-cover" alt="Me" />
+                {currentLocationCoords ? (
+                  <LeafletMap
+                    center={{ lat: currentLocationCoords.latitude, lng: currentLocationCoords.longitude }}
+                    marker={{ lat: currentLocationCoords.latitude, lng: currentLocationCoords.longitude }}
+                    zoom={15}
+                    height="100%"
+                    showLayerControl
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-full border-[3px] border-[#00a884] overflow-hidden shadow-lg z-10 bg-[#202c33]">
+                      <img src={user?.profilePicture || `https://ui-avatars.com/api/?name=${user?.username}`} className="w-full h-full object-cover" alt="Me" />
+                    </div>
+                    <div className="absolute rounded-full border-4 border-[#00a884]/30 w-28 h-28 animate-pulse"></div>
                   </div>
-                  <div className="absolute rounded-full border-4 border-[#00a884]/30 w-28 h-28 animate-pulse"></div>
-                </div>
-                <div className="absolute bottom-4 left-4 right-4 bg-[#00a884] text-white text-xs px-3 py-2 rounded-lg text-center font-medium shadow-md flex flex-col gap-0.5">
+                )}
+                <div className="absolute bottom-4 left-4 right-4 bg-[#00a884] text-white text-xs px-3 py-2 rounded-lg text-center font-medium shadow-md flex flex-col gap-0.5 z-[1001]">
                   <span className="font-bold">📍 Send this location</span>
                   {currentLocationCoords && (
                     <span className="text-white/90">

@@ -79,10 +79,23 @@ const normalizeIncomingMods = (incoming = {}, existing = {}) => {
     normalized.readReceipts = !incoming.hideReadReceipts;
   }
 
-  if (typeof incoming.ghostMode === 'boolean' && incoming.ghostMode) {
-    normalized.hideOnline = true;
-    normalized.hideTyping = true;
-    normalized.hideRecording = true;
+  if (typeof incoming.ghostMode === 'object' && incoming.ghostMode !== null) {
+    // GENZMods page sends ghostMode as an object of sub-options. Mirror each
+    // sub-option to the canonical top-level flags so the app's ChatContext
+    // (which flattens the top-level flags) sees exactly the same state.
+    const g = incoming.ghostMode;
+    if (typeof g.hideOnline === 'boolean') normalized.hideOnline = g.hideOnline;
+    if (typeof g.hideTyping === 'boolean') normalized.hideTyping = g.hideTyping;
+    if (typeof g.hideRecording === 'boolean') normalized.hideRecording = g.hideRecording;
+    if (typeof g.freezeLastSeen === 'boolean') normalized.freezeLastSeen = g.freezeLastSeen;
+    if (typeof g.hideReadReceipts === 'boolean') normalized.hideReadReceipts = g.hideReadReceipts;
+  } else if (typeof incoming.ghostMode === 'boolean' && incoming.ghostMode) {
+    // Boolean ghostMode is the app's summary flag; it must not clobber the
+    // granular hideOnline/hideTyping/hideRecording values when they are sent
+    // alongside it (which they now are). Only default the missing ones to on.
+    if (incoming.hideOnline === undefined) normalized.hideOnline = true;
+    if (incoming.hideTyping === undefined) normalized.hideTyping = true;
+    if (incoming.hideRecording === undefined) normalized.hideRecording = true;
   }
 
   return normalized;

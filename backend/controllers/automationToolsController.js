@@ -69,7 +69,42 @@ const toggleAutomationField = createToggleHandler({
 // @desc    Toggle Auto-Reply
 // @route   POST /api/automation-mods/auto-reply
 // @access  Private
-exports.toggleAutoReply = (req, res) => toggleAutomationField(req, res, 'autoReplyEnabled', 'Toggle auto reply');
+// Auto-Reply historically lived in TWO separate stores: the automation-mods
+// settings (below) and the canonical user.autoReplyEnabled / autoReplyMessage
+// fields + user.genzMods.autoReply (which the message pipeline actually reads
+// in socket/handlers/messageHandlers.js). Toggling here MUST update all of
+// them, otherwise the toggle looks ON in the Automation panel but never fires,
+// and the GENZ Mods page / app settings disagree with the panel.
+exports.toggleAutoReply = async (req, res) => {
+  try {
+    const user = await getUser(req, res);
+    if (!user) return;
+
+    const existing = user.automationModsSettings?.toObject?.() || user.automationModsSettings || {};
+    const newValue = !existing.autoReplyEnabled;
+
+    user.automationModsSettings = mergeAutomationModsSettings({ ...existing, autoReplyEnabled: newValue });
+    user.markModified('automationModsSettings');
+
+    // Mirror into the canonical auto-reply fields the socket reads, so the
+    // Automation panel, GENZ Mods page and app settings all agree.
+    const genzMods = user.genzMods?.toObject?.() || user.genzMods || {};
+    const message = genzMods.autoReply?.message || user.autoReplyMessage || '';
+    user.genzMods = {
+      ...genzMods,
+      autoReply: { ...(genzMods.autoReply || {}), enabled: newValue, message }
+    };
+    user.markModified('genzMods');
+    user.autoReplyEnabled = newValue;
+    user.autoReplyMessage = message;
+
+    await user.save();
+    res.status(200).json({ success: true, autoReplyEnabled: newValue });
+  } catch (error) {
+    console.error('Toggle auto reply error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 // @desc    Toggle Auto-Reply AI
 // @route   POST /api/automation-mods/auto-reply-ai
