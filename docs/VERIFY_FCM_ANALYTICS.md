@@ -1,8 +1,11 @@
 # 📱 Kuthibitisha FCM Push + Firebase Analytics — Checklist
 
-APK ya **v1.1.14 (code 17)** imejengwa na Firebase (FCM + Analytics) na imedeploy
-kwenye production. Hii ni checklist ya kuthibitisha kila kitu kinafanya kazi
-baada ya kusakinisha kwenye simu halisi.
+APK ya **v1.1.14 (code 18)** imejengwa na Firebase (FCM + Analytics + topic
+`all` kwa kampeni za console) na imedeploy kwenye production. Hii ni checklist
+ya kuthibitisha kila kitu kinafanya kazi baada ya kusakinisha kwenye simu halisi.
+
+> Toleo la sasa la production: **code 18** (`version.json` → `7cca1712…`).
+> Ikiwa simu yako inaonyesha code < 18, pakua APK mpya tena.
 
 ---
 
@@ -12,7 +15,7 @@ baada ya kusakinisha kwenye simu halisi.
    (au bofya **Download Android App** kwenye login page ya app).
 2. Sakinisha juu ya APK ya zamani (data inabaki; signature ni ile ile).
 3. Fungua app → utaona **banner ya "Update available — v1.1.14"** kama simu
-   ilikuwa na toleo la zamani (versionCode 16 → 17).
+   ilikuwa na toleo la zamani (versionCode < 18).
 
 ## Hatua 2 — Ingia na usajili wa token
 
@@ -70,7 +73,7 @@ Ili backend ipeleke push kweli, weka `FIREBASE_*` kwenye **Render** pia
 
 | Tatizo | Suluhisho |
 |---|---|
-| Hakuna banner ya update | Angalia umeanzisha APK mpya (Settings → Help → Android app version → v1.1.14) |
+| Hakuna banner ya update | Angalia umeanzisha APK mpya (Settings → Help → Android app version → v1.1.14, code 18) |
 | Push haifiki (app iko background) | 1) Angalia token ilisajiliwa (Hatua 2). 2) Angalia simu haina DND. 3) Backend lazima iwe na `FIREBASE_*` kwenye Render |
 | App inacrash unapoingia | `google-services.json` imewekwa mbaya → ondoa, ipakue upya kutoka Firebase console (package: `com.benivanny.genzwhatsapp`) na ujenge upya |
 | Analytics "No data" baada ya siku 2 | Thibitisha APK mpya (code 17) ndiyo imesakinishwa — APK ya zamani haina Analytics SDK |
