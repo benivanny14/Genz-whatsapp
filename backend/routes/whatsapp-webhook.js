@@ -34,6 +34,9 @@ router.get('/', webhookRateLimiter, (req, res) => {
 
   if (mode === 'subscribe' && token && verifyToken && token === verifyToken) {
     // Meta requires the challenge echoed verbatim as plain text.
+    // no-transform: keep the body uncompressed (compression middleware
+    // honours this header) — Meta's validator reads the raw challenge.
+    res.setHeader('Cache-Control', 'no-store, no-transform');
     res.type('text/plain').send(challenge);
     return;
   }
