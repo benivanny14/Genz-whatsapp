@@ -11,6 +11,12 @@
  * exercises superAdminAuth -> strictRateLimiter -> controller exactly like
  * production does.
  */
+// Pin the strict admin budget to the production default (10/hour) regardless
+// of any ambient ADMIN_STRICT_MAX from CI/nightly (which raises it to 100 for
+// the feature-verification scripts). Must be set BEFORE the requires below —
+// strictRateLimiter reads the env once at module load.
+process.env.ADMIN_STRICT_MAX = '10';
+
 const request = require('supertest');
 const mongoose = require('mongoose');
 const speakeasy = require('speakeasy');
