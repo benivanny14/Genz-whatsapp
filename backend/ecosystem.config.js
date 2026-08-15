@@ -1,5 +1,5 @@
 /**
- * PM2 Ecosystem Configuration for GENZ WhatsApp Backend
+ * PM2 Ecosystem Configuration for Genz Messenger Backend
  * 
  * This file configures PM2 for process management in production
  * Usage: pm2 start ecosystem.config.js

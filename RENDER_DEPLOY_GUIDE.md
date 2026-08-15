@@ -29,7 +29,7 @@
 >
 > Kwa maelezo kamili ya kila key, soma jedwali la env hapa chini.
 
-Mwongozo huu unakuongoza hatua kwa hatua kuweka env zote za GENZ WhatsApp
+Mwongozo huu unakuongoza hatua kwa hatua kuweka env zote za Genz Messenger
 kwenye Render kwa mkono (manual) kwenye Render Dashboard.
 
 **Kanuni za secrets (zilizokuwa zikifanywa na script ya zamani — sasa unafanya
@@ -175,7 +175,7 @@ Firebase FCM (`FIREBASE_*` — `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`,
 kwa `node scripts/import-firebase-service-account.js /njia/faili.json` kisha
 nakili kutoka `backend/.env`), GIPHY (`GIPHY_API_KEY`), S3 backups
 (`AWS_*`, `S3_BUCKET_NAME`), `ADMIN_IP_ALLOWLIST`, `LOG_LEVEL`, `MAX_UPLOAD_BYTES`,
-`SMTP_*` (bado haitumiki kwenye code — OTP inaenda kupitia WhatsApp).
+`SMTP_*` (alert emails za production — `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASS`/`SMTP_FROM`/`ALERT_EMAIL_TO`; Gmail: `smtp.gmail.com:587` + App password).
 
 ---
 

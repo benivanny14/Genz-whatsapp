@@ -1,6 +1,6 @@
-# GENZ WhatsApp — Production Readiness Checklist
+# Genz Messenger — Production Readiness Checklist
 
-This checklist covers everything that must be configured before GENZ WhatsApp
+This checklist covers everything that must be configured before Genz Messenger
 is exposed to a large number of real users. Each item is either a deployment
 environment variable (set in Render/Railway/VPS) or a code decision.
 

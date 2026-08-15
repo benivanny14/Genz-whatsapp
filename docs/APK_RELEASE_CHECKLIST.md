@@ -1,4 +1,4 @@
-# GENZ WhatsApp — APK Release Checklist (Chrome download — NO Play Store)
+# Genz Messenger — APK Release Checklist (Chrome download — NO Play Store)
 
 > **Model yetu:** app inasambazwa kama APK **inayodownloadiwa moja kwa moja
 > kupitia Chrome** kutoka kwenye tovuti — **hatutumii Play Store**. Hii
@@ -62,7 +62,7 @@ Pipeline: web build → `cap sync android` → `gradlew assembleRelease`
 ### 3. Verify (mashine au kifaa halisi)
 - [ ] APK ina-install kwenye Android test device (na inaweza kusajiliwa juu
       ya version ya zamani bila kufuta data).
-- [ ] Fungua app → login page inaonyesha **"GENZ WhatsApp Android vX.Y.Z"**.
+- [ ] Fungua app → login page inaonyesha **"Genz Messenger Android vX.Y.Z"**.
 - [ ] Download button inatoa APK mpya; `curl https://GENZ-URL/genz-whatsapp.apk`
       inalingana sha256 na `public/version.json`:
       ```bash

@@ -282,7 +282,7 @@ const Login = () => {
           </a>
           {apkVersion && (
             <p className="mt-2 text-center text-[11px] text-slate-500">
-              GENZ WhatsApp Android v{apkVersion.version}
+              Genz Messenger Android v{apkVersion.version}
             </p>
           )}
           <ReleaseUptake />

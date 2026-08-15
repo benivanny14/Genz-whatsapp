@@ -1,6 +1,6 @@
 # Mwongozo wa Kujenga APK na Kuweka Live (Kiswahili)
 
-Mwongozo huu unaelezea hatua kwa hatua jinsi ya kujenga **APK ya GENZ WhatsApp**
+Mwongozo huu unaelezea hatua kwa hatua jinsi ya kujenga **APK ya Genz Messenger**
 kutoka kwenye web app (Capacitor), kuweka APK kwenye site yenyewe, na
 kurekebisha deployment ya Render. (Download ya APK kupitia GitHub imeondolewa
 kabisa.)
@@ -41,7 +41,7 @@ keytool -genkeypair -v \
   -keyalg RSA -keysize 2048 -validity 10000 \
   -storepass PASSWORD_YAKO \
   -keypass PASSWORD_YAKO \
-  -dname "CN=GENZ WhatsApp, OU=GENZ, O=GENZ, L=Dar es Salaam, S=Dar es Salaam, C=TZ"
+  -dname "CN=Genz Messenger, OU=GENZ, O=GENZ, L=Dar es Salaam, S=Dar es Salaam, C=TZ"
 ```
 
 > Kwenye Windows, `keytool` iko ndani ya Java: `"C:\Program Files\Java\jdk-17\bin\keytool.exe"`

@@ -91,7 +91,7 @@ const InstallAppPrompt = () => {
             <Download size={20} className="text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold">Weka GENZ WhatsApp kwenye simu yako</p>
+            <p className="text-sm font-semibold">Weka Genz Messenger kwenye simu yako</p>
             <p className="text-xs text-white/60">Ifungue haraka kama app, hata bila kufungua kivinjari</p>
           </div>
           <button

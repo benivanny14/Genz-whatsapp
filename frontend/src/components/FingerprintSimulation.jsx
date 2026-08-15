@@ -42,7 +42,7 @@ const FingerprintSimulation = ({ onComplete }) => {
           <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center">
             <ShieldCheck size={100} className="text-primary-500 mb-6" />
             <h2 className="text-3xl font-bold text-white">Security Initialized!</h2>
-            <p className="text-primary-500 mt-2 font-medium">Welcome to GENZ WhatsApp Ultra Secure</p>
+            <p className="text-primary-500 mt-2 font-medium">Welcome to Genz Messenger Ultra Secure</p>
           </motion.div>
         )}
       </AnimatePresence>

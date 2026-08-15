@@ -1,6 +1,6 @@
 {
   "appId": "com.benivanny.genzwhatsapp",
-  "appName": "GENZ WhatsApp",
+  "appName": "Genz Messenger",
   "webDir": "dist",
   "server": {
     "androidScheme": "https"

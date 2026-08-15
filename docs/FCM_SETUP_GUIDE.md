@@ -1,4 +1,4 @@
-# GENZ WhatsApp — Firebase FCM Setup Guide (real push notifications)
+# Genz Messenger — Firebase FCM Setup Guide (real push notifications)
 
 The web app already sends **web push** using only VAPID keys — that works in
 desktop browsers with zero Firebase setup.
@@ -37,7 +37,7 @@ and local notifications still fire while the app is open.
    com.benivanny.genzwhatsapp
    ```
    (this is `applicationId` in `frontend/android/app/build.gradle`).
-   App nickname e.g. "GENZ WhatsApp APK". Click **Register app**.
+   App nickname e.g. "Genz Messenger APK". Click **Register app**.
 3. Download **google-services.json** and place it at:
    ```
    frontend/android/app/google-services.json

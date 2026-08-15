@@ -100,7 +100,7 @@ const InstallGuide = () => {
                 vX.Y.Z&quot; ikionyesha version mpya. Bonyeza <strong>Update</strong> kupakua moja kwa moja.
               </li>
               <li>
-                Unaweza kuangalia version yako kwenye login page: <em>&quot;GENZ WhatsApp Android vX.Y.Z&quot;</em>.
+                Unaweza kuangalia version yako kwenye login page: <em>&quot;Genz Messenger Android vX.Y.Z&quot;</em>.
               </li>
             </ul>
           </Step>

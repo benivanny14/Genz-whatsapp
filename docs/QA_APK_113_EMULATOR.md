@@ -43,12 +43,12 @@ text/DOM checks zilifanya kazi vizuri).
 - [x] Kupitia Chrome DevTools remote debugging (`adb forward` +
       `localabstract:webview_devtools_remote_<pid>`):
   - URL: `https://genz-whatsapp-1.onrender.com/login` ✓
-  - Title: `GENZ WhatsApp - Modern Chat Application` ✓
+  - Title: `Genz Messenger - Modern Chat Application` ✓
   - Login page kamili: **Login**, **Namba ya simu au username (e.g. +255...)**
     **Nenosiri**, **Forgot password?**, **Create account**, **Terms**, **Privacy Policy**,
-    **Download Android App**, **GENZ WhatsApp Android v1.1.13**,
+    **Download Android App**, **Genz Messenger Android v1.1.13**,
     **How to install — Jinsi ya kusakinisha**, **Verify checksum — Thibitisha checksum** ✓
-- [x] **"GENZ WhatsApp Android v1.1.13"** inathibitisha `/version.json`
+- [x] **"Genz Messenger Android v1.1.13"** inathibitisha `/version.json`
       inafikiwa kutoka kwenye WebView (relative fetch inafanya kazi).
 
 ## 3. Hakuna false "Update available" toast (fix ya main.jsx)

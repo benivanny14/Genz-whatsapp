@@ -21,7 +21,7 @@ const ACCESS_TOKEN = process.env.WHATSAPP_CLOUD_API_ACCESS_TOKEN || '';
 const PHONE_NUMBER_ID = process.env.WHATSAPP_CLOUD_API_PHONE_NUMBER_ID || '';
 const COUNTRY_CODE = (process.env.WHATSAPP_OTP_COUNTRY_CODE || '255').replace(/\D/g, '');
 const DEFAULT_MESSAGE = process.env.WHATSAPP_OTP_MESSAGE_TEMPLATE
-  || 'Your GENZ WhatsApp OTP is {otp}. It expires in {minutes} minutes. Do not share it with anyone.';
+  || 'Your Genz Messenger OTP is {otp}. It expires in {minutes} minutes. Do not share it with anyone.';
 
 const API_URL = `https://graph.facebook.com/${GRAPH_VERSION}/${PHONE_NUMBER_ID}/messages`;
 

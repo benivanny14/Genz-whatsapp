@@ -259,7 +259,7 @@ test.describe('mobile layout — install guide + version display', () => {
         await page.goto('/login');
         await page.waitForTimeout(1200);
         await expect(
-          page.getByText(/GENZ WhatsApp Android v\d+\.\d+\.\d+/)
+          page.getByText(/Genz Messenger Android v\d+\.\d+\.\d+/)
         ).toBeVisible({ timeout: 10_000 });
         await expect(
           page.getByRole('link', { name: /How to install — Jinsi ya kusakinisha/ })

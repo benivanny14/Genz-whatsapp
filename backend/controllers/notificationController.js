@@ -99,7 +99,7 @@ exports.sendTestNotification = async (req, res) => {
     const result = await notificationService.sendToUser(
       userId,
       {
-        title: 'GENZ WhatsApp',
+        title: 'Genz Messenger',
         body: req.body?.body || 'Notifications are connected.',
         type: 'test',
         clickAction: '/'

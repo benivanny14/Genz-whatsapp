@@ -9,7 +9,7 @@ const downloadBlob = (blob, filename) => {
 
 export const exportChatAsTxt = (messages = [], conversationName = 'Chat', currentUserId) => {
   const lines = [
-    `GENZ WhatsApp Chat Export`,
+    `Genz Messenger Chat Export`,
     `Chat: ${conversationName}`,
     `Exported: ${new Date().toLocaleString()}`,
     `${'─'.repeat(40)}`,
@@ -49,7 +49,7 @@ export const exportChatAsTxt = (messages = [], conversationName = 'Chat', curren
     }
   });
 
-  lines.push('', `${'─'.repeat(40)}`, 'Exported from GENZ WhatsApp');
+  lines.push('', `${'─'.repeat(40)}`, 'Exported from Genz Messenger');
 
   const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
   downloadBlob(blob, `${conversationName.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.txt`);

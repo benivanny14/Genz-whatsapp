@@ -1585,7 +1585,7 @@ exports.addContactByPhone = async (req, res) => {
 
     const contactUser = await User.findOne({ phoneNumber: phone });
     if (!contactUser) {
-      return res.status(404).json({ success: false, message: 'Namba hii bado haijasajiliwa kwenye GENZ WhatsApp' });
+      return res.status(404).json({ success: false, message: 'Namba hii bado haijasajiliwa kwenye Genz Messenger' });
     }
 
     if (contactUser._id.toString() === localUserId.toString()) {

@@ -33,7 +33,7 @@ test.describe('production smoke (via UI host proxy)', () => {
     page.on('pageerror', (e) => pageErrors.push(String(e)));
     // Free-tier cold start can take a while — generous navigation timeout.
     await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60_000 });
-    await expect(page).toHaveTitle(/GENZ WhatsApp/);
+    await expect(page).toHaveTitle(/Genz Messenger/);
     await expect(page.locator('body')).not.toBeEmpty();
     // No uncaught exceptions: a bundle that references a missing define or
     // module crashes React and leaves a blank body — that is a real failure.

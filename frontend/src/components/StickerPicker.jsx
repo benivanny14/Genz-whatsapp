@@ -9,7 +9,7 @@ const STATIC_STICKER_PACKS = [
   {
     id: 'genz-default',
     name: 'GENZ Stickers',
-    author: 'GENZ WhatsApp',
+    author: 'Genz Messenger',
     stickers: [
       { id: '1', url: 'https://media.giphy.com/media/3o6ozvv0zsJskzOCbu/giphy.gif', name: 'Wave' },
       { id: '2', url: 'https://media.giphy.com/media/10JhviFuU2gWD6/giphy.gif', name: 'Thumbs Up' },
@@ -28,7 +28,7 @@ const STATIC_STICKER_PACKS = [
   {
     id: 'genz-reactions',
     name: 'GENZ Reactions',
-    author: 'GENZ WhatsApp',
+    author: 'Genz Messenger',
     stickers: [
       { id: 'r1', url: 'https://media.giphy.com/media/3o6ozvv0zsJskzOCbu/giphy.gif', name: 'Like' },
       { id: 'r2', url: 'https://media.giphy.com/media/10JhviFuU2gWD6/giphy.gif', name: 'Love' },
@@ -41,7 +41,7 @@ const STATIC_STICKER_PACKS = [
   {
     id: 'genz-funny',
     name: 'GENZ Funny',
-    author: 'GENZ WhatsApp',
+    author: 'Genz Messenger',
     stickers: [
       { id: 'f1', url: 'https://media.giphy.com/media/l0MYd5y1pUqEZilGE/giphy.gif', name: 'Funny' },
       { id: 'f2', url: 'https://media.giphy.com/media/l0HlNQ03J5JxX6lva/giphy.gif', name: 'Party' },

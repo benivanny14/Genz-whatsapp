@@ -47,7 +47,7 @@ Mpangilio: web app ya Capacitor imejengwa kwa `VITE_API_URL=http://10.0.2.2:5055
 ### Lock screen
 
 - [x] Baada ya login, **lock screen inajitokeza moja kwa moja**
-      ("GENZ WhatsApp | Enter your PIN to unlock") — kwa sababu emulator
+      ("Genz Messenger | Enter your PIN to unlock") — kwa sababu emulator
       haikuwa na fingerprint enrolled wakati huo, fallback ya PIN ilitumika.
 - [x] **PIN 2468 inafungua** app → chat UI kamili.
 

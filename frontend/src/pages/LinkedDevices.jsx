@@ -230,7 +230,7 @@ const LinkedDevices = () => {
                 <Smartphone className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No linked devices</h3>
                 <p className="text-gray-500 dark:text-gray-400 mb-4">
-                  Link your devices to use GENZ WhatsApp on multiple devices
+                  Link your devices to use Genz Messenger on multiple devices
                 </p>
                 <button
                   onClick={handleGenerateQR}
@@ -309,7 +309,7 @@ const LinkedDevices = () => {
 
                 <div className="space-y-3">
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Scan this QR code with your GENZ WhatsApp mobile app
+                    Scan this QR code with your Genz Messenger mobile app
                   </p>
                   
                   {(qrData.pairingToken || qrData.code) && (

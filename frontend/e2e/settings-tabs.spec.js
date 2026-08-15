@@ -31,7 +31,7 @@ test('settings: all six tabs render after the boundary extraction', async ({ pag
   // Sidebar → Menu → GENZ Settings
   await page.getByRole('button', { name: 'Menu' }).click();
   await page.getByRole('button', { name: 'GENZ Settings' }).click();
-  await expect(page.getByText('GENZ WhatsApp Mods', { exact: true })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText('Genz Messenger Mods', { exact: true })).toBeVisible({ timeout: 20_000 });
 
   const tabs = [
     { label: 'Profile', marker: 'My Profile' },
@@ -48,6 +48,6 @@ test('settings: all six tabs render after the boundary extraction', async ({ pag
   }
 
   // Settings panel is still alive after the tour (no boundary fallback fired).
-  await expect(page.getByText('GENZ WhatsApp Mods', { exact: true })).toBeVisible();
+  await expect(page.getByText('Genz Messenger Mods', { exact: true })).toBeVisible();
   await expect(page.getByText('Component error.', { exact: true })).toHaveCount(0);
 });

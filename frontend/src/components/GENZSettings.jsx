@@ -102,7 +102,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
     }
     return {
       username: profileData.username || user?.username || '',
-      bio: profileData.bio || user?.bio || 'Using GENZ WhatsApp Ultra Secure',
+      bio: profileData.bio || user?.bio || 'Using Genz Messenger Ultra Secure',
       profilePicture: profileData.profilePicture || user?.profilePicture || ''
     };
   });
@@ -647,7 +647,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
       <div className="bg-blue-900/50 backdrop-blur-xl px-4 pt-4 pb-0 flex items-center gap-4 text-white shadow-lg border-b border-white/10">
         <ArrowLeft className="cursor-pointer hover:scale-110 transition-transform flex-shrink-0" onClick={close} />
         <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-bold truncate">GENZ WhatsApp Mods</h1>
+          <h1 className="text-lg font-bold truncate">Genz Messenger Mods</h1>
           <p className="text-[9px] opacity-70 uppercase tracking-widest text-blue-300">Version 9.80 Â· Ultra Secure</p>
         </div>
         {subscriptionStatus.isActive && (

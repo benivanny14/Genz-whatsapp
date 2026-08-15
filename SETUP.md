@@ -1,8 +1,8 @@
-# GENZ WhatsApp - Complete Setup Guide
+# Genz Messenger - Complete Setup Guide
 
 ## 🎯 Overview
 
-This guide will help you set up GENZ WhatsApp for deployment using free services. The app builds and passes its tests, but before inviting many users, complete the items in `PRODUCTION_READINESS.md` (Cloudinary media storage, payment-process decision, Redis/TURN for scale).
+This guide will help you set up Genz Messenger for deployment using free services. The app builds and passes its tests, but before inviting many users, complete the items in `PRODUCTION_READINESS.md` (Cloudinary media storage, payment-process decision, Redis/TURN for scale).
 
 ## ✅ Issues Fixed
 
@@ -70,7 +70,7 @@ This guide will help you set up GENZ WhatsApp for deployment using free services
 2. Create free account
 3. **Create API Key:**
    - Settings → API Keys → "Create API Key"
-   - Name: `GENZ WhatsApp`
+   - Name: `Genz Messenger`
    - Permissions: Full Access
    - Click "Create & View"
    - **Copy the API Key** (you won't see it again!)
@@ -365,4 +365,4 @@ If you encounter issues:
 
 ---
 
-**Your GENZ WhatsApp system is now deployed — review `PRODUCTION_READINESS.md` before scaling to many users. 🚀**
+**Your Genz Messenger system is now deployed — review `PRODUCTION_READINESS.md` before scaling to many users. 🚀**

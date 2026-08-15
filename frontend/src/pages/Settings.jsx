@@ -776,7 +776,7 @@ const Settings = () => {
   };
 
   const handleInviteFriends = () => {
-    const inviteText = 'Join me on GENZ WhatsApp — a powerful messaging app!';
+    const inviteText = 'Join me on Genz Messenger — a powerful messaging app!';
     if (navigator.share) {
       navigator.share({ title: 'Invite to GENZ', text: inviteText }).catch(() => {});
     } else {
@@ -1253,7 +1253,7 @@ const Settings = () => {
               </button>
             </div>
             <p className="text-sm text-blue-100/70 mb-4">
-              Read the full legal documents for GENZ WhatsApp, including our beta disclaimer on
+              Read the full legal documents for Genz Messenger, including our beta disclaimer on
               end-to-end encryption.
             </p>
             <div className="grid gap-3">

@@ -2,7 +2,7 @@
 
 Mwongozo huu unaeleza hatua kwa hatua jinsi ya kutoa **`google-services.json`**
 kutoka Firebase console na kuwezesha push notifications (FCM) kwenye APK ya
-GENZ WhatsApp. **Hii ndiyo kazi pekee iliyobaki** — code iko tayari kabisa
+Genz Messenger. **Hii ndiyo kazi pekee iliyobaki** — code iko tayari kabisa
 (imehakikiwa). Unahitaji tu dakika 10 na akaunti ya Google.
 
 > ⚠️ **Inahitajika wewe, siwezi kuifanya mimi:** faili hii ina API keys za
@@ -48,7 +48,7 @@ GENZ WhatsApp. **Hii ndiyo kazi pekee iliyobaki** — code iko tayari kabisa
    ```
    > Hili ndilo `applicationId` lililo kwenye `frontend/android/app/build.gradle`.
    > Likikosea hata herufi moja, FCM haitafanya kazi.
-4. App nickname: k.m. `GENZ WhatsApp APK` (ni jina la ndani tu).
+4. App nickname: k.m. `Genz Messenger APK` (ni jina la ndani tu).
 5. Bofya **Register app**.
 
 ### Hatua ya 3 — Pakua google-services.json (kitu muhimu!)

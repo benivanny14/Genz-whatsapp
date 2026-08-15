@@ -18,7 +18,7 @@ the WebView service worker — none of which an emulator reproduces faithfully.
       Install unknown apps → allow) and tap **Install anyway** if Play Protect
       warns.
 - [ ] Open GENZ → login page shows the app version under the download button,
-      e.g. **"GENZ WhatsApp Android v1.1.3"**.
+      e.g. **"Genz Messenger Android v1.1.3"**.
 - [ ] Tap **Verify checksum** → select the downloaded APK → **✓ MATCH** (compares
       SHA-256 against the published checksum).
 - [ ] Log in → the app works (chat, send a message, receive a message).

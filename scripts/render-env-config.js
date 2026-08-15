@@ -98,7 +98,7 @@ const OPTIONAL = {
   WEBHOOK_IP_WHITELIST: { desc: 'Webhook IP allowlist (comma separated)' },
   ADMIN_IP_ALLOWLIST: { desc: 'Admin panel IP allowlist (comma separated)' },
   JWT_REFRESH_EXPIRES_IN: { value: '30d', desc: 'Refresh token lifetime' },
-  SMTP_HOST: { desc: 'SMTP host (email currently unused in code)' },
+  SMTP_HOST: { desc: 'SMTP host for alert emails (e.g. smtp.gmail.com)' },
   SMTP_PORT: { value: '587', desc: 'SMTP port' },
   SMTP_USER: { desc: 'SMTP username' },
   SMTP_PASS: { desc: 'SMTP password' },

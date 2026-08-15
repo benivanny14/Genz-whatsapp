@@ -1,4 +1,4 @@
-# GENZ WhatsApp — Mobile Readiness Report
+# Genz Messenger — Mobile Readiness Report
 
 Status: **✅ PASS** — the web app renders and behaves correctly on modern phone
 viewports (iPhone and Android), including all 130 feature panels.
@@ -153,7 +153,7 @@ App* button), never through the Play Store. Each release:
    `public/version.json`.
 2. `npm run apk:build` — rebuilds the signed APK and fills sha256/size into
    `public/version.json` (served at `/version.json`; the login page shows
-   `GENZ WhatsApp Android vX.Y.Z` under the download button so users can
+   `Genz Messenger Android vX.Y.Z` under the download button so users can
    check for updates).
 3. Commit + push → Render serves the new APK automatically.
 

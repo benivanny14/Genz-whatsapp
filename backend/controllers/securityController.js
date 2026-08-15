@@ -50,7 +50,7 @@ exports.generateTwoFactorSecret = async (req, res) => {
 
     const secret = speakeasy.generateSecret({
       name: `GENZ (${user.phoneNumber || user.username})`,
-      issuer: 'GENZ WhatsApp'
+      issuer: 'Genz Messenger'
     });
 
     user.twoFactorSecret = secret.base32;

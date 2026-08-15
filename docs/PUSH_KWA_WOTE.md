@@ -1,7 +1,7 @@
 # 📣 Kutuma Push kwa Watumiaji Wote — Firebase Console
 
 Mwongozo huu unaeleza jinsi ya kutuma push notification kwa **watumiaji wote**
-wa GENZ WhatsApp kupitia **Firebase console → Cloud Messaging** — bila kuandika
+wa Genz Messenger kupitia **Firebase console → Cloud Messaging** — bila kuandika
 code wala kutumia backend API.
 
 > **Sharti:** watumiaji wanapaswa kuwa na APK ya **v1.1.14 (code 17)+** —
@@ -21,7 +21,7 @@ inaposajiliwa. Hivyo:
    campaign** → **Notifications**.
 3. Chini ya **Target** → chagua **Topics** → andika: `all`
    (utaona idadi ya wasajiliwa ikiwa imekwisha kujazwa).
-4. Andika **Notification title** na **Text** (mf. "GENZ WhatsApp — update mpya!").
+4. Andika **Notification title** na **Text** (mf. "Genz Messenger — update mpya!").
 5. **Schedule** → **Now** → **Review → Publish**.
 6. Push itafika kwa KILA kifaa chenye APK mpya (hata kama app imefungwa).
 

@@ -177,7 +177,7 @@ exports.getWhatsAppQrDisplay = async (req, res) => {
 <body>
   <div class="card">
     <h1>WhatsApp OTP — Link a device</h1>
-    <p class="sub">GENZ WhatsApp backend</p>
+    <p class="sub">Genz Messenger backend</p>
     ${body}
     <div class="pill ${status.clientReady ? 'ok' : 'wait'}">${status.clientReady ? 'READY' : (qr ? 'SCAN THE QR ABOVE' : 'STARTING…')}</div>
   </div>

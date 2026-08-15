@@ -32,7 +32,7 @@ const PrivacyPolicy = () => {
           <div className="rounded-2xl border border-[#00a884]/30 bg-[#00a884]/10 p-4 text-sm text-emerald-100">
             <p className="font-semibold mb-1">🔒 Your security matters to us</p>
             <p>
-              GENZ WhatsApp protects your communications with <strong>encryption in transit (TLS)</strong> and
+              Genz Messenger protects your communications with <strong>encryption in transit (TLS)</strong> and
               <strong> encrypted storage at rest</strong>, password hashing, <strong>two-factor authentication</strong>,
               and rate limiting. End-to-end encryption (E2EE) is on our roadmap as the next major
               feature — we are actively working to make your conversations even more private.
@@ -129,7 +129,7 @@ const PrivacyPolicy = () => {
 
           <div className="flex items-center justify-center gap-2 pt-2 text-xs text-blue-100/50">
             <ShieldCheck size={14} className="text-[#00a884]" />
-            <span>GENZ WhatsApp — Privacy Policy · {updated}</span>
+            <span>Genz Messenger — Privacy Policy · {updated}</span>
           </div>
         </div>
       </div>

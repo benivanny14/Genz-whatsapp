@@ -1,4 +1,4 @@
-// GENZ WhatsApp Service Worker v5
+// Genz Messenger Service Worker v5
 // Handles: Push notifications (foreground+background), offline cache, background sync
 //
 // v5 change: /version.json and the APK must NEVER be served from the cache.
@@ -150,7 +150,7 @@ self.addEventListener('push', (e) => {
   const info = payload.data || payload;
   const notifType = info.type || payload.type;
 
-  const title = payload.title || info.senderName || 'GENZ WhatsApp';
+  const title = payload.title || info.senderName || 'Genz Messenger';
   let body = payload.body || info.text || info.message || '';
   body = String(body).replace(/https?:\/\/[^\s]+/g, '').replace(/www\.[^\s]+/g, '').trim();
   if (!body) body = 'New message';

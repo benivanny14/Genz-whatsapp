@@ -73,7 +73,7 @@ export const authenticateWithBiometric = async (options = {}) => {
   try {
     const res = await NativeBiometric.verifyIdentity({
       reason: options.reason || 'Scan your fingerprint to continue',
-      title: options.title || 'GENZ WhatsApp',
+      title: options.title || 'Genz Messenger',
       subtitle: options.subtitle || 'Biometric authentication',
       description: options.description || 'Confirm your identity to unlock',
       negativeButtonText: options.negativeButtonText || 'Cancel',

@@ -24,7 +24,7 @@ const COUNTRY_CODE = (process.env.WHATSAPP_OTP_COUNTRY_CODE || '255').replace(/\
 const SESSION_DIR = process.env.WHATSAPP_OTP_SESSION_DIR
   || require('path').join(__dirname, '..', '.wwebjs_auth');
 const DEFAULT_MESSAGE = process.env.WHATSAPP_OTP_MESSAGE_TEMPLATE
-  || 'Your GENZ WhatsApp OTP is {otp}. It expires in {minutes} minutes. Do not share it with anyone.';
+  || 'Your Genz Messenger OTP is {otp}. It expires in {minutes} minutes. Do not share it with anyone.';
 
 let client = null;
 let clientReady = false;

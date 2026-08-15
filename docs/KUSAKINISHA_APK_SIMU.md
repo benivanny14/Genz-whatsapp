@@ -1,4 +1,4 @@
-# Kusakinisha GENZ WhatsApp APK kwenye Simu Halisi (Kiswahili)
+# Kusakinisha Genz Messenger APK kwenye Simu Halisi (Kiswahili)
 
 Mwongozo huu unaelezea hatua kwa hatua jinsi ya kusakinisha
 `frontend/public/genz-whatsapp.apk` (v1.1.14) kwenye **simu halisi ya Android**.
@@ -65,7 +65,7 @@ Hivi ndivyo unavyothibitisha:
 
 1. Sakinisha v1.1.14 (Njia 1 au 2 juu).
 2. Washa **Airplane mode** kwenye simu (au zima Wi-Fi + data).
-3. Fungua GENZ WhatsApp → **login page inapaswa kuonekana mara moja**
+3. Fungua Genz Messenger → **login page inapaswa kuonekana mara moja**
    (hakuna "loading..." ya muda mrefu, hakuna kosa la mtandao).
 4. Ukiwa tayari umewahi kuingia, chats zako za mwisho zinaonekana (offline
    cache) — kutumaliza ujumbe unahitaji mtandao tu, lakini **app yenyewe

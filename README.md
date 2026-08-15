@@ -1,4 +1,4 @@
-# GENZ WhatsApp - Modern Chat Application
+# Genz Messenger - Modern Chat Application
 
 A WhatsApp-like web application built with React (frontend) and Node.js/Express (backend) with real-time messaging via Socket.io, plus a GENZ Mods layer (themes, anti-delete, bulk sender, etc.) and a manual mobile-money Premium payment flow.
 

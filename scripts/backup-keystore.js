@@ -40,7 +40,7 @@ for (const f of FILES) {
   console.log(`   sha256: ${sha}`);
 }
 
-const note = `GENZ WhatsApp — backup ya release keystore
+const note = `Genz Messenger — backup ya release keystore
 Tarehe: ${new Date().toISOString()}
 Chanzo: ${SRC_DIR}
 

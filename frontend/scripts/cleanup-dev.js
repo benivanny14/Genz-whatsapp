@@ -19,7 +19,7 @@ console.log('🧹 Cleaning up development environment...');
 const manifestPath = path.join(__dirname, '../public/manifest.json');
 if (!fs.existsSync(manifestPath)) {
   const manifest = {
-    name: 'GENZ WhatsApp',
+    name: 'Genz Messenger',
     short_name: 'GENZ',
     description: 'WhatsApp clone with GENZ Ultra features',
     start_url: '/',
@@ -62,7 +62,7 @@ if (!fs.existsSync(offlinePath)) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GENZ WhatsApp - Offline</title>
+    <title>Genz Messenger - Offline</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;

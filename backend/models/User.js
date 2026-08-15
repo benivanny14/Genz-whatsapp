@@ -203,7 +203,7 @@ const userSchema = new mongoose.Schema({
   },
   about: {
     type: String,
-    default: 'Hey there! I am using GENZ WhatsApp'
+    default: 'Hey there! I am using Genz Messenger'
   },
   bio: {
     type: String,

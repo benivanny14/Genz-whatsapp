@@ -38,7 +38,7 @@ const NotificationSettings = () => {
   const testNotification = async () => {
     await notificationService.showNotification(
       'Test Notification',
-      'This is a test notification from GENZ WhatsApp',
+      'This is a test notification from Genz Messenger',
       { force: true }
     );
   };

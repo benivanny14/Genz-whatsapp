@@ -259,8 +259,8 @@ const GroupInfo = ({ group, onClose, currentUserId }) => {
 
   const handleShareInviteLink = async () => {
     const link = `${window.location.origin}/join/${group._id}/${info?.groupInviteCode}`;
-    const title = `Join ${info?.groupName || 'my group'} on GENZ WhatsApp`;
-    const text = `Tap the link to join ${info?.groupName || 'my group'} on GENZ WhatsApp.`;
+    const title = `Join ${info?.groupName || 'my group'} on Genz Messenger`;
+    const text = `Tap the link to join ${info?.groupName || 'my group'} on Genz Messenger.`;
 
     if (navigator.share) {
       try {

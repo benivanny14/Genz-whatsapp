@@ -57,7 +57,7 @@ const transporter = nodemailer.createTransport({
     const info = await transporter.sendMail({
       from: env.SMTP_FROM || env.SMTP_USER,
       to,
-      subject: 'GENZ WhatsApp — SMTP test OK',
+      subject: 'Genz Messenger — SMTP test OK',
       text: 'Hii ni barua pepe ya mtihani. Ikiwa umeiona, SMTP imesanidiwa vizuri ✅'
     });
     console.log('✅ Imetumwa! messageId:', info.messageId);

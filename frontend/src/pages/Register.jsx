@@ -78,7 +78,7 @@ const Register = () => {
       <form onSubmit={handleDirectRegister} className="w-full max-w-md bg-[#111b21] border border-white/10 rounded-lg p-6 shadow-2xl genz-card">
         <div className="mb-6">
           <h1 className="genz-display text-2xl text-white">Tengeneza Akaunti</h1>
-          <p className="text-sm text-slate-400 mt-1">Jisajili kwa akaunti mpya ya GENZ WhatsApp.</p>
+          <p className="text-sm text-slate-400 mt-1">Jisajili kwa akaunti mpya ya Genz Messenger.</p>
         </div>
 
         {error && (

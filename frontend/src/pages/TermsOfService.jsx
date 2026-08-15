@@ -32,7 +32,7 @@ const TermsOfService = () => {
           <div className="rounded-2xl border border-[#00a884]/30 bg-[#00a884]/10 p-4 text-sm text-emerald-100">
             <p className="font-semibold mb-1">🔒 Secure by design</p>
             <p>
-              GENZ WhatsApp keeps your conversations safe with <strong>encryption in transit (TLS)</strong>,
+              Genz Messenger keeps your conversations safe with <strong>encryption in transit (TLS)</strong>,
               <strong> encrypted storage at rest</strong>, <strong>two-factor authentication</strong>, and strict
               access controls. End-to-end encryption (E2EE) is actively being developed as our next
               major security feature. By using the app you accept these terms and the accompanying{' '}
@@ -42,7 +42,7 @@ const TermsOfService = () => {
 
           <Section title="1. Acceptance of Terms">
             <p>
-              By accessing or using GENZ WhatsApp, you agree to be bound by these Terms and our
+              By accessing or using Genz Messenger, you agree to be bound by these Terms and our
               Privacy Policy. If you do not agree, please do not use the app.
             </p>
           </Section>
@@ -91,7 +91,7 @@ const TermsOfService = () => {
 
           <Section title="7. Intellectual property">
             <p>
-              The GENZ WhatsApp name, branding, and interface are the property of the service
+              The Genz Messenger name, branding, and interface are the property of the service
               operator. You retain ownership of the content you share, and you grant us a limited
               license to store and transmit it solely to operate the service.
             </p>
@@ -136,7 +136,7 @@ const TermsOfService = () => {
 
           <div className="flex items-center justify-center gap-2 pt-2 text-xs text-blue-100/50">
             <FileText size={14} className="text-[#00a884]" />
-            <span>GENZ WhatsApp — Terms of Service · {updated}</span>
+            <span>Genz Messenger — Terms of Service · {updated}</span>
           </div>
         </div>
       </div>

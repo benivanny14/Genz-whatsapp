@@ -142,7 +142,7 @@ const DeviceManagement = ({ onClose }) => {
                 </div>
               )}
               <p className="text-sm text-dark-textSecondary mt-4">
-                Open GENZ WhatsApp on your other device and scan this QR code to link it
+                Open Genz Messenger on your other device and scan this QR code to link it
               </p>
             </div>
           )}

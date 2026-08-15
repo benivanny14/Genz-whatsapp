@@ -125,7 +125,7 @@ const JoinGroup = () => {
 
         {status === 'error' && (
           <Link to="/chat" className="block mt-3 text-xs text-[#8696a0] hover:text-white">
-            Return to GENZ WhatsApp
+            Return to Genz Messenger
           </Link>
         )}
       </div>

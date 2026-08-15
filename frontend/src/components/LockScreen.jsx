@@ -50,7 +50,7 @@ const LockScreen = ({ onUnlock, correctPin, lockType = 'pin' }) => {
       if (cancelled) return;
       if (native && isAvailable) {
         const result = await authenticateWithBiometric({
-          reason: 'Unlock GENZ WhatsApp',
+          reason: 'Unlock Genz Messenger',
           description: 'Scan your fingerprint to open the app.'
         });
         if (cancelled) return;
@@ -126,7 +126,7 @@ const LockScreen = ({ onUnlock, correctPin, lockType = 'pin' }) => {
     setError('');
     setBiometricChecking(true);
     const result = await authenticateWithBiometric({
-      reason: 'Unlock GENZ WhatsApp',
+      reason: 'Unlock Genz Messenger',
       description: 'Scan your fingerprint to open the app.'
     });
     setBiometricChecking(false);
@@ -149,7 +149,7 @@ const LockScreen = ({ onUnlock, correctPin, lockType = 'pin' }) => {
         </div>
 
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-white mb-1">GENZ WhatsApp</h2>
+          <h2 className="text-2xl font-bold text-white mb-1">Genz Messenger</h2>
           {lockType === 'fingerprint' && !usePinFallback ? (
             <p className="text-sm text-blue-300/70">
               {biometricChecking ? 'Checking fingerprint...' : 'Unlock with your fingerprint'}

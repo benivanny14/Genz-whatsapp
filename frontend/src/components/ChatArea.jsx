@@ -1604,11 +1604,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         });
         setReplyingTo(null);
       } else {
-        toast.error(`GENZ WhatsApp: ${data.error || data.message || 'Upload failed'}`);
+        toast.error(`Genz Messenger: ${data.error || data.message || 'Upload failed'}`);
       }
     } catch (error) {
       console.error('Upload failed:', error);
-        toast.error("GENZ WhatsApp: Failed to upload file. Please try again.");
+        toast.error("Genz Messenger: Failed to upload file. Please try again.");
     }
     setIsViewOnceEnabled(false);
     if (originalEvent?.target) originalEvent.target.value = '';
@@ -2585,7 +2585,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           <div className="bg-primary-600/10 p-6 rounded-full inline-block mb-4">
             <MessageCircle className="w-16 h-16 text-primary-600" />
           </div>
-          <h2 className="text-2xl font-bold text-dark-text mb-2">GENZ WhatsApp Web</h2>
+          <h2 className="text-2xl font-bold text-dark-text mb-2">Genz Messenger Web</h2>
           <p className="text-dark-textSecondary">
             Send and receive messages without keeping your phone online.
           </p>
