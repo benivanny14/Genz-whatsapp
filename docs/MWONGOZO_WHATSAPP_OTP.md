@@ -63,9 +63,10 @@ Kwenye dashboard ya Meta app → **WhatsApp → Configuration**, ukifika kwenye
 hatua **Configure Webhooks**, jaza hivi:
 
 - **Callback URL**:
-  `https://<your-app>.onrender.com/webhook/whatsapp`
-  (badilisha `<your-app>` na jina la Render app yako — kwa genz-whatsapp-1
-  ni `https://genz-whatsapp-1.onrender.com/webhook/whatsapp`).
+  `https://genz-whatsapp.onrender.com/webhook/whatsapp`
+  ⚠️ **Tumia `genz-whatsapp` (backend/API host) — SI `genz-whatsapp-1`**,
+  kwa sababu `genz-whatsapp-1` ni frontend/UI host inayoproxy `/api` pekee;
+  endpoint ya webhook iko kwenye backend service.
 - **Verify token**: andika **siri yoyote** unayoitengeneza mwenyewe (e.g.
   `genz_webhook_verify_2026`) — token ileile lazima iwe kwenye env
   `WHATSAPP_WEBHOOK_VERIFY_TOKEN` ya server.
