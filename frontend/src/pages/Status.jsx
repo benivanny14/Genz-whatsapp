@@ -30,7 +30,6 @@ import AdvancedChatFeaturesPanel from '../components/AdvancedChatFeaturesPanel';
 import VoiceFeaturesPanel from '../components/VoiceFeaturesPanel';
 import AccessibilityAdvancedPanel from '../components/AccessibilityAdvancedPanel';
 import DebugFeaturesPanel from '../components/DebugFeaturesPanel';
-import PrivacyModsPanel from '../components/PrivacyModsPanel';
 import MediaUploadEnhanced from '../components/MediaUploadEnhanced';
 import StatusAnalyticsPanel from '../components/StatusAnalyticsPanel';
 import ThemeStore from '../components/PaidFeatures/ThemeStore';
@@ -84,7 +83,6 @@ const Status = () => {
   const [viewedStatuses, setViewedStatuses] = useState([]);
   const [autosaveStatuses, setAutosaveStatuses] = useState(false);
   const [statusNotificationSettings, setStatusNotificationSettings] = useState({});
-  const [showTMPrivacy, setShowTMPrivacy] = useState(false);
   const [showMediaUploadEnhanced, setShowMediaUploadEnhanced] = useState(false);
   const [showStatusAnalytics, setShowStatusAnalytics] = useState(false);
   const [showThemeStore, setShowThemeStore] = useState(false);
@@ -889,14 +887,6 @@ const Status = () => {
               title="Theme Store" aria-label="Theme Store"
             >
               <Palette size={16} /> Themes
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowTMPrivacy(true)}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="Privacy" aria-label="Privacy"
-            >
-              <Shield size={20} />
             </button>
             <button
               type="button"
@@ -2290,7 +2280,6 @@ const Status = () => {
             status={selectedStatusForPanel}
           />
         )}
-        {showTMPrivacy && <PrivacyModsPanel onClose={() => setShowTMPrivacy(false)} />}
         {showMediaUploadEnhanced && <MediaUploadEnhanced onClose={() => setShowMediaUploadEnhanced(false)} onUpload={(files) => console.log('Files uploaded:', files)} />}
         {showVoiceChanger && <VoiceChangerPanel onClose={() => setShowVoiceChanger(false)} onApplyEffect={(effect) => console.log('Voice effect applied:', effect)} />}
         {showTextToSpeech && <TextToSpeechPanel onClose={() => setShowTextToSpeech(false)} onGenerateSpeech={(speech) => console.log('Speech generated:', speech)} />}
