@@ -67,7 +67,7 @@ const GroupManagement = () => {
           <div className="space-y-2">
             {(viewing.participants || []).map((p) => (
               <div key={p._id} className="flex justify-between items-center text-sm border-b border-gray-100 dark:border-gray-800 pb-2">
-                <span>{p.username} {p.isBlocked && <span className="text-red-500 text-xs">(amezuiwa)</span>}</span>
+                <span>{p.username} {p.isBlocked && <span className="text-red-500 text-xs">(blocked)</span>}</span>
                 <button onClick={() => removeMember(p._id)} className="text-red-500 text-xs flex items-center gap-1">
                   <UserMinus size={14} /> Remove
                 </button>

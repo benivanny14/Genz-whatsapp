@@ -37,7 +37,7 @@ const NotificationCenter = () => {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
-        <StatCard label="Subscriptions Zote" value={overview.totalSubscriptions} />
+        <StatCard label="Total Subscriptions" value={overview.totalSubscriptions} />
         <StatCard label="Zinazofanya Kazi" value={overview.enabledSubscriptions} tone="emerald" />
       </div>
 
@@ -52,8 +52,8 @@ const NotificationCenter = () => {
             <select value={segment} onChange={(e) => setSegment(e.target.value)}
               className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
               <option value="all">All users</option>
-              <option value="premium">Premium tu</option>
-              <option value="free">Wasio Premium</option>
+              <option value="premium">Premium Only</option>
+              <option value="free">Non-Premium</option>
             </select>
             <button disabled={sending} className="bg-emerald-600 text-white rounded-lg px-4 py-2 text-sm flex items-center gap-2 disabled:opacity-60">
               <BellRing size={14} /> {sending ? 'Sending...' : 'Send Notification'}

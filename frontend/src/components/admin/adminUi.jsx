@@ -38,7 +38,7 @@ export const Pager = ({ page, pages, onChange }) => {
         onClick={() => onChange(page - 1)}
         className="px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 disabled:opacity-40"
       >
-        Nyuma
+        Back
       </button>
       <span className="text-gray-500">{page} / {pages}</span>
       <button
@@ -46,7 +46,7 @@ export const Pager = ({ page, pages, onChange }) => {
         onClick={() => onChange(page + 1)}
         className="px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 disabled:opacity-40"
       >
-        Mbele
+        Next
       </button>
     </div>
   );

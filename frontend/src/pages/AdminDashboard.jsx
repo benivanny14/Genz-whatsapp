@@ -52,11 +52,11 @@ const SECTIONS = [
   { key: 'adminChat', label: 'Admin ↔ User Chat', icon: MessagesSquare, group: 'Communication', implemented: true },
   { key: 'abuseReports', label: 'Abuse Reports', icon: AlertTriangle, group: 'Reports', implemented: true },
   { key: 'reports', label: 'Reports & Analytics', icon: BarChart3, group: 'Reports', implemented: true },
-  { key: 'auditLogs', label: 'Audit Logs', icon: ScrollText, group: 'Usalama', implemented: true },
-  { key: 'security', label: 'Security Center', icon: ShieldCheck, group: 'Usalama', implemented: true },
-  { key: 'roles', label: 'Roles & Permissions', icon: KeyRound, group: 'Usalama', implemented: true },
-  { key: 'devices', label: 'Device Management', icon: Smartphone, group: 'Usalama', implemented: true },
-  { key: 'sessions', label: 'Session Management', icon: Timer, group: 'Usalama', implemented: true },
+  { key: 'auditLogs', label: 'Audit Logs', icon: ScrollText, group: 'Security', implemented: true },
+  { key: 'security', label: 'Security Center', icon: ShieldCheck, group: 'Security', implemented: true },
+  { key: 'roles', label: 'Roles & Permissions', icon: KeyRound, group: 'Security', implemented: true },
+  { key: 'devices', label: 'Device Management', icon: Smartphone, group: 'Security', implemented: true },
+  { key: 'sessions', label: 'Session Management', icon: Timer, group: 'Security', implemented: true },
 ];
 
 const GROUP_ORDER = ['Core', 'Finance', 'Content', 'Communication', 'Reports', 'Security'];
@@ -427,12 +427,12 @@ const OverviewSection = () => {
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard label="Total Users" value={overview.users.total} sub={`${overview.users.online} online`} />
-        <StatCard label="Wapya Leo" value={overview.users.newToday} tone="blue" />
+        <StatCard label="New Today" value={overview.users.newToday} tone="blue" />
         <StatCard label="Premium" value={overview.users.premium} tone="amber" />
-        <StatCard label="Wamezuiwa" value={overview.users.blocked} tone="red" />
+        <StatCard label="Blocked" value={overview.users.blocked} tone="red" />
         <StatCard label="Total Messages" value={overview.messaging.totalMessages} tone="violet" />
         <StatCard label="Messages Today" value={overview.messaging.messagesToday} tone="violet" />
-        <StatCard label="Mapato Yote" value={fmtMoney(overview.payments.totalRevenue)} tone="emerald" />
+        <StatCard label="Total Revenue" value={fmtMoney(overview.payments.totalRevenue)} tone="emerald" />
         <StatCard label="Active Devices" value={overview.devices.active} tone="blue" />
       </div>
 
@@ -505,7 +505,7 @@ const UsersSection = () => {
     const action = u.isBlocked ? 'unblock' : 'block';
     try {
       await adminApi.post(`/admin/users/${u._id}/${action}`);
-      toast.success(action === 'block' ? 'Amezuiwa' : 'Amefunguliwa');
+      toast.success(action === 'block' ? 'User blocked' : 'User unblocked');
       load(search);
     } catch {
       toast.error('Failed to change user status');
@@ -533,8 +533,8 @@ const UsersSection = () => {
               <tr>
                 <th className="text-left p-3">Name</th>
                 <th className="text-left p-3">Phone</th>
-                <th className="text-left p-3">Hali</th>
-                <th className="text-left p-3">Kitendo</th>
+                <th className="text-left p-3">Status</th>
+                <th className="text-left p-3">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -544,7 +544,7 @@ const UsersSection = () => {
                   <td className="p-3 text-gray-400">{u.phoneNumber}</td>
                   <td className="p-3">
                     {u.isBlocked
-                      ? <span className="text-red-500">Amezuiwa</span>
+                      ? <span className="text-red-500">Blocked</span>
                       : <span className="text-emerald-500">OK</span>}
                   </td>
                   <td className="p-3">
@@ -616,16 +616,16 @@ const PaymentsSection = ({ statusFilter = 'All', title = 'Payment Management' })
           <StatCard label="Pending" value={stats.pendingPayments} tone="amber" />
           <StatCard label="Approved" value={stats.approvedPayments} tone="emerald" />
           <StatCard label="Rejected" value={stats.rejectedPayments} tone="red" />
-          <StatCard label="Zinazofanana (Duplicate)" value={stats.duplicatePayments} tone="red" />
-          <StatCard label="Wanachama Amilifu" value={stats.activeSubscribers} tone="blue" />
+          <StatCard label="Duplicates" value={stats.duplicatePayments} tone="red" />
+          <StatCard label="Active Subscribers" value={stats.activeSubscribers} tone="blue" />
           <StatCard label="Revenue This Month" value={fmtMoney(stats.monthlyRevenue)} tone="emerald" />
-          <StatCard label="Mapato Yote" value={fmtMoney(stats.totalRevenue)} tone="emerald" />
+          <StatCard label="Total Revenue" value={fmtMoney(stats.totalRevenue)} tone="emerald" />
         </div>
       )}
 
       <div className="flex justify-between items-center">
         <h3 className="text-gray-800 dark:text-gray-200 font-medium">{title}</h3>
-        <button onClick={load} className="text-xs flex items-center gap-1 text-gray-500"><RefreshCcw size={14} /> Onyesha upya</button>
+        <button onClick={load} className="text-xs flex items-center gap-1 text-gray-500"><RefreshCcw size={14} /> Refresh</button>
       </div>
 
       {loading ? <LoadingBlock /> : (
@@ -633,10 +633,10 @@ const PaymentsSection = ({ statusFilter = 'All', title = 'Payment Management' })
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500">
               <tr>
-                <th className="text-left p-3">Mtumiaji</th>
+                <th className="text-left p-3">User</th>
                 <th className="text-left p-3">Kiasi</th>
-                <th className="text-left p-3">Hali</th>
-                <th className="text-left p-3">Kitendo</th>
+                <th className="text-left p-3">Status</th>
+                <th className="text-left p-3">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -680,7 +680,7 @@ const AuditLogsSection = () => {
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
       <table className="w-full text-sm">
         <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500">
-          <tr><th className="text-left p-3">Wakati</th><th className="text-left p-3">Kitendo</th><th className="text-left p-3">IP</th></tr>
+          <tr><th className="text-left p-3">Time</th><th className="text-left p-3">Action</th><th className="text-left p-3">IP</th></tr>
         </thead>
         <tbody>
           {logs.map((l) => (
@@ -708,10 +708,10 @@ const SecuritySection = () => {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Waliofungwa (locked)" value={report.lockedUsers.length} tone="red" />
-        <StatCard label="Kushindwa Kuingia" value={report.failedLoginUsers.length} tone="amber" />
+        <StatCard label="Locked" value={report.lockedUsers.length} tone="red" />
+        <StatCard label="Failed Logins" value={report.failedLoginUsers.length} tone="amber" />
         <StatCard label="Blocked" value={report.blockedUsers.length} tone="red" />
-        <StatCard label="Wasimamizi (legacy)" value={report.adminUsers.length} tone="blue" />
+        <StatCard label="Admins (legacy)" value={report.adminUsers.length} tone="blue" />
       </div>
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 text-sm space-y-1">
         <h3 className="font-medium text-gray-800 dark:text-gray-200 mb-2">Mazingira ya Uzalishaji (Environment)</h3>
@@ -870,7 +870,7 @@ const AdminDashboard = () => {
               {dark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
             <span className="text-xs text-gray-400 hidden sm:inline">{admin?.username}</span>
-            <button onClick={logout} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-red-500" title="Toka">
+            <button onClick={logout} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-red-500" title="Logout">
               <LogOut size={18} />
             </button>
           </div>

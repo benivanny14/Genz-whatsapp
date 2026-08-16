@@ -153,15 +153,15 @@ const AbuseReports = () => {
 
           <div className="grid md:grid-cols-2 gap-4 mb-4">
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-              <p className="text-xs text-gray-400 mb-1">Aliyetoa Report</p>
+              <p className="text-xs text-gray-400 mb-1">Reporter</p>
               <p className="font-medium">{viewing.reporterId?.username || '—'}</p>
               <p className="text-xs text-gray-400">{viewing.reporterId?.phoneNumber || '—'}</p>
             </div>
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-              <p className="text-xs text-gray-400 mb-1">Aliyereportiwa</p>
+              <p className="text-xs text-gray-400 mb-1">Reported User</p>
               <p className="font-medium">{viewing.reportedUserId?.username || '—'}</p>
               <p className="text-xs text-gray-400">{viewing.reportedUserId?.phoneNumber || '—'}</p>
-              {viewing.reportedUserId?.isBlocked && <span className="text-xs text-red-500">(Amezuiwa)</span>}
+              {viewing.reportedUserId?.isBlocked && <span className="text-xs text-red-500">(Blocked)</span>}
             </div>
           </div>
 
@@ -233,7 +233,7 @@ const AbuseReports = () => {
     <div className="space-y-4">
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="Zote" value={stats.total} />
+          <StatCard label="Total" value={stats.total} />
           <StatCard label="Pending" value={stats.pending} tone="amber" />
           <StatCard label="Under Review" value={stats.underReview} tone="blue" />
           <StatCard label="Resolved" value={stats.resolved} tone="emerald" />
@@ -277,7 +277,7 @@ const AbuseReports = () => {
         </div>
       </div>
 
-      <Table headers ={['ID', 'Aliyetoa', 'Aliyereportiwa', 'Kategoria', 'Prioriti', 'Hali', 'Ililetwa', 'Kitendo']}>
+      <Table headers ={['ID', 'Reporter', 'Reported', 'Category', 'Priority', 'Status', 'Submitted', 'Action']}>
         {reports.map((r) => (
           <tr key={r._id} className="border-t border-gray-100 dark:border-gray-800">
             <td className="p-3 text-xs font-mono">#{r._id.toString().slice(-6)}</td>

@@ -66,8 +66,8 @@ const BroadcastSystem = () => {
             <select value={segment} onChange={(e) => setSegment(e.target.value)}
               className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
               <option value="all">All users</option>
-              <option value="premium">Premium tu</option>
-              <option value="free">Wasio Premium</option>
+              <option value="premium">Premium Only</option>
+              <option value="free">Non-Premium</option>
               <option value="blocked">Blocked</option>
             </select>
             <button disabled={sending} className="bg-emerald-600 text-white rounded-lg px-4 py-2 text-sm flex items-center gap-2 disabled:opacity-60">

@@ -45,7 +45,7 @@ const AdminDeviceManagement = () => {
             <td className="p-3">{d.deviceName || d.deviceId}</td>
             <td className="p-3 text-gray-400">{d.deviceType || d.platform || '—'}</td>
             <td className="p-3 text-gray-400">{d.lastActive ? new Date(d.lastActive).toLocaleString() : '—'}</td>
-            <td className="p-3">{d.isActive ? <span className="text-emerald-500">Amilifu</span> : <span className="text-gray-400">Haifanyi kazi</span>}</td>
+            <td className="p-3">{d.isActive ? <span className="text-emerald-500">Active</span> : <span className="text-gray-400">Inactive</span>}</td>
             <td className="p-3"><button onClick={() => revoke(d._id)} className="text-red-500"><Trash2 size={16} /></button></td>
           </tr>
         ))}

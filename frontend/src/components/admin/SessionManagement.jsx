@@ -72,7 +72,7 @@ const SessionManagement = () => {
                 <td className="p-3"><button onClick={() => revoke(s.token)} className="text-red-500"><LogOut size={16} /></button></td>
               </tr>
             ))}
-            {sessions.length === 0 && <EmptyRow colSpan={5} text="Hana session amilifu" />}
+            {sessions.length === 0 && <EmptyRow colSpan={5} text="No active sessions" />}
           </Table>
         </>
       )}
