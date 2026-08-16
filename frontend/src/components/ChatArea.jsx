@@ -2523,8 +2523,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       typingByConversation, isOtherUserRecording, setShowSearchMessages,
       setShowMediaGallery, headerMenuRef, setShowHeaderMenu, showHeaderMenu,
       toggleDNDMode, isDNDMode, handleClearCurrentChat, handleDeleteCurrentChat,
-      handleExportChat
-}), [safeMods, selectConversation, sidebarOpen, onOpenSidebar, isSearching, setIsSearching, chatSearchQuery, setChatSearchQuery, selectedConversation, setShowGroupInfo, setShowContactInfo, isLiveLocationActive, getConversationAvatar, getConversationName, peerPresence, isOtherUserTyping, groupOnlineCount, history, typingByConversation, isOtherUserRecording, setShowSearchMessages, setShowMediaGallery, headerMenuRef, setShowHeaderMenu, showHeaderMenu, toggleDNDMode, isDNDMode, handleClearCurrentChat, handleDeleteCurrentChat, handleExportChat]);
+      handleExportChat, viewProfile, otherUser
+}), [safeMods, selectConversation, sidebarOpen, onOpenSidebar, isSearching, setIsSearching, chatSearchQuery, setChatSearchQuery, selectedConversation, setShowGroupInfo, setShowContactInfo, isLiveLocationActive, getConversationAvatar, getConversationName, peerPresence, isOtherUserTyping, groupOnlineCount, history, typingByConversation, isOtherUserRecording, setShowSearchMessages, setShowMediaGallery, headerMenuRef, setShowHeaderMenu, showHeaderMenu, toggleDNDMode, isDNDMode, handleClearCurrentChat, handleDeleteCurrentChat, handleExportChat, viewProfile, otherUser]);
 
   const listCtx = useMemo(() => ({
   messagesContainerRef, handleMessagesScroll, safeMods, activeDoodle,

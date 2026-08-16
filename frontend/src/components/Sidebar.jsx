@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useChat } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
+import userService from '../services/userService';
 import BroadcastModal from './BroadcastModal';
 import MassSenderModal from './MassSenderModal';
 
@@ -94,6 +95,31 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   const [showArchiveChats, setShowArchiveChats] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
+  const [trackVisitors, setTrackVisitors] = useState(false);
+
+  // Load whether the current user opted in to profile-visitor tracking.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await userService.getSettings();
+        if (!cancelled && res?.settings?.privacy) {
+          setTrackVisitors(res.settings.privacy.trackProfileVisitors === true);
+        }
+      } catch (e) { /* non-critical: visitors toggle stays off */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const toggleVisitorTracking = async () => {
+    const next = !trackVisitors;
+    setTrackVisitors(next);
+    try {
+      await userService.updateSettings({ privacy: { trackProfileVisitors: next } });
+    } catch (e) {
+      setTrackVisitors(!next);
+    }
+  };
   const chatListRef = useRef(null);
   const [isPulling, setIsPulling] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
@@ -1932,6 +1958,18 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
         {isOpen && activeTab === 'visitors' && (
           <div className="p-2 space-y-1">
             <h4 className="text-xs text-dark-textSecondary uppercase font-bold px-3 mb-2">Recent Profile Visitors</h4>
+            <button
+              onClick={() => toggleVisitorTracking()}
+              className="w-full flex items-center justify-between gap-3 p-3 mb-1 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+            >
+              <div className="text-left">
+                <div className="text-dark-text text-sm font-medium">Track Profile Visitors</div>
+                <div className="text-xs text-dark-textSecondary">Record who views your profile. Only you can see this list.</div>
+              </div>
+              <div className={`w-10 h-6 rounded-full transition-colors flex items-center ${trackVisitors ? 'bg-primary-600' : 'bg-white/20'} ${trackVisitors ? 'justify-end' : 'justify-start'} px-0.5`}>
+                <div className="w-5 h-5 rounded-full bg-white shadow"></div>
+              </div>
+            </button>
             {profileVisitors.length === 0 && <p className="text-sm text-dark-textSecondary text-center py-4">No visitors yet.</p>}
             {(profileVisitors || []).map((visitor, index) => (
               <div key={index} className="flex items-center gap-3 p-3 hover:bg-dark-hover rounded-lg transition-colors group cursor-pointer">

@@ -18,7 +18,7 @@ const ConversationHeader = React.memo(function ConversationHeader({ ctx }) {
     typingByConversation, isOtherUserRecording, setShowSearchMessages,
     setShowMediaGallery, headerMenuRef, setShowHeaderMenu, showHeaderMenu,
     toggleDNDMode, isDNDMode, handleClearCurrentChat, handleDeleteCurrentChat,
-    handleExportChat
+    handleExportChat, viewProfile, otherUser
   } = ctx;
 
   return (
@@ -59,6 +59,12 @@ const ConversationHeader = React.memo(function ConversationHeader({ ctx }) {
                     setShowGroupInfo(true);
                   } else {
                     setShowContactInfo(true);
+                    // Record a profile visit (only stored if the target user
+                    // enabled trackProfileVisitors — see socket visit_profile).
+                    const visitedUserId = otherUser?._id || otherUser?.id || selectedConversation?._id;
+                    if (visitedUserId && viewProfile) {
+                      viewProfile(visitedUserId);
+                    }
                   }
                 }}
               >
