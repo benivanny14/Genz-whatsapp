@@ -160,6 +160,27 @@ function App() {
   // viewport event — wasted work that showed up as jank/instability on
   // mobile, especially with the keyboard opening/closing repeatedly.
 
+  // --- Deep links (APK): open shared status URLs from scanned QR codes ---
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return undefined;
+    const openSharedStatus = (url) => {
+      try {
+        const match = String(url || '').match(/\/status\/([A-Za-z0-9]+)/);
+        if (match?.[1]) {
+          window.location.href = `/status/${match[1]}`;
+        }
+      } catch (_) { /* ignore malformed deep links */ }
+    };
+    const listener = CapacitorApp.addListener('appUrlOpen', (data) => {
+      openSharedStatus(data?.url);
+    });
+    // Handle a URL that launched the app cold (available via getLaunchUrl).
+    CapacitorApp.getLaunchUrl?.().then((res) => openSharedStatus(res?.url)).catch(() => {});
+    return () => {
+      listener?.then((l) => l.remove());
+    };
+  }, []);
+
   // --- Glass Mode & Video Background Sync ---
   useEffect(() => {
     const syncGlassMode = () => {
