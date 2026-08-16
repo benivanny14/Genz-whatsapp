@@ -23,7 +23,7 @@ const NotificationCenter = () => {
     setSending(true);
     try {
       await adminApi.post('/admin/notifications/send', { title, body, segment });
-      toast.success('Arifa imetumwa');
+      toast.success('Notification sent');
       setTitle(''); setBody('');
     } catch {
       toast.error('Failed to send notification');
@@ -46,7 +46,7 @@ const NotificationCenter = () => {
         <form onSubmit={send} className="space-y-3">
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Kichwa cha habari"
             className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm" />
-          <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder="Maudhui ya arifa"
+          <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder="Notification content"
             className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 text-sm" />
           <div className="flex gap-3 items-center">
             <select value={segment} onChange={(e) => setSegment(e.target.value)}

@@ -58,7 +58,7 @@ const ChannelManagement = () => {
   const removePost = async (postId) => {
     try {
       await adminApi.delete(`/admin/channels/${posts.channel._id}/posts/${postId}`);
-      toast.success('Chapisho limeondolewa');
+      toast.success('Post removed');
       viewPosts(posts.channel);
     } catch {
       toast.error('Failed to remove post');

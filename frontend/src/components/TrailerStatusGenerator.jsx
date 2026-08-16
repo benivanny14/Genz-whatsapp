@@ -291,7 +291,7 @@ const TrailerStatusGenerator = ({ statuses, user, onClose }) => {
             </div>
             <div>
               <h2 className="text-white text-lg font-bold">Movie Trailer Status</h2>
-              <p className="text-white/50 text-xs">Auto timeline kutoka statuses zako + music</p>
+              <p className="text-white/50 text-xs">Auto timeline from your statuses + music</p>
             </div>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-white p-1 rounded-full" aria-label="Close">

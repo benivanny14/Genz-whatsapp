@@ -97,7 +97,7 @@ const InstallAppPrompt = () => {
           <button
             onClick={dismiss}
             className="p-1.5 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
-            aria-label="Funga"
+            aria-label="Close"
           >
             <X size={16} />
           </button>
@@ -105,14 +105,14 @@ const InstallAppPrompt = () => {
             onClick={handleInstallClick}
             className="ml-1 px-3 py-2 bg-[#128C7E] hover:bg-[#0f7a6c] rounded-lg text-xs font-semibold transition-colors flex-shrink-0"
           >
-            Weka (Install)
+            Install
           </button>
         </div>
       ) : (
         <div className="p-4">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-semibold">How to add it on iPhone</p>
-            <button onClick={dismiss} className="p-1 hover:bg-white/10 rounded-lg" aria-label="Funga">
+            <button onClick={dismiss} className="p-1 hover:bg-white/10 rounded-lg" aria-label="Close">
               <X size={16} />
             </button>
           </div>

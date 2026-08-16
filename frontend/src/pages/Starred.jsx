@@ -144,7 +144,7 @@ const Starred = () => {
                       onClick={() => handleUnstar(message)}
                       className="flex items-center gap-1 text-xs text-red-400/50 hover:text-red-400 transition-all ml-auto"
                     >
-                      <Trash2 size={12} /> Ondoa nyota
+                      <Trash2 size={12} /> Remove Star
                     </button>
                   </div>
                 </div>

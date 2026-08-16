@@ -2033,7 +2033,7 @@ const PrivacyTab = ({ ctx }) => {
 
             <div className="mt-4">
               <h4 className="text-xs font-bold text-blue-300 mb-2 flex items-center gap-1">
-                ☁️ Backups Zinazopatikana (Available Backups)
+                ☁️ Available Backups
               </h4>
               {renderCloudBackupsList()}
             </div>
@@ -2115,7 +2115,7 @@ const PrivacyTab = ({ ctx }) => {
           </div>
           {!updateAnalytics && (
             <div className="mx-2 mt-2 rounded-lg border border-blue-400/20 bg-blue-500/10 px-3 py-2 text-[11px] leading-relaxed text-blue-100/90">
-              <p className="font-semibold text-blue-100 mb-0.5">Nini kinakusanywa kabla ya kuwasha:</p>
+              <p className="font-semibold text-blue-100 mb-0.5">What is collected before enabling:</p>
               <p>
                 When enabled, every time an update banner is shown or tapped (shown / dismissed /
                 updated), the app sends only <span className="font-mono">4 words</span>: event, version,

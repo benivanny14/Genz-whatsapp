@@ -1246,7 +1246,7 @@ export const ChatProvider = ({ children }) => {
             );
           }
 
-          // Kama hakuna clientId, ongeza tu kama haipo
+          // If there is no clientId, add it if it does not exist
           return [...prev, { ...confirmedMsg, status: 'sent' }];
         });
       });

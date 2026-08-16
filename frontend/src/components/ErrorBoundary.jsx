@@ -109,13 +109,13 @@ class ErrorBoundary extends Component {
               onClick={this.handleRetry}
               className="flex items-center gap-2 px-4 py-2 bg-[#008069] hover:bg-[#007a5e] text-white rounded-xl font-semibold text-sm transition-all"
             >
-              <RefreshCw size={16} /> Jaribu Tena
+              <RefreshCw size={16} /> Try Again
             </button>
             <button
               onClick={() => window.location.href = '/'}
               className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold text-sm transition-all"
             >
-              <Home size={16} /> Nyumbani
+              <Home size={16} /> Home
             </button>
           </div>
           {import.meta.env.DEV && this.state.errorInfo && (

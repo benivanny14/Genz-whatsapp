@@ -58,7 +58,7 @@ const SessionManagement = () => {
             <p className="font-medium">{user.username} — Active Session</p>
             {sessions.length > 0 && (
               <button onClick={revokeAll} className="text-xs text-red-600 flex items-center gap-1">
-                <ShieldOff size={14} /> Ondoa Zote
+                <ShieldOff size={14} /> Remove All
               </button>
             )}
           </div>

@@ -154,7 +154,7 @@ const ProfileEditor = ({ onClose }) => {
           <div>
             <label className="text-xs text-dark-textSecondary uppercase font-bold mb-2 block">Phone Number</label>
             <p className="text-base text-emerald-400 font-medium tracking-wide">
-              {user?.phoneNumber || user?.phone || "Namba haijapatikana"}
+              {user?.phoneNumber || user?.phone || "Number not available"}
             </p>
           </div>
 

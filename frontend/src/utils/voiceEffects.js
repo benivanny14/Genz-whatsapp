@@ -4,13 +4,13 @@
  */
 
 export const VOICE_EFFECT_PRESETS = [
-  { id: 'none', label: 'Kawaida', icon: '🎙️', hint: 'Sauti asilia' },
-  { id: 'child', label: 'Mtoto', icon: '👶', hint: 'Juuchi ya juu (playback ↑)' },
-  { id: 'girl', label: 'Msichana', icon: '👩', hint: 'Sauti laini iliyo pitch kidogo juu' },
-  { id: 'boy', label: 'Mvulana', icon: '👨', hint: 'Pitch ya chini kiasi' },
-  { id: 'robot', label: 'Roboti', icon: '🤖', hint: 'Roboti / distortion laini' },
-  { id: 'deep', label: 'Mzito', icon: '🌊', hint: 'Basso nzito' },
-  { id: 'echo', label: 'Echo', icon: '📣', hint: 'Kielelezo cha kusikitisha' }
+  { id: 'none', label: 'Normal', icon: '🎙️', hint: 'Original voice' },
+  { id: 'child', label: 'Child', icon: '👶', hint: 'High pitch (playback ↑)' },
+  { id: 'girl', label: 'Girl', icon: '👩', hint: 'Soft voice, slightly higher pitch' },
+  { id: 'boy', label: 'Boy', icon: '👨', hint: 'Slightly lower pitch' },
+  { id: 'robot', label: 'Robot', icon: '🤖', hint: 'Robot / soft distortion' },
+  { id: 'deep', label: 'Deep', icon: '🌊', hint: 'Deep bass' },
+  { id: 'echo', label: 'Echo', icon: '📣', hint: 'Echo effect' }
 ];
 
 function audioBufferToWav(buffer) {

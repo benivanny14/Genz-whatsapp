@@ -32,24 +32,24 @@ import GenzAfterWorkManagement from '../components/admin/GenzAfterWorkManagement
 // wired to real backend endpoints.
 // ---------------------------------------------------------------------
 const SECTIONS = [
-  { key: 'overview', label: 'Overview', icon: LayoutDashboard, group: 'Msingi', implemented: true },
-  { key: 'dashboard', label: 'Dashboard', icon: Gauge, group: 'Msingi', implemented: true },
-  { key: 'users', label: 'User Management', icon: Users, group: 'Msingi', implemented: true },
-  { key: 'payments', label: 'Payment Management', icon: CreditCard, group: 'Fedha', implemented: true },
-  { key: 'subscriptions', label: 'Subscription Management', icon: BadgeDollarSign, group: 'Fedha', implemented: true },
-  { key: 'revenue', label: 'Revenue Dashboard', icon: TrendingUp, group: 'Fedha', implemented: true },
-  { key: 'duplicatePayments', label: 'Duplicate Payment Detection', icon: Copy, group: 'Fedha', implemented: true },
-  { key: 'fraud', label: 'Fraud Detection', icon: ShieldAlert, group: 'Fedha', implemented: true },
-  { key: 'genzAfterWork', label: 'GENZ AFTER WORK', icon: DollarSign, group: 'Fedha', implemented: true },
-  { key: 'chats', label: 'Chat Management', icon: MessageSquare, group: 'Maudhui', implemented: true },
-  { key: 'groups', label: 'Group Management', icon: UsersRound, group: 'Maudhui', implemented: true },
-  { key: 'channels', label: 'Channel Management', icon: Radio, group: 'Maudhui', implemented: true },
-  { key: 'status', label: 'Status Management', icon: CircleDot, group: 'Maudhui', implemented: true },
-  { key: 'stories', label: 'Stories Management', icon: Sparkles, group: 'Maudhui', implemented: true },
-  { key: 'broadcast', label: 'Broadcast System', icon: Megaphone, group: 'Mawasiliano', implemented: true },
-  { key: 'notifications', label: 'Notification Center', icon: Bell, group: 'Mawasiliano', implemented: true },
-  { key: 'tickets', label: 'Support Ticket System', icon: LifeBuoy, group: 'Mawasiliano', implemented: true },
-  { key: 'adminChat', label: 'Admin ↔ User Chat', icon: MessagesSquare, group: 'Mawasiliano', implemented: true },
+  { key: 'overview', label: 'Overview', icon: LayoutDashboard, group: 'Core', implemented: true },
+  { key: 'dashboard', label: 'Dashboard', icon: Gauge, group: 'Core', implemented: true },
+  { key: 'users', label: 'User Management', icon: Users, group: 'Core', implemented: true },
+  { key: 'payments', label: 'Payment Management', icon: CreditCard, group: 'Finance', implemented: true },
+  { key: 'subscriptions', label: 'Subscription Management', icon: BadgeDollarSign, group: 'Finance', implemented: true },
+  { key: 'revenue', label: 'Revenue Dashboard', icon: TrendingUp, group: 'Finance', implemented: true },
+  { key: 'duplicatePayments', label: 'Duplicate Payment Detection', icon: Copy, group: 'Finance', implemented: true },
+  { key: 'fraud', label: 'Fraud Detection', icon: ShieldAlert, group: 'Finance', implemented: true },
+  { key: 'genzAfterWork', label: 'GENZ AFTER WORK', icon: DollarSign, group: 'Finance', implemented: true },
+  { key: 'chats', label: 'Chat Management', icon: MessageSquare, group: 'Content', implemented: true },
+  { key: 'groups', label: 'Group Management', icon: UsersRound, group: 'Content', implemented: true },
+  { key: 'channels', label: 'Channel Management', icon: Radio, group: 'Content', implemented: true },
+  { key: 'status', label: 'Status Management', icon: CircleDot, group: 'Content', implemented: true },
+  { key: 'stories', label: 'Stories Management', icon: Sparkles, group: 'Content', implemented: true },
+  { key: 'broadcast', label: 'Broadcast System', icon: Megaphone, group: 'Communication', implemented: true },
+  { key: 'notifications', label: 'Notification Center', icon: Bell, group: 'Communication', implemented: true },
+  { key: 'tickets', label: 'Support Ticket System', icon: LifeBuoy, group: 'Communication', implemented: true },
+  { key: 'adminChat', label: 'Admin ↔ User Chat', icon: MessagesSquare, group: 'Communication', implemented: true },
   { key: 'abuseReports', label: 'Abuse Reports', icon: AlertTriangle, group: 'Reports', implemented: true },
   { key: 'reports', label: 'Reports & Analytics', icon: BarChart3, group: 'Reports', implemented: true },
   { key: 'auditLogs', label: 'Audit Logs', icon: ScrollText, group: 'Usalama', implemented: true },
@@ -531,8 +531,8 @@ const UsersSection = () => {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500">
               <tr>
-                <th className="text-left p-3">Jina</th>
-                <th className="text-left p-3">Simu</th>
+                <th className="text-left p-3">Name</th>
+                <th className="text-left p-3">Phone</th>
                 <th className="text-left p-3">Hali</th>
                 <th className="text-left p-3">Kitendo</th>
               </tr>
@@ -545,7 +545,7 @@ const UsersSection = () => {
                   <td className="p-3">
                     {u.isBlocked
                       ? <span className="text-red-500">Amezuiwa</span>
-                      : <span className="text-emerald-500">Sawa</span>}
+                      : <span className="text-emerald-500">OK</span>}
                   </td>
                   <td className="p-3">
                     <button onClick={() => toggleBlock(u)} className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700">
@@ -602,7 +602,7 @@ const PaymentsSection = ({ statusFilter = 'All', title = 'Payment Management' })
     }
     try {
       await adminApi.post(`/admin/manual-payments/${id}/${action}`, body);
-      toast.success(action === 'approve' ? 'Imekubaliwa' : 'Imekataliwa');
+      toast.success(action === 'approve' ? 'Approved' : 'Rejected');
       load();
     } catch {
       toast.error('Failed to update payment');
@@ -613,9 +613,9 @@ const PaymentsSection = ({ statusFilter = 'All', title = 'Payment Management' })
     <div className="space-y-4">
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="Zinasubiri" value={stats.pendingPayments} tone="amber" />
+          <StatCard label="Pending" value={stats.pendingPayments} tone="amber" />
           <StatCard label="Zimekubaliwa" value={stats.approvedPayments} tone="emerald" />
-          <StatCard label="Zimekataliwa" value={stats.rejectedPayments} tone="red" />
+          <StatCard label="Rejected" value={stats.rejectedPayments} tone="red" />
           <StatCard label="Zinazofanana (Duplicate)" value={stats.duplicatePayments} tone="red" />
           <StatCard label="Wanachama Amilifu" value={stats.activeSubscribers} tone="blue" />
           <StatCard label="Revenue This Month" value={fmtMoney(stats.monthlyRevenue)} tone="emerald" />
@@ -710,7 +710,7 @@ const SecuritySection = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard label="Waliofungwa (locked)" value={report.lockedUsers.length} tone="red" />
         <StatCard label="Kushindwa Kuingia" value={report.failedLoginUsers.length} tone="amber" />
-        <StatCard label="Waliozuiwa" value={report.blockedUsers.length} tone="red" />
+        <StatCard label="Blocked" value={report.blockedUsers.length} tone="red" />
         <StatCard label="Wasimamizi (legacy)" value={report.adminUsers.length} tone="blue" />
       </div>
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 text-sm space-y-1">

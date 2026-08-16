@@ -118,7 +118,7 @@ const ProductCatalogue = ({ onClose, onSendProduct }) => {
         <div className="p-4 border-b border-gray-800 flex items-center justify-between">
           <h2 className="text-white text-xl font-bold flex items-center gap-2">
             <Package size={24} className="text-blue-400" />
-            Katalogi ya Bidhaa (Product Catalogue)
+            Product Catalogue
           </h2>
           <button
             onClick={onClose}
@@ -143,14 +143,14 @@ const ProductCatalogue = ({ onClose, onSendProduct }) => {
               className="w-full p-4 border-2 border-dashed border-gray-700 rounded-xl text-gray-400 hover:border-blue-500 hover:text-blue-500 hover:bg-blue-500/5 transition-all flex items-center justify-center gap-2 mb-4"
             >
               <Plus size={20} />
-              Weka Bidhaa Mpya (Add Product)
+              Add Product
             </button>
           )}
 
           {/* Add Product Form */}
           {showAddForm && (
             <div className="bg-gray-800/50 backdrop-blur-md rounded-xl p-4 border border-gray-700 mb-4">
-              <h3 className="text-white font-bold mb-4">Ongeza Bidhaa Mpya</h3>
+              <h3 className="text-white font-bold mb-4">Add New Product</h3>
               <div className="space-y-3">
                 <div>
                   <label className="text-gray-400 text-sm block mb-1">Product Name</label>
@@ -163,17 +163,17 @@ const ProductCatalogue = ({ onClose, onSendProduct }) => {
                   />
                 </div>
                 <div>
-                  <label className="text-gray-400 text-sm block mb-1">Maelezo ya Bidhaa</label>
+                  <label className="text-gray-400 text-sm block mb-1">Product Description</label>
                   <textarea
                     value={newProduct.description}
                     onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                    placeholder="Ufafanuzi mf. GB 8 RAM, GB 256 SSD"
+                    placeholder="e.g. 8GB RAM, 256GB SSD"
                     rows={2}
                     className="w-full bg-gray-900 text-white px-4 py-2 rounded-lg border border-gray-700 focus:border-blue-500 focus:outline-none resize-none"
                   />
                 </div>
                 <div>
-                  <label className="text-gray-400 text-sm block mb-1">Bei (TZS / $)</label>
+                  <label className="text-gray-400 text-sm block mb-1">Price (TZS / $)</label>
                   <input
                     type="number"
                     value={newProduct.price}
@@ -184,7 +184,7 @@ const ProductCatalogue = ({ onClose, onSendProduct }) => {
                   />
                 </div>
                 <div>
-                  <label className="text-gray-400 text-sm block mb-1">URL ya Picha (Hiari)</label>
+                  <label className="text-gray-400 text-sm block mb-1">Image URL (Optional)</label>
                   <input
                     type="text"
                     value={newProduct.image}
@@ -198,7 +198,7 @@ const ProductCatalogue = ({ onClose, onSendProduct }) => {
                     onClick={() => { setShowAddForm(false); setNewProduct({ name: '', description: '', price: '', image: '' }); }}
                     className="flex-1 py-2 rounded-lg border border-gray-700 text-gray-400 hover:bg-gray-800 transition-colors"
                   >
-                    Ghairi
+                    Cancel
                   </button>
                   <button
                     onClick={handleAddProduct}

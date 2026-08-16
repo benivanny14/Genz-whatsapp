@@ -12,10 +12,10 @@ const STATUS_COLORS = {
 };
 
 const STATUS_LABELS = {
-  pending: 'Inasubiri',
-  under_review: 'Inachunguzwa',
+  pending: 'Pending',
+  under_review: 'Under Review',
   resolved: 'Resolved',
-  dismissed: 'Imekataliwa'
+  dismissed: 'Dismissed'
 };
 
 const PRIORITY_COLORS = {
@@ -26,21 +26,21 @@ const PRIORITY_COLORS = {
 };
 
 const PRIORITY_LABELS = {
-  low: 'Chini',
-  medium: 'Wastani',
-  high: 'Juu',
-  urgent: 'Dharura'
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High',
+  urgent: 'Urgent'
 };
 
 const CATEGORY_LABELS = {
   spam: 'Spam',
-  harassment: 'Ukandamizaji',
-  inappropriate_content: 'Maudhui Mabaya',
+  harassment: 'Harassment',
+  inappropriate_content: 'Inappropriate Content',
   fake_account: 'Fake Account',
-  scam: 'Udanganyifu',
-  violence: 'Vita',
-  hate_speech: 'Uchafu',
-  other: 'Nyingine'
+  scam: 'Scam',
+  violence: 'Violence',
+  hate_speech: 'Hate Speech',
+  other: 'Other'
 };
 
 const CONTENT_TYPE_LABELS = {
@@ -48,10 +48,10 @@ const CONTENT_TYPE_LABELS = {
   conversation: 'Conversation',
   group: 'Group',
   channel: 'Channel',
-  channel_post: 'Chapisho la Channel',
+  channel_post: 'Channel Post',
   status: 'Status',
   user_profile: 'User Profile',
-  other: 'Nyingine'
+  other: 'Other'
 };
 
 const AbuseReports = () => {
@@ -166,12 +166,12 @@ const AbuseReports = () => {
           </div>
 
           <div className="mb-4">
-            <p className="text-xs text-gray-400 mb-1">Aina ya Maudhui</p>
+            <p className="text-xs text-gray-400 mb-1">Content Type</p>
             <p className="font-medium">{CONTENT_TYPE_LABELS[viewing.contentType] || viewing.contentType}</p>
           </div>
 
           <div className="mb-4">
-            <p className="text-xs text-gray-400 mb-1">Maelezo</p>
+            <p className="text-xs text-gray-400 mb-1">Details</p>
             <p className="text-sm bg-gray-50 dark:bg-gray-800 rounded-lg p-3">{viewing.description}</p>
           </div>
 
@@ -188,7 +188,7 @@ const AbuseReports = () => {
 
           {viewing.adminNotes && (
             <div className="mb-4">
-              <p className="text-xs text-gray-400 mb-1">Maelezo ya Admin</p>
+              <p className="text-xs text-gray-400 mb-1">Admin Notes</p>
               <p className="text-sm bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3">{viewing.adminNotes}</p>
             </div>
           )}
@@ -197,16 +197,16 @@ const AbuseReports = () => {
             <p className="text-xs text-gray-400 mb-2">Badilisha Hali</p>
             <div className="flex flex-wrap gap-2 mb-3">
               <button onClick={() => updateStatus('pending')} className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700">
-                <Clock size={14} className="inline mr-1" /> Inasubiri
+                <Clock size={14} className="inline mr-1" /> Pending
               </button>
               <button onClick={() => updateStatus('under_review')} className="text-xs px-3 py-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/30">
-                <Eye size={14} className="inline mr-1" /> Inachunguzwa
+                <Eye size={14} className="inline mr-1" /> Under Review
               </button>
               <button onClick={() => updateStatus('resolved', 'warning_sent')} className="text-xs px-3 py-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/30">
                 <CheckCircle size={14} className="inline mr-1" /> Resolved
               </button>
               <button onClick={() => updateStatus('dismissed')} className="text-xs px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/30">
-                <XCircle size={14} className="inline mr-1" /> Imekataliwa
+                <XCircle size={14} className="inline mr-1" /> Dismissed
               </button>
             </div>
 
@@ -234,12 +234,12 @@ const AbuseReports = () => {
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard label="Zote" value={stats.total} />
-          <StatCard label="Zinasubiri" value={stats.pending} tone="amber" />
-          <StatCard label="Inachunguzwa" value={stats.underReview} tone="blue" />
+          <StatCard label="Pending" value={stats.pending} tone="amber" />
+          <StatCard label="Under Review" value={stats.underReview} tone="blue" />
           <StatCard label="Resolved" value={stats.resolved} tone="emerald" />
-          <StatCard label="Zimekataliwa" value={stats.dismissed} tone="gray" />
-          <StatCard label="Dharura" value={stats.byPriority?.urgent || 0} tone="red" />
-          <StatCard label="Juu" value={stats.byPriority?.high || 0} tone="orange" />
+          <StatCard label="Dismissed" value={stats.dismissed} tone="gray" />
+          <StatCard label="Urgent" value={stats.byPriority?.urgent || 0} tone="red" />
+          <StatCard label="High" value={stats.byPriority?.high || 0} tone="orange" />
         </div>
       )}
 
@@ -250,29 +250,29 @@ const AbuseReports = () => {
         </div>
         <div className="flex flex-wrap gap-2">
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1">
-            <option value="all">Hali Zote</option>
-            <option value="pending">Inasubiri</option>
-            <option value="under_review">Inachunguzwa</option>
+            <option value="all">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="under_review">Under Review</option>
             <option value="resolved">Resolved</option>
-            <option value="dismissed">Imekataliwa</option>
+            <option value="dismissed">Dismissed</option>
           </select>
           <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1">
-            <option value="all">Kategoria Zote</option>
+            <option value="all">All Categories</option>
             <option value="spam">Spam</option>
-            <option value="harassment">Ukandamizaji</option>
-            <option value="inappropriate_content">Maudhui Mabaya</option>
+            <option value="harassment">Harassment</option>
+            <option value="inappropriate_content">Inappropriate Content</option>
             <option value="fake_account">Fake Account</option>
-            <option value="scam">Udanganyifu</option>
-            <option value="violence">Vita</option>
-            <option value="hate_speech">Uchafu</option>
-            <option value="other">Nyingine</option>
+            <option value="scam">Scam</option>
+            <option value="violence">Violence</option>
+            <option value="hate_speech">Hate Speech</option>
+            <option value="other">Other</option>
           </select>
           <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)} className="text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1">
-            <option value="all">Prioriti Zote</option>
-            <option value="urgent">Dharura</option>
-            <option value="high">Juu</option>
-            <option value="medium">Wastani</option>
-            <option value="low">Chini</option>
+            <option value="all">All Priorities</option>
+            <option value="urgent">Urgent</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
           </select>
         </div>
       </div>

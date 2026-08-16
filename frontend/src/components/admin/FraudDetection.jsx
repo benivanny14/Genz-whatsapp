@@ -19,7 +19,7 @@ const FraudDetection = () => {
       <div className="grid grid-cols-3 gap-4">
         <StatCard label="IP Zinazoshirikiwa" value={signals.sharedIps.length} tone="red" />
         <StatCard label="Walengwa wa Brute-force" value={signals.bruteForceTargets.length} tone="amber" />
-        <StatCard label="Mrundikano wa Usajili" value={signals.signupBursts.length} tone="red" />
+        <StatCard label="Signup Burst" value={signals.signupBursts.length} tone="red" />
       </div>
 
       <div>
@@ -53,7 +53,7 @@ const FraudDetection = () => {
 
       <div>
         <h3 className="font-medium mb-2 text-sm">Registration Burst (14 days) — more than 10 accounts per hour</h3>
-        <Table headers={['Saa', 'Idadi ya Usajili']}>
+        <Table headers={['Time', 'Registration Count']}>
           {signals.signupBursts.map((b) => (
             <tr key={b._id} className="border-t border-gray-100 dark:border-gray-800">
               <td className="p-3">{b._id}</td>

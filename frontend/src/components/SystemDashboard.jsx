@@ -151,7 +151,7 @@ const SystemDashboard = ({ onClose }) => {
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <StatCard icon={<MessageSquare size={20} />} label="Msgs Leo" value={stats.messagesToday} sub="Jumla" color="blue" />
                     <StatCard icon={<Users size={20} />} label="Chats Leo" value={stats.chatsTodayCount} sub={`${stats.chatsCount} total`} color="green" />
-                    <StatCard icon={<Wifi size={20} />} label="Online Sasa" value={stats.onlineContactsCount} sub="Mawasiliano" color="purple" />
+                    <StatCard icon={<Wifi size={20} />} label="Online Now" value={stats.onlineContactsCount} sub="Communication" color="purple" />
                     <StatCard icon={<TrendingUp size={20} />} label="This Week" value={stats.messagesThisWeek} sub="Messages" color="orange" />
                     <StatCard icon={<Eye size={20} />} label="Statuses" value={stats.activeStatuses} sub="Active" color="yellow" />
                     <StatCard icon={<Zap size={20} />} label="Total Msgs" value={stats.totalMessages} sub="Wote" color="red" />
@@ -161,7 +161,7 @@ const SystemDashboard = ({ onClose }) => {
                   {stats.topConversations?.length > 0 && (
                     <div className="bg-white/5 rounded-2xl border border-white/10 p-4">
                       <h3 className="text-white font-bold text-sm mb-3 flex items-center gap-2">
-                        <Star size={16} className="text-yellow-400" /> Chats Maarufu Leo
+                        <Star size={16} className="text-yellow-400" /> Popular Chats Today
                       </h3>
                       <div className="space-y-3">
                         {stats.topConversations.map((conv, i) => (
@@ -266,7 +266,7 @@ const SystemDashboard = ({ onClose }) => {
                   {stats.onlineContacts?.length > 0 && (
                     <div className="mt-5 bg-white/5 rounded-xl border border-white/10 p-4">
                       <h4 className="text-white text-sm font-bold mb-3 flex items-center gap-2">
-                        <Wifi size={14} className="text-green-400" /> Mawasiliano Online Sasa
+                        <Wifi size={14} className="text-green-400" /> Online Connections Now
                       </h4>
                       <div className="flex flex-wrap gap-2">
                         {stats.onlineContacts.map((u) => (

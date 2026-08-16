@@ -355,7 +355,7 @@ const VoiceRecorder = ({
       if (onFallback) {
         onFallback();
       } else {
-        setError('Ruhusa ya maikrofoni imekataliwa');
+        setError('Microphone permission denied');
         console.error('VoiceRecorder error:', err);
       }
       isRecordingRef.current = false;

@@ -17,7 +17,7 @@ const OfflineIndicator = () => {
     <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-yellow-100 border border-yellow-300 text-yellow-800 px-4 py-3 rounded-lg shadow-lg flex items-center space-x-3 max-w-md">
       <AlertCircle className="w-5 h-5 text-yellow-600 shrink-0" />
       <div className="flex-1">
-        <h3 className="font-semibold text-sm mb-1">Huna mtandao</h3>
+        <h3 className="font-semibold text-sm mb-1">You are offline</h3>
         <p className="text-xs text-yellow-700">Messages will be sent when you are back online.</p>
       </div>
       <button
@@ -25,7 +25,7 @@ const OfflineIndicator = () => {
         className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 text-white text-xs rounded transition-colors flex items-center shrink-0"
       >
         <RefreshCw className="w-3 h-3 mr-1" />
-        Jaribu
+        Retry
       </button>
     </div>
   );

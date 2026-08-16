@@ -68,7 +68,7 @@ const BroadcastSystem = () => {
               <option value="all">All users</option>
               <option value="premium">Premium tu</option>
               <option value="free">Wasio Premium</option>
-              <option value="blocked">Waliozuiwa</option>
+              <option value="blocked">Blocked</option>
             </select>
             <button disabled={sending} className="bg-emerald-600 text-white rounded-lg px-4 py-2 text-sm flex items-center gap-2 disabled:opacity-60">
               <Send size={14} /> {sending ? 'Sending...' : 'Send'}
