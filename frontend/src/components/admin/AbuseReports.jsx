@@ -194,7 +194,7 @@ const AbuseReports = () => {
           )}
 
           <div className="border-t border-gray-200 dark:border-gray-800 pt-4">
-            <p className="text-xs text-gray-400 mb-2">Badilisha Hali</p>
+            <p className="text-xs text-gray-400 mb-2">Change Status</p>
             <div className="flex flex-wrap gap-2 mb-3">
               <button onClick={() => updateStatus('pending')} className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700">
                 <Clock size={14} className="inline mr-1" /> Pending
@@ -219,7 +219,7 @@ const AbuseReports = () => {
             />
 
             <button onClick={() => deleteReport(viewing._id)} className="text-sm text-red-600 flex items-center gap-1">
-              <Trash2 size={14} /> Futa Report
+              <Trash2 size={14} /> Delete Report
             </button>
           </div>
         </div>

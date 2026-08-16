@@ -21,8 +21,8 @@ exports.applyVoiceChanger = async (req, res) => {
     const { effect, pitch, speed, echo } = req.body;
     const status = await Status.findById(req.params.id);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
     
     if (status.type !== 'voice') {
       return res.status(400).json({ success: false, message: 'Voice changer only works on voice statuses' });
@@ -45,8 +45,8 @@ exports.textToSpeech = async (req, res) => {
     const { voice, speed, pitch } = req.body;
     const status = await Status.findById(req.params.id);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
     
     if (status.type !== 'text') {
       return res.status(400).json({ success: false, message: 'Text-to-speech only works on text statuses' });
@@ -69,8 +69,8 @@ exports.addCollaborator = async (req, res) => {
     const { collabUserId, collabUsername } = req.body;
     const status = await Status.findById(req.params.id);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
 
     let collaborator = null;
     if (collabUserId) {
@@ -83,15 +83,15 @@ exports.addCollaborator = async (req, res) => {
         ]
       });
     }
-    if (!collaborator) return res.status(404).json({ success: false, message: 'Collaborator haipatikani' });
+    if (!collaborator) return res.status(404).json({ success: false, message: 'Collaborator not found' });
 
     if (String(collaborator._id) === String(userId)) {
-      return res.status(400).json({ success: false, message: 'Huwezi kujiongeza mwenyewe kama collaborator' });
+      return res.status(400).json({ success: false, message: 'You cannot add yourself as a collaborator' });
     }
 
     if (!Array.isArray(status.collaborators)) status.collaborators = [];
     if (status.collaborators.some((c) => String(c.userId || c.user) === String(collaborator._id))) {
-      return res.status(400).json({ success: false, message: 'Collaborator tayari ameongezwa' });
+      return res.status(400).json({ success: false, message: 'Collaborator already added' });
     }
 
     const max = Number(status.maxCollaborators) > 0 ? Number(status.maxCollaborators) : 10;
@@ -123,9 +123,9 @@ exports.getCollaboration = async (req, res) => {
     const userId = req.user._id || req.user.id;
     const status = await Status.findById(req.params.id);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
     if (!isStatusOwner(status, userId) && !isCollaborator(status, userId)) {
-      return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+      return res.status(403).json({ success: false, message: 'You do not have permission' });
     }
 
     res.json({
@@ -151,8 +151,8 @@ exports.updateCollaboration = async (req, res) => {
     const userId = req.user._id || req.user.id;
     const status = await Status.findById(req.params.id);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
 
     const { collaborators, collabMode, isPublic, allowComments, allowEdits, expiryDate, maxCollaborators } = req.body;
 
@@ -192,18 +192,18 @@ exports.contributeToCollaboration = async (req, res) => {
     const username = req.user.username || req.body.username || '';
     const parent = await Status.findById(req.params.id);
 
-    if (!parent) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+    if (!parent) return res.status(404).json({ success: false, message: 'Status not found' });
     if (parent.expiresAt && new Date(parent.expiresAt) < new Date()) {
       return res.status(400).json({ success: false, message: 'Story imekwisha muda wake' });
     }
     if (!parent.isCollaborative || (!isCollaborator(parent, userId) && !isStatusOwner(parent, userId))) {
-      return res.status(403).json({ success: false, message: 'Wewe si collaborator wa story hii' });
+      return res.status(403).json({ success: false, message: 'You are not a collaborator on this story' });
     }
 
     const { type, mediaUrl, mediaType, caption, backgroundColor, textColor } = req.body;
-    if (!type) return res.status(400).json({ success: false, message: 'type inahitajika' });
+    if (!type) return res.status(400).json({ success: false, message: 'type is required' });
     if (['image', 'video', 'audio', 'voice'].includes(type) && !mediaUrl) {
-      return res.status(400).json({ success: false, message: 'mediaUrl inahitajika kwa status ya aina hii' });
+      return res.status(400).json({ success: false, message: 'mediaUrl is required for this status type' });
     }
 
     const contribution = await Status.create({
@@ -240,7 +240,7 @@ exports.deleteDraft = async (req, res) => {
     const userId = req.user._id || req.user.id;
     const draft = await Status.findOne({ _id: req.params.draftId, user: userId, isDraft: true });
     
-    if (!draft) return res.status(404).json({ success: false, message: 'Draft haipatikani' });
+    if (!draft) return res.status(404).json({ success: false, message: 'Draft not found' });
 
     await draft.deleteOne();
     res.json({ success: true, message: 'Draft deleted' });
@@ -276,8 +276,8 @@ exports.archiveStatus = async (req, res) => {
     const { isArchived = true } = req.body;
     const status = await Status.findById(req.params.id);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
 
     status.isArchived = isArchived;
     status.archivedAt = isArchived ? new Date() : null;
@@ -311,7 +311,7 @@ exports.getArchivedStatuses = async (req, res) => {
 exports.getReminder = async (req, res) => {
   try {
     const status = await Status.findById(req.params.id);
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
     res.json({ success: true, reminder: status.reminder || null });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -325,8 +325,8 @@ exports.setReminder = async (req, res) => {
     const { reminderTime, reminderNote } = req.body;
     const status = await Status.findById(req.params.id);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
 
     status.reminder = {
       enabled: true,
@@ -346,7 +346,7 @@ exports.getReactions = async (req, res) => {
   try {
     const status = await Status.findById(req.params.id);
 
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
 
     const counts = {};
     status.reactions.forEach(r => {
@@ -366,8 +366,8 @@ exports.getAccessibility = async (req, res) => {
     const userId = req.user._id || req.user.id;
     const status = await Status.findById(req.params.id);
 
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
 
     const accessibility = status.accessibility || {};
 
@@ -383,8 +383,8 @@ exports.updateAccessibility = async (req, res) => {
     const userId = req.user._id || req.user.id;
     const status = await Status.findById(req.params.id);
 
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
 
     const updatedAccessibility = req.body;
     status.accessibility = updatedAccessibility;
@@ -402,8 +402,8 @@ exports.generateAltText = async (req, res) => {
     const userId = req.user._id || req.user.id;
     const status = await Status.findById(req.params.id);
 
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
 
     const altText = `An image showing ${status.caption || 'content'} with ${status.type} style`;
 
@@ -419,8 +419,8 @@ exports.generateCaptions = async (req, res) => {
     const userId = req.user._id || req.user.id;
     const status = await Status.findById(req.params.id);
 
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
 
     const captions = `[00:00] ${status.caption || 'Content'}
 [00:05] More details about the content
@@ -439,7 +439,7 @@ exports.addReaction = async (req, res) => {
     const { emoji, reactionId } = req.body;
     const status = await Status.findById(req.params.id);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
 
     const key = emoji || reactionId;
 
@@ -465,8 +465,8 @@ exports.createPoll = async (req, res) => {
     const { question, options, allowMultiple, expiresAt } = req.body;
     const status = await Status.findById(req.params.id);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
 
     status.poll = {
       question,
@@ -490,7 +490,7 @@ exports.votePoll = async (req, res) => {
     const { optionIds } = req.body;
     const status = await Status.findById(req.params.id);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
     if (!status.poll) return res.status(400).json({ success: false, message: 'No poll found' });
 
     // Check if already voted
@@ -522,8 +522,8 @@ exports.scheduleStatus = async (req, res) => {
     const { scheduledTime } = req.body;
     const status = await Status.findById(req.params.id);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
 
     status.scheduledFor = new Date(scheduledTime);
     status.isScheduled = true;
@@ -546,8 +546,8 @@ exports.addLocation = async (req, res) => {
     const parsedLng = Number.isFinite(Number(longitude)) ? Number(longitude) : Number.isFinite(Number(lng)) ? Number(lng) : undefined;
     const status = await Status.findById(req.params.id);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
 
     status.locationData = {
       lat: parsedLat,
@@ -569,7 +569,7 @@ exports.getLocation = async (req, res) => {
     const statusId = req.params.id || req.params.statusId;
     const status = await Status.findById(statusId);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
 
     res.json({ success: true, locationData: status.locationData });
   } catch (err) {
@@ -667,8 +667,8 @@ exports.addMention = async (req, res) => {
     const { mentionedUserId, mentionedUsername, mentions } = req.body;
     const status = await Status.findById(req.params.id);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
 
     if (!status.mentions) status.mentions = [];
 
@@ -702,7 +702,7 @@ exports.getMentions = async (req, res) => {
     const statusId = req.params.id || req.params.statusId;
     const status = await Status.findById(statusId).populate('mentions.user', 'username profilePicture');
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
 
     res.json({ success: true, mentions: status.mentions });
   } catch (err) {
@@ -717,8 +717,8 @@ exports.addHashtags = async (req, res) => {
     const { hashtags } = req.body;
     const status = await Status.findById(req.params.id);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
 
     status.hashtags = hashtags.map(tag => tag.startsWith('#') ? tag : `#${tag}`);
     await status.save();
@@ -739,8 +739,8 @@ exports.editStatus = async (req, res) => {
     } = req.body;
     const status = await Status.findById(req.params.id);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
 
     if (content !== undefined) status.content = content;
     if (caption !== undefined) status.caption = caption;
@@ -766,8 +766,8 @@ exports.duplicateStatus = async (req, res) => {
     const userId = req.user._id || req.user.id;
     const status = await Status.findById(req.params.id);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
 
     const duplicate = await Status.create({
       user: userId,
@@ -795,8 +795,8 @@ exports.pinStatus = async (req, res) => {
     const userId = req.user._id || req.user.id;
     const status = await Status.findById(req.params.id);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
 
     status.isPinned = !status.isPinned;
     status.pinnedAt = status.isPinned ? new Date() : null;
@@ -833,7 +833,7 @@ exports.reportStatus = async (req, res) => {
     const { reason, description } = req.body;
     const status = await Status.findById(req.params.id);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
 
     if (!status.reports) status.reports = [];
     status.reports.push({
@@ -901,8 +901,8 @@ exports.getAnalytics = async (req, res) => {
     const userId = req.user._id || req.user.id;
     const status = await Status.findById(req.params.id);
 
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
 
     // Real analytics computed from stored engagement data — no fabricated numbers.
     const views = status.views || [];
@@ -1018,7 +1018,7 @@ exports.favoriteStatus = async (req, res) => {
     const userId = req.user._id || req.user.id;
     const status = await Status.findById(req.params.id);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
 
     if (!status.favoritedBy) status.favoritedBy = [];
     const alreadyFavorited = status.favoritedBy.some(f => String(f.user) === String(userId));
@@ -1085,8 +1085,8 @@ exports.getInsights = async (req, res) => {
       .populate('views.user', 'username profilePicture')
       .populate('reactions.user', 'username profilePicture');
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
 
     const insights = {
       viewCount: status.views.length,
@@ -1120,7 +1120,7 @@ exports.shareStatus = async (req, res) => {
     const { platform, message } = req.body;
     const status = await Status.findById(req.params.id);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
 
     if (!status.shares) status.shares = [];
     status.shares.push({
@@ -1145,7 +1145,7 @@ exports.downloadStatus = async (req, res) => {
     const { quality, format } = req.body;
     const status = await Status.findById(req.params.id);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
 
     if (!status.downloads) status.downloads = [];
     status.downloads.push({
@@ -1169,7 +1169,7 @@ exports.muteUserStatus = async (req, res) => {
     const { duration, reason } = req.body;
     const status = await Status.findById(req.params.id);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
 
     const user = await User.findById(userId);
     if (!user.mutedStatusUsers) user.mutedStatusUsers = [];
@@ -1202,7 +1202,7 @@ exports.blockUserStatus = async (req, res) => {
     const { blockChatsToo, reason } = req.body;
     const status = await Status.findById(req.params.id);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
 
     const user = await User.findById(userId);
     if (!user.blockedStatusUsers) user.blockedStatusUsers = [];
@@ -1239,7 +1239,7 @@ exports.saveToCollection = async (req, res) => {
     const { folder, location } = req.body;
     const status = await Status.findById(req.params.id);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
 
     const user = await User.findById(userId);
     if (!user.savedStatuses) user.savedStatuses = [];
@@ -1271,7 +1271,7 @@ exports.forwardStatus = async (req, res) => {
     const { contacts, groups, message } = req.body;
     const status = await Status.findById(req.params.id);
     
-    if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
 
     if (!status.forwards) status.forwards = [];
     status.forwards.push({

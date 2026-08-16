@@ -122,9 +122,10 @@ export default defineConfig({
     port: devPort,
     strictPort: true,
     host: '0.0.0.0',
-    hmr: {
-      clientPort: devPort
-    },
+    // HMR client port deliberately NOT pinned: when the dev server runs on a
+    // non-default port (e.g. `--port 5177` for a worktree preview), a stale
+    // hmr.clientPort made the browser keep dialing the old port and HMR never
+    // connected. Vite infers the client port from the page origin instead.
     proxy: {
       '/api': {
         target: backendTarget,

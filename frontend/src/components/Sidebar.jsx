@@ -1447,7 +1447,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                 onClick={handleDeleteSelectedChats}
                 disabled={selectedChatIds.length === 0}
                 className="p-2 rounded-lg text-red-400 hover:bg-red-500/15 disabled:opacity-30 disabled:cursor-not-allowed"
-                title="Futa zilizochaguliwa" aria-label="Futa zilizochaguliwa"
+                title="Delete selected" aria-label="Delete selected"
               >
                 <Trash2 size={16} />
               </button>

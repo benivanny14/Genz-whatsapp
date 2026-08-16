@@ -614,7 +614,7 @@ const PaymentsSection = ({ statusFilter = 'All', title = 'Payment Management' })
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard label="Pending" value={stats.pendingPayments} tone="amber" />
-          <StatCard label="Zimekubaliwa" value={stats.approvedPayments} tone="emerald" />
+          <StatCard label="Approved" value={stats.approvedPayments} tone="emerald" />
           <StatCard label="Rejected" value={stats.rejectedPayments} tone="red" />
           <StatCard label="Zinazofanana (Duplicate)" value={stats.duplicatePayments} tone="red" />
           <StatCard label="Wanachama Amilifu" value={stats.activeSubscribers} tone="blue" />

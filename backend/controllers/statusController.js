@@ -23,15 +23,15 @@ exports.createStatus = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Status contains disallowed words. Please change it.' });
     }
 
-    if (!type) return res.status(400).json({ success: false, message: 'Type inahitajika' });
-    if (type === 'text' && !content) return res.status(400).json({ success: false, message: 'Content inahitajika kwa text status' });
-    if (['image','video','voice','gif'].includes(type) && !mediaUrl) return res.status(400).json({ success: false, message: 'MediaUrl inahitajika' });
-    if (type === 'link' && !linkUrl) return res.status(400).json({ success: false, message: 'LinkUrl inahitajika' });
-    if (type === 'quiz' && !quizQuestion) return res.status(400).json({ success: false, message: 'QuizQuestion inahitajika' });
-    if (type === 'question' && !questionText) return res.status(400).json({ success: false, message: 'QuestionText inahitajika' });
-    if (type === 'countdown' && (!countdownDate || !countdownTime)) return res.status(400).json({ success: false, message: 'CountdownDate na CountdownTime zinahitajika' });
-    if (type === 'location' && !locationData) return res.status(400).json({ success: false, message: 'LocationData inahitajika' });
-    if (type === 'collage' && (!collageImages || collageImages.length === 0)) return res.status(400).json({ success: false, message: 'CollageImages inahitajika' });
+    if (!type) return res.status(400).json({ success: false, message: 'Type is required' });
+    if (type === 'text' && !content) return res.status(400).json({ success: false, message: 'Content is required for text status' });
+    if (['image','video','voice','gif'].includes(type) && !mediaUrl) return res.status(400).json({ success: false, message: 'MediaUrl is required' });
+    if (type === 'link' && !linkUrl) return res.status(400).json({ success: false, message: 'LinkUrl is required' });
+    if (type === 'quiz' && !quizQuestion) return res.status(400).json({ success: false, message: 'QuizQuestion is required' });
+    if (type === 'question' && !questionText) return res.status(400).json({ success: false, message: 'QuestionText is required' });
+    if (type === 'countdown' && (!countdownDate || !countdownTime)) return res.status(400).json({ success: false, message: 'CountdownDate and CountdownTime are required' });
+    if (type === 'location' && !locationData) return res.status(400).json({ success: false, message: 'LocationData is required' });
+    if (type === 'collage' && (!collageImages || collageImages.length === 0)) return res.status(400).json({ success: false, message: 'CollageImages is required' });
 
     // Use the user's configured status duration (default 24h) for expiry
     let statusHours = 24;
@@ -92,7 +92,7 @@ exports.createStatus = async (req, res) => {
   }
 };
 
-// GET /api/status - pata statuses za contacts wako
+// GET /api/status - fetch statuses of your contacts
 exports.getStatuses = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
@@ -252,7 +252,7 @@ exports.getSharedStatus = async (req, res) => {
     }
 
     if (!allowed) {
-      return res.status(403).json({ success: false, message: 'Status hii haijasharewa hadharani' });
+      return res.status(403).json({ success: false, message: 'This status has not been shared publicly' });
     }
 
     // Never leak contact lists / sensitive user fields
@@ -404,7 +404,7 @@ exports.deleteStatus = async (req, res) => {
   }
 };
 
-// GET /api/status/:id/viewers - watu walioona status yako
+// GET /api/status/:id/viewers - people who viewed your status
 exports.getViewers = async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
@@ -417,7 +417,7 @@ exports.getViewers = async (req, res) => {
 
     if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
     if (String(status.user) !== String(userId)) {
-      return res.status(403).json({ success: false, message: 'Huna ruhusa' });
+      return res.status(403).json({ success: false, message: 'You do not have permission' });
     }
 
     res.json({

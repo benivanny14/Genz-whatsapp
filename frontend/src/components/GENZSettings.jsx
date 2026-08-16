@@ -1711,7 +1711,7 @@ const PrivacyTab = ({ ctx }) => {
               </div>
               <h3 className="text-white text-xl font-bold mb-2">Premium Required</h3>
               <p className="text-gray-400 text-sm mb-4">
-                Pay <span className="text-yellow-400 font-black">Tsh 10,000</span> for 60 days to use all Privacy & Protection features
+                Pay <span className="text-yellow-400 font-black">Tsh 10,000</span> for 30 days to use all Privacy & Protection features
               </p>
               {subscriptionStatus.hasSubscription === true && subscriptionStatus.expiryDate && (
                 <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-3 mb-4">

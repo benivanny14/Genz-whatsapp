@@ -88,21 +88,21 @@ describe('statusController — createStatus', () => {
     const res = makeRes();
     await statusCtrl.createStatus(makeReq({ body: {} }), res);
     expect(res.statusCode).toBe(400);
-    expect(res.body.message).toBe('Type inahitajika');
+    expect(res.body.message).toBe('Type is required');
   });
 
   it('requires content for text statuses (validation)', async () => {
     const res = makeRes();
     await statusCtrl.createStatus(makeReq({ body: { type: 'text' } }), res);
     expect(res.statusCode).toBe(400);
-    expect(res.body.message).toBe('Content inahitajika kwa text status');
+    expect(res.body.message).toBe('Content is required for text status');
   });
 
   it('requires mediaUrl for image statuses (validation)', async () => {
     const res = makeRes();
     await statusCtrl.createStatus(makeReq({ body: { type: 'image' } }), res);
     expect(res.statusCode).toBe(400);
-    expect(res.body.message).toBe('MediaUrl inahitajika');
+    expect(res.body.message).toBe('MediaUrl is required');
   });
 
   it('requires quizQuestion for quiz statuses (validation)', async () => {

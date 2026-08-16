@@ -52,7 +52,7 @@ router.delete('/:id', async (req, res) => {
     const product = await Product.findOne({ _id: req.params.id, user: userId });
 
     if (!product) {
-      return res.status(404).json({ success: false, error: 'Bidhaa haikupatikana au huna ruhusa (Product not found or unauthorized)' });
+      return res.status(404).json({ success: false, error: 'Product not found or unauthorized' });
     }
 
     await Product.deleteOne({ _id: req.params.id });

@@ -127,7 +127,7 @@ describe('statusAdvancedController — collaboration', () => {
     const res = makeRes();
     await statusAdv.addCollaborator(makeReq({ params: { id: VALID_ID }, body: { collabUserId: 'user-2' } }), res);
     expect(res.statusCode).toBe(404);
-    expect(res.body.message).toBe('Collaborator haipatikani');
+    expect(res.body.message).toBe('Collaborator not found');
   });
 
   it('addCollaborator forbids adding yourself (400)', async () => {
@@ -136,7 +136,7 @@ describe('statusAdvancedController — collaboration', () => {
     const res = makeRes();
     await statusAdv.addCollaborator(makeReq({ params: { id: VALID_ID }, body: { collabUserId: 'user-1' } }), res);
     expect(res.statusCode).toBe(400);
-    expect(res.body.message).toBe('Huwezi kujiongeza mwenyewe kama collaborator');
+    expect(res.body.message).toBe('You cannot add yourself as a collaborator');
   });
 
   it('addCollaborator rejects duplicate collaborators (400)', async () => {
@@ -145,7 +145,7 @@ describe('statusAdvancedController — collaboration', () => {
     const res = makeRes();
     await statusAdv.addCollaborator(makeReq({ params: { id: VALID_ID }, body: { collabUserId: 'user-2' } }), res);
     expect(res.statusCode).toBe(400);
-    expect(res.body.message).toBe('Collaborator tayari ameongezwa');
+    expect(res.body.message).toBe('Collaborator already added');
   });
 
   it('addCollaborator adds by id (happy path)', async () => {
@@ -223,7 +223,7 @@ describe('statusAdvancedController — collaboration', () => {
     const res = makeRes();
     await statusAdv.contributeToCollaboration(makeReq({ params: { id: VALID_ID }, user: { _id: 'user-9' }, body: { type: 'text' } }), res);
     expect(res.statusCode).toBe(403);
-    expect(res.body.message).toBe('Wewe si collaborator wa story hii');
+    expect(res.body.message).toBe('You are not a collaborator on this story');
   });
 
   it('contributeToCollaboration requires mediaUrl for image contributions (400)', async () => {

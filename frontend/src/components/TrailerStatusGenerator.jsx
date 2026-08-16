@@ -302,7 +302,7 @@ const TrailerStatusGenerator = ({ statuses, user, onClose }) => {
         <div className="p-4 space-y-4">
           <div className="flex items-center gap-2 text-xs text-white/60 bg-white/5 rounded-lg px-3 py-2">
             <Sparkles size={14} className="text-pink-400" />
-            Inaunda trailer ya statuses zako za mwisho ({myStatuses.length} statuses) na animation za movie-style.
+            Generating a trailer from your recent statuses ({myStatuses.length} statuses) na animation za movie-style.
           </div>
 
           {error && (

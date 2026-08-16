@@ -1089,7 +1089,7 @@ exports.replyToStatus = async (req, res) => {
           unreadCount: getUnreadCount(updatedConversation, String(status.userId))
         });
       }
-      // Tuma kwenye conversation room
+      // Send to the conversation room
       io.to(String(conversation._id)).emit('message:received', outgoingMessage);
     }
 

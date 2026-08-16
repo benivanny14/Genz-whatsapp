@@ -944,9 +944,9 @@ exports.sendMessage = async (req, res) => {
       }
     }
 
-    // 2. Hifadhi ujumbe rasmi kwenye MongoDB Database
-    // Dedup: kama message yenye clientMessageId hii tayari ipo kwa sender+conversation,
-    // rudisha ile iliyopo (badala ya kuruhusu E11000 kuwa 500 kwenye network retry).
+    // 2. Persist the official message to MongoDB
+    // Dedup: if a message with this clientMessageId already exists for sender+conversation,
+    // return the existing one (instead of letting E11000 become a 500 on network retry).
     if (messageId) {
       const existing = await Message.findOne({
         clientMessageId: String(messageId),
@@ -1736,7 +1736,7 @@ exports.unblockUser = async (req, res) => {
     const localUserId = getCurrentUserId(req);
     const targetId = req.params.id;
 
-    // Futa block kwenye list ya aliyeblock pekee
+    // Remove the block only from the blocker's list
     await User.updateOne(
       { _id: localUserId },
       { $pull: { blockedUsers: targetId } }

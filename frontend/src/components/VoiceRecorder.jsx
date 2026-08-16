@@ -576,7 +576,7 @@ const VoiceRecorder = ({
 
         <div className="flex-1 flex items-center gap-2 px-2 py-1 bg-[#102029] border border-white/10 rounded-full relative overflow-hidden min-w-0 shadow-inner">
           {isLocked && (
-            <button type="button" onClick={cancelRecording} className="text-red-500 hover:bg-red-500/10 p-2 rounded-full flex-shrink-0" title="Futa" aria-label="Futa">
+            <button type="button" onClick={cancelRecording} className="text-red-500 hover:bg-red-500/10 p-2 rounded-full flex-shrink-0" title="Delete" aria-label="Delete">
               <Trash2 size={18} />
             </button>
           )}
