@@ -1,4 +1,6 @@
 import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
+import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -36,7 +38,7 @@ const MultiAccountsPanel = ({ onClose, user }) => {
   const fetchSettings = async () => {
     try {
       const token = getAuthToken();
-      const response = await fetch('/api/multi-accounts/settings', {
+      const response = await authFetch(`${resolveApiBase()}/multi-accounts/settings`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -65,7 +67,7 @@ const MultiAccountsPanel = ({ onClose, user }) => {
 
     try {
       const token = getAuthToken();
-      const response = await fetch('/api/multi-accounts/settings', {
+      const response = await authFetch(`${resolveApiBase()}/multi-accounts/settings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -103,7 +105,7 @@ const MultiAccountsPanel = ({ onClose, user }) => {
     setLoading(true);
     try {
       const token = getAuthToken();
-      const response = await fetch('/api/multi-accounts/enable', {
+      const response = await authFetch(`${resolveApiBase()}/multi-accounts/enable`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });

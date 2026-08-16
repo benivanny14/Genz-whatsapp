@@ -1,4 +1,6 @@
 import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
+import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -49,7 +51,7 @@ const PrivacyModsPanel = ({ onClose }) => {
   const fetchSettings = async () => {
     try {
       const token = getAuthToken();
-      const response = await fetch('/api/privacy-mods/settings', {
+      const response = await authFetch(`${resolveApiBase()}/privacy-mods/settings`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -68,7 +70,7 @@ const PrivacyModsPanel = ({ onClose }) => {
 
     try {
       const token = getAuthToken();
-      const response = await fetch(`/api/privacy-mods/${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`, {
+      const response = await authFetch(`${resolveApiBase()}/privacy-mods/${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });

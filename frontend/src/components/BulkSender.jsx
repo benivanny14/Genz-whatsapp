@@ -1,4 +1,6 @@
 import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
+import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -37,7 +39,7 @@ const BulkSender = ({ onClose, conversations, user }) => {
   const fetchSettings = async () => {
     try {
       const token = getAuthToken();
-      const response = await fetch('/api/bulk-sender/settings', {
+      const response = await authFetch(`${resolveApiBase()}/bulk-sender/settings`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -91,7 +93,7 @@ const BulkSender = ({ onClose, conversations, user }) => {
 
     try {
       const token = getAuthToken();
-      const response = await fetch('/api/bulk-sender/send', {
+      const response = await authFetch(`${resolveApiBase()}/bulk-sender/send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

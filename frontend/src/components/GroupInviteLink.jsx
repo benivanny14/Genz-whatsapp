@@ -1,4 +1,6 @@
 import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
+import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -32,7 +34,7 @@ const GroupInviteLink = ({ groupId, onClose }) => {
     setError(null);
     try {
       const token = getAuthToken();
-      const response = await fetch(`/api/groups/${groupId}/invite-link`, {
+      const response = await authFetch(`${resolveApiBase()}/groups/${groupId}/invite-link`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -64,7 +66,7 @@ const GroupInviteLink = ({ groupId, onClose }) => {
         body.maxUses = parseInt(maxUses);
       }
 
-      const response = await fetch(`/api/groups/${groupId}/invite-link`, {
+      const response = await authFetch(`${resolveApiBase()}/groups/${groupId}/invite-link`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -99,7 +101,7 @@ const GroupInviteLink = ({ groupId, onClose }) => {
         body.maxUses = parseInt(maxUses);
       }
 
-      const response = await fetch(`/api/groups/${groupId}/invite-link/reset`, {
+      const response = await authFetch(`${resolveApiBase()}/groups/${groupId}/invite-link/reset`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -127,7 +129,7 @@ const GroupInviteLink = ({ groupId, onClose }) => {
     setError(null);
     try {
       const token = getAuthToken();
-      const response = await fetch(`/api/groups/${groupId}/invite-link`, {
+      const response = await authFetch(`${resolveApiBase()}/groups/${groupId}/invite-link`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

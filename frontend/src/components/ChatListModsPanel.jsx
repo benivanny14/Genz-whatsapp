@@ -1,4 +1,6 @@
 import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
+import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -39,7 +41,7 @@ const ChatListModsPanel = ({ onClose }) => {
   const fetchSettings = async () => {
     try {
       const token = getAuthToken();
-      const response = await fetch('/api/chat-list-mods/settings', {
+      const response = await authFetch(`${resolveApiBase()}/chat-list-mods/settings`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -58,7 +60,7 @@ const ChatListModsPanel = ({ onClose }) => {
 
     try {
       const token = getAuthToken();
-      const response = await fetch(`/api/chat-list-mods/${endpoint}`, {
+      const response = await authFetch(`${resolveApiBase()}/chat-list-mods/${endpoint}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });

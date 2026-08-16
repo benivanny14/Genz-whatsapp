@@ -1,4 +1,6 @@
 import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
+import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -33,7 +35,7 @@ const AntiRevokePanel = ({ onClose }) => {
   const fetchSettings = async () => {
     try {
       const token = getAuthToken();
-      const response = await fetch('/api/anti-revoke/settings', {
+      const response = await authFetch(`${resolveApiBase()}/anti-revoke/settings`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -54,7 +56,7 @@ const AntiRevokePanel = ({ onClose }) => {
   const fetchCachedMessages = async () => {
     try {
       const token = getAuthToken();
-      const response = await fetch('/api/anti-revoke/cached', {
+      const response = await authFetch(`${resolveApiBase()}/anti-revoke/cached`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -73,7 +75,7 @@ const AntiRevokePanel = ({ onClose }) => {
 
     try {
       const token = getAuthToken();
-      const response = await fetch('/api/anti-revoke/settings', {
+      const response = await authFetch(`${resolveApiBase()}/anti-revoke/settings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -108,7 +110,7 @@ const AntiRevokePanel = ({ onClose }) => {
     
     try {
       const token = getAuthToken();
-      const response = await fetch('/api/anti-revoke/cached', {
+      const response = await authFetch(`${resolveApiBase()}/anti-revoke/cached`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

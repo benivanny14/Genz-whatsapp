@@ -1,4 +1,6 @@
 import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
+import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -48,7 +50,7 @@ const PhoneContactsSync = () => {
   const fetchMatchedContacts = async () => {
     try {
       const token = getAuthToken();
-      const response = await fetch('/api/contacts/matched', {
+      const response = await authFetch(`${resolveApiBase()}/contacts/matched`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -81,7 +83,7 @@ const PhoneContactsSync = () => {
         setUploadProgress(prev => Math.min(prev + 10, 90));
       }, 200);
 
-      const response = await fetch('/api/contacts/upload', {
+      const response = await authFetch(`${resolveApiBase()}/contacts/upload`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -120,7 +122,7 @@ const PhoneContactsSync = () => {
 
     try {
       const token = getAuthToken();
-      const response = await fetch('/api/contacts/sync', {
+      const response = await authFetch(`${resolveApiBase()}/contacts/sync`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -149,7 +151,7 @@ const PhoneContactsSync = () => {
   const handleRemoveContact = async (contactId) => {
     try {
       const token = getAuthToken();
-      const response = await fetch(`/api/contacts/${contactId}`, {
+      const response = await authFetch(`${resolveApiBase()}/contacts/${contactId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

@@ -1,4 +1,6 @@
 import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
+import { authFetch } from '../utils/authFetch';
+import { resolveApiBase } from '../utils/resolveApiBase';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -39,7 +41,7 @@ const CustomizationModsPanel = ({ onClose }) => {
   const fetchSettings = async () => {
     try {
       const token = getAuthToken();
-      const response = await fetch('/api/customization-mods/settings', {
+      const response = await authFetch(`${resolveApiBase()}/customization-mods/settings`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -58,7 +60,7 @@ const CustomizationModsPanel = ({ onClose }) => {
 
     try {
       const token = getAuthToken();
-      const response = await fetch(`/api/customization-mods/${endpoint}`, {
+      const response = await authFetch(`${resolveApiBase()}/customization-mods/${endpoint}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
