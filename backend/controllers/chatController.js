@@ -834,7 +834,7 @@ exports.sendMessage = async (req, res) => {
       font,
     } = req.body;
     
-    // 1. Frontend inaweza kuwa inatuma 'conversationId' au 'chatId', tunasoma zote mbili kulinda usalama
+    // 1. The frontend may send 'conversationId' or 'chatId'; read both for safety
     const finalConversationId = conversationId || chatId;
     
     if (!finalConversationId || !mongoose.Types.ObjectId.isValid(finalConversationId)) {
@@ -1624,7 +1624,7 @@ exports.addContactByPhone = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Contact imeongezwa kikamilifu!',
+      message: 'Contact added successfully!',
       contact: { user: contactUser, savedName },
       conversationId: conversation._id,
       conversation,

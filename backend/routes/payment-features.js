@@ -55,7 +55,7 @@ router.post('/', superAdminAuth, runPaymentUpload, async (req, res) => {
     if (!name || !description || !price || !location || !maxPrice) {
       return res.status(400).json({
         success: false,
-        message: 'Jina, maelezo, bei, sehemu na maximum bei lazima lipatikane'
+        message: 'Name, description, price, location and max price are all required'
       });
     }
 
@@ -115,7 +115,7 @@ router.post('/', superAdminAuth, runPaymentUpload, async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Feature ya kulipa imesajiliwa kikamilifu',
+      message: 'Payment feature created successfully',
       data: paymentFeature
     });
 

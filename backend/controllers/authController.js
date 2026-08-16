@@ -91,7 +91,7 @@ exports.register = async (req, res) => {
     }
 
     if (containsProfanity(username)) {
-      return res.status(400).json({ success: false, message: 'Username ina maneno yasiyoruhusiwa' });
+      return res.status(400).json({ success: false, message: 'Username contains disallowed words' });
     }
 
     // SECURITY (1.4): strict password policy — minimum 12 chars and must
