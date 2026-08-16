@@ -1,10 +1,65 @@
-// Lets the user tap an "Update" button to check for a newer deployed
-// version RIGHT NOW, instead of waiting for the browser's own lazy
-// background check. When a new service worker takes over, main.jsx already
-// dispatches 'pwa-update-available' (shown by App.jsx as a reload toast) —
-// this utility just triggers that check on demand.
+// Update-checking utilities used by the Settings "Check for Updates" row and
+// the web reload path.
 //
-// Returns one of: 'updated' | 'up-to-date' | 'unsupported' | 'error'
+// 1. getAppUpdateInfo() — the WhatsApp-style check: compare the version this
+//    device is RUNNING (installed native versionCode via @capacitor/app, or
+//    the bundle's baked-in __GENZ_VERSION_CODE__ on the web) against the
+//    latest one published in /version.json (written by npm run apk:build).
+//    Returns the full picture — installed vs latest, whether an update
+//    exists, the "What's new" changelog, and the APK download URL — so the
+//    UI can render a proper update dialog instead of a bare toast.
+//
+// 2. checkForUpdate() — the PWA/service-worker check (web only): lets the
+//    user trigger the browser's own background update check RIGHT NOW,
+//    instead of waiting for it. When a new service worker takes over,
+//    main.jsx already dispatches 'pwa-update-available' (shown by App.jsx as
+//    a reload toast) — this utility just triggers that check on demand.
+//
+// checkForUpdate returns one of: 'updated' | 'up-to-date' | 'unsupported' | 'error'
+
+import { fetchVersionManifest, apkDownloadUrl } from './versionManifest';
+import { getAppInfo, isNative } from '../services/capacitorBridge';
+
+/**
+ * Compare the running build against the published one.
+ *
+ * @returns {Promise<{
+ *   manifest: object,
+ *   installed: { version: string, code: number },
+ *   hasUpdate: boolean,
+ *   changes: string[],
+ *   apkUrl: string,
+ *   isWeb: boolean
+ * } | null>} null when no manifest could be fetched (offline / unreachable).
+ */
+export const getAppUpdateInfo = async () => {
+  const manifest = await fetchVersionManifest();
+  if (!manifest) return null;
+
+  const latestCode = Number(manifest.versionCode || 0);
+  let installedCode = 0;
+  let installedVersion = '0.0.0';
+  const web = !isNative();
+
+  if (!web) {
+    const info = await getAppInfo().catch(() => null);
+    if (!info) return null;
+    installedCode = info.versionCode ?? info.build ?? 0;
+    installedVersion = info.version || '';
+  } else {
+    installedCode = Number(typeof __GENZ_VERSION_CODE__ !== 'undefined' ? __GENZ_VERSION_CODE__ : 0);
+    installedVersion = typeof __GENZ_VERSION__ !== 'undefined' ? __GENZ_VERSION__ : '0.0.0';
+  }
+
+  return {
+    manifest,
+    installed: { version: installedVersion, code: installedCode },
+    hasUpdate: latestCode > installedCode,
+    changes: Array.isArray(manifest.changes) ? manifest.changes : [],
+    apkUrl: manifest.apkUrl || apkDownloadUrl(),
+    isWeb: web
+  };
+};
 
 export const checkForUpdate = async () => {
   if (!('serviceWorker' in navigator)) return 'unsupported';

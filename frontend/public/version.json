@@ -4,5 +4,11 @@
   "apkUrl": "/genz-whatsapp.apk",
   "sha256": "28655847d1910b5cd4da87948339613a38a6d486631775b200610743e5945dfe",
   "size": 11898932,
-  "releasedAt": "2026-08-15T02:10:43.711Z"
+  "releasedAt": "2026-08-15T02:10:43.711Z",
+  "changes": [
+    "APK inafunguka papo hapo na kufanya kazi offline (app imejengewa ndani)",
+    "Calls zimeondolewa — GENZ sasa ni app ya messaging pekee",
+    "Web app API proxy imerekebishwa — login na sync zinafanya kazi tena",
+    "Rate limiting kwa kila IP imerekebishwa kwenye production"
+  ]
 }

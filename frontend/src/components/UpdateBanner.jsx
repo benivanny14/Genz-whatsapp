@@ -66,6 +66,7 @@ const UpdateBanner = () => {
             version: manifest.version,
             versionCode: latestCode,
             isWeb: false,
+            changes: Array.isArray(manifest.changes) ? manifest.changes : [],
             // The new APK is served by the app host itself (same-origin on
             // web; absolute production URL inside the bundled APK).
             apkUrl: manifest.apkUrl || apkDownloadUrl(),
@@ -85,6 +86,7 @@ const UpdateBanner = () => {
           version: manifest.version,
           versionCode: latestCode,
           isWeb: true,
+          changes: Array.isArray(manifest.changes) ? manifest.changes : [],
         });
         trackUpdateEvent('update_shown', analytics);
       }
@@ -129,6 +131,16 @@ const UpdateBanner = () => {
               ? 'Kuna version mpya ya GENZ. Reload ili kupata features mpya.'
               : 'Kuna version mpya ya GENZ. Install ili kupata features mpya.'}
           </p>
+          {update.changes?.length > 0 && (
+            <ul className="mt-1.5 space-y-0.5">
+              {update.changes.slice(0, 3).map((change, i) => (
+                <li key={i} className="flex items-start gap-1.5 text-[11px] text-slate-400">
+                  <span className="mt-[5px] h-1 w-1 shrink-0 rounded-full bg-[#00a884]" />
+                  <span className="min-w-0 truncate">{change}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         <div className="shrink-0 flex items-center gap-1.5">
           {update.isWeb ? (

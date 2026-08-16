@@ -102,6 +102,36 @@ test('bump-app-version.js supports an explicit version and minor bumps', () => {
   }
 });
 
+test('bump-app-version.js --notes writes the changelog into version.json', () => {
+  const dir = makeTempRepo();
+  try {
+    const result = spawnSync(
+      process.execPath,
+      ['scripts/bump-app-version.js', 'patch', '--notes', 'Fixed crash on open | Added dark mode | New stickers'],
+      { cwd: dir, encoding: 'utf8' }
+    );
+    assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+
+    const json = JSON.parse(readFileSync(join(dir, 'public', 'version.json'), 'utf8'));
+    assert.deepEqual(json.changes, ['Fixed crash on open', 'Added dark mode', 'New stickers']);
+    // sha256/size stay null (filled in later by apk:build).
+    assert.equal(json.sha256, null);
+    assert.equal(json.size, null);
+
+    // A second bump WITHOUT --notes carries the previous changelog forward.
+    const second = spawnSync(process.execPath, ['scripts/bump-app-version.js', 'patch'], {
+      cwd: dir,
+      encoding: 'utf8'
+    });
+    assert.equal(second.status, 0, second.stderr);
+    const json2 = JSON.parse(readFileSync(join(dir, 'public', 'version.json'), 'utf8'));
+    assert.deepEqual(json2.changes, ['Fixed crash on open', 'Added dark mode', 'New stickers']);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+
 test('writeVersionJson fills the real sha256/size of the built APK', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'genz-writer-smoke-'));
   try {
@@ -111,6 +141,12 @@ test('writeVersionJson fills the real sha256/size of the built APK', async () =>
     const apkBuf = Buffer.alloc(1024 * 1024, 0x5a);
     writeFileSync(apkPath, apkBuf);
     const expectedSha = createHash('sha256').update(apkBuf).digest('hex');
+
+    // Pre-existing manifest with a changelog (as bump-app-version.js wrote it).
+    writeFileSync(
+      join(dir, 'public', 'version.json'),
+      JSON.stringify({ version: '9.9.9', versionCode: 42, changes: ['Fixed A', 'Added B'] })
+    );
 
     const { writeVersionJson } = await import('../../scripts/lib/version-json.js');
     const { sha256, size } = writeVersionJson({
@@ -129,6 +165,19 @@ test('writeVersionJson fills the real sha256/size of the built APK', async () =>
     assert.equal(json.size, apkBuf.length);
     assert.equal(json.downloadUrl, undefined); // GitHub download channel removed
     assert.ok(json.apkUrl === '/genz-whatsapp.apk');
+    // The changelog written by the bump script must survive apk:build.
+    assert.deepEqual(json.changes, ['Fixed A', 'Added B']);
+
+    // An explicit changes option wins over the preserved one.
+    writeVersionJson({
+      root: dir,
+      versionName: '9.9.10',
+      versionCode: 43,
+      apkPath,
+      changes: ['Only this']
+    });
+    const json2 = JSON.parse(readFileSync(join(dir, 'public', 'version.json'), 'utf8'));
+    assert.deepEqual(json2.changes, ['Only this']);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

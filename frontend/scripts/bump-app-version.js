@@ -10,6 +10,11 @@
  * Usage:
  *   node scripts/bump-app-version.js [major|minor|patch]   # e.g. 1.0.0 -> 1.0.1
  *   node scripts/bump-app-version.js 2.1.0                 # explicit versionName
+ *   node scripts/bump-app-version.js patch --notes "Fixed crash | Added dark mode"
+ *
+ * --notes "a | b | c" becomes the `changes` array in public/version.json — the
+ * "What's new" list the Settings/update dialog shows users. Items are split
+ * on " | ". sha256/size stay null (filled in by apk:build).
  *
  * The Android versionCode / iOS build number always increment by 1 — Android
  * requires it for every reinstall-over update, and it also drives the
@@ -25,9 +30,15 @@ const gradlePath = resolve(root, 'android/app/build.gradle');
 const pbxprojPath = resolve(root, 'ios/App/App.xcodeproj/project.pbxproj');
 const versionJsonPath = resolve(root, 'public/version.json');
 
-const arg = process.argv[2];
+// Positional arg = [major|minor|patch] or an explicit version; everything else
+// is a --flag value (currently only --notes).
+const args = process.argv.slice(2);
+const arg = args.find((a) => !a.startsWith('--'));
+const notesFlag = args.indexOf('--notes');
+const notes = notesFlag !== -1 ? args[notesFlag + 1] : undefined;
+
 if (arg && !/^(major|minor|patch)$/.test(arg) && !/^\d+\.\d+\.\d+$/.test(arg)) {
-  console.error('Usage: node scripts/bump-app-version.js [major|minor|patch]  (or an explicit 1.2.3)');
+  console.error('Usage: node scripts/bump-app-version.js [major|minor|patch] [--notes "a | b"]  (or an explicit 1.2.3)');
   process.exit(1);
 }
 
@@ -88,6 +99,20 @@ if (existsSync(pbxprojPath)) {
 // Carrying the old sha was actively misleading — the copy of version.json
 // bundled inside the APK (via vite build → cap sync) would claim the
 // PREVIOUS release's checksum. Null makes the placeholder unambiguous.
+// `changes` is the "What's new" list from --notes (split on " | "), or the
+// previous release's list is kept when no notes were given.
+let changes = [];
+if (notes) {
+  changes = notes.split('|').map((n) => n.trim()).filter(Boolean);
+} else {
+  try {
+    const existing = JSON.parse(readFileSync(versionJsonPath, 'utf8'));
+    if (Array.isArray(existing?.changes)) changes = existing.changes;
+  } catch {
+    /* no previous manifest */
+  }
+}
+
 writeFileSync(
   versionJsonPath,
   JSON.stringify(
@@ -98,6 +123,7 @@ writeFileSync(
       sha256: null,
       size: null,
       releasedAt: new Date().toISOString(),
+      changes,
     },
     null,
     2
@@ -105,4 +131,5 @@ writeFileSync(
 );
 
 console.log(`[bump] wrote public/version.json → v${nextVersionName} (code ${gradleVersionCode + 1})`);
+console.log(`[bump] changelog: ${changes.length ? changes.join(' | ') : '(none — pass --notes "a | b")'}`);
 console.log('[bump] next: npm run apk:build  (fills sha256/size into version.json)');

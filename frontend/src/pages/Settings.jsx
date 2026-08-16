@@ -25,7 +25,7 @@ import PasskeysSettings from '../components/PasskeysSettings';
 import { useUser } from '../context/UserContext';
 import { useLanguage } from '../context/LanguageContext';
 import userService from '../services/userService';
-import { checkForUpdate } from '../utils/appUpdate';
+import { checkForUpdate, getAppUpdateInfo } from '../utils/appUpdate';
 import SettingsHelp from '../components/SettingsHelp';
 import api from '../services/api';
 import { getAppInfo, isNative } from '../services/capacitorBridge.js';
@@ -502,10 +502,30 @@ const Settings = () => {
   };
 
   const [checkingUpdate, setCheckingUpdate] = useState(false);
+  // Result of the WhatsApp-style check: when a newer build exists we open the
+  // update dialog showing the "What's new" changelog + an Update button.
+  const [updateInfo, setUpdateInfo] = useState(null);
   const handleCheckForUpdate = async () => {
     if (checkingUpdate) return;
     setCheckingUpdate(true);
     try {
+      // Compare the running build against the latest published one
+      // (version.json). On the APK this uses the installed native versionCode;
+      // on the web the bundle's baked-in build.
+      const info = await getAppUpdateInfo();
+      if (info?.hasUpdate) {
+        setUpdateInfo(info);
+        return;
+      }
+
+      // Up to date (or the manifest was unreachable): the PWA/service-worker
+      // check only means something on the web, so on the APK just report that
+      // the user has the latest version.
+      if (info && !info.isWeb) {
+        showStatus('success', 'Una version ya hivi karibuni ya GENZ.');
+        return;
+      }
+
       const result = await checkForUpdate();
       if (result === 'updated') {
         showStatus('success', 'Sasisho jipya limepatikana! Linaandaliwa...');
@@ -1253,8 +1273,7 @@ const Settings = () => {
               </button>
             </div>
             <p className="text-sm text-blue-100/70 mb-4">
-              Read the full legal documents for Genz Messenger, including our beta disclaimer on
-              end-to-end encryption.
+              Read the full legal documents for Genz Messenger, including our privacy and data handling details.
             </p>
             <div className="grid gap-3">
               <Link
@@ -1279,6 +1298,86 @@ const Settings = () => {
                 </div>
                 <ChevronRight size={18} className="text-white/40" />
               </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {updateInfo && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4" onClick={() => setUpdateInfo(null)}>
+          <div className="w-full max-w-md bg-[#111b21] rounded-xl p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#00a884]/20">
+                <Download size={20} className="text-[#00a884]" />
+              </div>
+              <button
+                type="button"
+                onClick={() => setUpdateInfo(null)}
+                className="p-2 rounded-lg hover:bg-white/10 text-gray-400"
+                title="Close" aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <h2 className="text-white font-bold text-lg mt-3">Sasisho jipya limepatikana</h2>
+            <p className="text-sm text-blue-100/70 mt-1">
+              {updateInfo.isWeb
+                ? 'Kuna version mpya ya GENZ. Reload ili kupata features mpya.'
+                : `Una version mpya ya GENZ — v${updateInfo.manifest.version}. Install ili kupata features mpya.`}
+            </p>
+
+            <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-blue-100/60">Installed</span>
+                <span className="text-white/80 font-semibold">v{updateInfo.installed.version || updateInfo.installed.code}</span>
+              </div>
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-blue-100/60">Latest</span>
+                <span className="text-[#00a884] font-bold">v{updateInfo.manifest.version}</span>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-blue-100/60 mb-2">Mabadiliko mapya</p>
+              {updateInfo.changes.length > 0 ? (
+                <ul className="space-y-2">
+                  {updateInfo.changes.map((change, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-white/85">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#00a884]" />
+                      {change}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-blue-100/50">Hakuna maelezo ya mabadiliko kwa version hii.</p>
+              )}
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              {updateInfo.isWeb ? (
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-[#00a884] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#00c795]"
+                >
+                  <RefreshCw size={16} /> Reload sasa
+                </button>
+              ) : (
+                <a
+                  href={updateInfo.apkUrl}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-[#00a884] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#00c795]"
+                >
+                  <Download size={16} /> Install sasa
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => setUpdateInfo(null)}
+                className="inline-flex items-center justify-center rounded-xl bg-white/10 px-4 py-2.5 text-sm font-bold text-white hover:bg-white/15"
+              >
+                Sasa
+              </button>
             </div>
           </div>
         </div>

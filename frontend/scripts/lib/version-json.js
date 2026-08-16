@@ -19,11 +19,26 @@ import { resolve } from 'node:path';
  * @param {string} opts.versionName  e.g. "1.1.4"
  * @param {number} opts.versionCode  Android versionCode
  * @param {string} opts.apkPath      path of the built signed APK (sha/size come from it)
+ * @param {string[]} [opts.changes]  changelog lines for this release. When
+ *   omitted, any `changes` already present in the existing version.json are
+ *   carried over (bump-app-version.js writes them first, this writer must not
+ *   drop them when it fills in the real sha256/size).
  * @returns {{sha256: string, size: number}}
  */
-export function writeVersionJson({ root, versionName, versionCode, apkPath }) {
+export function writeVersionJson({ root, versionName, versionCode, apkPath, changes }) {
   const apkBuf = readFileSync(apkPath);
   const sha256 = createHash('sha256').update(apkBuf).digest('hex');
+
+  // Preserve the changelog written by bump-app-version.js (or a previous
+  // release's, if the bump didn't set one) so apk:build never wipes it.
+  let previousChanges = [];
+  try {
+    const existing = JSON.parse(readFileSync(resolve(root, 'public/version.json'), 'utf8'));
+    if (Array.isArray(existing?.changes)) previousChanges = existing.changes;
+  } catch {
+    /* no previous manifest — start with an empty changelog */
+  }
+
   writeFileSync(
     resolve(root, 'public/version.json'),
     JSON.stringify(
@@ -34,6 +49,7 @@ export function writeVersionJson({ root, versionName, versionCode, apkPath }) {
         sha256,
         size: apkBuf.length,
         releasedAt: new Date().toISOString(),
+        changes: Array.isArray(changes) ? changes : previousChanges,
       },
       null,
       2
