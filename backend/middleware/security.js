@@ -1,6 +1,5 @@
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const { ipKeyGenerator } = rateLimit;
 
 // SECURITY (3.9): xss-clean removed — it is unmaintained, mutates user data
 // destructively, and is redundant here. Input validation (express-validator /
@@ -107,8 +106,10 @@ const strictRateLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: Number.isFinite(strictConfiguredMax) && strictConfiguredMax > 0 ? strictConfiguredMax : 10, // Limit each admin to 10 requests per windowMs
   // Per-admin-account key when authenticated; per-IP otherwise.
+  // NOTE: express-rate-limit v7 no longer exports ipKeyGenerator (removed in
+  // v7); fall back to req.ip (which respects trust proxy) for anonymous hits.
   keyGenerator: (req) =>
-    req.admin?.id ? `admin:${req.admin.id}` : ipKeyGenerator(req)
+    req.admin?.id ? `admin:${req.admin.id}` : `ip:${req.ip || req.socket?.remoteAddress || 'unknown'}`
 });
 
 /**
