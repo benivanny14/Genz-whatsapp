@@ -95,7 +95,7 @@ test('record and upload voice note', async ({ request }) => {
   });
   await page.getByText(usernameB, { exact: true }).first().click({ timeout: 15_000 });
 
-  const recordBtn = page.locator('button[title*="Shikilia rekodi"]');
+  const recordBtn = page.locator('button[title*="Hold to record"]');
   await expect(recordBtn).toBeVisible({ timeout: 15_000 });
 
   // Dismiss the "Update available" banner if present — it overlays the mic

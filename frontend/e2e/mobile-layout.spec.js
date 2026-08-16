@@ -262,9 +262,9 @@ test.describe('mobile layout — install guide + version display', () => {
           page.getByText(/Genz Messenger Android v\d+\.\d+\.\d+/)
         ).toBeVisible({ timeout: 10_000 });
         await expect(
-          page.getByRole('link', { name: /How to install — Jinsi ya kusakinisha/ })
+          page.getByRole('link', { name: /How to install/ })
         ).toBeVisible();
-        await expect(page.getByRole('button', { name: /Verify checksum — Thibitisha checksum/ })).toBeVisible();
+        await expect(page.getByRole('button', { name: /Verify checksum/ })).toBeVisible();
         await expectNoOverflow(page, `${deviceName} login with version info`);
 
         expect(pageErrors, 'page errors on install/login mobile').toHaveLength(0);

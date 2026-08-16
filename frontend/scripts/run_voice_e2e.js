@@ -46,7 +46,7 @@ const fetch = globalThis.fetch;
   }, [regBody.token, regBody.refreshToken, regBody.user]);
 
   await page.goto('http://localhost:5176/chat');
-  const recordBtn = page.locator('button[title*="Shikilia rekodi"]');
+  const recordBtn = page.locator('button[title*="Hold to record"]');
   await recordBtn.waitFor({ state: 'visible', timeout: 15000 });
 
   const box = await recordBtn.boundingBox();
