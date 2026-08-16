@@ -183,14 +183,14 @@ router.get('/:id', async (req, res) => {
     if (!paymentFeature) {
       return res.status(404).json({
         success: false,
-        message: 'Feature haijakutwa'
+        message: 'Feature not found'
       });
     }
 
     if (paymentFeature.status !== 'active' && paymentFeature.createdBy._id.toString() !== req.user?._id) {
       return res.status(404).json({
         success: false,
-        message: 'Feature haijakutwa'
+        message: 'Feature not found'
       });
     }
 
@@ -212,14 +212,14 @@ router.get('/:id', async (req, res) => {
 });
 
 // Update payment feature (admin or owner)
-router.put('/:id', superAdminAuth, async (req, res) => {
+router.put('/:id', superAdminAuth, runPaymentUpload, async (req, res) => {
   try {
     let paymentFeature = await PaymentFeature.findById(req.params.id);
 
     if (!paymentFeature) {
       return res.status(404).json({
         success: false,
-        message: 'Feature haijakutwa'
+        message: 'Feature not found'
       });
     }
 
@@ -283,7 +283,7 @@ router.delete('/:id', superAdminAuth, async (req, res) => {
     if (!paymentFeature) {
       return res.status(404).json({
         success: false,
-        message: 'Feature haijakutwa'
+        message: 'Feature not found'
       });
     }
 
@@ -325,7 +325,7 @@ router.patch('/:id/toggle-featured', superAdminAuth, async (req, res) => {
     if (!paymentFeature) {
       return res.status(404).json({
         success: false,
-        message: 'Feature haijakutwa'
+        message: 'Feature not found'
       });
     }
 
@@ -356,7 +356,7 @@ router.post('/:id/inquiry', async (req, res) => {
     if (!paymentFeature) {
       return res.status(404).json({
         success: false,
-        message: 'Feature haijakutwa'
+        message: 'Feature not found'
       });
     }
 
