@@ -59,13 +59,17 @@ export const connectSocket = (userId) => {
 
     const socketConfig = {
       reconnection: true,
-      reconnectionAttempts: 10,
+      // Survive Render free-tier cold starts / deploy windows: keep retrying
+      // long enough for the instance to wake up (can take 30-90s).
+      reconnectionAttempts: 30,
       reconnectionDelay: 5000,
       reconnectionDelayMax: 10000,
       timeout: 20000,
       autoConnect: true,
-      transports: ['websocket'],
-      upgrade: false,
+      // Polling first, then upgrade to websocket. Websocket-only dies hard when
+      // the handshake fails (e.g. 520 during a Render restart); polling gives a
+      // resilient fallback and still upgrades to websocket once connected.
+      transports: ['polling', 'websocket'],
       forceNew: false,
       withCredentials: true,
       auth: { token, userId: resolvedUserId }

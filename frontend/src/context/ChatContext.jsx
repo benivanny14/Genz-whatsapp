@@ -939,8 +939,11 @@ export const ChatProvider = ({ children }) => {
 
       socket = io(SOCKET_ORIGIN, {
         path: '/socket.io/',
-        transports: ['websocket'], // Force websocket to prevent Render polling blocks
-        upgrade: false,
+        // Polling first, then upgrade to websocket. Websocket-only dies hard
+        // when the handshake fails (e.g. 520 while Render is cold-starting or
+        // redeploying); polling falls back gracefully and still upgrades once
+        // connected.
+        transports: ['polling', 'websocket'],
         withCredentials: true,
         auth: {
           token: token || undefined,
@@ -948,7 +951,9 @@ export const ChatProvider = ({ children }) => {
           freezeLastSeen: modsRef.current.freezeLastSeen
         },
         reconnection: true,
-        reconnectionAttempts: 10,
+        // Long retry window so a Render free-tier cold start (30-90s) doesn't
+        // exhaust the attempts before the instance wakes up.
+        reconnectionAttempts: 30,
         reconnectionDelay: 5000,
         reconnectionDelayMax: 10000,
         randomizationFactor: 0.5,
