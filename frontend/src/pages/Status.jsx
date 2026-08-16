@@ -30,11 +30,8 @@ import AdvancedChatFeaturesPanel from '../components/AdvancedChatFeaturesPanel';
 import VoiceFeaturesPanel from '../components/VoiceFeaturesPanel';
 import AccessibilityAdvancedPanel from '../components/AccessibilityAdvancedPanel';
 import DebugFeaturesPanel from '../components/DebugFeaturesPanel';
-import StatusSecurityPanel from '../components/StatusSecurityPanel';
 import PrivacyModsPanel from '../components/PrivacyModsPanel';
 import MediaUploadEnhanced from '../components/MediaUploadEnhanced';
-import AutoReplySettings from '../components/AutoReplySettings';
-import MessageSchedule from '../components/MessageSchedule';
 import StatusAnalyticsPanel from '../components/StatusAnalyticsPanel';
 import ThemeStore from '../components/PaidFeatures/ThemeStore';
 import CrossPlatformSharing from '../components/CrossPlatformSharing';
@@ -60,7 +57,6 @@ import StatusTemplatesPanel from '../components/StatusTemplatesPanel';
 import StatusDraftsPanel from '../components/StatusDraftsPanel';
 import StatusFavoritesPanel from '../components/StatusFavoritesPanel';
 import StatusHistoryPanel from '../components/StatusHistoryPanel';
-import StatusInsightsPanel from '../components/StatusInsightsPanel';
 import StatusSharePanel from '../components/StatusSharePanel';
 import StatusDownloadPanel from '../components/StatusDownloadPanel';
 import StatusDeletePanel from '../components/StatusDeletePanel';
@@ -88,11 +84,8 @@ const Status = () => {
   const [viewedStatuses, setViewedStatuses] = useState([]);
   const [autosaveStatuses, setAutosaveStatuses] = useState(false);
   const [statusNotificationSettings, setStatusNotificationSettings] = useState({});
-  const [showStatusSecurity, setShowStatusSecurity] = useState(false);
   const [showTMPrivacy, setShowTMPrivacy] = useState(false);
   const [showMediaUploadEnhanced, setShowMediaUploadEnhanced] = useState(false);
-  const [showAutoReply, setShowAutoReply] = useState(false);
-  const [showMessageSchedule, setShowMessageSchedule] = useState(false);
   const [showStatusAnalytics, setShowStatusAnalytics] = useState(false);
   const [showThemeStore, setShowThemeStore] = useState(false);
   const [showCrossPlatform, setShowCrossPlatform] = useState(false);
@@ -118,7 +111,6 @@ const Status = () => {
   const [showStatusDrafts, setShowStatusDrafts] = useState(false);
   const [showStatusFavorites, setShowStatusFavorites] = useState(false);
   const [showStatusHistory, setShowStatusHistory] = useState(false);
-  const [showStatusInsights, setShowStatusInsights] = useState(false);
   const [showStatusShare, setShowStatusShare] = useState(false);
   const [showStatusDownload, setShowStatusDownload] = useState(false);
   const [showStatusDelete, setShowStatusDelete] = useState(false);
@@ -916,14 +908,6 @@ const Status = () => {
             </button>
             <button
               type="button"
-              onClick={() => setShowAutoReply(true)}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="Auto Reply" aria-label="Auto Reply"
-            >
-              <Mic size={20} />
-            </button>
-            <button
-              type="button"
               onClick={() => setShowVoiceChanger(true)}
               className="p-2 hover:bg-white/20 rounded-full transition-colors"
               title="Voice Changer" aria-label="Voice Changer"
@@ -1033,14 +1017,6 @@ const Status = () => {
               title="History" aria-label="History"
             >
               <History size={20} />
-            </button>
-            <button
-              type="button"
-              onClick={() => openStatusPanel(setShowStatusInsights)}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="Insights" aria-label="Insights"
-            >
-              <BarChart3 size={20} />
             </button>
             <button
               type="button"
@@ -1218,18 +1194,6 @@ const Status = () => {
                             title="Analytics"
                           >
                             <BarChart3 size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedStatusForPanel(status);
-                              setShowStatusSecurity(true);
-                            }}
-                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
-                            title="Security"
-                          >
-                            <Shield size={14} />
                           </button>
                           <button
                             type="button"
@@ -2326,16 +2290,8 @@ const Status = () => {
             status={selectedStatusForPanel}
           />
         )}
-        {showStatusSecurity && selectedStatusForPanel && (
-          <StatusSecurityPanel 
-            onClose={() => { setShowStatusSecurity(false); setSelectedStatusForPanel(null); }}
-            status={selectedStatusForPanel}
-          />
-        )}
         {showTMPrivacy && <PrivacyModsPanel onClose={() => setShowTMPrivacy(false)} />}
         {showMediaUploadEnhanced && <MediaUploadEnhanced onClose={() => setShowMediaUploadEnhanced(false)} onUpload={(files) => console.log('Files uploaded:', files)} />}
-        {showAutoReply && <AutoReplySettings onClose={() => setShowAutoReply(false)} onSave={(settings) => console.log('Auto reply saved:', settings)} />}
-        {showMessageSchedule && <MessageSchedule onClose={() => setShowMessageSchedule(false)} message={{ content: '' }} onSchedule={(data) => console.log('Message scheduled:', data)} />}
         {showVoiceChanger && <VoiceChangerPanel onClose={() => setShowVoiceChanger(false)} onApplyEffect={(effect) => console.log('Voice effect applied:', effect)} />}
         {showTextToSpeech && <TextToSpeechPanel onClose={() => setShowTextToSpeech(false)} onGenerateSpeech={(speech) => console.log('Speech generated:', speech)} />}
         {showStatusCollaboration && selectedStatusForPanel && (
@@ -2459,12 +2415,6 @@ const Status = () => {
         {showStatusHistory && (
           <StatusHistoryPanel 
             onClose={() => setShowStatusHistory(false)}
-            status={selectedStatusForPanel}
-          />
-        )}
-        {showStatusInsights && selectedStatusForPanel && (
-          <StatusInsightsPanel 
-            onClose={() => { setShowStatusInsights(false); setSelectedStatusForPanel(null); }}
             status={selectedStatusForPanel}
           />
         )}
