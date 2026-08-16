@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, LayoutGrid, MessagesSquare, Palette, ShieldCheck, Database, Send, UserCircle, X, Users, MessageSquare, Image as ImageIcon, QrCode, Shield, Zap, Crown } from 'lucide-react';
+import { ArrowLeft, LayoutGrid, MessagesSquare, Palette, ShieldCheck, Database, Send, UserCircle, X, Users, MessageSquare, Image as ImageIcon, QrCode, Shield, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useChat } from '../context/ChatContext';
 
@@ -56,7 +56,6 @@ import GroupInviteLink from '../components/GroupInviteLink';
 import GroupMemberManagement from '../components/GroupMemberManagement';
 import GroupPrivacy from '../components/GroupPrivacy';
 import GroupQRCode from '../components/GroupQRCode';
-import InviteLinks from '../components/InviteLinks';
 import MuteNotifications from '../components/MuteNotifications';
 import DisappearingMessages from '../components/DisappearingMessages';
 import ChatDelete from '../components/ChatDelete';
@@ -130,17 +129,6 @@ import FingerprintSimulation from '../components/FingerprintSimulation';
 import SecureBackup from '../components/SecureBackup';
 
 // ── Mods panels (self-contained; talk to their own /api/*-mods endpoints) ──
-import AutomationModsPanel from '../components/AutomationModsPanel';
-import BubbleStylesPanel from '../components/BubbleStylesPanel';
-import ChatListModsPanel from '../components/ChatListModsPanel';
-import CustomizationModsPanel from '../components/CustomizationModsPanel';
-import GroupModsPanel from '../components/GroupModsPanel';
-import HomeScreenCustomizationPanel from '../components/HomeScreenCustomizationPanel';
-import MediaModsPanel from '../components/MediaModsPanel';
-import MessageModsPanel from '../components/MessageModsPanel';
-import PrivacyModsPanel from '../components/PrivacyModsPanel';
-import SecurityModsPanel from '../components/SecurityModsPanel';
-import AntiRevokePanel from '../components/AntiRevokePanel';
 
 // ── Payments & UI primitives ──
 import PaymentFeatures from '../components/PaymentFeatures';
@@ -428,8 +416,6 @@ const FeatureLibrary = () => {
           props: { groupId: firstGroup?._id || 'group', groupName: firstGroup?.groupName || 'Group' } },
         { id: 'g-invite', name: 'Group Invite Link', desc: 'Generate an invite link', C: GroupInviteLink,
           props: { groupId: firstGroup?._id || 'group' } },
-        { id: 'invite-links', name: 'Invite Links', desc: 'Manage chat invite links', C: InviteLinks,
-          props: { chat: selectedChat, onGenerateLink: () => {}, onRevokeLink: () => {}, onShareLink: () => {} } },
         { id: 'mute-notify', name: 'Mute Notifications', desc: 'Mute a chat', C: MuteNotifications,
           props: { chat: selectedChat, onMute: () => {}, onUnmute: () => {} } },
         { id: 'disappearing', name: 'Disappearing Messages', desc: 'Set a self-destruct timer', C: DisappearingMessages,
@@ -587,22 +573,6 @@ const FeatureLibrary = () => {
           props: { user, securitySettings: profileSecurity, onUpdateSecurity: setProfileSecurity } },
         { id: 'web-login', name: 'Web Login', desc: 'Login on another device via QR', C: WebLogin,
           props: { user, onGenerateQR: () => {}, onVerifyLogin: () => {} } },
-      ]
-    },
-    {
-      title: 'GENZ Mods Panels', icon: Zap,
-      items: [
-        { id: 'mods-privacy', name: 'Privacy Mods', desc: 'Privacy-focused mods', C: PrivacyModsPanel },
-        { id: 'mods-security', name: 'Security Mods', desc: 'Security mods', C: SecurityModsPanel },
-        { id: 'mods-message', name: 'Message Mods', desc: 'Message behaviour mods', C: MessageModsPanel },
-        { id: 'mods-media', name: 'Media Mods', desc: 'Media handling mods', C: MediaModsPanel },
-        { id: 'mods-chatlist', name: 'Chat List Mods', desc: 'Chat list mods', C: ChatListModsPanel },
-        { id: 'mods-group', name: 'Group Mods', desc: 'Group behaviour mods', C: GroupModsPanel },
-        { id: 'mods-automation', name: 'Automation Mods', desc: 'Auto-reply & automation', C: AutomationModsPanel },
-        { id: 'mods-customization', name: 'Customization Mods', desc: 'Customise the app', C: CustomizationModsPanel },
-        { id: 'mods-bubble', name: 'Bubble Styles', desc: 'Chat bubble styles', C: BubbleStylesPanel },
-        { id: 'mods-home', name: 'Home Screen Mods', desc: 'Home screen customisation', C: HomeScreenCustomizationPanel },
-        { id: 'mods-anti-revoke', name: 'Anti-Revoke Mod', desc: 'Keep messages after sender deletes them', C: AntiRevokePanel },
       ]
     },
     {
