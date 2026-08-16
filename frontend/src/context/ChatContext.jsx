@@ -583,18 +583,20 @@ export const ChatProvider = ({ children }) => {
     };
     syncNativeAntiScreenshot();
 
-    // Set up screenshot attempt callback to notify via socket
-    if (mods.antiScreenshot && socketRef.current) {
-      // FIX: this callback used to have its body entirely commented out
-      // ("until backend supports conversation-level screenshots"), so the
-      // other participant was never actually told someone tried to
-      // screenshot/record the chat. socket/index.js now has a
-      // 'screenshot:attempt' relay handler, so just emit to it.
+    // Set up screenshot attempt callback to notify via socket.
+    // Registered whenever the mod is ON — NOT gated on socketRef.current being
+    // set at this moment, because on a fresh page load this effect can run
+    // before the socket finishes connecting. The callback body itself checks
+    // socketRef.current?.connected at call time, so late connections are fine.
+    if (mods.antiScreenshot) {
       setScreenshotAttemptCallback(() => {
-        if (selectedConversation?._id && socketRef.current?.connected) {
-          emitSafe('screenshot:attempt', { conversationId: selectedConversation._id });
+        const convId = selectedConversationIdRef.current;
+        if (convId && socketRef.current?.connected) {
+          emitSafe('screenshot:attempt', { conversationId: convId });
         }
       });
+    } else {
+      setScreenshotAttemptCallback(null);
     }
     
     window.dispatchEvent(new CustomEvent('genz-mods-updated', { detail: mods }));
