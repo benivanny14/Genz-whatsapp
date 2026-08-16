@@ -27,7 +27,7 @@ const ReportsAnalytics = () => {
     ]).then(([g, e]) => {
       setGrowth(g.data.report);
       setEngagement(e.data.report);
-    }).catch(() => toast.error('Imeshindikana kupakua ripoti'));
+    }).catch(() => toast.error('Failed to load reports'));
   }, []);
 
   if (!growth || !engagement) return <LoadingBlock />;
@@ -35,32 +35,32 @@ const ReportsAnalytics = () => {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
-        <StatCard label="Watumiaji Amilifu Leo (DAU)" value={engagement.dailyActiveUsers} />
-        <StatCard label="Watumiaji Wapya (Siku 30)" value={growth.userGrowth.reduce((s, d) => s + d.count, 0)} tone="blue" />
+        <StatCard label="Active Users Today (DAU)" value={engagement.dailyActiveUsers} />
+        <StatCard label="New Users (30 days)" value={growth.userGrowth.reduce((s, d) => s + d.count, 0)} tone="blue" />
       </div>
 
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
-        <h3 className="font-medium mb-3 text-sm">Ukuaji wa Watumiaji (Siku 30)</h3>
+        <h3 className="font-medium mb-3 text-sm">User Growth (30 days)</h3>
         <MiniBarChart data={growth.userGrowth} valueKey="count" />
       </div>
 
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
-        <h3 className="font-medium mb-3 text-sm">Jumbe Zilizotumwa (Siku 30)</h3>
+        <h3 className="font-medium mb-3 text-sm">Messages Sent (30 days)</h3>
         <MiniBarChart data={growth.messageGrowth} valueKey="count" color="bg-violet-500" />
       </div>
 
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
-        <h3 className="font-medium mb-3 text-sm">Mapato (Siku 30)</h3>
+        <h3 className="font-medium mb-3 text-sm">Revenue (30 days)</h3>
         <MiniBarChart data={growth.revenueGrowth} valueKey="total" color="bg-amber-500" />
       </div>
 
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
-        <h3 className="font-medium mb-3 text-sm">Watumiaji Wanaotuma Jumbe Nyingi Zaidi (Wiki hii)</h3>
+        <h3 className="font-medium mb-3 text-sm">Top Messaging Users (This Week)</h3>
         <div className="space-y-1">
           {engagement.topSenders.map((s, i) => (
             <div key={i} className="flex justify-between text-sm border-b border-gray-100 dark:border-gray-800 py-1">
-              <span>{s.user?.username || 'Mtumiaji'}</span>
-              <span className="text-gray-400">{s.count} jumbe</span>
+              <span>{s.user?.username || 'User'}</span>
+              <span className="text-gray-400">{s.count} messages</span>
             </div>
           ))}
         </div>

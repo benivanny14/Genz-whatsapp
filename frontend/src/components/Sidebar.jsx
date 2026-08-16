@@ -1014,10 +1014,10 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     if (conv.lastMessage.messageType === 'location') return '📍 Location';
 
     if (!mods?.debugEncryption && isClientE2EEMessageContent(conv.lastMessage.content)) {
-      return '🔒 Ujumbe uliosimbwa (E2EE)';
+      return '🔒 Encrypted message (E2EE)';
     }
 
-    // Ikiwa encryption mode imewashwa, onyesha raw encrypted object. Ikiwa imezimwa, onyesha maneno ya kawaida.
+    // If encryption mode is on, show the raw encrypted object. If off, show the plain text.
     let content;
     if (mods?.debugEncryption) {
       // Show raw encrypted content for debugging

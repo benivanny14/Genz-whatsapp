@@ -54,14 +54,14 @@ const Login = () => {
     if (!file) return;
     try {
       if (!window.crypto?.subtle) {
-        throw new Error('Checksum verification requires HTTPS (functiona kwenye https tu).');
+        throw new Error('Checksum verification requires HTTPS.');
       }
       const digest = await window.crypto.subtle.digest('SHA-256', await file.arrayBuffer());
       const hex = [...new Uint8Array(digest)]
         .map((b) => b.toString(16).padStart(2, '0'))
         .join('');
       const expected = (apkVersion?.sha256 || '').toLowerCase();
-      if (!expected) throw new Error('Hakuna checksum iliyochapishwa kwa version hii.');
+      if (!expected) throw new Error('No checksum published for this version.');
       setVerifyResult({ status: hex === expected ? 'match' : 'mismatch' });
     } catch (err) {
       setVerifyResult({ status: 'error', message: err?.message || 'Verification failed' });
@@ -160,7 +160,7 @@ const Login = () => {
             </div>
           )}
 
-          <label className="block text-sm text-slate-300 mb-2">Msimbo wa 2FA</label>
+          <label className="block text-sm text-slate-300 mb-2">2FA Code</label>
           <div className="mb-6 flex items-center gap-2 rounded-md bg-[#202c33] border border-white/10 px-3">
             <ShieldCheck size={18} className="text-[#00a884]" />
             <input
@@ -182,7 +182,7 @@ const Login = () => {
             className="w-full flex items-center justify-center gap-2 rounded-md bg-[#ff2d78] hover:bg-[#d61a5e] py-3 font-bold text-white transition-colors disabled:opacity-60 genz-sticker"
           >
             <ShieldCheck size={18} />
-            {loading ? 'Inathibitisha...' : 'Verify'}
+            {loading ? 'Verifying...' : 'Verify'}
           </button>
 
           <button
@@ -215,7 +215,7 @@ const Login = () => {
           )}
 
           <label className="block text-sm text-slate-300 mb-2">
-            Namba ya simu au username (e.g. +255...)
+            Phone number or username (e.g. +255...)
           </label>
           <div className="mb-4 flex items-center gap-2 rounded-md bg-[#202c33] border border-white/10 px-3">
             <Phone size={18} className="text-[#00a884]" />
@@ -230,7 +230,7 @@ const Login = () => {
             />
           </div>
 
-          <label className="block text-sm text-slate-300 mb-2">Nenosiri</label>
+          <label className="block text-sm text-slate-300 mb-2">Password</label>
           <div className="mb-6 flex items-center gap-2 rounded-md bg-[#202c33] border border-white/10 px-3">
             <Lock size={18} className="text-slate-400" />
             <input
@@ -288,7 +288,7 @@ const Login = () => {
           <ReleaseUptake />
           <p className="mt-1 text-center text-[11px] text-slate-600">
             <Link to="/install" className="text-[#00a884]/70 hover:text-[#00a884]">
-              How to install — Jinsi ya kusakinisha
+              How to install
             </Link>
           </p>
           {apkVersion?.sha256 && (
@@ -298,7 +298,7 @@ const Login = () => {
                 onClick={() => setVerifyOpen((v) => !v)}
                 className="w-full text-center text-[11px] text-slate-500 hover:text-[#00a884] transition-colors"
               >
-                {verifyOpen ? 'Hide checksum — Ficha checksum' : 'Verify checksum — Thibitisha checksum'}
+                {verifyOpen ? 'Hide checksum' : 'Verify checksum'}
               </button>
               {verifyOpen && (
                 <div className="mt-2 rounded-lg border border-white/10 bg-white/[0.04] p-3 text-left">
@@ -310,7 +310,7 @@ const Login = () => {
                   </code>
                   <label className="mt-2 block">
                     <span className="text-[11px] text-slate-500">
-                      Select the APK you downloaded / Chagua APK uliyopakua:
+                      Select the APK you downloaded:
                     </span>
                     <input
                       type="file"

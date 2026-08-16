@@ -406,7 +406,7 @@ describe('statusAdvancedController — polls/location/schedule', () => {
     const res = makeRes();
     await statusAdv.votePoll(makeReq({ params: { id: VALID_ID }, body: { optionIds: [0] } }), res);
     expect(res.statusCode).toBe(400);
-    expect(res.body.message).toBe('Hakuna poll');
+    expect(res.body.message).toBe('No poll found');
   });
 
   it('votePoll rejects repeat voters (400)', async () => {
@@ -622,7 +622,7 @@ describe('statusAdvancedController — edit/duplicate/pin/template', () => {
     expect(status.reports).toHaveLength(1);
     expect(status.reports[0].reporter).toBe('user-1');
     expect(status.save).toHaveBeenCalled();
-    expect(res.body.message).toBe('Status imeripotiwa');
+    expect(res.body.message).toBe('Status reported');
   });
 
   it('createTemplate requires a type (400)', async () => {

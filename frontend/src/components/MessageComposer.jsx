@@ -90,7 +90,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
               <img src={selectedMedia.url} alt="selected media" className="w-full h-auto rounded-lg max-h-32 object-contain" />
               {selectedMedia.type === 'sticker' && (
                 <p className="text-[10px] text-dark-textSecondary mt-1 text-center">
-                  Sticker itatumwa pamoja na ujumbe wako ✨
+                  Sticker will be sent with your message ✨
                 </p>
               )}
             </div>

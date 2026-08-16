@@ -14,7 +14,7 @@ export const ComingSoonPanel = ({ label }) => (
   <div className="bg-white dark:bg-gray-900 border border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-8 text-center">
     <p className="text-gray-700 dark:text-gray-300 font-medium">{label}</p>
     <p className="text-gray-400 text-sm mt-2 max-w-md mx-auto">
-      Sehemu hii itajengwa katika awamu ijayo ya mradi.
+      This section will be built in the next phase of the project.
     </p>
   </div>
 );
@@ -25,7 +25,7 @@ export const LoadingBlock = () => (
   </div>
 );
 
-export const EmptyRow = ({ colSpan, text = 'Hakuna rekodi' }) => (
+export const EmptyRow = ({ colSpan, text = 'No records' }) => (
   <tr><td colSpan={colSpan} className="p-6 text-center text-gray-400">{text}</td></tr>
 );
 

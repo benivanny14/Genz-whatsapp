@@ -14,7 +14,7 @@ const STATUS_COLORS = {
 const STATUS_LABELS = {
   pending: 'Inasubiri',
   under_review: 'Inachunguzwa',
-  resolved: 'Imeshindikana',
+  resolved: 'Resolved',
   dismissed: 'Imekataliwa'
 };
 
@@ -36,7 +36,7 @@ const CATEGORY_LABELS = {
   spam: 'Spam',
   harassment: 'Ukandamizaji',
   inappropriate_content: 'Maudhui Mabaya',
-  fake_account: 'Akaunti Feke',
+  fake_account: 'Fake Account',
   scam: 'Udanganyifu',
   violence: 'Vita',
   hate_speech: 'Uchafu',
@@ -44,13 +44,13 @@ const CATEGORY_LABELS = {
 };
 
 const CONTENT_TYPE_LABELS = {
-  message: 'Ujumbe',
-  conversation: 'Mazungumzo',
-  group: 'Kikundi',
+  message: 'Message',
+  conversation: 'Conversation',
+  group: 'Group',
   channel: 'Channel',
   channel_post: 'Chapisho la Channel',
   status: 'Status',
-  user_profile: 'Wasifu wa Mtumiaji',
+  user_profile: 'User Profile',
   other: 'Nyingine'
 };
 
@@ -82,7 +82,7 @@ const AbuseReports = () => {
       setStats(statsData.stats);
       setPagination(listData.pagination);
     } catch {
-      toast.error('Imeshindikana kupakua abuse reports');
+      toast.error('Failed to load abuse reports');
     } finally {
       setLoading(false);
     }
@@ -95,7 +95,7 @@ const AbuseReports = () => {
       const { data } = await adminApi.get(`/admin/abuse-reports/${report._id}`);
       setViewing(data.report);
     } catch {
-      toast.error('Imeshindwa kupakua report');
+      toast.error('Failed to download report');
     }
   };
 
@@ -108,29 +108,29 @@ const AbuseReports = () => {
         adminNotes
       });
       setViewing(data.report);
-      toast.success('Imesasishwa');
+      toast.success('Updated');
       load(pagination.page);
     } catch {
-      toast.error('Imeshindwa kusasisha ripoti');
+      toast.error('Failed to update report');
     }
   };
 
   const deleteReport = async (id) => {
-    if (!window.confirm('Futa report hii kabisa?')) return;
+    if (!window.confirm('Delete this report permanently?')) return;
     try {
       await adminApi.delete(`/admin/abuse-reports/${id}`);
-      toast.success('Imefutwa');
+      toast.success('Deleted');
       setViewing(null);
       load(pagination.page);
     } catch {
-      toast.error('Imeshindwa kufuta');
+      toast.error('Failed to delete');
     }
   };
 
   if (viewing) {
     return (
       <div className="space-y-4">
-        <button onClick={() => setViewing(null)} className="text-sm text-emerald-600">← Rudi kwenye orodha</button>
+        <button onClick={() => setViewing(null)} className="text-sm text-emerald-600">← Back to list</button>
         
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
           <div className="flex justify-between items-start mb-4">
@@ -203,7 +203,7 @@ const AbuseReports = () => {
                 <Eye size={14} className="inline mr-1" /> Inachunguzwa
               </button>
               <button onClick={() => updateStatus('resolved', 'warning_sent')} className="text-xs px-3 py-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/30">
-                <CheckCircle size={14} className="inline mr-1" /> Imeshindikana
+                <CheckCircle size={14} className="inline mr-1" /> Resolved
               </button>
               <button onClick={() => updateStatus('dismissed')} className="text-xs px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/30">
                 <XCircle size={14} className="inline mr-1" /> Imekataliwa
@@ -211,7 +211,7 @@ const AbuseReports = () => {
             </div>
 
             <textarea
-              placeholder="Andika maelezo ya admin..."
+              placeholder="Write admin notes..."
               className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm mb-2"
               rows={2}
               defaultValue={viewing.adminNotes || ''}
@@ -236,7 +236,7 @@ const AbuseReports = () => {
           <StatCard label="Zote" value={stats.total} />
           <StatCard label="Zinasubiri" value={stats.pending} tone="amber" />
           <StatCard label="Inachunguzwa" value={stats.underReview} tone="blue" />
-          <StatCard label="Zimeshindikana" value={stats.resolved} tone="emerald" />
+          <StatCard label="Resolved" value={stats.resolved} tone="emerald" />
           <StatCard label="Zimekataliwa" value={stats.dismissed} tone="gray" />
           <StatCard label="Dharura" value={stats.byPriority?.urgent || 0} tone="red" />
           <StatCard label="Juu" value={stats.byPriority?.high || 0} tone="orange" />
@@ -253,7 +253,7 @@ const AbuseReports = () => {
             <option value="all">Hali Zote</option>
             <option value="pending">Inasubiri</option>
             <option value="under_review">Inachunguzwa</option>
-            <option value="resolved">Imeshindikana</option>
+            <option value="resolved">Resolved</option>
             <option value="dismissed">Imekataliwa</option>
           </select>
           <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1">
@@ -261,7 +261,7 @@ const AbuseReports = () => {
             <option value="spam">Spam</option>
             <option value="harassment">Ukandamizaji</option>
             <option value="inappropriate_content">Maudhui Mabaya</option>
-            <option value="fake_account">Akaunti Feke</option>
+            <option value="fake_account">Fake Account</option>
             <option value="scam">Udanganyifu</option>
             <option value="violence">Vita</option>
             <option value="hate_speech">Uchafu</option>
@@ -296,7 +296,7 @@ const AbuseReports = () => {
             </td>
           </tr>
         ))}
-        {reports.length === 0 && <EmptyRow colSpan={8} text="Hakuna abuse reports" />}
+        {reports.length === 0 && <EmptyRow colSpan={8} text="No abuse reports" />}
       </Table>
       <Pager page={pagination.page} pages={pagination.pages} onChange={load} />
     </div>

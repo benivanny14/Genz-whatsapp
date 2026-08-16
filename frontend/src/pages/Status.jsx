@@ -816,8 +816,8 @@ const Status = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ settings: { [panelKey]: data } })
       });
-      // Auto-Reply hapa inahifadhiwa kwenye chanzo halisi (genzMods.autoReply)
-      // ambacho message pipeline husoma — si status-features pekee (decorative).
+      // Auto-Reply here is saved to the canonical source (genzMods.autoReply)
+      // which the message pipeline reads — not just status-features (decorative).
       if (panelKey === 'advancedChat' && data && data.autoReplyEnabled !== undefined) {
         await authFetch(`${resolveApiBase()}/genz-mods/settings`, {
           method: 'PUT',

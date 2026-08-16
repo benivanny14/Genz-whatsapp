@@ -138,7 +138,7 @@ const GlassThemeManager = ({ mods, setMods, onClose }) => {
               <Video size={18} /> Video Background
             </div>
             <div className="p-4 space-y-3">
-              <p className="text-gray-400 text-xs">Upload video (mp4/webm) iwe background ya mfumo mzima</p>
+              <p className="text-gray-400 text-xs">Upload a video (mp4/webm) to be the background for the whole system</p>
               
               {/* Video Preview */}
               {videoPreviewUrl && (
@@ -173,7 +173,7 @@ const GlassThemeManager = ({ mods, setMods, onClose }) => {
                 {uploading ? (
                   <><RefreshCw size={16} className="animate-spin" /> Inapakia...</>
                 ) : (
-                  <><Upload size={16} /> Chagua Video (max 500MB)</>
+                  <><Upload size={16} /> Choose Video (max 500MB)</>
                 )}
               </button>
               <input

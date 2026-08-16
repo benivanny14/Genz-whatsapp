@@ -136,6 +136,7 @@ const DEFAULT_GENZ_SETTINGS = {
     hideBlueTickColor: false,
     themePack: 'default',
     fontFamily: 'Inter',
+    defaultMessageFont: 'default',
     bubbleStyle: 'default',
     tickStyle: 'default',
     bubbleSentColor: '',
@@ -753,13 +754,13 @@ export const ChatProvider = ({ children }) => {
     {
       _id: 'demo-conv-1', isGroup: false, isPinned: true, isArchived: false,
       participants: [{ _id: 'demo-user-1', username: 'Amina Kweli', profilePicture: null, isOnline: true }],
-      lastMessage: { content: 'Habari yako! 😊 Umefika nyumbani?', timestamp: new Date(Date.now() - 300000).toISOString(), senderId: 'demo-user-1' },
+      lastMessage: { content: 'Hi there! 😊 Did you get home safe?', timestamp: new Date(Date.now() - 300000).toISOString(), senderId: 'demo-user-1' },
       unreadCount: 3, name: 'Amina Kweli',
     },
     {
       _id: 'demo-conv-2', isGroup: false, isPinned: false, isArchived: false,
       participants: [{ _id: 'demo-user-2', username: 'Brian Msomi', profilePicture: null, isOnline: false }],
-      lastMessage: { content: '✅ Sawa, tutaonana kesho saa tatu', timestamp: new Date(Date.now() - 3600000).toISOString(), senderId: currentUserId },
+      lastMessage: { content: '✅ Okay, see you tomorrow at 9', timestamp: new Date(Date.now() - 3600000).toISOString(), senderId: currentUserId },
       unreadCount: 0, name: 'Brian Msomi',
     },
     {
@@ -769,8 +770,8 @@ export const ChatProvider = ({ children }) => {
         { _id: 'demo-user-3', username: 'Carol Mwangi', profilePicture: null },
         { _id: 'demo-user-4', username: 'David Ochieng', profilePicture: null },
       ],
-      lastMessage: { content: '🎉 Hongera sana David!', timestamp: new Date(Date.now() - 7200000).toISOString(), senderId: 'demo-user-1' },
-      unreadCount: 12, name: '🎓 GENZ Familia', groupName: '🎓 GENZ Familia',
+      lastMessage: { content: '🎉 Congrats David!', timestamp: new Date(Date.now() - 7200000).toISOString(), senderId: 'demo-user-1' },
+      unreadCount: 12, name: '🎓 GENZ Family', groupName: '🎓 GENZ Family',
     },
     {
       _id: 'demo-conv-4', isGroup: false, isPinned: false, isArchived: false,
@@ -781,7 +782,7 @@ export const ChatProvider = ({ children }) => {
     {
       _id: 'demo-conv-5', isGroup: false, isPinned: false, isArchived: false,
       participants: [{ _id: 'demo-user-5', username: 'Edwin Baraka', profilePicture: null, isOnline: false }],
-      lastMessage: { content: 'Tuma hii file haraka iwezekanavyo 📎', timestamp: new Date(Date.now() - 172800000).toISOString(), senderId: currentUserId },
+      lastMessage: { content: 'Send this file as fast as you can 📎', timestamp: new Date(Date.now() - 172800000).toISOString(), senderId: currentUserId },
       unreadCount: 0, name: 'Edwin Baraka',
     },
     {
@@ -790,52 +791,52 @@ export const ChatProvider = ({ children }) => {
         { _id: 'demo-user-2', username: 'Brian Msomi', profilePicture: null },
         { _id: 'demo-user-5', username: 'Edwin Baraka', profilePicture: null },
       ],
-      lastMessage: { content: '📍 Nimeshare location yangu', timestamp: new Date(Date.now() - 259200000).toISOString(), senderId: 'demo-user-2' },
-      unreadCount: 5, name: '💼 Kazi Team', groupName: '💼 Kazi Team',
+      lastMessage: { content: '📍 I shared my location', timestamp: new Date(Date.now() - 259200000).toISOString(), senderId: 'demo-user-2' },
+      unreadCount: 5, name: '💼 Work Team', groupName: '💼 Work Team',
     },
     {
       _id: 'demo-conv-7', isGroup: false, isPinned: false, isArchived: false,
       participants: [{ _id: 'demo-user-6', username: 'Fatuma Hassan', profilePicture: null, isOnline: true }],
-      lastMessage: { content: 'Je, umefanya assignment ya kesho?', timestamp: new Date(Date.now() - 3600000 * 5).toISOString(), senderId: 'demo-user-6' },
+      lastMessage: { content: 'Did you do tomorrow\'s assignment?', timestamp: new Date(Date.now() - 3600000 * 5).toISOString(), senderId: 'demo-user-6' },
       unreadCount: 2, name: 'Fatuma Hassan',
     },
     {
       _id: 'demo-conv-8', isGroup: false, isPinned: false, isArchived: false,
       participants: [{ _id: 'demo-user-7', username: 'George Kamau', profilePicture: null, isOnline: false }],
-      lastMessage: { content: '😂😂😂 hiyo ni ya kweli kabisa!', timestamp: new Date(Date.now() - 3600000 * 48).toISOString(), senderId: 'demo-user-7' },
+      lastMessage: { content: '😂😂😂 that is so true!', timestamp: new Date(Date.now() - 3600000 * 48).toISOString(), senderId: 'demo-user-7' },
       unreadCount: 0, name: 'George Kamau',
     },
   ];
 
   const DEMO_MESSAGES = {
     'demo-conv-1': [
-      { _id: 'dm1-1', content: 'Habari za asubuhi! ☀️', senderId: 'demo-user-1', timestamp: new Date(Date.now() - 3600000 * 3).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm1-2', content: 'Nzuri sana, wewe je? 😊', senderId: currentUserId, timestamp: new Date(Date.now() - 3600000 * 2.9).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm1-3', content: 'Niko sawa. Leo kuna meeting saa tano asubuhi', senderId: 'demo-user-1', timestamp: new Date(Date.now() - 3600000 * 2).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm1-4', content: 'Okay niko tayari! 👍', senderId: currentUserId, timestamp: new Date(Date.now() - 3600000 * 1.5).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm1-5', content: 'Umepata document ile niliyokutumia?', senderId: 'demo-user-1', timestamp: new Date(Date.now() - 1800000).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm1-6', content: 'Ndiyo nimepata, nitaangalia sasa hivi 📄', senderId: currentUserId, timestamp: new Date(Date.now() - 900000).toISOString(), status: 'delivered', type: 'text' },
-      { _id: 'dm1-7', content: 'Habari yako! 😊 Umefika nyumbani?', senderId: 'demo-user-1', timestamp: new Date(Date.now() - 300000).toISOString(), status: 'delivered', type: 'text' },
+      { _id: 'dm1-1', content: 'Good morning! ☀️', senderId: 'demo-user-1', timestamp: new Date(Date.now() - 3600000 * 3).toISOString(), status: 'read', type: 'text' },
+      { _id: 'dm1-2', content: 'Very good, and you? 😊', senderId: currentUserId, timestamp: new Date(Date.now() - 3600000 * 2.9).toISOString(), status: 'read', type: 'text' },
+      { _id: 'dm1-3', content: 'I\'m fine. There\'s a meeting at 10 this morning', senderId: 'demo-user-1', timestamp: new Date(Date.now() - 3600000 * 2).toISOString(), status: 'read', type: 'text' },
+      { _id: 'dm1-4', content: 'Okay I\'m ready! 👍', senderId: currentUserId, timestamp: new Date(Date.now() - 3600000 * 1.5).toISOString(), status: 'read', type: 'text' },
+      { _id: 'dm1-5', content: 'Did you get that document I sent you?', senderId: 'demo-user-1', timestamp: new Date(Date.now() - 1800000).toISOString(), status: 'read', type: 'text' },
+      { _id: 'dm1-6', content: 'Yes I got it, I\'ll look at it right now 📄', senderId: currentUserId, timestamp: new Date(Date.now() - 900000).toISOString(), status: 'delivered', type: 'text' },
+      { _id: 'dm1-7', content: 'Hi there! 😊 Did you get home safe?', senderId: 'demo-user-1', timestamp: new Date(Date.now() - 300000).toISOString(), status: 'delivered', type: 'text' },
     ],
     'demo-conv-2': [
-      { _id: 'dm2-1', content: 'Wewe bado uko ofisini?', senderId: currentUserId, timestamp: new Date(Date.now() - 7200000).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm2-2', content: 'Ndiyo, ninamaliza kazi tu', senderId: 'demo-user-2', timestamp: new Date(Date.now() - 7000000).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm2-3', content: 'Tutaonana saa ngapi kesho?', senderId: currentUserId, timestamp: new Date(Date.now() - 6000000).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm2-4', content: 'Saa tatu asubuhi iko sawa?', senderId: 'demo-user-2', timestamp: new Date(Date.now() - 5000000).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm2-5', content: '✅ Sawa, tutaonana kesho saa tatu', senderId: currentUserId, timestamp: new Date(Date.now() - 3600000).toISOString(), status: 'read', type: 'text' },
+      { _id: 'dm2-1', content: 'Are you still at the office?', senderId: currentUserId, timestamp: new Date(Date.now() - 7200000).toISOString(), status: 'read', type: 'text' },
+      { _id: 'dm2-2', content: 'Yes, just finishing up some work', senderId: 'demo-user-2', timestamp: new Date(Date.now() - 7000000).toISOString(), status: 'read', type: 'text' },
+      { _id: 'dm2-3', content: 'What time shall we meet tomorrow?', senderId: currentUserId, timestamp: new Date(Date.now() - 6000000).toISOString(), status: 'read', type: 'text' },
+      { _id: 'dm2-4', content: 'Does 9 in the morning work?', senderId: 'demo-user-2', timestamp: new Date(Date.now() - 5000000).toISOString(), status: 'read', type: 'text' },
+      { _id: 'dm2-5', content: '✅ Okay, see you tomorrow at 9', senderId: currentUserId, timestamp: new Date(Date.now() - 3600000).toISOString(), status: 'read', type: 'text' },
     ],
     'demo-conv-3': [
-      { _id: 'dm3-1', content: 'Watu wote wamefika kwenye mkutano? 🤔', senderId: 'demo-user-3', timestamp: new Date(Date.now() - 9000000).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm3-2', content: 'Mimi nipo! ✋', senderId: currentUserId, timestamp: new Date(Date.now() - 8900000).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm3-3', content: 'Nipo nipo! 🙋‍♂️', senderId: 'demo-user-4', timestamp: new Date(Date.now() - 8800000).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm3-4', content: 'Nilikuwa na habari njema leo — nimepata kazi! 🎉', senderId: 'demo-user-4', timestamp: new Date(Date.now() - 8000000).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm3-5', content: '🎉 Hongera sana David!', senderId: 'demo-user-1', timestamp: new Date(Date.now() - 7900000).toISOString(), status: 'read', type: 'text', reactions: [{ emoji: '🎊', userId: currentUserId }, { emoji: '❤️', userId: 'demo-user-3' }] },
-      { _id: 'dm3-6', content: 'Hongera sana! Mungu akubariki 🙏', senderId: currentUserId, timestamp: new Date(Date.now() - 7200000).toISOString(), status: 'read', type: 'text' },
+      { _id: 'dm3-1', content: 'Is everyone at the meeting? 🤔', senderId: 'demo-user-3', timestamp: new Date(Date.now() - 9000000).toISOString(), status: 'read', type: 'text' },
+      { _id: 'dm3-2', content: 'I\'m here! ✋', senderId: currentUserId, timestamp: new Date(Date.now() - 8900000).toISOString(), status: 'read', type: 'text' },
+      { _id: 'dm3-3', content: 'Here too! 🙋‍♂️', senderId: 'demo-user-4', timestamp: new Date(Date.now() - 8800000).toISOString(), status: 'read', type: 'text' },
+      { _id: 'dm3-4', content: 'I had great news today — I got a job! 🎉', senderId: 'demo-user-4', timestamp: new Date(Date.now() - 8000000).toISOString(), status: 'read', type: 'text' },
+      { _id: 'dm3-5', content: '🎉 Congrats David!', senderId: 'demo-user-1', timestamp: new Date(Date.now() - 7900000).toISOString(), status: 'read', type: 'text', reactions: [{ emoji: '🎊', userId: currentUserId }, { emoji: '❤️', userId: 'demo-user-3' }] },
+      { _id: 'dm3-6', content: 'Congrats! Best of luck 🙏', senderId: currentUserId, timestamp: new Date(Date.now() - 7200000).toISOString(), status: 'read', type: 'text' },
     ],
     'demo-conv-4': [
-      { _id: 'dm4-1', content: 'Unapendezwa na wimbo gani sasa hivi? 🎵', senderId: currentUserId, timestamp: new Date(Date.now() - 90000000).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm4-2', content: 'Sikiliza hii! 🎶', senderId: 'demo-user-3', timestamp: new Date(Date.now() - 89000000).toISOString(), status: 'read', type: 'audio', duration: 24 },
-      { _id: 'dm4-3', content: '😍 Mzuri sana! Ni nani?', senderId: currentUserId, timestamp: new Date(Date.now() - 88000000).toISOString(), status: 'read', type: 'text' },
+      { _id: 'dm4-1', content: 'What song are you into right now? 🎵', senderId: currentUserId, timestamp: new Date(Date.now() - 90000000).toISOString(), status: 'read', type: 'text' },
+      { _id: 'dm4-2', content: 'Listen to this! 🎶', senderId: 'demo-user-3', timestamp: new Date(Date.now() - 89000000).toISOString(), status: 'read', type: 'audio', duration: 24 },
+      { _id: 'dm4-3', content: '😍 So good! Who is it?', senderId: currentUserId, timestamp: new Date(Date.now() - 88000000).toISOString(), status: 'read', type: 'text' },
       { _id: 'dm4-4', content: '🎵 [Audio Message - 0:24]', senderId: 'demo-user-3', timestamp: new Date(Date.now() - 86400000).toISOString(), status: 'read', type: 'text' },
     ],
   };
@@ -854,15 +855,15 @@ export const ChatProvider = ({ children }) => {
         const offlineConvs = await DB.getConversations();
         if (offlineConvs && offlineConvs.length > 0) {
           setConversations(offlineConvs);
-          // FIX: Usifungue chat yoyote kiotomatiki hapa. Awali mfumo ulikuwa
-          // unachukua "storedId" (chat ya mwisho kufunguliwa) na kuiweka kama
-          // selectedConversation mara moja app inapoanza - hii ndiyo iliyokuwa
-          // ikisababisha mfumo "kujifungua wenyewe" ndani ya chat bila mtumiaji
-          // kubonyeza chochote (hasa kwenye simu, ambapo skrini moja hubadilika
-          // kuonyesha ChatArea badala ya orodha ya chat mara selectedConversation
-          // inapokuwa si null). Sasa tunaruhusu tu socket ijiunge na room ya chat
-          // iliyokuwa imefunguliwa mwisho (kwa ajili ya notifications/real-time
-          // sync) bila kulazimisha UI kuingia ndani ya chat hiyo moja kwa moja.
+          // FIX: Do not auto-open any chat here. Previously the system took
+          // the "storedId" (last opened chat) and set it as
+          // selectedConversation as soon as the app started - which caused the
+          // app to "open itself" into a chat without the user tapping anything
+          // (especially on phones, where one screen changes
+          // to show ChatArea instead of the chat list as soon as
+          // selectedConversation becomes non-null). Now we only let the socket
+          // join the room of the last opened chat (for notifications/real-time
+          // sync) without forcing the UI into that chat directly.
           const storedId = getStoredSelectedConversationId();
           if (storedId) {
             const matched = offlineConvs.find(c => c._id === storedId);
@@ -1184,7 +1185,7 @@ export const ChatProvider = ({ children }) => {
                   });
                 }
               }, 300);
-              return [...prev, incoming].slice(-150); // weka messages 150 tu kwenye memory
+              return [...prev, incoming].slice(-150); // keep only 150 messages in memory
             }
             return prev;
           }
@@ -1234,7 +1235,7 @@ export const ChatProvider = ({ children }) => {
           const clientId = confirmedMsg.clientMessageId;
           const exists = prev.some(m => String(m._id) === String(confirmedMsg._id));
 
-          if (exists) return prev; // Tayari ipo, usiiongeze tena
+          if (exists) return prev; // Already exists, do not add it again
 
           if (clientId) {
             // Badilisha temp message
@@ -1251,7 +1252,7 @@ export const ChatProvider = ({ children }) => {
       });
 
       socket.on('notification:new_message', async (data) => {
-        console.log('Ujumbe mpya umeingia kutoka Socket (notification:new_message):', data);
+        console.log('New message arrived from Socket (notification:new_message):', data);
         if (!data || !data.message) return;
         const incoming = await decryptMessageContent(data.message);
         
@@ -2259,7 +2260,7 @@ export const ChatProvider = ({ children }) => {
       ...(outboundContent !== content ? { isClientE2EE: true } : {}),
     };
 
-    // 1. Kipambele: Hifadhi kwenye DB (local-first, haina kusumbua UI)
+    // 1. Priority: Save to DB (local-first, doesn't block the UI)
     try {
       await DB.saveMessage(newMessage);
       if (selectedConversation && String(selectedConversation._id) === String(targetConversationId)) {
@@ -2295,10 +2296,13 @@ export const ChatProvider = ({ children }) => {
         latitude: typeof options.latitude === 'number' ? options.latitude : undefined,
         longitude: typeof options.longitude === 'number' ? options.longitude : undefined,
         isLiveLocation: Boolean(options.isLiveLocation),
-        liveLocationExpiresAt: options.liveLocationExpiresAt || undefined
+        liveLocationExpiresAt: options.liveLocationExpiresAt || undefined,
+        // Per-message font from the composer picker — previously missing here,
+        // so the chosen font never reached the server or the recipient.
+        font: typeof options.font === 'string' && options.font ? options.font : null
       };
 
-      console.log("Inatuma ujumbe kwenda DB kwa chumba cha:", newMessage.conversationId);
+      console.log("Saving message to DB for room:", newMessage.conversationId);
 
       let messageSent = false;
       let savedMessage = newMessage;
@@ -2306,7 +2310,7 @@ export const ChatProvider = ({ children }) => {
 
       // 1. Kipaumbele: Tumia Socket kwanza (real-time) — wait for delivery ack
       if (socketRef.current?.connected) {
-        console.log("Natumia Socket kutuma ujumbe...");
+        console.log("Sending message via Socket...");
         try {
           emitSafe('message:send', payload);
           messageSent = await new Promise((resolve) => {
@@ -2340,7 +2344,7 @@ export const ChatProvider = ({ children }) => {
             socketRef.current.on('message:delivered', onDelivered);
             socketRef.current.on('message:error', onError);
           });
-          if (messageSent) console.log("Ujumbe umetumwa kupitia Socket");
+          if (messageSent) console.log("Message sent via Socket");
         } catch (e) {
           console.error("Socket emit imefeli:", e);
         }
@@ -2363,19 +2367,19 @@ export const ChatProvider = ({ children }) => {
             resolvedServerId = savedMessage._id;
             try { await DB.deleteMessages([newMessage._id]); } catch (e) { }
 
-            // Iweke kwenye skrini (User A ataona)
+            // Put it on screen (User A will see it)
             setMessages(prev => prev.map(m => m._id === clientMessageId ? savedMessage : m));
             await DB.saveMessage(savedMessage);
-            console.log("Meseji imehifadhiwa kikamilifu kwenye Database:", savedMessage._id);
+            console.log("Message saved successfully to Database:", savedMessage._id);
           } else {
             console.error("API response success false:", data);
           }
         } catch (e) {
-          console.error("API error wakati wa kutuma:", e);
+          console.error("API error while sending:", e);
         }
       }
 
-      // 4. Kama imefail, onyesha error kwenye message
+      // 4. If it failed, show the error on the message
       if (!messageSent) {
         setMessages(prev => prev.map(m =>
           m._id === clientMessageId ? { ...m, status: 'failed' } : m
@@ -2384,7 +2388,7 @@ export const ChatProvider = ({ children }) => {
 
       // 3. Kama zote zimefeli, weka foleni
       if (!messageSent) {
-        console.error("Meseji imegoma kwenda, hakuna mtandao au server iko chini!");
+        console.error("Message failed to send — no network or the server is down!");
         await DB.enqueueAction({ type: 'sendMessage', payload });
       }
 
@@ -2920,7 +2924,7 @@ export const ChatProvider = ({ children }) => {
 
   const restoreCloudBackup = async (backupId) => {
     if (backupService.isRestoring()) {
-      return { success: false, message: 'Kurejesha tayari kunaendelea' };
+      return { success: false, message: 'Restore is already in progress' };
     }
     try {
       const result = await backupService.restoreChat(backupId);
@@ -2931,7 +2935,7 @@ export const ChatProvider = ({ children }) => {
       return result;
     } catch (error) {
       console.error('Cloud restore failed:', error);
-      return { success: false, message: error.message || 'Kurejesha kumeshindwa' };
+      return { success: false, message: error.message || 'Failed to restore' };
     }
   };
 
@@ -2941,7 +2945,7 @@ export const ChatProvider = ({ children }) => {
       return { success: true };
     } catch (error) {
       console.error('Cloud delete failed:', error);
-      return { success: false, message: error.message || 'Kufuta kumeshindwa' };
+      return { success: false, message: error.message || 'Failed to delete' };
     }
   };
 
@@ -3912,7 +3916,7 @@ export const ChatProvider = ({ children }) => {
   const sendMassMessage = (userIds, content) => {
     return new Promise((resolve) => {
       if (!socketRef.current || !socketRef.current.connected) {
-        resolve({ success: false, error: 'Hauna mtandao kwa sasa (not connected)' });
+        resolve({ success: false, error: 'You are offline right now (not connected)' });
         return;
       }
 
@@ -3920,7 +3924,7 @@ export const ChatProvider = ({ children }) => {
       const timeoutId = setTimeout(() => {
         if (settled) return;
         settled = true;
-        resolve({ success: false, error: 'Muda umeisha, jaribu tena (timeout)' });
+        resolve({ success: false, error: 'Request timed out, please try again (timeout)' });
       }, 15000);
 
       socketRef.current.emit('send_mass_message', {
@@ -3931,7 +3935,7 @@ export const ChatProvider = ({ children }) => {
         if (settled) return;
         settled = true;
         clearTimeout(timeoutId);
-        resolve(ackResponse || { success: false, error: 'Hakuna jibu kutoka server' });
+        resolve(ackResponse || { success: false, error: 'No response from server' });
       });
     });
   };
@@ -4298,7 +4302,7 @@ export const ChatProvider = ({ children }) => {
         return { success: false, message: data.message };
       }
     } catch (error) {
-      return { success: false, message: 'Imeshindikana kuongeza contact' };
+      return { success: false, message: 'Failed to add contact' };
     }
   };
 

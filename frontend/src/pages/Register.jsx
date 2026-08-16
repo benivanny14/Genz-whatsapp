@@ -77,8 +77,8 @@ const Register = () => {
     <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'radial-gradient(900px 600px at 20% 15%, rgba(255,45,120,0.22), transparent 55%), radial-gradient(800px 600px at 85% 85%, rgba(124,92,255,0.22), transparent 55%), radial-gradient(700px 500px at 65% 30%, rgba(0,217,166,0.12), transparent 50%), #0c0a1e' }}>
       <form onSubmit={handleDirectRegister} className="w-full max-w-md bg-[#111b21] border border-white/10 rounded-lg p-6 shadow-2xl genz-card">
         <div className="mb-6">
-          <h1 className="genz-display text-2xl text-white">Tengeneza Akaunti</h1>
-          <p className="text-sm text-slate-400 mt-1">Jisajili kwa akaunti mpya ya Genz Messenger.</p>
+          <h1 className="genz-display text-2xl text-white">Create Account</h1>
+          <p className="text-sm text-slate-400 mt-1">Register for a new Genz Messenger account.</p>
         </div>
 
         {error && (
@@ -93,7 +93,7 @@ const Register = () => {
         )}
 
         <label className="block text-sm text-slate-300 mb-2">
-          Namba ya simu (e.g. +255712345678)
+          Phone number (e.g. +255712345678)
         </label>
         <div className="mb-4 flex items-center gap-2 rounded-md bg-[#202c33] border border-white/10 px-3">
           <Phone size={18} className="text-[#00a884]" />
@@ -108,7 +108,7 @@ const Register = () => {
         </div>
 
         <label className="block text-sm text-slate-300 mb-2">
-          Jina lako / Username
+          Your Name / Username
         </label>
         <div className="mb-4 flex items-center gap-2 rounded-md bg-[#202c33] border border-white/10 px-3">
           <UserPlus size={18} className="text-slate-400" />
@@ -122,7 +122,7 @@ const Register = () => {
           />
         </div>
 
-        <label className="block text-sm text-slate-300 mb-2">Nenosiri</label>
+        <label className="block text-sm text-slate-300 mb-2">Password</label>
         <div className="mb-6 flex items-center gap-2 rounded-md bg-[#202c33] border border-white/10 px-3">
           <Lock size={18} className="text-slate-400" />
           <input
@@ -160,7 +160,7 @@ const Register = () => {
           </div>
         </div>
 
-        <label className="block text-sm text-slate-300 mb-2">Thibitisha Nenosiri</label>
+        <label className="block text-sm text-slate-300 mb-2">Confirm Password</label>
         <div className="mb-4 flex items-center gap-2 rounded-md bg-[#202c33] border border-white/10 px-3">
           <Lock size={18} className="text-slate-400" />
           <input

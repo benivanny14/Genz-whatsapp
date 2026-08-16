@@ -25,7 +25,7 @@ const getFileIcon = (type) => {
   return <File size={20} className="text-gray-400" />;
 };
 
-const ChunkedUploader = ({ onComplete, onClose, onUploadComplete, onCancel, accept = '*/*', maxSizeGB = 10, label = 'Chagua File' }) => {
+const ChunkedUploader = ({ onComplete, onClose, onUploadComplete, onCancel, accept = '*/*', maxSizeGB = 10, label = 'Choose File' }) => {
   // Support both prop naming conventions
   const handleComplete = onComplete || onUploadComplete;
   const handleClose = onClose || onCancel;
@@ -44,7 +44,7 @@ const ChunkedUploader = ({ onComplete, onClose, onUploadComplete, onCancel, acce
     if (!selectedFile) return;
     const maxBytes = maxSizeGB * 1024 * 1024 * 1024;
     if (selectedFile.size > maxBytes) {
-      setError(`File ni kubwa sana. Max: ${maxSizeGB}GB`);
+      setError(`File is too large. Max: ${maxSizeGB}GB`);
       return;
     }
     setFile(selectedFile);
@@ -174,7 +174,7 @@ const ChunkedUploader = ({ onComplete, onClose, onUploadComplete, onCancel, acce
         >
           <Upload size={40} className="text-blue-400 mx-auto mb-3 group-hover:scale-110 transition-transform" />
           <p className="text-white font-semibold text-base">{label}</p>
-          <p className="text-gray-500 text-sm mt-1">Drag & Drop au bonyeza hapa</p>
+          <p className="text-gray-500 text-sm mt-1">Drag & Drop or click here</p>
           <p className="text-gray-600 text-xs mt-2">Max: {maxSizeGB}GB • Aina zote za files</p>
           <input
             type="file"
@@ -259,7 +259,7 @@ const ChunkedUploader = ({ onComplete, onClose, onUploadComplete, onCancel, acce
         <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-4 flex items-center gap-3">
           <CheckCircle size={24} className="text-green-400 flex-shrink-0" />
           <div className="flex-1">
-            <p className="text-green-300 font-semibold">Upload Imekamilika!</p>
+            <p className="text-green-300 font-semibold">Upload Complete!</p>
             <p className="text-green-400/70 text-xs truncate">{file?.name}</p>
           </div>
           <button

@@ -14,7 +14,7 @@ const NotificationCenter = () => {
   useEffect(() => {
     adminApi.get('/admin/notifications/overview')
       .then(({ data }) => setOverview(data.overview))
-      .catch(() => toast.error('Imeshindikana kupakua takwimu'));
+      .catch(() => toast.error('Failed to load statistics'));
   }, []);
 
   const send = async (e) => {
@@ -26,7 +26,7 @@ const NotificationCenter = () => {
       toast.success('Arifa imetumwa');
       setTitle(''); setBody('');
     } catch {
-      toast.error('Imeshindwa kutuma arifa');
+      toast.error('Failed to send notification');
     } finally {
       setSending(false);
     }
@@ -42,7 +42,7 @@ const NotificationCenter = () => {
       </div>
 
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
-        <h3 className="font-medium mb-3">Tuma Push Notification</h3>
+        <h3 className="font-medium mb-3">Send Push Notification</h3>
         <form onSubmit={send} className="space-y-3">
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Kichwa cha habari"
             className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm" />
@@ -51,12 +51,12 @@ const NotificationCenter = () => {
           <div className="flex gap-3 items-center">
             <select value={segment} onChange={(e) => setSegment(e.target.value)}
               className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
-              <option value="all">Watumiaji wote</option>
+              <option value="all">All users</option>
               <option value="premium">Premium tu</option>
               <option value="free">Wasio Premium</option>
             </select>
             <button disabled={sending} className="bg-emerald-600 text-white rounded-lg px-4 py-2 text-sm flex items-center gap-2 disabled:opacity-60">
-              <BellRing size={14} /> {sending ? 'Inatuma...' : 'Tuma Arifa'}
+              <BellRing size={14} /> {sending ? 'Sending...' : 'Send Notification'}
             </button>
           </div>
         </form>

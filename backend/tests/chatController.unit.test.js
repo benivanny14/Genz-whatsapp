@@ -1208,7 +1208,7 @@ describe('chatController — forward/clear/delete chat', () => {
     const res = makeRes();
     await chat.forwardMessage(makeReq({ params: { messageId: 'm1' }, body: { targetConversationIds: ['c1', 'c2'] } }), res);
     expect(res.statusCode).toBe(400);
-    expect(res.body.message).toMatch(/mara nyingi/);
+    expect(res.body.message).toMatch(/forwarded many times/);
   });
 
   it('forwardMessage rejects view-once messages (400)', async () => {

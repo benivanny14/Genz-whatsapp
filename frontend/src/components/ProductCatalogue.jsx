@@ -153,12 +153,12 @@ const ProductCatalogue = ({ onClose, onSendProduct }) => {
               <h3 className="text-white font-bold mb-4">Ongeza Bidhaa Mpya</h3>
               <div className="space-y-3">
                 <div>
-                  <label className="text-gray-400 text-sm block mb-1">Jina la Bidhaa</label>
+                  <label className="text-gray-400 text-sm block mb-1">Product Name</label>
                   <input
                     type="text"
                     value={newProduct.name}
                     onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                    placeholder="mf. Laptop, Simu ya mkononi"
+                    placeholder="e.g. Laptop, Mobile phone"
                     className="w-full bg-gray-900 text-white px-4 py-2 rounded-lg border border-gray-700 focus:border-blue-500 focus:outline-none"
                   />
                 </div>
@@ -206,7 +206,7 @@ const ProductCatalogue = ({ onClose, onSendProduct }) => {
                     className="flex-1 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors font-bold flex items-center justify-center gap-2"
                   >
                     {loading && <Loader size={16} className="animate-spin" />}
-                    Hifadhi Bidhaa
+                    Save Product
                   </button>
                 </div>
               </div>
@@ -221,8 +221,8 @@ const ProductCatalogue = ({ onClose, onSendProduct }) => {
           ) : products.length === 0 && !showAddForm ? (
             <div className="text-center text-gray-400 py-12">
               <Package size={48} className="mx-auto mb-4 opacity-50 text-blue-400" />
-              <p className="text-lg">Hakuna bidhaa bado (No products)</p>
-              <p className="text-sm">Ongeza bidhaa yako ya kwanza ili kuanza biashara</p>
+              <p className="text-lg">No products yet</p>
+              <p className="text-sm">Add your first product to start selling</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4">
@@ -255,7 +255,7 @@ const ProductCatalogue = ({ onClose, onSendProduct }) => {
                             className="flex-1 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center justify-center gap-1 text-sm font-semibold"
                           >
                             <Send size={14} />
-                            Tuma (Send)
+                            Send
                           </button>
                           <button
                             onClick={() => handleDeleteProduct(id)}

@@ -26,7 +26,7 @@ router.post('/', async (req, res) => {
     const userId = req.user._id || req.user.id;
 
     if (!name || price === undefined) {
-      return res.status(400).json({ success: false, error: 'Jina la bidhaa na bei ni lazima (Name and price are required)' });
+      return res.status(400).json({ success: false, error: 'Product name and price are required' });
     }
 
     const product = await Product.create({
@@ -57,7 +57,7 @@ router.delete('/:id', async (req, res) => {
 
     await Product.deleteOne({ _id: req.params.id });
 
-    res.json({ success: true, message: 'Bidhaa imefutwa kikamilifu (Product deleted successfully)' });
+    res.json({ success: true, message: 'Product deleted successfully' });
   } catch (error) {
     console.error('Error deleting product:', error);
     res.status(500).json({ success: false, error: 'Kosa la server limejitokeza (Internal server error)' });

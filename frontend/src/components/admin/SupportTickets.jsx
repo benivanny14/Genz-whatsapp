@@ -20,7 +20,7 @@ const SupportTickets = () => {
       const { data } = await adminApi.get('/admin/tickets', { params: { limit: 30 } });
       setTickets(data.tickets || []);
     } catch {
-      toast.error('Imeshindikana kupakua tickets');
+      toast.error('Failed to load tickets');
     } finally {
       setLoading(false);
     }
@@ -33,7 +33,7 @@ const SupportTickets = () => {
       const { data } = await adminApi.get(`/admin/tickets/${t._id}`);
       setActive(data.ticket);
     } catch {
-      toast.error('Imeshindwa kufungua ticket');
+      toast.error('Failed to open ticket');
     }
   };
 
@@ -46,7 +46,7 @@ const SupportTickets = () => {
       setReply('');
       load();
     } catch {
-      toast.error('Imeshindwa kutuma jibu');
+      toast.error('Failed to send reply');
     }
   };
 
@@ -57,14 +57,14 @@ const SupportTickets = () => {
       setActive(data.ticket);
       load();
     } catch {
-      toast.error('Imeshindwa kusasisha tiketi');
+      toast.error('Failed to update ticket');
     }
   };
 
   if (active) {
     return (
       <div className="space-y-3">
-        <button onClick={() => setActive(null)} className="text-sm text-emerald-600">← Rudi kwenye orodha</button>
+        <button onClick={() => setActive(null)} className="text-sm text-emerald-600">← Back to list</button>
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
           <div className="flex justify-between items-start mb-3">
             <div>
@@ -88,7 +88,7 @@ const SupportTickets = () => {
             ))}
           </div>
           <form onSubmit={sendReply} className="flex gap-2">
-            <input value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Andika jibu..."
+            <input value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Write a reply..."
               className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm" />
             <button className="bg-emerald-600 text-white rounded-lg px-3 py-2"><Send size={16} /></button>
           </form>
@@ -100,7 +100,7 @@ const SupportTickets = () => {
   if (loading) return <LoadingBlock />;
 
   return (
-    <Table headers={['Mada', 'Mtumiaji', 'Aina', 'Hali', 'Ilisasishwa']}>
+    <Table headers={['Subject', 'User', 'Type', 'Status', 'Updated']}>
       {tickets.map((t) => (
         <tr key={t._id} onClick={() => openTicket(t)} className="border-t border-gray-100 dark:border-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
           <td className="p-3">{t.subject}</td>

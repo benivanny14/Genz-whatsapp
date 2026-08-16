@@ -20,7 +20,7 @@ const StatusStoriesManagement = ({ mode = 'status' }) => {
         setHighlights(data.highlights || []);
       }
     } catch {
-      toast.error('Imeshindikana kupakua data');
+      toast.error('Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -29,13 +29,13 @@ const StatusStoriesManagement = ({ mode = 'status' }) => {
   useEffect(() => { load(); }, [load]);
 
   const remove = async (id) => {
-    if (!window.confirm('Futa status hii?')) return;
+    if (!window.confirm('Delete this status?')) return;
     try {
       await adminApi.delete(`/admin/statuses/${id}`);
-      toast.success('Imefutwa');
+      toast.success('Deleted');
       load();
     } catch {
-      toast.error('Imeshindwa kufuta status');
+      toast.error('Failed to delete status');
     }
   };
 
@@ -45,15 +45,15 @@ const StatusStoriesManagement = ({ mode = 'status' }) => {
     return (
       <div className="space-y-4">
         <p className="text-gray-500 text-sm">
-          "Stories" ni mkusanyiko wa Status za mtumiaji kwa muda husika — hapa chini ni watumiaji
-          walio na machapisho mengi zaidi ya status hivi karibuni.
+          "Stories" is a collection of a user's Statuses for a given period — below are the users
+          with the most status posts recently.
         </p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {highlights.slice(0, 4).map((h) => (
-            <StatCard key={h._id} label={h.user?.username || 'Mtumiaji'} value={h.count} sub={`views ${h.totalViews}`} />
+            <StatCard key={h._id} label={h.user?.username || 'User'} value={h.count} sub={`views ${h.totalViews}`} />
           ))}
         </div>
-        <Table headers={['Mtumiaji', 'Simu', 'Idadi ya Status', 'Views Zote', 'Ilipoandikwa Mwisho']}>
+        <Table headers={['User', 'Phone', 'Status Count', 'Total Views', 'Last Posted']}>
           {highlights.map((h) => (
             <tr key={h._id} className="border-t border-gray-100 dark:border-gray-800">
               <td className="p-3">{h.user?.username || '—'}</td>
@@ -70,7 +70,7 @@ const StatusStoriesManagement = ({ mode = 'status' }) => {
   }
 
   return (
-    <Table headers={['Mtumiaji', 'Aina', 'Views', 'Inaisha', 'Kitendo']}>
+    <Table headers={['User', 'Type', 'Views', 'Expires', 'Action']}>
       {statuses.map((s) => (
         <tr key={s._id} className="border-t border-gray-100 dark:border-gray-800">
           <td className="p-3">{s.user?.username || '—'}</td>

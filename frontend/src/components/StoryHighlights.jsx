@@ -24,11 +24,11 @@ const CreateHighlightModal = ({ statuses, newName, setNewName, selectedColor, se
       <div className="p-5 space-y-4">
         <input
           type="text" value={newName} onChange={(e) => setNewName(e.target.value)}
-          placeholder="Jina la Highlight (mfano: Familia, Safari, Kazi)"
+          placeholder="Highlight name (e.g. Family, Trip, Work)"
           className="w-full bg-white/5 border border-white/15 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 text-sm"
         />
         <div>
-          <p className="text-gray-400 text-xs mb-2">Chagua Rangi ya Ring:</p>
+          <p className="text-gray-400 text-xs mb-2">Choose Ring Color:</p>
           <div className="flex gap-2">
             {colors.map((color, i) => (
               <button key={i} onClick={() => setSelectedColor(i)}
@@ -39,7 +39,7 @@ const CreateHighlightModal = ({ statuses, newName, setNewName, selectedColor, se
         </div>
         {statuses.length > 0 && (
           <div>
-            <p className="text-gray-400 text-xs mb-2">Chagua Statuses ({selectedStatuses.length} selected):</p>
+            <p className="text-gray-400 text-xs mb-2">Choose Statuses ({selectedStatuses.length} selected):</p>
             <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto">
               {statuses.map((s) => {
                 const sid = s._id || s.id;

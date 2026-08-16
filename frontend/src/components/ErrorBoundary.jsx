@@ -102,7 +102,7 @@ class ErrorBoundary extends Component {
           </div>
           <h3 className="text-white font-bold text-lg mb-2">Kitu kimekosea</h3>
           <p className="text-white/50 text-sm mb-6 max-w-xs">
-            {this.state.error?.message || 'Hitilafu isiyotarajiwa imetokea. Jaribu tena.'}
+            {this.state.error?.message || 'An unexpected error occurred. Please try again.'}
           </p>
           <div className="flex gap-3">
             <button

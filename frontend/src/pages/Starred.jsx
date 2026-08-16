@@ -78,7 +78,7 @@ const Starred = () => {
           <h1 className="text-white font-bold flex items-center gap-2">
             <Star size={18} className="text-yellow-400 fill-yellow-400" /> Ujumbe wa Nyota
           </h1>
-          <p className="text-white/40 text-xs">{filtered.length} ujumbe</p>
+          <p className="text-white/40 text-xs">{filtered.length} messages</p>
         </div>
       </div>
 
@@ -106,8 +106,8 @@ const Starred = () => {
               <Star size={40} className="text-yellow-400/40" />
             </div>
             <div className="text-center">
-              <p className="text-white/50 font-semibold">Hakuna ujumbe wa nyota</p>
-              <p className="text-white/30 text-sm mt-1">Bonyeza ujumbe, kisha chagua Star kuuhifadhi</p>
+              <p className="text-white/50 font-semibold">No starred messages</p>
+              <p className="text-white/30 text-sm mt-1">Tap a message, then choose Star to save it</p>
             </div>
           </div>
         ) : (

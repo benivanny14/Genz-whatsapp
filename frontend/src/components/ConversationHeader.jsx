@@ -86,7 +86,7 @@ const ConversationHeader = React.memo(function ConversationHeader({ ctx }) {
                     {selectedConversation?.isGroup ? (
                       <ShieldAlert size={13} className="text-amber-400/90 flex-shrink-0" title="Messages za group hazijafichwa end-to-end — server inaziona" aria-label="Group messages not E2E encrypted" />
                     ) : safeMods?.clientE2EE ? (
-                      <Lock size={12} className="text-[#00a884] flex-shrink-0" title="Text messages kwenye chat hii zinafichwa kwa njia ya E2EE kwenye device zako" aria-label="Chat encrypted end-to-end" />
+                      <Lock size={12} className="text-[#00a884] flex-shrink-0" title="Text messages in this chat are encrypted end-to-end on your device" aria-label="Chat encrypted end-to-end" />
                     ) : (
                       <Lock size={12} className="text-white/40 flex-shrink-0" title="Messages encrypted in transit & at rest" aria-label="Messages encrypted in transit and at rest" />
                     )}

@@ -74,6 +74,7 @@ const messageSchema = new mongoose.Schema({
       enum: ['text', 'sticker', 'gif', 'image', 'video']
     },
     value: String,
+    font: String,
     meta: mongoose.Schema.Types.Mixed
   }],
   poll: {
@@ -209,6 +210,11 @@ const messageSchema = new mongoose.Schema({
     type: String,
     enum: ['none', 'robot', 'chipmunk', 'deep', 'echo', 'reverse'],
     default: 'none'
+  },
+  // Per-message font chosen from the composer font picker (e.g. 'georgia')
+  font: {
+    type: String,
+    default: null
   },
   // GENZ Mods flags
   isEdited: {

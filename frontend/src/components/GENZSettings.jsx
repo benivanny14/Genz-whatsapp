@@ -219,7 +219,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
           setMyPayments(mine.payments || []);
         }
       } catch (error) {
-        setPaymentMessage('Imeshindikana kupakia taarifa za malipo. Jaribu tena.');
+        setPaymentMessage('Failed to load payment details. Please try again.');
       } finally {
         setPaymentLoading(false);
       }
@@ -266,7 +266,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
 
   const handlePreviewSms = async () => {
     if (!manualSms || !manualSms.trim()) {
-      setPaymentMessage('Tafadhali andika SMS ya kuthibitisha malipo.');
+      setPaymentMessage('Please enter the payment confirmation SMS.');
       return;
     }
     setPaymentLoading(true);
@@ -279,15 +279,15 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
       });
       const data = await response.json();
       if (!response.ok || !data.success) {
-        setPaymentMessage(data.message || 'Imeshindikana kusoma SMS. Jaribu tena.');
+        setPaymentMessage(data.message || 'Failed to read the SMS. Please try again.');
       } else {
         const parsed = data.parsed || {};
         const tx = parsed.transactionId ? ` (Ref: ${parsed.transactionId})` : '';
-        const amount = parsed.amount ? `Kiasi: Tsh ${parsed.amount}` : 'Kiasi: hakijagunduliwa';
-        setPaymentMessage(`✅ SMS imesomwa — ${parsed.operator || 'Operator'}: ${amount}${tx}`);
+        const amount = parsed.amount ? `Amount: Tsh ${parsed.amount}` : 'Amount: not detected';
+        setPaymentMessage(`✅ SMS read — ${parsed.operator || 'Operator'}: ${amount}${tx}`);
       }
     } catch (error) {
-      setPaymentMessage('Network error. Jaribu tena.');
+      setPaymentMessage('Network error. Please try again.');
     } finally {
       setPaymentLoading(false);
     }
@@ -295,7 +295,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
 
   const handleSubmitManualPayment = async () => {
     if (!manualSms || !manualSms.trim()) {
-      setPaymentMessage('Tafadhali andika SMS ya kuthibitisha malipo.');
+      setPaymentMessage('Please enter the payment confirmation SMS.');
       return;
     }
     setPaymentLoading(true);
@@ -308,12 +308,12 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
       });
       const data = await response.json();
       if (!response.ok || !data.success) {
-        setPaymentMessage(data.message || 'Imeshindikana kuwasilisha malipo. Jaribu tena.');
+        setPaymentMessage(data.message || 'Failed to submit the payment. Please try again.');
         setPaymentLoading(false);
         return;
       }
       setManualSms('');
-      setPaymentMessage(data.message || 'Malipo yamewasilishwa. Yatakaguliwa hivi karibuni.');
+      setPaymentMessage(data.message || 'Payment submitted. It will be reviewed shortly.');
       try {
         const mineRes = await authFetch(`${API_URL}/payment/manual/mine`);
         if (mineRes.ok) {
@@ -323,7 +323,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
       } catch (e) { /* background poller handles it */ }
       setPaymentLoading(false);
     } catch (error) {
-      setPaymentMessage('Network error. Jaribu tena.');
+      setPaymentMessage('Network error. Please try again.');
       setPaymentLoading(false);
     }
   };
@@ -504,7 +504,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
       return (
         <div className="p-4 text-center border border-dashed border-white/10 rounded-xl bg-white/5">
           <Cloud size={28} className="mx-auto text-blue-400/50 mb-2 animate-pulse" />
-          <p className="text-xs text-white/50">Hakuna backups zilizopatikana kwenye wingu. (No backups found on cloud.)</p>
+          <p className="text-xs text-white/50">No backups found on cloud.</p>
         </div>
       );
     }
@@ -776,10 +776,10 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               {/* Step 1 - Manual Payment Instructions */}
               {manualInfo && (
                 <div className="bg-gradient-to-br from-amber-500/15 to-yellow-500/10 rounded-2xl p-4 border border-amber-500/30">
-                  <p className="text-white/80 text-sm font-bold mb-2">📲 Tuma Malipo kwa:</p>
+                  <p className="text-white/80 text-sm font-bold mb-2">📲 Send Payment to:</p>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-white/70">Jina: <span className="text-amber-300 font-semibold">{manualInfo.receiverName}</span></span>
-                    <span className="text-white/70">Namba: <span className="text-amber-300 font-semibold font-mono">{manualInfo.receiverNumber}</span></span>
+                    <span className="text-white/70">Name: <span className="text-amber-300 font-semibold">{manualInfo.receiverName}</span></span>
+                    <span className="text-white/70">Number: <span className="text-amber-300 font-semibold font-mono">{manualInfo.receiverNumber}</span></span>
                   </div>
                   <div className="mt-3 space-y-1 text-xs text-white/60">
                     {(manualInfo.instructions || []).map((inst, i) => (
@@ -791,7 +791,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
 
               {/* Step 2 - Paste SMS */}
               <div>
-                <p className="text-white/70 text-sm font-semibold mb-2">2️⃣ Andika SMS ya Kuthibitisha Malipo:</p>
+                <p className="text-white/70 text-sm font-semibold mb-2">2️⃣ Enter the Payment Confirmation SMS:</p>
                 <textarea
                   value={manualSms}
                   onChange={(e) => { setManualSms(e.target.value); setPaymentMessage(''); }}
@@ -812,7 +812,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
               {myPayments.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-white/70 text-sm font-semibold">Malipo Yako:</p>
+                    <p className="text-white/70 text-sm font-semibold">Your Payments:</p>
                     <button onClick={refreshMyPayments} className="text-white/50 hover:text-white text-[11px] flex items-center gap-1">
                       <RefreshCw size={11} /> Onyesha upya
                     </button>
@@ -865,12 +865,12 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
                 {paymentLoading ? (
                   <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Inashughulikia...</>
                 ) : (
-                  <>💳 Wasilisha Malipo — Tsh 10,000</>
+                  <>💳 Submit Payment — Tsh 10,000</>
                 )}
               </button>
 
               <p className="text-center text-white/25 text-xs pb-1">
-                🔐 Malipo yatakaguliwa na admin na Premium itawashwa baada ya kuidhinishwa.
+                🔐 Your payment will be reviewed by an admin and Premium will be enabled once approved.
               </p>
             </div>
           </div>
@@ -1049,6 +1049,24 @@ const AppearanceTab = ({ ctx }) => {
                     }`}
                   >
                     {font}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-blue-300 mb-2 block font-bold">Default Message Text Font</label>
+              <p className="text-[10px] text-gray-400 mb-2">Every message you send will use this font (receiver sees it too). You can still change it per message in the chat composer.</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[{ value: 'default', label: 'Default' }, { value: 'arial', label: 'Arial' }, { value: 'times', label: 'Times New Roman' }, { value: 'georgia', label: 'Georgia' }, { value: 'verdana', label: 'Verdana' }, { value: 'courier', label: 'Courier New' }, { value: 'comic', label: 'Comic Sans' }, { value: 'impact', label: 'Impact' }].map((font) => (
+                  <button
+                    key={font.value}
+                    onClick={() => setMods(prev => ({ ...prev, defaultMessageFont: font.value }))}
+                    style={{ fontFamily: { arial: 'Arial, sans-serif', times: '"Times New Roman", serif', georgia: 'Georgia, serif', verdana: 'Verdana, sans-serif', courier: '"Courier New", monospace', comic: '"Comic Sans MS", cursive', impact: 'Impact, sans-serif' }[font.value] || 'sans-serif' }}
+                    className={`py-2 px-3 text-xs rounded-lg border transition-all ${
+                      (mods.defaultMessageFont || 'default') === font.value ? 'border-pink-500 bg-pink-500/20 text-white' : 'border-white/10 text-gray-300 hover:bg-white/5'
+                    }`}
+                  >
+                    {font.label}
                   </button>
                 ))}
               </div>
@@ -1471,10 +1489,10 @@ const AppearanceTab = ({ ctx }) => {
               />
               <div className="relative z-10 flex flex-col gap-2">
                 <div className="flex justify-end">
-                  <div className="bg-[#008069] text-white text-[10px] px-2.5 py-1.5 rounded-lg rounded-br-none shadow-md">Hii ni preview!</div>
+                  <div className="bg-[#008069] text-white text-[10px] px-2.5 py-1.5 rounded-lg rounded-br-none shadow-md">This is a preview!</div>
                 </div>
                 <div className="flex justify-start">
-                  <div className="bg-white text-gray-800 text-[10px] px-2.5 py-1.5 rounded-lg rounded-bl-none shadow-md font-medium">Inaonekana vizuri sana.</div>
+                  <div className="bg-white text-gray-800 text-[10px] px-2.5 py-1.5 rounded-lg rounded-bl-none shadow-md font-medium">Looking great.</div>
                 </div>
               </div>
             </div>
@@ -1615,13 +1633,13 @@ const UpdateHistory = () => {
   if (events.length === 0) {
     return (
       <div className="px-3 pb-3 pt-1 text-[11px] text-slate-400">
-        Hakuna historia bado — historia inaonekana hapa baada ya banner kuonekana au kubofywa.
+        No history yet — history appears here after a banner is shown or tapped.
       </div>
     );
   }
   return (
     <div className="px-3 pb-3 pt-1">
-      <p className="mb-1 text-[11px] font-semibold text-blue-100">Historia yako ya updates (kifaa hiki):</p>
+      <p className="mb-1 text-[11px] font-semibold text-blue-100">Your update history (this device):</p>
       <ul className="space-y-1">
         {events.map((e, i) => (
           <li key={i} className="flex items-center justify-between gap-2 text-[11px] text-slate-300">
@@ -1765,8 +1783,8 @@ const PrivacyTab = ({ ctx }) => {
               />
               <ModItem
                 icon={<Shield size={20} className="text-emerald-500" />}
-                title="DM — Ulinzi wa Mwisho (E2EE)"
-                desc="Simba maneno kwenye mazungumzo ya mtu mmoja (ECDH + AES-GCM). Washiriki lazima wawe na akaunti walioweka funguo."
+                title="DM — End-to-End Encryption (E2EE)"
+                desc="Encrypts messages in one-on-one conversations (ECDH + AES-GCM). Participants must have accounts with keys set up."
                 active={mods.clientE2EE}
                 onClick={() => toggleMod('clientE2EE')}
               />
@@ -2098,10 +2116,10 @@ const PrivacyTab = ({ ctx }) => {
             <div className="mx-2 mt-2 rounded-lg border border-blue-400/20 bg-blue-500/10 px-3 py-2 text-[11px] leading-relaxed text-blue-100/90">
               <p className="font-semibold text-blue-100 mb-0.5">Nini kinakusanywa kabla ya kuwasha:</p>
               <p>
-                Ukiiwasha, kila wakati banner ya update inaonekana au inabofywa (shown / dismissed /
-                updated), app inatuma <span className="font-mono">4 maneno tu</span>: tukio, version,
-                na namba ya random ya kifaa (sio namba yako ya simu, sio jina, sio ujumbe wako).
-                Data inatumika tu kuona kama watumiaji wanaweza kusasisha — na inafutwa baada ya siku 180.
+                When enabled, every time an update banner is shown or tapped (shown / dismissed /
+                updated), the app sends only <span className="font-mono">4 words</span>: event, version,
+                and a random device number (not your phone number, not your name, not your messages).
+                The data is used only to see whether users can update — and is deleted after 180 days.
               </p>
             </div>
           )}

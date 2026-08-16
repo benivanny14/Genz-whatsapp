@@ -217,8 +217,8 @@ const StatusReel = ({ onClose, initialStatuses = [] }) => {
     return (
       <div className="fixed inset-0 z-[400] bg-black flex flex-col items-center justify-center gap-4">
         <Sparkles size={48} className="text-gray-600" />
-        <p className="text-gray-400 text-lg font-semibold">Hakuna statuses kwa sasa</p>
-        <button onClick={onClose} className="px-6 py-3 bg-white/10 text-white rounded-xl">Rudi</button>
+        <p className="text-gray-400 text-lg font-semibold">No statuses right now</p>
+        <button onClick={onClose} className="px-6 py-3 bg-white/10 text-white rounded-xl">Back</button>
       </div>
     );
   }
@@ -507,7 +507,7 @@ const StatusReel = ({ onClose, initialStatuses = [] }) => {
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleComment(); }}
-                placeholder="Andika reply..."
+                placeholder="Write a reply..."
                 className="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-blue-500 text-sm"
                 autoFocus
               />
@@ -533,10 +533,10 @@ const StatusReel = ({ onClose, initialStatuses = [] }) => {
             onClick={(e) => e.stopPropagation()}
           >
             {[
-              { icon: <Download size={16} />, label: 'Hifadhi Status', action: handleSave },
+              { icon: <Download size={16} />, label: 'Save Status', action: handleSave },
               { icon: <Share2 size={16} />, label: 'Share', action: handleShare },
-              { icon: <Trash2 size={16} className="text-red-400" />, label: 'Futa (Yako)', action: async () => {
-                if (!window.confirm('Futa status hii?')) return;
+              { icon: <Trash2 size={16} className="text-red-400" />, label: 'Delete (Yours)', action: async () => {
+                if (!window.confirm('Delete this status?')) return;
                 try {
                   const token = getAuthToken();
                   const statusId = currentId.replace('status-', '');

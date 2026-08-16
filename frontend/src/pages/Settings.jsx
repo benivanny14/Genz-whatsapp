@@ -510,11 +510,11 @@ const Settings = () => {
       if (result === 'updated') {
         showStatus('success', 'Sasisho jipya limepatikana! Linaandaliwa...');
       } else if (result === 'up-to-date') {
-        showStatus('success', 'Uko kwenye toleo jipya kabisa la app.');
+        showStatus('success', 'You are on the latest version of the app.');
       } else if (result === 'unsupported') {
         showStatus('error', 'Kivinjari hiki hakiwezeshi sasisho la moja kwa moja.');
       } else {
-        showStatus('error', 'Imeshindwa kuangalia sasisho. Jaribu tena baadaye.');
+        showStatus('error', 'Failed to check for updates. Please try again later.');
       }
     } finally {
       setCheckingUpdate(false);

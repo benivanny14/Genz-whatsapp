@@ -123,7 +123,7 @@ router.post('/', superAdminAuth, runPaymentUpload, async (req, res) => {
     console.error('Error creating payment feature:', error);
     res.status(500).json({
       success: false,
-      message: 'Hitilafu za ndani ya seva wakati wa kuunda feature',
+      message: 'Internal server error while creating the feature',
       error: error.message
     });
   }
@@ -167,7 +167,7 @@ router.get('/', async (req, res) => {
     console.error('Error fetching payment features:', error);
     res.status(500).json({
       success: false,
-      message: 'Hitilafu wakati wa kupata features',
+      message: 'Error while fetching features',
       error: error.message
     });
   }
@@ -205,7 +205,7 @@ router.get('/:id', async (req, res) => {
     console.error('Error fetching payment feature:', error);
     res.status(500).json({
       success: false,
-      message: 'Hitilafu wakati wa kupata feature',
+      message: 'Error while fetching feature',
       error: error.message
     });
   }
@@ -226,7 +226,7 @@ router.put('/:id', superAdminAuth, async (req, res) => {
     if (paymentFeature.createdBy.toString() !== req.user._id && !req.user.isAdmin) {
       return res.status(403).json({
         success: false,
-        message: 'Hakuna ruhusa kugeuza feature hii'
+        message: 'No permission to toggle this feature'
       });
     }
 
@@ -261,7 +261,7 @@ router.put('/:id', superAdminAuth, async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Feature ya kulipa imesasishwa kikamilifu',
+      message: 'Payment feature updated successfully',
       data: paymentFeature
     });
 
@@ -269,7 +269,7 @@ router.put('/:id', superAdminAuth, async (req, res) => {
     console.error('Error updating payment feature:', error);
     res.status(500).json({
       success: false,
-      message: 'Hitilafu wakati wa kusasisha feature',
+      message: 'Error while updating feature',
       error: error.message
     });
   }
@@ -303,7 +303,7 @@ router.delete('/:id', superAdminAuth, async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Feature ya kulipa imefanikiwa kufuta',
+      message: 'Payment feature deleted successfully',
       data: paymentFeature
     });
 
@@ -311,7 +311,7 @@ router.delete('/:id', superAdminAuth, async (req, res) => {
     console.error('Error deleting payment feature:', error);
     res.status(500).json({
       success: false,
-      message: 'Hitilafu wakati wa kufuta feature',
+      message: 'Error while deleting feature',
       error: error.message
     });
   }
@@ -334,7 +334,7 @@ router.patch('/:id/toggle-featured', superAdminAuth, async (req, res) => {
 
     res.json({
       success: true,
-      message: paymentFeature.featured ? 'Feature imewekwa kwenye vipindi vya muhimu' : 'Feature imeson shu gpia vipindi vya muhimu',
+      message: paymentFeature.featured ? 'Feature added to featured' : 'Feature removed from featured',
       data: paymentFeature
     });
 
@@ -342,7 +342,7 @@ router.patch('/:id/toggle-featured', superAdminAuth, async (req, res) => {
     console.error('Error toggling featured status:', error);
     res.status(500).json({
       success: false,
-      message: 'Hitilafu wakati wa kubadili vipindi vya muhimu',
+      message: 'Error while toggling featured',
       error: error.message
     });
   }
@@ -364,7 +364,7 @@ router.post('/:id/inquiry', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Ombi lako limesongezwa',
+      message: 'Your request has been submitted',
       data: paymentFeature
     });
 
@@ -372,7 +372,7 @@ router.post('/:id/inquiry', async (req, res) => {
     console.error('Error incrementing inquiry:', error);
     res.status(500).json({
       success: false,
-      message: 'Hitilafu wakati wa kuongeza maombi',
+      message: 'Error while adding request',
       error: error.message
     });
   }
@@ -430,7 +430,7 @@ router.get('/search/advanced', async (req, res) => {
     console.error('Error searching payment features:', error);
     res.status(500).json({
       success: false,
-      message: 'Hitilafu wakati wa utafutaji',
+      message: 'Error during search',
       error: error.message
     });
   }

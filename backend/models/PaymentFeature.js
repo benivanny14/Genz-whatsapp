@@ -4,7 +4,7 @@ const PaymentFeatureSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, 'Jina la feature lazima lipatikane'],
+      required: [true, 'Feature name is required'],
       trim: true,
       maxlength: [100, 'Jina linaweza kuwa hadi 100 alama'],
     },
@@ -16,7 +16,7 @@ const PaymentFeatureSchema = new mongoose.Schema(
     price: {
       type: Number,
       required: [true, 'Bei lazima ipatikane'],
-      min: [0, 'Bei haiwezi kuwa chini ya 0'],
+      min: [0, 'Price cannot be below 0'],
     },
     location: {
       type: String,
@@ -61,7 +61,7 @@ const PaymentFeatureSchema = new mongoose.Schema(
     maxPrice: {
       type: Number,
       required: true,
-      min: [0, 'Maximum bei haiwezi kuwa chini ya 0'],
+      min: [0, 'Maximum price cannot be below 0'],
     },
     status: {
       type: String,

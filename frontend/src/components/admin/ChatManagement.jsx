@@ -18,7 +18,7 @@ const ChatManagement = () => {
       setConversations(data.conversations || []);
       setPagination(data.pagination);
     } catch {
-      toast.error('Imeshindikana kupakua mazungumzo');
+      toast.error('Failed to load conversations');
     } finally {
       setLoading(false);
     }
@@ -32,31 +32,31 @@ const ChatManagement = () => {
       const { data } = await adminApi.get(`/admin/chats/${c._id}/messages`);
       setMessages(data.messages || []);
     } catch {
-      toast.error('Imeshindwa kupakua jumbe');
+      toast.error('Failed to load messages');
     }
   };
 
   const remove = async (id) => {
-    if (!window.confirm('Una uhakika unataka kufuta mazungumzo haya?')) return;
+    if (!window.confirm('Are you sure you want to delete this conversation?')) return;
     try {
       await adminApi.delete(`/admin/chats/${id}`);
-      toast.success('Imefutwa');
+      toast.success('Deleted');
       load(pagination.page);
       if (viewing?._id === id) setViewing(null);
     } catch {
-      toast.error('Imeshindwa kufuta');
+      toast.error('Failed to delete');
     }
   };
 
   if (viewing) {
     return (
       <div className="space-y-3">
-        <button onClick={() => setViewing(null)} className="text-sm text-emerald-600">← Rudi kwenye orodha</button>
+        <button onClick={() => setViewing(null)} className="text-sm text-emerald-600">← Back to list</button>
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 max-h-[70vh] overflow-y-auto space-y-2">
-          {messages.length === 0 && <p className="text-gray-400 text-sm">Hakuna jumbe</p>}
+          {messages.length === 0 && <p className="text-gray-400 text-sm">No messages</p>}
           {messages.slice().reverse().map((m) => (
             <div key={m._id} className="text-sm border-b border-gray-100 dark:border-gray-800 pb-2">
-              <span className="text-gray-500 font-medium">{m.sender?.username || 'Mtumiaji'}:</span>{' '}
+              <span className="text-gray-500 font-medium">{m.sender?.username || 'User'}:</span>{' '}
               <span className="text-gray-700 dark:text-gray-300">{m.content}</span>
               <div className="text-[10px] text-gray-400">{new Date(m.createdAt).toLocaleString()}</div>
             </div>
@@ -70,10 +70,10 @@ const ChatManagement = () => {
 
   return (
     <div className="space-y-3">
-      <Table headers={['Aina', 'Washiriki', 'Jumbe', 'Ilisasishwa', 'Kitendo']}>
+      <Table headers={['Type', 'Participants', 'Messages', 'Updated', 'Action']}>
         {conversations.map((c) => (
           <tr key={c._id} className="border-t border-gray-100 dark:border-gray-800">
-            <td className="p-3">{c.isGroup ? 'Kikundi' : 'Binafsi'}</td>
+            <td className="p-3">{c.isGroup ? 'Group' : 'Private'}</td>
             <td className="p-3">{(c.participants || []).map((p) => p.username).join(', ') || c.groupName}</td>
             <td className="p-3">{c.messageCount}</td>
             <td className="p-3 text-gray-400">{new Date(c.updatedAt).toLocaleDateString()}</td>

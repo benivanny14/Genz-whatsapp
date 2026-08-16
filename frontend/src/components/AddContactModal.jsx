@@ -40,7 +40,7 @@ const AddContactModal = ({ isOpen, onClose }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Jina la kumsave nalo</label>
+            <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Name to Save As</label>
             <input 
               type="text" 
               required
@@ -52,7 +52,7 @@ const AddContactModal = ({ isOpen, onClose }) => {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Namba ya Simu</label>
+            <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Phone Number</label>
             <input 
               type="text" 
               required

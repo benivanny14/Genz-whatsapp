@@ -20,7 +20,7 @@ const RolesPermissions = () => {
       setOptions(opts.permissions || []);
       setUsers(usersData.users || []);
     } catch {
-      toast.error('Imeshindikana kupakua ruhusa');
+      toast.error('Failed to load permissions');
     } finally {
       setLoading(false);
     }
@@ -33,9 +33,9 @@ const RolesPermissions = () => {
     try {
       const { data } = await adminApi.get('/admin/users', { params: { search, limit: 5 } });
       setFoundUser(data.users?.[0] || null);
-      if (!data.users?.length) toast.error('Mtumiaji hajapatikana');
+      if (!data.users?.length) toast.error('User not found');
     } catch {
-      toast.error('Imeshindwa kutafuta');
+      toast.error('Failed to search');
     }
   };
 
@@ -43,11 +43,11 @@ const RolesPermissions = () => {
     const next = current.includes(key) ? current.filter((p) => p !== key) : [...current, key];
     try {
       await adminApi.patch(`/admin/permissions/users/${userId}`, { permissions: next });
-      toast.success('Imesasishwa');
+      toast.success('Updated');
       if (foundUser?._id === userId) setFoundUser({ ...foundUser, appPermissions: next });
       load();
     } catch {
-      toast.error('Imeshindwa kusasisha ruhusa');
+      toast.error('Failed to update permissions');
     }
   };
 
@@ -56,14 +56,14 @@ const RolesPermissions = () => {
   return (
     <div className="space-y-6">
       <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-800 rounded-xl p-4 text-sm text-amber-700 dark:text-amber-300">
-        Kumbuka: ruhusa hizi ni za ndani ya app tu (mfano: kusimamia maudhui ya kikundi). Hazimpi
-        mtumiaji njia ya kufikia dashibodi hii ya admin — hiyo ni WEWE peke yako.
+        Note: these permissions are in-app only (e.g. moderating group content). They do not give
+        a user access to this admin dashboard — that is YOU alone.
       </div>
 
       <div className="flex gap-2">
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tafuta mtumiaji wa kumpa ruhusa..."
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search for a user to grant permissions..."
           className="flex-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm" />
-        <button onClick={searchUser} className="px-3 py-2 bg-emerald-600 text-white rounded-lg text-sm">Tafuta</button>
+        <button onClick={searchUser} className="px-3 py-2 bg-emerald-600 text-white rounded-lg text-sm">Search</button>
       </div>
 
       {foundUser && (
@@ -84,8 +84,8 @@ const RolesPermissions = () => {
       )}
 
       <div>
-        <h3 className="font-medium mb-2 text-sm">Watumiaji Wenye Ruhusa Maalum</h3>
-        <Table headers={['Mtumiaji', 'Simu', 'Ruhusa']}>
+        <h3 className="font-medium mb-2 text-sm">Users with Special Permissions</h3>
+        <Table headers={['User', 'Phone', 'Permission']}>
           {users.map((u) => (
             <tr key={u._id} className="border-t border-gray-100 dark:border-gray-800">
               <td className="p-3">{u.username}</td>
@@ -93,7 +93,7 @@ const RolesPermissions = () => {
               <td className="p-3 text-xs text-gray-500">{(u.appPermissions || []).join(', ')}</td>
             </tr>
           ))}
-          {users.length === 0 && <EmptyRow colSpan={3} text="Hakuna mtumiaji mwenye ruhusa maalum bado" />}
+          {users.length === 0 && <EmptyRow colSpan={3} text="No users with special permissions yet" />}
         </Table>
       </div>
     </div>

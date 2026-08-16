@@ -831,6 +831,7 @@ exports.sendMessage = async (req, res) => {
       messageId,
       selfDestructTimer,
       allowScreenshot,
+      font,
     } = req.body;
     
     // 1. Frontend inaweza kuwa inatuma 'conversationId' au 'chatId', tunasoma zote mbili kulinda usalama
@@ -848,7 +849,7 @@ exports.sendMessage = async (req, res) => {
     // Content moderation: block clearly harmful language before it is stored
     const textToCheck = `${content || ''} ${caption || ''}`;
     if (containsProfanity(textToCheck)) {
-      return res.status(400).json({ success: false, message: 'Ujumbe una maneno yasiyoruhusiwa. Tafadhali badilisha ujumbe.' });
+      return res.status(400).json({ success: false, message: 'Your message contains disallowed words. Please change your message.' });
     }
 
     // âœ… Angalia kama mpokeaji amemzuia mtumaji
@@ -987,6 +988,7 @@ exports.sendMessage = async (req, res) => {
       ...(typeof allowScreenshot === 'boolean' ? { allowScreenshot } : {}),
       disappearAt,
       clientMessageId: messageId ? String(messageId) : undefined,
+      font: typeof font === 'string' && font ? font : null,
     });
 
     let populatedMessage = null;
@@ -1580,16 +1582,16 @@ exports.addContactByPhone = async (req, res) => {
     const { phone, savedName } = req.body;
 
     if (!phone || !savedName) {
-      return res.status(400).json({ success: false, message: 'Tafadhali jaza jina na namba ya simu' });
+      return res.status(400).json({ success: false, message: 'Please provide a name and phone number' });
     }
 
     const contactUser = await User.findOne({ phoneNumber: phone });
     if (!contactUser) {
-      return res.status(404).json({ success: false, message: 'Namba hii bado haijasajiliwa kwenye Genz Messenger' });
+      return res.status(404).json({ success: false, message: 'This number is not yet registered on Genz Messenger' });
     }
 
     if (contactUser._id.toString() === localUserId.toString()) {
-      return res.status(400).json({ success: false, message: 'Huwezi kujisave namba yako mwenyewe' });
+      return res.status(400).json({ success: false, message: 'You cannot save your own number' });
     }
 
     const currentUser = await User.findById(localUserId);
@@ -1598,7 +1600,7 @@ exports.addContactByPhone = async (req, res) => {
     );
 
     if (alreadyExists) {
-      return res.status(400).json({ success: false, message: 'Mwasiliano huyu tayari yupo kwenye orodha yako' });
+      return res.status(400).json({ success: false, message: 'This contact is already in your list' });
     }
 
     currentUser.contacts.push({ user: contactUser._id, savedName });
@@ -2519,7 +2521,7 @@ exports.forwardMessage = async (req, res) => {
     if (chainForwardCount >= FORWARD_MANY_LIMIT && targetConversationIds.length > 1) {
       return res.status(400).json({
         success: false,
-        message: "Message hii imeforwardwa mara nyingi — unaweza kupeleka mbele kwenye chat moja tu",
+        message: "This message has been forwarded many times — you can only forward it to one chat",
       });
     }
 
@@ -2554,6 +2556,8 @@ exports.forwardMessage = async (req, res) => {
         forwardedFrom: messageId,
         originalMessageId: messageId,
         forwardCount: chainForwardCount + 1,
+        // Preserve the sender's chosen font so the forwarded copy renders identically.
+        font: typeof originalMessage.font === 'string' && originalMessage.font ? originalMessage.font : null,
       });
 
       const populated = await Message.findById(forwardedMessage._id)

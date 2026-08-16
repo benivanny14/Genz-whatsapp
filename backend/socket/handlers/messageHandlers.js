@@ -62,7 +62,8 @@ module.exports = function registerMessageHandlers(ctx) {
         longitude,
         isLiveLocation,
         liveLocationExpiresAt,
-        allowScreenshot
+        allowScreenshot,
+        font
       } = data;
       const safeContent = content || fileName || (mediaUrl ? `${messageType || 'media'} message` : '') || (structuredContent && structuredContent.length ? 'Structured Message' : '');
       if (!safeContent) {
@@ -230,7 +231,8 @@ module.exports = function registerMessageHandlers(ctx) {
         latitude: typeof latitude === 'number' ? latitude : (latitude ? Number(latitude) : null),
         longitude: typeof longitude === 'number' ? longitude : (longitude ? Number(longitude) : null),
         isLiveLocation: Boolean(isLiveLocation),
-        liveLocationExpiresAt: liveLocationExpiresAt ? new Date(liveLocationExpiresAt) : null
+        liveLocationExpiresAt: liveLocationExpiresAt ? new Date(liveLocationExpiresAt) : null,
+        font: typeof font === 'string' && font ? font : null
       });
 
       // Mark as processed only after successful persistence
@@ -1155,7 +1157,9 @@ module.exports = function registerMessageHandlers(ctx) {
         fileSize: originalMessage.fileSize,
         duration: originalMessage.duration,
         forwarded: true,
-        originalMessageId: messageId
+        originalMessageId: messageId,
+        // Preserve the sender's chosen font so the forwarded copy renders identically.
+        font: typeof originalMessage.font === 'string' && originalMessage.font ? originalMessage.font : null
       });
       const populatedMessage = await Message.findById(forwardedMessage._id)
         .populate('sender', 'username profilePicture');

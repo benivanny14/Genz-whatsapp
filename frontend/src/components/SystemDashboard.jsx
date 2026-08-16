@@ -152,7 +152,7 @@ const SystemDashboard = ({ onClose }) => {
                     <StatCard icon={<MessageSquare size={20} />} label="Msgs Leo" value={stats.messagesToday} sub="Jumla" color="blue" />
                     <StatCard icon={<Users size={20} />} label="Chats Leo" value={stats.chatsTodayCount} sub={`${stats.chatsCount} total`} color="green" />
                     <StatCard icon={<Wifi size={20} />} label="Online Sasa" value={stats.onlineContactsCount} sub="Mawasiliano" color="purple" />
-                    <StatCard icon={<TrendingUp size={20} />} label="Wiki Hii" value={stats.messagesThisWeek} sub="Ujumbe" color="orange" />
+                    <StatCard icon={<TrendingUp size={20} />} label="This Week" value={stats.messagesThisWeek} sub="Messages" color="orange" />
                     <StatCard icon={<Eye size={20} />} label="Statuses" value={stats.activeStatuses} sub="Active" color="yellow" />
                     <StatCard icon={<Zap size={20} />} label="Total Msgs" value={stats.totalMessages} sub="Wote" color="red" />
                   </div>
@@ -174,7 +174,7 @@ const SystemDashboard = ({ onClose }) => {
                                 <span className="text-white text-xs font-medium truncate">{conv.name}</span>
                                 <div className="flex items-center gap-2">
                                   {conv.isOnline && <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />}
-                                  <span className="text-gray-400 text-xs">{conv.todayMessages} leo</span>
+                                  <span className="text-gray-400 text-xs">{conv.todayMessages} today</span>
                                 </div>
                               </div>
                               <MiniBar value={conv.todayMessages} max={stats.topConversations[0]?.todayMessages || 1} />
@@ -191,13 +191,13 @@ const SystemDashboard = ({ onClose }) => {
               {tab === 'online' && (
                 <div className="p-4 space-y-3">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-gray-400 text-sm">{ranking.filter(u => u.isOnline).length} watu wako online sasa</p>
+                    <p className="text-gray-400 text-sm">{ranking.filter(u => u.isOnline).length} people online now</p>
                     <span className="text-xs text-gray-600">Jumla: {ranking.length}</span>
                   </div>
                   {ranking.length === 0 && (
                     <div className="text-center py-12">
                       <WifiOff size={40} className="text-gray-700 mx-auto mb-3" />
-                      <p className="text-gray-600 text-sm">Hakuna watumiaji</p>
+                      <p className="text-gray-600 text-sm">No users</p>
                     </div>
                   )}
                   {ranking.map((user) => (
@@ -236,7 +236,7 @@ const SystemDashboard = ({ onClose }) => {
               {tab === 'chart' && stats?.dailyChart && (
                 <div className="p-4">
                   <h3 className="text-white font-bold text-sm mb-4 flex items-center gap-2">
-                    <BarChart2 size={16} className="text-blue-400" /> Ujumbe - Siku 7 Zilizopita
+                    <BarChart2 size={16} className="text-blue-400" /> Messages - Last 7 Days
                   </h3>
                   {/* Bar chart */}
                   <div className="flex items-end gap-2 h-32 mb-2">

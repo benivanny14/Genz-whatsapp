@@ -18,7 +18,7 @@ const OfflineIndicator = () => {
       <AlertCircle className="w-5 h-5 text-yellow-600 shrink-0" />
       <div className="flex-1">
         <h3 className="font-semibold text-sm mb-1">Huna mtandao</h3>
-        <p className="text-xs text-yellow-700">Ujumbe utatumwa utakaporudi mtandaoni.</p>
+        <p className="text-xs text-yellow-700">Messages will be sent when you are back online.</p>
       </div>
       <button
         onClick={handleRetry}

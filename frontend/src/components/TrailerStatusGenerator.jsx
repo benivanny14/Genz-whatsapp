@@ -142,7 +142,7 @@ const TrailerStatusGenerator = ({ statuses, user, onClose }) => {
 
     const sequence = buildSequence(myStatuses, username);
     if (myStatuses.length === 0) {
-      setError('Huna status za kujenga trailer. Tengeneza status kwanza.');
+      setError('You have no statuses to build a trailer. Create a status first.');
       return;
     }
 
@@ -342,7 +342,7 @@ const TrailerStatusGenerator = ({ statuses, user, onClose }) => {
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#05020d] via-[#140533] to-[#05020d]">
                 <Film size={64} className="text-purple-500 mb-3" />
-                <p className="text-white/70 text-sm">Preview itaonekana hapa</p>
+                <p className="text-white/70 text-sm">Preview will appear here</p>
               </div>
             )}
 

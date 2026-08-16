@@ -16,7 +16,7 @@ const AdminDeviceManagement = () => {
       setDevices(data.devices || []);
       setPagination(data.pagination);
     } catch {
-      toast.error('Imeshindikana kupakua vifaa');
+      toast.error('Failed to load devices');
     } finally {
       setLoading(false);
     }
@@ -25,13 +25,13 @@ const AdminDeviceManagement = () => {
   useEffect(() => { load(1); }, [load]);
 
   const revoke = async (id) => {
-    if (!window.confirm('Ondoa kifaa hiki? Mtumiaji ataondolewa mara moja.')) return;
+    if (!window.confirm('Remove this device? The user will be logged out immediately.')) return;
     try {
       await adminApi.delete(`/admin/devices/${id}`);
-      toast.success('Kifaa kimeondolewa');
+      toast.success('Device removed');
       load(pagination.page);
     } catch {
-      toast.error('Imeshindwa kuondoa kifaa');
+      toast.error('Failed to remove device');
     }
   };
 
@@ -39,7 +39,7 @@ const AdminDeviceManagement = () => {
 
   return (
     <div className="space-y-3">
-      <Table headers={['Jina la Kifaa', 'Aina', 'Iliyofanya Kazi Mwisho', 'Hali', 'Kitendo']}>
+      <Table headers={['Device Name', 'Type', 'Last Active', 'Status', 'Action']}>
         {devices.map((d) => (
           <tr key={d._id} className="border-t border-gray-100 dark:border-gray-800">
             <td className="p-3">{d.deviceName || d.deviceId}</td>

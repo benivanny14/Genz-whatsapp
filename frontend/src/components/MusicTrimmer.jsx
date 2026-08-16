@@ -80,7 +80,7 @@ const MusicTrimmer = ({ file, onTrim }) => {
         setEnd(Math.min(buffer.duration, 30));
       } catch (e) {
         if (cancelled) return;
-        setError('Haiwezi kusoma faili hii ya muziki. Jaribu faili nyingine.');
+        setError('Could not read this music file. Try another file.');
       } finally {
         if (!cancelled) setLoading(false);
       }

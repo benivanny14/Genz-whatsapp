@@ -88,8 +88,8 @@ const Archived = () => {
               <Archive size={40} className="text-blue-400/40" />
             </div>
             <div className="text-center">
-              <p className="text-white/50 font-semibold">Hakuna mazungumzo yaliyohifadhiwa</p>
-              <p className="text-white/30 text-sm mt-1">Swipe mazungumzo kushoto kwenye chat list, kisha hifadhi</p>
+              <p className="text-white/50 font-semibold">No archived chats</p>
+              <p className="text-white/30 text-sm mt-1">Swipe a chat left on the chat list, then archive it</p>
             </div>
           </div>
         ) : (

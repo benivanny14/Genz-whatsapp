@@ -6,7 +6,7 @@ const STICKER_PACKS = [
   {
     id: 'trending',
     name: '🔥 Trending',
-    description: 'Stickers maarufu sasa hivi',
+    description: 'Popular stickers right now',
     stickers: [
       'https://cdn-icons-png.flaticon.com/512/3532/3532827.png',
       'https://cdn-icons-png.flaticon.com/512/4457/4457090.png',
@@ -32,7 +32,7 @@ const STICKER_PACKS = [
   {
     id: 'reactions',
     name: '😂 Reactions',
-    description: 'Express yako feeling',
+    description: 'Express your feelings',
     stickers: [
       'https://cdn-icons-png.flaticon.com/512/4379/4379460.png',
       'https://cdn-icons-png.flaticon.com/512/2584/2584606.png',

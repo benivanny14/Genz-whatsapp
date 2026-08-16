@@ -93,7 +93,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const { sendSticker, favoriteStickers, toggleFavoriteSticker } = useStickers();
   const user = chatUser || localUser;
   const [messageInput, setMessageInput] = useState('');
-  const [selectedFont, setSelectedFont] = useState('default');
+  const [selectedFont, setSelectedFont] = useState(mods?.defaultMessageFont || 'default');
   const [showFontPicker, setShowFontPicker] = useState(false);
   const [mentionState, setMentionState] = useState({
     open: false,
@@ -119,6 +119,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [lockPinInput, setLockPinInput] = useState('');
   const [quickReactionMsg, setQuickReactionMsg] = useState(null);
   const [reportTarget, setReportTarget] = useState(null); // message opened in ReportDialog
+
+  // Follow the Default Message Text Font from Genz Settings (applies to outgoing messages)
+  useEffect(() => {
+    setSelectedFont(mods?.defaultMessageFont || 'default');
+  }, [mods?.defaultMessageFont]);
 
   // Close message menu + quick reactions on outside click
   useEffect(() => {
@@ -904,7 +909,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     }
 
     setMessageInput('');
-    setSelectedFont('default');
+    setSelectedFont(mods?.defaultMessageFont || 'default');
     setIsViewOnceEnabled(false);
     setMentionState({ open: false, query: '', start: -1, cursor: 0, activeIndex: 0 });
     setShowMediaPanel(false);

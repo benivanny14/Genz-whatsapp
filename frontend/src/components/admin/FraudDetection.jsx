@@ -9,7 +9,7 @@ const FraudDetection = () => {
   useEffect(() => {
     adminApi.get('/admin/fraud/signals')
       .then(({ data }) => setSignals(data.signals))
-      .catch(() => toast.error('Imeshindikana kupakua fraud signals'));
+      .catch(() => toast.error('Failed to load fraud signals'));
   }, []);
 
   if (!signals) return <LoadingBlock />;
@@ -23,8 +23,8 @@ const FraudDetection = () => {
       </div>
 
       <div>
-        <h3 className="font-medium mb-2 text-sm">Akaunti Nyingi Kwenye IP Moja (zaidi ya 2)</h3>
-        <Table headers={['IP', 'Idadi ya Akaunti', 'Watumiaji']}>
+        <h3 className="font-medium mb-2 text-sm">Multiple Accounts on One IP (more than 2)</h3>
+        <Table headers={['IP', 'Account Count', 'Users']}>
           {signals.sharedIps.map((s) => (
             <tr key={s._id} className="border-t border-gray-100 dark:border-gray-800">
               <td className="p-3 font-mono text-xs">{s._id}</td>
@@ -32,13 +32,13 @@ const FraudDetection = () => {
               <td className="p-3 text-gray-400 text-xs">{s.users.map((u) => u.username).join(', ')}</td>
             </tr>
           ))}
-          {signals.sharedIps.length === 0 && <EmptyRow colSpan={3} text="Hakuna dalili za tuhuma" />}
+          {signals.sharedIps.length === 0 && <EmptyRow colSpan={3} text="No suspicious signals" />}
         </Table>
       </div>
 
       <div>
-        <h3 className="font-medium mb-2 text-sm">Walengwa wa Majaribio ya Kuvunja Akaunti (Brute-force)</h3>
-        <Table headers={['Mtumiaji', 'Simu', 'Majaribio Yaliyoshindwa', 'Amefungwa Hadi']}>
+        <h3 className="font-medium mb-2 text-sm">Brute-force Account Attack Targets</h3>
+        <Table headers={['User', 'Phone', 'Failed Attempts', 'Locked Until']}>
           {signals.bruteForceTargets.map((u) => (
             <tr key={u._id} className="border-t border-gray-100 dark:border-gray-800">
               <td className="p-3">{u.username}</td>
@@ -47,12 +47,12 @@ const FraudDetection = () => {
               <td className="p-3 text-gray-400">{u.lockUntil ? new Date(u.lockUntil).toLocaleString() : '—'}</td>
             </tr>
           ))}
-          {signals.bruteForceTargets.length === 0 && <EmptyRow colSpan={4} text="Hakuna dalili za tuhuma" />}
+          {signals.bruteForceTargets.length === 0 && <EmptyRow colSpan={4} text="No suspicious signals" />}
         </Table>
       </div>
 
       <div>
-        <h3 className="font-medium mb-2 text-sm">Mrundikano wa Usajili (Siku 14) — zaidi ya akaunti 10 kwa saa moja</h3>
+        <h3 className="font-medium mb-2 text-sm">Registration Burst (14 days) — more than 10 accounts per hour</h3>
         <Table headers={['Saa', 'Idadi ya Usajili']}>
           {signals.signupBursts.map((b) => (
             <tr key={b._id} className="border-t border-gray-100 dark:border-gray-800">
@@ -60,7 +60,7 @@ const FraudDetection = () => {
               <td className="p-3 text-red-500">{b.count}</td>
             </tr>
           ))}
-          {signals.signupBursts.length === 0 && <EmptyRow colSpan={2} text="Hakuna dalili za tuhuma" />}
+          {signals.signupBursts.length === 0 && <EmptyRow colSpan={2} text="No suspicious signals" />}
         </Table>
       </div>
     </div>

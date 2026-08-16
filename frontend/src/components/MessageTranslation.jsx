@@ -37,7 +37,7 @@ const MessageTranslation = ({ message, onTranslate, currentLanguage = 'en' }) =>
       
       // Mock translation - in production, use Google Translate API, DeepL, etc.
       const mockTranslations = {
-        sw: 'Hii ni tafsiri ya ujumbe kwa Kiswahili.',
+        sw: 'This is the Swahili translation of the message.',
         es: 'Esta es una traducción del mensaje al español.',
         fr: 'Ceci est une traduction du message en français.',
         de: 'Dies ist eine Übersetzung der Nachricht ins Deutsche.',

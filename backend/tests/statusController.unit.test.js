@@ -81,7 +81,7 @@ describe('statusController — createStatus', () => {
     const res = makeRes();
     await statusCtrl.createStatus(makeReq({ body: { type: 'text', content: 'bad words' } }), res);
     expect(res.statusCode).toBe(400);
-    expect(res.body.message).toMatch(/maneno yasiyoruhusiwa/);
+    expect(res.body.message).toMatch(/disallowed words/);
   });
 
   it('requires a type (validation)', async () => {
@@ -421,7 +421,7 @@ describe('statusController — view/react/delete', () => {
     const res = makeRes();
     await statusCtrl.deleteStatus(makeReq({ params: { id: VALID_ID } }), res);
     expect(status.deleteOne).toHaveBeenCalled();
-    expect(res.body.message).toBe('Status imefutwa');
+    expect(res.body.message).toBe('Status deleted');
   });
 
   it('getViewers forbids non-owners (403)', async () => {

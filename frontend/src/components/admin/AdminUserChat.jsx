@@ -18,7 +18,7 @@ const AdminUserChat = () => {
       const { data } = await adminApi.get('/admin/direct-chats');
       setChats(data.chats || []);
     } catch {
-      toast.error('Imeshindikana kupakua mazungumzo');
+      toast.error('Failed to load conversations');
     } finally {
       setLoading(false);
     }
@@ -32,13 +32,13 @@ const AdminUserChat = () => {
     if (!targetUserId || !message.trim()) return;
     try {
       const { data } = await adminApi.post('/admin/direct-chats/start', { userId: targetUserId, message });
-      toast.success('Ujumbe umetumwa');
+      toast.success('Message sent');
       setActive(data.chat);
       setMessage('');
       setShowNew(false);
       load();
     } catch {
-      toast.error('Imeshindwa kutuma');
+      toast.error('Failed to send');
     }
   };
 
@@ -49,7 +49,7 @@ const AdminUserChat = () => {
       <div className="md:col-span-1 space-y-2">
         <button onClick={() => { setShowNew(true); setActive(null); }}
           className="w-full flex items-center justify-center gap-2 bg-emerald-600 text-white rounded-lg py-2 text-sm">
-          <MessageCircle size={16} /> Anzisha Mazungumzo Mapya
+          <MessageCircle size={16} /> Start New Conversation
         </button>
         {chats.map((c) => (
           <button key={c._id} onClick={() => { setActive(c); setShowNew(false); }}
@@ -58,13 +58,13 @@ const AdminUserChat = () => {
             <p className="text-xs text-gray-400">{new Date(c.updatedAt).toLocaleString()}</p>
           </button>
         ))}
-        {chats.length === 0 && <p className="text-gray-400 text-sm">Hakuna mazungumzo bado</p>}
+        {chats.length === 0 && <p className="text-gray-400 text-sm">No conversations yet</p>}
       </div>
 
       <div className="md:col-span-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
         {showNew && (
           <input value={newUserId} onChange={(e) => setNewUserId(e.target.value)}
-            placeholder="User ID ya mtumiaji (angalia kwenye User Management)"
+            placeholder="User ID (see User Management)"
             className="w-full mb-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm" />
         )}
         {active && (
@@ -78,12 +78,12 @@ const AdminUserChat = () => {
         )}
         {(active || showNew) && (
           <form onSubmit={send} className="flex gap-2">
-            <input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Andika ujumbe..."
+            <input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Type a message..."
               className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm" />
             <button className="bg-emerald-600 text-white rounded-lg px-3 py-2"><Send size={16} /></button>
           </form>
         )}
-        {!active && !showNew && <p className="text-gray-400 text-sm">Chagua mazungumzo au anzisha mapya</p>}
+        {!active && !showNew && <p className="text-gray-400 text-sm">Choose a conversation or start a new one</p>}
       </div>
     </div>
   );

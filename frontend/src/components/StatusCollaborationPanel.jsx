@@ -122,7 +122,7 @@ const StatusCollaborationPanel = ({ onClose, status, onCollaborationUpdate }) =>
 
   const handleContribute = async () => {
     if (!contributeFile && !contributeCaption.trim()) {
-      setError('Chagua file au andika maandishi');
+      setError('Choose a file or write some text');
       return;
     }
     setContributing(true);
@@ -160,7 +160,7 @@ const StatusCollaborationPanel = ({ onClose, status, onCollaborationUpdate }) =>
       });
       const data = await response.json();
       if (data.success) {
-        alert('Umepost contribution yako kwenye story!');
+        alert('Your contribution has been posted to the story!');
         setContributeFile(null);
         setContributeCaption('');
         if (contributeInputRef.current) contributeInputRef.current.value = '';

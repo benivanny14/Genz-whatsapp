@@ -20,7 +20,7 @@ exports.createStatus = async (req, res) => {
     const { containsProfanity } = require('../utils/contentFilter');
     const { content: c, caption: cap } = req.body;
     if (containsProfanity(`${c || ''} ${cap || ''}`)) {
-      return res.status(400).json({ success: false, message: 'Status ina maneno yasiyoruhusiwa. Tafadhali badilisha.' });
+      return res.status(400).json({ success: false, message: 'Status contains disallowed words. Please change it.' });
     }
 
     if (!type) return res.status(400).json({ success: false, message: 'Type inahitajika' });
@@ -322,11 +322,11 @@ exports.deleteStatus = async (req, res) => {
     const status = await Status.findById(req.params.id);
     if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
     if (String(status.user) !== String(userId)) {
-      return res.status(403).json({ success: false, message: 'Huna ruhusa kufuta status hii' });
+      return res.status(403).json({ success: false, message: 'You do not have permission to delete this status' });
     }
 
     await status.deleteOne();
-    res.json({ success: true, message: 'Status imefutwa' });
+    res.json({ success: true, message: 'Status deleted' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

@@ -91,8 +91,8 @@ const InstallAppPrompt = () => {
             <Download size={20} className="text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold">Weka Genz Messenger kwenye simu yako</p>
-            <p className="text-xs text-white/60">Ifungue haraka kama app, hata bila kufungua kivinjari</p>
+            <p className="text-sm font-semibold">Add Genz Messenger to your phone</p>
+            <p className="text-xs text-white/60">Open it instantly like an app, even without opening a browser</p>
           </div>
           <button
             onClick={dismiss}
@@ -111,15 +111,15 @@ const InstallAppPrompt = () => {
       ) : (
         <div className="p-4">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-semibold">Jinsi ya kuweka kwenye iPhone</p>
+            <p className="text-sm font-semibold">How to add it on iPhone</p>
             <button onClick={dismiss} className="p-1 hover:bg-white/10 rounded-lg" aria-label="Funga">
               <X size={16} />
             </button>
           </div>
           <ol className="text-xs text-white/70 space-y-1.5 list-decimal list-inside">
-            <li>Bonyeza kitufe cha <Share size={12} className="inline mx-1" /> Share (chini ya Safari)</li>
-            <li>Chagua "Add to Home Screen"</li>
-            <li>Bonyeza "Add" juu kulia</li>
+            <li>Tap the <Share size={12} className="inline mx-1" /> Share button (at the bottom of Safari)</li>
+            <li>Choose "Add to Home Screen"</li>
+            <li>Tap "Add" at the top right</li>
           </ol>
         </div>
       )}

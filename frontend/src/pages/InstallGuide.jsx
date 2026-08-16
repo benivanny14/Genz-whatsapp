@@ -34,73 +34,73 @@ const InstallGuide = () => {
           </Link>
           <div>
             <h1 className="text-xl font-bold">Install GENZ on Android</h1>
-            <p className="text-xs text-blue-100/60">Jinsi ya kusakinisha app kwenye Android</p>
+            <p className="text-xs text-blue-100/60">How to install the app on Android</p>
           </div>
         </div>
 
         <div className="space-y-4">
           <div className="rounded-2xl border border-[#00a884]/30 bg-[#00a884]/10 p-4 text-sm text-emerald-100">
-            <p className="font-semibold mb-1">📱 Hakuna Play Store — download moja kwa moja kupitia Chrome</p>
+            <p className="font-semibold mb-1">📱 No Play Store — direct download via Chrome</p>
             <p>
-              GENZ inasambazwa kama <strong>APK</strong> inayopakuliwa moja kwa moja kutoka kwenye tovuti.
-              Hii inamaanisha update zetu zinakuja haraka, bila kusubiri review ya Play Store.
+              GENZ is distributed as an <strong>APK</strong> you download directly from our website.
+              This means our updates arrive fast, without waiting for a Play Store review.
               We don&apos;t use the Play Store — the app is a direct download from our site.
             </p>
           </div>
 
-          <Step icon={Download} title="1. Pakua APK (Download the APK)">
+          <Step icon={Download} title="1. Download the APK">
             <ul className="list-disc pl-5 space-y-1">
               <li>
-                Fungua tovuti ya GENZ kwenye <strong>Chrome</strong> kwenye simu yako ya Android.
+                Open the GENZ website in <strong>Chrome</strong> on your Android phone.
               </li>
               <li>
-                Bonyeza kitufe cha <strong>Download Android App</strong> kwenye login page.
+                Tap the <strong>Download Android App</strong> button on the login page.
               </li>
               <li>
-                Chrome itaonyesha onyo: <em>&quot;This type of file can harm your device&quot;</em> —
-                hili ni onyo la kawaida kwa APK zote zisizo za Play Store. Bonyeza <strong>OK</strong>.
+                Chrome will show a warning: <em>&quot;This type of file can harm your device&quot;</em> —
+                this is a standard warning for all APKs outside the Play Store. Tap <strong>OK</strong>.
               </li>
             </ul>
           </Step>
 
-          <Step icon={ShieldAlert} title="2. Ruhusu Chrome kusakinisha (Allow unknown sources)">
+          <Step icon={ShieldAlert} title="2. Allow Chrome to install (Allow unknown sources)">
             <ul className="list-disc pl-5 space-y-1">
               <li>
-                Baada ya download, bonyeza notification ya <strong>genz-whatsapp.apk</strong>.
+                After the download, tap the <strong>genz-whatsapp.apk</strong> notification.
               </li>
               <li>
-                Ikiwa Android inauliza <em>&quot;Allow from this source?&quot;</em> — bonyeza{' '}
-                <strong>Allow / Ruhusu</strong>. Hii inaruhusu Chrome tu kusakinisha app.
+                If Android asks <em>&quot;Allow from this source?&quot;</em> — tap{' '}
+                <strong>Allow</strong>. This only lets Chrome install the app.
               </li>
               <li>
-                Ukiona <em>&quot;Play Protect doesn&apos;t recognize this app&apos;s developer&quot;</em> —
-                bonyeza <strong>More details → Install anyway</strong>. App yetu ni salama na imesainiwa
-                na keystore halisi; onyo hili linatokea kwa app yoyote nje ya Play Store.
+                If you see <em>&quot;Play Protect doesn&apos;t recognize this app&apos;s developer&quot;</em> —
+                tap <strong>More details → Install anyway</strong>. Our app is safe and signed
+                with a real keystore; this warning appears for any app outside the Play Store.
               </li>
             </ul>
           </Step>
 
-          <Step icon={Smartphone} title="3. Fungua app (Open the app)">
+          <Step icon={Smartphone} title="3. Open the app">
             <ul className="list-disc pl-5 space-y-1">
-              <li>Baada ya install, bonyeza <strong>Open</strong> au tafuta icon ya GENZ kwenye nyumbani.</li>
-              <li>Ingia na namba yako ya simu na nenosiri — data yako itasawazishwa moja kwa moja.</li>
-              <li>Ruhusu notification ili upate ujumbe na simu hata app ikiwa imefungwa.</li>
+              <li>After installing, tap <strong>Open</strong> or find the GENZ icon on your home screen.</li>
+              <li>Log in with your phone number and password — your data syncs automatically.</li>
+              <li>Allow notifications so you receive messages and calls even when the app is closed.</li>
             </ul>
           </Step>
 
           <Step icon={RefreshCw} title="4. Update (When a new version comes)">
             <ul className="list-disc pl-5 space-y-1">
               <li>
-                Kuna version mpya? Fungua tovuti tena kwenye Chrome na pakua APK mpya —{' '}
-                <strong>hakuna haja ya kufuta app</strong>, inasakinishwa juu ya ile ya zamani na
-                data yako inabaki.
+                New version available? Open the website again in Chrome and download the new APK —{' '}
+                <strong>no need to uninstall the app</strong>, it installs over the old one and
+                your data stays.
               </li>
               <li>
-                Ukitoka ndani ya app, utaona <strong>banner ya kijani</strong>: &quot;Update available —
-                vX.Y.Z&quot; ikionyesha version mpya. Bonyeza <strong>Update</strong> kupakua moja kwa moja.
+                While inside the app, you&apos;ll see a <strong>green banner</strong>: &quot;Update available —
+                vX.Y.Z&quot; showing the new version. Tap <strong>Update</strong> to download directly.
               </li>
               <li>
-                Unaweza kuangalia version yako kwenye login page: <em>&quot;Genz Messenger Android vX.Y.Z&quot;</em>.
+                You can check your version on the login page: <em>&quot;Genz Messenger Android vX.Y.Z&quot;</em>.
               </li>
             </ul>
           </Step>
@@ -111,10 +111,10 @@ const InstallGuide = () => {
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00a884] py-3 font-bold text-white hover:bg-[#00c795] transition-colors"
           >
             <Download size={18} />
-            Download Android App — Pakua APK
+            Download Android App
           </a>
           <p className="text-center text-xs text-slate-500">
-            Android tu — kwa sasa. iPhone inakuja karibuni. / Android only — iOS is coming soon.
+            Android only — for now. iOS is coming soon.
           </p>
           <ReleaseUptake className="mt-3 text-center text-[10px] text-slate-600" />
         </div>

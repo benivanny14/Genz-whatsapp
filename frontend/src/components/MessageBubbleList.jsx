@@ -467,7 +467,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                         {message.structuredContent.map((item, idx) => {
                           if (item.type === 'text' && item.value?.trim()) {
                             return (
-                              <p key={idx} className="break-words whitespace-pre-wrap text-sm">
+                              <p key={idx} className="break-words whitespace-pre-wrap text-sm" style={{ fontFamily: item.font ? FONT_OPTIONS.find(f => f.value === item.font)?.fontFamily : undefined }}>
                                 {renderTextWithMentions(item.value, message.mentions || [], user?.id || user?._id)}
                               </p>
                             );

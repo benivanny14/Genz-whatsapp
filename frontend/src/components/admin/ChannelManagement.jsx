@@ -17,7 +17,7 @@ const ChannelManagement = () => {
       setChannels(data.channels || []);
       setPagination(data.pagination);
     } catch {
-      toast.error('Imeshindikana kupakua channels');
+      toast.error('Failed to load channels');
     } finally {
       setLoading(false);
     }
@@ -28,21 +28,21 @@ const ChannelManagement = () => {
   const toggleVerify = async (c) => {
     try {
       await adminApi.patch(`/admin/channels/${c._id}/verify`);
-      toast.success('Imesasishwa');
+      toast.success('Updated');
       load(pagination.page);
     } catch {
-      toast.error('Imeshindwa kusasisha chaneli');
+      toast.error('Failed to update channel');
     }
   };
 
   const remove = async (id) => {
-    if (!window.confirm('Futa channel hii kabisa?')) return;
+    if (!window.confirm('Delete this channel permanently?')) return;
     try {
       await adminApi.delete(`/admin/channels/${id}`);
-      toast.success('Imefutwa');
+      toast.success('Deleted');
       load(pagination.page);
     } catch {
-      toast.error('Imeshindwa kufuta');
+      toast.error('Failed to delete');
     }
   };
 
@@ -51,7 +51,7 @@ const ChannelManagement = () => {
       const { data } = await adminApi.get(`/admin/channels/${c._id}/posts`);
       setPosts({ channel: c, items: data.posts || [] });
     } catch {
-      toast.error('Imeshindwa kupakua machapisho');
+      toast.error('Failed to load posts');
     }
   };
 
@@ -61,15 +61,15 @@ const ChannelManagement = () => {
       toast.success('Chapisho limeondolewa');
       viewPosts(posts.channel);
     } catch {
-      toast.error('Imeshindwa kuondoa chapisho');
+      toast.error('Failed to remove post');
     }
   };
 
   if (posts) {
     return (
       <div className="space-y-3">
-        <button onClick={() => setPosts(null)} className="text-sm text-emerald-600">← Rudi kwenye orodha</button>
-        <h3 className="font-medium">{posts.channel.name} — Machapisho</h3>
+        <button onClick={() => setPosts(null)} className="text-sm text-emerald-600">← Back to list</button>
+        <h3 className="font-medium">{posts.channel.name} — Posts</h3>
         <div className="space-y-2">
           {posts.items.map((p) => (
             <div key={p._id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 flex justify-between items-start">
@@ -80,7 +80,7 @@ const ChannelManagement = () => {
               <button onClick={() => removePost(p._id)} className="text-red-500"><Trash2 size={16} /></button>
             </div>
           ))}
-          {posts.items.length === 0 && <p className="text-gray-400 text-sm">Hakuna machapisho</p>}
+          {posts.items.length === 0 && <p className="text-gray-400 text-sm">No posts</p>}
         </div>
       </div>
     );
@@ -90,7 +90,7 @@ const ChannelManagement = () => {
 
   return (
     <div className="space-y-3">
-      <Table headers={['Jina', 'Mmiliki', 'Wafuasi', 'Hakiki', 'Kitendo']}>
+      <Table headers={['Name', 'Owner', 'Followers', 'Verified', 'Action']}>
         {channels.map((c) => (
           <tr key={c._id} className="border-t border-gray-100 dark:border-gray-800">
             <td className="p-3">{c.name}</td>
@@ -99,7 +99,7 @@ const ChannelManagement = () => {
             <td className="p-3">{c.verified ? <BadgeCheck className="text-blue-500" size={16} /> : '—'}</td>
             <td className="p-3 flex gap-3">
               <button onClick={() => viewPosts(c)} className="text-blue-500"><FileText size={16} /></button>
-              <button onClick={() => toggleVerify(c)} className="text-emerald-500 text-xs">{c.verified ? 'Ondoa hakiki' : 'Thibitisha'}</button>
+              <button onClick={() => toggleVerify(c)} className="text-emerald-500 text-xs">{c.verified ? 'Unverify' : 'Verify'}</button>
               <button onClick={() => remove(c._id)} className="text-red-500"><Trash2 size={16} /></button>
             </td>
           </tr>

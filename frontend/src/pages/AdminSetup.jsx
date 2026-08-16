@@ -38,10 +38,10 @@ const AdminSetup = () => {
         setSuccess(true);
         setTimeout(() => navigate('/admin'), 1200);
       } else {
-        setError(data.message || 'Bootstrap token si sahihi, au admin tayari yupo.');
+        setError(data.message || 'The bootstrap token is incorrect, or an admin already exists.');
       }
     } catch (err) {
-      setError('Imeshindwa kuunganisha na server. Jaribu tena.');
+      setError('Failed to connect to the server. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -54,7 +54,7 @@ const AdminSetup = () => {
           onClick={() => navigate(-1)}
           className="flex items-center gap-1 text-white/50 hover:text-white text-sm mb-4"
         >
-          <ArrowLeft size={16} /> Rudi nyuma
+          <ArrowLeft size={16} /> Back
         </button>
 
         <div className="flex items-center gap-3 mb-2">
@@ -68,13 +68,13 @@ const AdminSetup = () => {
         </div>
 
         <p className="text-white/60 text-sm mt-3 mb-5 leading-relaxed">
-          Weka <strong>ADMIN_BOOTSTRAP_TOKEN</strong> uliyoiweka kwenye faili la <code className="bg-white/10 px-1 rounded">.env</code>
-          {' '}la backend yako. Ukishakuwa admin mara moja, ukurasa huu utafungwa moja kwa moja kwa watumiaji wengine.
+          Enter the <strong>ADMIN_BOOTSTRAP_TOKEN</strong> you set in your backend's <code className="bg-white/10 px-1 rounded">.env</code>
+          {' '}file. Once you become admin, this page will close automatically for other users.
         </p>
 
         {success ? (
           <div className="bg-green-500/15 border border-green-500/30 text-green-300 rounded-lg p-4 text-sm text-center">
-            ✅ Umefanikiwa kuwa Admin! Unaelekezwa kwenye Admin Panel...
+            ✅ You are now an Admin! Redirecting to the Admin Panel...
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-3">

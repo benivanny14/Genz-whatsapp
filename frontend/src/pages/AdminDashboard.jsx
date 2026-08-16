@@ -50,8 +50,8 @@ const SECTIONS = [
   { key: 'notifications', label: 'Notification Center', icon: Bell, group: 'Mawasiliano', implemented: true },
   { key: 'tickets', label: 'Support Ticket System', icon: LifeBuoy, group: 'Mawasiliano', implemented: true },
   { key: 'adminChat', label: 'Admin ↔ User Chat', icon: MessagesSquare, group: 'Mawasiliano', implemented: true },
-  { key: 'abuseReports', label: 'Abuse Reports', icon: AlertTriangle, group: 'Ripoti', implemented: true },
-  { key: 'reports', label: 'Reports & Analytics', icon: BarChart3, group: 'Ripoti', implemented: true },
+  { key: 'abuseReports', label: 'Abuse Reports', icon: AlertTriangle, group: 'Reports', implemented: true },
+  { key: 'reports', label: 'Reports & Analytics', icon: BarChart3, group: 'Reports', implemented: true },
   { key: 'auditLogs', label: 'Audit Logs', icon: ScrollText, group: 'Usalama', implemented: true },
   { key: 'security', label: 'Security Center', icon: ShieldCheck, group: 'Usalama', implemented: true },
   { key: 'roles', label: 'Roles & Permissions', icon: KeyRound, group: 'Usalama', implemented: true },
@@ -59,7 +59,7 @@ const SECTIONS = [
   { key: 'sessions', label: 'Session Management', icon: Timer, group: 'Usalama', implemented: true },
 ];
 
-const GROUP_ORDER = ['Msingi', 'Fedha', 'Maudhui', 'Mawasiliano', 'Ripoti', 'Usalama'];
+const GROUP_ORDER = ['Core', 'Finance', 'Content', 'Communication', 'Reports', 'Security'];
 
 const fmtMoney = (n) => `TZS ${Number(n || 0).toLocaleString()}`;
 
@@ -78,8 +78,8 @@ const ComingSoonPanel = ({ label }) => (
   <div className="bg-white dark:bg-gray-900 border border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-8 text-center">
     <p className="text-gray-700 dark:text-gray-300 font-medium">{label}</p>
     <p className="text-gray-400 text-sm mt-2 max-w-md mx-auto">
-      Sehemu hii itajengwa katika Awamu ya 2 ya mradi — muundo (schema, API,
-      UI) tayari umepangwa kwenye ramani ya mradi. Niambie ukitaka hii ijengwe
+      This section will be built in Phase 2 of the project — the design (schema, API,
+      UI) is already planned on the project roadmap. Let me know if you want this built
       kwanza.
     </p>
   </div>
@@ -104,7 +104,7 @@ const FrontendCrashesPanel = () => {
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
       <h3 className="text-gray-800 dark:text-gray-200 font-medium mb-3">Frontend Crashes (browser)</h3>
       {entries.length === 0 ? (
-        <p className="text-sm text-gray-400">Hakuna crashes zilizorekodiwa katika kivinjari hiki.</p>
+        <p className="text-sm text-gray-400">No crashes recorded in this browser.</p>
       ) : (
         <div className="space-y-2">
           {entries.map(([route, count]) => (
@@ -155,7 +155,7 @@ const ServerCrashesPanel = () => {
       {loading ? (
         <p className="text-sm text-gray-400">Inapakia…</p>
       ) : crashes.grouped?.length === 0 ? (
-        <p className="text-sm text-gray-400">Hakuna crash reports zilizorekodiwa (opt-in reporting).</p>
+        <p className="text-sm text-gray-400">No crash reports recorded (opt-in reporting).</p>
       ) : (
         <div className="space-y-2 max-h-72 overflow-auto">
           {crashes.grouped.slice(0, 20).map((g, i) => (
@@ -216,7 +216,7 @@ const UpdateEventsPanel = () => {
       {loading ? (
         <p className="text-sm text-gray-400">Inapakia…</p>
       ) : !events || total === 0 ? (
-        <p className="text-sm text-gray-400">Hakuna update events bado (opt-in reporting).</p>
+        <p className="text-sm text-gray-400">No update events yet (opt-in reporting).</p>
       ) : (
         <div className="space-y-3">
           <div className="flex flex-wrap gap-2 text-xs">
@@ -300,7 +300,7 @@ const NightlyStatusPanel = () => {
       {loading ? (
         <p className="text-sm text-gray-400">Inapakia…</p>
       ) : runs.length === 0 ? (
-        <p className="text-sm text-gray-400">Hakuna runs (au GitHub API haijibu).</p>
+        <p className="text-sm text-gray-400">No runs yet (or the GitHub API is not responding).</p>
       ) : (
         <div className="space-y-1.5 text-sm">
           {runs.map((r) => {
@@ -411,7 +411,7 @@ const OverviewSection = () => {
       const { data } = await adminApi.get('/admin/overview');
       setData(data);
     } catch (err) {
-      toast.error('Imeshindikana kupakua overview');
+      toast.error('Failed to load overview');
     } finally {
       setLoading(false);
     }
@@ -426,18 +426,18 @@ const OverviewSection = () => {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Watumiaji Wote" value={overview.users.total} sub={`${overview.users.online} online`} />
+        <StatCard label="Total Users" value={overview.users.total} sub={`${overview.users.online} online`} />
         <StatCard label="Wapya Leo" value={overview.users.newToday} tone="blue" />
         <StatCard label="Premium" value={overview.users.premium} tone="amber" />
         <StatCard label="Wamezuiwa" value={overview.users.blocked} tone="red" />
-        <StatCard label="Jumbe Zote" value={overview.messaging.totalMessages} tone="violet" />
-        <StatCard label="Jumbe Leo" value={overview.messaging.messagesToday} tone="violet" />
+        <StatCard label="Total Messages" value={overview.messaging.totalMessages} tone="violet" />
+        <StatCard label="Messages Today" value={overview.messaging.messagesToday} tone="violet" />
         <StatCard label="Mapato Yote" value={fmtMoney(overview.payments.totalRevenue)} tone="emerald" />
-        <StatCard label="Vifaa Amilifu" value={overview.devices.active} tone="blue" />
+        <StatCard label="Active Devices" value={overview.devices.active} tone="blue" />
       </div>
 
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
-        <h3 className="text-gray-800 dark:text-gray-200 font-medium mb-3">Watumiaji Wapya</h3>
+        <h3 className="text-gray-800 dark:text-gray-200 font-medium mb-3">New Users</h3>
         <div className="space-y-2">
           {recentUsers?.map((u) => (
             <div key={u._id} className="flex justify-between text-sm border-b border-gray-100 dark:border-gray-800 pb-2">
@@ -463,7 +463,7 @@ const OverviewSection = () => {
 const DashboardSection = () => {
   const [health, setHealth] = useState(null);
   useEffect(() => {
-    adminApi.get('/admin/health').then(({ data }) => setHealth(data)).catch(() => toast.error('Imeshindikana kupakua health'));
+    adminApi.get('/admin/health').then(({ data }) => setHealth(data)).catch(() => toast.error('Failed to load health'));
   }, []);
   if (!health) return <LoadingBlock />;
   // Nested health fields (services, runtime) are objects — render them as
@@ -493,7 +493,7 @@ const UsersSection = () => {
       const { data } = await adminApi.get('/admin/users', { params: { search: q, limit: 50 } });
       setUsers(data.users || []);
     } catch {
-      toast.error('Imeshindikana kupakua watumiaji');
+      toast.error('Failed to load users');
     } finally {
       setLoading(false);
     }
@@ -508,7 +508,7 @@ const UsersSection = () => {
       toast.success(action === 'block' ? 'Amezuiwa' : 'Amefunguliwa');
       load(search);
     } catch {
-      toast.error('Imeshindwa kubadilisha hali ya mtumiaji');
+      toast.error('Failed to change user status');
     }
   };
 
@@ -518,11 +518,11 @@ const UsersSection = () => {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Tafuta jina, namba ya simu..."
+          placeholder="Search name, phone number..."
           className="flex-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm"
         />
         <button className="px-3 py-2 bg-emerald-600 text-white rounded-lg text-sm flex items-center gap-1">
-          <Search size={16} /> Tafuta
+          <Search size={16} /> Search
         </button>
       </form>
 
@@ -549,7 +549,7 @@ const UsersSection = () => {
                   </td>
                   <td className="p-3">
                     <button onClick={() => toggleBlock(u)} className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700">
-                      {u.isBlocked ? 'Fungua' : 'Zuia'}
+                      {u.isBlocked ? 'Unblock' : 'Block'}
                     </button>
                   </td>
                 </tr>
@@ -582,7 +582,7 @@ const PaymentsSection = ({ statusFilter = 'All', title = 'Payment Management' })
       setPayments(listData.payments || []);
       setStats(statsData.stats);
     } catch {
-      toast.error('Imeshindikana kupakua malipo');
+      toast.error('Failed to load payments');
     } finally {
       setLoading(false);
     }
@@ -595,7 +595,7 @@ const PaymentsSection = ({ statusFilter = 'All', title = 'Payment Management' })
     if (action === 'reject') {
       const reason = window.prompt('Sababu ya kukataa (required):');
       if (!reason || !reason.trim()) {
-        toast.error('Sababu inahitajika kukataa malipo');
+        toast.error('A reason is required to reject a payment');
         return;
       }
       body = { reason: reason.trim() };
@@ -605,7 +605,7 @@ const PaymentsSection = ({ statusFilter = 'All', title = 'Payment Management' })
       toast.success(action === 'approve' ? 'Imekubaliwa' : 'Imekataliwa');
       load();
     } catch {
-      toast.error('Imeshindwa kusasisha malipo');
+      toast.error('Failed to update payment');
     }
   };
 
@@ -618,7 +618,7 @@ const PaymentsSection = ({ statusFilter = 'All', title = 'Payment Management' })
           <StatCard label="Zimekataliwa" value={stats.rejectedPayments} tone="red" />
           <StatCard label="Zinazofanana (Duplicate)" value={stats.duplicatePayments} tone="red" />
           <StatCard label="Wanachama Amilifu" value={stats.activeSubscribers} tone="blue" />
-          <StatCard label="Mapato Mwezi Huu" value={fmtMoney(stats.monthlyRevenue)} tone="emerald" />
+          <StatCard label="Revenue This Month" value={fmtMoney(stats.monthlyRevenue)} tone="emerald" />
           <StatCard label="Mapato Yote" value={fmtMoney(stats.totalRevenue)} tone="emerald" />
         </div>
       )}
@@ -656,7 +656,7 @@ const PaymentsSection = ({ statusFilter = 'All', title = 'Payment Management' })
                 </tr>
               ))}
               {payments.length === 0 && (
-                <tr><td colSpan={4} className="p-6 text-center text-gray-400">Hakuna rekodi</td></tr>
+                <tr><td colSpan={4} className="p-6 text-center text-gray-400">No records</td></tr>
               )}
             </tbody>
           </table>
@@ -674,7 +674,7 @@ const AuditLogsSection = () => {
   useEffect(() => {
     adminApi.get('/admin/audit-logs', { params: { limit: 100 } })
       .then(({ data }) => setLogs(data.logs || []))
-      .catch(() => toast.error('Imeshindikana kupakua audit logs'));
+      .catch(() => toast.error('Failed to load audit logs'));
   }, []);
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
@@ -702,7 +702,7 @@ const AuditLogsSection = () => {
 const SecuritySection = () => {
   const [report, setReport] = useState(null);
   useEffect(() => {
-    adminApi.get('/admin/security').then(({ data }) => setReport(data.report)).catch(() => toast.error('Imeshindikana'));
+    adminApi.get('/admin/security').then(({ data }) => setReport(data.report)).catch(() => toast.error('Failed to load'));
   }, []);
   if (!report) return <LoadingBlock />;
   return (
@@ -723,9 +723,9 @@ const SecuritySection = () => {
       </div>
       {report.adminUsers.length > 0 && (
         <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-800 rounded-xl p-4 text-sm text-amber-700 dark:text-amber-300">
-          Onyo: bado kuna watumiaji wa kawaida wenye alama ya zamani ya "isAdmin/role=admin"
-          kwenye database. Njia mpya ya usalama haiwatambui tena kama admin, lakini tunapendekeza
-          uondoe alama hiyo kwenye rekodi zao ili database iwe safi.
+          Warning: there are still regular users with the old "isAdmin/role=admin" flag
+          in the database. The new security model no longer treats them as admins, but we recommend
+          removing that flag from their records to keep the database clean.
         </div>
       )}
     </div>
@@ -756,13 +756,13 @@ class SectionErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return (
         <div className="rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 p-6 text-center">
-          <p className="font-medium text-amber-700 dark:text-amber-300">Sehemu hii haikuweza kupakiwa vizuri.</p>
-          <p className="text-sm text-amber-600 dark:text-amber-400 mt-2">Kuna hitilafu ya ndani ya widget hii. Tunaweza kuendelea na dashboard nyingine bila kukatika.</p>
+          <p className="font-medium text-amber-700 dark:text-amber-300">This section could not be loaded properly.</p>
+          <p className="text-sm text-amber-600 dark:text-amber-400 mt-2">There is an internal error in this widget. We can continue with the other dashboards without interruption.</p>
           <button
             onClick={() => this.setState({ hasError: false })}
             className="mt-4 rounded-lg bg-amber-600 px-3 py-2 text-sm text-white"
           >
-            Jaribu tena
+            Try again
           </button>
         </div>
       );

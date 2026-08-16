@@ -68,7 +68,7 @@ const ProfileSecurity = ({ user, securitySettings, onUpdateSecurity, onClose }) 
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(data.message || 'Kubadilisha password imeshindikana');
+        alert(data.message || 'Failed to change password');
         return;
       }
       alert('Password imebadilishwa kwa mafanikio');
@@ -79,7 +79,7 @@ const ProfileSecurity = ({ user, securitySettings, onUpdateSecurity, onClose }) 
       setFormData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setShowChangePassword(false);
     } catch (err) {
-      alert('Imeshindwa kuunganisha na server. Jaribu tena.');
+      alert('Failed to connect to the server. Please try again.');
     } finally {
       setIsProcessing(false);
     }

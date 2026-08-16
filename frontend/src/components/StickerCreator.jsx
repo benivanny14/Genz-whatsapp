@@ -330,7 +330,7 @@ const StickerCreator = ({ onClose, onStickerCreated }) => {
               </div>
               {media.type === 'video' ? (
                 <p className="text-white/40 text-xs text-center flex items-center justify-center gap-1">
-                  <Film size={12} /> Sticker itakuwa animated video — pata frame ya kuanzia kisha chagua
+                  <Film size={12} /> Sticker will be an animated video — get a starting frame then choose
                 </p>
               ) : (
                 <p className="text-white/40 text-xs text-center">Sticker will be smart-cropped to 512×512 with a transparent background</p>

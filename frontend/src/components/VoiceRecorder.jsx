@@ -261,7 +261,7 @@ const VoiceRecorder = ({
         if (onFallback) {
           onFallback();
         } else {
-          toast.error("Kurekodi sauti kunahitaji mfumo salama (HTTPS au Localhost).");
+          toast.error("Voice recording requires a secure context (HTTPS or Localhost).");
         }
         return;
       }
@@ -592,7 +592,7 @@ const VoiceRecorder = ({
             <div className="flex items-center gap-1 flex-shrink-0" style={{ opacity: swipe === 'left' ? 1 : 0.55 }}>
               <ChevronLeft size={14} className={swipe === 'left' ? 'text-red-400' : 'text-dark-textSecondary'} />
               <span className={`text-[11px] font-semibold whitespace-nowrap ${swipe === 'left' ? 'text-red-400' : 'text-dark-textSecondary'}`}>
-                Telezesha kufuta
+                Slide to cancel
               </span>
             </div>
           )}
@@ -634,7 +634,7 @@ const VoiceRecorder = ({
               type="button"
               onClick={sendDirectly}
               className="w-9 h-9 rounded-full bg-[#25D366] hover:brightness-110 flex items-center justify-center shadow-lg transition-transform active:scale-90 flex-shrink-0 ml-1"
-              title="Tuma" aria-label="Tuma"
+              title="Send" aria-label="Send"
             >
               <Send size={15} className="ml-0.5 text-white" />
             </button>
@@ -693,7 +693,7 @@ const VoiceRecorder = ({
               ))}
             </div>
             <p className="text-[10px] text-white/50 mt-2 text-center leading-snug">
-              Chaguo la mipangilio (Voice Changer) ndiyo msingi; hapa unaweza kubadilisha kabla ya rekodi.
+              The voice settings choice (Voice Changer) is the baseline; here you can adjust it before recording.
             </p>
           </div>
         )}
@@ -703,7 +703,7 @@ const VoiceRecorder = ({
         type="button"
         className={`p-3.5 text-white rounded-full transition-all shadow-lg active:scale-95 relative ${applyingEffect ? 'bg-[#128c7e] animate-pulse' : 'bg-[#25D366] hover:brightness-110'
           }`}
-        title={applyingEffect ? 'Inachakata sauti...' : 'Shikilia rekodi · Telezesha juu kufunga · Toko kuondoka'}
+        title={applyingEffect ? 'Processing audio...' : 'Hold to record · Slide up to lock · Slide to cancel'}
         aria-label="Hold to record voice message"
         onMouseDown={onMouseDown}
         onTouchStart={onTouchStart}

@@ -491,7 +491,7 @@ exports.votePoll = async (req, res) => {
     const status = await Status.findById(req.params.id);
     
     if (!status) return res.status(404).json({ success: false, message: 'Status haipatikani' });
-    if (!status.poll) return res.status(400).json({ success: false, message: 'Hakuna poll' });
+    if (!status.poll) return res.status(400).json({ success: false, message: 'No poll found' });
 
     // Check if already voted
     const existingVote = status.poll.voters?.find(v => String(v.user) === String(userId));
@@ -844,7 +844,7 @@ exports.reportStatus = async (req, res) => {
     });
     await status.save();
 
-    res.json({ success: true, message: 'Status imeripotiwa' });
+    res.json({ success: true, message: 'Status reported' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
