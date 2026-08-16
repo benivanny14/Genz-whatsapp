@@ -79,6 +79,11 @@ const {
   startDirectChat
 } = require('../controllers/adminSupportController');
 
+const {
+  listAllBackups,
+  deleteBackupFile
+} = require('../controllers/adminBackupController');
+
 router.post('/bootstrap', strictRateLimiter, protect, bootstrapAdmin);
 
 router.use(superAdminAuth);
@@ -157,5 +162,7 @@ router.post('/tickets/:id/reply', strictRateLimiter, replyToTicket);
 router.patch('/tickets/:id/status', strictRateLimiter, updateTicketStatus);
 router.get('/direct-chats', listDirectChats);
 router.post('/direct-chats/start', strictRateLimiter, startDirectChat);
+router.get('/backups', listAllBackups);
+router.delete('/backups/:backupId', strictRateLimiter, deleteBackupFile);
 
 module.exports = router;

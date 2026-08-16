@@ -5,7 +5,7 @@ import {
   LifeBuoy, MessagesSquare, BarChart3, TrendingUp, ShieldAlert, Copy,
   ScrollText, ShieldCheck, KeyRound, Smartphone, Timer, Sun, Moon,
   Menu, X, LogOut, RefreshCcw, Search, CheckCircle2, XCircle, AlertTriangle,
-  DollarSign
+  DollarSign, Database
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import adminApi from '../services/adminApi';
@@ -26,6 +26,7 @@ import AdminDeviceManagement from '../components/admin/AdminDeviceManagement';
 import SessionManagement from '../components/admin/SessionManagement';
 import AbuseReports from '../components/admin/AbuseReports';
 import GenzAfterWorkManagement from '../components/admin/GenzAfterWorkManagement';
+import BackupManagement from '../components/admin/BackupManagement';
 
 // ---------------------------------------------------------------------
 // Section registry — all 33 requested modules, ALL now implemented and
@@ -57,6 +58,7 @@ const SECTIONS = [
   { key: 'roles', label: 'Roles & Permissions', icon: KeyRound, group: 'Security', implemented: true },
   { key: 'devices', label: 'Device Management', icon: Smartphone, group: 'Security', implemented: true },
   { key: 'sessions', label: 'Session Management', icon: Timer, group: 'Security', implemented: true },
+  { key: 'backups', label: 'Backup Management', icon: Database, group: 'Security', implemented: true },
 ];
 
 const GROUP_ORDER = ['Core', 'Finance', 'Content', 'Communication', 'Reports', 'Security'];
@@ -819,6 +821,7 @@ const AdminDashboard = () => {
       case 'roles': return <RolesPermissions />;
       case 'devices': return <AdminDeviceManagement />;
       case 'sessions': return <SessionManagement />;
+      case 'backups': return <BackupManagement />;
       default: {
         const section = SECTIONS.find((s) => s.key === active);
         return <ComingSoonPanel label={section?.label || active} />;
