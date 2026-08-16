@@ -2644,6 +2644,17 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       {/* Extra padding to ensure last message is visible above input area */}
       <div className="h-2 flex-shrink-0" />
 
+      {/* GENZ Exclusive — Live Reactions (floating emoji), gated by the
+          mods.liveReactions toggle in GENZ Settings → GENZ */}
+      {mods.liveReactions && selectedConversation?._id && (
+        <div className="absolute right-16 bottom-24 z-[120]">
+          <LiveReactions
+            chatId={String(selectedConversation._id)}
+            socket={getSocket?.() || undefined}
+          />
+        </div>
+      )}
+
       <MessageComposer ctx={composerCtx} />
 
       <ChatModals ctx={modalsCtx} /><FloatingStickerOverlay

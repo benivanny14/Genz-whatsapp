@@ -66,7 +66,7 @@ import TrailerStatusGenerator from '../components/TrailerStatusGenerator';
 import MusicTrimmer from '../components/MusicTrimmer';
 
 const Status = () => {
-  const { statuses, fetchStatuses, createStatus, uploadStatusMedia, user, contacts } = useChat();
+  const { statuses, fetchStatuses, createStatus, uploadStatusMedia, user, contacts, mods } = useChat();
   const [showAddStatus, setShowAddStatus] = useState(false);
   const [showScrollFeed, setShowScrollFeed] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
@@ -871,14 +871,16 @@ const Status = () => {
             >
               <Sparkles size={16} /> Trailer
             </button>
-            <button
-              type="button"
-              onClick={() => setShowHighlights(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-full text-sm font-bold hover:opacity-90 transition-all shadow-lg"
-              title="Story Highlights" aria-label="Story Highlights"
-            >
-              <Bookmark size={16} /> Highlights
-            </button>
+            {mods.storyHighlights !== false && (
+              <button
+                type="button"
+                onClick={() => setShowHighlights(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-full text-sm font-bold hover:opacity-90 transition-all shadow-lg"
+                title="Story Highlights" aria-label="Story Highlights"
+              >
+                <Bookmark size={16} /> Highlights
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setShowThemeStore(true)}
@@ -1208,6 +1210,7 @@ const Status = () => {
                           >
                             <Share2 size={14} />
                           </button>
+                          {mods.collabStatus !== false && (
                           <button
                             type="button"
                             onClick={(e) => {
@@ -1220,6 +1223,7 @@ const Status = () => {
                           >
                             <Users size={14} />
                           </button>
+                          )}
                           <button
                             type="button"
                             onClick={(e) => {

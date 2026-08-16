@@ -25,6 +25,7 @@ const Settings = lazy(() => import('./pages/Settings'));
 const NewChat = lazy(() => import('./pages/NewChat'));
 const NewGroup = lazy(() => import('./pages/NewGroup'));
 const Status = lazy(() => import('./pages/Status'));
+const SharedStatusView = lazy(() => import('./pages/SharedStatusView'));
 const Broadcast = lazy(() => import('./pages/Broadcast'));
 const Starred = lazy(() => import('./pages/Starred'));
 const Archived = lazy(() => import('./pages/Archived'));
@@ -62,9 +63,22 @@ const PageLoader = () => (
   </div>
 );
 
-const readStoredMods = () => {
+const readStoredMods = (userId) => {
   try {
     cleanupLocalBlobUrls();
+
+    // ChatContext persists mods under USER-SCOPED keys
+    // (genz_settings_comprehensive:<userId> / genz_mods:<userId>).
+    if (userId) {
+      const scoped = JSON.parse(localStorage.getItem(`genz_settings_comprehensive:${userId}`) || 'null');
+      if (scoped?.mods && typeof scoped.mods === 'object') {
+        return sanitizeBlobUrls(scoped.mods).value;
+      }
+      const scopedMods = JSON.parse(localStorage.getItem(`genz_mods:${userId}`) || 'null');
+      if (scopedMods && typeof scopedMods === 'object') {
+        return sanitizeBlobUrls(scopedMods).value;
+      }
+    }
 
     const legacyMods = JSON.parse(localStorage.getItem('genz_mods') || 'null');
     if (legacyMods && typeof legacyMods === 'object') {
@@ -82,7 +96,7 @@ const readStoredMods = () => {
 
 function App() {
   const [notification, setNotification] = useState(null);
-  const { selectedConversation, selectConversation } = useChat();
+  const { selectedConversation, selectConversation, user: chatUser } = useChat();
   const { user } = useUser();
 
   // Native Android back button (APK only): closes an open chat first, then
@@ -150,7 +164,7 @@ function App() {
   useEffect(() => {
     const syncGlassMode = () => {
       try {
-        const mods = readStoredMods();
+        const mods = readStoredMods(chatUser?._id || chatUser?.id);
         const root = document.documentElement;
         if (mods.glassMode) {
           root.classList.add('glass-mode-active');
@@ -194,7 +208,7 @@ function App() {
       window.removeEventListener('genz-mods-updated', syncGlassMode);
       clearInterval(poll);
     };
-  }, []);
+  }, [chatUser?._id]);
 
   // --- Notifications ---
   useEffect(() => {
@@ -344,6 +358,8 @@ function App() {
             <Route path="/new-chat" element={<ProtectedRoute><NewChat /></ProtectedRoute>} />
             <Route path="/new-group" element={<ProtectedRoute><NewGroup /></ProtectedRoute>} />
             <Route path="/status" element={<ProtectedRoute><Status /></ProtectedRoute>} />
+            {/* Public shared-status view (QR code / share links) — no login required */}
+            <Route path="/status/:statusId" element={<SharedStatusView />} />
             <Route path="/broadcast" element={<ProtectedRoute><Broadcasts /></ProtectedRoute>} />
             <Route path="/broadcast/simple" element={<ProtectedRoute><Broadcast /></ProtectedRoute>} />
             <Route path="/linked-devices" element={<ProtectedRoute><LinkedDevices /></ProtectedRoute>} />

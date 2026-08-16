@@ -291,7 +291,7 @@ describe('statusController — getSharedStatus', () => {
     const res = makeRes();
     await statusCtrl.getSharedStatus(makeReq({ params: { id: 'abc' } }), res);
     expect(res.statusCode).toBe(404);
-    expect(res.body.message).toBe('Status haipatikani');
+    expect(res.body.message).toBe('Status not found');
   });
 
   it('returns 404 when the status does not exist', async () => {
@@ -307,7 +307,7 @@ describe('statusController — getSharedStatus', () => {
     const res = makeRes();
     await statusCtrl.getSharedStatus(makeReq({ params: { id: VALID_ID } }), res);
     expect(res.statusCode).toBe(404);
-    expect(res.body.message).toBe('Status imeisha muda wake');
+    expect(res.body.message).toBe('Status has expired');
   });
 
   it('allows anonymous visitors to see everyone statuses', async () => {
@@ -326,7 +326,7 @@ describe('statusController — getSharedStatus', () => {
     const res = makeRes();
     await statusCtrl.getSharedStatus(makeReq({ params: { id: VALID_ID } }), res);
     expect(res.statusCode).toBe(403);
-    expect(res.body.message).toBe('Status hii haijasharewa hadharani');
+    expect(res.body.message).toBe('This status is not shared publicly');
   });
 
   it('denies statuses from blocked posters with 403', async () => {

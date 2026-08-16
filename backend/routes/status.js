@@ -4,7 +4,7 @@ const multer = require('multer');
 const { protect } = require('../middleware/auth');
 const { safeFilename } = require('../utils/safeFilename');
 const {
-  createStatus, getStatuses, viewStatus,
+  createStatus, getStatuses, viewStatus, getSharedStatus,
   reactToStatus, deleteStatus, getViewers,
   uploadStatusMedia, uploadCollageImages
 } = require('../controllers/statusController');
@@ -57,6 +57,9 @@ const collageUpload = multer({
     cb(new Error('Invalid file type'));
   }
 });
+
+// Public share link (QR code): no auth — the owner generated the QR.
+router.get('/share/:id', getSharedStatus);
 
 router.post('/', protect, createStatus);
 router.get('/', protect, getStatuses);

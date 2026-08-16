@@ -159,7 +159,17 @@ const DEFAULT_GENZ_SETTINGS = {
     hideOnline: false,
     hideTyping: false,
     hideRecording: false,
-    autoReplyKeywords: []
+    autoReplyKeywords: [],
+    // ── GENZ Exclusive — TikTok/Instagram features ──
+    // storyHighlights + collabStatus stay ON by default (they are visible
+    // features today); liveReactions / bubbleAnimations / reelMode are
+    // opt-in extras that only activate when the user toggles them on.
+    storyHighlights: true,
+    liveReactions: false,
+    collabStatus: true,
+    bubbleAnimations: false,
+    reelMode: false,
+    glassMode: false
   },
   appTheme: 'dark',
   statusPrivacy: 'everyone',
