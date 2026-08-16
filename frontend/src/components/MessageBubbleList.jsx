@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, Contact, Copy, Download, Edit, Eye, EyeOff, Flag, Forward, Heart, Info, MoreVertical, Pin, Reply, ShieldCheck, Star, Trash2 } from 'lucide-react';
+import { Clock, Contact, Copy, Download, Edit, Eye, EyeOff, ExternalLink, Flag, Forward, Heart, Info, MoreVertical, Navigation, Pin, Reply, ShieldCheck, Star, Trash2 } from 'lucide-react';
 import FormattedText from './FormattedText';
 import SignedMedia from './SignedMedia';
 import AudioPlayer from './AudioPlayer';
@@ -349,8 +349,11 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                        const lat = typeof message.latitude === 'number' ? message.latitude : null;
                        const lng = typeof message.longitude === 'number' ? message.longitude : null;
                        const mapsUrl = lat && lng
-                         ? `https://www.google.com/maps?q=${lat},${lng}&layer=c`
+                         ? `https://www.google.com/maps?q=${lat},${lng}`
                          : (plaintextOf(message).match(/https?:\/\/\S+/) || [null])[0];
+                       const directionsUrl = lat && lng
+                         ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+                         : null;
                        const addressText = message.caption || (lat && lng ? `${lat.toFixed(4)}, ${lng.toFixed(4)}` : '');
                        const timeRemaining = isLive && message.liveLocationExpiresAt
                          ? (() => { const diff = new Date(message.liveLocationExpiresAt) - new Date(); const h = Math.floor(diff / 3600000); const m = Math.floor((diff % 3600000) / 60000); return h > 0 ? `${h}h ${m}m` : `${m}m`; })()
@@ -383,9 +386,18 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                              {addressText && (
                                <p className="text-xs text-[#8696a0] truncate mt-0.5">{addressText}</p>
                              )}
-                             <span className="text-xs text-[#00a884] mt-1 truncate hover:underline">
-                               Open in Maps
+                             <span className="flex items-center gap-1 text-xs text-[#00a884] mt-1 truncate hover:underline">
+                               <ExternalLink size={11} /> Open in Maps
                              </span>
+                             {directionsUrl && (
+                               <button
+                                 type="button"
+                                 onClick={(e) => { e.stopPropagation(); window.open(directionsUrl, '_blank'); }}
+                                 className="mt-1.5 w-full flex items-center justify-center gap-1.5 rounded-lg bg-[#00a884] text-white text-xs font-semibold py-1.5 hover:bg-[#06cf9c] transition-colors"
+                               >
+                                 <Navigation size={12} /> Directions
+                               </button>
+                             )}
                            </div>
                          </div>
                        );
