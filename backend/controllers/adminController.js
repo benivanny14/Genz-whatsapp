@@ -352,6 +352,47 @@ exports.setUserAdminRole = async (req, res) => {
   return exports.updateUser(req, res);
 };
 
+exports.deleteUser = async (req, res) => {
+  try {
+    const targetUserId = req.params.userId;
+    const isSelf = req.user?._id?.toString() === targetUserId;
+    if (isSelf) {
+      return res.status(400).json({ success: false, message: 'You cannot delete your own admin account' });
+    }
+
+    const user = await User.findById(targetUserId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    if (user.role === 'admin' || user.isAdmin) {
+      return res.status(400).json({ success: false, message: 'Cannot delete another admin account' });
+    }
+
+    // Hard-delete data erasure: messages, statuses, linked devices, self-chats.
+    const uid = user._id;
+    const uidStr = uid.toString();
+    await Message.deleteMany({ sender: uid });
+    await Status.deleteMany({ user: uid });
+    await Status.deleteMany({ userId: uidStr });
+    await Device.deleteMany({ localUserId: uidStr });
+    await Conversation.updateMany(
+      { participants: uid },
+      { $pull: { participants: uid, admins: uid } }
+    );
+    await Conversation.deleteMany({ participants: { $size: 1, $all: [uid] } });
+
+    const username = user.username;
+    await User.findByIdAndDelete(uid);
+
+    await logAdminAction(req.user._id, 'user_deleted', { targetUsername: username }, uid, null, req);
+
+    return res.status(200).json({ success: true, message: `User "${username}" deleted successfully` });
+  } catch (error) {
+    console.error('Admin delete user error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to delete user' });
+  }
+};
+
 exports.getAuditLogs = async (req, res) => {
   try {
     const limit = clampInt(req.query.limit, 50, 1, 200);

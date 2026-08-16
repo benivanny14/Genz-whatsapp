@@ -11,6 +11,7 @@ const {
   updateUser,
   setUserBlock,
   setUserAdminRole,
+  deleteUser,
   getAuditLogs,
   getSecurityReport,
   getFrontendCrashes,
@@ -87,6 +88,7 @@ router.get('/users', listUsers);
 router.patch('/users/:userId', strictRateLimiter, updateUser);
 router.post('/users/:userId/:action(block|unblock)', strictRateLimiter, setUserBlock);
 router.post('/users/:userId/:action(promote|demote)', strictRateLimiter, setUserAdminRole);
+router.delete('/users/:userId', strictRateLimiter, deleteUser);
 router.get('/audit-logs', getAuditLogs);
 router.get('/security', getSecurityReport);
 
