@@ -31,7 +31,7 @@ import VoiceFeaturesPanel from '../components/VoiceFeaturesPanel';
 import AccessibilityAdvancedPanel from '../components/AccessibilityAdvancedPanel';
 import DebugFeaturesPanel from '../components/DebugFeaturesPanel';
 import StatusSecurityPanel from '../components/StatusSecurityPanel';
-import TMPrivacyPanel from '../components/TMPrivacyPanel';
+import PrivacyModsPanel from '../components/PrivacyModsPanel';
 import MediaUploadEnhanced from '../components/MediaUploadEnhanced';
 import AutoReplySettings from '../components/AutoReplySettings';
 import MessageSchedule from '../components/MessageSchedule';
@@ -902,7 +902,7 @@ const Status = () => {
               type="button"
               onClick={() => setShowTMPrivacy(true)}
               className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="TM Privacy" aria-label="TM Privacy"
+              title="Privacy" aria-label="Privacy"
             >
               <Shield size={20} />
             </button>
@@ -2332,7 +2332,7 @@ const Status = () => {
             status={selectedStatusForPanel}
           />
         )}
-        {showTMPrivacy && <TMPrivacyPanel onClose={() => setShowTMPrivacy(false)} onPrivacyUpdate={(settings) => console.log('Privacy updated:', settings)} />}
+        {showTMPrivacy && <PrivacyModsPanel onClose={() => setShowTMPrivacy(false)} />}
         {showMediaUploadEnhanced && <MediaUploadEnhanced onClose={() => setShowMediaUploadEnhanced(false)} onUpload={(files) => console.log('Files uploaded:', files)} />}
         {showAutoReply && <AutoReplySettings onClose={() => setShowAutoReply(false)} onSave={(settings) => console.log('Auto reply saved:', settings)} />}
         {showMessageSchedule && <MessageSchedule onClose={() => setShowMessageSchedule(false)} message={{ content: '' }} onSchedule={(data) => console.log('Message scheduled:', data)} />}
