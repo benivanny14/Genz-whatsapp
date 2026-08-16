@@ -583,6 +583,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
     backupProgress,
     close,
     connectedDevices,
+    countdown,
     editProfile,
     getMessageStats,
     handleFileWallpaper,
@@ -1659,7 +1660,7 @@ const UpdateHistory = () => {
 // privacy tab content — extracted so a crash in one tab is scoped by
 // <ErrorBoundary> instead of blanking the whole settings panel.
 const PrivacyTab = ({ ctx }) => {
-    const { backupActionLoading, backupError, backupProgress, close, connectedDevices, isPrivacyLocked, logoutDevice, mods, notificationSound, setMods, setNotificationSound, setShowPaymentModal, setShowPrivacyAnimation, setVoiceFxPreviewBusy, showPrivacyAnimation, subscriptionStatus, toggleMod, voiceFxPreviewBusy, handleMusicFileUpload, handleStartCloudBackup, musicFileInputRef, navigate, renderCloudBackupsList } = ctx;
+    const { backupActionLoading, backupError, backupProgress, close, connectedDevices, countdown, isPrivacyLocked, logoutDevice, mods, notificationSound, setMods, setNotificationSound, setShowPaymentModal, setShowPrivacyAnimation, setVoiceFxPreviewBusy, showPrivacyAnimation, subscriptionStatus, toggleMod, voiceFxPreviewBusy, handleMusicFileUpload, handleStartCloudBackup, musicFileInputRef, navigate, renderCloudBackupsList } = ctx;
   // Server-side crash analytics toggle (opt-in): when enabled the ErrorBoundary
   // POSTs caught render crashes to /api/telemetry/crashes for the admin panel.
   const [crashReporting, setCrashReporting] = useState(() => {
@@ -1813,14 +1814,14 @@ const PrivacyTab = ({ ctx }) => {
               {subscriptionStatus.expiryDate && (
                 <div className="p-3 text-center">
                   <p className="text-xs text-gray-400">
-                    Malipo yako yatakwisha: {new Date(subscriptionStatus.expiryDate).toLocaleDateString()}
+                    Your payment expires: {new Date(subscriptionStatus.expiryDate).toLocaleDateString()}
                   </p>
                   {subscriptionStatus.remainingDays !== undefined && (
                     <p className="text-xs font-semibold mt-1">
                       {subscriptionStatus.remainingDays > 0 ? (
-                        <span className="text-green-400">{subscriptionStatus.remainingDays} siku zinasalia</span>
+                        <span className="text-green-400">{subscriptionStatus.remainingDays} days remaining</span>
                       ) : (
-                        <span className="text-red-400">Subscription imekwisha</span>
+                        <span className="text-red-400">Subscription expired</span>
                       )}
                     </p>
                   )}
