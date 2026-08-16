@@ -839,7 +839,6 @@ const groupFeaturesRoutes = require('./routes/group-features');
 const liveReactionsRoutes = require('./routes/live-reactions');
 const mediaCompressorRoutes = require('./routes/media-compressor');
 const mediaEditorRoutes = require('./routes/media-editor');
-const messageTranslatorRoutes = require('./routes/message-translator');
 const multiAccountsRoutes = require('./routes/multi-accounts');
 const quickActionsRoutes = require('./routes/quick-actions');
 const statusFeaturesRoutes = require('./routes/status-features');
@@ -909,7 +908,6 @@ const API_ROUTE_MOUNTS = [
   ['/live-reactions', liveReactionsRoutes],
   ['/media-compressor', mediaCompressorRoutes],
   ['/media-editor', mediaEditorRoutes],
-  ['/message-translator', messageTranslatorRoutes],
   ['/multi-accounts', multiAccountsRoutes],
   ['/quick-actions', quickActionsRoutes],
   ['/status-features', statusFeaturesRoutes],

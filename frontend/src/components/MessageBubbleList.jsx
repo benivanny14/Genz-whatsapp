@@ -21,7 +21,7 @@ import toast from 'react-hot-toast';
 const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
   const {
     filteredMessages, visibleCount, safeMods, user, selectedConversation, messages,
-    translatedMessages, favoriteStickers, activeMessageMenu, messageMenuRef,
+    favoriteStickers, activeMessageMenu, messageMenuRef,
     isOwnMessage, handleDoubleClick, setMessageContextMenu, setActiveMessageMenu,
     openViewOnceModal, setViewerMedia, mediaSourceOf, isVideoSticker,
     plaintextOf, votePoll, markViewOnceViewed, toggleMessageLock,
@@ -549,11 +549,6 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                       const url = extractFirstUrl(text);
                       return url ? <LinkPreviewCard key={url} url={url} /> : null;
                     })()}
-                    {translatedMessages[message._id] && (
-                      <div className="mt-1 pt-1 border-t border-current border-opacity-20 italic text-xs">
-                        {typeof translatedMessages[message.id || message._id] === 'string' ? translatedMessages[message.id || message._id] : 'Translation'}
-                      </div>
-                    )}
                     {message.messageType !== 'sticker' && (
                     <div className={`flex items-center gap-1 mt-1 justify-end ${isOwnMessage(message) ? 'text-white/80' : 'text-dark-textSecondary'
                       }`}>

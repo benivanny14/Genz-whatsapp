@@ -8,7 +8,6 @@ const upload = multer({
   }
 });
 const {
-  translateMessage,
   scheduleMessage,
   getScheduledMessages,
   cancelScheduledMessage,
@@ -39,12 +38,10 @@ const {
   getStatusReplies,
   updateStatusPrivacy,
   getStatusStats,
-  aiAssistant,
 } = require('../controllers/advancedController');
 const { protect } = require('../middleware/auth');
 
 router.use(protect);
-router.post('/translate', translateMessage);
 router.post('/schedule-message', scheduleMessage);
 router.get('/scheduled-messages', getScheduledMessages);
 router.delete('/scheduled-messages/:id', cancelScheduledMessage);
@@ -85,7 +82,6 @@ router.put('/conversations/:id/disappearing-messages', setDisappearingMessages);
 router.get('/search-messages', searchMessages);
 router.get('/link-preview', getLinkPreview);
 router.get('/gifs', getGifs);
-router.post('/ai-assistant', aiAssistant);
 
 // ── Chunked Upload (10GB support) ──
 const fs = require('fs');

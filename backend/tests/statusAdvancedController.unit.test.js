@@ -100,22 +100,6 @@ describe('statusAdvancedController — voice/text effects', () => {
     expect(status.save).toHaveBeenCalled();
   });
 
-  it('textToSpeech rejects non-text statuses (400)', async () => {
-    Status.findById.mockResolvedValue(makeStatus({ type: 'image' }));
-    const res = makeRes();
-    await statusAdv.textToSpeech(makeReq({ params: { id: VALID_ID } }), res);
-    expect(res.statusCode).toBe(400);
-    expect(res.body.message).toBe('Text-to-speech only works on text statuses');
-  });
-
-  it('textToSpeech stores tts settings (happy path)', async () => {
-    const status = makeStatus({ type: 'text' });
-    Status.findById.mockResolvedValue(status);
-    const res = makeRes();
-    await statusAdv.textToSpeech(makeReq({ params: { id: VALID_ID }, body: { voice: 'sw', speed: 1 } }), res);
-    expect(status.ttsSettings).toEqual({ voice: 'sw', speed: 1, pitch: undefined, enabled: true });
-    expect(status.save).toHaveBeenCalled();
-  });
 });
 
 describe('statusAdvancedController — collaboration', () => {
@@ -336,35 +320,6 @@ describe('statusAdvancedController — drafts/archive/reminders/reactions', () =
     expect(res.body.reactions).toEqual({ '🔥': 2, '❤️': 1 });
   });
 
-  it('getAccessibility returns settings for the owner (happy path)', async () => {
-    Status.findById.mockResolvedValue(makeStatus({ accessibility: { captions: true } }));
-    const res = makeRes();
-    await statusAdv.getAccessibility(makeReq({ params: { id: VALID_ID } }), res);
-    expect(res.body.accessibility.captions).toBe(true);
-  });
-
-  it('updateAccessibility saves the settings (happy path)', async () => {
-    const status = makeStatus();
-    Status.findById.mockResolvedValue(status);
-    const res = makeRes();
-    await statusAdv.updateAccessibility(makeReq({ params: { id: VALID_ID }, body: { captions: true } }), res);
-    expect(status.accessibility).toEqual({ captions: true });
-    expect(status.save).toHaveBeenCalled();
-  });
-
-  it('generateAltText builds alt text from caption (happy path)', async () => {
-    Status.findById.mockResolvedValue(makeStatus({ caption: 'Sunset', type: 'image' }));
-    const res = makeRes();
-    await statusAdv.generateAltText(makeReq({ params: { id: VALID_ID } }), res);
-    expect(res.body.altText).toMatch(/Sunset/);
-  });
-
-  it('generateCaptions returns a caption script (happy path)', async () => {
-    Status.findById.mockResolvedValue(makeStatus({ caption: 'Hi there' }));
-    const res = makeRes();
-    await statusAdv.generateCaptions(makeReq({ params: { id: VALID_ID } }), res);
-    expect(res.body.captions).toContain('[00:00]');
-  });
 });
 
 describe('statusAdvancedController — polls/location/schedule', () => {

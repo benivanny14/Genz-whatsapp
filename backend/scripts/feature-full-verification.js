@@ -278,16 +278,6 @@ async function main() {
   r = await api.req('POST', '/api/status-features/duration', { hours: 48 });
   check('S53 update status duration', r.status === 200, r, 'message');
 
-  // external-dependent (informational — not counted)
-  if (sid) {
-    r = await api.req('POST', `/api/status-advanced/${sid}/alt-text`, {});
-    info('S54 alt-text (AI/external)', `${r.status} — ${(r.json.message || r.json.error || '').slice(0, 80)}`);
-    r = await api.req('POST', `/api/status-advanced/${sid}/captions`, {});
-    info('S55 captions (AI/external)', `${r.status} — ${(r.json.message || r.json.error || '').slice(0, 80)}`);
-    r = await api.req('POST', `/api/status-advanced/${sid}/text-to-speech`, { voice: 'default' });
-    info('S56 text-to-speech (external)', `${r.status} — ${(r.json.message || r.json.error || '').slice(0, 80)}`);
-  }
-
   // delete statuses
   r = await api.req('DELETE', `/api/status/${sidPrivate}`, {});
   check('S57 delete only_me status', r.status === 200, r, 'message');

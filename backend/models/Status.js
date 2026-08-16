@@ -97,12 +97,6 @@ const statusSchema = new mongoose.Schema({
     speed: { type: Number, default: 1 },
     echo: { type: Boolean, default: false }
   },
-  ttsSettings: {
-    voice: { type: String, default: 'default' },
-    speed: { type: Number, default: 1 },
-    pitch: { type: Number, default: 1 },
-    enabled: { type: Boolean, default: false }
-  },
   isCollaborative: { type: Boolean, default: false },
   isArchived: { type: Boolean, default: false },
   archivedAt: { type: Date },
@@ -194,20 +188,6 @@ const statusSchema = new mongoose.Schema({
     forwardedAt: { type: Date }
   }],
   forwardCount: { type: Number, default: 0 },
-  accessibility: {
-    altText: { type: String, default: '' },
-    autoAltText: { type: Boolean, default: false },
-    captions: { type: String, default: '' },
-    autoCaptions: { type: Boolean, default: false },
-    audioDescription: { type: String, default: '' },
-    colorContrast: { type: String, default: 'normal' },
-    textToSpeech: { type: Boolean, default: false },
-    reduceMotion: { type: Boolean, default: false },
-    highContrast: { type: Boolean, default: false },
-    largeText: { type: Boolean, default: false }
-  },
-  altText: { type: String, default: '' },
-  captions: { type: String, default: '' },
   analytics: {
     totalViews: { type: Number, default: 0 },
     uniqueViewers: { type: Number, default: 0 },

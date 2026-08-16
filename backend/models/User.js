@@ -373,7 +373,6 @@ const userSchema = new mongoose.Schema({
   mediaCompressorSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
   mediaEditorSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
   editHistory: { type: mongoose.Schema.Types.Mixed, default: [] },
-  translatorSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
   multiAccountsSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
   connectedDevices: { type: mongoose.Schema.Types.Mixed, default: [] },
   quickActionsSettings: { type: mongoose.Schema.Types.Mixed, default: {} },

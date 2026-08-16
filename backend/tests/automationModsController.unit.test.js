@@ -68,7 +68,6 @@ describe('automationModsController — toggles', () => {
 
   it.each([
     ['toggleAutoReply', 'autoReplyEnabled'],
-    ['toggleAutoReplyAI', 'autoReplyAIEnabled'],
     ['toggleAutoDelete', 'autoDeleteMessages'],
     ['toggleAutoArchive', 'autoArchiveChats'],
     ['toggleAutoMuteGroups', 'autoMuteGroups'],

@@ -58,12 +58,6 @@ router.post('/:id/react', statusAdvancedController.addReaction);
 // Monetization
 // (removed: no real ads/payment system, earnings were always 0)
 
-// Accessibility
-router.get('/:id/accessibility', statusAdvancedController.getAccessibility);
-router.post('/:id/accessibility', statusAdvancedController.updateAccessibility);
-router.post('/:id/alt-text', statusAdvancedController.generateAltText);
-router.post('/:id/captions', statusAdvancedController.generateCaptions);
-
 // Polls
 router.post('/:id/poll', statusAdvancedController.createPoll);
 router.post('/:id/poll/vote', statusAdvancedController.votePoll);
@@ -114,7 +108,6 @@ router.get('/:id/analytics', statusAdvancedController.getAnalytics);
 
 // Voice & Audio
 router.post('/:id/voice-changer', statusAdvancedController.applyVoiceChanger);
-router.post('/:id/text-to-speech', statusAdvancedController.textToSpeech);
 
 // Collaboration
 router.post('/:id/collaborate', statusAdvancedController.addCollaborator);

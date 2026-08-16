@@ -38,30 +38,6 @@ exports.applyVoiceChanger = async (req, res) => {
   }
 };
 
-// POST /api/status/:id/text-to-speech - Convert text to speech
-exports.textToSpeech = async (req, res) => {
-  try {
-    const userId = req.user._id || req.user.id;
-    const { voice, speed, pitch } = req.body;
-    const status = await Status.findById(req.params.id);
-    
-    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
-    
-    if (status.type !== 'text') {
-      return res.status(400).json({ success: false, message: 'Text-to-speech only works on text statuses' });
-    }
-
-    // In production, this would use TTS API
-    status.ttsSettings = { voice, speed, pitch, enabled: true };
-    await status.save();
-
-    res.json({ success: true, status });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
 // POST /api/status/:id/collaborate - Add collaborator to status
 exports.addCollaborator = async (req, res) => {
   try {
@@ -360,77 +336,7 @@ exports.getReactions = async (req, res) => {
   }
 };
 
-// GET /api/status/:id/accessibility - Get accessibility settings for status
-exports.getAccessibility = async (req, res) => {
-  try {
-    const userId = req.user._id || req.user.id;
-    const status = await Status.findById(req.params.id);
 
-    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
-
-    const accessibility = status.accessibility || {};
-
-    res.json({ success: true, accessibility });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-// POST /api/status/:id/accessibility - Update accessibility settings for status
-exports.updateAccessibility = async (req, res) => {
-  try {
-    const userId = req.user._id || req.user.id;
-    const status = await Status.findById(req.params.id);
-
-    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
-
-    const updatedAccessibility = req.body;
-    status.accessibility = updatedAccessibility;
-    await status.save();
-
-    res.json({ success: true, accessibility: updatedAccessibility });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-// POST /api/status/:id/alt-text - Generate alt text for status
-exports.generateAltText = async (req, res) => {
-  try {
-    const userId = req.user._id || req.user.id;
-    const status = await Status.findById(req.params.id);
-
-    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
-
-    const altText = `An image showing ${status.caption || 'content'} with ${status.type} style`;
-
-    res.json({ success: true, altText });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-// POST /api/status/:id/captions - Generate captions for status video
-exports.generateCaptions = async (req, res) => {
-  try {
-    const userId = req.user._id || req.user.id;
-    const status = await Status.findById(req.params.id);
-
-    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
-    if (!isStatusOwner(status, userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
-
-    const captions = `[00:00] ${status.caption || 'Content'}
-[00:05] More details about the content
-[00:10] Additional information or description`;
-
-    res.json({ success: true, captions });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
 
 // POST /api/status/:id/react - Add reaction to status
 exports.addReaction = async (req, res) => {

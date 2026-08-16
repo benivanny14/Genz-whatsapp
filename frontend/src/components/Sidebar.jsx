@@ -46,7 +46,6 @@ import {
   Square,
   ChevronUp,
   RefreshCw,
-  Mic,
   Upload,
   Download,
   Clock,
@@ -479,139 +478,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     }
   };
 
-  // Voice Features
-  const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const recognitionRef = useRef(null);
-
-  // Voice Search (STT)
-  const handleVoiceSearch = () => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert('Voice search is not supported in this browser. Please use Chrome or Edge.');
-      return;
-    }
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
-    if (isListening) {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      setIsListening(false);
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
-
-    recognition.onstart = () => {
-      setIsListening(true);
-    };
-
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setSearchQuery(transcript);
-      setIsListening(false);
-    };
-
-    recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
-      setIsListening(false);
-      alert('Voice search failed. Please try again.');
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
-  };
-
-  // Text-to-Speech (TTS) - Read Messages
-  const handleReadMessage = (message) => {
-    if (!('speechSynthesis' in window)) {
-      alert('Text-to-speech is not supported in this browser.');
-      return;
-    }
-
-    if (isSpeaking) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-      return;
-    }
-
-    const utterance = new SpeechSynthesisUtterance(message.content || '');
-    utterance.lang = 'en-US';
-    utterance.rate = 1;
-    utterance.pitch = 1;
-
-    utterance.onstart = () => {
-      setIsSpeaking(true);
-    };
-
-    utterance.onend = () => {
-      setIsSpeaking(false);
-    };
-
-    utterance.onerror = () => {
-      setIsSpeaking(false);
-    };
-
-    window.speechSynthesis.speak(utterance);
-  };
-
-  // Voice Reply (STT)
-  const handleVoiceReply = (chatId) => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert('Voice reply is not supported in this browser. Please use Chrome or Edge.');
-      return;
-    }
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
-    if (isListening) {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      setIsListening(false);
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
-
-    recognition.onstart = () => {
-      setIsListening(true);
-    };
-
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      if (chatId && transcript.trim()) {
-        sendMessage(transcript, user?.username || 'Me', { chatId });
-      } else if (transcript.trim()) {
-        alert(`Voice reply: "${transcript}" - No conversation selected.`);
-      }
-      setIsListening(false);
-    };
-
-    recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
-      setIsListening(false);
-      alert('Voice reply failed. Please try again.');
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
-  };
 
   // BUG FIX: the chat-row "..." menu used to be positioned with raw
   // `rect.left - 150` / `e.pageY` coordinates with no bounds checking. On a
@@ -1457,14 +1323,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
               onBlur={() => setTimeout(() => setShowRecentSearches(false), 200)}
               className="w-full pl-10 pr-12 py-2 bg-dark-bg border border-dark-border rounded-lg text-dark-text placeholder-dark-textSecondary focus:outline-none focus:border-primary-500 text-base md:text-sm"
             />
-            <button
-              onClick={handleVoiceSearch}
-              className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-colors ${isListening ? 'bg-red-500 text-white' : 'text-dark-textSecondary hover:bg-dark-hover'}`}
-              title="Voice Search"
-              aria-label="Voice Search"
-            >
-              {isListening ? <Square size={16} /> : <Mic size={16} />}
-            </button>
             {showRecentSearches && recentSearches.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-dark-surface border border-dark-border rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto">
                 <div className="flex items-center justify-between px-3 py-2 border-b border-dark-border">
@@ -1882,13 +1740,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
             >
               <Download size={16} />
               <span>Export Chat</span>
-            </button>
-            <button
-              onClick={() => { handleVoiceReply(contextMenu.chatId); setContextMenu(null); }}
-              className="w-full flex items-center gap-3 px-4 py-2 hover:bg-dark-hover text-dark-text transition-colors"
-            >
-              <Mic size={16} />
-              <span>Voice Reply</span>
             </button>
             <button
               onClick={() => { toggleFakeCover(contextMenu.chatId); setContextMenu(null); }}

@@ -119,8 +119,7 @@ WHATSAPP_CLOUD_API_TOKEN=...   # (see backend/services/whatsappCloudApiService.j
   API call: Cloudinary uploads (fall back to local `/uploads` serving when the
   circuit is open, so media sends never fail), Cloudinary delete/resource calls
   (fail soft), WhatsApp Cloud API (fast-fail after 3 failures, 60s cooldown),
-  LibreTranslate + GIPHY (fall back to local translation / fallback GIFs). All
-  calls are also wrapped in timeouts.
+  GIPHY (fall back to fallback GIFs). All calls are also wrapped in timeouts.
 - **API versioning** — every route is mounted under both `/api/...` (legacy,
   what the current frontend calls) and `/api/v1/...`. **New code should use
   `/api/v1`.** Routes are declared in one `API_ROUTE_MOUNTS` array in

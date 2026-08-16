@@ -85,11 +85,6 @@ const VideoToolsPanel = ({ onClose, video, onSave }) => {
     console.log('Video merging requires video processing library');
   };
 
-  const handleTextToSpeech = () => {
-    // Text-to-speech for video overlay
-    console.log('Text-to-speech requires TTS API integration');
-  };
-
   const handleVoiceChanger = () => {
     // Voice changer requires audio processing
     console.log('Voice changer requires audio processing library');
@@ -304,13 +299,6 @@ const VideoToolsPanel = ({ onClose, video, onSave }) => {
               >
                 <Layers size={16} />
                 <span>Merge Videos</span>
-              </button>
-              <button
-                onClick={handleTextToSpeech}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm"
-              >
-                <MessageSquare size={16} />
-                <span>Text-to-Speech</span>
               </button>
               <button
                 onClick={handleVoiceChanger}

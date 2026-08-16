@@ -250,6 +250,15 @@ jobs:
             STATUS=1
           fi
 
+          # Group + Status realtime e2e via REAL socket clients: a group
+          # message reaches members live (message:received) and a fresh status
+          # reaches online contacts live (status:created), while a
+          # contacts_except status never leaks to an excluded contact.
+          if ! (cd ../backend && node scripts/e2e-group-status-live.js http://127.0.0.1:5000); then
+            echo "::error::Group/status live-delivery e2e failed"
+            STATUS=1
+          fi
+
           # Feature verification against the live single-origin stack: the
           # API smoke test (137 checks) + the full verification (186 checks:
           # status / chat / group roles / settings / admin 2FA + control).

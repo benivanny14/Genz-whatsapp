@@ -2838,25 +2838,6 @@ export const ChatProvider = ({ children }) => {
     };
   }, []);
 
-  const aiAssistant = async (prompt) => {
-    try {
-      const token = getAuthToken();
-      const response = await authFetch(`${BACKEND_URL}/advanced/ai-assistant`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ prompt })
-      });
-      const data = await response.json();
-      return data;
-    } catch (err) {
-      console.error('AI Assistant error:', err);
-      return { success: false, message: 'AI Assistant failed' };
-    }
-  };
-
   const setDisappearingTimer = (conversationId, durationMs) => {
     // Clear old timer for this conversation
     if (disappearingTimersRef.current[conversationId]) {
@@ -5057,7 +5038,6 @@ export const ChatProvider = ({ children }) => {
     updateGroupAntiSpam, updateGroupJoinApproval,
     getGroupQRCode,
     fetchGroupEvents, createGroupEventFn, rsvpGroupEventFn,
-    aiAssistant,
     connectedDevices, sessions, notifications, statusPrivacy, setStatusPrivacy,
     backupProgress, setBackupProgress, notificationSound, setNotificationSound,
     startCloudBackup, listCloudBackups, restoreCloudBackup, deleteCloudBackup, logoutDevice, logoutAllDevices, generateQRCode, pairDevice, getDevices, updateDeviceCapabilities, updateAutoReply,

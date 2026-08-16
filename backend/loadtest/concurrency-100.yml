@@ -51,7 +51,7 @@ scenarios:
               headers:
                 Authorization: "Bearer {{ authToken }}"
           - get:
-              url: "/api/message-translator/settings"
+              url: "/api/chat-folders"
               headers:
                 Authorization: "Bearer {{ authToken }}"
           - get:

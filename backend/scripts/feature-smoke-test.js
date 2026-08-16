@@ -314,9 +314,6 @@ async function main() {
   r = await api.req('GET', '/api/chat-folders');
   check('list chat folders', r.status === 200, r, 'message');
 
-  r = await api.req('POST', '/api/message-translator/translate', { text: 'Hello friend', targetLanguage: 'sw' });
-  check('translate message', r.status === 200 || r.status === 201, r, 'message');
-
 
   // ── G. MODS & ADVANCED ─────────────────────────────────────────────
   console.log('\n[G] MODS & ADVANCED');

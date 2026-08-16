@@ -12,7 +12,6 @@ router.post('/settings', automationModsController.updateAutomationModsSettings);
 
 // Toggle routes for individual features
 router.post('/auto-reply', automationModsController.toggleAutoReply);
-router.post('/auto-reply-ai', automationModsController.toggleAutoReplyAI);
 router.post('/auto-delete', automationModsController.toggleAutoDelete);
 router.post('/auto-delete-days', automationModsController.updateAutoDeleteDays);
 router.post('/auto-archive', automationModsController.toggleAutoArchive);

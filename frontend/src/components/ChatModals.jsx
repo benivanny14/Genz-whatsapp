@@ -37,7 +37,7 @@ const ChatModals = React.memo(function ChatModals({ ctx }) {
     showMediaGallery, setShowMediaGallery,
     messageContextMenu, handleContextMenuDelete, handleEditClick,
     setMessageContextMenu, setReplyingTo, handleContextMenuStar,
-    unpinMessage, pinMessage, addReaction, handleTranslate, plaintextOf,
+    unpinMessage, pinMessage, addReaction, plaintextOf,
     handleReplyPrivately,
     textSelectionMenu, textSelectionMenuRef, handleCopySelection,
     handleSelectAllSelection, handleFormatSelection, setTextSelectionMenu,
@@ -150,7 +150,6 @@ const ChatModals = React.memo(function ChatModals({ ctx }) {
               setMessageContextMenu(null);
             }}
              onReaction={(messageId, emoji) => addReaction(messageId, emoji)}
-             onTranslate={(msg) => handleTranslate(msg._id || msg.id, plaintextOf(msg))}
              onReplyPrivately={(msg) => handleReplyPrivately(msg)}
              isGroupChat={selectedConversation?.isGroup}
              conversation={selectedConversation}

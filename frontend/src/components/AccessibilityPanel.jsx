@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, Eye, Ear, Zap, Contrast, Type, Image as ImageIcon, Volume2, CheckCircle, Palette, Keyboard, Accessibility } from 'lucide-react';
+import { X, Eye, Zap, Contrast, Type, Volume2, Palette, Keyboard, Accessibility } from 'lucide-react';
 
 const AccessibilityPanel = ({ onClose, content, onSave }) => {
-  const [altText, setAltText] = useState('');
-  const [autoAltText, setAutoAltText] = useState(false);
   const [audioDescription, setAudioDescription] = useState('');
   const [reduceMotion, setReduceMotion] = useState(false);
   const [highContrast, setHighContrast] = useState(false);
   const [fontSize, setFontSize] = useState('medium');
-  const [captionsEnabled, setCaptionsEnabled] = useState(true);
   const [colorBlindMode, setColorBlindMode] = useState('none');
   const [switchAccess, setSwitchAccess] = useState(false);
   const [brailleSupport, setBrailleSupport] = useState(false);
@@ -20,23 +17,13 @@ const AccessibilityPanel = ({ onClose, content, onSave }) => {
     { id: 'xlarge', label: 'Extra Large', size: '20px' }
   ];
 
-  const generateAutoAltText = () => {
-    // Simulate AI-generated alt text (in production, this would use vision AI)
-    setAutoAltText(true);
-    const generatedText = "A status showing a person with a bright smile, wearing casual clothing, standing outdoors with natural lighting. The image has a warm, friendly tone.";
-    setAltText(generatedText);
-  };
-
   const handleSave = () => {
     if (onSave) {
       onSave({
-        altText,
-        autoAltText,
         audioDescription,
         reduceMotion,
         highContrast,
         fontSize,
-        captionsEnabled,
         colorBlindMode,
         switchAccess,
         brailleSupport
@@ -84,35 +71,6 @@ const AccessibilityPanel = ({ onClose, content, onSave }) => {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Alt Text */}
-          <div className="bg-white/5 rounded-xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <ImageIcon size={18} className="text-[#00a884]" />
-                <h3 className="text-white font-medium">Alt Text</h3>
-              </div>
-              <button
-                onClick={generateAutoAltText}
-                className="text-[#00a884] hover:text-[#008f6f] text-sm flex items-center gap-1"
-              >
-                <Zap size={14} />
-                Auto-Generate
-              </button>
-            </div>
-            <textarea
-              value={altText}
-              onChange={(e) => setAltText(e.target.value)}
-              placeholder="Describe the image for screen readers..."
-              className="w-full bg-white/10 text-white p-3 rounded-lg outline-none resize-none h-24 placeholder-white/40"
-            />
-            {autoAltText && (
-              <div className="mt-2 flex items-center gap-2 text-green-400 text-sm">
-                <CheckCircle size={14} />
-                <span>AI-generated alt text applied</span>
-              </div>
-            )}
-          </div>
-
           {/* Audio Description */}
           <div className="bg-white/5 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-3">
@@ -201,31 +159,6 @@ const AccessibilityPanel = ({ onClose, content, onSave }) => {
                   </button>
                 ))}
               </div>
-            </div>
-          </div>
-
-          {/* Caption Settings */}
-          <div className="bg-white/5 rounded-xl p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Ear size={18} className="text-[#00a884]" />
-                <div>
-                  <p className="text-white font-medium">Auto-Captions</p>
-                  <p className="text-white/60 text-sm">Generate captions for video content</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setCaptionsEnabled(!captionsEnabled)}
-                className={`w-12 h-6 rounded-full transition-colors ${
-                  captionsEnabled ? 'bg-[#00a884]' : 'bg-gray-600'
-                }`}
-              >
-                <div
-                  className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                    captionsEnabled ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
             </div>
           </div>
 

@@ -16,7 +16,6 @@ import BackgroundToolsPanel from '../components/BackgroundToolsPanel';
 import VideoToolsPanel from '../components/VideoToolsPanel';
 import ARFilterPanel from '../components/ARFilterPanel';
 import AudioPanel from '../components/AudioPanel';
-import SubtitlesPanel from '../components/SubtitlesPanel';
 import CrossPlatformSharingPanel from '../components/CrossPlatformSharingPanel';
 import AccessibilityPanel from '../components/AccessibilityPanel';
 import BusinessShoppingPanel from '../components/BusinessShoppingPanel';
@@ -33,9 +32,7 @@ import MediaUploadEnhanced from '../components/MediaUploadEnhanced';
 import StatusAnalyticsPanel from '../components/StatusAnalyticsPanel';
 import ThemeStore from '../components/PaidFeatures/ThemeStore';
 import CrossPlatformSharing from '../components/CrossPlatformSharing';
-import StatusAccessibilityPanel from '../components/StatusAccessibilityPanel';
 import VoiceChangerPanel from '../components/VoiceChangerPanel';
-import TextToSpeechPanel from '../components/TextToSpeechPanel';
 import StatusCollaborationPanel from '../components/StatusCollaborationPanel';
 import StatusArchivePanel from '../components/StatusArchivePanel';
 import StatusReminderPanel from '../components/StatusReminderPanel';
@@ -86,9 +83,7 @@ const Status = () => {
   const [showStatusAnalytics, setShowStatusAnalytics] = useState(false);
   const [showThemeStore, setShowThemeStore] = useState(false);
   const [showCrossPlatform, setShowCrossPlatform] = useState(false);
-  const [showStatusAccessibility, setShowStatusAccessibility] = useState(false);
   const [showVoiceChanger, setShowVoiceChanger] = useState(false);
-  const [showTextToSpeech, setShowTextToSpeech] = useState(false);
   const [showStatusCollaboration, setShowStatusCollaboration] = useState(false);
   const [showStatusArchive, setShowStatusArchive] = useState(false);
   const [showStatusReminder, setShowStatusReminder] = useState(false);
@@ -778,13 +773,6 @@ const Status = () => {
     setShowSettings(false);
   };
 
-  const handleSubtitlesSave = (subtitlesData) => {
-    if (!subtitlesData) return;
-    setUploadData((prev) => ({ ...prev, subtitles: subtitlesData }));
-    setActivePanel(null);
-    setShowSettings(false);
-  };
-
   const handleStatusManageSave = async () => {
     setSelectedStatusForPanel(null);
     await fetchStatuses();
@@ -904,14 +892,6 @@ const Status = () => {
               title="Voice Changer" aria-label="Voice Changer"
             >
               <Zap size={20} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowTextToSpeech(true)}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="Text to Speech" aria-label="Text to Speech"
-            >
-              <Volume2 size={20} />
             </button>
             <button
               type="button"
@@ -1185,18 +1165,6 @@ const Status = () => {
                             title="Analytics"
                           >
                             <BarChart3 size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedStatusForPanel(status);
-                              setShowStatusAccessibility(true);
-                            }}
-                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
-                            title="Accessibility"
-                          >
-                            <Accessibility size={14} />
                           </button>
                           <button
                             type="button"
@@ -2006,13 +1974,6 @@ const Status = () => {
                     >
                       Audio
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => openEditorPanel('subtitles')}
-                      className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-gray-700 dark:text-gray-300 text-xs"
-                    >
-                      Subtitles
-                    </button>
                   </div>
                 </div>
               )}
@@ -2214,7 +2175,6 @@ const Status = () => {
                   <button onClick={() => setActivePanel('video')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Video Tools</button>
                   <button onClick={() => setActivePanel('ar')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">AR Filters</button>
                   <button onClick={() => setActivePanel('audio')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Audio Panel</button>
-                  <button onClick={() => setActivePanel('subtitles')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Subtitles</button>
                   <button onClick={() => setActivePanel('sharing')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Cross-Platform Sharing</button>
                   <button onClick={() => setActivePanel('accessibility')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Accessibility</button>
                   <button onClick={() => setActivePanel('business')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Business/Shopping</button>
@@ -2241,7 +2201,6 @@ const Status = () => {
                     {activePanel === 'video' && <VideoToolsPanel onClose={() => setActivePanel(null)} video={editVideoUrl} onSave={handleEditorSaveVideo} />}
                     {activePanel === 'ar' && <ARFilterPanel onClose={() => setActivePanel(null)} image={editImageUrl} onSave={handleEditorSaveImage} />}
                     {activePanel === 'audio' && <AudioPanel onClose={() => setActivePanel(null)} onSave={handleAudioSave} />}
-                    {activePanel === 'subtitles' && <SubtitlesPanel onClose={() => setActivePanel(null)} video={editVideoUrl} onSave={handleSubtitlesSave} />}
                   {activePanel === 'sharing' && <CrossPlatformSharingPanel onClose={() => setActivePanel(null)} onShare={(data) => handlePanelSave('crossPlatformSharing', data)} />}
                   {activePanel === 'accessibility' && <AccessibilityPanel onClose={() => setActivePanel(null)} onSave={(data) => handlePanelSave('accessibility', data)} />}
                   {activePanel === 'business' && <BusinessShoppingPanel onClose={() => setActivePanel(null)} onSave={(data) => handlePanelSave('businessShopping', data)} />}
@@ -2275,15 +2234,8 @@ const Status = () => {
             mediaUrl={selectedStatusForPanel?.mediaUrl}
           />
         )}
-        {showStatusAccessibility && selectedStatusForPanel && (
-          <StatusAccessibilityPanel 
-            onClose={() => { setShowStatusAccessibility(false); setSelectedStatusForPanel(null); }}
-            status={selectedStatusForPanel}
-          />
-        )}
         {showMediaUploadEnhanced && <MediaUploadEnhanced onClose={() => setShowMediaUploadEnhanced(false)} onUpload={(files) => console.log('Files uploaded:', files)} />}
         {showVoiceChanger && <VoiceChangerPanel onClose={() => setShowVoiceChanger(false)} onApplyEffect={(effect) => console.log('Voice effect applied:', effect)} />}
-        {showTextToSpeech && <TextToSpeechPanel onClose={() => setShowTextToSpeech(false)} onGenerateSpeech={(speech) => console.log('Speech generated:', speech)} />}
         {showStatusCollaboration && selectedStatusForPanel && (
           <StatusCollaborationPanel 
             onClose={() => { setShowStatusCollaboration(false); setSelectedStatusForPanel(null); }}

@@ -152,49 +152,6 @@ const makeBroadcast = (overrides = {}) => ({
   ...overrides
 });
 
-describe('advancedController — translateMessage', () => {
-  beforeEach(() => jest.clearAllMocks());
-
-  it('translates by message ID lookup (happy path)', async () => {
-    axios.post.mockRejectedValue(new Error('network down'));
-    Message.findById.mockResolvedValue({ content: 'hello from message' });
-    const res = makeRes();
-    await advanced.translateMessage(makeReq({ body: { messageId: 'm-1', targetLanguage: 'sw' } }), res);
-    expect(res.statusCode).toBe(200);
-    expect(res.body.translatedText).toBe('[Swahili] hello from message');
-  });
-
-  it('rejects without text or messageId (validation)', async () => {
-    const res = makeRes();
-    await advanced.translateMessage(makeReq({ body: {} }), res);
-    expect(res.statusCode).toBe(400);
-    expect(res.body.message).toBe('Text or messageId is required');
-  });
-
-  it('returns 404 when the message is missing', async () => {
-    Message.findById.mockResolvedValue(null);
-    const res = makeRes();
-    await advanced.translateMessage(makeReq({ body: { messageId: 'm-1' } }), res);
-    expect(res.statusCode).toBe(404);
-  });
-
-  it('falls back to local translation when the provider fails', async () => {
-    axios.post.mockRejectedValue(new Error('network down'));
-    const res = makeRes();
-    await advanced.translateMessage(makeReq({ body: { text: 'hello', target: 'sw' } }), res);
-    expect(res.statusCode).toBe(200);
-    expect(res.body.translatedText).toBe('[Swahili] hello');
-  });
-
-  it('returns provider translation on success (happy path)', async () => {
-    axios.post.mockResolvedValue({ data: { translatedText: 'Hola' } });
-    const res = makeRes();
-    await advanced.translateMessage(makeReq({ body: { text: 'hello', target: 'es' } }), res);
-    expect(res.statusCode).toBe(200);
-    expect(res.body.translatedText).toBe('Hola');
-    expect(res.body.targetLanguage).toBe('es');
-  });
-});
 
 describe('advancedController — dashboard', () => {
   beforeEach(() => jest.clearAllMocks());
@@ -638,7 +595,7 @@ describe('advancedController — disappearing messages & search', () => {
   });
 });
 
-describe('advancedController — link preview, gifs, ai', () => {
+describe('advancedController — link preview, gifs', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     delete process.env.GIPHY_API_KEY;
@@ -688,26 +645,6 @@ describe('advancedController — link preview, gifs, ai', () => {
     expect(axios.get).toHaveBeenCalledWith(expect.stringContaining('api.giphy.com'), expect.anything());
   });
 
-  it('rejects aiAssistant without a prompt (validation)', async () => {
-    const res = makeRes();
-    await advanced.aiAssistant(makeReq({ body: {} }), res);
-    expect(res.statusCode).toBe(400);
-    expect(res.body.message).toBe('Prompt is required');
-  });
-
-  it('answers help requests (happy path)', async () => {
-    const res = makeRes();
-    await advanced.aiAssistant(makeReq({ body: { prompt: '/ai can you help me?' } }), res);
-    expect(res.statusCode).toBe(200);
-    expect(res.body.response).toMatch(/AI Assistant/);
-  });
-
-  it('answers greetings (happy path)', async () => {
-    const res = makeRes();
-    await advanced.aiAssistant(makeReq({ body: { prompt: 'hello there' } }), res);
-    expect(res.statusCode).toBe(200);
-    expect(res.body.response).toBe('Hello! 👋 How can I help you today?');
-  });
 });
 
 describe('advancedController — status details / replies / privacy / stats', () => {

@@ -26,7 +26,6 @@ const {
 
 const AUTOMATION_MODS_DEFAULTS = {
   autoReplyEnabled: false,
-  autoReplyAIEnabled: false,
   autoDeleteMessages: false,
   autoDeleteAfterDays: 30,
   autoArchiveChats: false,
@@ -105,11 +104,6 @@ exports.toggleAutoReply = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
-// @desc    Toggle Auto-Reply AI
-// @route   POST /api/automation-mods/auto-reply-ai
-// @access  Private
-exports.toggleAutoReplyAI = (req, res) => toggleAutomationField(req, res, 'autoReplyAIEnabled', 'Toggle auto reply AI');
 
 // @desc    Toggle Auto-Delete Messages
 // @route   POST /api/automation-mods/auto-delete

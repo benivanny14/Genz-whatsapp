@@ -65,7 +65,6 @@ import ChatSettings from '../components/ChatSettings';
 import { MessageEditingSettings } from '../components/MessageEditing';
 import MessageForwarding from '../components/MessageForwarding';
 import MessageReactions from '../components/MessageReactions';
-import MessageTranslation from '../components/MessageTranslation';
 import MessageRecall from '../components/MessageRecall';
 import MessageDeletion from '../components/MessageDeletion';
 import MessageBookmark from '../components/MessageBookmark';
@@ -433,8 +432,6 @@ const FeatureLibrary = () => {
           props: { message: demoMessage, chats: allChats, contacts, onForward: () => {} } },
         { id: 'm-reactions', name: 'Reactions', desc: 'React to a message', C: MessageReactions,
           props: { message: demoMessage, onReact: () => {}, onRemoveReaction: () => {} } },
-        { id: 'm-translate', name: 'Message Translation', desc: 'Translate a message', C: MessageTranslation, preview: true,
-          props: { message: demoMessage, onTranslate: () => {}, currentLanguage: 'en' } },
         { id: 'm-recall', name: 'Recall Message', desc: 'Recall a sent message', C: MessageRecall, preview: true,
           props: { message: demoMessage, onRecall: () => {}, onCancel: close } },
         { id: 'm-delete', name: 'Delete Message', desc: 'Delete or unsend', C: MessageDeletion,

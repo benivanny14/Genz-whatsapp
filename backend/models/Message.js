@@ -267,15 +267,7 @@ const messageSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     keptAt: { type: Date, default: Date.now }
   }],
-  translation: {
-    originalLanguage: String,
-    translatedText: String,
-    targetLanguage: String
-  },
-  aiGenerated: {
-    type: Boolean,
-    default: false
-  },
+
   quotedStatus: {
     statusId: { type: String, default: null },
     ownerName: { type: String, default: null },

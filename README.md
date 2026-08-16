@@ -358,7 +358,7 @@ user-facing endpoints require a JWT (unless noted); responses default to
   `/api/genz-mods` — per-feature MODs toggles
 - `/api/chat-filter`, `/api/chat-sort`, `/api/chat-search`, `/api/chat-folders` — chat organization
 - `/api/group-features`, `/api/status-features` — feature toggles
-- `/api/message-translator`, `/api/text-repeater`, `/api/live-reactions`, `/api/story-highlights`,
+- `/api/text-repeater`, `/api/live-reactions`, `/api/story-highlights`,
   `/api/quick-actions`, `/api/chat-analyzer`, `/api/fake-chat`, `/api/gif-player` — feature toggles
 - `/api/bulk-sender`, `/api/multi-accounts`, `/api/whatsapp-web` — WhatsApp session management
 - `/api/business-account`, `/api/file-manager`, `/api/storage-manager`, `/api/data-usage`, `/api/cache-cleaner`

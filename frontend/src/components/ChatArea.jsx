@@ -85,7 +85,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     updateGroupMember, joinGroup, updateDisappearingMessages, toggleAdminOnlyMessaging, updateGroupPermission, createCustomRole, assignRole, viewProfile,
     pinMessage, unpinMessage, pinnedMessages, presenceHistory, unlockedSessionChats, verifyChatUnlock, toggleChatLock, toggleStarMessage, toggleMessageLock, toggleMuteChat, toggleArchiveChat, markAsRead, revealViewOnce, markViewOnceViewed, getUserStatusWithGhostMode, reportMessage,
     sendFloatingSticker, floatingStickerHandlers, setFloatingStickerHandlers,
-    isDNDMode, toggleDNDMode, selectConversation, setMods, aiAssistant,
+    isDNDMode, toggleDNDMode, selectConversation, setMods,
     loadOlderMessages, hasOlderMessages
   } = useChat();
   const { sendSticker, favoriteStickers, toggleFavoriteSticker } = useStickers();
@@ -238,7 +238,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const sendButtonRef = useRef(null);
   const headerMenuRef = useRef(null);
   const attachmentMenuRef = useRef(null);
-  const [translatedMessages, setTranslatedMessages] = useState({});
   const liveLocationWatchIdRef = useRef(null);
   const liveLocationIntervalRef = useRef(null);
   const lastLocationSentRef = useRef(null);
@@ -710,56 +709,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     }
 
     const rawMessage = messageInput.trim();
-
-    // Check for /ai command
-    if (rawMessage.toLowerCase().startsWith('/ai ')) {
-      const prompt = rawMessage.substring(4).trim();
-      if (!prompt) {
-        toast.error('Please provide a question or command after /ai');
-        return;
-      }
-
-      // Show loading state
-      const loadingMsg = {
-        _id: `ai-loading-${Date.now()}`,
-        content: '🤖 AI is thinking...',
-        sender: { _id: 'system', username: 'AI Assistant' },
-        messageType: 'text',
-        status: 'sent',
-        createdAt: new Date().toISOString(),
-        conversationId: selectedConversation._id,
-        isSystem: true
-      };
-      setMessages(prev => [...prev, loadingMsg]);
-
-      try {
-        const result = await aiAssistant(rawMessage);
-        setMessages(prev => prev.filter(m => m._id !== loadingMsg._id));
-        
-        if (result.success) {
-          const aiResponse = {
-            _id: `ai-${Date.now()}`,
-            content: result.response,
-            sender: { _id: 'system', username: 'AI Assistant' },
-            messageType: 'text',
-            status: 'sent',
-            createdAt: new Date().toISOString(),
-            conversationId: selectedConversation._id,
-            isSystem: true
-          };
-          setMessages(prev => [...prev, aiResponse]);
-        } else {
-          toast.error(result.message || 'AI Assistant failed');
-        }
-      } catch (error) {
-        setMessages(prev => prev.filter(m => m._id !== loadingMsg._id));
-        toast.error('Failed to get AI response');
-      }
-
-      setMessageInput('');
-      setMentionState({ open: false, query: '', start: -1, cursor: 0, activeIndex: 0 });
-      return;
-    }
 
     const mentions = buildMentionPayload(
       rawMessage,
@@ -2162,46 +2111,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     }
   };
 
-  const handleTranslate = async (messageId, text) => {
-    if (translatedMessages[messageId]) {
-      const newTranslations = { ...translatedMessages };
-      delete newTranslations[messageId];
-      setTranslatedMessages(newTranslations);
-      return;
-    }
-    const targetLang = localStorage.getItem('genz_language') || 'en';
-    setTranslatedMessages(prev => ({ ...prev, [messageId]: '⏳ Translating...' }));
-
-    const tryTranslate = async () => {
-      // 1. MyMemory API (free, no key needed, 10k chars/day)
-      try {
-        const r = await fetch(
-          `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=auto|${targetLang}`,
-          { signal: AbortSignal.timeout(6000) }
-        );
-        const d = await r.json();
-        if (d.responseData?.translatedText && d.responseStatus === 200) return d.responseData.translatedText;
-      } catch (_) {}
-
-      // 2. LibreTranslate public instance
-      try {
-        const r = await fetch('https://libretranslate.de/translate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ q: text, source: 'auto', target: targetLang }),
-          signal: AbortSignal.timeout(6000)
-        });
-        const d = await r.json();
-        if (d.translatedText) return d.translatedText;
-      } catch (_) {}
-
-      return '❌ Translation unavailable. Check internet connection.';
-    };
-
-    const translated = await tryTranslate();
-    setTranslatedMessages(prev => ({ ...prev, [messageId]: translated }));
-  };
-
   const handleShareContact = async (contact) => {
     if (!contact) return;
     const name = contact.username || contact.name || contact.savedName || 'Contact';
@@ -2391,7 +2300,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
   const bubbleCtx = useMemo(() => ({
   filteredMessages, visibleCount, safeMods, user, selectedConversation, messages,
-      translatedMessages, favoriteStickers, activeMessageMenu, messageMenuRef,
+      favoriteStickers, activeMessageMenu, messageMenuRef,
       isOwnMessage, handleDoubleClick, setMessageContextMenu, setActiveMessageMenu,
       openViewOnceModal, setViewerMedia, mediaSourceOf, isVideoSticker,
       plaintextOf, votePoll, markViewOnceViewed, toggleMessageLock,
@@ -2399,7 +2308,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       setShowForwardModal, unpinMessage, pinMessage, toggleStarMessage,
       toggleFavoriteSticker, setReportTarget, handleEditClick, setMessageInfoId,
       setShowMessageInfoModal, deleteMessage, handleDeleteForEveryone
-}), [filteredMessages, visibleCount, safeMods, user, selectedConversation, messages, translatedMessages, favoriteStickers, activeMessageMenu, messageMenuRef, isOwnMessage, handleDoubleClick, setMessageContextMenu, setActiveMessageMenu, openViewOnceModal, setViewerMedia, mediaSourceOf, isVideoSticker, plaintextOf, votePoll, markViewOnceViewed, toggleMessageLock, handleRetryMessage, handleReaction, setReplyingTo, setForwardingMessage, setShowForwardModal, unpinMessage, pinMessage, toggleStarMessage, toggleFavoriteSticker, setReportTarget, handleEditClick, setMessageInfoId, setShowMessageInfoModal, deleteMessage, handleDeleteForEveryone]);
+}), [filteredMessages, visibleCount, safeMods, user, selectedConversation, messages, favoriteStickers, activeMessageMenu, messageMenuRef, isOwnMessage, handleDoubleClick, setMessageContextMenu, setActiveMessageMenu, openViewOnceModal, setViewerMedia, mediaSourceOf, isVideoSticker, plaintextOf, votePoll, markViewOnceViewed, toggleMessageLock, handleRetryMessage, handleReaction, setReplyingTo, setForwardingMessage, setShowForwardModal, unpinMessage, pinMessage, toggleStarMessage, toggleFavoriteSticker, setReportTarget, handleEditClick, setMessageInfoId, setShowMessageInfoModal, deleteMessage, handleDeleteForEveryone]);
 
   const composerCtx = useMemo(() => ({
   replyingTo, setReplyingTo, showMediaPanel, setShowMediaPanel,
@@ -2448,7 +2357,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       showMediaGallery, setShowMediaGallery,
       messageContextMenu, handleContextMenuDelete, handleEditClick,
       setMessageContextMenu, setReplyingTo, handleContextMenuStar,
-      unpinMessage, pinMessage, addReaction, handleTranslate, plaintextOf,
+      unpinMessage, pinMessage, addReaction, plaintextOf,
       handleReplyPrivately,
       textSelectionMenu, textSelectionMenuRef, handleCopySelection,
       handleSelectAllSelection, handleFormatSelection, setTextSelectionMenu,
@@ -2490,7 +2399,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       handleExportChat, updateDisappearingMessages, toggleChatLock, safeMods,
       setMods, blockedUsers, showDisappearingPicker, setShowDisappearingPicker,
       applyDisappearingMessages, user, selectedConversation
-}), [showForwardModal, forwardingMessage, setShowForwardModal, setForwardingMessage, showSearchMessages, setShowSearchMessages, showMediaGallery, setShowMediaGallery, messageContextMenu, handleContextMenuDelete, handleEditClick, setMessageContextMenu, setReplyingTo, handleContextMenuStar, unpinMessage, pinMessage, addReaction, handleTranslate, plaintextOf, handleReplyPrivately, textSelectionMenu, textSelectionMenuRef, handleCopySelection, handleSelectAllSelection, handleFormatSelection, setTextSelectionMenu, reportTarget, setReportTarget, showProductCatalogue, setShowProductCatalogue, sendMessage, replyingTo, showContactPicker, setShowContactPicker, handleShareContact, viewerMedia, setViewerMedia, showMessageInfoModal, messageInfoId, setShowMessageInfoModal, setMessageInfoId, showPollModal, setShowPollModal, handlePollSubmit, showGroupInfo, setShowGroupInfo, showFilePreview, previewFile, setShowFilePreview, showScheduleModal, setShowScheduleModal, messageInput, scheduleDateTime, setScheduleDateTime, confirmSchedule, isDNDMode, isSearching, chatSearchQuery, filteredMessages, showDrawingEditor, drawingImageUrl, setShowDrawingEditor, setDrawingImageUrl, setPendingImageFile, handleDrawingSave, showPaymentModal, setShowPaymentModal, showFontPicker, setShowFontPicker, setSelectedFont, inputRef, selectedFont, showChunkedUploader, setShowChunkedUploader, showCameraModal, closeCamera, setCameraMode, cameraMode, recordedVideoUrl, videoRef, canvasRef, setRecordedVideoUrl, sendRecordedVideo, capturePhoto, isRecordingVideo, videoDuration, stopVideoRecording, startVideoRecording, showVideoNoteModal, closeVideoNoteRecorder, recordedVideoNoteUrl, videoNotePreviewRef, setRecordedVideoNoteUrl, videoNoteChunksRef, sendVideoNote, isRecordingVideoNote, videoNoteDuration, stopVideoNoteRecording, startVideoNoteRecording, showAudioModal, closeAudioAttachment, recordedAudioUrl, setRecordedAudioUrl, sendRecordedAudioAttachment, audioDuration, isRecordingAudio, stopAudioAttachmentRecording, startAudioAttachmentRecording, showLiveLocationModal, setShowLiveLocationModal, setLiveLocationDuration, liveLocationDuration, liveLocationComment, setLiveLocationComment, confirmShareLiveLocation, showCurrentLocationModal, setShowCurrentLocationModal, currentLocationCoords, currentLocationComment, setCurrentLocationComment, confirmShareCurrentLocation, viewOnceModalOpen, viewOnceMessageData, closeViewOnceModal, mediaSourceOf, showContactInfo, otherUser, setShowContactInfo, setIsSearching, toggleMuteChat, blockUser, unblockUser, handleClearCurrentChat, handleDeleteCurrentChat, handleExportChat, updateDisappearingMessages, toggleChatLock, safeMods, setMods, blockedUsers, showDisappearingPicker, setShowDisappearingPicker, applyDisappearingMessages, user, selectedConversation]);
+}), [showForwardModal, forwardingMessage, setShowForwardModal, setForwardingMessage, showSearchMessages, setShowSearchMessages, showMediaGallery, setShowMediaGallery, messageContextMenu, handleContextMenuDelete, handleEditClick, setMessageContextMenu, setReplyingTo, handleContextMenuStar, unpinMessage, pinMessage, addReaction, plaintextOf, handleReplyPrivately, textSelectionMenu, textSelectionMenuRef, handleCopySelection, handleSelectAllSelection, handleFormatSelection, setTextSelectionMenu, reportTarget, setReportTarget, showProductCatalogue, setShowProductCatalogue, sendMessage, replyingTo, showContactPicker, setShowContactPicker, handleShareContact, viewerMedia, setViewerMedia, showMessageInfoModal, messageInfoId, setShowMessageInfoModal, setMessageInfoId, showPollModal, setShowPollModal, handlePollSubmit, showGroupInfo, setShowGroupInfo, showFilePreview, previewFile, setShowFilePreview, showScheduleModal, setShowScheduleModal, messageInput, scheduleDateTime, setScheduleDateTime, confirmSchedule, isDNDMode, isSearching, chatSearchQuery, filteredMessages, showDrawingEditor, drawingImageUrl, setShowDrawingEditor, setDrawingImageUrl, setPendingImageFile, handleDrawingSave, showPaymentModal, setShowPaymentModal, showFontPicker, setShowFontPicker, setSelectedFont, inputRef, selectedFont, showChunkedUploader, setShowChunkedUploader, showCameraModal, closeCamera, setCameraMode, cameraMode, recordedVideoUrl, videoRef, canvasRef, setRecordedVideoUrl, sendRecordedVideo, capturePhoto, isRecordingVideo, videoDuration, stopVideoRecording, startVideoRecording, showVideoNoteModal, closeVideoNoteRecorder, recordedVideoNoteUrl, videoNotePreviewRef, setRecordedVideoNoteUrl, videoNoteChunksRef, sendVideoNote, isRecordingVideoNote, videoNoteDuration, stopVideoNoteRecording, startVideoNoteRecording, showAudioModal, closeAudioAttachment, recordedAudioUrl, setRecordedAudioUrl, sendRecordedAudioAttachment, audioDuration, isRecordingAudio, stopAudioAttachmentRecording, startAudioAttachmentRecording, showLiveLocationModal, setShowLiveLocationModal, setLiveLocationDuration, liveLocationDuration, liveLocationComment, setLiveLocationComment, confirmShareLiveLocation, showCurrentLocationModal, setShowCurrentLocationModal, currentLocationCoords, currentLocationComment, setCurrentLocationComment, confirmShareCurrentLocation, viewOnceModalOpen, viewOnceMessageData, closeViewOnceModal, mediaSourceOf, showContactInfo, otherUser, setShowContactInfo, setIsSearching, toggleMuteChat, blockUser, unblockUser, handleClearCurrentChat, handleDeleteCurrentChat, handleExportChat, updateDisappearingMessages, toggleChatLock, safeMods, setMods, blockedUsers, showDisappearingPicker, setShowDisappearingPicker, applyDisappearingMessages, user, selectedConversation]);
 
   if (!selectedConversation) {
     return (
