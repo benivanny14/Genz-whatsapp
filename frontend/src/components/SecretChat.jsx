@@ -78,9 +78,9 @@ const SecretChat = ({ contact, onCreateSecretChat, onSendMessage, onClose }) => 
               <div className="flex items-start gap-2">
                 <Shield className="text-blue-500 flex-shrink-0 mt-0.5" size={16} />
                 <div>
-                  <p className="text-blue-500 text-sm font-medium mb-1">End-to-end encrypted</p>
+                  <p className="text-blue-500 text-sm font-medium mb-1">Secret chat</p>
                   <p className="text-blue-400 text-xs">
-                    Secret chats are end-to-end encrypted and can be set to self-destruct.
+                    Secret chats are private and can be set to self-destruct after viewing.
                   </p>
                 </div>
               </div>

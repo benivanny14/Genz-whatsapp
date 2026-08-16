@@ -17,24 +17,6 @@ const messageSchema = new mongoose.Schema({
     trim: true,
     default: ''
   },
-  isClientE2EE: {
-    type: Boolean,
-    default: false
-  },
-  // Stamped at send time for E2EE messages: short fingerprint of the
-  // senderPublicKey carried by the envelope, plus whether that key was the
-  // sender's registered ('current') or a previously rotated ('old') key.
-  // Lets any device (including a fresh one) render the key badge from the
-  // message record without re-fetching the sender's key history.
-  e2eeKeyFingerprint: {
-    type: String,
-    default: undefined
-  },
-  e2eeKeyStatus: {
-    type: String,
-    enum: ['current', 'old', 'unknown'],
-    default: undefined
-  },
   isMassMessage: {
     type: Boolean,
     default: false

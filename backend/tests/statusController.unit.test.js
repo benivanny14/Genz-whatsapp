@@ -185,7 +185,7 @@ describe('statusController — getStatuses (feed)', () => {
     isEitherUserBlocked.mockResolvedValue(false);
   });
 
-  const poster = { _id: 'user-2', username: 'bob', contacts: [], settings: { privacy: {} }, encryptionKeys: 'k' };
+  const poster = { _id: 'user-2', username: 'bob', contacts: [], settings: { privacy: {} } };
   const myStatus = makeStatus({ _id: 's1', user: { _id: 'user-1', username: 'alice', contacts: [], settings: {} }, userId: 'user-1', views: [] });
   const otherStatus = makeStatus({ _id: 's2', user: 'user-2', userId: 'user-2', user: { ...poster, contacts: [{ user: 'user-1' }] }, views: [] });
 
@@ -200,7 +200,6 @@ describe('statusController — getStatuses (feed)', () => {
     // secrets stripped from populated poster
     expect(res.body.others[0].user.contacts).toBeUndefined();
     expect(res.body.others[0].user.settings).toBeUndefined();
-    expect(res.body.others[0].user.encryptionKeys).toBeUndefined();
   });
 
   it('marks hasUnviewed for statuses the viewer has not seen', async () => {

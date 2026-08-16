@@ -34,8 +34,7 @@ const PrivacyPolicy = () => {
             <p>
               Genz Messenger protects your communications with <strong>encryption in transit (TLS)</strong> and
               <strong> encrypted storage at rest</strong>, password hashing, <strong>two-factor authentication</strong>,
-              and rate limiting. End-to-end encryption (E2EE) is on our roadmap as the next major
-              feature — we are actively working to make your conversations even more private.
+              and rate limiting.
             </p>
           </div>
 
@@ -108,8 +107,7 @@ const PrivacyPolicy = () => {
             </ul>
             <p className="mt-2">
               No method of transmission or storage is 100% secure. We are continuously improving our
-              protections, with <strong>end-to-end encryption (E2EE)</strong> planned as the next major
-              security upgrade.
+              protections.
             </p>
           </Section>
 

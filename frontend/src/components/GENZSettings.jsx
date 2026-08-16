@@ -1782,20 +1782,6 @@ const PrivacyTab = ({ ctx }) => {
                 active={mods.selfDestruct}
                 onClick={() => toggleMod('selfDestruct')}
               />
-              <ModItem
-                icon={<Shield size={20} className="text-emerald-500" />}
-                title="DM — End-to-End Encryption (E2EE)"
-                desc="Encrypts messages in one-on-one conversations (ECDH + AES-GCM). Participants must have accounts with keys set up."
-                active={mods.clientE2EE}
-                onClick={() => toggleMod('clientE2EE')}
-              />
-              <ModItem
-                icon={<Lock size={20} className="text-gray-600" />}
-                title="Debug Encryption Mode"
-                desc="Show messages in encrypted format (Hash view)"
-                active={mods.debugEncryption}
-                onClick={() => toggleMod('debugEncryption')}
-              />
               <div
                 onClick={() => window.location.href = '/genz-after-work'}
                 className="flex items-center gap-3 p-3 bg-gradient-to-r from-purple-500/10 to-pink-500/10 hover:from-purple-500/20 hover:to-pink-500/20 border border-purple-500/20 rounded-xl cursor-pointer transition-all"

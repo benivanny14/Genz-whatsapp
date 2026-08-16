@@ -1,5 +1,4 @@
 import CryptoJS from 'crypto-js';
-import { getE2EEEnvelope } from './e2eeContent';
 
 export const formatConversationTime = (date) => {
   if (!date) return "";
@@ -21,15 +20,6 @@ export const formatMessageTime = (date) => {
 export const decryptMessage = (encryptedData) => {
   if (!encryptedData) return "";
 
-  // If this is a client-side E2EE envelope (ciphertext/iv/senderPublicKey JSON),
-  // it can only be opened asynchronously via encryptionService with the
-  // recipient's private key — this plain function has no access to that key.
-  // Never surface the raw ciphertext JSON to the UI; show a clean placeholder
-  // until the async decrypt effect resolves the real text.
-  if (getE2EEEnvelope(encryptedData)) {
-    return 'Encrypted message';
-  }
-
   if (typeof encryptedData === 'string') return encryptedData;
   
   // If it's an encrypted object with iv and content
@@ -43,8 +33,7 @@ export const decryptMessage = (encryptedData) => {
         ? [{ secret: configuredSecret, iterations: configuredIterations }]
         : [];
 
-      // Legacy fallback keeps old locally-encrypted messages readable while the
-      // app migrates to the per-device E2EE pipeline.
+      // Legacy fallback keeps old locally-encrypted messages readable.
       candidates.push({ secret: "GENZ_WHATSAPP_SECRET_KEY", iterations: 1 });
 
       for (const candidate of candidates) {

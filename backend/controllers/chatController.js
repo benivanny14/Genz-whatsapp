@@ -18,8 +18,6 @@ const { sendMentionNotification, sendNewMessageNotification } = require("../serv
 const { ensureUnreadMap, getUnreadCount } = require("../utils/unreadCount");
 const { containsProfanity } = require("../utils/contentFilter");
 const { scheduleHardDelete } = require("../utils/hardDelete");
-const { isE2EEContent, stampE2EEMessage } = require("../utils/e2eeStamp");
-
 const getCurrentUserId = (req) => {
   if (!req.user?._id) {
     throw new Error('Authentication required');
@@ -925,25 +923,6 @@ exports.sendMessage = async (req, res) => {
       console.warn('[ChatController] Disappearing timer skipped:', disappearErr?.message || disappearErr);
     }
 
-    // Stamp E2EE envelopes with the sender key fingerprint + status so any
-    // device can render the key badge from the message record itself.
-    let isClientE2EE = false;
-    let e2eeKeyFingerprint;
-    let e2eeKeyStatus;
-    if (isE2EEContent(safeContent)) {
-      isClientE2EE = true;
-      try {
-        const senderDoc = await User.findById(localUserId).select('encryptionKeys encryptionKeyHistory');
-        const stamp = stampE2EEMessage(safeContent, senderDoc);
-        if (stamp) {
-          e2eeKeyFingerprint = stamp.e2eeKeyFingerprint;
-          e2eeKeyStatus = stamp.e2eeKeyStatus;
-        }
-      } catch (stampErr) {
-        console.warn('[ChatController] E2EE stamp failed, continuing:', stampErr?.message || stampErr);
-      }
-    }
-
     // 2. Persist the official message to MongoDB
     // Dedup: if a message with this clientMessageId already exists for sender+conversation,
     // return the existing one (instead of letting E11000 become a 500 on network retry).
@@ -968,9 +947,6 @@ exports.sendMessage = async (req, res) => {
       conversationId: finalConversationId,
       sender: localUserId,
       content: String(safeContent),
-      isClientE2EE,
-      e2eeKeyFingerprint: e2eeKeyFingerprint || undefined,
-      e2eeKeyStatus: e2eeKeyStatus || undefined,
       caption: typeof caption === 'string' ? caption.slice(0, 1000) : '',
       messageType: messageType || "text",
       mediaUrl: mediaUrl || "",

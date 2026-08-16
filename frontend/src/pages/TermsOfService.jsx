@@ -34,8 +34,7 @@ const TermsOfService = () => {
             <p>
               Genz Messenger keeps your conversations safe with <strong>encryption in transit (TLS)</strong>,
               <strong> encrypted storage at rest</strong>, <strong>two-factor authentication</strong>, and strict
-              access controls. End-to-end encryption (E2EE) is actively being developed as our next
-              major security feature. By using the app you accept these terms and the accompanying{' '}
+              access controls. By using the app you accept these terms and the accompanying{' '}
               <Link to="/privacy-policy" className="text-[#00a884] underline">Privacy Policy</Link>.
             </p>
           </div>
@@ -76,8 +75,7 @@ const TermsOfService = () => {
               <Link to="/privacy-policy" className="text-[#00a884] underline">Privacy Policy</Link>.
               Messages are protected with encryption in transit and at rest, and are synced to
               provide seamless chat history across devices. Your account is protected with hashed
-              passwords and optional two-factor authentication. We are committed to raising the bar
-              on privacy, with end-to-end encryption (E2EE) planned as the next major upgrade.
+              passwords and optional two-factor authentication.
             </p>
           </Section>
 

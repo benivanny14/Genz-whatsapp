@@ -12,7 +12,6 @@ import StoryHighlights from './StoryHighlights';
 import ArchiveChats from './ArchiveChats';
 import { AnimatePresence } from 'framer-motion';
 import { decryptMessage } from '../utils/formatDate';
-import { isClientE2EEMessageContent } from '../utils/e2eeContent';
 import { importChatFile } from '../utils/chatImporter';
 import {
   MessageCircle,
@@ -1039,24 +1038,9 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     if (conv.lastMessage.messageType === 'contact') return '👤 Contact';
     if (conv.lastMessage.messageType === 'location') return '📍 Location';
 
-    if (!mods?.debugEncryption && isClientE2EEMessageContent(conv.lastMessage.content)) {
-      return '🔒 Encrypted message (E2EE)';
-    }
-
-    // If encryption mode is on, show the raw encrypted object. If off, show the plain text.
-    let content;
-    if (mods?.debugEncryption) {
-      // Show raw encrypted content for debugging
-      if (typeof conv.lastMessage.content === 'object' && conv.lastMessage.content !== null) {
-        content = '[Encrypted Message]';
-      } else {
-        content = String(conv.lastMessage.message || conv.lastMessage.content || '');
-      }
-    } else {
-      // Decrypt and show normal text
-      let decrypted = decryptMessage(conv.lastMessage.content);
-      content = String(conv.lastMessage.message || decrypted || '');
-    }
+    // Decrypt and show normal text
+    let decrypted = decryptMessage(conv.lastMessage.content);
+    let content = String(conv.lastMessage.message || decrypted || '');
 
     if (content.startsWith('[Reply to status]: ') || conv.lastMessage.quotedStatus || conv.lastMessage.type === 'status-reply') {
       content = content.replace('[Reply to status]: ', '');

@@ -13,9 +13,6 @@ import { authFetch } from '../utils/authFetch';
 import { playMessageSound, playSentSound } from '../utils/notificationSounds';
 import api, { mediaAPI } from '../services/api';
 import { cleanupLocalBlobUrls, sanitizeBlobUrls } from '../utils/sanitizeStorage';
-import encryptionService from '../services/encryptionService';
-import { decryptMessageContent, decryptMessagesList } from '../utils/e2eeMessage';
-import { isClientE2EEMessageContent } from '../utils/e2eeContent';
 import notificationService from '../services/notificationService';
 import { resolveApiBase, resolveSocketOrigin } from '../utils/resolveApiBase';
 
@@ -128,8 +125,6 @@ const DEFAULT_GENZ_SETTINGS = {
     voiceEffect: 'none',
     autoReply: false,
     autoReplyMsg: "I'm offline, will reply soon.",
-    debugEncryption: false,
-    clientE2EE: false,
     voiceAutoPlay: false,
     voiceNoiseSuppression: true,
     voiceEchoCancellation: true,
@@ -764,21 +759,6 @@ export const ChatProvider = ({ children }) => {
     return () => clearTimeout(timer);
   }, [mods.autoReply, mods.autoReplyMsg, isAuthReady, authLoading, isAuthenticated]);
 
-  // Initialize client-side E2EE keys (generate or sync with backend)
-  useEffect(() => {
-    if (!isAuthReady || (REQUIRE_AUTH && (authLoading || !isAuthenticated))) return;
-
-    (async () => {
-      try {
-        const ok = await encryptionService.initialize();
-        if (ok) console.log('[ChatContext] Encryption service initialized');
-        else console.warn('[ChatContext] Encryption service not initialized');
-      } catch (e) {
-        console.warn('[ChatContext] Encryption init failed:', e?.message || e);
-      }
-    })();
-  }, [isAuthReady, authLoading, isAuthenticated]);
-
   // ── DEMO SEED DATA (shows when no real data exists) ──────────────────────
   const DEMO_CONVERSATIONS = [
     {
@@ -1142,7 +1122,7 @@ export const ChatProvider = ({ children }) => {
           if (!isMuted && !isDND) playMessageSound();
         } catch (_) {}
         try {
-        const incoming = await decryptMessageContent(msg);
+        const incoming = msg;
         const senderId = String(incoming.sender?._id || incoming.sender || '');
         if (senderId === String(currentUserId)) {
           return;
@@ -1289,7 +1269,7 @@ export const ChatProvider = ({ children }) => {
       socket.on('notification:new_message', async (data) => {
         console.log('New message arrived from Socket (notification:new_message):', data);
         if (!data || !data.message) return;
-        const incoming = await decryptMessageContent(data.message);
+        const incoming = data.message;
         
         setMessages(prev => {
           const serverId = String(incoming._id || '');
@@ -2235,34 +2215,6 @@ export const ChatProvider = ({ children }) => {
     const messageType = options.messageType || 'text';
     let outboundContent = content;
 
-    const e2eeEnabled = mods.clientE2EE !== false;
-    if (
-      e2eeEnabled &&
-      messageType === 'text' &&
-      typeof content === 'string' &&
-      content.length > 0 &&
-      selectedConversation &&
-      !selectedConversation.isGroup &&
-      isAuthenticated &&
-      isMongoObjectId(selectedConversation._id)
-    ) {
-      const parts = selectedConversation.participants || [];
-      const other = parts.find((p) => String(p._id || p.id || p) !== String(currentUserId));
-      const otherId = other?._id || other?.id || other;
-      if (otherId && isMongoObjectId(otherId)) {
-        try {
-          await encryptionService.initialize();
-          const keys = await encryptionService.getUserPublicKeys(String(otherId));
-          if (keys?.publicKey) {
-            const enc = await encryptionService.encryptMessage(content, keys.publicKey);
-            outboundContent = JSON.stringify(enc.encryptedData);
-          }
-        } catch (e) {
-          console.warn('[ChatContext] E2EE encrypt failed, sending plaintext:', e?.message || e);
-        }
-      }
-    }
-
     // Optimistic update — one client ID for UI, socket, and HTTP
     const clientMessageId = createClientMessageId();
     const optimisticMsg = {
@@ -2276,7 +2228,6 @@ export const ChatProvider = ({ children }) => {
       clientMessageId,
       ...(options.mediaPreview ? { localPreview: options.mediaPreview } : {}),
       ...options,
-      ...(outboundContent !== content ? { isClientE2EE: true } : {}),
     };
 
     setMessages(prev => [...prev, optimisticMsg]);
@@ -2292,7 +2243,6 @@ export const ChatProvider = ({ children }) => {
       messageType,
       content: outboundContent,
       structuredContent: options.structuredContent || [],
-      ...(outboundContent !== content ? { isClientE2EE: true } : {}),
     };
 
     // 1. Priority: Save to DB (local-first, doesn't block the UI)
@@ -2311,7 +2261,6 @@ export const ChatProvider = ({ children }) => {
         content: newMessage.content,
         messageType: newMessage.messageType,
         messageId: newMessage._id,
-        isClientE2EE: isClientE2EEMessageContent(newMessage.content),
         isViewOnce: Boolean(options.isViewOnce),
         isVideoNote: Boolean(options.isVideoNote),
         isSelfDestruct: Boolean(options.isSelfDestruct),
@@ -2560,7 +2509,7 @@ export const ChatProvider = ({ children }) => {
         console.log('[ChatContext] Offline messages found:', offlineMsgs?.length || 0);
         
         if (offlineMsgs?.length) {
-          setMessages(await decryptMessagesList(offlineMsgs));
+          setMessages(offlineMsgs);
           showedCache = true;
         } else if (!showedCache) {
           setMessages([]);
@@ -2577,7 +2526,7 @@ export const ChatProvider = ({ children }) => {
         apiService.getMessages(convId).then(async (remoteData) => {
           if (String(selectedConversationIdRef.current) !== String(convId)) return;
           if (!remoteData?.success) return;
-          const decrypted = await decryptMessagesList(remoteData.messages || []);
+          const decrypted = remoteData.messages || [];
           setMessages(decrypted);
           try {
             await Promise.all(decrypted.map((message) => DB.saveMessage(message)));
@@ -2591,7 +2540,7 @@ export const ChatProvider = ({ children }) => {
       console.log('[ChatContext] Conversation is not MongoDB ObjectId, loading directly');
       const offlineMsgs = await DB.getMessages(conv._id);
       if (offlineMsgs?.length) {
-        setMessages(await decryptMessagesList(offlineMsgs));
+        setMessages(offlineMsgs);
       } else {
         setMessages([]);
       }
@@ -2615,7 +2564,7 @@ export const ChatProvider = ({ children }) => {
       const res = await apiService.getMessages(id, page, 50);
       if (String(selectedConversationIdRef.current) !== String(id)) return false;
       if (!res?.success) return false;
-      const decrypted = await decryptMessagesList(res.messages || []);
+      const decrypted = res.messages || [];
       const totalPages = Number(res.pagination?.pages) || 0;
       setHasOlderMessages(page < totalPages && decrypted.length > 0);
       historyPageRef.current = page;
@@ -3147,34 +3096,8 @@ export const ChatProvider = ({ children }) => {
       try {
         apiService.clearCache();
       } catch (_) { /* noop */ }
-      try {
-        encryptionService.cleanup();
-      } catch (_) { /* noop */ }
     }
   }, [isAuthenticated, authLoading]);
-
-  // ── Per-device E2EE: create/sync key pair and register public key on server ──
-  useEffect(() => {
-    if (!isAuthReady) return;
-    if (REQUIRE_AUTH && (!isAuthenticated || authLoading)) return;
-
-    let cancelled = false;
-    (async () => {
-      try {
-        const ok = await encryptionService.initialize();
-        if (!cancelled && ok) {
-          console.log('[ChatContext] Client E2EE key material ready');
-        }
-      } catch (e) {
-        if (!cancelled) {
-          console.warn('[ChatContext] E2EE initialization skipped:', e?.message || e);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthReady, isAuthenticated, authLoading, authUser?._id]);
 
   // ── Load initial data with optimized API service ──
   useEffect(() => {

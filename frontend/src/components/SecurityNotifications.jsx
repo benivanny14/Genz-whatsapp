@@ -76,26 +76,6 @@ const SecurityNotifications = ({ settings, onUpdate, onClose }) => {
                 </button>
               </div>
 
-              {/* Code Change Alerts */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-white text-sm">Security code changes</p>
-                  <p className="text-gray-400 text-xs">When encryption keys change</p>
-                </div>
-                <button
-                  onClick={() => onUpdate({ ...settings, codeChangeAlerts: !settings.codeChangeAlerts })}
-                  className={`w-12 h-6 rounded-full transition-all ${
-                    settings.codeChangeAlerts ? 'bg-[#00a884]' : 'bg-[#0b141a]'
-                  }`}
-                >
-                  <div
-                    className={`w-5 h-5 bg-white rounded-full transition-all ${
-                      settings.codeChangeAlerts ? 'translate-x-6' : 'translate-x-0.5'
-                    }`}
-                  />
-                </button>
-              </div>
-
                {/* Privacy Changes */}
               <div className="flex items-center justify-between">
                 <div>

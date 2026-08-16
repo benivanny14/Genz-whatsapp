@@ -800,7 +800,6 @@ const adminAuthRoutes = require('./routes/adminAuthRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const mediaRoutes = require('./routes/media');
-const encryptionRoutes = require('./routes/encryptionRoutes');
 const productRoutes = require('./routes/productRoutes');
 const scheduledMessageRoutes = require('./routes/scheduledMessageRoutes');
 const stickerRoutes = require('./routes/stickerRoutes');
@@ -887,7 +886,6 @@ const API_ROUTE_MOUNTS = [
   ['/stickers', stickerRoutes],
   ['/voice', voiceRoutes],
   ['/notifications', notificationRoutes],
-  ['/encryption', encryptionRoutes],
   ['/products', productRoutes],
   ['/scheduled-messages', scheduledMessageRoutes],
   ['/status', statusRoutes],

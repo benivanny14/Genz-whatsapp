@@ -1,5 +1,4 @@
 const { logInfo, logError, logWarning, logDebug } = require('../../config/winston');
-const { isE2EEContent, stampE2EEMessage } = require('../../utils/e2eeStamp');
 
 /**
  * Message-related socket handlers.
@@ -175,26 +174,6 @@ module.exports = function registerMessageHandlers(ctx) {
         mentions
       });
 
-      const isClientE2EE = isE2EEContent(safeContent);
-
-      // Stamp the E2EE envelope's sender key fingerprint + status (current vs
-      // rotated) onto the message so any device can render the key badge from
-      // the message record itself — no re-fetch of the sender's key history.
-      let e2eeKeyFingerprint;
-      let e2eeKeyStatus;
-      if (isClientE2EE) {
-        try {
-          const senderDoc = await User.findById(socket.userId).select('encryptionKeys encryptionKeyHistory');
-          const stamp = stampE2EEMessage(safeContent, senderDoc);
-          if (stamp) {
-            e2eeKeyFingerprint = stamp.e2eeKeyFingerprint;
-            e2eeKeyStatus = stamp.e2eeKeyStatus;
-          }
-        } catch (error) {
-          logWarning('[E2EE] Failed to stamp message key fingerprint', error);
-        }
-      }
-
       let disappearAt = null;
       if (conversation.disappearingMessages?.enabled) {
         const timerHours = Number(conversation.disappearingMessages.timer) || 24;
@@ -209,9 +188,6 @@ module.exports = function registerMessageHandlers(ctx) {
         sender: socket.userId,
         content: safeContent,
         caption: typeof caption === 'string' ? caption.slice(0, 1000) : '',
-        isClientE2EE,
-        e2eeKeyFingerprint: e2eeKeyFingerprint || undefined,
-        e2eeKeyStatus: e2eeKeyStatus || undefined,
         messageType: messageType || 'text',
         mediaUrl: mediaUrl || '',
         fileName: fileName || '',

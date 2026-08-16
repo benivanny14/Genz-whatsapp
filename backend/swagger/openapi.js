@@ -13,9 +13,7 @@ const openApiSpec = {
     description: [
       'REST API for the GenZ WhatsApp platform (chat, status, groups, privacy, admin).',
       '',
-      '> ⚠️ **E2EE DISCLAIMER**: End-to-end encryption is NOT yet truly implemented.',
-      '> Message content is stored server-side; do not rely on E2EE for sensitive data.',
-      '> See the Privacy Policy / Terms of Service for data handling details.'
+      '> Message content is stored server-side; see the Privacy Policy / Terms of Service for data handling details.'
     ].join('\n')
   },
   servers: [

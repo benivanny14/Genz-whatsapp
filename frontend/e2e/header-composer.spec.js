@@ -65,9 +65,8 @@ test('header + composer interactions after extraction', async ({ browser }) => {
   await login(pageA, creds.a.phone);
   await openConversation(pageA, creds.b.username);
 
-  // 1) Header renders the peer name and the encryption lock badge. With the
-  //    Client E2EE mod OFF (the default), the badge reads "transit & at rest";
-  //    when the mod is enabled it reads "Chat encrypted end-to-end" instead.
+  // 1) Header renders the peer name and the encryption lock badge, which reads
+  //    "transit and at rest" (there is no client-side E2EE in this app).
   await expect(pageA.getByRole('heading', { name: new RegExp(`${creds.b.username}.*Messages encrypted in transit and at rest`) })).toBeVisible({ timeout: 15_000 });
   await expect(pageA.getByLabel('Messages encrypted in transit and at rest')).toBeVisible({ timeout: 10_000 });
 

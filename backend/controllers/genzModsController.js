@@ -35,9 +35,7 @@ const defaultSettings = {
   selfDestruct: false,
   noForwardLabel: false,
   hideBlueTickColor: false,
-  linkPreview: true,
-  clientE2EE: false,
-  debugEncryption: false
+  linkPreview: true
 };
 
 const normalizeIncomingMods = (incoming = {}, existing = {}) => {

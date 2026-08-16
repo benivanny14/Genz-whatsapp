@@ -68,7 +68,7 @@ const SecureBackup = ({ backupStatus, onCreateBackup, onRestoreBackup, onVerifyB
             </div>
             <div>
               <h2 className="text-white text-xl font-semibold">Secure Backup</h2>
-              <p className="text-gray-400 text-sm">End-to-end encrypted backups</p>
+              <p className="text-gray-400 text-sm">Encrypted backups</p>
             </div>
           </div>
           <button
@@ -115,7 +115,7 @@ const SecureBackup = ({ backupStatus, onCreateBackup, onRestoreBackup, onVerifyB
               <p className="text-white font-medium">Encryption Status</p>
             </div>
             <p className="text-gray-400 text-sm">
-              {backupStatus.encrypted ? 'Backup is end-to-end encrypted' : 'Backup is not encrypted'}
+              {backupStatus.encrypted ? 'Backup is encrypted with your key' : 'Backup is not encrypted'}
             </p>
             {backupStatus.encrypted && (
               <button
@@ -209,7 +209,7 @@ const SecureBackup = ({ backupStatus, onCreateBackup, onRestoreBackup, onVerifyB
             <div className="flex items-start gap-2">
               <AlertCircle className="text-yellow-500 flex-shrink-0 mt-0.5" size={16} />
               <p className="text-yellow-500 text-xs">
-                Secure backups use end-to-end encryption. Make sure to save your encryption key in a safe place. Without it, you cannot restore your backup.
+                Secure backups are encrypted. Make sure to save your encryption key in a safe place. Without it, you cannot restore your backup.
               </p>
             </div>
           </div>
@@ -229,7 +229,7 @@ export const SecureBackupSettings = ({ settings, onUpdate }) => {
             <Shield size={18} className="text-[#00a884]" />
             Secure Backup
           </p>
-          <p className="text-gray-400 text-sm">End-to-end encrypted backups</p>
+          <p className="text-gray-400 text-sm">Encrypted backups</p>
         </div>
         <button
           onClick={() => onUpdate({ ...settings, secureBackupEnabled: !settings.secureBackupEnabled })}

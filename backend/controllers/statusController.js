@@ -160,7 +160,6 @@ exports.getStatuses = async (req, res) => {
         if (s.user && typeof s.user === 'object') {
           delete s.user.contacts;
           delete s.user.settings;
-          delete s.user.encryptionKeys;
           delete s.user.publicKey;
         }
       });
@@ -259,7 +258,6 @@ exports.getSharedStatus = async (req, res) => {
     if (status.user && typeof status.user === 'object') {
       delete status.user.contacts;
       delete status.user.settings;
-      delete status.user.encryptionKeys;
       delete status.user.publicKey;
     }
 

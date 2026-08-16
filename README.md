@@ -17,7 +17,7 @@ Before onboarding many users, complete the checklist in `PRODUCTION_READINESS.md
 
 The Android APK is built from this web app via **Capacitor** (`frontend/android` + `frontend/scripts/build-apk.js`) — there is no separate native codebase. (The old React Native prototype in `react-native/` was removed in v1.1.11; it was a static mock never connected to this backend.)
 
-Note: "End-to-end encryption" claims shown in the UI only apply when the **Client E2EE** mod is enabled (it is OFF by default). By default messages are encrypted in transit and at rest on the server.
+Note: Messages are encrypted in transit (TLS) and at rest on the server. There is no client-side end-to-end encryption (E2EE) in this app.
 
 ## 🚀 Features
 
@@ -336,7 +336,6 @@ user-facing endpoints require a JWT (unless noted); responses default to
 - `/api/status` + `/api/status-advanced` — status posts, views, likes, comments, viewer lists
 - `/api/voice` — voice/video notes
 - `/api/notifications` — notification settings + web push subscriptions
-- `/api/encryption` — E2EE key exchange (mod, off by default)
 - `/api/device` — linked devices (pair/unpair)
 - `/api/security` — 2FA (TOTP), security settings, sessions
 - `/api/settings` — WhatsApp-style settings get/update/reset

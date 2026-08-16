@@ -28,7 +28,7 @@ export const getLastMessageText = (chat) => {
   if (lm.messageType === 'location') return '📍 Location';
   if (lm.messageType === 'gif') return '🎞️ GIF';
   if (typeof lm.content === 'string') return lm.content;
-  if (lm.content && typeof lm.content === 'object') return '🔒 E2EE';
+  if (lm.content && typeof lm.content === 'object') return '🔒 Encrypted message';
   return String(lm.message || lm.text || '');
 };
 

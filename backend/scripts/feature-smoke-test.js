@@ -473,9 +473,6 @@ async function main() {
   r = await api.req('GET', '/api/payment-features');
   check('payment features list (public)', r.status === 200, r, 'message');
 
-  r = await api.req('GET', '/api/encryption/keys/status');
-  check('encryption key status', r.status === 200, r, 'message');
-
   r = await api.req('GET', '/api/notifications/vapid-public-key');
   check('vapid public key', r.status === 200, r, 'message');
 

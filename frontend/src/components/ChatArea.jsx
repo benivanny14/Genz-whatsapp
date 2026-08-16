@@ -7,8 +7,6 @@ import { exportChatAsTxt, exportChatAsWhatsAppTxt } from '../utils/chatExporter'
 import FormattedText from './FormattedText';
 import { wrapWithMarker } from '../utils/formatText';
 import SignedMedia from './SignedMedia';
-import encryptionService from '../services/encryptionService';
-import { getE2EEEnvelope } from '../utils/e2eeContent';
 import { getSocket } from '../services/socket';
 import { applyAntiScreenshot, initAntiScreenshotListeners, setScreenshotAttemptCallback, getScreenshotAttemptCallback, isAntiScreenshotActive } from '../utils/antiScreenshot';
 import { hasStaleBlobUrl } from '../utils/blobUtils';
@@ -311,8 +309,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
   const [showChunkedUploader, setShowChunkedUploader] = useState(false);
-  const [e2eePlain, setE2eePlain] = useState({});
-  const [e2eeMeta, setE2eeMeta] = useState({});
   const [visibleCount, setVisibleCount] = useState(50);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [showMessageInfoModal, setShowMessageInfoModal] = useState(false);
@@ -332,34 +328,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
   const plaintextOf = useCallback((m) => {
     if (m == null) return '';
-    const id = m._id ?? m.id;
-    if (id != null && Object.prototype.hasOwnProperty.call(e2eePlain, id)) {
-      return e2eePlain[id];
-    }
     if (m.messageType === 'structured' && Array.isArray(m.structuredContent)) {
       const textPart = m.structuredContent.find(c => c.type === 'text');
       return textPart ? textPart.value : '';
     }
     return decryptMessage(m.content || m.message);
-  }, [e2eePlain]);
-
-  const e2eeKeyInfoOf = useCallback((m) => {
-    if (m == null) return null;
-    const id = m._id ?? m.id;
-    if (id != null && Object.prototype.hasOwnProperty.call(e2eeMeta, id)) {
-      return e2eeMeta[id] || null;
-    }
-    // Messages decrypted by the ChatContext pipeline never reach the decrypt
-    // loop above (their envelope content is already replaced with plaintext),
-    // so fall back to the server's key stamp carried on the message itself.
-    const fingerprint = m.e2eeKeyFingerprint || null;
-    if (!fingerprint) return null;
-    return {
-      fingerprint,
-      keyStatus: m.e2eeKeyStatus || null,
-      verified: m._e2eeVerified === true
-    };
-  }, [e2eeMeta]);
+  }, []);
 
   // Standard WhatsApp Web styles
   const glassMode = false; // Disabled to match WhatsApp perfectly
@@ -378,71 +352,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     };
   }, []);
-
-  useEffect(() => {
-    setE2eePlain({});
-    setE2eeMeta({});
-  }, [selectedConversation?._id]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const run = async () => {
-      const list = messages || [];
-      if (!list.length) return;
-      const todo = list.filter((m) => getE2EEEnvelope(m.content));
-      if (!todo.length) return;
-      const ok = await encryptionService.initialize().catch(() => false);
-      if (!ok || cancelled) return;
-      const updates = {};
-      const metaUpdates = {};
-      for (const m of todo) {
-        const env = getE2EEEnvelope(m.content);
-        if (!env) continue;
-        const mid = m._id ?? m.id;
-        if (mid == null) continue;
-        try {
-          const r = await encryptionService.decryptMessage(env);
-          if (r?.decryptedData !== undefined) updates[mid] = r.decryptedData;
-          const senderId = m.sender?._id || m.sender;
-          // Prefer the stamp the server put on the message at send time (works
-          // on any device, including a fresh one before keys are imported);
-          // fall back to live classification against the sender's history.
-          const fingerprint = r?.fingerprint || m.e2eeKeyFingerprint || null;
-          let keyStatus = m.e2eeKeyStatus || null;
-          if (fingerprint && !keyStatus && senderId) {
-            keyStatus = await encryptionService.classifySenderKey(senderId, env.senderPublicKey).catch(() => null);
-          }
-          const verified = fingerprint && senderId && keyStatus === 'current'
-            ? await encryptionService.isMessageFromVerifiedContact(senderId, env.senderPublicKey).catch(() => false)
-            : false;
-          if (fingerprint) {
-            metaUpdates[mid] = { fingerprint, keyStatus, verified };
-          }
-        } catch {
-          updates[mid] = '🔒 Encrypted message';
-          // Even when we can't decrypt (e.g. a fresh device before importing
-          // keys), the server-side stamp still lets the key badge render.
-          if (m.e2eeKeyFingerprint) {
-            metaUpdates[mid] = {
-              fingerprint: m.e2eeKeyFingerprint,
-              keyStatus: m.e2eeKeyStatus || null,
-              verified: false
-            };
-          }
-        }
-      }
-      if (!cancelled && Object.keys(updates).length) {
-        setE2eePlain((prev) => ({ ...prev, ...updates }));
-      }
-      if (!cancelled && Object.keys(metaUpdates).length) {
-        setE2eeMeta((prev) => ({ ...prev, ...metaUpdates }));
-      }
-    };
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [messages, selectedConversation?._id]);
 
   // Smart scroll: only auto-scroll when user is at bottom or new messages arrive
   const userScrollPositionRef = useRef(null);
@@ -2485,12 +2394,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       translatedMessages, favoriteStickers, activeMessageMenu, messageMenuRef,
       isOwnMessage, handleDoubleClick, setMessageContextMenu, setActiveMessageMenu,
       openViewOnceModal, setViewerMedia, mediaSourceOf, isVideoSticker,
-      plaintextOf, e2eeKeyInfoOf, votePoll, markViewOnceViewed, toggleMessageLock,
+      plaintextOf, votePoll, markViewOnceViewed, toggleMessageLock,
       handleRetryMessage, handleReaction, setReplyingTo, setForwardingMessage,
       setShowForwardModal, unpinMessage, pinMessage, toggleStarMessage,
       toggleFavoriteSticker, setReportTarget, handleEditClick, setMessageInfoId,
       setShowMessageInfoModal, deleteMessage, handleDeleteForEveryone
-}), [filteredMessages, visibleCount, safeMods, user, selectedConversation, messages, translatedMessages, favoriteStickers, activeMessageMenu, messageMenuRef, isOwnMessage, handleDoubleClick, setMessageContextMenu, setActiveMessageMenu, openViewOnceModal, setViewerMedia, mediaSourceOf, isVideoSticker, plaintextOf, e2eeKeyInfoOf, votePoll, markViewOnceViewed, toggleMessageLock, handleRetryMessage, handleReaction, setReplyingTo, setForwardingMessage, setShowForwardModal, unpinMessage, pinMessage, toggleStarMessage, toggleFavoriteSticker, setReportTarget, handleEditClick, setMessageInfoId, setShowMessageInfoModal, deleteMessage, handleDeleteForEveryone]);
+}), [filteredMessages, visibleCount, safeMods, user, selectedConversation, messages, translatedMessages, favoriteStickers, activeMessageMenu, messageMenuRef, isOwnMessage, handleDoubleClick, setMessageContextMenu, setActiveMessageMenu, openViewOnceModal, setViewerMedia, mediaSourceOf, isVideoSticker, plaintextOf, votePoll, markViewOnceViewed, toggleMessageLock, handleRetryMessage, handleReaction, setReplyingTo, setForwardingMessage, setShowForwardModal, unpinMessage, pinMessage, toggleStarMessage, toggleFavoriteSticker, setReportTarget, handleEditClick, setMessageInfoId, setShowMessageInfoModal, deleteMessage, handleDeleteForEveryone]);
 
   const composerCtx = useMemo(() => ({
   replyingTo, setReplyingTo, showMediaPanel, setShowMediaPanel,

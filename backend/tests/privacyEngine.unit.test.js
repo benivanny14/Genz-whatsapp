@@ -39,7 +39,6 @@ const makeUser = (overrides = {}) => ({
       groups: 'everyone'
     }
   },
-  encryptionKeys: { secret: 'x' },
   publicKey: 'pubkey',
   ...overrides
 });
@@ -60,7 +59,6 @@ describe('applyPrivacyFilter — owner (self)', () => {
     expect(result.lastSeen).toBeDefined();
     expect(result.contacts).toBeDefined();
     expect(result.settings).toBeDefined();
-    expect(result.encryptionKeys).toBeDefined();
   });
 
   it('handles a plain object user (no toObject)', async () => {
@@ -239,11 +237,10 @@ describe('applyPrivacyFilter — permission matrix', () => {
 });
 
 describe('applyPrivacyFilter — PII stripping', () => {
-  it('strips contacts, settings, and encryption material for non-owners', async () => {
+  it('strips contacts, settings, and public-key material for non-owners', async () => {
     const result = await applyPrivacyFilter(makeUser(), STRANGER_ID);
     expect(result.contacts).toBeUndefined();
     expect(result.settings).toBeUndefined();
-    expect(result.encryptionKeys).toBeUndefined();
     expect(result.publicKey).toBeUndefined();
   });
 

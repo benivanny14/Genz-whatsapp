@@ -202,7 +202,7 @@ const ViewOnceMessage = ({ message, onViewed, onClose }) => {
       {/* Privacy Notice */}
       <div className="px-4 pb-4">
         <p className="text-gray-500 text-xs text-center">
-          🔒 End-to-end encrypted • View once media is not saved
+          🔒 View once media is not saved
         </p>
       </div>
     </motion.div>

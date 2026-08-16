@@ -90,9 +90,7 @@ const ConversationHeader = React.memo(function ConversationHeader({ ctx }) {
                   <h2 className="text-white font-medium truncate leading-tight flex items-center gap-1.5">
                     {getConversationName()}
                     {selectedConversation?.isGroup ? (
-                      <ShieldAlert size={13} className="text-amber-400/90 flex-shrink-0" title="Messages za group hazijafichwa end-to-end — server inaziona" aria-label="Group messages not E2E encrypted" />
-                    ) : safeMods?.clientE2EE ? (
-                      <Lock size={12} className="text-[#00a884] flex-shrink-0" title="Text messages in this chat are encrypted end-to-end on your device" aria-label="Chat encrypted end-to-end" />
+                      <ShieldAlert size={13} className="text-amber-400/90 flex-shrink-0" title="Group messages are stored on the server" aria-label="Group messages stored on server" />
                     ) : (
                       <Lock size={12} className="text-white/40 flex-shrink-0" title="Messages encrypted in transit & at rest" aria-label="Messages encrypted in transit and at rest" />
                     )}

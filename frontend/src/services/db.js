@@ -218,7 +218,6 @@ export const DB = {
         autoDownloadMedia: true,
         antiViewOnce: true,
         voiceEffect: 'none',
-        debugEncryption: false,
         chatMusic: false
       });
     }

@@ -63,7 +63,6 @@ import ChatSettings from '../components/ChatSettings';
 
 // ── Message tools ──
 import { MessageEditingSettings } from '../components/MessageEditing';
-import MessageEncryption from '../components/MessageEncryption';
 import MessageForwarding from '../components/MessageForwarding';
 import MessageReactions from '../components/MessageReactions';
 import MessageTranslation from '../components/MessageTranslation';
@@ -122,7 +121,6 @@ import ProfileDelete from '../components/ProfileDelete';
 import ProfileLinks from '../components/ProfileLinks';
 import ProfileSecurity from '../components/ProfileSecurity';
 import WebLogin from '../components/WebLogin';
-import E2EEKeysManager from '../components/E2EEKeysManager';
 import BiometricAuth from '../components/BiometricAuth';
 import BiometricLock from '../components/BiometricLock';
 import FingerprintSimulation from '../components/FingerprintSimulation';
@@ -431,8 +429,6 @@ const FeatureLibrary = () => {
       items: [
         { id: 'm-editing', name: 'Message Editing', desc: 'Configure edit permissions', C: MessageEditingSettings,
           props: { settings: messageEditing, onUpdate: setMessageEditing } },
-        { id: 'm-encryption', name: 'Message Encryption', desc: 'Verify chat encryption', C: MessageEncryption,
-          props: { chat: selectedChat, encryptionStatus: 'on', onVerify: () => {}, onReset: () => {} } },
         { id: 'm-forward', name: 'Forward Message', desc: 'Forward to chats or contacts', C: MessageForwarding,
           props: { message: demoMessage, chats: allChats, contacts, onForward: () => {} } },
         { id: 'm-reactions', name: 'Reactions', desc: 'React to a message', C: MessageReactions,
@@ -555,7 +551,6 @@ const FeatureLibrary = () => {
           props: { onComplete: () => {} } },
         { id: 'secure-backup', name: 'Secure Backup', desc: 'Backup & restore your data', C: SecureBackup,
           props: { backupStatus, onCreateBackup: () => setBackupStatus({ ...backupStatus, lastBackup: new Date().toISOString() }), onRestoreBackup: () => {}, onVerifyBackup: () => {} } },
-        { id: 'e2ee-keys', name: 'E2EE Keys', desc: 'Manage encryption keys', C: E2EEKeysManager },
       ]
     },
     {

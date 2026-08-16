@@ -9,7 +9,6 @@ import {
   BellOff,
   Lock,
   Unlock,
-  Shield,
   ShieldAlert,
   Clock,
   Trash2,
@@ -30,7 +29,6 @@ import {
 import { authFetch } from '../utils/authFetch';
 import { useChat } from '../context/ChatContext';
 import { resolveApiBase } from '../utils/resolveApiBase';
-import encryptionService from '../services/encryptionService';
 import BlockUserModal from './BlockUserModal';
 
 const API_URL = resolveApiBase() || '/api';
@@ -140,132 +138,6 @@ const FullscreenImageViewer = ({ src, alt, onClose }) => {
           onDoubleClick={() => setScale((s) => (s > 1 ? 1 : 2.5))}
         />
       </div>
-    </motion.div>
-  );
-};
-
-/* ───────── Encryption Verification Modal ───────── */
-
-const EncryptionModal = ({ contactId, contactName, e2eeEnabled, onClose }) => {
-  const [contactFingerprint, setContactFingerprint] = useState(null);
-  const [myFingerprint, setMyFingerprint] = useState(null);
-  const [verified, setVerified] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const [cfp, mfp] = await Promise.all([
-          contactId ? encryptionService.getContactKeyFingerprint(contactId) : null,
-          encryptionService.getMyKeyFingerprint()
-        ]);
-        if (!cancelled) {
-          setContactFingerprint(cfp);
-          setMyFingerprint(mfp);
-          setVerified(contactId ? encryptionService.isContactVerified(contactId) : false);
-        }
-      } catch {
-        // Leave fingerprints null on failure.
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [contactId]);
-
-  const toggleVerified = () => {
-    if (!contactId) return;
-    const next = !verified;
-    setVerified(next);
-    encryptionService.setContactVerified(contactId, next);
-    toast.success(next ? `${contactName} marked as verified` : 'Verification removed');
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[180] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-[#202c33] w-full max-w-sm rounded-2xl shadow-2xl border border-white/10 overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="p-4 bg-[#00a884] flex justify-between items-center">
-          <h3 className="text-white font-bold text-lg">Encryption</h3>
-          <button onClick={onClose} className="hover:bg-white/20 p-1 rounded-full" aria-label="Close">
-            <X size={20} className="text-white" />
-          </button>
-        </div>
-
-        <div className="p-6 flex flex-col items-center gap-5">
-          <div className="w-16 h-16 rounded-full bg-[#00a884]/20 flex items-center justify-center">
-            <Shield size={28} className="text-[#00a884]" />
-          </div>
-
-          {e2eeEnabled ? (
-            <p className="text-white/70 text-xs text-center leading-relaxed">
-              Client-side end-to-end encryption is enabled. Messages you send to {contactName}
-              are encrypted on your device before they are sent, and can only be decrypted by
-              their device. Manage your keys under Security &gt; E2EE Keys.
-            </p>
-          ) : (
-            <p className="text-white/70 text-xs text-center leading-relaxed">
-              End-to-end encryption is currently <span className="text-yellow-400 font-semibold">off</span> for
-              your chats. Messages are encrypted in transit and at rest on the server, but the
-              server can read them. Enable "Client E2EE" in GENZ Mods to encrypt messages on
-              your device before sending.
-            </p>
-          )}
-
-          {/* Safety-number style fingerprint comparison */}
-          <div className="w-full bg-[#111b21] rounded-xl p-4 border border-white/10">
-            <p className="text-white/50 text-[10px] uppercase tracking-wide mb-2">
-              Compare these fingerprints with {contactName} out-of-band
-            </p>
-            <div className="space-y-2 text-xs font-mono">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-white/40 shrink-0">You</span>
-                <span className="text-white break-all text-right">{loading ? '…' : (myFingerprint || 'No keys registered')}</span>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-white/40 shrink-0">{contactName}</span>
-                <span className="text-white break-all text-right">{loading ? '…' : (contactFingerprint || 'No keys registered')}</span>
-              </div>
-            </div>
-            {contactId && (
-              <button
-                onClick={toggleVerified}
-                className={`w-full mt-3 py-2 rounded-lg text-sm font-bold transition-colors ${verified
-                  ? 'bg-white/10 text-[#00a884] hover:bg-white/15'
-                  : 'bg-[#00a884] text-white hover:bg-[#00a884]/80'}`}
-              >
-                {verified ? `✓ ${contactName} verified` : `Mark ${contactName} as verified`}
-              </button>
-            )}
-            {verified && (
-              <p className="text-[#00a884] text-[10px] text-center mt-2">
-                Verified: messages encrypted with this key show a ✓ badge.
-              </p>
-            )}
-          </div>
-
-          <button
-            onClick={onClose}
-            className="w-full bg-[#00a884] hover:bg-[#00a884]/80 text-white font-bold py-3 rounded-xl transition-colors mt-2"
-          >
-            OK
-          </button>
-        </div>
-      </motion.div>
     </motion.div>
   );
 };
@@ -492,7 +364,6 @@ const ContactInfo = ({
   disappearingDuration = 'Off',
 }) => {
   const [showImageViewer, setShowImageViewer] = useState(false);
-  const [showEncryptionModal, setShowEncryptionModal] = useState(false);
   const [showDisappearingPicker, setShowDisappearingPicker] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showWallpaperModal, setShowWallpaperModal] = useState(false);
@@ -506,24 +377,6 @@ const ContactInfo = ({
   const isStatusConversation = conversation?._id?.startsWith('conv-status-') || conversation?.isStatusReply;
 
   const { messages, contacts, awayUsers } = useChat();
-
-  // True E2EE is a per-user mod (Client E2EE), OFF by default. Read it from
-  // the stored mods so the encryption UI tells the truth instead of claiming
-  // WhatsApp-style "end-to-end encrypted" unconditionally.
-  const e2eeEnabled = (() => {
-    try {
-      const raw = currentUserId
-        ? localStorage.getItem(`genz_mods:${currentUserId}`)
-        : null;
-      const mods = raw
-        ? JSON.parse(raw)
-        : JSON.parse(localStorage.getItem('genz_mods') || '{}');
-      const modsObj = mods?.mods || mods;
-      return modsObj.clientE2EE === true;
-    } catch {
-      return false;
-    }
-  })();
 
   /* Fetch media preview */
   useEffect(() => {
@@ -676,22 +529,7 @@ const ContactInfo = ({
 
           <Divider />
 
-          {/* ─── 4. Encryption ─── */}
-          <div className="bg-[#202c33]">
-            <SectionRow
-              icon={Shield}
-              iconColor={e2eeEnabled ? 'text-[#00a884]' : 'text-yellow-500'}
-              label="Encryption"
-              value={e2eeEnabled
-                ? 'Messages are end-to-end encrypted. Tap for details.'
-                : 'End-to-end encryption is off. Tap for details.'}
-              onClick={() => setShowEncryptionModal(true)}
-            />
-          </div>
-
-          <Divider />
-
-          {/* ─── 5. Media, Links, and Docs ─── */}
+          {/* ─── 4. Media, Links, and Docs ─── */}
           <div className="bg-[#202c33]">
             <button
               onClick={onMediaGallery}
@@ -895,16 +733,6 @@ const ContactInfo = ({
             src={profilePicture}
             alt={displayName}
             onClose={() => setShowImageViewer(false)}
-          />
-        )}
-
-        {showEncryptionModal && (
-          <EncryptionModal
-            key="encryption-modal"
-            contactId={contact?._id}
-            contactName={displayName}
-            e2eeEnabled={e2eeEnabled}
-            onClose={() => setShowEncryptionModal(false)}
           />
         )}
 

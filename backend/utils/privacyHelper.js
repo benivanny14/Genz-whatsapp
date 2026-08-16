@@ -43,8 +43,6 @@ const applyPrivacyFilter = async (user, requesterId) => {
   delete filteredUser.contacts;
   delete filteredUser.settings;
 
-  // E2EE/public-key material haipaswi kuonekana na watu wengine
-  delete filteredUser.encryptionKeys;
   delete filteredUser.publicKey;
 
   return filteredUser;

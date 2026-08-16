@@ -33,7 +33,7 @@ Mpangilio: web app ya Capacitor imejengwa kwa `VITE_API_URL=http://10.0.2.2:5055
 - [x] Backend inafikiwa kutoka webview: `10.0.2.2:5055/api/health` → 200
       (ilikuwa inashindwa kwa mixed-content kabla ya debug-manifest fix — §7).
 - [x] Login ya test account (`genztest`) inafaulu → app inaenda kwenye `/chat`.
-- [x] Chat UI kamili inapakia (conversations, statuses, calls, E2EE).
+- [x] Chat UI kamili inapakia (conversations, statuses).
 
 ## 3. App Lock — Fingerprint + backup PIN
 

@@ -114,17 +114,6 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: []
   }],
-  encryptionKeys: {
-    publicKey: String,
-    privateKey: String,
-    signaturePublicKey: String,
-    signaturePrivateKey: String
-  },
-  encryptionKeyHistory: [{
-    publicKey: String,
-    signaturePublicKey: String,
-    rotatedAt: Date
-  }],
   securitySettings: {
     loginAlerts: {
       type: Boolean,

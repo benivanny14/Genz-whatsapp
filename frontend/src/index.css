@@ -1495,15 +1495,6 @@ body {
   margin-bottom: 12px;
 }
 
-/* E2EE keys manager */
-.e2ee-keys-manager {
-  background: #202c33;
-  border: 1px solid #37404a;
-  border-radius: 12px;
-  padding: 16px;
-  margin: 12px 0;
-}
-
 /* Auto reply settings */
 .auto-reply-settings {
   background: #202c33;

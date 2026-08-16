@@ -74,11 +74,6 @@ const serializeOutgoingMessage = (msgObj = {}, extras = {}) => {
       : [],
     status: base.status || 'sent',
     createdAt: base.createdAt,
-    isClientE2EE: Boolean(base.isClientE2EE),
-    // E2EE key stamp — fingerprint + current/old status of the key that
-    // encrypted the message, so clients render the key badge from the record.
-    e2eeKeyFingerprint: base.e2eeKeyFingerprint || null,
-    e2eeKeyStatus: base.e2eeKeyStatus || null,
     // FIX: quotedStatus (the "replying to @user's status" quote) was not
     // part of this shared whitelist, so every place that serializes a
     // message for chat history (GET /messages, conversation fetch, etc.)
