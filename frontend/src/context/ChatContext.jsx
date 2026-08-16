@@ -27,6 +27,10 @@ import {
   autoSaveMediaFromMessage
 } from '../utils/genzModsNormalize';
 import { applyAntiScreenshot, initAntiScreenshotListeners, setScreenshotAttemptCallback } from '../utils/antiScreenshot';
+// Native FLAG_SECURE: on the Android APK this truly blocks screenshots AND
+// screen recording (WhatsApp-style black capture) while the Anti-Screenshot
+// mod is on. Safe to import on web — the plugin only acts on native.
+import { PrivacyScreen } from '@capacitor-community/privacy-screen';
 
 export const ChatContext = createContext();
 
@@ -564,7 +568,21 @@ export const ChatProvider = ({ children }) => {
 
     initAntiScreenshotListeners();
     applyAntiScreenshot(mods.antiScreenshot);
-    
+
+    // Native Anti-Screenshot (APK only): FLAG_SECURE blocks screenshots and
+    // screen recording at the OS level while the mod is on. The ViewOnce
+    // components toggle this themselves during one-time viewing.
+    const syncNativeAntiScreenshot = async () => {
+      try {
+        if (mods.antiScreenshot) {
+          await PrivacyScreen.enable();
+        } else {
+          await PrivacyScreen.disable();
+        }
+      } catch (_) { /* not on a native platform — web detection covers this */ }
+    };
+    syncNativeAntiScreenshot();
+
     // Set up screenshot attempt callback to notify via socket
     if (mods.antiScreenshot && socketRef.current) {
       // FIX: this callback used to have its body entirely commented out

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, X, AlertCircle, Check, Image as ImageIcon, Video, FileText, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PrivacyScreen } from '@capacitor-community/privacy-screen';
+import { isAntiScreenshotActive } from '../utils/antiScreenshot';
 
 const ViewOnceMedia = ({ media, onViewed, onClose }) => {
   const [hasViewed, setHasViewed] = useState(false);
@@ -22,7 +23,8 @@ const ViewOnceMedia = ({ media, onViewed, onClose }) => {
     return () => {
       const disablePrivacy = async () => {
         try {
-          await PrivacyScreen.disable();
+          // Keep FLAG_SECURE on if the chat-level Anti-Screenshot mod is active.
+          if (!isAntiScreenshotActive()) await PrivacyScreen.disable();
         } catch (e) {
           console.warn("PrivacyScreen not available", e);
         }
