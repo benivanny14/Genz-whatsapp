@@ -3670,6 +3670,16 @@ export const ChatProvider = ({ children }) => {
     fetchStatuses();
   }, [isAuthReady, authLoading, isAuthenticated, fetchStatuses]);
 
+  // ── Keep mods in sync when the GENZ Mods page saves (it writes the backend
+  // store directly and dispatches a 'storage' event, but ChatContext is the
+  // runtime source of truth for behavior like ghost mode / freeze last seen) ──
+  useEffect(() => {
+    if (!isAuthReady || (REQUIRE_AUTH && (authLoading || !isAuthenticated))) return;
+    const handleModsStorageSync = () => { fetchGENZModsSettings(); };
+    window.addEventListener('storage', handleModsStorageSync);
+    return () => window.removeEventListener('storage', handleModsStorageSync);
+  }, [isAuthReady, authLoading, isAuthenticated]);
+
   // ── Auto-refresh system like WhatsApp ─────────────────────────────────────
   useEffect(() => {
     if (!isAuthReady || (REQUIRE_AUTH && (authLoading || !isAuthenticated)) || isOffline()) return;
