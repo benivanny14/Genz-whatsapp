@@ -32,7 +32,7 @@ test.beforeAll(async ({ request }) => {
     const reg = await request.post(`${base}/api/auth/register`, { data: user });
     const data = await reg.json();
     if (!data.token) throw new Error(`register failed: ${JSON.stringify(data)}`);
-    return { ...user, token: data.token };
+    return { ...user, phone: user.phoneNumber, token: data.token };
   };
 
   poster = await register('stp');
@@ -48,7 +48,7 @@ test.beforeAll(async ({ request }) => {
   if (!createdData.status?._id) throw new Error(`create status failed: ${JSON.stringify(createdData)}`);
 
   // Poster saves the viewer as a contact so the contacts-privacy check passes.
-  const contact = await request.post(`${base}/api/contacts/add`, {
+  const contact = await request.post(`${base}/api/chat/contacts/add`, {
     headers: { Authorization: `Bearer ${poster.token}` },
     data: { phone: viewer.phone, savedName: 'Status Viewer' }
   });
