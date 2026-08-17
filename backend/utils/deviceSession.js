@@ -42,13 +42,21 @@ const getDeviceName = (req) => {
 // Upsert an active device record so device-scoped tokens always have a record.
 // Re-activates the device on every authenticated hit and refreshes metadata,
 // but never overwrites a user-chosen name (renames are preserved).
+//
+// Keyed on deviceId ALONE (it has a unique index): a device belongs to one
+// local user at a time, and if that user logs out and another account logs in
+// on the same browser (same X-Device-ID), the record is re-assigned to the
+// new owner. Keying on (localUserId, deviceId) instead made the upsert try to
+// INSERT a second record with a taken deviceId -> E11000 duplicate key -> the
+// token's deviceId claim could never match -> "logged out on this device" 401
+// loop after every login on a reused browser.
 const registerDevice = async (req, userId) => {
   const deviceId = getRequestDeviceId(req);
   if (!deviceId) return null;
 
   try {
     const device = await Device.findOneAndUpdate(
-      { localUserId: String(userId), deviceId },
+      { deviceId },
       {
         $set: {
           localUserId: String(userId),
@@ -58,7 +66,6 @@ const registerDevice = async (req, userId) => {
           browser: getDeviceBrowser(req)
         },
         $setOnInsert: {
-          deviceId,
           deviceName: getDeviceName(req),
           deviceType: 'web'
         }
