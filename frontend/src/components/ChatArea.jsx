@@ -334,12 +334,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     return decryptMessage(m.content || m.message);
   }, []);
 
-  // Standard WhatsApp Web styles
-  const glassMode = false; // Disabled to match WhatsApp perfectly
-  const inputAreaClass = 'bg-[#202c33]'; // WhatsApp Web dark input area
-  const bubbleSentClass = 'message-bubble-sent'; // Fallback to index.css or tailwind classes
-  const bubbleReceivedClass = 'message-bubble-received';
-  const chatAreaClass = 'bg-[#0b141a]'; // WhatsApp Web dark chat area background
+  // Glass mode (frosted panels + video background) is handled by the
+  // glass-mode-active class + CSS; the container gets the glass-panel hook
+  // so the video shows through when glass mode is on.
   useEffect(() => {
     return () => {
       if (audioTimerRef.current) clearInterval(audioTimerRef.current);
@@ -2403,7 +2400,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
   if (!selectedConversation) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-dark-bg">
+      <div className="flex-1 flex items-center justify-center bg-dark-bg glass-panel backdrop-blur-md">
         <div className="text-center">
           <div className="bg-primary-600/10 p-6 rounded-full inline-block mb-4">
             <MessageCircle className="w-16 h-16 text-primary-600" />
@@ -2422,7 +2419,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
   if (isLocked) {
     return (
-      <div className="flex-1 flex flex-col bg-dark-bg items-center justify-center p-6 text-center">
+      <div className="flex-1 flex flex-col bg-dark-bg glass-panel backdrop-blur-md items-center justify-center p-6 text-center">
         <div className="w-20 h-20 bg-primary-600/10 rounded-full flex items-center justify-center mb-6">
           <Lock className="w-10 h-10 text-primary-600" />
         </div>
@@ -2450,7 +2447,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-dark-bg min-w-0 w-full overflow-hidden relative h-[100dvh] min-h-0" style={{ height: '100dvh', maxHeight: '100dvh' }}>
+    <div className="flex-1 flex flex-col bg-dark-bg glass-panel backdrop-blur-md min-w-0 w-full overflow-hidden relative h-[100dvh] min-h-0" style={{ height: '100dvh', maxHeight: '100dvh' }}>
       <div
         className="absolute inset-0 pointer-events-none z-0"
         style={wallpaperStyle}

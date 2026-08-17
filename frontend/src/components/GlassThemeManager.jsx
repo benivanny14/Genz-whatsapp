@@ -16,15 +16,9 @@ const GlassThemeManager = ({ mods, setMods, onClose }) => {
   const fileInputRef = useRef(null);
   const API_URL = resolveApiBase();
 
-  // Apply/remove glass mode on body
-  useEffect(() => {
-    if (mods?.glassMode) {
-      document.documentElement.classList.add('glass-mode');
-    } else {
-      document.documentElement.classList.remove('glass-mode');
-    }
-    return () => document.documentElement.classList.remove('glass-mode');
-  }, [mods?.glassMode]);
+  // NOTE: the glass-mode-active class (the one the CSS actually uses) is
+  // managed by ChatContext/App.jsx whenever mods.glassMode changes — the
+  // manager doesn't need to touch the DOM itself.
 
   // Wire up video background element
   useEffect(() => {
@@ -49,8 +43,8 @@ const GlassThemeManager = ({ mods, setMods, onClose }) => {
       alert('Please select a video file (mp4, webm, mov)');
       return;
     }
-    if (file.size > 500 * 1024 * 1024) {
-      alert('Video must not exceed 500MB');
+    if (file.size > 100 * 1024 * 1024) {
+      alert('Video must not exceed 100MB');
       return;
     }
     setUploading(true);
@@ -138,7 +132,7 @@ const GlassThemeManager = ({ mods, setMods, onClose }) => {
               <Video size={18} /> Video Background
             </div>
             <div className="p-4 space-y-3">
-              <p className="text-gray-400 text-xs">Upload a video (mp4/webm) to be the background for the whole system</p>
+              <p className="text-gray-400 text-xs">Upload a video (mp4/webm, max 100MB) to be the background for the whole system</p>
               
               {/* Video Preview */}
               {videoPreviewUrl && (
@@ -173,7 +167,7 @@ const GlassThemeManager = ({ mods, setMods, onClose }) => {
                 {uploading ? (
                   <><RefreshCw size={16} className="animate-spin" /> Inapakia...</>
                 ) : (
-                  <><Upload size={16} /> Choose Video (max 500MB)</>
+                  <><Upload size={16} /> Choose Video (max 100MB)</>
                 )}
               </button>
               <input

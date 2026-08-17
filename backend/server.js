@@ -53,10 +53,14 @@ if (!isCloudinaryConfigured()) {
   }
 }
 
-// SECURITY (3.10): cap the default upload size. FILE_SIZE_LIMITS allows video
-// up to 100MB; in production we default to 25MB unless MAX_UPLOAD_BYTES is
-// explicitly configured.
-const DEFAULT_MAX_UPLOAD_BYTES = process.env.NODE_ENV === 'production' ? 25 * 1024 * 1024 : Math.max(...Object.values(FILE_SIZE_LIMITS));
+// SECURITY (3.10): multer's global cap must be at least as large as the
+// largest per-type limit (video = 100MB) or uploads get rejected before the
+// per-type checks run. The per-type limits (image 10MB, video 100MB,
+// audio/doc 20MB) are still enforced downstream in handleUpload via
+// validateFile(). The previous production default of 25MB silently broke
+// video uploads (e.g. the Glass Theme video background). MAX_UPLOAD_BYTES
+// can still override the cap explicitly.
+const DEFAULT_MAX_UPLOAD_BYTES = Math.max(...Object.values(FILE_SIZE_LIMITS));
 const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_BYTES || DEFAULT_MAX_UPLOAD_BYTES);
 const UPLOAD_DIR_RESOLVED = path.resolve(uploadDir);
 

@@ -923,7 +923,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
 
   return (
     <aside
-      className={`relative overflow-hidden bg-dark-surface border-r border-dark-border flex flex-col transition-all duration-300 ${isOpen ? 'w-full md:w-80' : 'w-0 md:w-16 overflow-hidden'}`}
+      className={`relative overflow-hidden bg-dark-surface glass-panel backdrop-blur-md border-r border-dark-border flex flex-col transition-all duration-300 ${isOpen ? 'w-full md:w-80' : 'w-0 md:w-16 overflow-hidden'}`}
     >
       {chatListWallpaper?.url && (
         chatListWallpaper.type === 'video' ? (

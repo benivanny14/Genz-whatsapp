@@ -681,6 +681,26 @@ body {
 }
 
 /* Glass mode */
+.glass-mode-active body {
+  background-color: #000 !important;
+}
+
+/* Frosted main panels (sidebar + chat area) so the video background shows.
+   NOTE: the frosted blur itself comes from Tailwind's backdrop-blur-md
+   utility on the glass-panel elements — hand-written backdrop-filter
+   declarations here get dropped by the Lightning CSS minifier, but the
+   Tailwind utility keeps both the -webkit- and standard forms. */
+.glass-mode-active .glass-panel {
+  background-color: rgba(11, 20, 26, 0.45) !important;
+}
+
+/* Inner opaque surfaces become see-through so the frosted panel shows */
+.glass-mode-active .glass-panel .bg-dark-bg,
+.glass-mode-active .glass-panel .bg-dark-surface,
+.glass-mode-active .glass-panel .bg-dark-hover {
+  background-color: transparent !important;
+}
+
 .glass-mode-active .message-bubble-sent {
   background: rgba(0, 168, 132, 0.3) !important;
   backdrop-filter: blur(10px);
