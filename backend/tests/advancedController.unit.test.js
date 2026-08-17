@@ -320,6 +320,26 @@ describe('advancedController — statuses', () => {
     expect(res.body.statuses).toHaveLength(1);
   });
 
+  it('coerces an explicit everyone to contacts when creating (WhatsApp parity)', async () => {
+    User.findById.mockReturnValue({
+      select: jest.fn().mockResolvedValue({ statusFeaturesSettings: {}, settings: {} })
+    });
+    Status.create.mockResolvedValue(makeStatus());
+    const res = makeRes();
+    await advanced.createStatus(makeReq({ body: { type: 'text', content: 'hi', privacy: 'everyone' } }), res);
+    expect(Status.create).toHaveBeenCalledWith(expect.objectContaining({ privacy: 'contacts' }));
+  });
+
+  it('uses a legacy saved everyone default as contacts', async () => {
+    User.findById.mockReturnValue({
+      select: jest.fn().mockResolvedValue({ statusFeaturesSettings: {}, settings: { privacy: { status: 'everyone' } } })
+    });
+    Status.create.mockResolvedValue(makeStatus());
+    const res = makeRes();
+    await advanced.createStatus(makeReq({ body: { type: 'text', content: 'hi' } }), res);
+    expect(Status.create).toHaveBeenCalledWith(expect.objectContaining({ privacy: 'contacts' }));
+  });
+
   it('flags statuses from muted posters with isMuted', async () => {
     User.findById.mockReturnValue({
       select: jest.fn().mockResolvedValue({
@@ -452,7 +472,7 @@ describe('advancedController — statuses', () => {
     const res = makeRes();
     await advanced.reshareStatus(makeReq({ params: { id: 's-1' } }), res);
     expect(res.statusCode).toBe(201);
-    expect(Status.create).toHaveBeenCalledWith(expect.objectContaining({ privacy: 'everyone' }));
+    expect(Status.create).toHaveBeenCalledWith(expect.objectContaining({ privacy: 'contacts' }));
     expect(original.save).toHaveBeenCalled();
   });
 });

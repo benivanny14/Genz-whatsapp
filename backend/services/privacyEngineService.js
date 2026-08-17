@@ -156,7 +156,7 @@ const canViewStatus = (status, viewerId, ownerUser) => {
   // The owner can always see their own status (they are not in their own
   // contact list, so the contacts-mode check below would otherwise deny them).
   if (ownerId && viewer === ownerId) return true;
-  const privacy = status.privacy || 'everyone';
+  const privacy = status.privacy || 'contacts';
 
   if (privacy === 'everyone') return true;
   if (privacy === 'nobody' || privacy === 'only_me') {

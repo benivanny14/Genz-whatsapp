@@ -173,7 +173,7 @@ const DEFAULT_GENZ_SETTINGS = {
     activityNotifications: true
   },
   appTheme: 'dark',
-  statusPrivacy: 'everyone',
+  statusPrivacy: 'contacts',
   notificationSound: 'default',
   isDNDMode: false
 };

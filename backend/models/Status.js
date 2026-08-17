@@ -46,7 +46,7 @@ const statusSchema = new mongoose.Schema({
   textColor: { type: String, default: '#ffffff' },
   fontStyle: { type: String, default: 'sans' },
   font: { type: String, default: 'sans-serif' },
-  privacy: { type: String, default: 'everyone' },
+  privacy: { type: String, default: 'contacts' },
   // FEATURE ADD: "hide status from..." (My Contacts Except...) and "share
   // only with..." need to remember exactly which people were picked, not
   // just a privacy mode string.

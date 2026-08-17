@@ -48,9 +48,12 @@ exports.createStatus = async (req, res) => {
     const expiresAt = new Date(Date.now() + statusHours * 60 * 60 * 1000);
 
     // Persist the real privacy choice (previously dropped — every status was
-    // silently stored as 'everyone'). Invalid values fall back to 'everyone'.
-    const validPrivacy = ['everyone', 'contacts', 'contacts_except', 'only_share_with', 'only_me', 'nobody'];
-    const statusPrivacy = validPrivacy.includes(privacy) ? privacy : 'everyone';
+    // silently stored as 'everyone'). Invalid values fall back to 'contacts',
+    // and a deliberate 'everyone' is coerced to 'contacts' too: like WhatsApp,
+    // new statuses are never public — legacy 'everyone' statuses still render
+    // and remain viewable via the shared-status link.
+    const validPrivacy = ['contacts', 'contacts_except', 'only_share_with', 'only_me', 'nobody'];
+    const statusPrivacy = validPrivacy.includes(privacy) ? privacy : 'contacts';
 
     const status = await Status.create({
       user: userId,

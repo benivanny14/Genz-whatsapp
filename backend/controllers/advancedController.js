@@ -400,7 +400,9 @@ exports.createStatus = async (req, res) => {
         statusHours = configured;
       }
       const savedPrivacy = currentUser?.settings?.privacy?.status;
-      if (savedPrivacy && ['everyone', 'contacts', 'contacts_except', 'only_share_with', 'only_me', 'nobody'].includes(savedPrivacy)) {
+      // 'everyone' is deliberately not accepted (WhatsApp parity): a legacy
+      // saved default of 'everyone' falls back to contacts-only.
+      if (savedPrivacy && ['contacts', 'contacts_except', 'only_share_with', 'only_me', 'nobody'].includes(savedPrivacy)) {
         userDefaultPrivacy = savedPrivacy;
       }
     } catch (e) {
@@ -421,7 +423,7 @@ exports.createStatus = async (req, res) => {
       backgroundColor: backgroundColor || '#00a884',
       textColor: textColor || '#ffffff',
       font: font || 'sans-serif',
-      privacy: privacy || userDefaultPrivacy,
+      privacy: privacy === 'everyone' ? 'contacts' : (privacy || userDefaultPrivacy),
       excludedViewers: Array.isArray(excludedViewers) ? excludedViewers : [],
       includedViewers: Array.isArray(includedViewers) ? includedViewers : [],
       collabUserId: collabUserId || '',
@@ -758,7 +760,9 @@ exports.updateStatusPrivacy = async (req, res) => {
       return res.status(403).json({ message: 'You can only update your own statuses' });
     }
 
-    const allowed = ['everyone', 'contacts', 'contacts_except', 'only_share_with', 'only_me', 'nobody'];
+    // 'everyone' is no longer settable (WhatsApp parity); legacy public
+    // statuses keep their value but cannot be switched back to public.
+    const allowed = ['contacts', 'contacts_except', 'only_share_with', 'only_me', 'nobody'];
     if (privacy && allowed.includes(privacy)) {
       status.privacy = privacy;
     }
@@ -1204,7 +1208,7 @@ exports.reshareStatus = async (req, res) => {
       backgroundColor: originalStatus.backgroundColor,
       textColor: originalStatus.textColor,
       font: originalStatus.font,
-      privacy: 'everyone',
+      privacy: 'contacts',
       reshares: [{
         userId: currentUserId,
         username,

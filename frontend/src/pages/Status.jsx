@@ -117,7 +117,9 @@ const Status = () => {
     let savedPrivacy = 'contacts';
     try {
       const saved = localStorage.getItem('genz_status_privacy_default');
-      if (saved && ['everyone', 'contacts', 'contacts_except', 'only_share_with', 'only_me'].includes(saved)) {
+      // 'everyone' is no longer offered (WhatsApp parity) — a legacy saved
+      // value falls back to contacts-only.
+      if (saved && ['contacts', 'contacts_except', 'only_share_with', 'only_me'].includes(saved)) {
         savedPrivacy = saved;
       }
     } catch (e) { /* ignore */ }
@@ -1926,19 +1928,6 @@ const Status = () => {
                     <input
                       type="radio"
                       name="status-privacy"
-                      checked={uploadData.privacy === 'everyone'}
-                      onChange={() => setUploadData((prev) => ({ ...prev, privacy: 'everyone' }))}
-                      className="accent-[#00a884] w-4 h-4"
-                    />
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-800 dark:text-gray-100">Everyone</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Anyone can view your status</p>
-                    </div>
-                  </label>
-                  <label className="flex items-center gap-2.5 p-2.5 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors">
-                    <input
-                      type="radio"
-                      name="status-privacy"
                       checked={uploadData.privacy === 'contacts'}
                       onChange={() => setUploadData((prev) => ({ ...prev, privacy: 'contacts' }))}
                       className="accent-[#00a884] w-4 h-4"
@@ -2477,7 +2466,7 @@ const Status = () => {
           <StatusBlockPanel 
             onClose={() => { setShowStatusBlock(false); setSelectedStatusForPanel(null); }}
             status={selectedStatusForPanel}
-            onBlock={(data) => console.log('User blocked:', data)}
+            onBlock={() => { fetchStatuses(); }}
           />
         )}
         {showStatusSave && selectedStatusForPanel && (

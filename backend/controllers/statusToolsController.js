@@ -114,7 +114,8 @@ exports.updateStatusPrivacy = async (req, res) => {
     if (!user) return;
 
     const { privacy } = req.body;
-    if (!['everyone', 'contacts', 'nobody'].includes(privacy)) {
+    // 'everyone' is deliberately no longer accepted (WhatsApp parity).
+    if (!['contacts', 'nobody'].includes(privacy)) {
       return res.status(400).json({ success: false, message: 'Invalid privacy setting' });
     }
 

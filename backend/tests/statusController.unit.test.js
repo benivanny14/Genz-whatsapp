@@ -132,7 +132,7 @@ describe('statusController — createStatus', () => {
     expect(args.user).toBe('user-1');
     expect(args.type).toBe('text');
     expect(args.content).toBe('Mambo vipi');
-    expect(args.privacy).toBe('everyone');
+    expect(args.privacy).toBe('contacts');
     expect(args.expiresAt.getTime()).toBeGreaterThan(Date.now() + 23 * 3600000);
   });
 
@@ -145,13 +145,22 @@ describe('statusController — createStatus', () => {
     expect(Status.create.mock.calls[0][0].privacy).toBe('only_me');
   });
 
-  it('falls back to everyone for invalid privacy values', async () => {
+  it('falls back to contacts for invalid privacy values', async () => {
     Status.create.mockResolvedValue(makeStatus());
     User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue(makeStatus()) });
     Status.findById.mockReturnValue({ populate: jest.fn().mockResolvedValue(makeStatus()) });
     const res = makeRes();
     await statusCtrl.createStatus(makeReq({ body: { type: 'text', content: 'x', privacy: 'hacked' } }), res);
-    expect(Status.create.mock.calls[0][0].privacy).toBe('everyone');
+    expect(Status.create.mock.calls[0][0].privacy).toBe('contacts');
+  });
+
+  it('coerces an explicit everyone to contacts (WhatsApp parity)', async () => {
+    Status.create.mockResolvedValue(makeStatus());
+    User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue(makeStatus()) });
+    Status.findById.mockReturnValue({ populate: jest.fn().mockResolvedValue(makeStatus()) });
+    const res = makeRes();
+    await statusCtrl.createStatus(makeReq({ body: { type: 'text', content: 'x', privacy: 'everyone' } }), res);
+    expect(Status.create.mock.calls[0][0].privacy).toBe('contacts');
   });
 
   it('uses the configured status duration when valid (happy path)', async () => {
