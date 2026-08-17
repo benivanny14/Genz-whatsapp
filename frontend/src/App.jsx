@@ -52,6 +52,7 @@ const JoinGroup = lazy(() => import('./pages/JoinGroup'));
 const SubscriptionPayment = lazy(() => import('./components/PaidFeatures/SubscriptionPayment'));
 const GenzAfterWork = lazy(() => import('./components/PaidFeatures/GenzAfterWork'));
 const AdminPaymentManagement = lazy(() => import('./pages/AdminPaymentManagement'));
+const Winga = lazy(() => import('./pages/Winga'));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -218,9 +219,15 @@ function App() {
           frostLayer.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;display:none;';
           document.body.prepend(frostLayer);
         }
+        const frostAlpha = Math.min(0.8, Math.max(0.3, 0.4 + ((mods.glassOpacity ?? 0.15) - 0.15) * 0.9));
+        const frostBlur = Math.min(40, Math.max(2, mods.glassBlur ?? 20));
+        // Inner glass surfaces (e.g. the GENZ Settings tab sections) follow
+        // the same Glass Opacity / Blur Strength sliders as the frost layer,
+        // with a slightly stronger tint so cards stay readable over the video.
+        root.style.setProperty('--genz-glass-tint', (Math.min(0.85, Math.max(0.35, frostAlpha + 0.1))).toFixed(3));
+        root.style.setProperty('--genz-glass-header-tint', (Math.min(0.9, Math.max(0.45, frostAlpha + 0.3))).toFixed(3));
+        root.style.setProperty('--genz-glass-blur', `${frostBlur}px`);
         if (mods.glassMode) {
-          const frostAlpha = Math.min(0.8, Math.max(0.3, 0.4 + ((mods.glassOpacity ?? 0.15) - 0.15) * 0.9));
-          const frostBlur = Math.min(40, Math.max(2, mods.glassBlur ?? 20));
           frostLayer.style.background = `rgba(11, 20, 26, ${frostAlpha.toFixed(3)})`;
           frostLayer.style.backdropFilter = `blur(${frostBlur}px)`;
           frostLayer.style.webkitBackdropFilter = `blur(${frostBlur}px)`;
@@ -447,6 +454,7 @@ function App() {
             <Route path="/system-gateway-x9k" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
             <Route path="/system-gateway-x9k/login" element={<AdminLogin />} />
             <Route path="/genz-mods" element={<ProtectedRoute><GENZMods /></ProtectedRoute>} />
+            <Route path="/winga" element={<ProtectedRoute><Winga /></ProtectedRoute>} />
             <Route path="/features" element={<ProtectedRoute><FeatureLibrary /></ProtectedRoute>} />
             <Route path="/channels" element={<ProtectedRoute><Channels /></ProtectedRoute>} />
             <Route path="/channels/:channelId" element={<ProtectedRoute><ChannelView /></ProtectedRoute>} />

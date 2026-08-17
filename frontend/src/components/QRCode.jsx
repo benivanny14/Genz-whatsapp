@@ -105,7 +105,7 @@ const QRCodeGenerator = ({ data, type = 'profile', onClose }) => {
         </div>
 
         {/* QR Code Display */}
-        <div className="bg-white rounded-xl p-6 mb-6">
+        <div className="bg-white glass-keep-white rounded-xl p-6 mb-6">
           <div ref={qrRef} className="flex justify-center">
             <QRCodeSVG
               value={qrData}

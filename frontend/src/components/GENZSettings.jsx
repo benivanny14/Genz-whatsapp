@@ -7,7 +7,7 @@ import {
   LogOut, Info, Mic, Music, UserCircle, Edit3, Camera, Sun, Moon, BellOff,
   BarChart2, Smartphone as SmartphoneIcon, Mail, Forward, Eye, Globe,
   MessageSquare, Layers, Video, Sparkles, TrendingUp, Star,
-  Activity, BarChart, Upload, DollarSign, ChevronRight, Bug
+  Activity, BarChart, Upload, DollarSign, ChevronRight, Bug, Store
 } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
@@ -642,7 +642,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
   ];
 
   return (
-    <div className="glass-surface absolute inset-0 flex flex-col overflow-x-hidden" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0f2440 50%, #0a1628 100%)' }}>
+    <div className="glass-surface genz-settings-panel absolute inset-0 flex flex-col overflow-x-hidden" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0f2440 50%, #0a1628 100%)' }}>
 
       {/* ── Header ── */}
       <div className="bg-blue-900/50 backdrop-blur-xl px-4 pt-4 pb-0 flex items-center gap-4 text-white shadow-lg border-b border-white/10">
@@ -1881,6 +1881,23 @@ const PrivacyTab = ({ ctx }) => {
             >
               <Play size={10} /> Test Selected Sound
             </button>
+            <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-3">
+              <div className="flex items-start gap-2">
+                <Store size={16} className="mt-0.5 text-amber-400" />
+                <div>
+                  <p className="text-xs font-bold text-white">Status &amp; WINGA activity alerts</p>
+                  <p className="text-[10px] text-white/50">Toasts za mtu aliyepost status au biashara kwenye WINGA</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMods(prev => ({ ...prev, activityNotifications: prev.activityNotifications === false }))}
+                className={`relative h-6 w-11 rounded-full transition-colors ${mods?.activityNotifications !== false ? 'bg-[#008069]' : 'bg-white/15'}`}
+                aria-pressed={mods?.activityNotifications !== false}
+              >
+                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${mods?.activityNotifications !== false ? 'left-[22px]' : 'left-0.5'}`} />
+              </button>
+            </div>
           </div>
         </section>
 

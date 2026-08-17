@@ -99,6 +99,10 @@ export const apiService = {
   toggleFavoriteSticker: (stickerId, url) => apiCall(`/stickers/favorites/${encodeURIComponent(stickerId)}`, { method: 'POST', data: { url } }),
   getConversations: () => apiCall('/chat/conversations'),
   getConversation: (id) => apiCall(`/chat/conversations/${encodeURIComponent(id)}`),
+  getOrCreateConversation: (userId) => apiCall('/chat/conversation', {
+    method: 'POST',
+    data: { userId }
+  }),
   getScheduledMessages: (conversationId = null) => {
     const url = conversationId 
       ? `/scheduled-messages?conversationId=${conversationId}`

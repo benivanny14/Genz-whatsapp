@@ -70,13 +70,13 @@ const QRCodeSharing = ({ qrData, onGenerate, onShare, onCopy, onClose }) => {
         </div>
 
         {/* QR Code Display */}
-        <div className="bg-white rounded-lg p-6 mb-4 flex items-center justify-center">
-          <div className="w-48 h-48 bg-gray-100 rounded-lg flex items-center justify-center">
+        <div className="bg-white glass-keep-white rounded-lg p-6 mb-4 flex items-center justify-center">
+          <div className="w-48 h-48 bg-gray-100 glass-keep-white rounded-lg flex items-center justify-center">
             {qrData ? (
-              <QrCode size={160} className="text-gray-800" />
+              <QrCode size={160} className="text-slate-800" />
             ) : (
               <div className="text-center">
-                <QrCode size={48} className="text-gray-400 mx-auto mb-2" />
+                <QrCode size={48} className="text-slate-800 mx-auto mb-2" />
                 <p className="text-gray-500 text-sm">Generate QR Code</p>
               </div>
             )}
@@ -271,12 +271,12 @@ export const QRCodeButton = ({ onOpen }) => {
 // QR Code Display Component
 export const QRCodeDisplay = ({ data, size = 128 }) => {
   return (
-    <div className="bg-white rounded-lg p-4 flex items-center justify-center">
+    <div className="bg-white glass-keep-white rounded-lg p-4 flex items-center justify-center">
       <div
-        className="bg-gray-100 rounded-lg flex items-center justify-center"
+        className="bg-gray-100 glass-keep-white rounded-lg flex items-center justify-center"
         style={{ width: size, height: size }}
       >
-        <QrCode size={size * 0.8} className="text-gray-800" />
+        <QrCode size={size * 0.8} className="text-slate-800" />
       </div>
     </div>
   );

@@ -72,6 +72,7 @@ const Status = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [activePanel, setActivePanel] = useState(null);
   const [feedStartId, setFeedStartId] = useState(null);
+  const [feedGroupStatuses, setFeedGroupStatuses] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -213,6 +214,20 @@ const Status = () => {
     if (savedNotifications) {
       setStatusNotificationSettings(JSON.parse(savedNotifications));
     }
+  }, []);
+
+  // Reload viewed statuses when the feed marks one as seen (StatusScrollFeed
+  // writes localStorage + dispatches genz-status-viewed) so the green dots
+  // and unseen counts clear without a manual refresh.
+  useEffect(() => {
+    const handleViewed = () => {
+      try {
+        const saved = localStorage.getItem('genz_viewed_statuses');
+        if (saved) setViewedStatuses(JSON.parse(saved));
+      } catch (_) { /* ignore */ }
+    };
+    window.addEventListener('genz-status-viewed', handleViewed);
+    return () => window.removeEventListener('genz-status-viewed', handleViewed);
   }, []);
 
   // Save viewed statuses to localStorage
@@ -837,6 +852,41 @@ const Status = () => {
     return feed;
   }, [statuses]);
 
+  // WhatsApp-style: one row per user. Group all statuses (including
+  // collaborative contributions) by their owner so the feed reads as a list
+  // of people, each with a ring + unread count, instead of one row per status.
+  const groupedStatuses = useMemo(() => {
+    const groups = new Map();
+    for (const s of statusFeed || []) {
+      const ownerId = String(s.user?._id || s.user?.id || s.userId || s.username || 'unknown');
+      if (!groups.has(ownerId)) {
+        groups.set(ownerId, {
+          ownerId,
+          username: s.username || s.user?.username || 'Unknown',
+          avatarUrl: s.user?.profilePicture || s.profilePicture || '',
+          statuses: []
+        });
+      }
+      groups.get(ownerId).statuses.push(s);
+    }
+    // Newest group first; keep each user's statuses in feed order.
+    return Array.from(groups.values()).sort((a, b) => {
+      const ta = new Date(a.statuses[0]?.timestamp || a.statuses[0]?.createdAt || 0);
+      const tb = new Date(b.statuses[0]?.timestamp || b.statuses[0]?.createdAt || 0);
+      return tb - ta;
+    });
+  }, [statusFeed]);
+
+  // Open the feed scoped to one user (WhatsApp behaviour): start at their
+  // first unviewed status, if any.
+  const openUserFeed = (group) => {
+    const items = group.statuses;
+    const firstUnviewed = items.find((s) => !viewedStatuses.includes(s._id || s.id));
+    setFeedGroupStatuses(items);
+    setFeedStartId(firstUnviewed?._id || firstUnviewed?.id || items[0]?._id || items[0]?.id || null);
+    setShowScrollFeed(true);
+  };
+
   return (
     <div className="glass-surface h-screen w-screen flex items-center justify-center overflow-hidden font-sans" style={{ background: 'radial-gradient(1200px 700px at 18% 8%, rgba(255,45,120,0.20), transparent 55%), radial-gradient(1100px 700px at 88% 95%, rgba(124,92,255,0.20), transparent 55%), radial-gradient(900px 600px at 70% 20%, rgba(0,217,166,0.10), transparent 50%), #0c0a1e' }}>
       <div className="w-full h-full md:w-[98%] md:h-[96%] bg-white/5 backdrop-blur-xl shadow-2xl flex flex-col border border-white/10 rounded-2xl">
@@ -1068,10 +1118,11 @@ const Status = () => {
                       className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-primary-600 focus:ring-primary-500"
                     />
                   </label>
-                  {statuses.length > 0 && (
+                  {groupedStatuses.length > 0 && (
                     <button
                       type="button"
                       onClick={() => {
+                        setFeedGroupStatuses(null);
                         setFeedStartId(null);
                         setShowScrollFeed(true);
                       }}
@@ -1082,61 +1133,60 @@ const Status = () => {
                   )}
                 </div>
               </div>
-              {statuses.length === 0 ? (
+              {groupedStatuses.length === 0 ? (
                 <div className="text-center text-gray-500 py-8">
                   <p>No recent status updates</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {(statuses || []).map((status) => {
-                    const sid = status._id || status.id;
+                <div className="space-y-3">
+                  {groupedStatuses.map((group) => {
+                    const status = group.statuses[0];
+                    const unread = group.statuses.filter((s) =>
+                      !viewedStatuses.includes(s._id || s.id) &&
+                      String(s.user?._id || s.user?.id || s.userId) !== String(user?._id || user?.id)
+                    ).length;
+                    const hasUnread = unread > 0;
+                    const sid = status?._id || status?.id;
+                    const latest = status?.content || status?.caption || status?.type || '';
                     return (
                       <div
-                        key={sid}
+                        key={group.ownerId + '-' + (sid || 'x')}
                         role="button"
                         tabIndex={0}
                         className="flex items-center gap-4 p-3 bg-white/5 backdrop-blur-md rounded-lg shadow hover:bg-white/10 transition-shadow cursor-pointer border border-white/10"
-                        onClick={() => {
-                          setFeedStartId(sid);
-                          setShowScrollFeed(true);
-                        }}
+                        onClick={() => openUserFeed(group)}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            setFeedStartId(sid);
-                            setShowScrollFeed(true);
-                          }
+                          if (e.key === 'Enter') openUserFeed(group);
                         }}
                       >
                         <div className="relative">
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold border border-white/20 ${
-                            !viewedStatuses.includes(status._id || status.id) && status.user?._id !== user?._id
-                              ? 'bg-green-500 ring-4 ring-green-500/30'
-                              : 'bg-primary-600'
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold border-2 overflow-hidden ${
+                            hasUnread ? 'bg-green-500 ring-4 ring-green-500/30 border-green-400' : 'bg-primary-600 border-white/20'
                           }`}>
-                            {status.username?.charAt(0).toUpperCase() || '?'}
+                            {group.avatarUrl ? (
+                              <img src={group.avatarUrl} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              group.username?.charAt(0).toUpperCase() || '?'
+                            )}
                           </div>
-                          {!viewedStatuses.includes(status._id || status.id) && status.user?._id !== user?._id && (
-                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-[#0b141a]"></div>
+                          {hasUnread && (
+                            <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-green-500 rounded-full border-2 border-[#0b141a] flex items-center justify-center">
+                              <span className="text-[10px] font-bold text-white leading-none">{unread}</span>
+                            </div>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className={`font-semibold ${
-                            !viewedStatuses.includes(status._id || status.id) && status.user?._id !== user?._id
-                              ? 'text-white'
-                              : 'text-gray-300'
-                          }`}>
-                            {status.username || 'Unknown'}
-                            {status._contributions?.length > 0 && (
-                              <span className="text-pink-400 text-xs font-bold ml-1">
-                                & {status._contributions.length} collaborator{status._contributions.length > 1 ? 's' : ''}
+                          <p className={`font-semibold flex items-center gap-1.5 ${hasUnread ? 'text-white' : 'text-gray-300'}`}>
+                            {group.username}
+                            {group.statuses.length > 1 && (
+                              <span className="text-[10px] font-bold text-blue-300 bg-blue-500/20 px-1.5 py-0.5 rounded-full">
+                                {group.statuses.length}
                               </span>
                             )}
                           </p>
-                          <p className={`text-sm truncate ${
-                            !viewedStatuses.includes(status._id || status.id) && status.user?._id !== user?._id
-                              ? 'text-white'
-                              : 'text-gray-400'
-                          }`}>{status.content || status.caption || status.type}</p>
+                          <p className={`text-sm truncate ${hasUnread ? 'text-white' : 'text-gray-400'}`}>
+                            {latest || `${group.statuses.length} status${group.statuses.length > 1 ? 'es' : ''}`}
+                          </p>
                         </div>
                         <div className="flex items-center gap-2 text-gray-400 text-sm flex-shrink-0">
                           <button
@@ -2108,7 +2158,7 @@ const Status = () => {
 
         {showScrollFeed && (
           <StatusScrollFeed
-            statuses={statusFeed}
+            statuses={feedGroupStatuses || statusFeed}
             onClose={() => {
               setShowScrollFeed(false);
               setFeedStartId(null);

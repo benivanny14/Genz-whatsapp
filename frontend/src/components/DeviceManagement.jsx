@@ -137,7 +137,7 @@ const DeviceManagement = ({ onClose }) => {
                 </button>
               </div>
               {qrCode && (
-                <div className="bg-white p-4 rounded-lg inline-block">
+                <div className="bg-white glass-keep-white p-4 rounded-lg inline-block">
                   <img src={getQrImageSource(qrCode)} alt="QR Code" className="w-64 h-64" />
                 </div>
               )}

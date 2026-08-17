@@ -33,6 +33,31 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
     return !!ownerId && ownerId === String(currentUserId || '');
   };
 
+  // ── Record a server-side view whenever the visible status changes ──
+  const viewedRef = useRef(new Set());
+  useEffect(() => {
+    const status = statuses[currentIndex];
+    if (!status || !currentUserId || isOwnStatus(status)) return;
+    const sid = String(status._id || status.id || '');
+    if (!sid || viewedRef.current.has(sid)) return;
+    const cleanId = sid.replace(/^status-/, '');
+    viewedRef.current.add(sid);
+    authFetch(`${API_URL}/advanced/status/${encodeURIComponent(cleanId)}/view`, { method: 'POST' })
+      .then((res) => res.json().catch(() => ({})))
+      .then(() => {
+        // Keep local localStorage tracking in sync so the feed's green
+        // "new" dots disappear for this status.
+        try {
+          const saved = JSON.parse(localStorage.getItem('genz_viewed_statuses') || '[]');
+          if (!saved.includes(sid)) {
+            localStorage.setItem('genz_viewed_statuses', JSON.stringify([...saved, sid]));
+            window.dispatchEvent(new Event('genz-status-viewed'));
+          }
+        } catch (_) { /* ignore */ }
+      })
+      .catch(() => {});
+  }, [statuses, currentIndex, currentUserId, isOwnStatus]);
+
   // Fetch analytics (views + reactions) for an own status
   const loadAnalytics = useCallback(async (index) => {
     const status = statuses[index];

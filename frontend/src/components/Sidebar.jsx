@@ -49,7 +49,8 @@ import {
   Upload,
   Download,
   Clock,
-  CircleDot
+  CircleDot,
+  Store
 } from 'lucide-react';
 import ProfileEnlarger from './ProfileEnlarger';
 import AccountSwitcher from './AccountSwitcher';
@@ -70,7 +71,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   };
   
   // Compute total unread count across all conversations
-  const { user: chatUser, conversations, selectConversation, selectedConversation, onlineUsers, togglePinChat, toggleMuteChat, toggleArchiveChat, clearChat, deleteChat, statuses, addStatus, deleteStatus, uploadStatusMedia, profileVisitors, showProfileEditor, setShowProfileEditor, typingByConversation, sendMessage, addContact, removeContact, acceptContact, rejectContact, fetchContacts } = useChat();
+  const { user: chatUser, conversations, selectConversation, selectedConversation, onlineUsers, togglePinChat, toggleMuteChat, toggleArchiveChat, clearChat, deleteChat, statuses, addStatus, deleteStatus, uploadStatusMedia, profileVisitors, showProfileEditor, setShowProfileEditor, typingByConversation, sendMessage, addContact, removeContact, acceptContact, rejectContact, fetchContacts, unviewedStatusByUser, wingaByUser } = useChat();
   const currentUserId = String(user?._id || user?.id || 'anonymous');
   // Use the authenticated chat user id (falls back to the local user) when
   // matching conversation participants — fixes self-chat being shown as a
@@ -1470,6 +1471,41 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     </div>
                   )}
                   <div className="relative w-12 h-12 flex-shrink-0 cursor-pointer" onClick={(e) => { e.stopPropagation(); if (!chatSelectMode) setEnlargedProfile(conv); }} title="Tap to enlarge profile picture">
+                    {(() => {
+                      const peerId = !conv.isGroup && !hasFakeCover(conv._id)
+                        ? conv.participants?.find(p => String(p?._id || p) !== String(user?.id))?._id
+                        : null;
+                      const peerStatusUnseen = peerId ? (unviewedStatusByUser[String(peerId)] || 0) : 0;
+                      const peerWinga = peerId ? (wingaByUser[String(peerId)] || null) : null;
+                      return (
+                        <>
+                          {peerStatusUnseen > 0 && (
+                            <>
+                              <div className="absolute -inset-0.5 rounded-full ring-2 ring-[#25d366] pointer-events-none" />
+                              <div className="absolute -top-1 -left-1 z-10 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#25d366] px-1 text-[10px] font-black text-[#0b141a] shadow">
+                                {peerStatusUnseen > 99 ? '99+' : peerStatusUnseen}
+                              </div>
+                            </>
+                          )}
+                          {peerWinga && peerWinga.count > 0 && (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); navigate('/winga'); }}
+                              title={`${peerWinga.count} biashara kwenye WINGA${peerWinga.unseen > 0 ? ` — ${peerWinga.unseen} mpya` : ''}`}
+                              className={`absolute -bottom-1 -right-1 z-10 h-[20px] w-[20px] overflow-hidden rounded-full shadow ${peerWinga.unseen > 0 ? 'ring-2 ring-amber-400' : 'ring-2 ring-[#008069]'}`}
+                            >
+                              {peerWinga.thumb ? (
+                                <img src={peerWinga.thumb} alt="" className="h-full w-full object-cover" />
+                              ) : (
+                                <span className={`flex h-full w-full items-center justify-center ${peerWinga.unseen > 0 ? 'bg-amber-400 text-[#0b141a]' : 'bg-[#008069] text-white'}`}>
+                                  <Store size={11} strokeWidth={2.6} />
+                                </span>
+                              )}
+                            </button>
+                          )}
+                        </>
+                      );
+                    })()}
                     {hasFakeCover(conv._id) ? (
                       <div className="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden hover:opacity-80 transition-opacity">
                         <Shield size={20} className="text-gray-400" />
@@ -1517,6 +1553,28 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                             style={{ order: iconSettings.pinIconPosition === 'left' ? '-1' : '1' }}
                           />
                         )}
+                        {/* WINGA symbol when this user has posted businesses */}
+                        {(() => {
+                          const peerId = !conv.isGroup && !hasFakeCover(conv._id)
+                            ? conv.participants?.find(p => String(p?._id || p) !== String(user?.id))?._id
+                            : null;
+                          const peerWinga = peerId ? (wingaByUser[String(peerId)] || null) : null;
+                          if (!peerWinga || peerWinga.count === 0) return null;
+                          return (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); navigate('/winga'); }}
+                              className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-black ${peerWinga.unseen > 0 ? 'bg-amber-400/15 text-amber-400' : 'bg-white/5 text-white/40'}`}
+                              title={`${peerWinga.count} biashara kwenye WINGA${peerWinga.unseen > 0 ? ` — ${peerWinga.unseen} mpya` : ''}`}
+                            >
+                              {peerWinga.thumb && (
+                                <img src={peerWinga.thumb} alt="" className="h-4 w-4 rounded-md object-cover" />
+                              )}
+                              <Store size={11} strokeWidth={2.6} />
+                              <span>{peerWinga.unseen > 0 ? peerWinga.unseen : peerWinga.count}</span>
+                            </button>
+                          );
+                        })()}
                         {/* Unread count badge */}
                         {hasFakeCover(conv._id) ? (
                           <span className="text-xs text-dark-textSecondary">

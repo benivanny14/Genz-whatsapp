@@ -168,7 +168,9 @@ const DEFAULT_GENZ_SETTINGS = {
     collabStatus: true,
     bubbleAnimations: false,
     reelMode: false,
-    glassMode: false
+    glassMode: false,
+    // WINGA + Status activity toasts (someone posted a status / a business)
+    activityNotifications: true
   },
   appTheme: 'dark',
   statusPrivacy: 'everyone',
@@ -307,6 +309,16 @@ export const ChatProvider = ({ children }) => {
   const markReadDebouncedRef = useRef(null);
   const modsRef = useRef({});  // keep mods accessible in socket callbacks
   const currentUserIdRef = useRef(null);
+
+  // Coalesce status/WINGA activity toasts: a burst of posts (e.g. a seller
+  // uploading 15 listings back-to-back) shows ONE toast, not fifteen.
+  const showActivityToastRef = useRef((kind, message) => {
+    const now = Date.now();
+    const last = showActivityToastRef.lastShown?.[kind] || 0;
+    if (now - last < 6000) return;
+    showActivityToastRef.lastShown = { ...(showActivityToastRef.lastShown || {}), [kind]: now };
+    toast(message, { duration: 3500 });
+  });
   const { isAuthenticated, loading: authLoading, user: authUser, isAuthReady, completeSession } = useAuth();
 
   const currentUserId = React.useMemo(() => {
@@ -338,6 +350,9 @@ export const ChatProvider = ({ children }) => {
   const [broadcasts, setBroadcasts] = useState([]);
   const [statuses, setStatuses] = useState([]);
   const [statusViewers, setStatusViewers] = useState([]);
+  // WINGA marketplace state
+  const [wingaData, setWingaData] = useState({ categories: [], totalUnseen: 0, myListings: [], postedToday: 0, limit: 15 });
+  const [wingaOrders, setWingaOrders] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
   // FEATURE ADD: "last seen" was completely wired to nowhere on the frontend —
   // ChatArea had a peerPresence state that was only ever set to null, so the
@@ -1110,6 +1125,67 @@ export const ChatProvider = ({ children }) => {
         // StatusPrivacyPanel, ContactManager) so an open contact list
         // refreshes live.
         window.dispatchEvent(new CustomEvent('contacts:updated'));
+      });
+
+      // ── Someone posted a status → live toast + refresh feed ──
+      socket.on('status:created', (statusObj) => {
+        try {
+          const posterId = String(statusObj?.userId || statusObj?.user?._id || statusObj?.user || '');
+          const myId = String(currentUserIdRef.current || '');
+          if (posterId && posterId !== myId && modsRef.current.activityNotifications !== false) {
+            const name = statusObj?.username || statusObj?.user?.username || 'Someone';
+            showActivityToastRef.current('status', `🟢 ${name} posted a status`);
+          }
+        } catch (_) { /* ignore */ }
+        apiService.getStatuses().then((data) => {
+          if (data?.success) setStatuses(data.statuses || []);
+        }).catch(() => {});
+      });
+
+      // ── Someone posted a business on WINGA → live toast + refresh ──
+      socket.on('winga:created', (listing) => {
+        try {
+          const posterId = String(listing?.user?._id || listing?.userId || '');
+          const myId = String(currentUserIdRef.current || '');
+          if (posterId && posterId !== myId && modsRef.current.activityNotifications !== false) {
+            const name = listing?.user?.username || listing?.username || 'Someone';
+            showActivityToastRef.current('winga', `🛍️ ${name} posted a business on WINGA`);
+          }
+        } catch (_) { /* ignore */ }
+        fetchWingaRef.current();
+      });
+
+      // ── Someone placed an order on my listing → toast + refresh ──
+      socket.on('winga:order', (order) => {
+        try {
+          const sellerId = String(order?.sellerId || order?.seller?._id || '');
+          const myId = String(currentUserIdRef.current || '');
+          if (sellerId && sellerId === myId && modsRef.current.activityNotifications !== false) {
+            const buyer = order?.buyerUsername || 'Someone';
+            const title = order?.listingTitle || 'biashara';
+            showActivityToastRef.current('winga', `🛍️ ${buyer} anataka kununua "${title}"`);
+          }
+        } catch (_) { /* ignore */ }
+        fetchWingaRef.current();
+        fetchWingaOrdersRef.current();
+      });
+
+      // ── My order status changed (seller confirmed/declined) → toast + refresh ──
+      socket.on('winga:order-updated', (order) => {
+        try {
+          const buyerId = String(order?.buyerId || order?.buyer?._id || '');
+          const myId = String(currentUserIdRef.current || '');
+          if (buyerId && buyerId === myId && modsRef.current.activityNotifications !== false) {
+            const title = order?.listingTitle || 'biashara';
+            const msg =
+              order?.status === 'confirmed' ? `✅ Muuzaji amethibitisha ombi lako la "${title}"` :
+              order?.status === 'declined' ? `❌ Muuzaji amekataa ombi lako la "${title}"` :
+              `📦 Ombi lako la "${title}" limebadilika`;
+            showActivityToastRef.current('winga', msg);
+          }
+        } catch (_) { /* ignore */ }
+        fetchWingaRef.current();
+        fetchWingaOrdersRef.current();
       });
 
       // ── Incoming message ──
@@ -3597,12 +3673,210 @@ export const ChatProvider = ({ children }) => {
     }
   }, []);
 
+  // ── WINGA marketplace functions ───────────────────────────────────────────
+  const fetchWinga = useCallback(async () => {
+    try {
+      const response = await authFetch(`${BACKEND_URL}/winga`);
+      const data = await response.json();
+      if (data.success) {
+        setWingaData({
+          categories: data.categories || [],
+          totalUnseen: data.totalUnseen || 0,
+          myListings: data.myListings || [],
+          postedToday: data.postedToday || 0,
+          limit: data.limit || 15
+        });
+      }
+      return data;
+    } catch (err) {
+      console.error('Fetch WINGA error:', err);
+      return { success: false };
+    }
+  }, []);
+  const fetchWingaRef = useRef(fetchWinga);
+  useEffect(() => { fetchWingaRef.current = fetchWinga; }, [fetchWinga]);
+
+  const createWingaListing = useCallback(async (listingData) => {
+    try {
+      const response = await authFetch(`${BACKEND_URL}/winga`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(listingData)
+      });
+      const data = await response.json();
+      if (data.success) {
+        await fetchWinga();
+      }
+      return data;
+    } catch (err) {
+      console.error('Create WINGA listing error:', err);
+      return { success: false };
+    }
+  }, [fetchWinga]);
+
+  const markWingaViewed = useCallback(async (listingId) => {
+    try {
+      const response = await authFetch(`${BACKEND_URL}/winga/${encodeURIComponent(listingId)}/view`, {
+        method: 'POST'
+      });
+      const data = await response.json();
+      if (data.success) {
+        // Optimistic local update — mark as viewed without a full refetch.
+        setWingaData(prev => {
+          const cats = (prev.categories || []).map(c => ({
+            ...c,
+            unseen: Math.max(0, c.unseen - (c.listings.some(l => String(l._id) === String(listingId) && !l.viewedByMe) ? 1 : 0)),
+            listings: c.listings.map(l => String(l._id) === String(listingId) ? { ...l, viewedByMe: true } : l)
+          }));
+          return {
+            ...prev,
+            categories: cats,
+            totalUnseen: cats.reduce((sum, c) => sum + c.unseen, 0)
+          };
+        });
+      }
+      return data;
+    } catch (err) {
+      console.error('Mark WINGA viewed error:', err);
+      return { success: false };
+    }
+  }, []);
+
+  const uploadWingaMedia = useCallback(async (file, onProgress) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await authFetch(`${BACKEND_URL}/winga/upload`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json();
+      if (onProgress && typeof onProgress === 'function') onProgress(100);
+      return data;
+    } catch (err) {
+      console.error('Upload WINGA media error:', err);
+      return { success: false };
+    }
+  }, []);
+
+  const deleteWingaListing = useCallback(async (listingId) => {
+    try {
+      const response = await authFetch(`${BACKEND_URL}/winga/${encodeURIComponent(listingId)}`, {
+        method: 'DELETE'
+      });
+      const data = await response.json();
+      if (data.success) {
+        await fetchWinga();
+      }
+      return data;
+    } catch (err) {
+      console.error('Delete WINGA listing error:', err);
+      return { success: false };
+    }
+  }, [fetchWinga]);
+
+  const toggleWingaSold = useCallback(async (listingId) => {
+    try {
+      const response = await authFetch(`${BACKEND_URL}/winga/${encodeURIComponent(listingId)}/sold`, {
+        method: 'POST'
+      });
+      const data = await response.json();
+      if (data.success) {
+        await fetchWinga();
+      }
+      return data;
+    } catch (err) {
+      console.error('Toggle WINGA sold error:', err);
+      return { success: false };
+    }
+  }, [fetchWinga]);
+
+  const rateWingaListing = useCallback(async (listingId, rating, comment) => {
+    try {
+      const response = await authFetch(`${BACKEND_URL}/winga/${encodeURIComponent(listingId)}/rate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating, comment: comment || '' })
+      });
+      const data = await response.json();
+      if (data.success) {
+        await fetchWinga();
+      }
+      return data;
+    } catch (err) {
+      console.error('Rate WINGA listing error:', err);
+      return { success: false };
+    }
+  }, [fetchWinga]);
+
+  const fetchWingaOrders = useCallback(async () => {
+    try {
+      const response = await authFetch(`${BACKEND_URL}/winga/orders`);
+      const data = await response.json();
+      if (data.success) {
+        setWingaOrders(data.orders || []);
+      }
+      return data;
+    } catch (err) {
+      console.error('Fetch WINGA orders error:', err);
+      return { success: false };
+    }
+  }, []);
+  const fetchWingaOrdersRef = useRef(fetchWingaOrders);
+  useEffect(() => { fetchWingaOrdersRef.current = fetchWingaOrders; }, [fetchWingaOrders]);
+
+  const placeWingaOrder = useCallback(async (listingId, { quantity, message } = {}) => {
+    try {
+      const response = await authFetch(`${BACKEND_URL}/winga/${encodeURIComponent(listingId)}/order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: quantity || 1, message: message || '' })
+      });
+      const data = await response.json();
+      if (data.success) {
+        await fetchWingaOrders();
+      }
+      return data;
+    } catch (err) {
+      console.error('Place WINGA order error:', err);
+      return { success: false };
+    }
+  }, [fetchWingaOrders]);
+
+  const updateWingaOrder = useCallback(async (orderId, status) => {
+    try {
+      const response = await authFetch(`${BACKEND_URL}/winga/orders/${encodeURIComponent(orderId)}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      const data = await response.json();
+      if (data.success) {
+        await fetchWingaOrders();
+        await fetchWinga(); // a confirmed order marks the listing sold
+      }
+      return data;
+    } catch (err) {
+      console.error('Update WINGA order error:', err);
+      return { success: false };
+    }
+  }, [fetchWingaOrders, fetchWinga]);
+
   useEffect(() => {
     if (!isAuthReady || (REQUIRE_AUTH && (authLoading || !isAuthenticated))) return;
     fetchGENZModsSettings();
     fetchBroadcasts();
     fetchStatuses();
-  }, [isAuthReady, authLoading, isAuthenticated, fetchStatuses]);
+    fetchWinga();
+    fetchWingaOrders();
+  }, [isAuthReady, authLoading, isAuthenticated, fetchStatuses, fetchWinga, fetchWingaOrders]);
+
+  // ── A status was viewed in the feed → refresh so unseen badges update ──
+  useEffect(() => {
+    const handleStatusViewed = () => { fetchStatuses(); };
+    window.addEventListener('genz-status-viewed', handleStatusViewed);
+    return () => window.removeEventListener('genz-status-viewed', handleStatusViewed);
+  }, [fetchStatuses]);
 
   // ── Keep mods in sync when the GENZ Mods page saves (it writes the backend
   // store directly and dispatches a 'storage' event, but ChatContext is the
@@ -5003,6 +5277,43 @@ export const ChatProvider = ({ children }) => {
     updateUserProfile
   }), [currentUserId, authUser, updateUserProfile]);
 
+  // ── Per-user unseen status / WINGA maps (chatlist symbols + badges) ──────
+  const myIdStr = String(currentUserId || '');
+  const unviewedStatusByUser = React.useMemo(() => {
+    const map = {};
+    (statuses || []).forEach((s) => {
+      const uid = String(s.userId || s.user?._id || s.user || '');
+      if (!uid || uid === myIdStr) return;
+      const alreadyViewed = (s.views || []).some((v) => String(v.user?._id || v.user) === myIdStr);
+      if (!alreadyViewed) map[uid] = (map[uid] || 0) + 1;
+    });
+    return map;
+  }, [statuses, myIdStr]);
+
+  const statusUnseenCount = React.useMemo(
+    () => Object.values(unviewedStatusByUser).reduce((sum, n) => sum + n, 0),
+    [unviewedStatusByUser]
+  );
+
+  const wingaByUser = React.useMemo(() => {
+    const map = {};
+    (wingaData?.categories || []).forEach((c) => {
+      (c.listings || []).forEach((l) => {
+        const uid = String(l.user?._id || l.userId || '');
+        if (!uid || uid === myIdStr) return;
+        const entry = map[uid] || { count: 0, unseen: 0, thumb: '', title: '' };
+        entry.count += 1;
+        if (!l.viewedByMe) entry.unseen += 1;
+        if (!entry.thumb && l.media?.[0]?.url) {
+          entry.thumb = l.media[0].url;
+          entry.title = l.title || '';
+        }
+        map[uid] = entry;
+      });
+    });
+    return map;
+  }, [wingaData, myIdStr]);
+
   const contextValue = React.useMemo(() => ({
     user, conversations, setConversations,
     selectedConversation, selectConversation,
@@ -5054,6 +5365,11 @@ export const ChatProvider = ({ children }) => {
     // Status functions
     fetchStatuses, createStatus, deleteStatus,
     replyToStatus,
+    // WINGA marketplace
+    wingaData, fetchWinga, createWingaListing, markWingaViewed,
+    uploadWingaMedia, deleteWingaListing, toggleWingaSold, rateWingaListing,
+    wingaOrders, fetchWingaOrders, placeWingaOrder, updateWingaOrder,
+    statusUnseenCount, unviewedStatusByUser, wingaByUser,
     // Scheduled messages functions
     cancelScheduledMessage, getScheduledMessages,
     mods, updateMods, setMods,
@@ -5074,6 +5390,10 @@ export const ChatProvider = ({ children }) => {
     statusPrivacy, backupProgress, notificationSound, mods,
     isSocketConnected, isDNDMode, appTheme,
     fetchStatuses, createStatus, deleteStatus, replyToStatus,
+    wingaData, fetchWinga, createWingaListing, markWingaViewed,
+    uploadWingaMedia, deleteWingaListing, toggleWingaSold, rateWingaListing,
+    wingaOrders, fetchWingaOrders, placeWingaOrder, updateWingaOrder,
+    statusUnseenCount, unviewedStatusByUser, wingaByUser,
     listCloudBackups, restoreCloudBackup, deleteCloudBackup,
     loadOlderMessages, hasOlderMessages
   ]);

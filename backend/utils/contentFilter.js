@@ -2,8 +2,10 @@
 // reaches other users. This is a baseline filter, not a replacement for human
 // moderation — keep the word list deliberately small to avoid false positives.
 const BLOCKED_WORDS = [
-  // Hate slurs (English)
-  'nigger', 'nigga', 'kike', 'spic', 'chink', 'fag', 'faggot', 'tranny',
+  // Hate slurs (English). Note: 'kike' is deliberately NOT here — in Swahili
+  // it is the everyday word for "female" (e.g. "nguo za kike"), so blocking
+  // it would reject legitimate marketplace/status content.
+  'nigger', 'nigga', 'spic', 'chink', 'fag', 'faggot', 'tranny',
   'retard', 'rape', 'rapist',
   // Extreme sexual / child-safety terms
   'cp', 'childporn', 'loli', 'lolicon', 'preteen', 'pthc',

@@ -54,6 +54,7 @@ exports.createStatus = async (req, res) => {
     const status = await Status.create({
       user: userId,
       userId: String(userId),
+      username: req.user?.username || req.user?.name || '',
       type,
       privacy: statusPrivacy,
       excludedViewers: (excludedViewers || []).filter((v) => mongoose.Types.ObjectId.isValid(v)),

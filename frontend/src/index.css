@@ -737,9 +737,11 @@ body {
   background-color: transparent !important;
 }
 
-/* Main chat panels keep a slightly stronger tint for readability */
+/* Main chat panels keep a slightly stronger tint for readability. The tint
+   follows the user's Glass Opacity slider (published on :root by App.jsx as
+   --genz-glass-tint), so every page responds to the sliders in real time. */
 .glass-mode-active .glass-panel {
-  background-color: rgba(11, 20, 26, 0.5) !important;
+  background-color: rgba(11, 20, 26, var(--genz-glass-tint, 0.5)) !important;
 }
 
 /* The warm peach paper shell that wraps every main screen — this is what
@@ -752,9 +754,71 @@ body {
 
 /* Roots that paint a full-screen inline background (Channels, ChannelView,
    Status viewer, GENZ Settings). The !important stylesheet rule beats the
-   inline style. */
+   inline style. The tint follows the user's Glass Opacity slider
+   (--genz-glass-tint on :root) just like every other surface. */
 .glass-mode-active .glass-surface {
-  background: rgba(11, 20, 26, 0.45) !important;
+  background: rgba(11, 20, 26, var(--genz-glass-tint, 0.45)) !important;
+}
+
+/* Legacy light-mode panels (Broadcast Lists, Linked Devices, GENZ Mods,
+   Security, Pair Device, contact selector, payment/broadcast/group modals and
+   the admin dashboards) were built with plain bg-white / bg-gray-* surfaces.
+   In glass mode they become the same translucent dark surface as the rest of
+   the app so the video/image background shows through everywhere, and their
+   dark text/borders flip to light so they stay readable. QR-code containers
+   opt out with .glass-keep-white (they need a white background to scan) and
+   the toggle tracks on those pages opt out too (they use the peer classes).
+   The tint follows the Glass Opacity slider (--genz-glass-tint on :root). */
+.glass-mode-active .bg-white:not(.glass-keep-white):not([class*="rounded-full"]):not([class*="rounded-sm"]),
+.glass-mode-active .bg-gray-50:not(.glass-keep-white),
+.glass-mode-active .bg-gray-100:not(.glass-keep-white),
+.glass-mode-active .bg-gray-200:not(.glass-keep-white):not([class*="peer"]),
+.glass-mode-active .bg-gray-700:not(.glass-keep-white),
+.glass-mode-active .bg-gray-800:not(.glass-keep-white),
+.glass-mode-active .bg-gray-900:not(.glass-keep-white),
+.glass-mode-active [class*="dark:bg-gray-800"]:not(.glass-keep-white),
+.glass-mode-active [class*="dark:bg-gray-900"]:not(.glass-keep-white) {
+  background-color: rgba(11, 20, 26, var(--genz-glass-tint, 0.45)) !important;
+}
+
+.glass-mode-active .text-gray-900,
+.glass-mode-active .text-gray-800,
+.glass-mode-active .text-gray-700,
+.glass-mode-active .text-gray-600,
+.glass-mode-active .text-gray-500,
+.glass-mode-active .text-gray-400 {
+  color: rgba(241, 245, 249, 0.92) !important;
+}
+
+.glass-mode-active .border-gray-200,
+.glass-mode-active .border-gray-300 {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+/* Full-screen story/reel viewers (StatusReel) and the public shared-status
+   page use an opaque bg-black root; in glass mode that becomes the same
+   translucent dark surface so the video shows through there too. Its tint
+   follows the Glass Opacity slider like every other surface. */
+.glass-mode-active .bg-black {
+  background-color: rgba(11, 20, 26, var(--genz-glass-tint, 0.45)) !important;
+}
+
+/* GENZ Settings in glass mode: the tab sections sit directly over the video,
+   so they get a light tint above the plain glass-surface to keep cards
+   readable over a busy background while letting the video show through the
+   gaps between sections. The tint and blur follow the user's Glass Opacity /
+   Blur Strength sliders (set on :root by App.jsx), and the header keeps a
+   firmer dark tint so the title and back button stay legible. */
+.glass-mode-active .genz-settings-panel section {
+  background-color: rgba(11, 20, 26, var(--genz-glass-tint, 0.5)) !important;
+  /* -webkit first, then standard: the Lightning CSS minifier keeps both in
+     this order (it drops the standard declaration when it comes first). */
+  -webkit-backdrop-filter: blur(var(--genz-glass-blur, 20px)) !important;
+  backdrop-filter: blur(var(--genz-glass-blur, 20px)) !important;
+}
+
+.glass-mode-active .genz-settings-panel > div:first-child {
+  background-color: rgba(9, 18, 32, var(--genz-glass-header-tint, 0.7)) !important;
 }
 
 .glass-mode-active .message-bubble-sent {

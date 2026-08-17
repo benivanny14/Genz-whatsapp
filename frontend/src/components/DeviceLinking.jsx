@@ -158,7 +158,7 @@ const DeviceLinking = ({ onLinkDevice, onUnlinkDevice, linkedDevices = [] }) => 
                 </div>
               ) : qrCode ? (
                 <>
-                  <div className="bg-white p-4 rounded-lg mb-4">
+                  <div className="bg-white glass-keep-white p-4 rounded-lg mb-4">
                     <img
                       src={
                         qrCode.startsWith('data:') || qrCode.startsWith('http')

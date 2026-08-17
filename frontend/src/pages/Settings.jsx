@@ -1,18 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Save, User, Lock, Bell, Shield, ShieldCheck, Users, Package, Building2, Eye,
+  ArrowLeft, Save, User, Lock, Bell, Shield, ShieldCheck, Users, Eye,
   Smartphone, ChevronRight, Database, UserRound, KeyRound, Languages,
   HelpCircle, Download, Trash2, Phone, Wifi, Image as ImageIcon,
   HardDrive, CheckCircle2, EyeOff, Archive, Clock, FileText, Globe2,
   RefreshCw, RotateCcw, Palette, MessageSquare, MapPin, X, Fingerprint,
-  DollarSign, Star, Search, Plus, Camera, Video, Upload as UploadIcon, Mail, Crown, LayoutGrid
+  DollarSign, Star, Search, Plus, Camera, Video, Upload as UploadIcon, Mail, Crown, LayoutGrid, Store
 } from 'lucide-react';
 import ContactManager from '../components/ContactManager';
 import { fetchVersionManifest } from '../utils/versionManifest';
 import { BlockedUsersList } from '../components/BlockUnblock';
-import ProductCatalogue from '../components/ProductCatalogue';
-import BusinessAccountPanel from '../components/BusinessAccountPanel';
 import AntiBanPanel from '../components/AntiBanPanel';
 import StatusPrivacyPanel from '../components/StatusPrivacyPanel';
 import StorageManagement from '../components/StorageManagement';
@@ -24,6 +22,7 @@ import LocationSharingPanel from '../components/LocationSharingPanel';
 import PasskeysSettings from '../components/PasskeysSettings';
 import { useUser } from '../context/UserContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useChat } from '../context/ChatContext';
 import userService from '../services/userService';
 import { checkForUpdate, getAppUpdateInfo } from '../utils/appUpdate';
 import SettingsHelp from '../components/SettingsHelp';
@@ -328,6 +327,7 @@ const ActionButton = ({ children, onClick, tone = 'primary', disabled = false })
 const Settings = () => {
   const { user, updateUserProfile } = useUser();
   const { changeLanguage } = useLanguage();
+  const { mods, setMods } = useChat();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('profile');
   const [settingsData, setSettingsData] = useState(readStoredSettings);
@@ -342,8 +342,6 @@ const Settings = () => {
   const [showContacts, setShowContacts] = useState(false);
   const [showBlocked, setShowBlocked] = useState(false);
   const [blockedUsers, setBlockedUsers] = useState([]);
-  const [showCatalogue, setShowCatalogue] = useState(false);
-  const [showBusinessPanel, setShowBusinessPanel] = useState(false);
   const [showStorage, setShowStorage] = useState(false);
   const [showContactSelector, setShowContactSelector] = useState(false);
   const [contactSelectorConfig, setContactSelectorConfig] = useState(null);
@@ -424,7 +422,6 @@ const Settings = () => {
     { id: 'language', label: 'App language', icon: Languages },
     { id: 'linked', label: 'Linked devices', icon: Smartphone },
     { id: 'contacts', label: 'Contacts', icon: Users },
-    { id: 'business', label: 'Business tools', icon: Package },
     { id: 'fake-chat', label: 'Fake Chat', icon: MessageSquare },
     { id: 'location', label: 'Location', icon: MapPin },
     { id: 'help', label: 'Help', icon: HelpCircle }
@@ -1021,6 +1018,12 @@ const Settings = () => {
         <SettingRow icon={CheckCircle2} title="Reaction notifications" control={<Toggle checked={settingsData.notifications.reactionNotifications} onChange={() => toggleSetting('notifications.reactionNotifications')} />} />
         <SettingRow icon={Clock} title="Reminders" control={<Toggle checked={settingsData.notifications.reminders} onChange={() => toggleSetting('notifications.reminders')} />} />
         <SettingRow icon={Bell} title="Vibration" control={<Select value={settingsData.notifications.vibration} onChange={(value) => updateSetting('notifications.vibration', value)} options={[['off', 'Off'], ['default', 'Default'], ['short', 'Short'], ['long', 'Long']]} />} />
+        <SettingRow
+          icon={Store}
+          title="Status & WINGA activity alerts"
+          description="Toasts zinazoonyesha mtu alipost status au biashara kwenye WINGA."
+          control={<Toggle checked={mods?.activityNotifications !== false} onChange={() => setMods((prev) => ({ ...prev, activityNotifications: prev.activityNotifications === false }))} />}
+        />
       </SettingSection>
 
       <ActionButton onClick={() => saveSettings()} disabled={saving}><Save size={16} /> Save notification settings</ActionButton>
@@ -1073,15 +1076,6 @@ const Settings = () => {
       <SettingSection title="Contacts" description="Contacts and blocked users are part of WhatsApp privacy and account settings.">
         <SettingRow icon={Users} title="Contact manager" description="Search, add, and manage contacts." onClick={() => setShowContacts(true)} />
         <SettingRow icon={Shield} title="Blocked contacts" description={`${blockedUsers.length} blocked ${blockedUsers.length === 1 ? 'contact' : 'contacts'}.`} onClick={() => setShowBlocked(true)} />
-      </SettingSection>
-    </div>
-  );
-
-  const renderBusiness = () => (
-    <div className="space-y-4">
-      <SettingSection title="Business tools" description="WhatsApp Business-style catalogue and profile tools.">
-        <SettingRow icon={Package} title="Product catalogue" description="Create products and send them to customers." onClick={() => setShowCatalogue(true)} />
-        <SettingRow icon={Building2} title="Business account settings" description="Hours, auto-reply, away message and quick replies." onClick={() => setShowBusinessPanel(true)} />
       </SettingSection>
     </div>
   );
@@ -1150,7 +1144,6 @@ const Settings = () => {
     if (activeTab === 'language') return renderLanguage();
     if (activeTab === 'linked') return renderLinked();
     if (activeTab === 'contacts') return renderContacts();
-    if (activeTab === 'business') return renderBusiness();
     if (activeTab === 'fake-chat') return renderFakeChat();
     if (activeTab === 'location') return renderLocation();
     return renderHelp();
@@ -1239,8 +1232,6 @@ const Settings = () => {
           </div>
         </div>
       )}
-      {showCatalogue && <ProductCatalogue onClose={() => setShowCatalogue(false)} onSendProduct={() => setShowCatalogue(false)} />}
-      {showBusinessPanel && <BusinessAccountPanel onClose={() => setShowBusinessPanel(false)} />}
       {showAntiBanPanel && <AntiBanPanel onClose={() => setShowAntiBanPanel(false)} />}
       {showStatusPrivacyPanel && <StatusPrivacyPanel onClose={() => setShowStatusPrivacyPanel(false)} />}
       {showStorage && <StorageManagement onClose={() => setShowStorage(false)} />}
