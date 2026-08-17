@@ -7,6 +7,51 @@ by commit.
 
 ---
 
+## [2026-08-17] — Verification pass: full e2e + backend green, WINGA polish, glass video fix
+
+**Full local verification after the 109-commit merge**
+
+- **E2E suite: 48/48 green** (all Playwright specs, including WINGA 3/3 and
+  the glass-mode suite) against the single-origin stack on a throwaway DB.
+  The 5 first-run failures were environmental, not code: 4 admin specs
+  needed `MONGODB_URI`/`MONGO_URI` in the test-process env (CI sets them at
+  the step level) and one glass-mode spec hit a cold-start timeout.
+- **Backend 1699/1699** (`USE_LOCAL_MONGO_FOR_TESTS`) · **frontend 93/93** +
+  build ✓ — nothing regressed by the merge or the fresh `npm ci` on the
+  OneDrive-backed main checkout.
+
+**WINGA button polish** (Sidebar)
+
+- The avatar WINGA badge moved from bottom-right to **bottom-left** so it no
+  longer covers the online indicator when a contact is online AND has WINGA
+  listings.
+
+- Both WINGA buttons (avatar badge + chat-row pill) now expose an
+  `aria-label` ("N biashara kwenye WINGA — N mpya"); the avatar button had
+  no accessible name before (title-only, img alt="").
+
+- The pill no-unseen state contrast bumped (text-white/40 → text-white/60).
+
+**Glass Mode video background**
+
+- The e2e specs used the Google sample URL
+  (`commondatastorage.googleapis.com/.../BigBuckBunny.mp4`), which now
+  returns **403 Forbidden** — the specs asserted the machinery, not an
+  actually loading video. Switched to the reliable MDN CC0 sample
+  (`interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4`);
+  glass-mode e2e 6/6 green. Users with an old saved videoBg URL will need to
+  re-add their video in Glass Theme (the app has no baked-in default).
+
+**Docs**
+
+- New `docs/E2E_WINDOWS_PLAYWRIGHT_QUIRK.md`: the Windows-only "No tests
+  found" quirk when a server already responds at `webServer.url` (+ the
+  managed-webServer workaround), fresh-DB-per-run for exact-count specs, and
+  `USE_LOCAL_MONGO_FOR_TESTS` for the slow mongodb-memory-server download.
+
+**Verification**: e2e 48/48 · backend 1699/1699 · frontend 93/93 · WINGA
+verified live in the preview (nav tab, categories, listings, search).
+
 ## [2026-08-17] — WINGA marketplace, Glass Mode, platform cleanup (109 commits)
 
 **WINGA — marketplace (jiji.com style)** — the big one.
