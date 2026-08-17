@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const { isEitherUserBlocked } = require('../utils/messageSendHelpers');
 const { normalizeLocationData } = require('../utils/locationData');
 const { getActiveMutedUserIds, getActiveStatusBlockedUserIds } = require('../utils/statusMuteHelpers');
+const { verifyShareToken } = require('../utils/statusShareToken');
 
 // POST /api/status - weka status mpya
 exports.createStatus = async (req, res) => {
@@ -318,7 +319,13 @@ exports.getSharedStatus = async (req, res) => {
     const ownerId = String(status.user?._id || status.userId || status.user || '');
     const isOwner = Boolean(viewerId) && String(viewerId) === ownerId;
 
-    // Blocked posters are never shareable to the viewer.
+    // A valid share token (minted by the owner for a QR/share link) grants
+    // view access to this one status for its lifetime — even to anonymous
+    // visitors — without making the status 'everyone'.
+    const shareToken = verifyShareToken(req.query.share || req.query.token);
+    const hasValidShareToken = Boolean(shareToken) && String(shareToken.statusId) === String(status._id);
+
+    // Blocked posters are never shareable to the viewer (token included).
     if (viewerId && !isOwner && ownerId) {
       const blocked = await isEitherUserBlocked(viewerId, ownerId);
       if (blocked) {
@@ -326,8 +333,9 @@ exports.getSharedStatus = async (req, res) => {
       }
     }
 
-    // Only 'everyone' statuses are public; the owner can always view their own.
-    if (!isOwner && status.privacy !== 'everyone') {
+    // Public (legacy 'everyone') or a valid share token; the owner always sees
+    // their own.
+    if (!isOwner && status.privacy !== 'everyone' && !hasValidShareToken) {
       return res.status(403).json({ success: false, message: 'This status is not shared publicly' });
     }
 

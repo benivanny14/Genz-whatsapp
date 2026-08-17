@@ -1,6 +1,7 @@
 import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
+import { buildShareUrl } from '../utils/statusShareToken';
 import { X, Share2, Link, MessageCircle, Copy, CheckCircle, Download, Instagram, Facebook, Twitter, Send } from 'lucide-react';
 
 const StatusSharePanel = ({ onClose, status, onShare }) => {
@@ -18,8 +19,12 @@ const StatusSharePanel = ({ onClose, status, onShare }) => {
   ];
 
   useEffect(() => {
-    const statusUrl = `${window.location.origin}/status/${status?._id || status?.id}`;
-    setShareUrl(statusUrl);
+    let cancelled = false;
+    (async () => {
+      const statusUrl = await buildShareUrl(status?._id || status?.id);
+      if (!cancelled) setShareUrl(statusUrl);
+    })();
+    return () => { cancelled = true; };
   }, [status]);
 
   const handleCopyLink = () => {

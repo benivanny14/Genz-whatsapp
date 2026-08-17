@@ -2,6 +2,7 @@ const Status = require('../models/Status');
 const User = require('../models/User');
 const mongoose = require('mongoose');
 const { isEitherUserBlocked } = require('../utils/messageSendHelpers');
+const { createShareToken } = require('../utils/statusShareToken');
 
 // Helper function to check if user owns status
 const isStatusOwner = (status, userId) => {
@@ -1139,6 +1140,76 @@ exports.unmuteUserStatus = async (req, res) => {
     await user.save();
 
     res.json({ success: true, message: 'User ameondolewa kwenye mute', removed: before - user.mutedStatusUsers.length });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// POST /api/status/:id/share-token - Mint an expiring public share token.
+// Only the status owner can; the token lets anyone with the link (including
+// anonymous visitors) view this one status until it expires, without making
+// the status 'everyone'.
+exports.createStatusShareToken = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const status = await Status.findById(req.params.id);
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+
+    const ownerId = String(status.userId || status.user);
+    if (String(userId) !== ownerId) {
+      return res.status(403).json({ success: false, message: 'Only the status owner can generate a share link' });
+    }
+
+    const token = createShareToken(status._id);
+    res.json({ success: true, token, url: `/status/${status._id}?share=${encodeURIComponent(token)}` });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// POST /api/status/:id/unblock - Unblock a user from status.
+// `:id` may be a status id (the poster is resolved) or the blocked user's own
+// id; alternatively pass { userId } in the body. Chat blocks (blockedUsers)
+// are left untouched — this only lifts the status-level block.
+exports.unblockUserStatus = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    let targetUserId = req.body?.userId;
+    if (!targetUserId) {
+      const status = await Status.findById(req.params.id);
+      targetUserId = status?.user || status?.userId || null;
+    }
+    if (!targetUserId) return res.status(404).json({ success: false, message: 'Status not found' });
+
+    const user = await User.findById(userId);
+    const before = (user.blockedStatusUsers || []).length;
+    user.blockedStatusUsers = (user.blockedStatusUsers || []).filter(b => String(b.user) !== String(targetUserId));
+    user.markModified('blockedStatusUsers');
+    await user.save();
+
+    res.json({ success: true, message: 'User ameondolewa kwenye block', removed: before - user.blockedStatusUsers.length });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// GET /api/status-advanced/blocked-users - List users blocked from status,
+// so the UI can offer an unblock entry (blocked posters have no status rows).
+exports.getStatusBlockedUsers = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const user = await User.findById(userId).populate('blockedStatusUsers.user', 'username profilePicture');
+    const list = (user?.blockedStatusUsers || [])
+      .filter(b => b.user)
+      .map(b => ({
+        _id: String(b.user._id),
+        username: b.user.username || 'Unknown',
+        profilePicture: b.user.profilePicture || '',
+        reason: b.reason || '',
+        blockChatsToo: !!b.blockChatsToo,
+        blockedAt: b.blockedAt || null
+      }));
+    res.json({ success: true, blockedUsers: list });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

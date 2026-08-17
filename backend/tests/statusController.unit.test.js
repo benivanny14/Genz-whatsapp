@@ -377,6 +377,32 @@ describe('statusController — getSharedStatus', () => {
     expect(res.body.message).toBe('This status is not shared publicly');
   });
 
+  it('allows anonymous visitors with a valid share token to see non-public statuses', async () => {
+    const { createShareToken } = require('../utils/statusShareToken');
+    const token = createShareToken(VALID_ID);
+    const status = makeStatus({ user: { _id: 'user-2', username: 'bob', contacts: [] }, privacy: 'only_me' });
+    Status.findById.mockReturnValue({ populate: jest.fn().mockReturnValue({ populate: jest.fn().mockResolvedValue(status) }) });
+    const res = makeRes();
+    await statusCtrl.getSharedStatus(makeReq({ user: undefined, params: { id: VALID_ID }, query: { share: token } }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+  });
+
+  it('rejects an invalid or foreign share token with 403', async () => {
+    const { createShareToken } = require('../utils/statusShareToken');
+    const foreignToken = createShareToken('507f191e810c19729de860ea'); // different status
+    const status = makeStatus({ user: { _id: 'user-2', username: 'bob', contacts: [] }, privacy: 'only_me' });
+    Status.findById.mockReturnValue({ populate: jest.fn().mockReturnValue({ populate: jest.fn().mockResolvedValue(status) }) });
+
+    const res1 = makeRes();
+    await statusCtrl.getSharedStatus(makeReq({ user: undefined, params: { id: VALID_ID }, query: { share: foreignToken } }), res1);
+    expect(res1.statusCode).toBe(403);
+
+    const res2 = makeRes();
+    await statusCtrl.getSharedStatus(makeReq({ user: undefined, params: { id: VALID_ID }, query: { share: 'garbage.token' } }), res2);
+    expect(res2.statusCode).toBe(403);
+  });
+
   it('denies statuses from blocked posters with 403', async () => {
     isEitherUserBlocked.mockResolvedValue(true);
     const status = makeStatus({ user: { _id: 'user-2', username: 'bob', contacts: [] }, privacy: 'contacts' });

@@ -7,6 +7,53 @@ by commit.
 
 ---
 
+## [2026-08-18] — v1.1.16 Status trust & privacy: mute works end-to-end, block UI, no more public statuses
+
+**Mute status updates now actually work** (it was stored but never enforced)
+
+- Both status feeds (`/api/status` + `/api/advanced/status`) now load the
+  viewer's `mutedStatusUsers` and `blockedStatusUsers`: status-blocked
+  posters are hidden entirely, muted posters are flagged `isMuted` so the
+  client sinks them to the bottom of the feed (WhatsApp behaviour) with a
+  bell-off indicator.
+- New `POST /status-advanced/:id/unmute` (status id or `{ userId }` in the
+  body) — previously a mute could only expire, never be lifted.
+- Mute durations now parse correctly (`1h`/`8h`/`24h`/`1w`/`1m`/`forever`);
+  before, string durations produced an Invalid Date expiry.
+- Status page: muted groups sink to the bottom, the row button becomes
+  **Unmute**, and muting/unmuting refreshes the feed immediately.
+
+**Block from status is now a full loop**
+
+- Blocking refreshes the feed so the poster disappears instantly.
+- New `POST /status-advanced/:id/unblock` + `GET /status-advanced/blocked-users`,
+  with a **Blocked From Status** panel (Shield button in the Status header)
+  listing blocked users and offering Unblock — needed because blocked
+  posters have no row to reopen the panel from.
+
+**'everyone' privacy removed (WhatsApp parity)**
+
+- New statuses can no longer be public: the upload radio is gone, legacy
+  saved defaults coerce to contacts, both `createStatus` paths coerce an
+  explicit `everyone`, the reshare flow stores contacts (it previously
+  published reshares to the whole platform), the model default is contacts,
+  and the per-status PATCH + `status-features/privacy` endpoints reject it.
+  Existing `everyone` statuses still render and stay viewable.
+- Public sharing replaced by an **expiring share token** (HMAC-signed, 24h):
+  the owner mints one via `POST /status-advanced/:id/share-token`; QR and
+  Share panels append `?share=...` to the link, and the shared-status viewer
+  accepts it so anonymous visitors can view that one status without it being
+  public. Tokens are stateless (no DB writes) and block checks still apply.
+
+**Tests**
+
+- Backend **1726/1726** (`USE_LOCAL_MONGO_FOR_TESTS`, serial) · frontend
+  **93/93** + build ✓.
+- New e2e spec `status-mute-block.spec.js`: mute → muted indicator + Unmute
+  action, unmute → restored, block → poster hidden. **3/3 green.**
+
+---
+
 ## [2026-08-17] — Verification pass: full e2e + backend green, WINGA polish, glass video fix
 
 **Full local verification after the 109-commit merge**

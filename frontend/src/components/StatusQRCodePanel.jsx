@@ -1,6 +1,7 @@
 import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
+import { buildShareUrl } from '../utils/statusShareToken';
 import { X, QrCode, Download, Share2, Copy, Link, Scan } from 'lucide-react';
 
 const StatusQRCodePanel = ({ onClose, status }) => {
@@ -36,7 +37,9 @@ const StatusQRCodePanel = ({ onClose, status }) => {
     setIsGenerating(true);
     try {
       const token = getAuthToken();
-      const statusUrl = customUrl || `${window.location.origin}/status/${status?._id || status?.id}`;
+      // Owner statuses get an expiring share token so the QR works for anyone;
+      // everyone else falls back to the plain (logged-in-only) link.
+      const statusUrl = customUrl || await buildShareUrl(status?._id || status?.id);
       
       const response = await fetch(`${resolveApiBase()}/status-advanced/qr`, {
         method: 'POST',

@@ -102,6 +102,11 @@ router.post('/:id/forward', statusAdvancedController.forwardStatus);
 router.post('/:id/mute', statusAdvancedController.muteUserStatus);
 router.post('/:id/unmute', statusAdvancedController.unmuteUserStatus);
 router.post('/:id/block', statusAdvancedController.blockUserStatus);
+router.post('/:id/unblock', statusAdvancedController.unblockUserStatus);
+router.get('/blocked-users', statusAdvancedController.getStatusBlockedUsers);
+
+// Expiring public share link (owner-only token)
+router.post('/:id/share-token', statusAdvancedController.createStatusShareToken);
 
 // Insights
 router.get('/:id/insights', statusAdvancedController.getInsights);

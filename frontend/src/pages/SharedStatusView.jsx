@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Link2, MapPin, Loader2 } from 'lucide-react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 
 const SharedStatusView = () => {
   const { statusId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const shareToken = searchParams.get('share') || searchParams.get('token');
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -15,7 +17,11 @@ const SharedStatusView = () => {
     const load = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`${resolveApiBase()}/status/share/${statusId}`);
+        // Forward an expiring share token (minted by the owner) so anonymous
+        // visitors can view the status; without it only public/legacy statuses
+        // and logged-in viewers pass the server checks.
+        const qs = shareToken ? `?share=${encodeURIComponent(shareToken)}` : '';
+        const res = await fetch(`${resolveApiBase()}/status/share/${statusId}${qs}`);
         const data = await res.json();
         if (!cancelled) {
           if (data.success && data.status) setStatus(data.status);
@@ -29,7 +35,7 @@ const SharedStatusView = () => {
     };
     load();
     return () => { cancelled = true; };
-  }, [statusId]);
+  }, [statusId, shareToken]);
 
   const bgStyle = status ? { backgroundColor: status.backgroundColor || '#075E54' } : {};
   const textStyle = status ? { color: status.textColor || '#ffffff', fontFamily: status.fontStyle === 'serif' ? 'Georgia, serif' : status.fontStyle === 'mono' ? 'monospace' : 'sans-serif' } : {};

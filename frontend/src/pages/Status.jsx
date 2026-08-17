@@ -58,6 +58,7 @@ import StatusDownloadPanel from '../components/StatusDownloadPanel';
 import StatusDeletePanel from '../components/StatusDeletePanel';
 import StatusMutePanel from '../components/StatusMutePanel';
 import StatusBlockPanel from '../components/StatusBlockPanel';
+import StatusBlockedUsersPanel from '../components/StatusBlockedUsersPanel';
 import StatusSavePanel from '../components/StatusSavePanel';
 import StatusForwardPanel from '../components/StatusForwardPanel';
 import TrailerStatusGenerator from '../components/TrailerStatusGenerator';
@@ -110,6 +111,7 @@ const Status = () => {
   const [showStatusDelete, setShowStatusDelete] = useState(false);
   const [showStatusMute, setShowStatusMute] = useState(false);
   const [showStatusBlock, setShowStatusBlock] = useState(false);
+  const [showStatusBlockedList, setShowStatusBlockedList] = useState(false);
   const [showStatusSave, setShowStatusSave] = useState(false);
   const [showStatusForward, setShowStatusForward] = useState(false);
   const [selectedStatusForPanel, setSelectedStatusForPanel] = useState(null);
@@ -968,14 +970,23 @@ const Status = () => {
               title="Voice Changer" aria-label="Voice Changer"
             >
               <Zap size={20} />
-            </button>
-            <button
+            </button>            <button
               type="button"
               onClick={() => setShowStatusArchive(true)}
               className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="Archive" aria-label="Archive"
+              title="Archive"
+              aria-label="Archive"
             >
               <Archive size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowStatusBlockedList(true)}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              title="Blocked from status"
+              aria-label="Blocked from status"
+            >
+              <Shield size={20} />
             </button>
             <button
               type="button"
@@ -2467,6 +2478,12 @@ const Status = () => {
             onClose={() => { setShowStatusBlock(false); setSelectedStatusForPanel(null); }}
             status={selectedStatusForPanel}
             onBlock={() => { fetchStatuses(); }}
+          />
+        )}
+        {showStatusBlockedList && (
+          <StatusBlockedUsersPanel
+            onClose={() => setShowStatusBlockedList(false)}
+            onChanged={() => { fetchStatuses(); }}
           />
         )}
         {showStatusSave && selectedStatusForPanel && (
