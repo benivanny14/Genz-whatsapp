@@ -1491,8 +1491,9 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); navigate('/winga'); }}
+                              aria-label={`${peerWinga.count} biashara kwenye WINGA${peerWinga.unseen > 0 ? ` — ${peerWinga.unseen} mpya` : ''}`}
                               title={`${peerWinga.count} biashara kwenye WINGA${peerWinga.unseen > 0 ? ` — ${peerWinga.unseen} mpya` : ''}`}
-                              className={`absolute -bottom-1 -right-1 z-10 h-[20px] w-[20px] overflow-hidden rounded-full shadow ${peerWinga.unseen > 0 ? 'ring-2 ring-amber-400' : 'ring-2 ring-[#008069]'}`}
+                              className={`absolute -bottom-1 -left-1 z-10 h-[20px] w-[20px] overflow-hidden rounded-full shadow ${peerWinga.unseen > 0 ? 'ring-2 ring-amber-400' : 'ring-2 ring-[#008069]'}`}
                             >
                               {peerWinga.thumb ? (
                                 <img src={peerWinga.thumb} alt="" className="h-full w-full object-cover" />
@@ -1564,7 +1565,8 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); navigate('/winga'); }}
-                              className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-black ${peerWinga.unseen > 0 ? 'bg-amber-400/15 text-amber-400' : 'bg-white/5 text-white/40'}`}
+                              className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-black ${peerWinga.unseen > 0 ? 'bg-amber-400/15 text-amber-400' : 'bg-white/10 text-white/60'}`}
+                              aria-label={`${peerWinga.count} biashara kwenye WINGA${peerWinga.unseen > 0 ? ` — ${peerWinga.unseen} mpya` : ''}`}
                               title={`${peerWinga.count} biashara kwenye WINGA${peerWinga.unseen > 0 ? ` — ${peerWinga.unseen} mpya` : ''}`}
                             >
                               {peerWinga.thumb && (
