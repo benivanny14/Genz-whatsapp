@@ -18,6 +18,13 @@ test('public pages (no ProtectedRoute) skip the redirect too', () => {
   assert.equal(shouldSkipLoginRedirect('/pair-device'), true);
 });
 
+test('the public shared-status viewer (/status/:statusId) skips the redirect', () => {
+  assert.equal(shouldSkipLoginRedirect('/status/6a8382dd25ec6c9e5cdc6626'), true);
+  assert.equal(shouldSkipLoginRedirect('/status/6a8382dd25ec6c9e5cdc6626?share=abc'), true);
+  // the protected /status page itself still redirects (ProtectedRoute guards it)
+  assert.equal(shouldSkipLoginRedirect('/status'), false);
+});
+
 test('admin pages skip the redirect (their own login + guards handle it)', () => {
   assert.equal(shouldSkipLoginRedirect('/system-control-x7k9/login'), true);
   assert.equal(shouldSkipLoginRedirect('/system-control-x7k9'), true);

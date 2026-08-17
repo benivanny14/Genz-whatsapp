@@ -1,14 +1,15 @@
 {
-  "version": "1.1.14",
-  "versionCode": 18,
+  "version": "1.1.16",
+  "versionCode": 19,
   "apkUrl": "/genz-whatsapp.apk",
-  "sha256": "28655847d1910b5cd4da87948339613a38a6d486631775b200610743e5945dfe",
-  "size": 11898932,
-  "releasedAt": "2026-08-15T02:10:43.711Z",
+  "sha256": "f63b20810c8354b877c31d50084cfc91c8aebebe8606ac3037176768e6393280",
+  "size": 10684082,
+  "releasedAt": "2026-08-17T22:08:06.213Z",
   "changes": [
-    "APK inafunguka papo hapo na kufanya kazi offline (app imejengewa ndani)",
-    "Calls zimeondolewa — GENZ sasa ni app ya messaging pekee",
-    "Web app API proxy imerekebishwa — login na sync zinafanya kazi tena",
-    "Rate limiting kwa kila IP imerekebishwa kwenye production"
+    "Mute status updates end-to-end (with unmute)",
+    "Block from status + unblock management",
+    "Expiring share tokens for public links",
+    "Status privacy: no more everyone",
+    "Full e2e + backend suites green"
   ]
 }

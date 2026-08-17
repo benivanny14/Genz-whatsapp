@@ -14,6 +14,12 @@ export const shouldSkipLoginRedirect = (path = '') => {
   // and the admin paths, which use a DIFFERENT login (own credentials + TOTP).
   const publicPages = ['/login', '/register', '/verify-phone', '/forgot-password', '/privacy-policy', '/terms', '/install', '/pair-device'];
   const adminPages = ['/system-control-x7k9', '/system-gateway-x9k', '/admin'];
+  // /status/:statusId is the PUBLIC shared-status viewer (QR / share links):
+  // an anonymous visitor must never be hard-redirected to /login mid-boot.
+  // The protected /status page itself stays guarded by ProtectedRoute, so
+  // matching the '/status/' prefix is safe — there are no other /status/*
+  // routes.
   return publicPages.some((p) => path === p || path.startsWith(p + '/')) ||
-    adminPages.some((p) => path === p || path.startsWith(p + '/'));
+    adminPages.some((p) => path === p || path.startsWith(p + '/')) ||
+    path.startsWith('/status/');
 };

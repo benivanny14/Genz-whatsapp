@@ -1169,8 +1169,9 @@ exports.createStatusShareToken = async (req, res) => {
 
 // POST /api/status/:id/unblock - Unblock a user from status.
 // `:id` may be a status id (the poster is resolved) or the blocked user's own
-// id; alternatively pass { userId } in the body. Chat blocks (blockedUsers)
-// are left untouched — this only lifts the status-level block.
+// id; alternatively pass { userId } in the body. Like WhatsApp, unblocking
+// lifts a block that ALSO blocked chats (blockChatsToo) from both lists;
+// a status-only block only leaves blockedStatusUsers.
 exports.unblockUserStatus = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
@@ -1182,9 +1183,18 @@ exports.unblockUserStatus = async (req, res) => {
     if (!targetUserId) return res.status(404).json({ success: false, message: 'Status not found' });
 
     const user = await User.findById(userId);
+    const removedEntries = (user.blockedStatusUsers || []).filter(b => String(b.user) === String(targetUserId));
     const before = (user.blockedStatusUsers || []).length;
     user.blockedStatusUsers = (user.blockedStatusUsers || []).filter(b => String(b.user) !== String(targetUserId));
     user.markModified('blockedStatusUsers');
+
+    // The status block had chat-blocking enabled: lift that too (WhatsApp
+    // unblock removes both).
+    if (removedEntries.some(b => b.blockChatsToo) && Array.isArray(user.blockedUsers)) {
+      user.blockedUsers = user.blockedUsers.filter(id => String(id) !== String(targetUserId));
+      user.markModified('blockedUsers');
+    }
+
     await user.save();
 
     res.json({ success: true, message: 'User ameondolewa kwenye block', removed: before - user.blockedStatusUsers.length });
@@ -1195,20 +1205,29 @@ exports.unblockUserStatus = async (req, res) => {
 
 // GET /api/status-advanced/blocked-users - List users blocked from status,
 // so the UI can offer an unblock entry (blocked posters have no status rows).
+// blockedStatusUsers is a Mixed schema (ObjectIds), which mongoose cannot
+// populate — fetch the users explicitly instead.
 exports.getStatusBlockedUsers = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
-    const user = await User.findById(userId).populate('blockedStatusUsers.user', 'username profilePicture');
-    const list = (user?.blockedStatusUsers || [])
-      .filter(b => b.user)
-      .map(b => ({
-        _id: String(b.user._id),
-        username: b.user.username || 'Unknown',
-        profilePicture: b.user.profilePicture || '',
+    const user = await User.findById(userId);
+    const entries = (user?.blockedStatusUsers || []).filter(b => b.user);
+    const ids = entries.map(b => String(b.user));
+    const users = ids.length > 0
+      ? await User.find({ _id: { $in: ids } }).select('username profilePicture')
+      : [];
+    const byId = new Map(users.map(u => [String(u._id), u]));
+    const list = entries.map(b => {
+      const u = byId.get(String(b.user)) || {};
+      return {
+        _id: String(b.user),
+        username: u.username || 'Unknown',
+        profilePicture: u.profilePicture || '',
         reason: b.reason || '',
         blockChatsToo: !!b.blockChatsToo,
         blockedAt: b.blockedAt || null
-      }));
+      };
+    });
     res.json({ success: true, blockedUsers: list });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

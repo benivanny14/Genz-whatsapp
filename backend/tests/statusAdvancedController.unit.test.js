@@ -8,7 +8,8 @@ jest.mock('../models/Status', () => ({
 
 jest.mock('../models/User', () => ({
   findById: jest.fn(),
-  findOne: jest.fn()
+  findOne: jest.fn(),
+  find: jest.fn()
 }));
 
 jest.mock('../utils/messageSendHelpers', () => ({
@@ -847,14 +848,51 @@ describe('statusAdvancedController — share/download/mute/block/save/forward', 
     expect(user.blockedStatusUsers).toHaveLength(0);
   });
 
-  it('getStatusBlockedUsers lists populated blocked users', async () => {
-    User.findById.mockReturnValue({
-      populate: jest.fn().mockResolvedValue({
-        blockedStatusUsers: [
-          { user: { _id: 'user-2', username: 'bob', profilePicture: '' }, reason: 'spam', blockChatsToo: true, blockedAt: new Date() },
-          { user: { _id: 'user-3', username: 'carol', profilePicture: 'p.png' }, reason: '', blockChatsToo: false, blockedAt: null }
-        ]
-      })
+  it('unblockUserStatus also lifts the chat block when blockChatsToo was set', async () => {
+    Status.findById.mockResolvedValue(makeStatus({ user: 'user-2' }));
+    const user = {
+      blockedStatusUsers: [{ user: 'user-2', blockChatsToo: true }, { user: 'user-3', blockChatsToo: false }],
+      blockedUsers: ['user-2', 'user-5'],
+      markModified: jest.fn(),
+      save: jest.fn().mockResolvedValue(undefined)
+    };
+    User.findById.mockResolvedValue(user);
+    const res = makeRes();
+    await statusAdv.unblockUserStatus(makeReq({ params: { id: VALID_ID } }), res);
+    expect(user.blockedStatusUsers).toHaveLength(1);
+    expect(user.blockedStatusUsers[0].user).toBe('user-3');
+    // chat block for user-2 removed, unrelated user-5 untouched
+    expect(user.blockedUsers).toEqual(['user-5']);
+    expect(user.markModified).toHaveBeenCalledWith('blockedUsers');
+  });
+
+  it('unblockUserStatus keeps the chat block for status-only blocks', async () => {
+    Status.findById.mockResolvedValue(makeStatus({ user: 'user-2' }));
+    const user = {
+      blockedStatusUsers: [{ user: 'user-2', blockChatsToo: false }],
+      blockedUsers: ['user-2'],
+      markModified: jest.fn(),
+      save: jest.fn().mockResolvedValue(undefined)
+    };
+    User.findById.mockResolvedValue(user);
+    const res = makeRes();
+    await statusAdv.unblockUserStatus(makeReq({ params: { id: VALID_ID } }), res);
+    expect(user.blockedStatusUsers).toHaveLength(0);
+    expect(user.blockedUsers).toEqual(['user-2']);
+  });
+
+  it('getStatusBlockedUsers resolves user info via an explicit User.find (Mixed schema cannot populate)', async () => {
+    User.findById.mockResolvedValue({
+      blockedStatusUsers: [
+        { user: 'user-2', reason: 'spam', blockChatsToo: true, blockedAt: new Date() },
+        { user: 'user-3', reason: '', blockChatsToo: false, blockedAt: null }
+      ]
+    });
+    User.find.mockReturnValue({
+      select: jest.fn().mockResolvedValue([
+        { _id: 'user-2', username: 'bob', profilePicture: '' },
+        { _id: 'user-3', username: 'carol', profilePicture: 'p.png' }
+      ])
     });
     const res = makeRes();
     await statusAdv.getStatusBlockedUsers(makeReq(), res);
@@ -862,6 +900,8 @@ describe('statusAdvancedController — share/download/mute/block/save/forward', 
     expect(res.body.blockedUsers).toHaveLength(2);
     expect(res.body.blockedUsers[0].username).toBe('bob');
     expect(res.body.blockedUsers[0].blockChatsToo).toBe(true);
+    expect(res.body.blockedUsers[1].username).toBe('carol');
+    expect(User.find).toHaveBeenCalledWith({ _id: { $in: ['user-2', 'user-3'] } });
   });
 
   it('blockUserStatus rejects already-blocked users (400)', async () => {
