@@ -686,10 +686,11 @@ body {
 }
 
 /* Frosted main panels (sidebar + chat area) so the video background shows.
-   NOTE: the frosted blur itself comes from Tailwind's backdrop-blur-md
-   utility on the glass-panel elements — hand-written backdrop-filter
-   declarations here get dropped by the Lightning CSS minifier, but the
-   Tailwind utility keeps both the -webkit- and standard forms. */
+   Translucent background only — NO backdrop-filter on the panels: it would
+   create a stacking context + containing block that misplaces the app's
+   position:fixed overlays (DND indicator, header/sidebar menus). The glass
+   depth comes from the video's own blur (videoBgBlur) behind the
+   translucent panel. */
 .glass-mode-active .glass-panel {
   background-color: rgba(11, 20, 26, 0.45) !important;
 }

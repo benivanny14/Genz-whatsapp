@@ -2400,7 +2400,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
   if (!selectedConversation) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-dark-bg glass-panel backdrop-blur-md">
+      <div className="flex-1 flex items-center justify-center bg-dark-bg glass-panel">
         <div className="text-center">
           <div className="bg-primary-600/10 p-6 rounded-full inline-block mb-4">
             <MessageCircle className="w-16 h-16 text-primary-600" />
@@ -2419,7 +2419,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
   if (isLocked) {
     return (
-      <div className="flex-1 flex flex-col bg-dark-bg glass-panel backdrop-blur-md items-center justify-center p-6 text-center">
+      <div className="flex-1 flex flex-col bg-dark-bg glass-panel items-center justify-center p-6 text-center">
         <div className="w-20 h-20 bg-primary-600/10 rounded-full flex items-center justify-center mb-6">
           <Lock className="w-10 h-10 text-primary-600" />
         </div>
@@ -2447,7 +2447,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-dark-bg glass-panel backdrop-blur-md min-w-0 w-full overflow-hidden relative h-[100dvh] min-h-0" style={{ height: '100dvh', maxHeight: '100dvh' }}>
+    <div className="flex-1 flex flex-col bg-dark-bg glass-panel min-w-0 w-full overflow-hidden relative h-[100dvh] min-h-0" style={{ height: '100dvh', maxHeight: '100dvh' }}>
       <div
         className="absolute inset-0 pointer-events-none z-0"
         style={wallpaperStyle}
