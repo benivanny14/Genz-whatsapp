@@ -278,6 +278,46 @@ describe('statusController — getStatuses (feed)', () => {
     expect(res.body.myStatuses).toHaveLength(0);
     expect(res.body.others).toHaveLength(0);
   });
+
+  it('marks groups as isMuted when the viewer muted the poster', async () => {
+    User.findById.mockReturnValue({
+      select: jest.fn().mockResolvedValue({
+        mutedStatusUsers: [{ user: 'user-2', expiresAt: null }],
+        blockedStatusUsers: []
+      })
+    });
+    Status.find.mockReturnValue(findChain([otherStatus]));
+    const res = makeRes();
+    await statusCtrl.getStatuses(makeReq(), res);
+    expect(res.body.others).toHaveLength(1);
+    expect(res.body.others[0].isMuted).toBe(true);
+  });
+
+  it('ignores mutes that have already expired', async () => {
+    User.findById.mockReturnValue({
+      select: jest.fn().mockResolvedValue({
+        mutedStatusUsers: [{ user: 'user-2', expiresAt: new Date(Date.now() - 1000) }],
+        blockedStatusUsers: []
+      })
+    });
+    Status.find.mockReturnValue(findChain([otherStatus]));
+    const res = makeRes();
+    await statusCtrl.getStatuses(makeReq(), res);
+    expect(res.body.others[0].isMuted).toBe(false);
+  });
+
+  it('hides statuses from users blocked from status only', async () => {
+    User.findById.mockReturnValue({
+      select: jest.fn().mockResolvedValue({
+        mutedStatusUsers: [],
+        blockedStatusUsers: [{ user: 'user-2', blockChatsToo: false }]
+      })
+    });
+    Status.find.mockReturnValue(findChain([otherStatus]));
+    const res = makeRes();
+    await statusCtrl.getStatuses(makeReq(), res);
+    expect(res.body.others).toHaveLength(0);
+  });
 });
 
 describe('statusController — getSharedStatus', () => {

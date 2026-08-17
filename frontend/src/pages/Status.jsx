@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { Plus, X, Eye, Clock, Camera, Image, Type, Upload, RefreshCw, Film, Sparkles, Bookmark, Settings, Music, Download, Bell, Shield, TrendingUp, BarChart3, Palette, Share2, Accessibility, Mic, Archive, Users, Volume2, Zap, Heart, Calendar, MapPin, Cloud, QrCode, AtSign, Hash, Edit, Copy, Pin, Flag, Layout, FileText, Star, History, BellOff, Trash2, Forward, RotateCcw, Grid, Timer } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { authFetch } from '../utils/authFetch';
+import { getAuthToken } from '../utils/tokenStore';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import StatusScrollFeed from '../components/StatusScrollFeed';
 import StatusReel from '../components/StatusReel';
@@ -864,18 +865,41 @@ const Status = () => {
           ownerId,
           username: s.username || s.user?.username || 'Unknown',
           avatarUrl: s.user?.profilePicture || s.profilePicture || '',
+          isMuted: !!s.isMuted,
           statuses: []
         });
       }
-      groups.get(ownerId).statuses.push(s);
+      const group = groups.get(ownerId);
+      group.isMuted = group.isMuted || !!s.isMuted;
+      group.statuses.push(s);
     }
-    // Newest group first; keep each user's statuses in feed order.
+    // WhatsApp behaviour: muted users sink to the bottom of the feed (still
+    // viewable, still unmuteable); the rest stay newest-first.
     return Array.from(groups.values()).sort((a, b) => {
+      if (a.isMuted !== b.isMuted) return a.isMuted ? 1 : -1;
       const ta = new Date(a.statuses[0]?.timestamp || a.statuses[0]?.createdAt || 0);
       const tb = new Date(b.statuses[0]?.timestamp || b.statuses[0]?.createdAt || 0);
       return tb - ta;
     });
   }, [statusFeed]);
+
+  // Unmute a user's status updates (status id or userId both resolve server-side)
+  // then refresh the feed so their group moves back into place.
+  const unmuteStatusUser = async (status) => {
+    try {
+      const token = getAuthToken();
+      await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/unmute`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      await fetchStatuses();
+    } catch (err) {
+      console.error('Error unmuting status:', err);
+    }
+  };
 
   // Open the feed scoped to one user (WhatsApp behaviour): start at their
   // first unviewed status, if any.
@@ -1153,7 +1177,7 @@ const Status = () => {
                         key={group.ownerId + '-' + (sid || 'x')}
                         role="button"
                         tabIndex={0}
-                        className="flex items-center gap-4 p-3 bg-white/5 backdrop-blur-md rounded-lg shadow hover:bg-white/10 transition-shadow cursor-pointer border border-white/10"
+                        className={`flex items-center gap-4 p-3 bg-white/5 backdrop-blur-md rounded-lg shadow hover:bg-white/10 transition-shadow cursor-pointer border border-white/10 ${group.isMuted ? 'opacity-60' : ''}`}
                         onClick={() => openUserFeed(group)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') openUserFeed(group);
@@ -1178,6 +1202,9 @@ const Status = () => {
                         <div className="flex-1 min-w-0">
                           <p className={`font-semibold flex items-center gap-1.5 ${hasUnread ? 'text-white' : 'text-gray-300'}`}>
                             {group.username}
+                            {group.isMuted && (
+                              <BellOff size={13} className="text-yellow-400 flex-shrink-0" aria-label="Muted status updates" />
+                            )}
                             {group.statuses.length > 1 && (
                               <span className="text-[10px] font-bold text-blue-300 bg-blue-500/20 px-1.5 py-0.5 rounded-full">
                                 {group.statuses.length}
@@ -1366,11 +1393,19 @@ const Status = () => {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedStatusForPanel(status);
-                              setShowStatusMute(true);
+                              if (group.isMuted) {
+                                unmuteStatusUser(status);
+                              } else {
+                                setSelectedStatusForPanel(status);
+                                setShowStatusMute(true);
+                              }
                             }}
-                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-yellow-400 transition-colors"
-                            title="Mute"
+                            className={`p-1.5 rounded-full transition-colors ${
+                              group.isMuted
+                                ? 'text-yellow-400 hover:bg-yellow-400/20'
+                                : 'hover:bg-white/20 hover:text-yellow-400'
+                            }`}
+                            title={group.isMuted ? 'Unmute' : 'Mute'}
                           >
                             <BellOff size={14} />
                           </button>
@@ -2435,7 +2470,7 @@ const Status = () => {
           <StatusMutePanel 
             onClose={() => { setShowStatusMute(false); setSelectedStatusForPanel(null); }}
             status={selectedStatusForPanel}
-            onMute={(data) => console.log('Status muted:', data)}
+            onMute={() => { fetchStatuses(); }}
           />
         )}
         {showStatusBlock && selectedStatusForPanel && (

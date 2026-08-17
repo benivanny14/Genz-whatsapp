@@ -1068,6 +1068,23 @@ exports.downloadStatus = async (req, res) => {
   }
 };
 
+// Parse a mute duration into milliseconds. Accepts numeric hours (legacy API)
+// or strings like '1h', '8h', '24h', '1w', '1m' (month) and 'forever' (null =
+// no expiry). Returns null when the value means "forever" or is unparseable.
+const parseMuteDurationMs = (duration) => {
+  if (duration == null || duration === '' || duration === 'forever') return null;
+  if (typeof duration === 'number') {
+    return duration > 0 ? duration * 60 * 60 * 1000 : null;
+  }
+  const match = String(duration).trim().match(/^(\d+(?:\.\d+)?)\s*(h|hr|hrs|hours?|d|days?|w|weeks?|m|mo|mos|months?)$/i);
+  if (!match) return null;
+  const value = parseFloat(match[1]);
+  const unit = match[2].toLowerCase().replace(/s$/, '');
+  const hoursPerUnit = { h: 1, hr: 1, hour: 1, d: 24, day: 24, w: 168, week: 168, m: 720, mo: 720, month: 720 };
+  const hours = value * (hoursPerUnit[unit] ?? 1);
+  return hours * 60 * 60 * 1000;
+};
+
 // POST /api/status/:id/mute - Mute user status
 exports.muteUserStatus = async (req, res) => {
   try {
@@ -1085,17 +1102,43 @@ exports.muteUserStatus = async (req, res) => {
       return res.status(400).json({ success: false, message: 'User tayari ameshazimwa' });
     }
 
+    const durationMs = parseMuteDurationMs(duration);
     user.mutedStatusUsers.push({
       user: status.user,
       duration,
       reason,
       mutedAt: new Date(),
-      expiresAt: duration ? new Date(Date.now() + duration * 60 * 60 * 1000) : null
+      expiresAt: durationMs ? new Date(Date.now() + durationMs) : null
     });
     user.markModified('mutedStatusUsers');
     await user.save();
 
     res.json({ success: true, message: 'User amezimwa' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// POST /api/status/:id/unmute - Unmute a user's status updates.
+// `:id` may be a status id (the poster is resolved from it) or the muted
+// user's own id. Alternatively pass { userId } in the body.
+exports.unmuteUserStatus = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    let targetUserId = req.body?.userId;
+    if (!targetUserId) {
+      const status = await Status.findById(req.params.id);
+      targetUserId = status?.user || status?.userId || null;
+    }
+    if (!targetUserId) return res.status(404).json({ success: false, message: 'Status not found' });
+
+    const user = await User.findById(userId);
+    const before = (user.mutedStatusUsers || []).length;
+    user.mutedStatusUsers = (user.mutedStatusUsers || []).filter(m => String(m.user) !== String(targetUserId));
+    user.markModified('mutedStatusUsers');
+    await user.save();
+
+    res.json({ success: true, message: 'User ameondolewa kwenye mute', removed: before - user.mutedStatusUsers.length });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

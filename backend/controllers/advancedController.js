@@ -15,6 +15,7 @@ const {
 const { assertSafeExternalUrl } = require('../utils/networkGuard');
 const { serializeOutgoingMessage } = require('../utils/messageSerializer');
 const { isEitherUserBlocked } = require('../utils/messageSendHelpers');
+const { getActiveMutedUserIds, getActiveStatusBlockedUserIds } = require('../utils/statusMuteHelpers');
 const { sendNewMessageNotification } = require('../services/notificationService');
 const { normalizeLocationData } = require('../utils/locationData');
 const getCurrentUserId = (req) => {
@@ -486,6 +487,22 @@ exports.getStatuses = async (req, res) => {
       .populate('views.user', 'username profilePicture')
       .sort({ createdAt: -1 });
 
+    // Load the viewer's mute/block-from-status lists. Muted posters stay in
+    // the feed but are flagged so the client can move them to the bottom
+    // (WhatsApp behaviour); status-blocked posters are hidden entirely.
+    let mutedUserIds = new Set();
+    let blockedStatusUserIds = new Set();
+    try {
+      const viewerDoc = await User.findById(currentUserId);
+      const viewer = viewerDoc && typeof viewerDoc.select === 'function'
+        ? await viewerDoc.select('mutedStatusUsers blockedStatusUsers')
+        : viewerDoc;
+      mutedUserIds = getActiveMutedUserIds(viewer);
+      blockedStatusUserIds = getActiveStatusBlockedUserIds(viewer);
+    } catch (e) {
+      // Anonymous/unauthenticated visitors simply get no mute/block filtering.
+    }
+
     // FIX: this used to show every non-expired status to every registered
     // user (`privacy: 'everyone' or 'contacts'` both passed, and 'everyone'
     // was even the default for new statuses) — a real privacy leak, and the
@@ -497,6 +514,8 @@ exports.getStatuses = async (req, res) => {
       if (!isOwn) {
         const posterId = s.userId || s.user;
         if (await isEitherUserBlocked(currentUserId, posterId)) continue;
+        // "Block from status" is enforced independently of chat blocks.
+        if (blockedStatusUserIds.has(String(posterId))) continue;
 
         const statusPrivacy = s.privacy || 'contacts';
         if (statusPrivacy === 'only_me' || statusPrivacy === 'nobody') continue;
@@ -525,7 +544,20 @@ exports.getStatuses = async (req, res) => {
       filtered.push(s);
     }
 
-    res.status(200).json({ success: true, statuses: groupCollaborativeStories(filtered) });
+    // Flag muted posters (kept in the feed, sorted to the bottom by the UI).
+    // Applied AFTER grouping because groupCollaborativeStories serialises docs
+    // via toObject(), which would drop a plain non-schema field like isMuted.
+    const grouped = groupCollaborativeStories(filtered);
+    grouped.forEach((s) => {
+      s.isMuted = mutedUserIds.has(String(s.userId || s.user));
+      if (Array.isArray(s._contributions)) {
+        s._contributions.forEach((c) => {
+          c.isMuted = mutedUserIds.has(String(c.userId || c.user));
+        });
+      }
+    });
+
+    res.status(200).json({ success: true, statuses: grouped });
   } catch (error) {
     console.error('Error fetching statuses:', error);
     res.status(500).json({ message: error.message });

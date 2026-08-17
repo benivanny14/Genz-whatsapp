@@ -320,6 +320,41 @@ describe('advancedController — statuses', () => {
     expect(res.body.statuses).toHaveLength(1);
   });
 
+  it('flags statuses from muted posters with isMuted', async () => {
+    User.findById.mockReturnValue({
+      select: jest.fn().mockResolvedValue({
+        mutedStatusUsers: [{ user: 'user-2', expiresAt: null }],
+        blockedStatusUsers: []
+      })
+    });
+    Status.find.mockReturnValue({
+      populate: jest.fn().mockReturnThis(),
+      sort: jest.fn().mockResolvedValue([makeStatus({ userId: 'user-2', user: 'user-2', username: 'bob' })])
+    });
+    const res = makeRes();
+    await advanced.getStatuses(makeReq(), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.statuses).toHaveLength(1);
+    expect(res.body.statuses[0].isMuted).toBe(true);
+  });
+
+  it('hides statuses from users blocked from status only', async () => {
+    User.findById.mockReturnValue({
+      select: jest.fn().mockResolvedValue({
+        mutedStatusUsers: [],
+        blockedStatusUsers: [{ user: 'user-2', blockChatsToo: false }]
+      })
+    });
+    Status.find.mockReturnValue({
+      populate: jest.fn().mockReturnThis(),
+      sort: jest.fn().mockResolvedValue([makeStatus({ userId: 'user-2', user: 'user-2', username: 'bob' })])
+    });
+    const res = makeRes();
+    await advanced.getStatuses(makeReq(), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.statuses).toHaveLength(0);
+  });
+
   it('returns 404 when viewing an unknown status', async () => {
     Status.findById.mockResolvedValue(null);
     const res = makeRes();

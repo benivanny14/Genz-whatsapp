@@ -3,6 +3,7 @@ const User = require('../models/User');
 const mongoose = require('mongoose');
 const { isEitherUserBlocked } = require('../utils/messageSendHelpers');
 const { normalizeLocationData } = require('../utils/locationData');
+const { getActiveMutedUserIds, getActiveStatusBlockedUserIds } = require('../utils/statusMuteHelpers');
 
 // POST /api/status - weka status mpya
 exports.createStatus = async (req, res) => {
@@ -99,6 +100,16 @@ exports.getStatuses = async (req, res) => {
     const userId = req.user._id || req.user.id;
     const viewerIdStr = String(userId);
 
+    // Load the viewer's mute/block-from-status lists so the feed can enforce
+    // them (muted groups still appear, flagged, at the bottom like WhatsApp;
+    // status-blocked posters are hidden entirely).
+    const viewerDoc = await User.findById(userId);
+    const viewer = viewerDoc && typeof viewerDoc.select === 'function'
+      ? await viewerDoc.select('mutedStatusUsers blockedStatusUsers')
+      : viewerDoc;
+    const mutedUserIds = getActiveMutedUserIds(viewer);
+    const blockedStatusUserIds = getActiveStatusBlockedUserIds(viewer);
+
     // Onyesha statuses za wote (kama WhatsApp)
     const statuses = await Status.find({
       expiresAt: { $gt: new Date() }
@@ -118,6 +129,8 @@ exports.getStatuses = async (req, res) => {
       if (!isOwn) {
         const blocked = await isEitherUserBlocked(userId, s.user._id);
         if (blocked) continue;
+        // "Block from status" is enforced independently of chat blocks.
+        if (blockedStatusUserIds.has(String(s.user._id))) continue;
 
         // Read the per-status privacy choice (matches the advanced endpoint).
         // The status's own `privacy` field wins; fall back to contacts-only for
@@ -175,6 +188,11 @@ exports.getStatuses = async (req, res) => {
       grouped[uid].statuses.push(s);
       const viewed = s.views.some(v => String(v.user._id) === String(userId));
       if (!viewed) grouped[uid].hasUnviewed = true;
+    });
+
+    // Flag muted posters so the client can move them to the bottom of the feed.
+    Object.values(grouped).forEach(g => {
+      g.isMuted = mutedUserIds.has(String(g.user._id));
     });
 
     stripUserSecrets(myStatuses);

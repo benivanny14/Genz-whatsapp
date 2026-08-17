@@ -100,6 +100,7 @@ router.post('/:id/forward', statusAdvancedController.forwardStatus);
 
 // Mute / Block status users
 router.post('/:id/mute', statusAdvancedController.muteUserStatus);
+router.post('/:id/unmute', statusAdvancedController.unmuteUserStatus);
 router.post('/:id/block', statusAdvancedController.blockUserStatus);
 
 // Insights

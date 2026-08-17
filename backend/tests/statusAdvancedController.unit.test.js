@@ -739,6 +739,62 @@ describe('statusAdvancedController — share/download/mute/block/save/forward', 
     expect(res.body.message).toBe('User amezimwa');
   });
 
+  it('muteUserStatus parses string durations like "24h" into a future expiry', async () => {
+    Status.findById.mockResolvedValue(makeStatus({ user: 'user-2' }));
+    const user = { mutedStatusUsers: [], markModified: jest.fn(), save: jest.fn().mockResolvedValue(undefined) };
+    User.findById.mockResolvedValue(user);
+    const before = Date.now();
+    const res = makeRes();
+    await statusAdv.muteUserStatus(makeReq({ params: { id: VALID_ID }, body: { duration: '24h' } }), res);
+    const expiresAt = user.mutedStatusUsers[0].expiresAt.getTime();
+    expect(expiresAt).toBeGreaterThanOrEqual(before + 24 * 60 * 60 * 1000);
+    expect(expiresAt).toBeLessThanOrEqual(before + 24 * 60 * 60 * 1000 + 5000);
+  });
+
+  it('muteUserStatus treats "forever" as a permanent mute (no expiry)', async () => {
+    Status.findById.mockResolvedValue(makeStatus({ user: 'user-2' }));
+    const user = { mutedStatusUsers: [], markModified: jest.fn(), save: jest.fn().mockResolvedValue(undefined) };
+    User.findById.mockResolvedValue(user);
+
+    const res = makeRes();
+    await statusAdv.muteUserStatus(makeReq({ params: { id: VALID_ID }, body: { duration: 'forever' } }), res);
+    expect(user.mutedStatusUsers[0].expiresAt).toBeNull();
+  });
+
+  it('muteUserStatus treats "1m" as a one-month mute', async () => {
+    Status.findById.mockResolvedValue(makeStatus({ user: 'user-2' }));
+    const user = { mutedStatusUsers: [], markModified: jest.fn(), save: jest.fn().mockResolvedValue(undefined) };
+    User.findById.mockResolvedValue(user);
+
+    const res = makeRes();
+    await statusAdv.muteUserStatus(makeReq({ params: { id: VALID_ID }, body: { duration: '1m' } }), res);
+    const monthExpiry = user.mutedStatusUsers[0].expiresAt.getTime();
+    expect(monthExpiry).toBeGreaterThan(Date.now() + 29 * 24 * 60 * 60 * 1000);
+  });
+
+  it('unmuteUserStatus removes the muted entry (happy path)', async () => {
+    Status.findById.mockResolvedValue(makeStatus({ user: 'user-2' }));
+    const user = {
+      mutedStatusUsers: [{ user: 'user-2', mutedAt: new Date() }, { user: 'user-3', mutedAt: new Date() }],
+      markModified: jest.fn(),
+      save: jest.fn().mockResolvedValue(undefined)
+    };
+    User.findById.mockResolvedValue(user);
+    const res = makeRes();
+    await statusAdv.unmuteUserStatus(makeReq({ params: { id: VALID_ID } }), res);
+    expect(user.mutedStatusUsers).toHaveLength(1);
+    expect(user.mutedStatusUsers[0].user).toBe('user-3');
+    expect(res.body.removed).toBe(1);
+    expect(res.body.success).toBe(true);
+  });
+
+  it('unmuteUserStatus returns 404 when the status and userId are unknown', async () => {
+    Status.findById.mockResolvedValue(null);
+    const res = makeRes();
+    await statusAdv.unmuteUserStatus(makeReq({ params: { id: VALID_ID } }), res);
+    expect(res.statusCode).toBe(404);
+  });
+
   it('blockUserStatus rejects already-blocked users (400)', async () => {
     Status.findById.mockResolvedValue(makeStatus());
     User.findById.mockResolvedValue({ blockedStatusUsers: [{ user: 'user-1' }] });
