@@ -21,7 +21,7 @@ const Register = () => {
   const passwordStrength = (() => {
     const p = form.password || '';
     const checks = {
-      length: p.length >= 8,
+      length: p.length >= 12,
       upper: /[A-Z]/.test(p),
       lower: /[a-z]/.test(p),
       number: /\d/.test(p),
@@ -131,7 +131,7 @@ const Register = () => {
             onChange={(event) => updateField('password', event.target.value)}
             className="w-full bg-transparent py-3 text-white outline-none"
             autoComplete="new-password"
-            minLength={8}
+            minLength={12}
             required
           />
           <button type="button" onClick={() => setShowPassword((value) => !value)} className="text-slate-300">
@@ -139,7 +139,7 @@ const Register = () => {
           </button>
         </div>
         <p className="-mt-4 mb-5 text-xs text-slate-500">
-          Minimum 8 characters: uppercase, lowercase, number, and special character.
+          Minimum 12 characters: uppercase, lowercase, number, and special character.
         </p>
 
         {/* Password strength indicator */}
@@ -153,7 +153,7 @@ const Register = () => {
             </span>
           </div>
           <div className="grid grid-cols-2 gap-1 text-[10px] text-slate-500">
-            <span className={passwordStrength.checks.length ? 'text-green-400' : ''}>8+ chars</span>
+            <span className={passwordStrength.checks.length ? 'text-green-400' : ''}>12+ chars</span>
             <span className={passwordStrength.checks.upper ? 'text-green-400' : ''}>Uppercase</span>
             <span className={passwordStrength.checks.number ? 'text-green-400' : ''}>Number</span>
             <span className={passwordStrength.checks.special ? 'text-green-400' : ''}>Special</span>
@@ -169,7 +169,7 @@ const Register = () => {
             onChange={(event) => updateField('confirmPassword', event.target.value)}
             className="w-full bg-transparent py-3 text-white outline-none"
             autoComplete="new-password"
-            minLength={8}
+            minLength={12}
             required
           />
           <button type="button" onClick={() => setShowConfirm((value) => !value)} className="text-slate-300">

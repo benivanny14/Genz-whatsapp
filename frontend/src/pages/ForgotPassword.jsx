@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 
 const API_URL = resolveApiBase();
 
-const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]).{8,}$/;
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]).{12,}$/;
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
@@ -62,7 +62,7 @@ const ForgotPassword = () => {
       return;
     }
     if (!isPasswordStrong) {
-      setError('Password must include uppercase, lowercase, number, and special character (min 8)');
+      setError('Password must include uppercase, lowercase, number, and special character (min 12)');
       return;
     }
     setLoading(true);
@@ -200,7 +200,7 @@ const ForgotPassword = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="new-password"
-                  minLength={8}
+                  minLength={12}
                   required
                   className="w-full bg-transparent py-3 text-white outline-none"
                 />
@@ -211,7 +211,7 @@ const ForgotPassword = () => {
               {password && (
                 <div className="mt-2 space-y-1.5 text-xs">
                   <div className={`flex items-center gap-1 ${isPasswordStrong ? 'text-green-400' : 'text-yellow-400'}`}>
-                    <Check size={12} /> {isPasswordStrong ? 'Password is strong' : 'Min 8: upper, lower, number, special'}
+                    <Check size={12} /> {isPasswordStrong ? 'Password is strong' : 'Min 12: upper, lower, number, special'}
                   </div>
                 </div>
               )}
@@ -225,7 +225,7 @@ const ForgotPassword = () => {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   autoComplete="new-password"
-                  minLength={8}
+                  minLength={12}
                   required
                   className="w-full bg-transparent py-3 text-white outline-none"
                 />
