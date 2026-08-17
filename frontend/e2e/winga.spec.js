@@ -262,6 +262,10 @@ test('WINGA: buyer orders a listing and the seller confirms it', async ({ page, 
   await expect(page.getByText('Asante kwa tathmini yako!')).toBeVisible({ timeout: 20_000 });
   await page.getByRole('button', { name: 'Close' }).last().click();
 
+  // The global search bar only renders on the root categories view, so head
+  // back there before searching.
+  await page.getByRole('button', { name: 'Back to categories' }).click();
+
   // Search across all categories finds the listing by title.
   await page.getByTestId('winga-search').fill('Kanga');
   await expect(page.getByText(/Matokeo ya "Kanga"/).first()).toBeVisible({ timeout: 20_000 });

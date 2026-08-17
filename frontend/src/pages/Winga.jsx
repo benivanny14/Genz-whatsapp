@@ -647,8 +647,9 @@ const Winga = () => {
       )}
 
       {/* ── Rating / reviews modal ── */}
+      {/* z-[900] — opens ON TOP of the orders modal (z-[800]); a same-z later-in-DOM sibling would let the orders backdrop swallow star clicks */}
       {rateTarget && (
-        <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setRateTarget(null)}>
+        <div className="fixed inset-0 z-[900] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setRateTarget(null)}>
           <div
             className="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl border border-white/10 bg-[#111b21] shadow-2xl"
             onClick={(e) => e.stopPropagation()}
@@ -1199,7 +1200,7 @@ const CategoryView = ({ activeCategory, categories, renderMedia, openListing, ch
     <>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="flex items-center gap-2 text-lg font-bold">
-          <span className="text-2xl">{CATEGORY_EMOJI[cat.id]}</span> {meta.label}
+          <span className="text-2xl">{CATEGORY_EMOJI[cat.id]}</span> {cat.label || meta.label}
           {cat.unseen > 0 && (
             <span className="rounded-full bg-[#25d366] px-2 py-0.5 text-xs font-black text-[#0b141a]">
               {cat.unseen} mpya
