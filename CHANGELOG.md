@@ -7,6 +7,71 @@ by commit.
 
 ---
 
+## [2026-08-17] — WINGA marketplace, Glass Mode, platform cleanup (109 commits)
+
+**WINGA — marketplace (jiji.com style)** — the big one.
+
+- New **WINGA tab in the mobile bottom nav** (Store icon, unseen-count badge
+  that clears as listings are viewed) plus per-user WINGA badges on chat
+  avatars in the Sidebar (tap → marketplace).
+
+- `frontend/src/pages/Winga.jsx` (1.4k lines): category-based listings (nguo,
+  simu, viwanja, ...), photo/video + price posting (15 posts/24h cap with a
+  daily counter), unseen banners per category, live toasts for new listings /
+  orders (`winga:created`, `winga:order`, `winga:order-updated` sockets),
+  orders/bookings (quantity, message, confirm/decline/complete), 1–5 star
+  ratings + reviews, seller analytics, sold / re-list, and search across all
+  categories.
+
+- Backend: `wingaController.js` (556 lines) + `Business`/`Order`/`Review`
+  models + `routes/winga.js`, 23 unit tests, and a 3-test Playwright spec
+  (`e2e/winga.spec.js`).
+
+- Two real bugs fixed while running the e2e suite end-to-end: the rating
+  modal and the orders (Maagizo) modal both used `z-[800]` — the later-in-DOM
+  orders backdrop swallowed star clicks, so the first tap only closed Maagizo
+  (rating modal now `z-[900]`); and the search view heading always fell back
+  to the last category ("Nyingine") instead of `Matokeo ya "..."`
+  (`CategoryView` now uses the passed label). WINGA e2e **3/3 green**.
+
+**Glass Mode + platform changes**
+
+- **Glass Mode** now covers the whole system with dark quality glass
+  (backdrop-blur panels + optional video background, overlay fixes).
+
+- **All AI features removed** from the platform; **client-side end-to-end
+  encryption removed entirely** (server-side transit/at-rest security
+  unchanged); 23 unused modules deleted (dead code).
+
+- WhatsApp-style **update dialog with changelog**; rebrand **GENZ WhatsApp →
+  Genz Messenger** (v1.1.14 APK, code 18).
+
+**Admin, privacy, ops**
+
+- Admin: **Backup Management panel** (list & delete user backups),
+  delete-user endpoint + verification-user cleanup script, admin edits never
+  saved (PUT missing multer parser) fixed, remaining Swahili UI strings
+  translated to English.
+
+- Privacy: reliable Snapchat-style **screenshot-attempt notification**, native
+  **FLAG_SECURE** for the Android APK, production privacy verification
+  script, admin strict rate-limiter crash repair (express-rate-limit v7).
+
+- Location: official Google Maps URL + one-tap **Directions** button;
+  Profile Visitors working end-to-end; socket transports hardened (polling
+  fallback + longer reconnects); message font persists end-to-end.
+
+- WhatsApp Cloud API webhook endpoint for Meta verification; FCM topic
+  subscription + token export; one-command admin announcement script;
+  nightly/CI hardening (deploy-verify backoff, proxy-path checks, smoke
+  tests).
+
+**Verification**
+
+- Backend 1719/1719 · frontend 93/93 + build ✓ · WINGA e2e 3/3 ✓.
+
+---
+
 ## [2026-08-14] — One-command announcement + genz-whatsapp-2 auto-sync docs
 
 **`npm run announce` (script ya amri moja)** — `scripts/send-announcement.js`
