@@ -642,7 +642,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
   ];
 
   return (
-    <div className="absolute inset-0 flex flex-col overflow-x-hidden" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0f2440 50%, #0a1628 100%)' }}>
+    <div className="glass-surface absolute inset-0 flex flex-col overflow-x-hidden" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0f2440 50%, #0a1628 100%)' }}>
 
       {/* ── Header ── */}
       <div className="bg-blue-900/50 backdrop-blur-xl px-4 pt-4 pb-0 flex items-center gap-4 text-white shadow-lg border-b border-white/10">

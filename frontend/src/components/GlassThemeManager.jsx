@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
-  Layers, Video, Sliders, Eye, EyeOff, Upload, X, 
+  Layers, Video, Image as ImageIcon, Sliders, Eye, EyeOff, Upload, X, 
   Play, Pause, RefreshCw, Sparkles, Monitor
 } from 'lucide-react';
 
@@ -9,11 +9,13 @@ import { getAuthToken } from '../utils/tokenStore';
 
 const GlassThemeManager = ({ mods, setMods, onClose }) => {
   const [videoPreviewUrl, setVideoPreviewUrl] = useState(mods?.videoBg || '');
+  const [imagePreviewUrl, setImagePreviewUrl] = useState(mods?.bgImage || '');
   const [isPlaying, setIsPlaying] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [previewActive, setPreviewActive] = useState(false);
   const videoRef = useRef(null);
   const fileInputRef = useRef(null);
+  const imageInputRef = useRef(null);
   const API_URL = resolveApiBase();
 
   // NOTE: the glass-mode-active class (the one the CSS actually uses) is
@@ -66,6 +68,40 @@ const GlassThemeManager = ({ mods, setMods, onClose }) => {
       }
     } catch {
       alert('Video upload failed. Please check your connection and try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleImageUpload = async (file) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file (jpg, png, webp)');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Image must not exceed 10MB');
+      return;
+    }
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch(`${API_URL}/upload`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${getAuthToken() || ''}` },
+        body: formData
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const url = data.fileUrl.startsWith('http') ? data.fileUrl : `${API_URL}${data.fileUrl}`;
+        setImagePreviewUrl(url);
+        setMods(prev => ({ ...prev, bgImage: url }));
+      } else {
+        alert('Image upload failed. Please try again before applying it as a background.');
+      }
+    } catch {
+      alert('Image upload failed. Please check your connection and try again.');
     } finally {
       setUploading(false);
     }
@@ -195,6 +231,72 @@ const GlassThemeManager = ({ mods, setMods, onClose }) => {
             </div>
           </div>
 
+          {/* Image Background */}
+          <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+            <div className="p-4 border-b border-white/10 flex items-center gap-2 text-green-300 font-semibold">
+              <ImageIcon size={18} /> Image Background
+            </div>
+            <div className="p-4 space-y-3">
+              <p className="text-gray-400 text-xs">Upload a photo (jpg/png/webp, max 10MB) to be the background for the whole system</p>
+
+              {/* Image Preview */}
+              {imagePreviewUrl && (
+                <div className="relative rounded-lg overflow-hidden h-32 bg-black">
+                  <img
+                    src={imagePreviewUrl}
+                    alt="Background preview"
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    onClick={() => { setImagePreviewUrl(''); setMods(prev => ({ ...prev, bgImage: '' })); }}
+                    className="absolute top-2 right-2 bg-red-500 p-1 rounded-full"
+                    aria-label="Remove image background"
+                  >
+                    <X size={12} className="text-white" />
+                  </button>
+                  <div className="absolute bottom-2 left-2 text-white text-xs bg-black/50 px-2 py-0.5 rounded">
+                    Preview
+                  </div>
+                </div>
+              )}
+
+              {/* Upload Button */}
+              <button
+                onClick={() => imageInputRef.current?.click()}
+                disabled={uploading}
+                className="w-full py-3 border-2 border-dashed border-green-500/40 rounded-xl text-green-300 text-sm font-medium hover:bg-green-500/10 transition-all flex items-center justify-center gap-2"
+              >
+                {uploading ? (
+                  <><RefreshCw size={16} className="animate-spin" /> Inapakia...</>
+                ) : (
+                  <><Upload size={16} /> Choose Image (max 10MB)</>
+                )}
+              </button>
+              <input
+                type="file"
+                ref={imageInputRef}
+                hidden
+                accept="image/*"
+                onChange={(e) => handleImageUpload(e.target.files[0])}
+              />
+
+              {/* URL input alternative */}
+              <div>
+                <p className="text-gray-500 text-xs mb-1">Au weka URL ya picha:</p>
+                <input
+                  type="text"
+                  value={imagePreviewUrl}
+                  onChange={(e) => {
+                    setImagePreviewUrl(e.target.value);
+                    setMods(prev => ({ ...prev, bgImage: e.target.value }));
+                  }}
+                  placeholder="https://example.com/photo.jpg"
+                  className="w-full bg-white/5 border border-white/15 rounded-lg p-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-green-500"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Blur & Opacity Controls */}
           {mods?.glassMode && (
             <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
@@ -292,8 +394,9 @@ const GlassThemeManager = ({ mods, setMods, onClose }) => {
           <div className="flex gap-3">
             <button
               onClick={() => {
-                setMods(prev => ({ ...prev, glassMode: false, videoBg: '', videoBgOpacity: 0.4, glassBlur: 20 }));
+                setMods(prev => ({ ...prev, glassMode: false, videoBg: '', bgImage: '', videoBgOpacity: 0.4, glassBlur: 20 }));
                 setVideoPreviewUrl('');
+                setImagePreviewUrl('');
               }}
               className="flex-1 py-3 bg-red-500/20 border border-red-500/30 text-red-300 rounded-xl font-semibold text-sm hover:bg-red-500/30 transition-all"
             >

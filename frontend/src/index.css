@@ -680,36 +680,89 @@ body {
   box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-/* Glass mode */
+/* ────────────────────────────────────────────────────────────────────────
+   Glass mode — the ENTIRE system goes glassy.
+
+   Layout: the video background sits at z-index:-1, a full-screen frosted
+   layer (blur + dark tint, created in App.jsx) at z-index:0, and #root is
+   raised to z-index:1 so app content stays sharp above the frost. Every
+   dark surface below becomes see-through, so the video + frost show on
+   every screen and inside every feature.
+
+   IMPORTANT: no backdrop-filter on containers that wrap the app's
+   position:fixed overlays (DND indicator, header/sidebar menus) — it
+   would become their containing block and misplace them. The frost blur
+   lives on a dedicated empty fixed layer instead. Hand-written
+   backdrop-filter also gets dropped by the Lightning CSS minifier, so the
+   frost layer carries it as an inline style (immune to the minifier).
+   ──────────────────────────────────────────────────────────────────────── */
 .glass-mode-active body {
   background-color: #000 !important;
 }
 
-/* Frosted main panels (sidebar + chat area) so the video background shows.
-   Translucent background only — NO backdrop-filter on the panels: it would
-   create a stacking context + containing block that misplaces the app's
-   position:fixed overlays (DND indicator, header/sidebar menus). The glass
-   depth comes from the video's own blur (videoBgBlur) behind the
-   translucent panel. */
-.glass-mode-active .glass-panel {
-  background-color: rgba(11, 20, 26, 0.45) !important;
+/* App content above the frosted layer */
+.glass-mode-active #root {
+  position: relative;
+  z-index: 1;
 }
 
-/* Inner opaque surfaces become see-through so the frosted panel shows */
-.glass-mode-active .glass-panel .bg-dark-bg,
-.glass-mode-active .glass-panel .bg-dark-surface,
-.glass-mode-active .glass-panel .bg-dark-hover {
+/* Main chat panels keep a slightly stronger tint for readability */
+.glass-mode-active .bg-dark-bg,
+.glass-mode-active .bg-dark-surface,
+.glass-mode-active .bg-dark-hover,
+.glass-mode-active .bg-dark-border,
+.glass-mode-active [class*="bg-[#0b141a]"],
+.glass-mode-active [class*="bg-[#0d1b2a]"],
+.glass-mode-active [class*="bg-[#111b21]"],
+.glass-mode-active [class*="bg-[#202c33]"],
+.glass-mode-active [class*="bg-[#2a3942]"],
+.glass-mode-active [class*="bg-[#0f172a]"],
+.glass-mode-active [class*="bg-[#1e293b]"],
+.glass-mode-active [class*="bg-[#334155]"],
+.glass-mode-active [class*="bg-[#dadbd3]"],
+.glass-mode-active [class*="bg-[#1a2e35]"],
+.glass-mode-active [class*="bg-[#1f2c33]"],
+.glass-mode-active [class*="bg-[#1f2c34]"],
+.glass-mode-active [class*="bg-[#0d1f35]"],
+.glass-mode-active [class*="bg-[#1a1a1a]"],
+.glass-mode-active [class*="bg-[#1a2332]"],
+.glass-mode-active [class*="bg-[#233138]"],
+.glass-mode-active [class*="bg-[#374248]"],
+.glass-mode-active [class*="bg-[#37404a]"],
+.glass-mode-active [class*="bg-[#182229]"],
+.glass-mode-active [class*="bg-[#2a3947]"],
+.glass-mode-active [class*="bg-[#2a2a2a]"],
+.glass-mode-active [class*="bg-[#121212]"],
+.glass-mode-active [class*="bg-[#3a4952]"] {
   background-color: transparent !important;
+}
+
+/* Main chat panels keep a slightly stronger tint for readability */
+.glass-mode-active .glass-panel {
+  background-color: rgba(11, 20, 26, 0.5) !important;
+}
+
+/* The warm peach paper shell that wraps every main screen — this is what
+   made the app look bright and hid the video. In glass mode it becomes
+   fully see-through so the video/image + frost show on every page. */
+.glass-mode-active .genz-shell {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Roots that paint a full-screen inline background (Channels, ChannelView,
+   Status viewer, GENZ Settings). The !important stylesheet rule beats the
+   inline style. */
+.glass-mode-active .glass-surface {
+  background: rgba(11, 20, 26, 0.45) !important;
 }
 
 .glass-mode-active .message-bubble-sent {
   background: rgba(0, 168, 132, 0.3) !important;
-  backdrop-filter: blur(10px);
 }
 
 .glass-mode-active .message-bubble-received {
   background: rgba(32, 44, 51, 0.5) !important;
-  backdrop-filter: blur(10px);
 }
 
 /* Fix unread badge visibility in glass mode */

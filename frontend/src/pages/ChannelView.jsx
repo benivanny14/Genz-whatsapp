@@ -127,7 +127,7 @@ const ChannelView = () => {
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateRows: 'auto 1fr auto', height: '100vh', overflow: 'hidden', background: '#0b141a' }}>
+    <div className="glass-surface" style={{ display: 'grid', gridTemplateRows: 'auto 1fr auto', height: '100vh', overflow: 'hidden', background: '#0b141a' }}>
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 bg-[#202c33] border-b border-[#2a3942]">
         <button onClick={() => navigate('/channels')} className="text-[#8696a0] hover:text-white transition-colors" aria-label="Back">

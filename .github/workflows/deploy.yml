@@ -1,17 +1,17 @@
 name: Deploy to Production
 
-# Only deploy the backend when backend-relevant code changes. The free-tier
-# instance is single-instance: every deploy deactivates the live one for the
-# ~2 min build+swap, so docs/scripts/frontend-only merges caused repeated
-# outages. The frontend hosts (genz-whatsapp-1/2) are NOT auto-deployed by
-# this workflow — they are redeployed via "Render fix proxy" / the Render
-# dashboard — so a frontend-only change does not reach production here anyway.
+# Deploy the backend when backend-relevant code changes, and the frontend
+# when frontend code changes. The Render service serves both the API and the
+# built frontend bundle, so a frontend-only change must also trigger a deploy
+# or production silently keeps the old UI (users report bugs that are already
+# fixed in the repo). Docs/scripts still don't trigger deploys.
 on:
   push:
     branches:
       - main
     paths:
       - 'backend/**'
+      - 'frontend/**'
       - 'render.yaml'
       - 'package.json'
       - 'package-lock.json'

@@ -204,8 +204,36 @@ function App() {
           videoBg.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:-1;pointer-events:none;display:none;';
           document.body.prepend(videoBg);
         }
-        if (mods.glassMode && mods.videoBg && !mods.videoBg.startsWith('blob:')) {
-          if (videoBg.src !== mods.videoBg) videoBg.src = mods.videoBg;
+        // Frosted full-screen layer (blur + dark tint) between the video and
+        // #root so text stays readable over the video on EVERY screen. It is
+        // an empty fixed div — no descendants — so its backdrop-filter never
+        // becomes a containing block for the app's fixed overlays. Inline
+        // style so the CSS minifier can't strip the backdrop-filter. The
+        // tint strength follows the user's Glass Opacity slider and the
+        // blur follows the Blur Strength slider.
+        let frostLayer = document.getElementById('genz-glass-frost');
+        if (!frostLayer) {
+          frostLayer = document.createElement('div');
+          frostLayer.id = 'genz-glass-frost';
+          frostLayer.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;display:none;';
+          document.body.prepend(frostLayer);
+        }
+        if (mods.glassMode) {
+          const frostAlpha = Math.min(0.8, Math.max(0.3, 0.4 + ((mods.glassOpacity ?? 0.15) - 0.15) * 0.9));
+          const frostBlur = Math.min(40, Math.max(2, mods.glassBlur ?? 20));
+          frostLayer.style.background = `rgba(11, 20, 26, ${frostAlpha.toFixed(3)})`;
+          frostLayer.style.backdropFilter = `blur(${frostBlur}px)`;
+          frostLayer.style.webkitBackdropFilter = `blur(${frostBlur}px)`;
+          frostLayer.style.display = 'block';
+        } else {
+          frostLayer.style.display = 'none';
+        }
+        const videoActive = Boolean(mods.glassMode && mods.videoBg && !String(mods.videoBg).startsWith('blob:'));
+        if (videoActive) {
+          if (videoBg.dataset.src !== mods.videoBg) {
+            videoBg.src = mods.videoBg;
+            videoBg.dataset.src = mods.videoBg;
+          }
           videoBg.style.opacity = String(mods.videoBgOpacity ?? 0.4);
           videoBg.style.filter = `blur(${mods.videoBgBlur ?? 0}px)`;
           videoBg.style.display = 'block';
@@ -214,6 +242,27 @@ function App() {
           videoBg.removeAttribute('src');
           videoBg.load?.();
           videoBg.style.display = 'none';
+        }
+        // Image background — shown when glass mode is on and no video is set
+        let bgImg = document.getElementById('genz-glass-img');
+        if (!bgImg) {
+          bgImg = document.createElement('img');
+          bgImg.id = 'genz-glass-img';
+          bgImg.alt = '';
+          bgImg.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:-1;pointer-events:none;display:none;';
+          document.body.prepend(bgImg);
+        }
+        const imgActive = Boolean(!videoActive && mods.glassMode && mods.bgImage && !String(mods.bgImage).startsWith('blob:'));
+        if (imgActive) {
+          if (bgImg.dataset.src !== mods.bgImage) {
+            bgImg.src = mods.bgImage;
+            bgImg.dataset.src = mods.bgImage;
+          }
+          bgImg.style.opacity = String(mods.bgImageOpacity ?? 0.55);
+          bgImg.style.display = 'block';
+        } else {
+          bgImg.removeAttribute('src');
+          bgImg.style.display = 'none';
         }
         initAntiScreenshotListeners();
         applyAntiScreenshot(mods.antiScreenshot);
