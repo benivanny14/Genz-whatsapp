@@ -51,7 +51,7 @@ async function setGlassSettings(page, { opacity = 0.6, blur = 12 } = {}) {
     settingsVersion: 2,
     mods: {
       glassMode: true,
-      videoBg: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+      videoBg: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
       videoBgOpacity: 0.5,
       videoBgBlur: 0,
       glassOpacity: opacity,

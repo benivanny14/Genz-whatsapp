@@ -37,7 +37,7 @@ test('glass mode: StatusReel root is translucent so the video shows behind it', 
     settingsVersion: 2,
     mods: {
       glassMode: true,
-      videoBg: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+      videoBg: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
       videoBgOpacity: 0.5,
       videoBgBlur: 0,
       glassOpacity: 0.15,
