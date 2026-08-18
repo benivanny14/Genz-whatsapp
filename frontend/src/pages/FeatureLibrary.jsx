@@ -44,7 +44,6 @@ import ExportChat from '../components/ExportChat';
 
 import PhoneNumber from '../components/PhoneNumber';
 import ProfileStatus from '../components/ProfileStatus';
-import BusinessProfileManager from '../components/BusinessProfileManager';
 import AvatarManager from '../components/AvatarManager';
 
 // ── Group & chat management ──
@@ -226,7 +225,6 @@ const FeatureLibrary = () => {
   const [downloadQuality, setDownloadQuality] = usePersistent('genz_download_quality', { photos: 'standard', videos: 'standard', documents: 'standard' });
   const [quickReplies, setQuickReplies] = usePersistent('genz_quick_replies', []);
   const [documents, setDocuments] = usePersistent('genz_documents', []);
-  const [businessProfile, setBusinessProfile] = usePersistent('genz_business_profile', { name: user?.username || '', category: '', description: '' });
   const [reminders, setReminders] = usePersistent('genz_reminders', []);
   const [labels, setLabels] = usePersistent('genz_message_labels', []);
   const [templates, setTemplates] = usePersistent('genz_message_templates', []);
@@ -373,8 +371,6 @@ const FeatureLibrary = () => {
           props: { user, onUpdate: () => {} } },
         { id: 'profile-status', name: 'Profile Status', desc: 'Update your about/status text', C: ProfileStatus,
           props: { user, onUpdateStatus: (status) => updateProfile?.({ about: status }) } },
-        { id: 'business', name: 'Business Profile', desc: 'Manage your business info', C: BusinessProfileManager,
-          props: { businessProfile, onUpdate: setBusinessProfile } },
         { id: 'avatar', name: 'Avatar Manager', desc: 'Change your profile picture', C: AvatarManager,
           props: { user, onUpdateAvatar: () => {}, } },
       ]
@@ -391,7 +387,7 @@ const FeatureLibrary = () => {
     createdAt: new Date().toISOString(), messageType: 'text'
   };
   const demoImage = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
-  const demoVideo = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+  const demoVideo = 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4';
 
   const categories2 = [
     {

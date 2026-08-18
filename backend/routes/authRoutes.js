@@ -14,13 +14,6 @@ const {
   changeNumber,
   changePassword,
   deleteAccount,
-  updateBusinessProfile,
-  addCatalogItem,
-  removeCatalogItem,
-  addQuickReply,
-  removeQuickReply,
-  updateAwayMessage,
-  getBusinessAnalytics,
   checkAvailability,
   getMyOnlineHistory,
   getUserOnlineHistory,
@@ -76,15 +69,6 @@ router.post('/logout', logout);
 router.post('/change-number', protect, changeNumber);
 router.post('/change-password', protect, changePassword);
 router.post('/delete-account', protect, deleteAccount);
-
-// Business routes
-router.put('/business-profile', protect, updateBusinessProfile);
-router.post('/catalog', protect, addCatalogItem);
-router.delete('/catalog/:productId', protect, removeCatalogItem);
-router.post('/quick-replies', protect, addQuickReply);
-router.delete('/quick-replies/:id', protect, removeQuickReply);
-router.put('/away-message', protect, updateAwayMessage);
-router.get('/business-analytics', protect, getBusinessAnalytics);
 
 router.post('/check-availability', discoveryLimiter, checkAvailabilityValidators, checkAvailability);
 router.get('/users/me/online-history', protect, getMyOnlineHistory);

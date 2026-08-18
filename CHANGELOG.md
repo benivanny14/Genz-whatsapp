@@ -7,6 +7,31 @@ by commit.
 
 ---
 
+## [2026-08-18] — Business Account feature removed entirely (unused)
+
+The user does not use the business-account feature, so ALL of its code was
+deleted — backend, frontend, model fields and tests:
+
+- Deleted `controllers/businessAccountController.js`, `routes/business-account.js`
+  and their mount in `server.js` (the `/api/business-account` endpoints:
+  enable/settings, quick replies, business hours, away mode, analytics).
+- Deleted the `/api/auth` business endpoints (`business-profile`, `catalog`
+  CRUD, `quick-replies`, `away-message`, `business-analytics`) from
+  `authController.js` + `authRoutes.js`.
+- Removed the User model fields: `businessAccountSettings`,
+  `isBusinessAccount`, `businessProfile`, `catalog`, `quickReplies`,
+  `awayMessage`.
+- Deleted `frontend/src/components/BusinessProfileManager.jsx` (FeatureLibrary
+  demo) and its FeatureLibrary entry + state.
+- Deleted `tests/businessAccountController.unit.test.js` and the business
+  tests from `authController.unit.test.js`; removed the business-account
+  checks from `scripts/feature-smoke-test.js`.
+
+**Verification** — backend **1732/1732** (was 1757 with the 25 business
+tests) · frontend tests + build ✓ · check:jsx ✓ · syntax checks ✓.
+
+---
+
 ## [2026-08-18] — No mock data, no dead code: full-system audit cleanup
 
 **Mock data removed from every user-facing panel** — nothing fake is ever

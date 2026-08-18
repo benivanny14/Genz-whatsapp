@@ -828,7 +828,6 @@ const groupModsRoutes = require('./routes/group-mods');
 
 // Newly-wired feature routes (previously orphaned controllers)
 const bulkSenderRoutes = require('./routes/bulk-sender');
-const businessAccountRoutes = require('./routes/business-account');
 const cacheCleanerRoutes = require('./routes/cache-cleaner');
 const chatAnalyzerRoutes = require('./routes/chat-analyzer');
 const chatFilterRoutes = require('./routes/chat-filter');
@@ -898,7 +897,6 @@ const API_ROUTE_MOUNTS = [
   ['/channels', channelRoutes],
   // Newly-wired feature routes (previously orphaned controllers)
   ['/bulk-sender', bulkSenderRoutes],
-  ['/business-account', businessAccountRoutes],
   ['/cache-cleaner', cacheCleanerRoutes],
   ['/chat-analyzer', chatAnalyzerRoutes],
   ['/chat-filter', chatFilterRoutes],

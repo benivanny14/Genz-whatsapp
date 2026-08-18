@@ -244,71 +244,6 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.Mixed,
     default: {}
   },
-  // Business account fields
-  isBusinessAccount: {
-    type: Boolean,
-    default: false
-  },
-  businessProfile: {
-    businessName: {
-      type: String,
-      default: ''
-    },
-    businessCategory: {
-      type: String,
-      enum: ['retail', 'services', 'food', 'technology', 'healthcare', 'education', 'entertainment', 'other'],
-      default: 'other'
-    },
-    businessAddress: {
-      type: String,
-      default: ''
-    },
-    businessWebsite: {
-      type: String,
-      default: ''
-    },
-    businessDescription: {
-      type: String,
-      default: ''
-    },
-    businessHours: {
-      type: String,
-      default: ''
-    }
-  },
-  // Business catalog
-  catalog: [{
-    productId: String,
-    name: String,
-    description: String,
-    price: Number,
-    currency: {
-      type: String,
-      default: 'USD'
-    },
-    imageUrl: String,
-    inStock: {
-      type: Boolean,
-      default: true
-    }
-  }],
-  // Quick replies for business
-  quickReplies: [{
-    id: String,
-    message: String,
-    shortcut: String
-  }],
-  // Away message for business
-  awayMessage: {
-    enabled: {
-      type: Boolean,
-      default: false
-    },
-    message: {
-      type: String,
-      default: ''
-    }
-  },
   failedLoginAttempts: {
     type: Number,
     default: 0
@@ -346,7 +281,6 @@ const userSchema = new mongoose.Schema({
   blockedCallHistory: { type: mongoose.Schema.Types.Mixed, default: [] },
   bulkSenderSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
   scheduledBulkMessages: { type: mongoose.Schema.Types.Mixed, default: [] },
-  businessAccountSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
   cacheCleanerSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
   cacheData: { type: mongoose.Schema.Types.Mixed, default: {} },
   lastCompressedAt: { type: Date, default: null },
@@ -406,8 +340,6 @@ const userSchema = new mongoose.Schema({
   locationSharingSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
   liveLocations: { type: mongoose.Schema.Types.Mixed, default: [] },
   lastLocation: { type: mongoose.Schema.Types.Mixed, default: null },
-  awayMessage: { type: mongoose.Schema.Types.Mixed, default: null },
-  businessProfile: { type: mongoose.Schema.Types.Mixed, default: null },
   lastSyncAt: { type: Date, default: null },
   blockedStatusUsers: { type: mongoose.Schema.Types.Mixed, default: [] },
   mutedStatusUsers: { type: mongoose.Schema.Types.Mixed, default: [] },

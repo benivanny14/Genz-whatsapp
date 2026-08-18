@@ -140,11 +140,6 @@ const makeUser = (overrides = {}) => {
     passkeyRegisterChallengeExpiry: null,
     passkeyLoginChallenge: null,
     passkeyLoginChallengeExpiry: null,
-    catalog: [],
-    quickReplies: [],
-    awayMessage: null,
-    isBusinessAccount: false,
-    businessProfile: null,
     settings: {},
     markModified: jest.fn(),
     save: jest.fn().mockResolvedValue(undefined),
@@ -743,87 +738,6 @@ describe('authController — refreshToken', () => {
 
 describe('authController — business profile', () => {
   beforeEach(() => jest.clearAllMocks());
-
-  it('updateBusinessProfile returns 404 when user missing', async () => {
-    User.findById.mockResolvedValue(null);
-    const res = makeRes();
-    await auth.updateBusinessProfile(makeReq(), res);
-    expect(res.statusCode).toBe(404);
-  });
-
-  it('updateBusinessProfile enables the business account (happy path)', async () => {
-    const user = makeUser();
-    User.findById.mockResolvedValue(user);
-    const res = makeRes();
-    await auth.updateBusinessProfile(makeReq({ body: { businessName: 'TM Store', businessCategory: 'retail' } }), res);
-    expect(user.isBusinessAccount).toBe(true);
-    expect(user.businessProfile.businessName).toBe('TM Store');
-    expect(user.save).toHaveBeenCalled();
-    expect(res.body.user.businessProfile.businessName).toBe('TM Store');
-  });
-
-  it('addCatalogItem pushes a product (happy path)', async () => {
-    const user = makeUser();
-    User.findById.mockResolvedValue(user);
-    const res = makeRes();
-    await auth.addCatalogItem(makeReq({ body: { name: 'T-Shirt', price: 10, inStock: true } }), res);
-    expect(user.catalog).toHaveLength(1);
-    expect(user.catalog[0].name).toBe('T-Shirt');
-    expect(user.catalog[0].currency).toBe('USD'); // default
-    expect(user.catalog[0].productId).toBeDefined();
-    expect(res.body.catalog).toHaveLength(1);
-  });
-
-  it('removeCatalogItem filters the product out (happy path)', async () => {
-    const user = makeUser({ catalog: [{ productId: 'p1', name: 'A' }, { productId: 'p2', name: 'B' }] });
-    User.findById.mockResolvedValue(user);
-    const res = makeRes();
-    await auth.removeCatalogItem(makeReq({ params: { productId: 'p1' } }), res);
-    expect(user.catalog).toHaveLength(1);
-    expect(user.catalog[0].name).toBe('B');
-  });
-
-  it('addQuickReply / removeQuickReply manage quick replies (happy path)', async () => {
-    const user = makeUser();
-    User.findById.mockResolvedValue(user);
-    let res = makeRes();
-    await auth.addQuickReply(makeReq({ body: { message: 'Sawa', shortcut: '/sawa' } }), res);
-    expect(user.quickReplies).toHaveLength(1);
-    expect(user.quickReplies[0].message).toBe('Sawa');
-    expect(res.body.quickReplies).toHaveLength(1);
-
-    res = makeRes();
-    const replyId = user.quickReplies[0].id;
-    await auth.removeQuickReply(makeReq({ params: { id: replyId } }), res);
-    expect(user.quickReplies).toHaveLength(0);
-  });
-
-  it('updateAwayMessage stores enabled + message (happy path)', async () => {
-    User.findById.mockResolvedValue(makeUser());
-    const res = makeRes();
-    await auth.updateAwayMessage(makeReq({ body: { enabled: true, message: 'Back soon' } }), res);
-    expect(res.body.awayMessage).toEqual({ enabled: true, message: 'Back soon' });
-  });
-
-  it('getBusinessAnalytics returns computed analytics (happy path)', async () => {
-    User.findById.mockResolvedValue(makeUser({
-      catalog: [{ inStock: true }, { inStock: false }],
-      quickReplies: [{ id: '1' }]
-    }));
-    Message.countDocuments.mockResolvedValue(5);
-    Conversation.countDocuments.mockResolvedValue(3);
-    const res = makeRes();
-    await auth.getBusinessAnalytics(makeReq(), res);
-    expect(res.body.analytics).toEqual({
-      totalMessages: 5,
-      totalConversations: 3,
-      catalogSize: 2,
-      inStockItems: 1,
-      outOfStockItems: 1,
-      quickRepliesCount: 1,
-      isBusinessAccount: false
-    });
-  });
 
   it('checkAvailability flags an existing phone with 409', async () => {
     User.findOne.mockResolvedValue(makeUser());

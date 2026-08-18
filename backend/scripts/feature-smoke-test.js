@@ -427,11 +427,6 @@ async function main() {
     check('leave community', r.status === 200, r, 'message');
   }
 
-  r = await api.req('POST', '/api/business-account/enable', { businessName: 'Smoke Biz', businessCategory: 'Retail' });
-  check('enable business account', r.status === 200, r, 'message');
-  r = await api.req('GET', '/api/business-account/settings');
-  check('business account settings', r.status === 200, r, 'message');
-
   r = await api.req('GET', '/api/media-editor/settings');
   check('media editor settings', r.status === 200, r, 'message');
   r = await api.req('GET', '/api/media-compressor/settings');
