@@ -4,13 +4,13 @@ import { test, expect } from '@playwright/test';
  * Sticker composer spec — locks the "sticker is optional, never mandatory"
  * behavior:
  *   1. a text-only message sends with no sticker attached
- *   2. a sticker-only message sends CLEAN (no caption words below it) and the
- *      staged hint says "Sticker will be sent alone"
- *   3. a sticker + typed text sends the sticker clean AND the text as its own
- *      separate message (never glued below the sticker), with the hint saying
- *      "Sticker and message will be sent separately"
+ *   2. a sticker-only message sends CLEAN (no caption words) and the staged
+ *      hint says "Sticker will be sent alone"
+ *   3. a sticker + typed text sends ONE TikTok-comment-style bubble — the
+ *      typed caption renders ABOVE the sticker, never below it — with the
+ *      hint saying "Sticker will be sent with your message ✨"
  * The API is queried at the end of each step so the assertions check the real
- * persisted message shape (messageType + empty caption), not just the DOM.
+ * persisted message shape (messageType + caption), not just the DOM.
  */
 const PASSWORD = 'GenzTest@2026!';
 
@@ -142,7 +142,7 @@ test('sticker-only message sends clean — no caption words below it', async ({ 
   await ctxA.close();
 });
 
-test('sticker + typed text: sticker goes clean and text sends as its own message', async ({ browser, request }) => {
+test('sticker + typed text: TikTok-style — one bubble, caption ABOVE the sticker', async ({ browser, request }) => {
   const ctxA = await browser.newContext();
   const pageA = await ctxA.newPage();
   await login(pageA, creds.a.phone);
@@ -153,22 +153,31 @@ test('sticker + typed text: sticker goes clean and text sends as its own message
 
   await stageSticker(pageA);
   await composer.fill('Maandishi kando na sticker');
-  await expect(pageA.getByText('Sticker and message will be sent separately', { exact: true })).toBeVisible({ timeout: 10_000 });
+  await expect(pageA.getByText('Sticker will be sent with your message ✨', { exact: true })).toBeVisible({ timeout: 10_000 });
 
   await pageA.getByRole('button', { name: 'Send message' }).click();
 
-  // The sticker is clean AND the text arrived as its own separate bubble.
-  await expect(stickerInChat(pageA)).toBeVisible({ timeout: 15_000 });
-  await expect(pageA.getByText('Maandishi kando na sticker', { exact: true }).first()).toBeVisible({ timeout: 15_000 });
-  await expect(pageA.locator('div.mb-1:has(img) p')).toHaveCount(0, { timeout: 10_000 });
+  // ONE bubble: the sticker AND its caption text are both visible.
+  const stickerBubble = pageA.locator('div.mb-1:has(img)').last();
+  await expect(stickerBubble).toBeVisible({ timeout: 15_000 });
+  const caption = stickerBubble.locator('p').first();
+  await expect(caption).toHaveText('Maandishi kando na sticker', { timeout: 15_000 });
 
-  // Poll until BOTH the clean sticker and the separate text message land.
+  // TikTok comment-section style: the caption renders ABOVE the sticker
+  // (the <p> precedes the <img> inside the same bubble).
+  const captionAboveSticker = await stickerBubble.evaluate((el) => {
+    const p = el.querySelector('p');
+    const img = el.querySelector('img');
+    return !!p && !!img && (p.compareDocumentPosition(img) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+  });
+  expect(captionAboveSticker).toBe(true);
+
+  // Poll until the socket/DB save lands, then assert the ONE sticker
+  // message carries the typed caption (text on top, sticker below).
   await expect.poll(async () => {
     const messages = await fetchMessages(request, creds.conversationId);
-    const lastTwo = messages.slice(-2);
-    const stickerMsg = lastTwo.find(m => m.messageType === 'sticker');
-    const textMsg = lastTwo.find(m => m.messageType === 'text');
-    return stickerMsg && textMsg && (stickerMsg.caption || '') === '' && textMsg.content === 'Maandishi kando na sticker';
+    const last = messages[messages.length - 1];
+    return last?.messageType === 'sticker' && last.caption === 'Maandishi kando na sticker';
   }, { timeout: 15_000 }).toBe(true);
 
   await ctxA.close();

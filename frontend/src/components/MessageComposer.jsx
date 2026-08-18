@@ -91,7 +91,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
               {selectedMedia.type === 'sticker' && (
                 <p className="text-[10px] text-dark-textSecondary mt-1 text-center">
                   {messageInput.trim()
-                    ? 'Sticker and message will be sent separately'
+                    ? 'Sticker will be sent with your message ✨'
                     : 'Sticker will be sent alone'}
                 </p>
               )}

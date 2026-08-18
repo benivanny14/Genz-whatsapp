@@ -79,7 +79,10 @@ test('glass mode: video background shows through the GENZ Settings panel', async
   });
   expect(glassState.active).toBe(true);
   expect(glassState.videoDisplay).toBe('block');
-  expect(glassState.videoSrc).toContain('BigBuckBunny');
+  // The videoBg default was switched to the MDN CC0 sample (the old Google
+  // BigBuckBunny URL returns 403) — a fresh context has no saved videoBg, so
+  // the live element carries the MDN flower URL.
+  expect(glassState.videoSrc).toContain('flower');
 
   // 5) Open GENZ Settings from the sidebar menu.
   await page.getByRole('button', { name: 'Menu' }).click();

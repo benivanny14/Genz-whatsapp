@@ -219,6 +219,11 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                     {/* ── Sticker Message (WhatsApp style: no bubble, compact sticker, tiny time overlay) ── */}
                     {message.messageType === 'sticker' && (
                       <div className="mb-1" style={{ animation: 'stickerBounce 0.4s ease-out' }}>
+                        {/* TikTok comment-section style: the typed caption
+                            renders ABOVE the sticker — never below it. */}
+                        {message.caption && (
+                          <p className="text-sm mb-1 whitespace-pre-wrap break-words">{message.caption}</p>
+                        )}
                         <div className="relative w-fit">
                           {isVideoSticker(message) ? (
                             <video
@@ -254,8 +259,6 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                             )}
                           </span>
                         </div>
-                        {/* Stickers are always rendered CLEAN — no caption
-                            text is ever shown below the artwork. */}
                       </div>
                     )}
 

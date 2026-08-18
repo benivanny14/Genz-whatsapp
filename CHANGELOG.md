@@ -7,6 +7,35 @@ by commit.
 
 ---
 
+## [2026-08-18] — Stickers send clean; TikTok-style caption + sticker; e2e sticker suite
+
+**Stickers always send clean — no words under the artwork**
+
+- Sending a sticker alone now sends it **clean** (caption `""`): previously a
+  floating-mode sticker auto-appended its own emoji/name as a caption under the
+  artwork, and old sticker messages rendered any caption *below* the sticker.
+- Caption rendering flipped to **TikTok comment style**: when a message has
+  both text and a sticker, the text renders **above** the sticker (one message,
+  one bubble/row) — exactly like a comment over the sticker below it.
+- Composer hints now describe the real behaviour: *"Sticker will be sent
+  alone"* when no text is typed, *"Sticker will be sent with your message ✨"*
+  when the sticker + caption go out as one TikTok-style message.
+
+**Testing**
+
+- New e2e spec `frontend/e2e/sticker-send.spec.js` (3 tests): text-only
+  message, sticker-only message, and sticker+caption as one message with the
+  caption above the sticker in the DOM — all green against the live stack.
+- Fixed `e2e/glass-mode.spec.js` (CI e2e failure): the spec still asserted the
+  old Google `BigBuckBunny` sample video URL, which now returns 403; it asserts
+  the MDN CC0 sample like the rest of the glass-mode suite.
+- Frontend **94/94** unit tests · build ✓ · backend **1756/1756**.
+- Live-verified all three modes in the preview against the real DB: sticker
+  alone (clean), text alone, and TikTok-style sticker+caption in one message
+  (caption above sticker, DB `caption` field set).
+
+---
+
 ## [2026-08-18] — v1.1.16 Status trust & privacy: mute works end-to-end, block UI, no more public statuses
 
 **Mute status updates now actually work** (it was stored but never enforced)

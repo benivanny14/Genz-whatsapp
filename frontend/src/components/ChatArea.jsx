@@ -193,27 +193,15 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [stickerSearchQuery, setStickerSearchQuery] = useState('');
 
-  // ── TikTok-style: send a sticker together with whatever text is typed
-  // and whatever message is currently being replied to. The sticker ALWAYS
-  // goes out clean — no words are ever attached below the artwork. Typed
-  // text (if any) is delivered as its own normal message so it is never
-  // lost and never appears under the sticker.
+  // ── TikTok comment-section style: send a sticker together with whatever
+  // text is typed — both ride in ONE bubble, text rendered ABOVE the
+  // sticker (never below it). Typing nothing sends a clean sticker alone.
   const handleSendStickerWithCaption = (stickerUrl, options = {}) => {
     const typed = messageInput.trim();
     sendSticker(stickerUrl, {
-      replyTo: options.replyTo || replyingTo
+      replyTo: options.replyTo || replyingTo,
+      caption: typed || undefined
     });
-    if (typed) {
-      sendMessage(typed, user?.username || 'Me', {
-        chatId: selectedConversation?._id,
-        replyTo: options.replyTo || replyingTo,
-        ghostMode: safeMods.ghostMode,
-        isSelfDestruct: Boolean(safeMods.selfDestruct),
-        isViewOnce: safeMods.selfDestruct ? false : isViewOnceEnabled,
-        allowScreenshot: allowScreenshotEnabled ? true : undefined,
-        font: selectedFont !== 'default' ? selectedFont : undefined
-      });
-    }
     setMessageInput('');
     setReplyingTo(null);
     setShowStickerStore(false);
@@ -749,20 +737,14 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       };
 
       if (selectedMedia?.type === 'sticker') {
-        // The sticker always goes out CLEAN — no words are ever attached
-        // below the artwork. If the user typed text, it is delivered as its
-        // own normal message so nothing is lost and nothing rides under
-        // the sticker.
+        // TikTok comment-section style: the sticker rides in ONE bubble with
+        // the typed text (text renders ABOVE the sticker, never below).
+        // With no typed text the sticker still sends clean on its own.
         await sendSticker(selectedMedia.url, {
           replyTo: replyingTo,
+          caption: sanitizedMessage || undefined,
           isViewOnce: safeMods.selfDestruct ? false : isViewOnceEnabled
         });
-        if (sanitizedMessage) {
-          await sendMessage(sanitizedMessage, user?.username || 'Me', {
-            ...finalOptions,
-            font: selectedFont !== 'default' ? selectedFont : undefined
-          });
-        }
       } else if (selectedMedia) {
         finalOptions.messageType = 'structured';
         finalOptions.structuredContent = [
