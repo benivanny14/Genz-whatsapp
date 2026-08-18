@@ -7,6 +7,58 @@ by commit.
 
 ---
 
+## [2026-08-18] — No mock data, no dead code: full-system audit cleanup
+
+**Mock data removed from every user-facing panel** — nothing fake is ever
+shown to users anymore:
+
+- **Status Forward panel** listed fake "John Doe / Jane Smith" contacts and
+  fake groups; it now loads the user's REAL contacts (`/chat/contacts`) and
+  REAL group conversations (`/chat/conversations`) with proper loading / empty
+  states.
+- **Status Mentions / Templates / Hashtags panels** fell back to hardcoded fake
+  users (John Doe...), 12 fake templates, and fake trending hashtags
+  (`#viral 50K`) when the API returned nothing — all fallbacks removed, empty
+  states shown instead.
+- **Status Location panel** searched a hardcoded list of 8 cities; it now
+  geocodes real places via OpenStreetMap Nominatim (free, no API key) with a
+  debounced search, loading, and empty/error states.
+- **Last Seen demo** faked "15 minutes ago" and random online statuses
+  (`Math.random`) — now uses only real user data.
+- **Web Login demo** fabricated a WhatsApp Web QR URL and a fake `ABC-DEF-GHI`
+  code — now honestly explains that real linking lives in Settings → Devices.
+- **QR scanner demo** returned a fake scanned "John Doe" profile — now reports
+  that camera scanning isn't part of the demo.
+- **Debug & Developer Features panel** (user-reachable from Status) had
+  "Load Sample Logs" buttons, fake DB stats, a **Force Crash** button and a
+  **Clear All Data** button that wiped localStorage — all removed; the panel
+  now shows only real console capture + real storage viewers. Fixed a crash
+  (`Trash2 is not defined`) the cleanup initially introduced.
+
+**Demo chat data removed from the bundle** — `ChatContext` shipped 8 fake
+conversations (Amina Kweli, Brian Msomi, "GENZ Family"...) and fake message
+threads behind a `VITE_ENABLE_DEMO_DATA` flag. The data, the flag, and every
+branch are gone, so fake chats can never appear (verified live: chat list
+shows only real conversations).
+
+**Dead code removed**
+
+- Deleted `frontend/src/components/BusinessAccountPanel.jsx` — never imported
+  anywhere (the only consumer of the business-account settings UI).
+- Backend `GET /api/business-account/analytics` returned hardcoded fake
+  numbers (`totalMessages: 1250`...); it now computes REAL stats from the
+  user's messages/conversations (totals, weekly growth, peak hours, avg reply
+  time) and returns `customerSatisfaction: null` (no rating data is collected).
+  Unit test updated to assert real computation.
+- Unused imports (`clearAuthTokens`, `Eye/EyeOff`, `Send`, etc.) removed from
+  the touched panels.
+
+**Verification** — frontend 94/94 + build ✓ + check:jsx ✓ · backend
+**1757/1757** · e2e sticker 3/3 + chat-interactions ✓ · live preview verified:
+chat list (no demo chats), Templates empty state, Debug panel clean.
+
+---
+
 ## [2026-08-18] — Stickers send clean; TikTok-style caption + sticker; e2e sticker suite
 
 **Stickers always send clean — no words under the artwork**

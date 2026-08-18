@@ -1,27 +1,12 @@
-import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
+import { getAuthToken } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
-import { X, Layout, Sparkles, Star, Clock, TrendingUp, Heart } from 'lucide-react';
+import { X, Layout, Sparkles, Star } from 'lucide-react';
 
 const StatusTemplatesPanel = ({ onClose, status, onTemplateSelect }) => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  const mockTemplates = [
-    { id: 1, name: 'Morning Greeting', category: 'daily', content: 'Good morning! ☀️ Have a great day!', icon: Sparkles, popular: true },
-    { id: 2, name: 'Motivation', category: 'motivation', content: 'Believe in yourself! You can do this! 💪', icon: Star, popular: true },
-    { id: 3, name: 'Quote of the Day', category: 'quotes', content: '"The only way to do great work is to love what you do."', icon: Sparkles, popular: true },
-    { id: 4, name: 'Weekend Vibes', category: 'daily', content: 'Weekend mode activated! 🎉', icon: Heart, popular: false },
-    { id: 5, name: 'Work Update', category: 'work', content: 'Working hard, achieving goals! 💼', icon: Clock, popular: false },
-    { id: 6, name: 'Fitness Goal', category: 'fitness', content: 'Fitness journey continues! 💪🏃', icon: TrendingUp, popular: true },
-    { id: 7, name: 'Food Moment', category: 'lifestyle', content: 'Foodie life! 🍕🍔', icon: Heart, popular: false },
-    { id: 8, name: 'Travel Adventure', category: 'travel', content: 'Exploring new places! ✈️🌍', icon: Sparkles, popular: true },
-    { id: 9, name: 'Music Vibe', category: 'entertainment', content: 'Music is life! 🎵🎧', icon: Heart, popular: false },
-    { id: 10, name: 'Tech Update', category: 'tech', content: 'Tech enthusiast! 💻🚀', icon: Sparkles, popular: false },
-    { id: 11, name: 'Celebration', category: 'events', content: 'Celebration time! 🎊🎈', icon: Star, popular: true },
-    { id: 12, name: 'Relaxation', category: 'wellness', content: 'Taking it easy today! 😌🧘', icon: Heart, popular: false }
-  ];
 
   useEffect(() => {
     loadTemplates();
@@ -42,14 +27,12 @@ const StatusTemplatesPanel = ({ onClose, status, onTemplateSelect }) => {
       }
     } catch (error) {
       console.error('Error loading templates:', error);
-      // Fallback to mock templates
-      setTemplates(mockTemplates);
     } finally {
       setLoading(false);
     }
   };
 
-  const displayTemplates = templates.length > 0 ? templates : mockTemplates;
+  const displayTemplates = templates;
 
   const categories = [
     { id: 'all', label: 'All Templates' },
@@ -139,7 +122,7 @@ const StatusTemplatesPanel = ({ onClose, status, onTemplateSelect }) => {
             })}
           </div>
 
-          {filteredTemplates.length === 0 && (
+          {!loading && filteredTemplates.length === 0 && (
             <div className="text-center py-8 text-white/60">
               <Layout size={48} className="mx-auto mb-2 opacity-50" />
               <p>No templates found in this category</p>

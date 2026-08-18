@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Eye, EyeOff, Settings, Check, X } from 'lucide-react';
+import { Clock, Settings, Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const LastSeen = ({ user, privacySettings, onPrivacyChange }) => {
@@ -8,21 +8,9 @@ const LastSeen = ({ user, privacySettings, onPrivacyChange }) => {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   useEffect(() => {
-    // Simulate fetching last seen status
-    const fetchLastSeen = async () => {
-      // Mock data - in production, fetch from backend
-      setLastSeen(user.lastSeen || Date.now() - 1000 * 60 * 15); // 15 minutes ago
-      setIsOnline(user.isOnline || false);
-    };
-
-    fetchLastSeen();
-
-    // Update online status periodically
-    const interval = setInterval(() => {
-      setIsOnline(Math.random() > 0.7); // Random online status for demo
-    }, 30000);
-
-    return () => clearInterval(interval);
+    // Use the real last-seen / online data provided by the backend.
+    setLastSeen(user?.lastSeen || null);
+    setIsOnline(Boolean(user?.isOnline));
   }, [user]);
 
   const formatLastSeen = (timestamp) => {

@@ -1,4 +1,4 @@
-import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
+import { getAuthToken } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { X, Hash, TrendingUp, Plus, XCircle, Search, CheckCircle } from 'lucide-react';
@@ -9,18 +9,6 @@ const StatusHashtagsPanel = ({ onClose, status, onHashtagsAdd }) => {
   const [customHashtag, setCustomHashtag] = useState('');
   const [trendingHashtags, setTrendingHashtags] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  const mockTrendingHashtags = [
-    { id: 1, tag: '#viral', count: 50000 },
-    { id: 2, tag: '#trending', count: 45000 },
-    { id: 3, tag: '#fyp', count: 40000 },
-    { id: 4, tag: '#status', count: 30000 },
-    { id: 6, tag: '#genz', count: 25000 },
-    { id: 7, tag: '#whatsapp', count: 20000 },
-    { id: 8, tag: '#mood', count: 15000 },
-    { id: 9, tag: '#lifestyle', count: 12000 },
-    { id: 10, tag: '#funny', count: 10000 }
-  ];
 
   useEffect(() => {
     loadTrendingHashtags();
@@ -37,12 +25,10 @@ const StatusHashtagsPanel = ({ onClose, status, onHashtagsAdd }) => {
       });
       const data = await response.json();
       if (data.success) {
-        setTrendingHashtags(data.hashtags || mockTrendingHashtags);
+        setTrendingHashtags(data.hashtags || []);
       }
     } catch (error) {
       console.error('Error loading trending hashtags:', error);
-      // Fallback to mock hashtags
-      setTrendingHashtags(mockTrendingHashtags);
     } finally {
       setLoading(false);
     }
@@ -179,6 +165,9 @@ const StatusHashtagsPanel = ({ onClose, status, onHashtagsAdd }) => {
               <p className="text-white/60 text-xs uppercase">Trending</p>
             </div>
             <div className="space-y-2 max-h-64 overflow-y-auto">
+              {!loading && filteredHashtags.length === 0 && (
+                <p className="text-white/40 text-sm py-2">No trending hashtags yet</p>
+              )}
               {filteredHashtags.map((hashtag) => {
                 const isSelected = selectedHashtags.includes(hashtag.tag);
                 return (

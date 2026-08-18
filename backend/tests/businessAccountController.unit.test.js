@@ -2,7 +2,20 @@ jest.mock('../models/User', () => ({
   findById: jest.fn()
 }));
 
+jest.mock('../models/Message', () => ({
+  countDocuments: jest.fn(),
+  aggregate: jest.fn(),
+  find: jest.fn()
+}));
+
+jest.mock('../models/Conversation', () => ({
+  countDocuments: jest.fn(),
+  find: jest.fn()
+}));
+
 const User = require('../models/User');
+const Message = require('../models/Message');
+const Conversation = require('../models/Conversation');
 const businessAccount = require('../controllers/businessAccountController');
 
 const makeRes = () => {
@@ -162,12 +175,42 @@ describe('businessAccountController', () => {
     expect(res.body.message).toBe('Analytics is disabled');
   });
 
-  it('returns analytics when enabled (happy path)', async () => {
+  it('returns analytics computed from the user\'s real data (happy path)', async () => {
     User.findById.mockResolvedValue(makeUser({ businessAccountSettings: { analyticsEnabled: true } }));
+
+    // Real data: 10 messages total, 5 conversations, 4 this week, 2 last week.
+    Message.countDocuments
+      .mockResolvedValueOnce(10)  // totalMessages
+      .mockResolvedValueOnce(4)   // this week
+      .mockResolvedValueOnce(2);  // last week
+    Message.aggregate.mockResolvedValue([
+      { _id: 10, count: 5 },
+      { _id: 14, count: 3 }
+    ]);
+    Conversation.countDocuments.mockResolvedValue(5);
+
+    // One conversation with an incoming message followed by the user replying
+    // 20 minutes later → avg response time 20 minutes.
+    Conversation.find.mockReturnValue({
+      select: jest.fn().mockResolvedValue([{ _id: 'conv-1' }])
+    });
+    Message.find.mockReturnValue({
+      sort: jest.fn().mockReturnThis(),
+      select: jest.fn().mockResolvedValue([
+        { sender: 'other-user', createdAt: new Date(Date.now() - 60000) },
+        { sender: 'user-1', createdAt: new Date(Date.now() - 60000 + 20 * 60000) }
+      ])
+    });
+
     const res = makeRes();
     await businessAccount.getBusinessAnalytics(makeReq(), res);
     expect(res.body.success).toBe(true);
-    expect(res.body.analytics.totalMessages).toBe(1250);
+    expect(res.body.analytics.totalMessages).toBe(10);
+    expect(res.body.analytics.totalConversations).toBe(5);
+    expect(res.body.analytics.responseTime).toBe(20);
+    expect(res.body.analytics.weeklyGrowth).toBe(100); // (4-2)/2 = +100%
+    expect(res.body.analytics.peakHours).toEqual(['10:00', '14:00']);
+    expect(res.body.analytics.customerSatisfaction).toBeNull(); // honest null, no rating data
   });
 
   it('resets settings to defaults (happy path)', async () => {

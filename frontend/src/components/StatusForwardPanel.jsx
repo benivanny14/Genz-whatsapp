@@ -1,34 +1,67 @@
-import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
-import React, { useState } from 'react';
+import { getAuthToken } from '../utils/tokenStore';
+import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
-import { X, Forward, Search, Users, CheckCircle, Send } from 'lucide-react';
+import { X, Forward, Search, Users, CheckCircle, Loader } from 'lucide-react';
 
 const StatusForwardPanel = ({ onClose, status, onForward }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [contacts, setContacts] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [selectedContacts, setSelectedContacts] = useState([]);
   const [selectedGroups, setSelectedGroups] = useState([]);
   const [isForwarding, setIsForwarding] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
-  const mockContacts = [
-    { id: 1, name: 'John Doe', avatar: 'JD', online: true },
-    { id: 2, name: 'Jane Smith', avatar: 'JS', online: false },
-    { id: 3, name: 'Mike Johnson', avatar: 'MJ', online: true },
-    { id: 4, name: 'Sarah Williams', avatar: 'SW', online: false },
-    { id: 5, name: 'David Brown', avatar: 'DB', online: true }
-  ];
+  useEffect(() => {
+    const loadRecipients = async () => {
+      setLoading(true);
+      setLoadError('');
+      try {
+        const token = getAuthToken();
+        const headers = { 'Authorization': `Bearer ${token}` };
 
-  const mockGroups = [
-    { id: 1, name: 'Family Group', members: 12 },
-    { id: 2, name: 'Work Team', members: 8 },
-    { id: 3, name: 'Friends', members: 15 },
-    { id: 4, name: 'Project X', members: 5 }
-  ];
+        const [contactsRes, conversationsRes] = await Promise.all([
+          fetch(`${resolveApiBase()}/chat/contacts`, { headers }),
+          fetch(`${resolveApiBase()}/chat/conversations`, { headers })
+        ]);
 
-  const filteredContacts = mockContacts.filter(contact =>
+        const contactsData = await contactsRes.json();
+        if (contactsData.success && Array.isArray(contactsData.contacts)) {
+          setContacts(contactsData.contacts.map(c => ({
+            id: c.user?._id || c.user?.id,
+            name: c.savedName || c.user?.username || 'Contact',
+            avatar: (c.savedName || c.user?.username || 'C').charAt(0).toUpperCase(),
+            online: Boolean(c.user?.isOnline)
+          })).filter(c => c.id));
+        }
+
+        const conversationsData = await conversationsRes.json();
+        if (conversationsData.success && Array.isArray(conversationsData.conversations)) {
+          setGroups(conversationsData.conversations
+            .filter(c => c.isGroup)
+            .map(g => ({
+              id: g._id || g.id,
+              name: g.name || 'Group',
+              members: (g.participants || []).length
+            })));
+        }
+      } catch (error) {
+        console.error('Error loading recipients:', error);
+        setLoadError('Failed to load contacts. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadRecipients();
+  }, []);
+
+  const filteredContacts = contacts.filter(contact =>
     contact.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredGroups = mockGroups.filter(group =>
+  const filteredGroups = groups.filter(group =>
     group.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -146,6 +179,19 @@ const StatusForwardPanel = ({ onClose, status, onForward }) => {
             </div>
           )}
 
+          {/* Loading / Error */}
+          {loading && (
+            <div className="flex items-center justify-center gap-2 text-white/60 text-sm py-4">
+              <Loader size={16} className="animate-spin" />
+              Loading contacts...
+            </div>
+          )}
+          {!loading && loadError && (
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-yellow-500 text-sm">
+              {loadError}
+            </div>
+          )}
+
           {/* Groups */}
           <div>
             <label className="text-white/60 text-xs mb-2 block flex items-center gap-2">
@@ -153,6 +199,9 @@ const StatusForwardPanel = ({ onClose, status, onForward }) => {
               Groups
             </label>
             <div className="space-y-2">
+              {!loading && filteredGroups.length === 0 && (
+                <p className="text-white/40 text-sm py-2">No groups to forward to</p>
+              )}
               {filteredGroups.map((group) => (
                 <button
                   key={group.id}
@@ -184,6 +233,9 @@ const StatusForwardPanel = ({ onClose, status, onForward }) => {
           <div>
             <label className="text-white/60 text-xs mb-2 block">Contacts</label>
             <div className="space-y-2">
+              {!loading && filteredContacts.length === 0 && (
+                <p className="text-white/40 text-sm py-2">No contacts to forward to</p>
+              )}
               {filteredContacts.map((contact) => (
                 <button
                   key={contact.id}

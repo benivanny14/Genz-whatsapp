@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Bug, FileText, Network, Database, Settings, AlertTriangle, Trash2 } from 'lucide-react';
+import { X, Bug, FileText, Network, Database, Settings, Trash2 } from 'lucide-react';
 
 const DebugFeaturesPanel = ({ onClose }) => {
   const [debugMode, setDebugMode] = useState(false);
@@ -12,50 +12,6 @@ const DebugFeaturesPanel = ({ onClose }) => {
   const originalConsoleLog = useRef(null);
   const originalConsoleError = useRef(null);
   const originalConsoleWarn = useRef(null);
-
-  const mockLogs = [
-    { id: 1, timestamp: '2024-01-15 10:30:45', level: 'INFO', message: 'App initialized successfully' },
-    { id: 2, timestamp: '2024-01-15 10:30:46', level: 'DEBUG', message: 'Loading user data' },
-    { id: 3, timestamp: '2024-01-15 10:30:47', level: 'INFO', message: 'Connected to backend' },
-    { id: 4, timestamp: '2024-01-15 10:30:48', level: 'WARN', message: 'Slow network detected' },
-    { id: 5, timestamp: '2024-01-15 10:30:49', level: 'ERROR', message: 'Failed to fetch contacts' }
-  ];
-
-  const mockNetworkLogs = [
-    { id: 1, timestamp: '10:30:45', method: 'GET', url: '/api/user', status: 200, duration: '120ms' },
-    { id: 2, timestamp: '10:30:46', method: 'POST', url: '/api/login', status: 200, duration: '350ms' },
-    { id: 3, timestamp: '10:30:47', method: 'GET', url: '/api/chats', status: 200, duration: '180ms' },
-    { id: 4, timestamp: '10:30:48', method: 'GET', url: '/api/status', status: 500, duration: '5000ms' }
-  ];
-
-  const mockDbData = [
-    { id: 1, table: 'users', count: 1250, size: '2.5MB' },
-    { id: 2, table: 'chats', count: 5420, size: '8.2MB' },
-    { id: 3, table: 'messages', count: 15420, size: '25.4MB' },
-    { id: 4, table: 'status', count: 320, size: '1.1MB' }
-  ];
-
-  const mockSharedPrefs = {
-    theme: 'dark',
-    language: 'en',
-    notifications: true,
-    soundEnabled: true,
-    lastLogin: '2024-01-15T10:30:00Z'
-  };
-
-  const handleForceCrash = () => {
-    console.log('Force crash triggered');
-    throw new Error('Force crash for testing');
-  };
-
-  const handleClearAllData = () => {
-    if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
-      console.log('Clearing all data');
-      localStorage.clear();
-      sessionStorage.clear();
-      alert('All data cleared');
-    }
-  };
 
   const handleClearLogs = () => {
     setLogs([]);
@@ -200,13 +156,7 @@ const DebugFeaturesPanel = ({ onClose }) => {
               {logs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-white/40">
                   <FileText size={24} />
-                  <p className="mt-2">No logs available</p>
-                  <button
-                    onClick={() => setLogs(mockLogs)}
-                    className="mt-2 px-3 py-1 bg-white/10 hover:bg-white/20 rounded text-white text-xs"
-                  >
-                    Load Sample Logs
-                  </button>
+                  <p className="mt-2">No logs yet — enable Debug Mode to capture live logs</p>
                 </div>
               ) : (
                 logs.map((log) => (
@@ -247,13 +197,7 @@ const DebugFeaturesPanel = ({ onClose }) => {
               {networkLogs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-white/40">
                   <Network size={24} />
-                  <p className="mt-2">No network logs</p>
-                  <button
-                    onClick={() => setNetworkLogs(mockNetworkLogs)}
-                    className="mt-2 px-3 py-1 bg-white/10 hover:bg-white/20 rounded text-white text-xs"
-                  >
-                    Load Sample Logs
-                  </button>
+                  <p className="mt-2">No network logs captured yet</p>
                 </div>
               ) : (
                 networkLogs.map((log) => (
@@ -278,25 +222,6 @@ const DebugFeaturesPanel = ({ onClose }) => {
                   </div>
                 ))
               )}
-            </div>
-          </div>
-
-          {/* Database Viewer */}
-          <div className="bg-white/5 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Database size={18} className="text-[#00a884]" />
-              <h3 className="text-white font-medium">Database Viewer</h3>
-            </div>
-            <div className="space-y-2">
-              {mockDbData.map((table) => (
-                <div key={table.id} className="flex items-center justify-between bg-white/5 rounded-lg p-3">
-                  <div>
-                    <p className="text-white font-medium">{table.table}</p>
-                    <p className="text-white/40 text-xs">{table.count} records</p>
-                  </div>
-                  <span className="text-white/60 text-sm">{table.size}</span>
-                </div>
-              ))}
             </div>
           </div>
 
@@ -362,29 +287,6 @@ const DebugFeaturesPanel = ({ onClose }) => {
             </div>
           </div>
 
-          {/* Danger Zone */}
-          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <AlertTriangle size={18} className="text-red-400" />
-              <h3 className="text-red-400 font-medium">Danger Zone</h3>
-            </div>
-            <div className="space-y-3">
-              <button
-                onClick={handleForceCrash}
-                className="w-full px-4 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-red-400 font-medium flex items-center justify-center gap-2"
-              >
-                <AlertTriangle size={18} />
-                Force Crash
-              </button>
-              <button
-                onClick={handleClearAllData}
-                className="w-full px-4 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-red-400 font-medium flex items-center justify-center gap-2"
-              >
-                <Trash2 size={18} />
-                Clear All Data
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Footer */}

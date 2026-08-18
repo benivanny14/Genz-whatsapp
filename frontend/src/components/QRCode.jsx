@@ -194,22 +194,14 @@ const QRCodeScanner = ({ onScan, onClose }) => {
   const handleStartScan = () => {
     setScanning(true);
     setError(null);
-    
-    // Simulate QR code scanning
+    setScanResult(null);
+
+    // Real QR scanning requires a camera permission flow; this demo does not
+    // fabricate a scanned profile, so we surface that honestly instead.
     setTimeout(() => {
-      const mockResult = {
-        type: 'profile',
-        userId: '123456',
-        phone: '+255123456789',
-        name: 'John Doe'
-      };
-      setScanResult(mockResult);
       setScanning(false);
-      
-      if (onScan) {
-        onScan(mockResult);
-      }
-    }, 2000);
+      setError('Camera QR scanning is not available in this demo — use a real scanner to read GENZ QR codes.');
+    }, 800);
   };
 
   return (

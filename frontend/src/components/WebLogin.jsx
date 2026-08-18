@@ -1,32 +1,19 @@
 import React, { useState } from 'react';
-import { Monitor, X, Check, RefreshCw, QrCode, Smartphone, AlertTriangle, Copy } from 'lucide-react';
+import { Monitor, X, Check, RefreshCw, QrCode, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const WebLogin = ({ user, onGenerateQR, onVerifyLogin, onClose }) => {
   const [qrCode, setQrCode] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
-  const [loginCode, setLoginCode] = useState('');
-  const [copied, setCopied] = useState(false);
 
   const handleGenerateQR = async () => {
+    // Real web-device linking happens through the device-linking flow in
+    // Settings; this demo does not fabricate a scannable QR code.
     setIsGenerating(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise(resolve => setTimeout(resolve, 800));
     setIsGenerating(false);
-
-    // Simulate QR code generation
-    const mockQRCode = `https://web.whatsapp.com/qr/${user?._id || 'user123'}`;
-    setQrCode(mockQRCode);
-
-    if (onGenerateQR) {
-      onGenerateQR(mockQRCode);
-    }
-  };
-
-  const handleCopyCode = () => {
-    navigator.clipboard.writeText(loginCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setQrCode('unavailable');
   };
 
   const handleVerify = async () => {
@@ -93,28 +80,15 @@ const WebLogin = ({ user, onGenerateQR, onVerifyLogin, onClose }) => {
             {/* QR Code Display */}
             <div className="mb-6 flex flex-col items-center">
               <div className="w-48 h-48 bg-white rounded-lg flex items-center justify-center mb-4">
-                <QrCode size={180} className="text-black" />
+                <QrCode size={120} className="text-black" />
               </div>
               <p className="text-gray-400 text-sm text-center">
-                Scan this QR code with your WhatsApp app
+                {qrCode === 'unavailable' ? (
+                  <>Web device linking is done from <span className="text-white">Settings → Devices</span> with a real, scannable QR code. This demo shows the flow without generating one.</>
+                ) : (
+                  'Scan this QR code with your WhatsApp app'
+                )}
               </p>
-            </div>
-
-            {/* Alternative Login Code */}
-            <div className="mb-4 p-4 bg-[#0b141a] rounded-lg border border-[#00a884]/20">
-              <p className="text-gray-400 text-sm mb-2">Or enter this code on your device:</p>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 bg-[#1a2e35] text-[#00a884] px-3 py-2 rounded text-center font-mono text-lg">
-                  {loginCode || 'ABC-DEF-GHI'}
-                </code>
-                <button
-                  onClick={handleCopyCode}
-                  className="p-2 bg-[#00a884]/20 text-[#00a884] rounded hover:bg-[#00a884]/30 transition-colors"
-                  title="Copy code"
-                >
-                  {copied ? <Check size={18} /> : <Copy size={18} />}
-                </button>
-              </div>
             </div>
 
             {/* Warning */}

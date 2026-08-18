@@ -1,5 +1,7 @@
 
 const { getUser, createSettingsMerger, createSettingsHandlers } = require('../services/userScopedService');
+const Message = require('../models/Message');
+const Conversation = require('../models/Conversation');
 
 const defaultSettings = {
   businessAccountEnabled: false,
@@ -262,7 +264,7 @@ exports.toggleAwayMode = async (req, res) => {
   }
 };
 
-// @desc    Get business analytics (mock)
+// @desc    Get business analytics (computed from the user's real data)
 // @route   GET /api/business-account/analytics
 // @access  Private
 exports.getBusinessAnalytics = async (req, res) => {
@@ -276,15 +278,61 @@ exports.getBusinessAnalytics = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Analytics is disabled' });
     }
 
-    // In real implementation, calculate actual analytics
+    const userId = user._id;
+    const now = Date.now();
+    const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+    const twoWeeksAgo = new Date(now - 14 * 24 * 60 * 60 * 1000);
+
+    // Real totals from the user's own data.
+    const [totalMessages, totalConversations, thisWeekMessages, lastWeekMessages, hourlyAgg] = await Promise.all([
+      Message.countDocuments({ sender: userId }),
+      Conversation.countDocuments({ participants: userId }),
+      Message.countDocuments({ sender: userId, createdAt: { $gte: weekAgo } }),
+      Message.countDocuments({ sender: userId, createdAt: { $gte: twoWeeksAgo, $lt: weekAgo } }),
+      Message.aggregate([
+        { $match: { sender: userId } },
+        { $group: { _id: { $hour: '$createdAt' }, count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 3 }
+      ])
+    ]);
+
+    // Average reply time: gap between an incoming message in a conversation
+    // and the user's next message in that same conversation.
+    const conversations = await Conversation.find({ participants: userId }).select('_id');
+    let responseGaps = [];
+    for (const conv of conversations) {
+      const msgs = await Message.find({ conversationId: conv._id, createdAt: { $gte: weekAgo } })
+        .sort({ createdAt: 1 })
+        .select('sender createdAt');
+      for (let i = 1; i < msgs.length; i++) {
+        const prev = msgs[i - 1];
+        if (String(prev.sender) !== String(userId) && String(msgs[i].sender) === String(userId)) {
+          const gap = (msgs[i].createdAt - prev.createdAt) / 60000; // minutes
+          if (gap >= 0) responseGaps.push(gap);
+        }
+      }
+    }
+    const avgResponseMinutes = responseGaps.length
+      ? Math.round(responseGaps.reduce((a, b) => a + b, 0) / responseGaps.length)
+      : 0;
+
+    const peakHours = hourlyAgg.map(h =>
+      `${String(h._id).padStart(2, '0')}:00`
+    );
+
+    const weeklyGrowth = lastWeekMessages > 0
+      ? Math.round(((thisWeekMessages - lastWeekMessages) / lastWeekMessages) * 100)
+      : (thisWeekMessages > 0 ? 100 : 0);
+
     const analytics = {
-      totalMessages: 1250,
-      totalConversations: 85,
-      responseTime: 15, // minutes
-      customerSatisfaction: 4.5, // out of 5
-      peakHours: ['10:00', '14:00', '16:00'],
+      totalMessages,
+      totalConversations,
+      responseTime: avgResponseMinutes,
+      customerSatisfaction: null, // no rating data is collected; honest null
+      peakHours,
       topProducts: [],
-      weeklyGrowth: 12 // percentage
+      weeklyGrowth
     };
 
     res.status(200).json({ success: true, analytics });

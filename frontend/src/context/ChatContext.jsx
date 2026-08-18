@@ -54,10 +54,7 @@ const safeSocketOn = (socket, event, handler) => {
 
 const BACKEND_URL = resolveApiBase();
 const SOCKET_ORIGIN = resolveSocketOrigin();
-/** Mongo-style demo fallback when no JWT user is present (dev / optional demo mode) */
-const UNAUTHENTICATED_FALLBACK_USER_ID = '60d5ecb8b392cb371c664c12';
 const REQUIRE_AUTH = import.meta.env.VITE_REQUIRE_AUTH !== 'false';
-const ENABLE_DEMO_DATA = import.meta.env.VITE_ENABLE_DEMO_DATA === 'true';
 
 const normalizeDisappearingSettings = (value) => {
   const raw = typeof value === 'object' && value !== null
@@ -323,7 +320,6 @@ export const ChatProvider = ({ children }) => {
 
   const currentUserId = React.useMemo(() => {
     if (authUser?._id) return String(authUser._id);
-    if (ENABLE_DEMO_DATA) return UNAUTHENTICATED_FALLBACK_USER_ID;
     return null;
   }, [authUser?._id]);
 
@@ -775,97 +771,6 @@ export const ChatProvider = ({ children }) => {
   }, [mods.autoReply, mods.autoReplyMsg, isAuthReady, authLoading, isAuthenticated]);
 
   // ── DEMO SEED DATA (shows when no real data exists) ──────────────────────
-  const DEMO_CONVERSATIONS = [
-    {
-      _id: 'demo-conv-1', isGroup: false, isPinned: true, isArchived: false,
-      participants: [{ _id: 'demo-user-1', username: 'Amina Kweli', profilePicture: null, isOnline: true }],
-      lastMessage: { content: 'Hi there! 😊 Did you get home safe?', timestamp: new Date(Date.now() - 300000).toISOString(), senderId: 'demo-user-1' },
-      unreadCount: 3, name: 'Amina Kweli',
-    },
-    {
-      _id: 'demo-conv-2', isGroup: false, isPinned: false, isArchived: false,
-      participants: [{ _id: 'demo-user-2', username: 'Brian Msomi', profilePicture: null, isOnline: false }],
-      lastMessage: { content: '✅ Okay, see you tomorrow at 9', timestamp: new Date(Date.now() - 3600000).toISOString(), senderId: currentUserId },
-      unreadCount: 0, name: 'Brian Msomi',
-    },
-    {
-      _id: 'demo-conv-3', isGroup: true, isPinned: false, isArchived: false,
-      participants: [
-        { _id: 'demo-user-1', username: 'Amina Kweli', profilePicture: null },
-        { _id: 'demo-user-3', username: 'Carol Mwangi', profilePicture: null },
-        { _id: 'demo-user-4', username: 'David Ochieng', profilePicture: null },
-      ],
-      lastMessage: { content: '🎉 Congrats David!', timestamp: new Date(Date.now() - 7200000).toISOString(), senderId: 'demo-user-1' },
-      unreadCount: 12, name: '🎓 GENZ Family', groupName: '🎓 GENZ Family',
-    },
-    {
-      _id: 'demo-conv-4', isGroup: false, isPinned: false, isArchived: false,
-      participants: [{ _id: 'demo-user-3', username: 'Carol Mwangi', profilePicture: null, isOnline: true }],
-      lastMessage: { content: '🎵 [Audio Message - 0:24]', timestamp: new Date(Date.now() - 86400000).toISOString(), senderId: 'demo-user-3' },
-      unreadCount: 1, name: 'Carol Mwangi',
-    },
-    {
-      _id: 'demo-conv-5', isGroup: false, isPinned: false, isArchived: false,
-      participants: [{ _id: 'demo-user-5', username: 'Edwin Baraka', profilePicture: null, isOnline: false }],
-      lastMessage: { content: 'Send this file as fast as you can 📎', timestamp: new Date(Date.now() - 172800000).toISOString(), senderId: currentUserId },
-      unreadCount: 0, name: 'Edwin Baraka',
-    },
-    {
-      _id: 'demo-conv-6', isGroup: true, isPinned: false, isArchived: false,
-      participants: [
-        { _id: 'demo-user-2', username: 'Brian Msomi', profilePicture: null },
-        { _id: 'demo-user-5', username: 'Edwin Baraka', profilePicture: null },
-      ],
-      lastMessage: { content: '📍 I shared my location', timestamp: new Date(Date.now() - 259200000).toISOString(), senderId: 'demo-user-2' },
-      unreadCount: 5, name: '💼 Work Team', groupName: '💼 Work Team',
-    },
-    {
-      _id: 'demo-conv-7', isGroup: false, isPinned: false, isArchived: false,
-      participants: [{ _id: 'demo-user-6', username: 'Fatuma Hassan', profilePicture: null, isOnline: true }],
-      lastMessage: { content: 'Did you do tomorrow\'s assignment?', timestamp: new Date(Date.now() - 3600000 * 5).toISOString(), senderId: 'demo-user-6' },
-      unreadCount: 2, name: 'Fatuma Hassan',
-    },
-    {
-      _id: 'demo-conv-8', isGroup: false, isPinned: false, isArchived: false,
-      participants: [{ _id: 'demo-user-7', username: 'George Kamau', profilePicture: null, isOnline: false }],
-      lastMessage: { content: '😂😂😂 that is so true!', timestamp: new Date(Date.now() - 3600000 * 48).toISOString(), senderId: 'demo-user-7' },
-      unreadCount: 0, name: 'George Kamau',
-    },
-  ];
-
-  const DEMO_MESSAGES = {
-    'demo-conv-1': [
-      { _id: 'dm1-1', content: 'Good morning! ☀️', senderId: 'demo-user-1', timestamp: new Date(Date.now() - 3600000 * 3).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm1-2', content: 'Very good, and you? 😊', senderId: currentUserId, timestamp: new Date(Date.now() - 3600000 * 2.9).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm1-3', content: 'I\'m fine. There\'s a meeting at 10 this morning', senderId: 'demo-user-1', timestamp: new Date(Date.now() - 3600000 * 2).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm1-4', content: 'Okay I\'m ready! 👍', senderId: currentUserId, timestamp: new Date(Date.now() - 3600000 * 1.5).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm1-5', content: 'Did you get that document I sent you?', senderId: 'demo-user-1', timestamp: new Date(Date.now() - 1800000).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm1-6', content: 'Yes I got it, I\'ll look at it right now 📄', senderId: currentUserId, timestamp: new Date(Date.now() - 900000).toISOString(), status: 'delivered', type: 'text' },
-      { _id: 'dm1-7', content: 'Hi there! 😊 Did you get home safe?', senderId: 'demo-user-1', timestamp: new Date(Date.now() - 300000).toISOString(), status: 'delivered', type: 'text' },
-    ],
-    'demo-conv-2': [
-      { _id: 'dm2-1', content: 'Are you still at the office?', senderId: currentUserId, timestamp: new Date(Date.now() - 7200000).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm2-2', content: 'Yes, just finishing up some work', senderId: 'demo-user-2', timestamp: new Date(Date.now() - 7000000).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm2-3', content: 'What time shall we meet tomorrow?', senderId: currentUserId, timestamp: new Date(Date.now() - 6000000).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm2-4', content: 'Does 9 in the morning work?', senderId: 'demo-user-2', timestamp: new Date(Date.now() - 5000000).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm2-5', content: '✅ Okay, see you tomorrow at 9', senderId: currentUserId, timestamp: new Date(Date.now() - 3600000).toISOString(), status: 'read', type: 'text' },
-    ],
-    'demo-conv-3': [
-      { _id: 'dm3-1', content: 'Is everyone at the meeting? 🤔', senderId: 'demo-user-3', timestamp: new Date(Date.now() - 9000000).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm3-2', content: 'I\'m here! ✋', senderId: currentUserId, timestamp: new Date(Date.now() - 8900000).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm3-3', content: 'Here too! 🙋‍♂️', senderId: 'demo-user-4', timestamp: new Date(Date.now() - 8800000).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm3-4', content: 'I had great news today — I got a job! 🎉', senderId: 'demo-user-4', timestamp: new Date(Date.now() - 8000000).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm3-5', content: '🎉 Congrats David!', senderId: 'demo-user-1', timestamp: new Date(Date.now() - 7900000).toISOString(), status: 'read', type: 'text', reactions: [{ emoji: '🎊', userId: currentUserId }, { emoji: '❤️', userId: 'demo-user-3' }] },
-      { _id: 'dm3-6', content: 'Congrats! Best of luck 🙏', senderId: currentUserId, timestamp: new Date(Date.now() - 7200000).toISOString(), status: 'read', type: 'text' },
-    ],
-    'demo-conv-4': [
-      { _id: 'dm4-1', content: 'What song are you into right now? 🎵', senderId: currentUserId, timestamp: new Date(Date.now() - 90000000).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm4-2', content: 'Listen to this! 🎶', senderId: 'demo-user-3', timestamp: new Date(Date.now() - 89000000).toISOString(), status: 'read', type: 'audio', duration: 24 },
-      { _id: 'dm4-3', content: '😍 So good! Who is it?', senderId: currentUserId, timestamp: new Date(Date.now() - 88000000).toISOString(), status: 'read', type: 'text' },
-      { _id: 'dm4-4', content: '🎵 [Audio Message - 0:24]', senderId: 'demo-user-3', timestamp: new Date(Date.now() - 86400000).toISOString(), status: 'read', type: 'text' },
-    ],
-  };
-
   // ── Load offline data from IndexedDB on mount ──
   useEffect(() => {
     const loadOfflineData = async () => {
@@ -900,19 +805,14 @@ export const ChatProvider = ({ children }) => {
               }, 1000);
             }
           }
-        } else if (ENABLE_DEMO_DATA) {
-          // Seed demo data for testing
-          console.log('[GENZ] Seeding demo conversations for testing...');
-          setConversations(DEMO_CONVERSATIONS);
-          // Store in IndexedDB for persistence
-          try { for (const c of DEMO_CONVERSATIONS) { await DB.saveConversation(c); } } catch (e) { /* silent */ }
         } else {
-          // Production must never show sample chats unless explicitly enabled.
+          // No cached conversations — start with an empty list (real chats load
+          // from the server once the socket/API sync completes).
           setConversations([]);
         }
       } catch (err) {
         console.error('Failed to load offline data:', err);
-        setConversations(ENABLE_DEMO_DATA ? DEMO_CONVERSATIONS : []);
+        setConversations([]);
       }
     };
     loadOfflineData();
@@ -2568,13 +2468,6 @@ export const ChatProvider = ({ children }) => {
     }
     
     try {
-      // Check for demo messages first
-      if (ENABLE_DEMO_DATA && DEMO_MESSAGES[conv._id]) {
-        console.log('[ChatContext] Loading demo messages for:', conv._id);
-        setMessages(DEMO_MESSAGES[conv._id]);
-        return;
-      }
-
       const convId = conv._id;
       console.log('[ChatContext] Loading messages for conversation:', convId);
       let showedCache = false;
@@ -3211,7 +3104,7 @@ export const ChatProvider = ({ children }) => {
 
         if (conversationsData.status === 'fulfilled' && conversationsData.value?.success) {
           const remoteConversations = conversationsData.value.conversations || [];
-          if (remoteConversations.length > 0 || !ENABLE_DEMO_DATA) {
+          if (remoteConversations.length > 0) {
             setConversations(prev => {
               const localOnlyConvs = prev.filter(c => c._id && (c._id.startsWith('conv-') || c._id.startsWith('temp-')));
               const mergedMap = new Map();

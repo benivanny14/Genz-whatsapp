@@ -1,24 +1,13 @@
-import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
+import { getAuthToken } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
-import { X, AtSign, UserPlus, Search, CheckCircle, XCircle } from 'lucide-react';
+import { X, AtSign, UserPlus, Search, CheckCircle, XCircle, Users } from 'lucide-react';
 
 const StatusMentionsPanel = ({ onClose, status, onMentionsAdd }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  const mockUsers = [
-    { id: 1, username: 'john_doe', name: 'John Doe', avatar: 'JD' },
-    { id: 2, username: 'jane_smith', name: 'Jane Smith', avatar: 'JS' },
-    { id: 3, username: 'mike_wilson', name: 'Mike Wilson', avatar: 'MW' },
-    { id: 4, username: 'sarah_jones', name: 'Sarah Jones', avatar: 'SJ' },
-    { id: 5, username: 'alex_brown', name: 'Alex Brown', avatar: 'AB' },
-    { id: 6, username: 'emily_davis', name: 'Emily Davis', avatar: 'ED' },
-    { id: 7, username: 'chris_miller', name: 'Chris Miller', avatar: 'CM' },
-    { id: 8, username: 'lisa_anderson', name: 'Lisa Anderson', avatar: 'LA' }
-  ];
 
   useEffect(() => {
     loadUsers();
@@ -45,8 +34,6 @@ const StatusMentionsPanel = ({ onClose, status, onMentionsAdd }) => {
       }
     } catch (error) {
       console.error('Error loading users:', error);
-      // Fallback to mock users
-      setAllUsers(mockUsers);
     } finally {
       setLoading(false);
     }
@@ -149,6 +136,12 @@ const StatusMentionsPanel = ({ onClose, status, onMentionsAdd }) => {
           <div>
             <p className="text-white/60 text-xs mb-2 uppercase">All Users</p>
             <div className="space-y-2 max-h-64 overflow-y-auto">
+              {!loading && allUsers.length === 0 && (
+                <div className="text-center py-8 text-white/50">
+                  <Users size={40} className="mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No contacts yet — add contacts to mention them</p>
+                </div>
+              )}
               {filteredUsers.map((user) => {
                 const isSelected = selectedUsers.find(u => u.id === user.id);
                 return (

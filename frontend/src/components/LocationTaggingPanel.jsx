@@ -1,7 +1,7 @@
-import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
-import React, { useState, useEffect } from 'react';
+import { getAuthToken } from '../utils/tokenStore';
+import React, { useState, useEffect, useRef } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
-import { X, MapPin, Navigation, Search, Star, Clock, CheckCircle, Plus } from 'lucide-react';
+import { X, MapPin, Navigation, Search, Star, CheckCircle, Plus, Loader } from 'lucide-react';
 
 const LocationTaggingPanel = ({ onClose, status, onLocationAdd }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -9,18 +9,10 @@ const LocationTaggingPanel = ({ onClose, status, onLocationAdd }) => {
   const [customLocation, setCustomLocation] = useState('');
   const [savedLocations, setSavedLocations] = useState([]);
   const [recentLocations, setRecentLocations] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  const mockLocations = [
-    { id: 1, name: 'Dar es Salaam', country: 'Tanzania', lat: -6.7924, lng: 39.2083 },
-    { id: 2, name: 'Nairobi', country: 'Kenya', lat: -1.2921, lng: 36.8219 },
-    { id: 3, name: 'Kampala', country: 'Uganda', lat: 0.3476, lng: 32.5825 },
-    { id: 4, name: 'Lagos', country: 'Nigeria', lat: 6.5244, lng: 3.3792 },
-    { id: 5, name: 'Johannesburg', country: 'South Africa', lat: -26.2041, lng: 28.0473 },
-    { id: 6, name: 'Cairo', country: 'Egypt', lat: 30.0444, lng: 31.2357 },
-    { id: 7, name: 'Casablanca', country: 'Morocco', lat: 33.5731, lng: -7.5898 },
-    { id: 8, name: 'Addis Ababa', country: 'Ethiopia', lat: 8.9634, lng: 38.7653 }
-  ];
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState('');
+  const searchTimer = useRef(null);
 
   useEffect(() => {
     loadSavedLocations();
@@ -118,10 +110,42 @@ const LocationTaggingPanel = ({ onClose, status, onLocationAdd }) => {
     }
   };
 
-  const filteredLocations = mockLocations.filter(loc =>
-    loc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    loc.country.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Debounced real geocoding via OpenStreetMap Nominatim (no API key needed).
+  useEffect(() => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    const query = searchQuery.trim();
+    if (query.length < 3) {
+      setSearchResults([]);
+      setSearchError('');
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    setSearchError('');
+    searchTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&limit=8&addressdetails=1&q=${encodeURIComponent(query)}`,
+          { headers: { 'Accept-Language': 'en' } }
+        );
+        if (!res.ok) throw new Error(`Geocoding failed (${res.status})`);
+        const data = await res.json();
+        setSearchResults((data || []).map((r, i) => ({
+          id: i + 1,
+          name: r.display_name?.split(',').slice(0, 2).join(',') || r.display_name || query,
+          country: r.address?.country || '',
+          lat: parseFloat(r.lat),
+          lng: parseFloat(r.lon)
+        })));
+      } catch (error) {
+        console.error('Error geocoding location:', error);
+        setSearchError('Could not search locations right now.');
+      } finally {
+        setSearching(false);
+      }
+    }, 400);
+    return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
+  }, [searchQuery]);
 
   return (
     <div className="fixed inset-0 z-[600] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -230,11 +254,23 @@ const LocationTaggingPanel = ({ onClose, status, onLocationAdd }) => {
           )}
 
           {/* Search Results */}
-          {searchQuery && (
+          {searchQuery.trim().length >= 3 && (
             <div>
               <p className="text-white/60 text-xs mb-2 uppercase">Results</p>
+              {searching && (
+                <div className="flex items-center gap-2 text-white/60 text-sm py-3">
+                  <Loader size={16} className="animate-spin" />
+                  Searching...
+                </div>
+              )}
+              {!searching && searchError && (
+                <p className="text-yellow-500 text-sm py-2">{searchError}</p>
+              )}
+              {!searching && !searchError && searchResults.length === 0 && (
+                <p className="text-white/40 text-sm py-2">No locations found — type a longer query or add a custom location</p>
+              )}
               <div className="space-y-2">
-                {filteredLocations.map((location) => (
+                {searchResults.map((location) => (
                   <button
                     key={location.id}
                     onClick={() => handleSelectLocation(location)}
