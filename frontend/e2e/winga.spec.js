@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 /**
  * WINGA — the marketplace feature that replaced "Business tools" in Settings:
  * a WINGA button on the bottom nav (next to Me), category-based listings
- * (nguo, simu, viwanja, ...), photo/video + price posting, a Chat-with-seller
+ * (clothes, phones, plots, ...), photo/video + price posting, a Chat-with-seller
  * button that opens the DM, and unseen-count badges (per category + on the
  * nav button) that clear as the user views listings, capped at 15 posts/day.
  */
@@ -45,7 +45,7 @@ async function login(page, creds) {
   await page.waitForURL(/\/chat/, { timeout: 60_000 });
 }
 
-async function postListingViaApi(request, creds, { category = 'nguo', title = 'Leather bag', price = 50000 } = {}) {
+async function postListingViaApi(request, creds, { category = 'clothes', title = 'Leather bag', price = 50000 } = {}) {
   const res = await request.post(`${base()}/api/winga`, {
     headers: { Authorization: `Bearer ${creds.token}` },
     data: {
@@ -65,8 +65,8 @@ async function postListingViaApi(request, creds, { category = 'nguo', title = 'L
 test('WINGA: buyer sees unseen-count badges and clearing them updates the nav badge', async ({ page, request }) => {
   // Seller posts two listings in different categories via API.
   const created = [
-    await postListingViaApi(request, seller, { category: 'nguo', title: 'Blue jeans' }),
-    await postListingViaApi(request, seller, { category: 'simu', title: 'Nokia 3310' })
+    await postListingViaApi(request, seller, { category: 'clothes', title: 'Blue jeans' }),
+    await postListingViaApi(request, seller, { category: 'phones', title: 'Nokia 3310' })
   ];
 
   await login(page, buyer);
@@ -83,12 +83,12 @@ test('WINGA: buyer sees unseen-count badges and clearing them updates the nav ba
   await page.getByTestId('nav-winga').click();
   await page.waitForURL(/\/winga/);
   await expect(page.getByText(/You have 2 new listings/)).toBeVisible({ timeout: 30_000 });
-  const nguoCat = page.getByTestId('winga-category-nguo');
-  await expect(page.getByTestId('winga-cat-unseen-nguo')).toHaveText('1');
-  await expect(page.getByTestId('winga-cat-unseen-simu')).toHaveText('1');
+  const clothesCat = page.getByTestId('winga-category-clothes');
+  await expect(page.getByTestId('winga-cat-unseen-clothes')).toHaveText('1');
+  await expect(page.getByTestId('winga-cat-unseen-phones')).toHaveText('1');
 
   // Open the clothing category — the listing card has a Chat button and a NEW tag.
-  await nguoCat.click();
+  await clothesCat.click();
   await expect(page.getByTestId('winga-listing-card').first()).toBeVisible();
   await expect(page.getByText('Blue jeans').first()).toBeVisible();
   await expect(page.getByTestId('winga-chat-button').first()).toBeVisible();
@@ -98,18 +98,18 @@ test('WINGA: buyer sees unseen-count badges and clearing them updates the nav ba
   await expect(page.getByTestId('winga-viewer-chat')).toBeVisible();
   await page.getByRole('button', { name: 'Close' }).click();
 
-  // Back to categories: nguo count cleared, simu still 1, banner shows 1.
+  // Back to categories: clothes count cleared, phones still 1, banner shows 1.
   await page.getByRole('button', { name: 'Back to categories' }).click();
-  await expect(page.getByTestId('winga-cat-unseen-nguo')).not.toBeVisible();
-  await expect(page.getByTestId('winga-cat-unseen-simu')).toHaveText('1');
+  await expect(page.getByTestId('winga-cat-unseen-clothes')).not.toBeVisible();
+  await expect(page.getByTestId('winga-cat-unseen-phones')).toHaveText('1');
   await expect(page.getByText(/You have 1 new listing/)).toBeVisible();
 
   // View the second one too — banner disappears and the nav badge clears.
-  await page.getByTestId('winga-category-simu').click();
+  await page.getByTestId('winga-category-phones').click();
   await page.getByRole('button', { name: /Nokia 3310/ }).click();
   await page.getByRole('button', { name: 'Close' }).click();
   await expect(page.getByText(/You have .* new listing/)).not.toBeVisible({ timeout: 20_000 });
-  await expect(page.getByTestId('winga-cat-unseen-simu')).not.toBeVisible();
+  await expect(page.getByTestId('winga-cat-unseen-phones')).not.toBeVisible();
   await expect(page.getByTestId('nav-badge-winga')).not.toBeVisible({ timeout: 20_000 });
 
   // Chat button: buyer opens a DM with the seller and lands in /chat.
@@ -144,7 +144,7 @@ test('WINGA: seller posts a business and sees it under My Listings with the dail
   await expect(page.getByRole('heading', { name: 'Post a Listing' })).toBeVisible();
 
   // Category picker.
-  await page.getByTestId('post-category-nguo').click();
+  await page.getByTestId('post-category-clothes').click();
 
   // Title + price.
   await page.getByPlaceholder('E.g., Leather bag, iPhone 12, Plots...').fill('Leather handbag');
@@ -177,7 +177,7 @@ test('WINGA: seller posts a business and sees it under My Listings with the dail
   for (let i = 0; i < 30 && !blocked; i++) {
     const res = await request.post(`${base()}/api/winga`, {
       headers: { Authorization: `Bearer ${seller.token}` },
-      data: { category: 'nguo', title: `Product ${i}`, media: [{ url: '/uploads/winga/x.jpg', type: 'image' }] }
+      data: { category: 'clothes', title: `Product ${i}`, media: [{ url: '/uploads/winga/x.jpg', type: 'image' }] }
     });
     const data = await res.json();
     if (res.status() === 429) {
@@ -211,7 +211,7 @@ test('WINGA: buyer orders a listing and the seller confirms it', async ({ page, 
   await page.getByTestId('nav-winga').click();
   await page.waitForURL(/\/winga/);
   await expect(page.getByText('WINGA', { exact: true }).first()).toBeVisible({ timeout: 30_000 });
-  await page.getByTestId('winga-category-nguo').click();
+  await page.getByTestId('winga-category-clothes').click();
   const card = page.locator('[data-testid="winga-listing-card"]').filter({ hasText: 'Flowered fabric' }).first();
   await expect(card).toBeVisible({ timeout: 30_000 });
   await expect(card.getByTestId('winga-buy-button')).toBeVisible();
@@ -241,8 +241,8 @@ test('WINGA: buyer orders a listing and the seller confirms it', async ({ page, 
   // The listing is now marked sold, so the Buy button disappears.
   const winga = await request.get(`${base()}/api/winga`, { headers: { Authorization: `Bearer ${buyer.token}` } });
   const wingaData = await winga.json();
-  const nguo = wingaData.categories.find((c) => c.id === 'nguo');
-  const soldListing = (nguo.listings || []).find((l) => String(l._id) === String(listing._id));
+  const clothes = wingaData.categories.find((c) => c.id === 'clothes');
+  const soldListing = (clothes.listings || []).find((l) => String(l._id) === String(listing._id));
   expect(soldListing.isSold).toBe(true);
 
   // Buyer opens Orders → Sent tab → the order shows as confirmed.

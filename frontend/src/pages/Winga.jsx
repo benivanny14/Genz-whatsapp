@@ -14,14 +14,14 @@ import { resolveMediaPlaybackUrl } from '../utils/sanitizeMediaUrl';
 import toast from 'react-hot-toast';
 
 const CATEGORY_META = [
-  { id: 'nguo', label: 'Clothes', icon: Shirt },
+  { id: 'clothes', label: 'Clothes', icon: Shirt },
   { id: 'home-accessories', label: 'Home Accessories', icon: Home },
-  { id: 'simu', label: 'Phones', icon: Smartphone },
+  { id: 'phones', label: 'Phones', icon: Smartphone },
   { id: 'speakers', label: 'Speakers', icon: Speaker },
   { id: 'laptop', label: 'Laptop', icon: Laptop },
-  { id: 'viwanja', label: 'Plots', icon: LandPlot },
-  { id: 'dalari', label: 'Dollars', icon: DollarSign },
-  { id: 'viatu', label: 'Shoes', icon: Footprints },
+  { id: 'plots', label: 'Plots', icon: LandPlot },
+  { id: 'currency', label: 'Currency', icon: DollarSign },
+  { id: 'shoes', label: 'Shoes', icon: Footprints },
   { id: 'sandals', label: 'Sandals', icon: Footprints },
   { id: 'tv', label: 'TV', icon: Tv },
   { id: 'furniture', label: 'Furniture', icon: Armchair },
@@ -29,8 +29,8 @@ const CATEGORY_META = [
 ];
 
 const CATEGORY_EMOJI = {
-  nguo: '👕', 'home-accessories': '🏠', simu: '📱', speakers: '🔊', laptop: '💻',
-  viwanja: '🌍', dalari: '💵', viatu: '👟', sandals: '🩴', tv: '📺',
+  clothes: '👕', 'home-accessories': '🏠', phones: '📱', speakers: '🔊', laptop: '💻',
+  plots: '🌍', currency: '💵', shoes: '👟', sandals: '🩴', tv: '📺',
   furniture: '🛋️', other: '📦'
 };
 

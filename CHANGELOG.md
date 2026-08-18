@@ -7,6 +7,32 @@ by commit.
 
 ---
 
+## [2026-08-18] — Privacy/Security MODs UI + WINGA category ids migrated to English
+
+- **New UI for two previously UI-less API groups**:
+  - `PrivacyModsPanel` — Settings → Privacy → "Privacy MODs": 14 toggles
+    (freeze last seen, ghost mode, hide online, anti view-once, disable forwarded
+    tag, hide status view, hide read receipts, who viewed profile, contact online
+    notifier, auto-download status, language per chat, custom tick, custom emoji
+    style, block alerts) + a live block-alerts list with clear-all.
+  - `SecurityModsPanel` — Settings → Advanced privacy → "Security MODs": 10
+    toggles (anti-ban, proxy, IP/device spoofing, app lock pattern/PIN/
+    fingerprint/face, anti-screenshot, screen recording detection) + VPN mode
+    with region selector (auto/USA/Europe/Asia/Africa/Middle East).
+  - Both save via the existing `/api/privacy-mods/settings` and
+    `/api/security-mods/settings` endpoints (flat VPN response shape handled).
+- **WINGA category ids migrated from Swahili to English**: `nguo`→`clothes`,
+  `simu`→`phones`, `viwanja`→`plots`, `dalari`→`currency`, `viatu`→`shoes`
+  across the controller, model enum, frontend meta/emoji maps, unit tests and
+  e2e specs. Added `scripts/migrate-winga-categories.js` to rewrite existing
+  `businesses` + `orders` documents (dry-run with `DRY_RUN=1`; 4 orders migrated
+  locally).
+- **Verification**: backend 1732/1732, frontend 94/94 + build + check:jsx,
+  WINGA + sticker + boundary e2e 8/8, panels verified live against a real
+  backend (toggle → POST → DB roundtrip confirmed).
+
+---
+
 ## [2026-08-18] — Full system audit: APIs without UI, Swahili removed, capacity verified
 
 - **API audit**: mapped every backend route group against frontend consumers — 26 API groups

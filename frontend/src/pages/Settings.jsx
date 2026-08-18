@@ -12,6 +12,8 @@ import ContactManager from '../components/ContactManager';
 import { fetchVersionManifest } from '../utils/versionManifest';
 import { BlockedUsersList } from '../components/BlockUnblock';
 import AntiBanPanel from '../components/AntiBanPanel';
+import PrivacyModsPanel from '../components/PrivacyModsPanel';
+import SecurityModsPanel from '../components/SecurityModsPanel';
 import StatusPrivacyPanel from '../components/StatusPrivacyPanel';
 import StorageManagement from '../components/StorageManagement';
 import AccountSwitcher from '../components/AccountSwitcher';
@@ -978,6 +980,7 @@ const Settings = () => {
         </div>
         
         <SettingRow icon={Eye} title="Advanced status privacy" description="Close friends list and per-status privacy level." onClick={() => setShowStatusPrivacyPanel(true)} />
+        <SettingRow icon={EyeOff} title="Privacy MODs" description="Ghost mode, hide online, anti view-once, block alerts and more." onClick={() => setShowPrivacyModsPanel(true)} />
       </SettingSection>
 
       <SettingSection title="Messages, groups, and calls" description="Controls for disappearing messages, group invites, unknown calls, and call privacy.">
@@ -1000,6 +1003,7 @@ const Settings = () => {
         <SettingRow icon={Shield} title="Block unknown account messages" description="Reduce spam from accounts you have not contacted." control={<Toggle checked={settingsData.privacy.blockUnknownAccountMessages} onChange={() => toggleSetting('privacy.blockUnknownAccountMessages')} />} />
         <SettingRow icon={Shield} title="Advanced Chat Privacy" description="Block exports and media auto-downloads for sensitive chats." control={<Toggle checked={settingsData.privacy.advancedChatPrivacy} onChange={() => toggleSetting('privacy.advancedChatPrivacy')} />} />
         <SettingRow icon={ShieldCheck} title="Account security" description="Anti-ban protection, rate limiting, device spoofing and security score." onClick={() => setShowAntiBanPanel(true)} />
+        <SettingRow icon={ShieldCheck} title="Security MODs" description="App locks, anti-screenshot, screen recording detection, VPN mode and more." onClick={() => setShowSecurityModsPanel(true)} />
       </SettingSection>
 
       <ActionButton onClick={() => saveSettings()} disabled={saving}><Save size={16} /> Save privacy settings</ActionButton>
@@ -1132,6 +1136,8 @@ const Settings = () => {
   );
 
   const [showAntiBanPanel, setShowAntiBanPanel] = useState(false);
+  const [showPrivacyModsPanel, setShowPrivacyModsPanel] = useState(false);
+  const [showSecurityModsPanel, setShowSecurityModsPanel] = useState(false);
   const [showStatusPrivacyPanel, setShowStatusPrivacyPanel] = useState(false);
 
   const renderActiveTab = () => {
@@ -1233,6 +1239,8 @@ const Settings = () => {
         </div>
       )}
       {showAntiBanPanel && <AntiBanPanel onClose={() => setShowAntiBanPanel(false)} />}
+      {showPrivacyModsPanel && <PrivacyModsPanel onClose={() => setShowPrivacyModsPanel(false)} />}
+      {showSecurityModsPanel && <SecurityModsPanel onClose={() => setShowSecurityModsPanel(false)} />}
       {showStatusPrivacyPanel && <StatusPrivacyPanel onClose={() => setShowStatusPrivacyPanel(false)} />}
       {showStorage && <StorageManagement onClose={() => setShowStorage(false)} />}
       {showFakeChat && <FakeChatPanel onClose={() => setShowFakeChat(false)} />}

@@ -64,7 +64,7 @@ describe('wingaController', () => {
     Business.countDocuments.mockResolvedValue(15);
     const res = makeRes();
     await winga.createBusiness(makeReq({
-      body: { category: 'nguo', title: 'Mkoba', media: [{ url: '/uploads/winga/a.jpg', type: 'image' }] }
+      body: { category: 'clothes', title: 'Leather bag', media: [{ url: '/uploads/winga/a.jpg', type: 'image' }] }
     }), res);
     expect(res.statusCode).toBe(429);
     expect(res.body.code).toBe('DAILY_LIMIT_REACHED');
@@ -78,13 +78,13 @@ describe('wingaController', () => {
       userId: 'user-1',
       username: 'alice',
       sellerPhone: '+255700000000',
-      category: 'nguo',
-      title: 'Mkoba',
+      category: 'clothes',
+      title: 'Leather bag',
       media: [{ url: '/uploads/winga/a.jpg', type: 'image' }],
       views: [],
       toObject: () => ({
         _id: BIZ_ID, userId: 'user-1', username: 'alice', sellerPhone: '+255700000000',
-        category: 'nguo', title: 'Mkoba', description: '', price: 0, location: '',
+        category: 'clothes', title: 'Leather bag', description: '', price: 0, location: '',
         media: [{ url: '/uploads/winga/a.jpg', type: 'image' }], views: [], viewsCount: 0,
         createdAt: new Date()
       })
@@ -96,7 +96,7 @@ describe('wingaController', () => {
     const res = makeRes();
     await winga.createBusiness(makeReq({
       user: { _id: MY_ID, username: 'alice', phoneNumber: '+255700000000' },
-      body: { category: 'nguo', title: 'Mkoba', price: 50000, media: [{ url: '/uploads/winga/a.jpg', type: 'image' }] }
+      body: { category: 'clothes', title: 'Leather bag', price: 50000, media: [{ url: '/uploads/winga/a.jpg', type: 'image' }] }
     }), res);
     expect(res.statusCode).toBe(201);
     expect(res.body.success).toBe(true);
@@ -107,7 +107,7 @@ describe('wingaController', () => {
     Business.countDocuments.mockResolvedValue(0);
     const res = makeRes();
     await winga.createBusiness(makeReq({
-      body: { category: 'nguo', media: [{ url: '/uploads/winga/a.jpg', type: 'image' }] }
+      body: { category: 'clothes', media: [{ url: '/uploads/winga/a.jpg', type: 'image' }] }
     }), res);
     expect(res.statusCode).toBe(400);
   });
@@ -115,7 +115,7 @@ describe('wingaController', () => {
   it('requires at least one media item', async () => {
     Business.countDocuments.mockResolvedValue(0);
     const res = makeRes();
-    await winga.createBusiness(makeReq({ body: { category: 'nguo', title: 'Mkoba' } }), res);
+    await winga.createBusiness(makeReq({ body: { category: 'clothes', title: 'Leather bag' } }), res);
     expect(res.statusCode).toBe(400);
   });
 
@@ -238,10 +238,10 @@ describe('wingaController', () => {
     Business.findById.mockResolvedValue({
       _id: BIZ_ID,
       userId: String(OTHER_ID),
-      title: 'Mkoba',
+      title: 'Leather bag',
       price: 50000,
       priceText: '',
-      category: 'nguo',
+      category: 'clothes',
       media: [{ url: '/uploads/winga/a.jpg', type: 'image' }],
       isSold: false
     });
@@ -427,10 +427,10 @@ describe('wingaController', () => {
           _id: BIZ_ID,
           userId: String(MY_ID),
           username: 'alice',
-          title: 'Mkoba',
+          title: 'Leather bag',
           viewsCount: 7,
           views: [],
-          category: 'nguo',
+          category: 'clothes',
           media: [],
           createdAt: new Date(),
           toObject() {
@@ -460,7 +460,7 @@ describe('wingaController', () => {
       _id: id,
       userId,
       username: 'x',
-      category: 'simu',
+      category: 'phones',
       title: 'iPhone',
       media: [],
       views: viewedByMe ? [{ user: MY_ID }] : [],
@@ -489,9 +489,9 @@ describe('wingaController', () => {
     const res = makeRes();
     await winga.getBusinesses(makeReq({ user: { _id: MY_ID, username: 'alice' } }), res);
     expect(res.body.success).toBe(true);
-    const simu = res.body.categories.find((c) => c.id === 'simu');
-    expect(simu.count).toBe(3); // includes my own listing
-    expect(simu.unseen).toBe(1);
+    const phonesCat = res.body.categories.find((c) => c.id === 'phones');
+    expect(phonesCat.count).toBe(3); // includes my own listing
+    expect(phonesCat.unseen).toBe(1);
     expect(res.body.totalUnseen).toBe(1);
     expect(res.body.myListings.length).toBe(1);
   });

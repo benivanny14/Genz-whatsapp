@@ -3,7 +3,7 @@
 // moderation — keep the word list deliberately small to avoid false positives.
 const BLOCKED_WORDS = [
   // Hate slurs (English). Note: 'kike' is deliberately NOT here — in Swahili
-  // it is the everyday word for "female" (e.g. "nguo za kike"), so blocking
+  // it is the everyday word for "female" (e.g. "women's clothes"), so blocking
   // it would reject legitimate marketplace/status content.
   'nigger', 'nigga', 'spic', 'chink', 'fag', 'faggot', 'tranny',
   'retard', 'rape', 'rapist',

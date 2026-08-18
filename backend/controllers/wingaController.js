@@ -6,14 +6,14 @@ const { isEitherUserBlocked } = require('../utils/messageSendHelpers');
 
 // ── WINGA categories ─────────────────────────────────────────────────────────
 const CATEGORIES = [
-  { id: 'nguo', label: 'Clothes' },
+  { id: 'clothes', label: 'Clothes' },
   { id: 'home-accessories', label: 'Home Accessories' },
-  { id: 'simu', label: 'Phones' },
+  { id: 'phones', label: 'Phones' },
   { id: 'speakers', label: 'Speakers' },
   { id: 'laptop', label: 'Laptop' },
-  { id: 'viwanja', label: 'Land' },
-  { id: 'dalari', label: 'Currency' },
-  { id: 'viatu', label: 'Shoes' },
+  { id: 'plots', label: 'Plots' },
+  { id: 'currency', label: 'Currency' },
+  { id: 'shoes', label: 'Shoes' },
   { id: 'sandals', label: 'Sandals' },
   { id: 'tv', label: 'TV' },
   { id: 'furniture', label: 'Furniture' },
