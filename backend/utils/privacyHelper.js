@@ -39,7 +39,7 @@ const applyPrivacyFilter = async (user, requesterId) => {
   }
 
   // PII: contacts (address book) na settings (blockedUsers, appLock, defaultMessageTimer,
-  // privacy config, n.k.) SIZI za kuonekana na watu wengine — hata kama wako kwenye conversation.
+  // privacy config, etc.) NOT visible to other people — even if they are in the conversation.
   delete filteredUser.contacts;
   delete filteredUser.settings;
 

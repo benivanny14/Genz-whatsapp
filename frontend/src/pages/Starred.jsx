@@ -76,7 +76,7 @@ const Starred = () => {
         </button>
         <div>
           <h1 className="text-white font-bold flex items-center gap-2">
-            <Star size={18} className="text-yellow-400 fill-yellow-400" /> Ujumbe wa Nyota
+            <Star size={18} className="text-yellow-400 fill-yellow-400" /> Starred Messages
           </h1>
           <p className="text-white/40 text-xs">{filtered.length} messages</p>
         </div>

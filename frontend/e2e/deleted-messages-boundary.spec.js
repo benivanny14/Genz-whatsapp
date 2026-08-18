@@ -92,5 +92,5 @@ test('malformed mods settings payload does not blank the page (per-panel boundar
   await expect(page.getByRole('heading', { name: 'Auto-Reply', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Media Settings', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Advanced Settings', exact: true })).toBeVisible();
-  await expect(page.getByText('Kitu kimekosea', { exact: true })).toBeHidden();
+  await expect(page.getByText('Something went wrong', { exact: true })).toBeHidden();
 });

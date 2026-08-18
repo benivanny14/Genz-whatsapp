@@ -14,18 +14,18 @@ import { resolveMediaPlaybackUrl } from '../utils/sanitizeMediaUrl';
 import toast from 'react-hot-toast';
 
 const CATEGORY_META = [
-  { id: 'nguo', label: 'Nguo', icon: Shirt },
+  { id: 'nguo', label: 'Clothes', icon: Shirt },
   { id: 'home-accessories', label: 'Home Accessories', icon: Home },
-  { id: 'simu', label: 'Simu', icon: Smartphone },
+  { id: 'simu', label: 'Phones', icon: Smartphone },
   { id: 'speakers', label: 'Speakers', icon: Speaker },
   { id: 'laptop', label: 'Laptop', icon: Laptop },
-  { id: 'viwanja', label: 'Viwanja', icon: LandPlot },
-  { id: 'dalari', label: 'Dalari', icon: DollarSign },
-  { id: 'viatu', label: 'Viatu', icon: Footprints },
+  { id: 'viwanja', label: 'Plots', icon: LandPlot },
+  { id: 'dalari', label: 'Dollars', icon: DollarSign },
+  { id: 'viatu', label: 'Shoes', icon: Footprints },
   { id: 'sandals', label: 'Sandals', icon: Footprints },
   { id: 'tv', label: 'TV', icon: Tv },
   { id: 'furniture', label: 'Furniture', icon: Armchair },
-  { id: 'other', label: 'Nyingine', icon: Package }
+  { id: 'other', label: 'Other', icon: Package }
 ];
 
 const CATEGORY_EMOJI = {
@@ -39,7 +39,7 @@ const formatPrice = (listing) => {
   if (listing.price && Number(listing.price) > 0) {
     return `TZS ${Number(listing.price).toLocaleString()}`;
   }
-  return 'Bei: Jadiliana';
+  return 'Price: Negotiable';
 };
 
 // Interactive star row (read-only when onChange is omitted).
@@ -146,7 +146,7 @@ const Winga = () => {
   // ── Chat with the seller (jiji.com style) ──
   const chatWithSeller = useCallback(async (sellerId, sellerName) => {
     if (!sellerId || String(sellerId) === String(user?._id || user?.id)) {
-      toast('Hii ni biashara yako mwenyewe');
+      toast('This is your own listing');
       return;
     }
     try {
@@ -156,11 +156,11 @@ const Winga = () => {
         selectConversation(res.conversation);
         navigate('/chat');
       } else {
-        toast.error(res?.message || 'Imeshindikana kufungua chat');
+        toast.error(res?.message || 'Failed to open chat');
       }
     } catch (err) {
       console.error('Open chat with seller failed:', err);
-      toast.error('Imeshindikana kufungua chat');
+      toast.error('Failed to open chat');
     }
   }, [user, refreshConversations, selectConversation, navigate]);
 
@@ -178,7 +178,7 @@ const Winga = () => {
     const list = Array.from(files || []);
     if (!list.length) return;
     if (postMedia.length + list.length > 10) {
-      toast.error('Maximum picha/video 10 kwa biashara moja');
+      toast.error('Maximum 10 photos/videos per listing');
       return;
     }
     for (const file of list) {
@@ -196,9 +196,9 @@ const Winga = () => {
   };
 
   const submitListing = async () => {
-    if (!postCategory) return toast.error('Chagua category ya biashara yako');
-    if (!postTitle.trim()) return toast.error('Weka jina la biashara');
-    if (postMedia.length === 0) return toast.error('Ongeza angalau picha au video moja');
+    if (!postCategory) return toast.error('Choose your business category');
+    if (!postTitle.trim()) return toast.error('Enter your business name');
+    if (postMedia.length === 0) return toast.error('Add at least one photo or video');
 
     setPosting(true);
     try {
@@ -212,7 +212,7 @@ const Winga = () => {
         media: postMedia
       });
       if (data?.success) {
-        toast.success('Biashara yako imechapishwa kwenye WINGA! 🎉');
+        toast.success('Your listing has been published on WINGA! 🎉');
         setShowPost(false);
         setPostCategory('');
         setPostTitle('');
@@ -222,9 +222,9 @@ const Winga = () => {
         setPostMedia([]);
         if (data.listing?.category) openCategory(data.listing.category);
       } else if (data?.code === 'DAILY_LIMIT_REACHED') {
-        toast.error(data.message || `Umefikia kikomo cha biashara ${dailyLimit} kwa siku`);
+        toast.error(data.message || `You have reached the daily listing limit of ${dailyLimit}`);
       } else {
-        toast.error(data?.message || 'Imeshindikana kuchapisha biashara');
+        toast.error(data?.message || 'Failed to publish listing');
       }
     } finally {
       setPosting(false);
@@ -232,10 +232,10 @@ const Winga = () => {
   };
 
   const removeMyListing = async (listing) => {
-    if (!window.confirm(`Futa "${listing.title}"?`)) return;
+    if (!window.confirm(`Delete "${listing.title}"?`)) return;
     const data = await deleteWingaListing(listing._id);
-    if (data?.success) toast.success('Biashara imefutwa');
-    else toast.error(data?.message || 'Imeshindikana kufuta');
+    if (data?.success) toast.success('Listing deleted');
+    else toast.error(data?.message || 'Failed to delete');
   };
 
   // ── Rating / reviews ──
@@ -253,19 +253,19 @@ const Winga = () => {
 
   const submitRating = async () => {
     if (!rateTarget || myRating < 1) {
-      toast.error('Chagua nyota 1 hadi 5');
+      toast.error('Choose 1 to 5 stars');
       return;
     }
     setRateSaving(true);
     try {
       const data = await rateWingaListing(rateTarget._id, myRating, rateComment);
       if (data?.success) {
-        toast.success('Asante kwa tathmini yako! ⭐');
+        toast.success('Thank you for your rating! ⭐');
         setRateTarget(null);
         setMyRating(0);
         setRateComment('');
       } else {
-        toast.error(data?.message || 'Imeshindikana kutuma tathmini');
+        toast.error(data?.message || 'Failed to submit rating');
       }
     } finally {
       setRateSaving(false);
@@ -285,11 +285,11 @@ const Winga = () => {
     try {
       const data = await placeWingaOrder(orderTarget._id, { quantity: orderQty, message: orderMsg });
       if (data?.success) {
-        toast.success('Ombi lako la kununua limetumwa! 📦');
+        toast.success('Your purchase request has been sent! 📦');
         setOrderTarget(null);
         setOrderMsg('');
       } else {
-        toast.error(data?.message || 'Imeshindikana kutuma ombi');
+        toast.error(data?.message || 'Failed to submit request');
       }
     } finally {
       setOrderSaving(false);
@@ -305,12 +305,12 @@ const Winga = () => {
     const data = await updateWingaOrder(orderId, status);
     if (data?.success) {
       toast.success(
-        status === 'confirmed' ? 'Ombi limethibitishwa! Biashara imewekwa IMEUZWA ✅' :
-        status === 'declined' ? 'Ombi limekataliwa' :
-        'Ombi limeghairiwa'
+        status === 'confirmed' ? 'Request confirmed! Listing marked SOLD ✅' :
+        status === 'declined' ? 'Request declined' :
+        'Request cancelled'
       );
     } else {
-      toast.error(data?.message || 'Imeshindikana kubadilisha ombi');
+      toast.error(data?.message || 'Failed to update request');
     }
   };
 
@@ -332,9 +332,9 @@ const Winga = () => {
   const markOrderCompleted = async (orderId) => {
     const data = await updateWingaOrder(orderId, 'completed');
     if (data?.success) {
-      toast.success('Umepokea bidhaa! Asante 📦');
+      toast.success('You received the item! Thank you 📦');
     } else {
-      toast.error(data?.message || 'Imeshindikana kumaliza ombi');
+      toast.error(data?.message || 'Failed to complete request');
     }
   };
 
@@ -346,9 +346,9 @@ const Winga = () => {
       const res = await authFetch(`${resolveApiBase()}/winga/stats`);
       const data = await res.json();
       if (data?.success) setStatsData(data);
-      else toast.error(data?.message || 'Imeshindikana kupata takwimu');
+      else toast.error(data?.message || 'Failed to load stats');
     } catch (_) {
-      toast.error('Imeshindikana kupata takwimu');
+      toast.error('Failed to load stats');
     } finally {
       setStatsLoading(false);
     }
@@ -400,15 +400,15 @@ const Winga = () => {
             <h1 className="font-bold text-lg leading-tight flex items-center gap-2">
               <Store size={20} className="text-[#25d366]" /> WINGA
             </h1>
-            <p className="text-[11px] text-white/50">Soko la biashara — chapisha, vina na ununue</p>
+            <p className="text-[11px] text-white/50">The marketplace — post, bid and buy</p>
           </div>
           {myListings.length > 0 && (
             <button
               type="button"
               onClick={openStats}
               className="rounded-full p-2 hover:bg-white/10 transition-colors"
-              title="Takwimu za biashara zako"
-              aria-label="Takwimu"
+              title="Your listing stats"
+              aria-label="Stats"
             >
               <BarChart3 size={20} />
             </button>
@@ -417,8 +417,8 @@ const Winga = () => {
             type="button"
             onClick={openBell}
             className="relative rounded-full p-2 hover:bg-white/10 transition-colors"
-            title="Arifa za WINGA"
-            aria-label="Arifa za WINGA"
+            title="WINGA Notifications"
+            aria-label="WINGA Notifications"
             data-testid="winga-bell"
           >
             <Bell size={20} />
@@ -432,8 +432,8 @@ const Winga = () => {
             type="button"
             onClick={openOrders}
             className="relative rounded-full p-2 hover:bg-white/10 transition-colors"
-            title="Maagizo (Orders)"
-            aria-label="Maagizo"
+            title="Orders"
+            aria-label="Orders"
           >
             <ClipboardList size={20} />
             {wingaOrders.filter((o) => o.isSeller && o.status === 'pending').length > 0 && (
@@ -447,12 +447,12 @@ const Winga = () => {
             onClick={() => setShowPost(true)}
             className="flex items-center gap-1.5 rounded-full bg-[#008069] hover:bg-[#00a884] px-4 py-2 text-sm font-bold transition-colors"
           >
-            <Plus size={18} /> Chapisha
+            <Plus size={18} /> Post
           </button>
         </div>
         <div className="flex items-center gap-2 px-4 pb-2">
           <span className="rounded-full bg-white/5 border border-white/10 px-3 py-1 text-[11px] font-semibold text-white/70">
-            Leo: {postedToday}/{dailyLimit} biashara
+            Today: {postedToday}/{dailyLimit} listings
           </span>
           {remainingToday <= 3 && (
             <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-3 py-1 text-[11px] font-semibold text-amber-400">
@@ -466,7 +466,7 @@ const Winga = () => {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 text-white/50 gap-3">
             <Loader2 size={28} className="animate-spin" />
-            <p className="text-sm">Inapakia WINGA...</p>
+            <p className="text-sm">Loading WINGA...</p>
           </div>
         ) : view === 'categories' ? (
           <>
@@ -485,7 +485,7 @@ const Winga = () => {
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#25d366] opacity-60" />
                     <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#25d366]" />
                   </span>
-                  Una biashara {totalUnseen} mpya ambazo hujaziona
+                  You have {totalUnseen} new listings you haven't seen
                 </span>
                 <span className="rounded-full bg-[#25d366] text-[#0b141a] text-xs font-black px-2.5 py-0.5">
                   {totalUnseen}
@@ -500,7 +500,7 @@ const Winga = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tafuta biashara (mf. simu, mkoba, viwanja)..."
+                placeholder="Search listings (e.g. phones, bags, plots)..."
                 data-testid="winga-search"
                 className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-9 pr-8 text-sm outline-none placeholder:text-white/30 focus:border-[#25d366]/60"
               />
@@ -509,7 +509,7 @@ const Winga = () => {
                   type="button"
                   onClick={() => setSearchQuery('')}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 hover:bg-white/10"
-                  aria-label="Futa utafutaji"
+                  aria-label="Clear search"
                 >
                   <X size={14} />
                 </button>
@@ -521,7 +521,7 @@ const Winga = () => {
                 activeCategory="__search"
                 categories={[{
                   id: '__search',
-                  label: `Matokeo ya "${searchQuery.trim()}"`,
+                  label: `Results for "${searchQuery.trim()}"`,
                   count: searchResults.length,
                   unseen: 0,
                   listings: searchResults
@@ -561,7 +561,7 @@ const Winga = () => {
                     <div>
                       <p className="text-sm font-bold leading-tight">{meta.label}</p>
                       <p className="text-[11px] text-white/50">
-                        {cat.count} {cat.count === 1 ? 'biashara' : 'biashara'}
+                        {cat.count} {cat.count === 1 ? 'listing' : 'listings'}
                       </p>
                     </div>
                   </button>
@@ -573,7 +573,7 @@ const Winga = () => {
             {myListings.length > 0 && (
               <section className="mt-8">
                 <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-white/80">
-                  <CheckCircle2 size={16} className="text-[#25d366]" /> Biashara zangu ({myListings.length})
+                  <CheckCircle2 size={16} className="text-[#25d366]" /> My listings ({myListings.length})
                 </h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                   {myListings.map((listing) => (
@@ -597,14 +597,14 @@ const Winga = () => {
                             onClick={() => toggleWingaSold(listing._id)}
                             className={`flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold transition ${listing.isSold ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25' : 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20'}`}
                           >
-                            <CheckCircle2 size={12} /> {listing.isSold ? 'Rudisha Sokoni' : 'Imeuzwa'}
+                            <CheckCircle2 size={12} /> {listing.isSold ? 'Back to Market' : 'Sold'}
                           </button>
                           <button
                             type="button"
                             onClick={() => removeMyListing(listing)}
                             className="flex items-center gap-1 rounded-lg bg-red-500/10 px-2 py-1 text-[11px] font-semibold text-red-400 hover:bg-red-500/20"
                           >
-                            <Trash2 size={12} /> Futa
+                            <Trash2 size={12} /> Delete
                           </button>
                         </div>
                       </div>
@@ -655,7 +655,7 @@ const Winga = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-[#111b21]/95 px-4 py-3 backdrop-blur">
-              <h2 className="flex items-center gap-2 font-bold"><Star size={16} className="fill-amber-400 text-amber-400" /> Tathmini ya Biashara</h2>
+              <h2 className="flex items-center gap-2 font-bold"><Star size={16} className="fill-amber-400 text-amber-400" /> Business Rating</h2>
               <button type="button" onClick={() => setRateTarget(null)} className="rounded-full p-1.5 hover:bg-white/10" aria-label="Close">
                 <X size={20} />
               </button>
@@ -667,13 +667,13 @@ const Winga = () => {
               </div>
 
               <div className="flex flex-col items-center gap-2 py-2">
-                <p className="text-sm font-semibold text-white/80">Ulipendezwa na biashara hii?</p>
+                <p className="text-sm font-semibold text-white/80">Interested in this listing?</p>
                 <StarRating value={myRating} size={30} onChange={setMyRating} />
-                <p className="text-xs text-white/40">{myRating > 0 ? `${myRating} kati ya 5` : 'Bofya nyota kutoa alama'}</p>
+                <p className="text-xs text-white/40">{myRating > 0 ? `${myRating} out of 5` : 'Tap a star to rate'}</p>
               </div>
 
               <div>
-                <label className="mb-1.5 block text-xs font-bold text-white/70">Maoni yako (hiari)</label>
+                <label className="mb-1.5 block text-xs font-bold text-white/70">Your feedback (optional)</label>
                 <textarea
                   value={rateComment}
                   onChange={(e) => setRateComment(e.target.value)}
@@ -692,12 +692,12 @@ const Winga = () => {
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 py-3 font-bold text-[#14122b] transition hover:bg-amber-400 disabled:opacity-50"
               >
                 {rateSaving ? <Loader2 size={18} className="animate-spin" /> : <Star size={18} className="fill-[#14122b]" />}
-                {rateSaving ? 'Inatuma...' : 'Tuma Tathmini'}
+                {rateSaving ? 'Submitting...' : 'Submit Rating'}
               </button>
 
               {reviewsList.length > 0 && (
                 <div className="border-t border-white/10 pt-3">
-                  <p className="mb-2 text-xs font-bold text-white/60">Maoni ya wanunuzi ({reviewsList.length})</p>
+                  <p className="mb-2 text-xs font-bold text-white/60">Buyer reviews ({reviewsList.length})</p>
                   <div className="space-y-2.5">
                     {reviewsList.map((r) => (
                       <div key={r._id} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
@@ -724,14 +724,14 @@ const Winga = () => {
         <div className="fixed inset-0 z-[600] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm">
           <div className="w-full sm:max-w-lg max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-white/10 bg-[#111b21] shadow-2xl">
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-[#111b21]/95 px-4 py-3 backdrop-blur">
-              <h2 className="flex items-center gap-2 font-bold"><Store size={18} className="text-[#25d366]" /> Chapisha Biashara</h2>
+              <h2 className="flex items-center gap-2 font-bold"><Store size={18} className="text-[#25d366]" /> Post a Listing</h2>
               <button type="button" onClick={() => setShowPost(false)} className="rounded-full p-1.5 hover:bg-white/10" aria-label="Close">
                 <X size={20} />
               </button>
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <label className="mb-1.5 block text-xs font-bold text-white/70">Category ya biashara *</label>
+                <label className="mb-1.5 block text-xs font-bold text-white/70">Listing category *</label>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   {CATEGORY_META.map((c) => (
                     <button
@@ -759,7 +759,7 @@ const Winga = () => {
                   onClick={() => fileInputRef.current?.click()}
                   className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-white/20 bg-white/5 px-4 py-6 text-sm text-white/60 hover:border-[#25d366]/50 hover:text-white/80 transition"
                 >
-                  <Camera size={18} /> Chagua picha au video za biashara yako
+                  <Camera size={18} /> Choose photos or videos for your listing
                 </button>
                 <input
                   ref={fileInputRef}
@@ -793,13 +793,13 @@ const Winga = () => {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-xs font-bold text-white/70">Jina la biashara *</label>
+                <label className="mb-1.5 block text-xs font-bold text-white/70">Listing name *</label>
                 <input
                   type="text"
                   value={postTitle}
                   onChange={(e) => setPostTitle(e.target.value)}
                   maxLength={200}
-                  placeholder="Mfano: Mkoba wa ngozi, iPhone 12, Viwanja..."
+                  placeholder="E.g., Leather bag, iPhone 12, Plots..."
                   className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm outline-none placeholder:text-white/30 focus:border-[#25d366]/60"
                 />
               </div>
@@ -811,14 +811,14 @@ const Winga = () => {
                   onChange={(e) => setPostDesc(e.target.value)}
                   maxLength={2000}
                   rows={3}
-                  placeholder="Eleza biashara yako — hali, rangi, vipimo, n.k."
+                  placeholder="Describe your listing — condition, color, specs, etc."
                   className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm outline-none placeholder:text-white/30 focus:border-[#25d366]/60"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1.5 block text-xs font-bold text-white/70">Bei (TZS)</label>
+                  <label className="mb-1.5 block text-xs font-bold text-white/70">Price (TZS)</label>
                   <input
                     type="number"
                     value={postPrice}
@@ -854,7 +854,7 @@ const Winga = () => {
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#008069] py-3 font-bold text-white transition hover:bg-[#00a884] disabled:opacity-50"
               >
                 {posting ? <Loader2 size={18} className="animate-spin" /> : <Tag size={18} />}
-                {posting ? 'Inachapisha...' : 'Chapisha Biashara kwenye WINGA'}
+                {posting ? 'Posting...' : 'Post Listing on WINGA'}
               </button>
             </div>
           </div>
@@ -869,7 +869,7 @@ const Winga = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-              <h2 className="flex items-center gap-2 font-bold"><ShoppingCart size={16} className="text-amber-400" /> Nunua Biashara</h2>
+              <h2 className="flex items-center gap-2 font-bold"><ShoppingCart size={16} className="text-amber-400" /> Buy Listing</h2>
               <button type="button" onClick={() => setOrderTarget(null)} className="rounded-full p-1.5 hover:bg-white/10" aria-label="Close">
                 <X size={20} />
               </button>
@@ -903,7 +903,7 @@ const Winga = () => {
                     type="button"
                     onClick={() => setOrderQty((q) => Math.min(100, q + 1))}
                     className="h-9 w-9 rounded-lg border border-white/10 bg-white/5 font-black hover:bg-white/10"
-                    aria-label="Ongeza idadi"
+                    aria-label="Increase quantity"
                   >
                     +
                   </button>
@@ -911,13 +911,13 @@ const Winga = () => {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-xs font-bold text-white/70">Ujumbe kwa muuzaji (hiari)</label>
+                <label className="mb-1.5 block text-xs font-bold text-white/70">Message to seller (optional)</label>
                 <textarea
                   value={orderMsg}
                   onChange={(e) => setOrderMsg(e.target.value)}
                   maxLength={1000}
                   rows={3}
-                  placeholder="Mfano: Je ipo rangi nyingine? Naweza kupata wapi?"
+                  placeholder="E.g., Is there another color? Where can I find you?"
                   className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm outline-none placeholder:text-white/30 focus:border-amber-400/60"
                 />
               </div>
@@ -930,7 +930,7 @@ const Winga = () => {
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 py-3 font-bold text-[#14122b] transition hover:bg-amber-400 disabled:opacity-50"
               >
                 {orderSaving ? <Loader2 size={18} className="animate-spin" /> : <ShoppingCart size={18} />}
-                {orderSaving ? 'Inatuma ombi...' : 'Tuma Ombi la Kununua'}
+                {orderSaving ? 'Submitting request...' : 'Submit Purchase Request'}
               </button>
             </div>
           </div>
@@ -945,7 +945,7 @@ const Winga = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-              <h2 className="flex items-center gap-2 font-bold"><ClipboardList size={16} className="text-amber-400" /> Maagizo</h2>
+              <h2 className="flex items-center gap-2 font-bold"><ClipboardList size={16} className="text-amber-400" /> Orders</h2>
               <button type="button" onClick={() => setShowOrders(false)} className="rounded-full p-1.5 hover:bg-white/10" aria-label="Close">
                 <X size={20} />
               </button>
@@ -958,16 +958,16 @@ const Winga = () => {
                   onClick={() => setOrdersTab(tab)}
                   className={`flex-1 py-2.5 text-sm font-bold transition ${ordersTab === tab ? 'border-b-2 border-amber-400 text-amber-400' : 'text-white/40 hover:text-white/70'}`}
                 >
-                  {tab === 'received' ? `Nimepokea (${wingaOrders.filter((o) => o.isSeller).length})` : `Nimetuma (${wingaOrders.filter((o) => o.isBuyer).length})`}
+                  {tab === 'received' ? `Received (${wingaOrders.filter((o) => o.isSeller).length})` : `Sent (${wingaOrders.filter((o) => o.isBuyer).length})`}
                 </button>
               ))}
             </div>
             <div className="max-h-[60vh] overflow-y-auto p-4 space-y-2.5">
               {wingaOrders.length === 0 ? (
-                <p className="py-10 text-center text-sm text-white/40">Hakuna maagizo bado</p>
+                <p className="py-10 text-center text-sm text-white/40">No orders yet</p>
               ) : wingaOrders.filter((o) => (ordersTab === 'received' ? o.isSeller : o.isBuyer)).length === 0 ? (
                 <p className="py-10 text-center text-sm text-white/40">
-                  {ordersTab === 'received' ? 'Hujapokea maagizo yoyote bado' : 'Hujatuma maagizo bado'}
+                  {ordersTab === 'received' ? 'No orders received yet' : 'No orders sent yet'}
                 </p>
               ) : (
                 wingaOrders.filter((o) => (ordersTab === 'received' ? o.isSeller : o.isBuyer)).map((o) => (
@@ -1005,7 +1005,7 @@ const Winga = () => {
                             onClick={() => setOrderStatus(o._id, 'confirmed')}
                             className="flex items-center gap-1 rounded-lg bg-emerald-500 px-2.5 py-1.5 text-[11px] font-bold text-[#0b141a] transition hover:bg-emerald-400"
                           >
-                            <Check size={12} /> Thibitisha
+                            <Check size={12} /> Confirm
                           </button>
                           <button
                             type="button"
@@ -1022,7 +1022,7 @@ const Winga = () => {
                           onClick={() => setOrderStatus(o._id, 'cancelled')}
                           className="rounded-lg bg-white/10 px-2.5 py-1.5 text-[11px] font-bold text-white/70 transition hover:bg-white/20"
                         >
-                          Ghairi
+                          Cancel
                         </button>
                       )}
                       {o.status === 'confirmed' && o.isBuyer && (
@@ -1032,7 +1032,7 @@ const Winga = () => {
                           onClick={() => markOrderCompleted(o._id)}
                           className="flex items-center gap-1 rounded-lg bg-sky-500 px-2.5 py-1.5 text-[11px] font-bold text-white transition hover:bg-sky-400"
                         >
-                          <PackageCheck size={12} /> Nimepokea
+                          <PackageCheck size={12} /> Received
                         </button>
                       )}
                       {o.status === 'completed' && (
@@ -1041,7 +1041,7 @@ const Winga = () => {
                           data-testid="winga-order-rate"
                           onClick={() => openRateModal({
                             _id: o.listing,
-                            title: o.listingTitle || 'Biashara',
+                            title: o.listingTitle || 'Business',
                             category: o.category || 'other',
                             price: o.listingPrice || 0,
                             priceText: o.listingPriceText || '',
@@ -1069,22 +1069,22 @@ const Winga = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-              <h2 className="flex items-center gap-2 font-bold"><Bell size={16} className="text-[#25d366]" /> Arifa za WINGA</h2>
+              <h2 className="flex items-center gap-2 font-bold"><Bell size={16} className="text-[#25d366]" /> WINGA Notifications</h2>
               <button type="button" onClick={() => setShowBell(false)} className="rounded-full p-1.5 hover:bg-white/10" aria-label="Close">
                 <X size={20} />
               </button>
             </div>
             <div className="max-h-[55vh] overflow-y-auto p-4 space-y-2.5">
               {wingaOrders.length === 0 ? (
-                <p className="py-10 text-center text-sm text-white/40">Hakuna arifa bado — maagizo yataonekana hapa</p>
+                <p className="py-10 text-center text-sm text-white/40">No notifications yet — orders will appear here</p>
               ) : (
                 wingaOrders.map((o) => {
                   const isSellerAlert = o.isSeller && (o.status === 'pending' || o.status === 'completed');
                   const isBuyerAlert = o.isBuyer && ['confirmed', 'completed', 'declined', 'cancelled'].includes(o.status);
                   if (!isSellerAlert && !isBuyerAlert) return null;
                   const msg = o.isSeller
-                    ? (o.status === 'pending' ? `Ombi la kununua kutoka ${o.buyerUsername}` : `${o.buyerUsername} amepokea bidhaa`)
-                    : (o.status === 'confirmed' ? 'Muuzaji amethibitisha ombi lako' : o.status === 'completed' ? 'Ombi lako limekamilika — toa rating!' : o.status === 'declined' ? 'Muuzaji amekataa ombi lako' : 'Umegairi ombi lako');
+                    ? (o.status === 'pending' ? `Purchase request from ${o.buyerUsername}` : `${o.buyerUsername} received the item`)
+                    : (o.status === 'confirmed' ? 'Seller confirmed your order' : o.status === 'completed' ? 'Your order is complete — leave a rating!' : o.status === 'declined' ? 'Seller declined your order' : 'You cancelled your order');
                   return (
                     <div key={o._id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3">
                       {o.listingImage ? (
@@ -1117,7 +1117,7 @@ const Winga = () => {
                 onClick={() => { setShowBell(false); openOrders(); }}
                 className="w-full rounded-xl bg-[#008069] py-2.5 text-sm font-bold text-white transition hover:bg-[#00a884]"
               >
-                Fungua Maagizo
+                Open Orders
               </button>
             </div>
           </div>
@@ -1132,7 +1132,7 @@ const Winga = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-              <h2 className="flex items-center gap-2 font-bold"><BarChart3 size={16} className="text-[#25d366]" /> Takwimu za Biashara</h2>
+              <h2 className="flex items-center gap-2 font-bold"><BarChart3 size={16} className="text-[#25d366]" /> Listing Stats</h2>
               <button type="button" onClick={() => setStatsData(null)} className="rounded-full p-1.5 hover:bg-white/10" aria-label="Close">
                 <X size={20} />
               </button>
@@ -1140,15 +1140,15 @@ const Winga = () => {
             {statsLoading ? (
               <div className="flex flex-col items-center gap-3 py-16 text-white/50">
                 <Loader2 size={26} className="animate-spin" />
-                <p className="text-sm">Inapakua takwimu...</p>
+                <p className="text-sm">Loading stats...</p>
               </div>
             ) : (
               <div className="max-h-[70vh] overflow-y-auto p-4 space-y-4">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
-                    ['Biashara', statsData?.totals?.listings || 0],
+                    ['Business', statsData?.totals?.listings || 0],
                     ['Maoni (views)', statsData?.totals?.views || 0],
-                    ['Maagizo', statsData?.totals?.orders || 0],
+                    ['Orders', statsData?.totals?.orders || 0],
                     ['Wastani rating', statsData?.totals?.avgRating || 0]
                   ].map(([label, val]) => (
                     <div key={label} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-center">
@@ -1158,7 +1158,7 @@ const Winga = () => {
                   ))}
                 </div>
                 {statsData?.stats?.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-white/40">Huna biashara bado — chapisha kwanza</p>
+                  <p className="py-8 text-center text-sm text-white/40">No listings yet — post one first</p>
                 ) : (
                   <div className="space-y-2">
                     {statsData?.stats?.map((row) => (
@@ -1173,9 +1173,9 @@ const Winga = () => {
                           <p className="flex items-center gap-2 text-[11px] text-white/40">
                             <span className="flex items-center gap-0.5"><Eye size={11} /> {row.viewsCount}</span>
                             <span>·</span>
-                            <span>{row.ratingSummary.count > 0 ? `${row.ratingSummary.avg}⭐ (${row.ratingSummary.count})` : 'Hakuna rating'}</span>
+                            <span>{row.ratingSummary.count > 0 ? `${row.ratingSummary.avg}⭐ (${row.ratingSummary.count})` : 'No ratings'}</span>
                             <span>·</span>
-                            <span className={row.orders.pending > 0 ? 'font-bold text-amber-400' : ''}>{row.orders.total} maagizo{row.orders.pending > 0 ? ` (${row.orders.pending} pending)` : ''}</span>
+                            <span className={row.orders.pending > 0 ? 'font-bold text-amber-400' : ''}>{row.orders.total} orders{row.orders.pending > 0 ? ` (${row.orders.pending} pending)` : ''}</span>
                           </p>
                         </div>
                       </div>
@@ -1203,18 +1203,18 @@ const CategoryView = ({ activeCategory, categories, renderMedia, openListing, ch
           <span className="text-2xl">{CATEGORY_EMOJI[cat.id]}</span> {cat.label || meta.label}
           {cat.unseen > 0 && (
             <span className="rounded-full bg-[#25d366] px-2 py-0.5 text-xs font-black text-[#0b141a]">
-              {cat.unseen} mpya
+              {cat.unseen} new
             </span>
           )}
         </h2>
-        <span className="text-xs text-white/50">{cat.count} biashara</span>
+        <span className="text-xs text-white/50">{cat.count} listings</span>
       </div>
 
       {cat.listings.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/5 py-16 text-center">
           <Store size={40} className="mb-3 text-white/30" />
-          <p className="font-semibold text-white/70">Hakuna biashara bado katika category hii</p>
-          <p className="mt-1 text-sm text-white/40">Kuwa wa kwanza kuchapisha biashara yako!</p>
+          <p className="font-semibold text-white/70">No listings yet in this category</p>
+          <p className="mt-1 text-sm text-white/40">Be the first to post your listing!</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -1230,7 +1230,7 @@ const CategoryView = ({ activeCategory, categories, renderMedia, openListing, ch
                   {renderMedia(listing, 'w-full h-40 object-cover')}
                   {!listing.viewedByMe && !isMine && !listing.isSold && (
                     <span className="absolute top-2 left-2 rounded-full bg-[#25d366] px-2 py-0.5 text-[10px] font-black text-[#0b141a]">
-                      MPYA
+                      NEW
                     </span>
                   )}
                   {listing.isSold && (
@@ -1265,7 +1265,7 @@ const CategoryView = ({ activeCategory, categories, renderMedia, openListing, ch
                         onClick={(e) => { e.stopPropagation(); openOrderModal(listing); }}
                         className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-amber-500 py-2 text-xs font-bold text-[#14122b] transition hover:bg-amber-400"
                       >
-                        <ShoppingCart size={13} /> Nunua
+                        <ShoppingCart size={13} /> Buy
                       </button>
                     )}
                     <button
@@ -1274,7 +1274,7 @@ const CategoryView = ({ activeCategory, categories, renderMedia, openListing, ch
                       onClick={(e) => { e.stopPropagation(); chatWithSeller(listing.user?._id || listing.userId, listing.user?.username); }}
                       className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#008069] py-2 text-xs font-bold text-white transition hover:bg-[#00a884] ${isMine ? 'w-full' : ''}`}
                     >
-                      <MessageCircle size={14} /> {isMine ? 'Biashara yangu' : 'Chat na Muuzaji'}
+                      <MessageCircle size={14} /> {isMine ? 'My listing' : 'Chat with Seller'}
                     </button>
                   </div>
                 </div>
@@ -1357,7 +1357,7 @@ const ListingViewer = ({ listing, onClose, mediaIndex, setMediaIndex, chatWithSe
                 onClick={() => onRate && onRate(listing)}
                 className="flex items-center gap-1 rounded-lg border border-amber-400/30 bg-amber-400/10 px-2.5 py-1 text-xs font-bold text-amber-300 transition hover:bg-amber-400/20"
               >
-                <Star size={12} className="fill-amber-400 text-amber-400" /> Tathmini
+                <Star size={12} className="fill-amber-400 text-amber-400" /> Rating
               </button>
             )}
           </div>
@@ -1386,7 +1386,7 @@ const ListingViewer = ({ listing, onClose, mediaIndex, setMediaIndex, chatWithSe
                     onClick={() => onBuy && onBuy(listing)}
                     className="flex items-center gap-1.5 rounded-xl bg-amber-500 px-4 py-2 text-sm font-bold text-[#14122b] transition hover:bg-amber-400"
                   >
-                    <ShoppingCart size={16} /> Nunua
+                    <ShoppingCart size={16} /> Buy
                   </button>
                 )}
                 <button

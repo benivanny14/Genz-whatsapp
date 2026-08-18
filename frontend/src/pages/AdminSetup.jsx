@@ -102,7 +102,7 @@ const AdminSetup = () => {
               className="w-full bg-[#25d366] hover:bg-[#20bd5a] disabled:opacity-50 disabled:cursor-not-allowed text-black font-bold rounded-lg py-3 flex items-center justify-center gap-2 text-sm"
             >
               {loading ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
-              {loading ? 'Inathibitisha...' : 'Kuwa Admin'}
+              {loading ? 'Verifying...' : 'Become Admin'}
             </button>
           </form>
         )}

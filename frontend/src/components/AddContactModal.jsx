@@ -47,7 +47,7 @@ const AddContactModal = ({ isOpen, onClose }) => {
               value={savedName}
               onChange={(e) => setSavedName(e.target.value)}
               className="w-full p-3 rounded-lg bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-emerald-500 transition-all"
-              placeholder="Mfano: Benny Mdogo"
+              placeholder="E.g., Benny Mdogo"
             />
           </div>
 
@@ -59,7 +59,7 @@ const AddContactModal = ({ isOpen, onClose }) => {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               className="w-full p-3 rounded-lg bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-emerald-500 transition-all"
-              placeholder="Mfano: 0712345678"
+              placeholder="E.g., 0712345678"
             />
           </div>
 

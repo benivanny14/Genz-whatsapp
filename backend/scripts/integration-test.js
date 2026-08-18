@@ -143,7 +143,7 @@ async function main() {
         token: tokenA,
         body: {
           conversationId,
-          content: 'Habari! Ujumbe wa mtihani kutoka GENZ test.',
+          content: 'Hello! Test message from GENZ test.',
           messageType: 'text'
         }
       });
@@ -196,7 +196,7 @@ async function main() {
         token: tokenA,
         body: {
           conversationId: groupId,
-          content: 'Ujumbe wa kikundi — GENZ test',
+          content: 'Group message — GENZ test',
           messageType: 'text'
         }
       });

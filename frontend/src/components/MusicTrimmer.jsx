@@ -159,7 +159,7 @@ const MusicTrimmer = ({ file, onTrim }) => {
     return (
       <div className="mt-3 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
         <Loader size={16} className="animate-spin" />
-        Inasoma muziki...
+        Reading music...
       </div>
     );
   }

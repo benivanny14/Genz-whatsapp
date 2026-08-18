@@ -1050,10 +1050,10 @@ exports.replyToStatus = async (req, res) => {
       }
     }
 
-    // Tuma socket event mara moja
+    // Emit the socket event immediately
     const io = req.app.get('io');
     if (io) {
-      // Tuma kwa owner wa status
+      // Emit to the status owner
       if (status.userId) {
         io.to(String(status.userId)).emit('message:received', outgoingMessage);
         io.to(String(status.userId)).emit('conversation:unread-update', {

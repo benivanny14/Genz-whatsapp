@@ -140,7 +140,7 @@ const SystemDashboard = ({ onClose }) => {
             <div className="flex items-center justify-center h-48">
               <div className="text-center">
                 <div className="w-10 h-10 border-3 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-3" />
-                <p className="text-gray-500 text-sm">Inapakia data...</p>
+                <p className="text-gray-500 text-sm">Loading data...</p>
               </div>
             </div>
           ) : (
@@ -149,7 +149,7 @@ const SystemDashboard = ({ onClose }) => {
               {tab === 'overview' && stats && (
                 <div className="p-4 space-y-4">
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    <StatCard icon={<MessageSquare size={20} />} label="Msgs Leo" value={stats.messagesToday} sub="Jumla" color="blue" />
+                    <StatCard icon={<MessageSquare size={20} />} label="Msgs Today" value={stats.messagesToday} sub="Total" color="blue" />
                     <StatCard icon={<Users size={20} />} label="Chats Leo" value={stats.chatsTodayCount} sub={`${stats.chatsCount} total`} color="green" />
                     <StatCard icon={<Wifi size={20} />} label="Online Now" value={stats.onlineContactsCount} sub="Communication" color="purple" />
                     <StatCard icon={<TrendingUp size={20} />} label="This Week" value={stats.messagesThisWeek} sub="Messages" color="orange" />
@@ -192,7 +192,7 @@ const SystemDashboard = ({ onClose }) => {
                 <div className="p-4 space-y-3">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-gray-400 text-sm">{ranking.filter(u => u.isOnline).length} people online now</p>
-                    <span className="text-xs text-gray-600">Jumla: {ranking.length}</span>
+                    <span className="text-xs text-gray-600">Total: {ranking.length}</span>
                   </div>
                   {ranking.length === 0 && (
                     <div className="text-center py-12">

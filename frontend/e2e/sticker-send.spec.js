@@ -93,9 +93,9 @@ test('text-only message sends with no sticker involved', async ({ browser, reque
   const composer = pageA.locator('input[placeholder="Type a message..."]');
   await expect(composer).toBeVisible({ timeout: 15_000 });
 
-  await composer.fill('Ujumbe wa maandishi pekee');
+  await composer.fill('Plain text message only');
   await pageA.getByRole('button', { name: 'Send message' }).click();
-  await expect(pageA.getByText('Ujumbe wa maandishi pekee', { exact: true }).first()).toBeVisible({ timeout: 15_000 });
+  await expect(pageA.getByText('Plain text message only', { exact: true }).first()).toBeVisible({ timeout: 15_000 });
 
   // No sticker appeared anywhere in the chat.
   await expect(stickerInChat(pageA)).toHaveCount(0, { timeout: 5_000 });

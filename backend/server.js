@@ -588,17 +588,6 @@ const apiLimiter = rateLimit({
 // polling of /auth/me, settings refreshes, etc.) cannot exhaust the budget
 // shared with the login endpoint, and so 2FA/security attempts get their own
 // budget too.
-const authSensitiveLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 10 : (process.env.NODE_ENV === 'test' ? 100000 : 20),
-  message: {
-    success: false,
-    error: 'Too many login/registration attempts, please try again later.'
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
 const authGeneralLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: process.env.NODE_ENV === 'production' ? 300 : (process.env.NODE_ENV === 'test' ? 100000 : 500),

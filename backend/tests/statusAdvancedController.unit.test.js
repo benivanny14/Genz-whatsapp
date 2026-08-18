@@ -371,7 +371,7 @@ describe('statusAdvancedController — polls/location/schedule', () => {
     const res = makeRes();
     await statusAdv.votePoll(makeReq({ params: { id: VALID_ID }, body: { optionIds: [0] } }), res);
     expect(res.statusCode).toBe(400);
-    expect(res.body.message).toBe('Umesha kura');
+    expect(res.body.message).toBe('You have already voted');
   });
 
   it('votePoll records the vote (happy path)', async () => {

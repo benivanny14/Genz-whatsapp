@@ -519,7 +519,7 @@ const Settings = () => {
       // check only means something on the web, so on the APK just report that
       // the user has the latest version.
       if (info && !info.isWeb) {
-        showStatus('success', 'Una version ya hivi karibuni ya GENZ.');
+        showStatus('success', 'You are on the latest GENZ version.');
         return;
       }
 
@@ -1021,7 +1021,7 @@ const Settings = () => {
         <SettingRow
           icon={Store}
           title="Status & WINGA activity alerts"
-          description="Toasts zinazoonyesha mtu alipost status au biashara kwenye WINGA."
+          description="Toasts showing when someone posts a status or a listing on WINGA."
           control={<Toggle checked={mods?.activityNotifications !== false} onChange={() => setMods((prev) => ({ ...prev, activityNotifications: prev.activityNotifications === false }))} />}
         />
       </SettingSection>
@@ -1314,8 +1314,8 @@ const Settings = () => {
             <h2 className="text-white font-bold text-lg mt-3">Sasisho jipya limepatikana</h2>
             <p className="text-sm text-blue-100/70 mt-1">
               {updateInfo.isWeb
-                ? 'Kuna version mpya ya GENZ. Reload ili kupata features mpya.'
-                : `Una version mpya ya GENZ — v${updateInfo.manifest.version}. Install ili kupata features mpya.`}
+                ? "There's a new GENZ version. Reload to get new features."
+                : `You have a new GENZ version — v${updateInfo.manifest.version}. Install it to get new features.`}
             </p>
 
             <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm">
@@ -1341,7 +1341,7 @@ const Settings = () => {
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-blue-100/50">Hakuna maelezo ya mabadiliko kwa version hii.</p>
+                <p className="text-sm text-blue-100/50">No change details for this version.</p>
               )}
             </div>
 

@@ -570,7 +570,7 @@ const VoiceRecorder = ({
               <Lock size={15} className={swipe === 'up' ? 'text-white' : 'text-dark-textSecondary'} />
             </div>
             <ChevronUp size={12} className="text-dark-textSecondary animate-bounce" />
-            <span className="text-[9px] text-dark-textSecondary">Funga</span>
+            <span className="text-[9px] text-dark-textSecondary">Close</span>
           </div>
         )}
 

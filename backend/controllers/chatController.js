@@ -850,7 +850,7 @@ exports.sendMessage = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Your message contains disallowed words. Please change your message.' });
     }
 
-    // âœ… Angalia kama mpokeaji amemzuia mtumaji
+    // ✅ Check whether the receiver has blocked the sender
     const receiverId = conversation.participants.find(p => String(p) !== String(localUserId));
     if (receiverId) {
       const receiver = await User.findById(receiverId).select('blockedUsers');
@@ -1014,7 +1014,7 @@ exports.sendMessage = async (req, res) => {
       updateQuery.$inc = incObject;
     }
 
-    // 3. Update mazungumzo (Conversation) ili iweke ujumbe huu kama ujumbe wa mwisho (Last Message)
+    // 3. Update the Conversation so this message becomes its Last Message
     await Conversation.findByIdAndUpdate(
       finalConversationId,
       updateQuery,
@@ -1664,7 +1664,7 @@ exports.blockUser = async (req, res) => {
     user.contacts = user.contacts.filter((c) => c.user && c.user.toString() !== targetId);
     await user.save();
 
-    // Block alert kwa user aliyeblockiwa (ikiwa amewasha feature)
+    // Block alert for the blocked user (if the feature is enabled)
     try {
       await User.updateOne(
         { _id: targetId },
@@ -2687,8 +2687,8 @@ exports.addReaction = async (req, res) => {
 
     const io = req.app.get("io");
 
-    // 2. Jaribu kuweka reaction mpya kwanza (atomic — $ne guard inazuia
-    //    double-push race wakati watu wawili wanatuma same time).
+    // 2. Try to add the new reaction first (atomic — $ne guard prevents
+    //    double-push race when two people send at the same time).
     const newReactionResult = await Message.findOneAndUpdate(
       {
         _id: messageId,
@@ -2701,7 +2701,7 @@ exports.addReaction = async (req, res) => {
     );
 
     if (newReactionResult) {
-      // Ilifanikiwa kuweka reaction mpya
+      // Successfully added the new reaction
       if (io) {
         io.to(message.conversationId.toString()).emit("message:reaction", {
           messageId,
@@ -2712,7 +2712,7 @@ exports.addReaction = async (req, res) => {
       return res.json({ success: true, message: "Reaction added", reactions: newReactionResult.reactions || [] });
     }
 
-    // 3. Ikiwa ilishafail (reaction tayari ipo), badilisha emoji (atomic)
+    // 3. If it already failed (reaction exists), change the emoji (atomic)
     const updatedResult = await Message.findOneAndUpdate(
       {
         _id: messageId,

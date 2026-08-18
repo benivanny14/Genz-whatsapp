@@ -6,18 +6,18 @@ const { isEitherUserBlocked } = require('../utils/messageSendHelpers');
 
 // ── WINGA categories ─────────────────────────────────────────────────────────
 const CATEGORIES = [
-  { id: 'nguo', label: 'Nguo (Clothes)' },
+  { id: 'nguo', label: 'Clothes' },
   { id: 'home-accessories', label: 'Home Accessories' },
-  { id: 'simu', label: 'Simu (Phones)' },
+  { id: 'simu', label: 'Phones' },
   { id: 'speakers', label: 'Speakers' },
   { id: 'laptop', label: 'Laptop' },
-  { id: 'viwanja', label: 'Viwanja (Land)' },
-  { id: 'dalari', label: 'Dalari (Currency)' },
-  { id: 'viatu', label: 'Viatu (Shoes)' },
+  { id: 'viwanja', label: 'Land' },
+  { id: 'dalari', label: 'Currency' },
+  { id: 'viatu', label: 'Shoes' },
   { id: 'sandals', label: 'Sandals' },
   { id: 'tv', label: 'TV' },
   { id: 'furniture', label: 'Furniture' },
-  { id: 'other', label: 'Nyingine (Other)' }
+  { id: 'other', label: 'Other' }
 ];
 
 const DAILY_LIMIT = 15;
@@ -93,7 +93,7 @@ exports.createBusiness = async (req, res) => {
       const resetAt = new Date(since.getTime() + 24 * 60 * 60 * 1000);
       return res.status(429).json({
         success: false,
-        message: `Umefikia kikomo cha biashara ${DAILY_LIMIT} kwa siku. Jaribu tena baada ya masaa 24.`,
+        message: `You have reached the daily listing limit of ${DAILY_LIMIT}. Try again after 24 hours.`,
         code: 'DAILY_LIMIT_REACHED',
         limit: DAILY_LIMIT,
         postedToday: postedCount,
@@ -322,10 +322,10 @@ exports.placeOrder = async (req, res) => {
     const listing = await Business.findById(id);
     if (!listing) return res.status(404).json({ success: false, message: 'Listing not found' });
     if (String(listing.userId) === userId) {
-      return res.status(400).json({ success: false, message: 'Huwezi kununua biashara yako mwenyewe' });
+      return res.status(400).json({ success: false, message: 'You cannot buy your own listing' });
     }
     if (listing.isSold) {
-      return res.status(400).json({ success: false, message: 'Biashara hii imeuza' });
+      return res.status(400).json({ success: false, message: 'This listing is already sold' });
     }
 
     const user = req.user || {};

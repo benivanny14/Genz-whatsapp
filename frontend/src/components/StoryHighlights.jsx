@@ -18,7 +18,7 @@ const CreateHighlightModal = ({ statuses, newName, setNewName, selectedColor, se
   <div className="fixed inset-0 z-[500] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.85)' }}>
     <div className="bg-[#0d1f35] rounded-2xl border border-white/15 w-full max-w-md shadow-2xl overflow-hidden">
       <div className="flex items-center justify-between p-5 border-b border-white/10">
-        <h3 className="text-white font-bold">Unda Highlight Mpya</h3>
+        <h3 className="text-white font-bold">Create New Highlight</h3>
         <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-full text-gray-400" aria-label="Close"><X size={18} /></button>
       </div>
       <div className="p-5 space-y-4">

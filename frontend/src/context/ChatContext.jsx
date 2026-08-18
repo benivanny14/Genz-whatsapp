@@ -1062,7 +1062,7 @@ export const ChatProvider = ({ children }) => {
           const myId = String(currentUserIdRef.current || '');
           if (sellerId && sellerId === myId && modsRef.current.activityNotifications !== false) {
             const buyer = order?.buyerUsername || 'Someone';
-            const title = order?.listingTitle || 'biashara';
+            const title = order?.listingTitle || 'listing';
             showActivityToastRef.current('winga', `🛍️ ${buyer} anataka kununua "${title}"`);
           }
         } catch (_) { /* ignore */ }
@@ -1076,11 +1076,11 @@ export const ChatProvider = ({ children }) => {
           const buyerId = String(order?.buyerId || order?.buyer?._id || '');
           const myId = String(currentUserIdRef.current || '');
           if (buyerId && buyerId === myId && modsRef.current.activityNotifications !== false) {
-            const title = order?.listingTitle || 'biashara';
+            const title = order?.listingTitle || 'listing';
             const msg =
-              order?.status === 'confirmed' ? `✅ Muuzaji amethibitisha ombi lako la "${title}"` :
-              order?.status === 'declined' ? `❌ Muuzaji amekataa ombi lako la "${title}"` :
-              `📦 Ombi lako la "${title}" limebadilika`;
+              order?.status === 'confirmed' ? `✅ Seller confirmed your order for "${title}"` :
+              order?.status === 'declined' ? `❌ Seller declined your order for "${title}"` :
+              `📦 Your order for "${title}" has changed`;
             showActivityToastRef.current('winga', msg);
           }
         } catch (_) { /* ignore */ }
@@ -1219,7 +1219,7 @@ export const ChatProvider = ({ children }) => {
         });
       });
 
-      // ✅ Badilisha temp message na ile ya kweli kutoka server (TOP-LEVEL, si ndani ya message:received)
+      // ✅ Replace the temp message with the real one from the server (TOP-LEVEL, not inside message:received)
       socket.on('message:sent', (confirmedMsg) => {
         try { playSentSound(); } catch (_) {}
         setMessages(prev => {
@@ -1229,7 +1229,7 @@ export const ChatProvider = ({ children }) => {
           if (exists) return prev; // Already exists, do not add it again
 
           if (clientId) {
-            // Badilisha temp message
+            // Replace temp message
             return prev.map(m =>
               String(m._id) === String(clientId) || String(m.clientMessageId) === String(clientId)
                 ? { ...confirmedMsg, status: 'sent' }

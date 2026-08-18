@@ -402,7 +402,7 @@ exports.votePoll = async (req, res) => {
 
     // Check if already voted
     const existingVote = status.poll.voters?.find(v => String(v.user) === String(userId));
-    if (existingVote) return res.status(400).json({ success: false, message: 'Umesha kura' });
+    if (existingVote) return res.status(400).json({ success: false, message: 'You have already voted' });
 
     // Record vote
     if (!status.poll.voters) status.poll.voters = [];
@@ -1139,7 +1139,7 @@ exports.unmuteUserStatus = async (req, res) => {
     user.markModified('mutedStatusUsers');
     await user.save();
 
-    res.json({ success: true, message: 'User ameondolewa kwenye mute', removed: before - user.mutedStatusUsers.length });
+    res.json({ success: true, message: 'User removed from mute', removed: before - user.mutedStatusUsers.length });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -1197,7 +1197,7 @@ exports.unblockUserStatus = async (req, res) => {
 
     await user.save();
 
-    res.json({ success: true, message: 'User ameondolewa kwenye block', removed: before - user.blockedStatusUsers.length });
+    res.json({ success: true, message: 'User removed from block', removed: before - user.blockedStatusUsers.length });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

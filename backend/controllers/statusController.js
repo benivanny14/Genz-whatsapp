@@ -6,7 +6,7 @@ const { normalizeLocationData } = require('../utils/locationData');
 const { getActiveMutedUserIds, getActiveStatusBlockedUserIds } = require('../utils/statusMuteHelpers');
 const { verifyShareToken } = require('../utils/statusShareToken');
 
-// POST /api/status - weka status mpya
+// POST /api/status - post a new status
 exports.createStatus = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
@@ -171,7 +171,7 @@ exports.getStatuses = async (req, res) => {
     const myStatuses = filtered.filter(s => String(s.user._id) === String(userId));
     const othersStatuses = filtered.filter(s => String(s.user._id) !== String(userId));
 
-    // Safisha siri za user zisirudi kwa client (contacts/settings zilihitajika
+    // Strip user secrets so they don't go back to the client (contacts/settings were needed
     // tu kwa privacy checks za server-side).
     const stripUserSecrets = (statuses) => {
       statuses.forEach(s => {

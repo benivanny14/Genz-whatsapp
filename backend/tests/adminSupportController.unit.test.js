@@ -101,7 +101,7 @@ describe('adminSupportController — tickets', () => {
     const ticket = makeTicket();
     SupportTicket.findById.mockResolvedValue(ticket);
     const res = makeRes();
-    await adminSupport.replyToTicket(makeReq({ params: { id: 't1' }, body: { message: 'Karibu!' } }), res);
+    await adminSupport.replyToTicket(makeReq({ params: { id: 't1' }, body: { message: 'Welcome!' } }), res);
     expect(res.body.success).toBe(true);
     expect(ticket.conversation).toHaveLength(1);
     expect(ticket.conversation[0].sender).toBe('admin');

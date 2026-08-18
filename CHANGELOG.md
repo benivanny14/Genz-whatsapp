@@ -7,6 +7,28 @@ by commit.
 
 ---
 
+## [2026-08-18] — Full system audit: APIs without UI, Swahili removed, capacity verified
+
+- **API audit**: mapped every backend route group against frontend consumers — 26 API groups
+  have no UI (media-editor, theme-engine, live-reactions, text-repeater, anti-revoke,
+  privacy-mods, etc.). They are intentional modular backends, not bugs; a UI roadmap
+  decision.
+- **Swahili removed**: app was bilingual by design (Google Translate widget + hardcoded
+  Swahili in ~40 files). Removed the `sw` option + full 437-line Swahili pack from
+  LanguageSelector, translated every hardcoded Swahili UI string to English (Status,
+  Settings, ChatContext, WINGA marketplace, admin panels, toasts, errors) and every
+  backend API response message (e.g. "Umesha kura" → "You have already voted",
+  "User ameondolewa kwenye mute" → "User removed from mute", "Attempts nyingi sana..."
+  → "Too many attempts for this account..."). WINGA category *ids* (nguo, simu, viwanja)
+  stay — they are database/API contract values; their display labels are now English.
+- **Dead code**: removed the unused duplicate `authSensitiveLimiter` in server.js
+  (auth routes use the middleware one).
+- **Verification**: backend 1732/1732 tests, frontend 94/94 + build, full e2e suite
+  green (admin specs need `MONGODB_URI` env, auth rate-limiter cap raised for CI via
+  NODE_ENV=test). Capacity analysis documented below.
+
+---
+
 ## [2026-08-18] — Business Account feature removed entirely (unused)
 
 The user does not use the business-account feature, so ALL of its code was

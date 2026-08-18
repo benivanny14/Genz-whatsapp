@@ -133,8 +133,8 @@ describe('automationModsController — toggles', () => {
     const user = makeUser();
     User.findById.mockResolvedValue(user);
     const res = makeRes();
-    await automationMods.updateWelcomeMessageText(makeReq({ body: { text: 'Karibu!' } }), res);
-    expect(res.body.welcomeMessageText).toBe('Karibu!');
+    await automationMods.updateWelcomeMessageText(makeReq({ body: { text: 'Welcome!' } }), res);
+    expect(res.body.welcomeMessageText).toBe('Welcome!');
   });
 
   it('updates the goodbye message text (happy path)', async () => {

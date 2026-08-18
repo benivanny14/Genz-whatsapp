@@ -102,7 +102,7 @@ const PARSERS = [
   },
 
   // ---------------------------------------------------------------------
-  // HaloPesa — e.g.
+  // HaloPesa — e.g. (real operator SMS format, sent in Swahili):
   // "Umetuma Tsh10,000 kwa ERASTOR GODFREY PAUL (0639533428). TxnID
   //  HP12345678. Tarehe 12-07-2026 10:05"
   // ---------------------------------------------------------------------

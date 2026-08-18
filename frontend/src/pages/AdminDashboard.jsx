@@ -155,7 +155,7 @@ const ServerCrashesPanel = () => {
         </button>
       </div>
       {loading ? (
-        <p className="text-sm text-gray-400">Inapakia…</p>
+        <p className="text-sm text-gray-400">Loading…</p>
       ) : crashes.grouped?.length === 0 ? (
         <p className="text-sm text-gray-400">No crash reports recorded (opt-in reporting).</p>
       ) : (
@@ -216,7 +216,7 @@ const UpdateEventsPanel = () => {
         </button>
       </div>
       {loading ? (
-        <p className="text-sm text-gray-400">Inapakia…</p>
+        <p className="text-sm text-gray-400">Loading…</p>
       ) : !events || total === 0 ? (
         <p className="text-sm text-gray-400">No update events yet (opt-in reporting).</p>
       ) : (
@@ -300,7 +300,7 @@ const NightlyStatusPanel = () => {
         </button>
       </div>
       {loading ? (
-        <p className="text-sm text-gray-400">Inapakia…</p>
+        <p className="text-sm text-gray-400">Loading…</p>
       ) : runs.length === 0 ? (
         <p className="text-sm text-gray-400">No runs yet (or the GitHub API is not responding).</p>
       ) : (

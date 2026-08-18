@@ -100,7 +100,7 @@ class ErrorBoundary extends Component {
           <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4 border border-red-500/20">
             <AlertTriangle size={32} className="text-red-400" />
           </div>
-          <h3 className="text-white font-bold text-lg mb-2">Kitu kimekosea</h3>
+          <h3 className="text-white font-bold text-lg mb-2">Something went wrong</h3>
           <p className="text-white/50 text-sm mb-6 max-w-xs">
             {this.state.error?.message || 'An unexpected error occurred. Please try again.'}
           </p>

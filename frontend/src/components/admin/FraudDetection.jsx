@@ -17,7 +17,7 @@ const FraudDetection = () => {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-4">
-        <StatCard label="IP Zinazoshirikiwa" value={signals.sharedIps.length} tone="red" />
+        <StatCard label="Shared IPs" value={signals.sharedIps.length} tone="red" />
         <StatCard label="Walengwa wa Brute-force" value={signals.bruteForceTargets.length} tone="amber" />
         <StatCard label="Signup Burst" value={signals.signupBursts.length} tone="red" />
       </div>
