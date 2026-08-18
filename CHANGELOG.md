@@ -7,6 +7,22 @@ by commit.
 
 ---
 
+## [2026-08-18] — Realistic Female/Male voice effects
+
+- **Voice changer now has realistic Female 👩 and Male 👨 effects** (plus softer
+  Girl/Boy presets) in addition to the existing novelty effects.
+- Implementation: moderate playbackRate shift (browser high-quality resampler,
+  no chipmunk/demon extremes) + **formant EQ** (female: brighter F2/F3 + airy
+  top shelf; male: chesty low-mid + darker top shelf) + light compressor — the
+  production approach used by web voice changers, robust on real speech.
+- Verified in-browser: 220Hz tone → female 223Hz (×1.24 ✓), male 140Hz (×0.78 ✓),
+  girl 202Hz, boy 158Hz; presets appear automatically in GENZ Settings Voice
+  Changer and the VoiceRecorder effect picker; sample playback works with no
+  console errors.
+- Fixed remaining Swahili text in VoiceRecorder effect picker header.
+
+---
+
 ## [2026-08-18] — Privacy/Security MODs UI + WINGA category ids migrated to English
 
 - **New UI for two previously UI-less API groups**:

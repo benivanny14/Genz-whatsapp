@@ -1,17 +1,81 @@
 /**
  * Unified TM WhatsApp–style voice note processing for GENZ.
  * Used by ChatContext (voice changer mod), VoiceRecorder, and GENZ Settings presets.
+ *
+ * Female/Male/Girl/Boy use a two-part recipe that sounds natural on real speech:
+ *   1. A moderate playbackRate shift (the browser's high-quality resampler),
+ *      kept away from the chipmunk/demon extremes.
+ *   2. A formant EQ that colours the spectrum toward the target gender
+ *      (female: brighter F2/F3 + airy top; male: chestier low-mid, darker top),
+ *      plus a light compressor for natural, even levels.
+ * This is the approach production web voice changers use — robust on real
+ * voices with changing pitch (no phase-sensitive artifacts), while the EQ
+ * supplies the perceptual gender cue.
  */
 
 export const VOICE_EFFECT_PRESETS = [
   { id: 'none', label: 'Normal', icon: '🎙️', hint: 'Original voice' },
+  { id: 'female', label: 'Female', icon: '👩', hint: 'Realistic female voice (pitch + formant EQ)' },
+  { id: 'male', label: 'Male', icon: '👨', hint: 'Realistic male voice (pitch + formant EQ)' },
+  { id: 'girl', label: 'Girl', icon: '👧', hint: 'Soft voice, slightly higher pitch' },
+  { id: 'boy', label: 'Boy', icon: '👦', hint: 'Slightly lower pitch' },
   { id: 'child', label: 'Child', icon: '👶', hint: 'High pitch (playback ↑)' },
-  { id: 'girl', label: 'Girl', icon: '👩', hint: 'Soft voice, slightly higher pitch' },
-  { id: 'boy', label: 'Boy', icon: '👨', hint: 'Slightly lower pitch' },
   { id: 'robot', label: 'Robot', icon: '🤖', hint: 'Robot / soft distortion' },
   { id: 'deep', label: 'Deep', icon: '🌊', hint: 'Deep bass' },
   { id: 'echo', label: 'Echo', icon: '📣', hint: 'Echo effect' }
 ];
+
+/**
+ * Gender effects: playbackRate (1 = no change) + formant EQ preset.
+ * Rates are deliberately moderate: ~1.24 up lifts a male voice into the
+ * feminine range without chipmunk squeak; ~0.78 down drops a female voice
+ * into the male range without a "demon" growl.
+ */
+const GENDER_PRESETS = {
+  female: { rate: 1.24, eq: 'female' },
+  male: { rate: 0.78, eq: 'male' },
+  girl: { rate: 1.12, eq: 'bright' },
+  boy: { rate: 0.88, eq: 'warm' }
+};
+
+/**
+ * Formant EQ chain — colours a pitch-shifted voice toward the target gender.
+ * Returns an array of biquad filters to chain (the last one connects onward).
+ */
+function buildFormantChain(ctx, preset) {
+  const filters = [];
+  const add = (type, freq, q, gain) => {
+    const f = ctx.createBiquadFilter();
+    f.type = type;
+    f.frequency.value = freq;
+    f.Q.value = q;
+    if (gain !== undefined) f.gain.value = gain;
+    filters.push(f);
+    return f;
+  };
+
+  if (preset === 'female') {
+    // Brighter F2/F3 + airy top — the classic female vocal-tract colour.
+    add('peaking', 260, 1.0, 1.5);
+    add('peaking', 1050, 1.2, 2.0);
+    add('peaking', 2900, 1.0, 3.0);
+    add('highshelf', 6200, 0.8, 2.5);
+  } else if (preset === 'male') {
+    // Chesty low-mid + darker top — the classic male vocal-tract colour.
+    add('lowshelf', 150, 0.8, 2.5);
+    add('peaking', 280, 1.0, 3.0);
+    add('peaking', 900, 1.0, 1.5);
+    add('peaking', 2600, 1.0, -2.0);
+    add('highshelf', 5200, 0.8, -3.0);
+  } else if (preset === 'bright') {
+    add('peaking', 3000, 1.0, 2.0);
+    add('highshelf', 6000, 0.8, 1.5);
+  } else if (preset === 'warm') {
+    add('peaking', 250, 1.0, 2.5);
+    add('highshelf', 5500, 0.8, -1.5);
+  }
+  return filters;
+}
 
 function audioBufferToWav(buffer) {
   if (!buffer || buffer.numberOfChannels === 0) {
@@ -56,6 +120,42 @@ function audioBufferToWav(buffer) {
   return new Blob([arrayBuffer], { type: 'audio/wav' });
 }
 
+/**
+ * Render a buffer through a formant EQ + compressor chain to a WAV blob.
+ * When playbackRate is given, the source also plays at that rate.
+ */
+async function renderWithChain(audioBuffer, eqPreset, playbackRate = 1) {
+  const offlineLength = Math.max(1, Math.ceil(audioBuffer.length / Math.max(0.0001, playbackRate)));
+  const offlineCtx = new OfflineAudioContext(
+    audioBuffer.numberOfChannels,
+    offlineLength,
+    audioBuffer.sampleRate
+  );
+  const source = offlineCtx.createBufferSource();
+  source.buffer = audioBuffer;
+  source.playbackRate.value = playbackRate;
+
+  const filters = buildFormantChain(offlineCtx, eqPreset);
+  let node = source;
+  for (const f of filters) {
+    node.connect(f);
+    node = f;
+  }
+
+  const comp = offlineCtx.createDynamicsCompressor();
+  comp.threshold.value = -20;
+  comp.knee.value = 20;
+  comp.ratio.value = 4;
+  comp.attack.value = 0.003;
+  comp.release.value = 0.25;
+  node.connect(comp);
+  comp.connect(offlineCtx.destination);
+
+  source.start(0);
+  const rendered = await offlineCtx.startRendering();
+  return audioBufferToWav(rendered);
+}
+
 export async function applyVoiceEffect(audioBlob, effect = 'none') {
   if (effect === 'none' || !audioBlob || audioBlob.size === 0) return audioBlob;
 
@@ -66,18 +166,22 @@ export async function applyVoiceEffect(audioBlob, effect = 'none') {
 
     const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer.slice(0));
 
-    // Determine playback rate factor for offline render length calculation
+    // Female / Male / Girl / Boy — pitch shift + formant EQ + compression.
+    if (GENDER_PRESETS[effect]) {
+      const cfg = GENDER_PRESETS[effect];
+      const wavBlob = await renderWithChain(audioBuffer, cfg.eq, cfg.rate);
+      await audioCtx.close();
+      return wavBlob;
+    }
+
+    // Simple legacy effects (child / deep / robot / echo)
     const rateMap = {
       child: 1.48,
-      girl: 1.22,
-      boy: 0.84,
       deep: 0.62,
       robot: 0.82,
       echo: 1
     };
     const rate = rateMap[effect] || 1;
-
-    // Compute a safe offline length that accounts for playbackRate changes
     const offlineLength = Math.max(1, Math.ceil(audioBuffer.length / Math.max(0.0001, rate)));
 
     const offlineCtx = new OfflineAudioContext(
@@ -91,7 +195,6 @@ export async function applyVoiceEffect(audioBlob, effect = 'none') {
 
     const connectDry = () => source.connect(offlineCtx.destination);
 
-    // set playbackRate early so offline length matches expectation
     source.playbackRate.value = rate;
 
     if (effect === 'robot') {
@@ -104,7 +207,6 @@ export async function applyVoiceEffect(audioBlob, effect = 'none') {
       }
       waveShaper.curve = curve;
       waveShaper.oversample = '4x';
-      // mix dry + shaped
       const dryGain = offlineCtx.createGain();
       dryGain.gain.value = 0.6;
       const wetGain = offlineCtx.createGain();
@@ -131,7 +233,6 @@ export async function applyVoiceEffect(audioBlob, effect = 'none') {
       delayNode.connect(feedback);
       feedback.connect(delayNode);
     } else {
-      // simple pitch/speed effects fall back to dry connection
       connectDry();
     }
 
