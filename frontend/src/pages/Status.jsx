@@ -2271,7 +2271,9 @@ const Status = () => {
                   <button onClick={() => setActivePanel('contacts')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Contacts</button>
                   <button onClick={() => setActivePanel('advancedChat')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Advanced Chat</button>
                   <button onClick={() => setActivePanel('voice')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Voice Features</button>
-                  <button onClick={() => setActivePanel('debug')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Debug Features</button>
+                  {import.meta.env.DEV && (
+                    <button onClick={() => setActivePanel('debug')} className="p-4 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm">Debug Features</button>
+                  )}
                 </div>
               ) : (
                 <div>
@@ -2297,7 +2299,7 @@ const Status = () => {
                   {activePanel === 'contacts' && <ContactsPanel onClose={() => setActivePanel(null)} onSave={(data) => handlePanelSave('contacts', data)} />}
                   {activePanel === 'advancedChat' && <AdvancedChatFeaturesPanel onClose={() => setActivePanel(null)} onSave={(data) => handlePanelSave('advancedChat', data)} />}
                   {activePanel === 'voice' && <VoiceFeaturesPanel onClose={() => setActivePanel(null)} onSave={(data) => handlePanelSave('voiceFeatures', data)} />}
-                  {activePanel === 'debug' && <DebugFeaturesPanel onClose={() => setActivePanel(null)} />}
+                  {activePanel === 'debug' && import.meta.env.DEV && <DebugFeaturesPanel onClose={() => setActivePanel(null)} />}
                 </div>
               )}
             </div>

@@ -7,6 +7,30 @@ by commit.
 
 ---
 
+## [2026-08-18] — Close UI data-leak: Debug Features panel hidden from users
+
+- **Security audit of the whole frontend UI** for data visible to users that
+  should not be: the biggest leak was the **Debug Features** panel on the
+  Status page (Status → Settings → "Debug Features"), reachable by any logged-
+  in user. It dumped **all localStorage + sessionStorage values** (auth tokens,
+  saved accounts with tokens, user profile with phone number), live console
+  logs, and network request URLs into the UI.
+- Fix: the button and panel render are now gated behind `import.meta.env.DEV`
+  (dev-only, same pattern as the socket indicator / ErrorBoundary stack trace).
+  Verified the whole panel is **tree-shaken out of the production bundle**
+  (0 matches for "Debug Features"/"DebugFeaturesPanel" in dist assets).
+- Audit found everything else clean: admin routes gated by
+  AdminProtectedRoute/ProtectedRoute, no hardcoded API keys in the frontend,
+  GIF key proxied through the backend, `_id` values rendered only in admin
+  tables, dev-only stack traces, no raw API-error rendering, visitors/viewers
+  lists are opt-in features.
+- Known tradeoff (not changed): the Account Switcher keeps auth tokens in
+  localStorage (`genz_saved_accounts`) because memory-only tokens die on the
+  page reload the feature uses; they are no longer rendered in the UI and are
+  the user's own credentials.
+
+---
+
 ## [2026-08-18] — Realistic Female/Male voice effects
 
 - **Voice changer now has realistic Female 👩 and Male 👨 effects** (plus softer
