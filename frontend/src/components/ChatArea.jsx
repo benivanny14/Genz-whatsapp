@@ -194,21 +194,32 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [stickerSearchQuery, setStickerSearchQuery] = useState('');
 
   // ── TikTok-style: send a sticker together with whatever text is typed
-  // and whatever message is currently being replied to. The caption and
-  // the reply-quote both ride along in the same bubble as the sticker.
+  // and whatever message is currently being replied to. The sticker ALWAYS
+  // goes out clean — no words are ever attached below the artwork. Typed
+  // text (if any) is delivered as its own normal message so it is never
+  // lost and never appears under the sticker.
   const handleSendStickerWithCaption = (stickerUrl, options = {}) => {
-    const caption = options.caption || messageInput.trim();
+    const typed = messageInput.trim();
     sendSticker(stickerUrl, {
-      replyTo: options.replyTo || replyingTo,
-      caption: caption || undefined
+      replyTo: options.replyTo || replyingTo
     });
+    if (typed) {
+      sendMessage(typed, user?.username || 'Me', {
+        chatId: selectedConversation?._id,
+        replyTo: options.replyTo || replyingTo,
+        ghostMode: safeMods.ghostMode,
+        isSelfDestruct: Boolean(safeMods.selfDestruct),
+        isViewOnce: safeMods.selfDestruct ? false : isViewOnceEnabled,
+        allowScreenshot: allowScreenshotEnabled ? true : undefined,
+        font: selectedFont !== 'default' ? selectedFont : undefined
+      });
+    }
     setMessageInput('');
     setReplyingTo(null);
     setShowStickerStore(false);
     if (options.isFloating && sendFloatingSticker) {
       sendFloatingSticker(stickerUrl, { 
-        ...options, 
-        caption,
+        ...options,
         chatId: selectedConversation?._id
       });
     }
@@ -738,12 +749,20 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       };
 
       if (selectedMedia?.type === 'sticker') {
-        // TikTok-style combined message: sticker + typed text ride as ONE bubble
+        // The sticker always goes out CLEAN — no words are ever attached
+        // below the artwork. If the user typed text, it is delivered as its
+        // own normal message so nothing is lost and nothing rides under
+        // the sticker.
         await sendSticker(selectedMedia.url, {
           replyTo: replyingTo,
-          caption: sanitizedMessage || undefined,
           isViewOnce: safeMods.selfDestruct ? false : isViewOnceEnabled
         });
+        if (sanitizedMessage) {
+          await sendMessage(sanitizedMessage, user?.username || 'Me', {
+            ...finalOptions,
+            font: selectedFont !== 'default' ? selectedFont : undefined
+          });
+        }
       } else if (selectedMedia) {
         finalOptions.messageType = 'structured';
         finalOptions.structuredContent = [

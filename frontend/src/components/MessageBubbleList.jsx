@@ -254,9 +254,8 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                             )}
                           </span>
                         </div>
-                        {message.caption && (
-                          <p className="text-sm mt-1 whitespace-pre-wrap break-words">{message.caption}</p>
-                        )}
+                        {/* Stickers are always rendered CLEAN — no caption
+                            text is ever shown below the artwork. */}
                       </div>
                     )}
 
