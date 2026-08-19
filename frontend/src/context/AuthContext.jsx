@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import authService from '../services/authService';
 import { tryRefreshAccessToken, clearAllUserData } from '../utils/authSession';
+import { devLog, devWarn, devError, secureError } from '../utils/logger';
 
 const AuthContext = createContext();
 
@@ -25,7 +26,7 @@ export const AuthProvider = ({ children }) => {
     let settled = false;
     const hardCap = setTimeout(() => {
       if (!settled) {
-        console.warn('[AuthContext] Session restore taking too long; releasing loading state');
+        devWarn('[AuthContext] Session restore taking too long; releasing loading state');
         setLoading(false);
         setIsAuthReady(true);
       }
@@ -33,7 +34,7 @@ export const AuthProvider = ({ children }) => {
 
     const restoreSession = async () => {
       try {
-        console.log('[AuthContext] Restoring session...');
+        devLog('[AuthContext] Restoring session...');
 
         // First, try to restore from localStorage
         const session = authService.restoreSession();
@@ -51,17 +52,17 @@ export const AuthProvider = ({ children }) => {
               
               // Check if phone needs verification
               if (meData.user.phoneVerified === false) {
-                console.log('[AuthContext] Phone verification required');
+                devLog('[AuthContext] Phone verification required');
                 setIsAuthenticated(false);
                 setLoading(false);
                 setIsAuthReady(true);
                 return; // Stop here, don't clear session
               }
               
-              console.log('[AuthContext] Session restored successfully');
+              devLog('[AuthContext] Session restored successfully');
             } else {
               // Token invalid, try to refresh
-              console.warn('[AuthContext] Invalid token, attempting refresh...');
+              devWarn('[AuthContext] Invalid token, attempting refresh...');
               const newToken = await tryRefreshAccessToken();
               if (newToken) {
                 setToken(newToken);
@@ -75,16 +76,16 @@ export const AuthProvider = ({ children }) => {
                 }
               } else {
                 // Refresh failed, clear session
-                console.warn('[AuthContext] Refresh failed, clearing session');
+                devWarn('[AuthContext] Refresh failed, clearing session');
                 clearSession();
               }
             }
           } catch (verifyError) {
-            console.error('[AuthContext] Token verification failed:', verifyError);
+            secureError('[AuthContext] Token verification failed', verifyError);
             const isNetworkError = !verifyError.response;
             const isServerError = verifyError.response && verifyError.response.status >= 500;
             if (isNetworkError || isServerError) {
-              console.log('[AuthContext] Network or server error during token verification. Keeping local session.');
+              devLog('[AuthContext] Network or server error during token verification. Keeping local session.');
               return;
             }
             // Try to refresh token on 401
@@ -96,11 +97,11 @@ export const AuthProvider = ({ children }) => {
                   const retryMeData = await authService.getMe();
                   if (retryMeData.success && retryMeData.user) {
                     setUser(retryMeData.user);
-                    console.log('[AuthContext] Session restored after refresh');
+                    devLog('[AuthContext] Session restored after refresh');
                     return;
                   }
                 } catch (retryError) {
-                  console.error('[AuthContext] Retry failed:', retryError);
+                  secureError('[AuthContext] Retry failed', retryError);
                 }
               }
             }
@@ -120,10 +121,10 @@ export const AuthProvider = ({ children }) => {
           // from a clean slate.
           const path = window.location.pathname;
           if (path === '/login' || path === '/register' || path === '/verify-phone') {
-            console.log('[AuthContext] Skipping cookie restore on auth pages');
+            devLog('[AuthContext] Skipping cookie restore on auth pages');
             setIsAuthenticated(false);
           } else {
-            console.log('[AuthContext] No local token; trying httpOnly cookie session');
+            devLog('[AuthContext] No local token; trying httpOnly cookie session');
             try {
               const meData = await authService.getMe();
               if (meData.success && meData.user) {
@@ -131,7 +132,7 @@ export const AuthProvider = ({ children }) => {
                 
                 // Check phone verification
                 if (meData.user.phoneVerified === false) {
-                  console.log('[AuthContext] Phone verification required (cookie restore)');
+                  devLog('[AuthContext] Phone verification required (cookie restore)');
                   setIsAuthenticated(false);
                   setLoading(false);
                   setIsAuthReady(true);
@@ -139,19 +140,19 @@ export const AuthProvider = ({ children }) => {
                 }
                 
                 setIsAuthenticated(true);
-                console.log('[AuthContext] Session restored via httpOnly cookie');
+                devLog('[AuthContext] Session restored via httpOnly cookie');
               } else {
-                console.log('[AuthContext] No valid cookie session found');
+                devLog('[AuthContext] No valid cookie session found');
                 setIsAuthenticated(false);
               }
             } catch (cookieError) {
-              console.log('[AuthContext] Cookie session check failed:', cookieError?.response?.status || cookieError.message);
+              devLog('[AuthContext] Cookie session check failed:', cookieError?.response?.status || cookieError.message);
               setIsAuthenticated(false);
             }
           }
         }
       } catch (error) {
-        console.error('[AuthContext] Session restoration error:', error);
+        secureError('[AuthContext] Session restoration error', error);
         setError(error.message);
         setIsAuthenticated(false);
       } finally {
@@ -188,7 +189,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
-      console.log('[AuthContext] Logging in...');
+      devLog('[AuthContext] Logging in...');
       const data = await authService.login(credentials);
 
       if (!data.requiresTwoFactor) {
@@ -198,19 +199,19 @@ export const AuthProvider = ({ children }) => {
         
         // Check if phone verification is required
         if (data.requiresPhoneVerification || data.phoneVerified === false) {
-          console.log('[AuthContext] Phone verification required after login');
+          devLog('[AuthContext] Phone verification required after login');
           setIsAuthenticated(false);
           authService.saveTokens(data);
           return { ...data, requiresPhoneVerification: true };
         }
         
         setIsAuthenticated(true);
-        console.log('[AuthContext] Login successful');
+        devLog('[AuthContext] Login successful');
       }
 
       return data;
     } catch (error) {
-      console.error('[AuthContext] Login error:', error);
+      secureError('[AuthContext] Login error', error);
       setError(error.message);
       throw error;
     }
@@ -218,7 +219,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (credentials) => {
     try {
-      console.log('[AuthContext] Registering...');
+      devLog('[AuthContext] Registering...');
       const data = await authService.register(credentials);
 
       if (data?.success !== false && data?.token) {
@@ -228,19 +229,19 @@ export const AuthProvider = ({ children }) => {
         
         // Check if phone verification is required
         if (data.requiresPhoneVerification || data.phoneVerified === false) {
-          console.log('[AuthContext] Phone verification required');
+          devLog('[AuthContext] Phone verification required');
           setIsAuthenticated(false); // Don't set authenticated yet
           authService.saveTokens(data); // Save tokens for verification API calls
           return { ...data, requiresPhoneVerification: true };
         }
         
         setIsAuthenticated(true);
-        console.log('[AuthContext] Registration successful');
+        devLog('[AuthContext] Registration successful');
       }
 
       return data;
     } catch (error) {
-      console.error('[AuthContext] Registration error:', error);
+      secureError('[AuthContext] Registration error', error);
       setError(error.message);
       throw error;
     }
@@ -248,13 +249,13 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      console.log('[AuthContext] Logging out...');
+      devLog('[AuthContext] Logging out...');
       await authService.logout();
       clearSession();
       setError(null);
-      console.log('[AuthContext] Logout successful');
+      devLog('[AuthContext] Logout successful');
     } catch (error) {
-      console.error('[AuthContext] Logout error:', error);
+      secureError('[AuthContext] Logout error', error);
       // Clear session even if logout API call fails
       clearSession();
     }

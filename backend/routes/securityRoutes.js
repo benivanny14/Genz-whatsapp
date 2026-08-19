@@ -12,9 +12,8 @@ const {
 const { protect } = require('../middleware/auth');
 const { authSensitiveLimiter } = require('../middleware/rateLimiters');
 
-// 2FA Routes
+// 2FA Routes (removed duplicate /2fa/setup - use /2fa/generate)
 router.post('/2fa/generate', protect, generateTwoFactorSecret);
-router.post('/2fa/setup', protect, generateTwoFactorSecret);
 router.post('/2fa/verify', protect, verifyTwoFactorToken);
 router.post('/2fa/disable', protect, disableTwoFactor);
 // Login-verify is credential-free (only a TOTP code + short-lived state).
@@ -25,5 +24,8 @@ router.get('/2fa/status', protect, getTwoFactorStatus);
 // Account Security Settings
 router.get('/settings', protect, getSecuritySettings);
 router.put('/settings', protect, updateSecuritySettings);
+
+// Root GET — alias to /settings for convenience
+router.get('/', protect, getSecuritySettings);
 
 module.exports = router;

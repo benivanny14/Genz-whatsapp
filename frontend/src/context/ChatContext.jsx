@@ -57,7 +57,8 @@ const SOCKET_ORIGIN = resolveSocketOrigin();
 /** Mongo-style demo fallback when no JWT user is present (dev / optional demo mode) */
 const UNAUTHENTICATED_FALLBACK_USER_ID = '60d5ecb8b392cb371c664c12';
 const REQUIRE_AUTH = import.meta.env.VITE_REQUIRE_AUTH !== 'false';
-const ENABLE_DEMO_DATA = import.meta.env.VITE_ENABLE_DEMO_DATA === 'true';
+// Demo data is only allowed in development mode for security
+const ENABLE_DEMO_DATA = import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEMO_DATA === 'true';
 
 const normalizeDisappearingSettings = (value) => {
   const raw = typeof value === 'object' && value !== null

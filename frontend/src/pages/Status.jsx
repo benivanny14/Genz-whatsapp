@@ -28,7 +28,7 @@ import CustomUIPanel from '../components/CustomUIPanel';
 import ContactsPanel from '../components/ContactsPanel';
 import AdvancedChatFeaturesPanel from '../components/AdvancedChatFeaturesPanel';
 import VoiceFeaturesPanel from '../components/VoiceFeaturesPanel';
-import DebugFeaturesPanel from '../components/DebugFeaturesPanel';
+// DebugFeaturesPanel removed - should not be visible in production
 import MediaUploadEnhanced from '../components/MediaUploadEnhanced';
 import StatusAnalyticsPanel from '../components/StatusAnalyticsPanel';
 import ThemeStore from '../components/PaidFeatures/ThemeStore';
@@ -2297,7 +2297,6 @@ const Status = () => {
                   {activePanel === 'contacts' && <ContactsPanel onClose={() => setActivePanel(null)} onSave={(data) => handlePanelSave('contacts', data)} />}
                   {activePanel === 'advancedChat' && <AdvancedChatFeaturesPanel onClose={() => setActivePanel(null)} onSave={(data) => handlePanelSave('advancedChat', data)} />}
                   {activePanel === 'voice' && <VoiceFeaturesPanel onClose={() => setActivePanel(null)} onSave={(data) => handlePanelSave('voiceFeatures', data)} />}
-                  {activePanel === 'debug' && <DebugFeaturesPanel onClose={() => setActivePanel(null)} />}
                 </div>
               )}
             </div>

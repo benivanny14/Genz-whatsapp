@@ -212,18 +212,52 @@ const sanitizeInput = (req, res, next) => {
 
 /**
  * Security headers middleware
+ * Enhanced security headers for production hardening
  */
 const securityHeaders = (req, res, next) => {
+  // Prevent MIME type sniffing
   res.setHeader('X-Content-Type-Options', 'nosniff');
+  
+  // Prevent clickjacking
   res.setHeader('X-Frame-Options', 'DENY');
+  
+  // XSS protection (legacy but still useful)
   res.setHeader('X-XSS-Protection', '1; mode=block');
+  
+  // Control referrer information
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(self), camera=(self), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()');
+  
+  // Restrict browser features
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(self), camera=(self), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), fullscreen=(self), picture-in-picture=(self)');
+  
+  // Prevent DNS prefetching
   res.setHeader('X-DNS-Prefetch-Control', 'off');
+  
+  // Prevent file downloads from opening automatically
   res.setHeader('X-Download-Options', 'noopen');
+  
+  // Restrict cross-domain policies
   res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+  
+  // Isolate browsing context
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  
+  // Prevent information leakage
+  res.setHeader('X-Powered-By', 'GENZ Messenger');
+  res.removeHeader('Server');
+  
+  // Cache control for API responses
+  if (req.path.startsWith('/api/')) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+  }
+  
+  // Strict Transport Security (HSTS) - only in production
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  }
+  
   next();
 };
 

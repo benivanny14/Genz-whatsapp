@@ -422,7 +422,8 @@ const Settings = () => {
     { id: 'language', label: 'App language', icon: Languages },
     { id: 'linked', label: 'Linked devices', icon: Smartphone },
     { id: 'contacts', label: 'Contacts', icon: Users },
-    { id: 'fake-chat', label: 'Fake Chat', icon: MessageSquare },
+    // Fake Chat tab - only in development
+    ...(import.meta.env.DEV ? [{ id: 'fake-chat', label: 'Fake Chat', icon: MessageSquare }] : []),
     { id: 'location', label: 'Location', icon: MapPin },
     { id: 'help', label: 'Help', icon: HelpCircle }
   ]), []);
@@ -1235,7 +1236,7 @@ const Settings = () => {
       {showAntiBanPanel && <AntiBanPanel onClose={() => setShowAntiBanPanel(false)} />}
       {showStatusPrivacyPanel && <StatusPrivacyPanel onClose={() => setShowStatusPrivacyPanel(false)} />}
       {showStorage && <StorageManagement onClose={() => setShowStorage(false)} />}
-      {showFakeChat && <FakeChatPanel onClose={() => setShowFakeChat(false)} />}
+      {import.meta.env.DEV && showFakeChat && <FakeChatPanel onClose={() => setShowFakeChat(false)} />}
       {showLocationSharing && <LocationSharingPanel onClose={() => setShowLocationSharing(false)} />}
       {showContactSelector && contactSelectorConfig && (
         <ContactSelectorScreen

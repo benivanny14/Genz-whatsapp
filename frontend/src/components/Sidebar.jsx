@@ -1114,18 +1114,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     <Shield className="w-4 h-4" />
                     <span>Security</span>
                   </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      console.log('GENZ Mods button clicked, navigating to /genz-mods');
-                      debugNavigate('/genz-mods');
-                      setShowMenu(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-2 hover:bg-dark-hover text-dark-text"
-                  >
-                    <Zap className="w-4 h-4 text-primary-500" />
-                    <span>GENZ Mods</span>
-                  </button>
+                  {/* GENZ Mods button removed - features moved to GENZ Settings */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();

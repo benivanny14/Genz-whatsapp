@@ -4,6 +4,7 @@ import { getDeviceHeaders } from './deviceIdentity.js';
 import { resolveApiBase } from './resolveApiBase.js';
 import db from './indexedDB.js';
 import { DB } from '../services/db.js';
+import { devLog, devWarn, devError } from './logger.js';
 
 export const API_URL = resolveApiBase() || '/api';
 
@@ -27,7 +28,7 @@ export const persistTokens = (data) => {
         })
       );
     } catch (e) {
-      console.warn('[Auth] Could not persist profile sidebar copy:', e);
+      devWarn('[Auth] Could not persist profile sidebar copy:', e);
     }
   }
 };
@@ -82,7 +83,7 @@ export const clearAllUserData = async () => {
       try {
         localStorage.removeItem(key);
       } catch (e) {
-        console.warn('[Auth] Failed to remove user-specific key:', key);
+        devWarn('[Auth] Failed to remove user-specific key:', key);
       }
     });
   }
@@ -93,7 +94,7 @@ export const clearAllUserData = async () => {
     await db.deleteDatabase();
     await DB.deleteDatabase();
   } catch (err) {
-    console.error('Failed to delete IndexedDB:', err);
+    devError('Failed to delete IndexedDB:', err);
   }
 };
 
@@ -115,10 +116,10 @@ export const clearSessionAndRedirect = async (options = {}) => {
       credentials: 'include'
     });
     if (!res.ok) {
-      console.warn('[Auth] Backend logout during session clear failed:', res.status);
+      devWarn('[Auth] Backend logout during session clear failed:', res.status);
     }
   } catch (e) {
-    console.warn('[Auth] Backend logout during session clear failed:', e);
+    devWarn('[Auth] Backend logout during session clear failed:', e);
   }
 
   await clearAllUserData();
@@ -146,7 +147,7 @@ export const tryRefreshAccessToken = async () => {
     // be valid (fresh page load after the 7-day access cookie expired but
     // within the 30-day refresh window) — the backend accepts a
     // cookie-supplied refresh token, so keep trying instead of giving up.
-    console.warn('[Auth] No local refresh token; attempting cookie-based refresh');
+    devWarn('[Auth] No local refresh token; attempting cookie-based refresh');
   }
   // FIX: bare fetch() has no default timeout — on a slow/unstable mobile
   // connection this could hang indefinitely, which upstream callers
@@ -166,17 +167,17 @@ export const tryRefreshAccessToken = async () => {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      console.error('[Auth] Refresh HTTP error:', { status: res.status, data });
+      devError('[Auth] Refresh HTTP error:', { status: res.status, data });
       return null;
     }
     if (data?.success && data.token) {
       persistTokens(data);
       return data.token;
     }
-    console.error('[Auth] Refresh response missing token:', data);
+    devError('[Auth] Refresh response missing token:', data);
     return null;
   } catch (e) {
-    console.error('[Auth] Refresh network error:', e);
+    devError('[Auth] Refresh network error:', e);
     return null;
   } finally {
     clearTimeout(timeoutId);

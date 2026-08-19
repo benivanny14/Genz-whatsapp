@@ -5,10 +5,9 @@ const { protect } = require('../middleware/auth');
 const { safeFilename } = require('../utils/safeFilename');
 const {
   createStatus, getStatuses, viewStatus, getSharedStatus,
-  reactToStatus, deleteStatus, getViewers,
+  deleteStatus,
   uploadStatusMedia, uploadCollageImages
 } = require('../controllers/statusController');
-const { editStatus } = require('../controllers/statusAdvancedController');
 const { validateFileContent } = require('../middleware/fileValidation');
 
 // Multer configuration for status uploads
@@ -61,14 +60,12 @@ const collageUpload = multer({
 // Public share link (QR code): no auth — the owner generated the QR.
 router.get('/share/:id', getSharedStatus);
 
+// Core status CRUD (reactions, edit, viewers are in status-advanced.js)
 router.post('/', protect, createStatus);
 router.get('/', protect, getStatuses);
-router.put('/:id', protect, editStatus);
 router.post('/upload', protect, upload.single('file'), validateFileContent, uploadStatusMedia);
 router.post('/collage-upload', protect, collageUpload.array('files', 4), validateFileContent, uploadCollageImages);
 router.post('/:id/view', protect, viewStatus);
-router.post('/:id/react', protect, reactToStatus);
 router.delete('/:id', protect, deleteStatus);
-router.get('/:id/viewers', protect, getViewers);
 
 module.exports = router;

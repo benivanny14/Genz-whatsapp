@@ -7,7 +7,7 @@ const NAV_ITEMS = [
   { label: 'Status', path: '/status', icon: CircleDot, match: (path) => path.startsWith('/status') },
   { label: 'Communities', path: '/communities', icon: UsersRound, match: (path) => path.startsWith('/communities') },
   { label: 'WINGA', path: '/winga', icon: Store, match: (path) => path.startsWith('/winga') },
-  { label: 'Me', path: '/settings', icon: Sparkles, match: (path) => path.startsWith('/settings') || path.startsWith('/genz-mods') || path.startsWith('/linked-devices') },
+  { label: 'Me', path: '/settings', icon: Sparkles, match: (path) => path.startsWith('/settings') || path.startsWith('/linked-devices') },
 ];
 
 const HIDDEN_PREFIXES = [

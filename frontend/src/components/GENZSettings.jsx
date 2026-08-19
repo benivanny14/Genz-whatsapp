@@ -1782,6 +1782,69 @@ const PrivacyTab = ({ ctx }) => {
                 active={mods.selfDestruct}
                 onClick={() => toggleMod('selfDestruct')}
               />
+              <ModItem
+                icon={<Trash2 size={20} className="text-pink-600" />}
+                title="Anti-Delete Status"
+                desc="See and restore deleted status updates"
+                active={mods.antiDeleteStatus}
+                onClick={() => toggleMod('antiDeleteStatus')}
+              />
+              <ModItem
+                icon={<Mic size={20} className="text-green-500" />}
+                title="Hide Typing"
+                desc="Do not show the typing indicator"
+                active={mods.hideTyping}
+                onClick={() => toggleMod('hideTyping')}
+              />
+              <ModItem
+                icon={<MicOff size={20} className="text-orange-500" />}
+                title="Hide Recording"
+                desc="Do not show when you are recording"
+                active={mods.hideRecording}
+                onClick={() => toggleMod('hideRecording')}
+              />
+              <ModItem
+                icon={<EyeOff size={20} className="text-blue-500" />}
+                title="Hide Online"
+                desc="Do not broadcast when you are online"
+                active={mods.hideOnline}
+                onClick={() => toggleMod('hideOnline')}
+              />
+              <ModItem
+                icon={<CheckCheck size={20} className="text-gray-400" />}
+                title="Hide Second Tick"
+                desc="Hide the double-tick read indicator"
+                active={mods.hideSecondTick}
+                onClick={() => toggleMod('hideSecondTick')}
+              />
+              <ModItem
+                icon={<EyeOff size={20} className="text-indigo-500" />}
+                title="Hide View Status"
+                desc="Do not notify others when you view their status"
+                active={mods.hideViewStatus}
+                onClick={() => toggleMod('hideViewStatus')}
+              />
+              <ModItem
+                icon={<CheckCheck size={20} className="text-blue-400" />}
+                title="Read Receipts"
+                desc="Send read receipts to other users"
+                active={mods.readReceipts}
+                onClick={() => toggleMod('readReceipts')}
+              />
+              <ModItem
+                icon={<MessageSquare size={20} className="text-cyan-500" />}
+                title="Typing Indicators"
+                desc="Show the typing indicator while you type"
+                active={mods.typingIndicators}
+                onClick={() => toggleMod('typingIndicators')}
+              />
+              <ModItem
+                icon={<Wifi size={20} className="text-green-400" />}
+                title="Online Status"
+                desc="Broadcast your online status"
+                active={mods.onlineStatus}
+                onClick={() => toggleMod('onlineStatus')}
+              />
               <div
                 onClick={() => window.location.href = '/genz-after-work'}
                 className="flex items-center gap-3 p-3 bg-gradient-to-r from-purple-500/10 to-pink-500/10 hover:from-purple-500/20 hover:to-pink-500/20 border border-purple-500/20 rounded-xl cursor-pointer transition-all"
@@ -2342,6 +2405,53 @@ const SocialTab = ({ ctx }) => {
               active={mods.alwaysOnline}
               onClick={() => toggleMod('alwaysOnline')}
             />
+            <div className="p-3 bg-white/5 rounded-xl">
+              <div className="flex items-center gap-3 mb-2">
+                <Mic size={20} className="text-green-500" />
+                <div>
+                  <p className="text-white font-medium text-sm">Voice Effect</p>
+                  <p className="text-gray-400 text-xs">Apply an effect to your voice messages</p>
+                </div>
+              </div>
+              <select
+                value={mods.voiceEffect || 'none'}
+                onChange={(e) => setMods(prev => ({ ...prev, voiceEffect: e.target.value }))}
+                className="w-full px-3 py-2 bg-[#0b141a] text-white border border-[#00a884]/30 rounded-lg text-sm focus:border-[#00a884] focus:outline-none"
+              >
+                <option value="none">None</option>
+                <option value="robot">Robot</option>
+                <option value="chipmunk">Chipmunk</option>
+                <option value="deep">Deep</option>
+                <option value="helium">Helium</option>
+              </select>
+            </div>
+            <div className="p-3 bg-white/5 rounded-xl">
+              <div className="flex items-center gap-3 mb-2">
+                <Music size={20} className="text-purple-500" />
+                <div>
+                  <p className="text-white font-medium text-sm">Chat Background Music</p>
+                  <p className="text-gray-400 text-xs">Play music inside chat screens</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={!!mods.chatBackgroundMusic?.enabled}
+                  onChange={(e) => setMods(prev => ({ ...prev, chatBackgroundMusic: { ...prev.chatBackgroundMusic, enabled: e.target.checked } }))}
+                  className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-primary-600 focus:ring-primary-500"
+                />
+                <span className="text-white text-sm">Enable</span>
+              </div>
+              {mods.chatBackgroundMusic?.enabled && (
+                <input
+                  type="text"
+                  value={mods.chatBackgroundMusic?.track || ''}
+                  onChange={(e) => setMods(prev => ({ ...prev, chatBackgroundMusic: { ...prev.chatBackgroundMusic, track: e.target.value } }))}
+                  placeholder="Paste an audio track URL..."
+                  className="w-full mt-2 px-3 py-2 bg-[#0b141a] text-white border border-[#00a884]/30 rounded-lg text-sm focus:border-[#00a884] focus:outline-none"
+                />
+              )}
+            </div>
           </div>
 
           {/* Font Size Section */}

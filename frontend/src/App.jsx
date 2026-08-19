@@ -32,7 +32,7 @@ const Archived = lazy(() => import('./pages/Archived'));
 const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AdminSetup = lazy(() => import('./pages/AdminSetup'));
-const GENZMods = lazy(() => import('./pages/GENZMods'));
+// GENZ Mods removed - features moved to GENZ Settings
 const FeatureLibrary = lazy(() => import('./pages/FeatureLibrary'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
@@ -444,18 +444,20 @@ function App() {
             <Route path="/settings/security" element={<ProtectedRoute><SecuritySettings /></ProtectedRoute>} />
             <Route path="/starred" element={<ProtectedRoute><Starred /></ProtectedRoute>} />
             <Route path="/archived" element={<ProtectedRoute><Archived /></ProtectedRoute>} />
-            <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
-            <Route path="/admin/manual-payments" element={<AdminProtectedRoute><AdminPaymentManagement /></AdminProtectedRoute>} />
+            {/* Admin routes - only accessible in development or with secret URLs */}
+            {import.meta.env.DEV && <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />}
+            {import.meta.env.DEV && <Route path="/admin/manual-payments" element={<AdminProtectedRoute><AdminPaymentManagement /></AdminProtectedRoute>} />}
             <Route path="/payment" element={<ProtectedRoute><SubscriptionPayment /></ProtectedRoute>} />
             <Route path="/genz-after-work" element={<ProtectedRoute><GenzAfterWork /></ProtectedRoute>} />
-            <Route path="/admin-setup" element={<AdminProtectedRoute><AdminSetup /></AdminProtectedRoute>} />
-            <Route path="/system-control-x7k9" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
-            <Route path="/system-control-x7k9/login" element={<AdminLogin />} />
-            <Route path="/system-gateway-x9k" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
-            <Route path="/system-gateway-x9k/login" element={<AdminLogin />} />
-            <Route path="/genz-mods" element={<ProtectedRoute><GENZMods /></ProtectedRoute>} />
+            {/* Hidden admin routes - only in development */}
+            {import.meta.env.DEV && <Route path="/admin-setup" element={<AdminProtectedRoute><AdminSetup /></AdminProtectedRoute>} />}
+            {import.meta.env.DEV && <Route path="/system-control-x7k9" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />}
+            {import.meta.env.DEV && <Route path="/system-control-x7k9/login" element={<AdminLogin />} />}
+            {import.meta.env.DEV && <Route path="/system-gateway-x9k" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />}
+            {import.meta.env.DEV && <Route path="/system-gateway-x9k/login" element={<AdminLogin />} />}
+            {/* GENZ Mods route removed - features merged into GENZ Settings */}
             <Route path="/winga" element={<ProtectedRoute><Winga /></ProtectedRoute>} />
-            <Route path="/features" element={<ProtectedRoute><FeatureLibrary /></ProtectedRoute>} />
+            {import.meta.env.DEV && <Route path="/features" element={<ProtectedRoute><FeatureLibrary /></ProtectedRoute>} />}
             <Route path="/channels" element={<ProtectedRoute><Channels /></ProtectedRoute>} />
             <Route path="/channels/:channelId" element={<ProtectedRoute><ChannelView /></ProtectedRoute>} />
             <Route path="/communities" element={<ProtectedRoute><Communities /></ProtectedRoute>} />

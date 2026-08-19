@@ -1,5 +1,6 @@
 import { getDeviceHeaders } from './deviceIdentity.js';
 import { readAccessToken, tryRefreshAccessToken, clearSessionAndRedirect } from './authSession.js';
+import { devLog, devWarn, devError } from './logger.js';
 
 function headersToPlainObject(h) {
   if (!h) return {};
@@ -46,7 +47,7 @@ export async function authFetch(input, init = {}) {
   });
 
   if (response.status === 401 && _authRetry) {
-    console.error('[Auth] Still unauthorized after token refresh:', urlString);
+    devError('[Auth] Still unauthorized after token refresh:', urlString);
     clearSessionAndRedirect();
     return response;
   }
@@ -62,7 +63,7 @@ export async function authFetch(input, init = {}) {
       return response;
     }
     if (urlString.includes('/api/auth/refresh')) {
-      console.error('[Auth] Refresh endpoint returned 401; clearing session');
+      devError('[Auth] Refresh endpoint returned 401; clearing session');
       clearSessionAndRedirect();
       return response;
     }
@@ -70,7 +71,7 @@ export async function authFetch(input, init = {}) {
     if (newToken) {
       return authFetch(input, { ...init, _authRetry: true });
     }
-    console.warn('[Auth] Unauthorized; refresh failed or unavailable:', urlString);
+    devWarn('[Auth] Unauthorized; refresh failed or unavailable:', urlString);
     clearSessionAndRedirect();
     return response;
   }
@@ -78,7 +79,7 @@ export async function authFetch(input, init = {}) {
   if (response.status === 429 && !_rateLimitRetry) {
     const retryAfter = parseInt(response.headers.get('retry-after'), 10) || 2;
     const delayMs = Math.min(Math.max(retryAfter, 1), 30) * 1000;
-    console.warn(`[API] Rate limited (fetch); single retry after ${delayMs}ms`);
+    devWarn(`[API] Rate limited (fetch); single retry after ${delayMs}ms`);
     await new Promise((r) => setTimeout(r, delayMs));
     return authFetch(input, { ...init, _rateLimitRetry: true });
   }
