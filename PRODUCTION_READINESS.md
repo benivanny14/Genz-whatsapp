@@ -4,6 +4,8 @@ This checklist covers everything that must be configured before Genz Messenger
 is exposed to a large number of real users. Each item is either a deployment
 environment variable (set in Render/Railway/VPS) or a code decision.
 
+> ⚠️ **Important:** `scripts/production-readiness-check.js` reads from the local `backend/.env` file, NOT from Render's environment. If env vars are set on Render but not in `backend/.env`, the local check will show warnings even though production is fine. To verify production status, use `curl https://genz-whatsapp-1.onrender.com/api/health`.
+
 > 🚀 **Fast path:** run `scripts/setup-render-env.js` (see
 > `RENDER_DEPLOY_GUIDE.md` for the step-by-step walkthrough). It sets every
 > variable below, auto-generates missing secrets and VAPID keys, refuses
@@ -137,10 +139,11 @@ WHATSAPP_CLOUD_API_TOKEN=...   # (see backend/services/whatsappCloudApiService.j
 
 ## ✅ Post-deploy verification
 
-1. `curl https://YOUR-URL/api/health` → `"mongo":"connected"`, `"redis":"connected"`,
+1. `curl https://genz-whatsapp-1.onrender.com/api/health` → `"mongo":"connected"`, `"redis":"disabled"` (single-instance, OK),
    `"mediaStorage":"cloudinary"`.
-2. Register a test user → receive OTP → verify phone → send a message between
+2. `curl https://genz-whatsapp-1.onrender.com/api/notifications/vapid-public-key` → returns a valid public key (VAPID configured).
+3. Register a test user → receive OTP → verify phone → send a message between
    two accounts → image upload survives a redeploy.
-3. Make a manual payment as a user → approve in admin panel → Premium unlocks.
-4. Restart the server → sockets reconnect, presence returns, passkey login
+4. Make a manual payment as a user → approve in admin panel → Premium unlocks.
+5. Restart the server → sockets reconnect, presence returns, passkey login
    still works (challenges are now persisted in the DB).

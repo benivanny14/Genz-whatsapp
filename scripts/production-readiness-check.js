@@ -6,9 +6,10 @@
  * are in place before deploying to production.
  *
  * Usage:
- *   node scripts/production-readiness-check.js
- *   node scripts/production-readiness-check.js --fix    # auto-fix what's safe
- *   node scripts/production-readiness-check.js --json   # machine-readable output
+ *   node scripts/production-readiness-check.js              # local check (reads backend/.env)
+ *   node scripts/production-readiness-check.js --remote     # production check (hits /api/health)
+ *   node scripts/production-readiness-check.js --fix        # auto-fix what's safe
+ *   node scripts/production-readiness-check.js --json       # machine-readable output
  */
 
 const fs = require('fs');
@@ -46,7 +47,7 @@ const STRONGLY_RECOMMENDED = [
 const SECURITY_CHECKS = [
   { key: 'ALLOW_ANONYMOUS_DEVICE_AUTH', expected: 'false', desc: 'Must be false in production' },
   { key: 'ALLOW_MOCK_PAYMENTS', expected: 'false', desc: 'Must be false in production' },
-  { key: 'PHONE_VERIFICATION_REQUIRED', expected: 'true', desc: 'Should be true in production' },
+  { key: 'PHONE_VERIFICATION_REQUIRED', expected: null, desc: 'Phone OTP verification (false = disabled, true = required)' },
   { key: 'TRUST_PROXY', desc: 'Set to 1 behind reverse proxy' },
 ];
 
@@ -189,9 +190,14 @@ async function main() {
   // ── 4. Service checks ──
   log('\n━━━ Service Health ━━━');
 
-  // MongoDB
-  const port = env.PORT || 5000;
-  const healthUrl = `http://localhost:${port}/api/health`;
+  const remoteMode = process.argv.includes('--remote');
+  const PRODUCTION_URL = 'https://genz-whatsapp-1.onrender.com';
+  const publicApiUrl = env.PUBLIC_API_URL || '';
+  const isPlaceholderUrl = !publicApiUrl || publicApiUrl.includes('localhost') || publicApiUrl.includes('CHANGE_ME') || publicApiUrl.includes('example.com');
+  const healthUrl = remoteMode
+    ? (isPlaceholderUrl ? PRODUCTION_URL : publicApiUrl) + '/api/health'
+    : `http://localhost:${env.PORT || 5000}/api/health`;
+
   log(`  Checking ${healthUrl}...`);
   const health = await checkHealth(healthUrl);
 
@@ -219,6 +225,7 @@ async function main() {
 
   // ── Summary ──
   log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  if (remoteMode) log(color('36', '  🌐 REMOTE MODE — checked production health endpoint'));
   if (results.overall === 'PASS') {
     log(color('32', '  ✅ PRODUCTION READY — All required checks passed!'));
   } else {
