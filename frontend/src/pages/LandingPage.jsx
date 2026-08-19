@@ -102,6 +102,32 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-[#0b141a] text-white">
+      {/* ── Header ── */}
+      <header className="sticky top-0 z-50 bg-[#0b141a]/90 backdrop-blur border-b border-white/[0.06]">
+        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <MessageCircle size={22} className="text-[#00a884]" />
+            <span className="font-bold text-sm">Genz Messenger</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link
+              to="/login"
+              className="text-sm font-semibold text-[#00a884] hover:text-[#00c795] transition-colors"
+            >
+              Ingia
+            </Link>
+            <a
+              href={apkDownloadUrl()}
+              download="genz-whatsapp.apk"
+              className="inline-flex items-center gap-1.5 bg-[#00a884] hover:bg-[#00c795] text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <Download size={14} />
+              Pakua
+            </a>
+          </div>
+        </div>
+      </header>
+
       {/* ── Hero ── */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-[#00a884]/10 via-transparent to-transparent" />
