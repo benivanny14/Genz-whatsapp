@@ -15,7 +15,8 @@
     "prod": "NODE_ENV=production node server.js",
     "build": "echo 'Backend is ready for production - no build step required'",
     "loadtest:100": "artillery run loadtest/concurrency-100.yml",
-    "loadtest:500": "artillery run loadtest/concurrency-500.yml"
+    "loadtest:500": "artillery run loadtest/concurrency-500.yml",
+    "test:smtp": "node scripts/test-smtp.js"
   },
   "keywords": [
     "whatsapp",
