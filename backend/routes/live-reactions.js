@@ -15,6 +15,8 @@ const {
 
 router.use(protect);
 
+// Root GET — alias to /settings for convenience
+router.get('/', getLiveReactionsSettings);
 router.get('/settings', getLiveReactionsSettings);
 router.post('/settings', updateLiveReactionsSettings);
 router.post('/message/:messageId', sendLiveReaction);

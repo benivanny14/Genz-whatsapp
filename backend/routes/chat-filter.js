@@ -15,6 +15,8 @@ const {
 
 router.use(protect);
 
+// Root GET — alias to /settings for convenience
+router.get('/', getChatFilterSettings);
 router.get('/settings', getChatFilterSettings);
 router.post('/settings', updateChatFilterSettings);
 router.post('/filter', filterConversations);

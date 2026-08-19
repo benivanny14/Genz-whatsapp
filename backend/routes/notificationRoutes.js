@@ -18,6 +18,9 @@ const { protect } = require('../middleware/auth');
 // VAPID (Web Push) endpoints
 router.get('/vapid-public-key', getVapidPublicKey);
 
+// Root GET — return notification overview (subscriptions count)
+router.get('/', protect, listSubscriptions);
+
 // FCM (Firebase Cloud Messaging) endpoints
 router.use(protect);
 router.post('/fcm/register', registerToken);

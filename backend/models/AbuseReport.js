@@ -27,7 +27,8 @@ const abuseReportSchema = new mongoose.Schema({
   },
   description: {
     type: String,
-    required: true,
+    required: false,
+    default: '',
     maxlength: 1000
   },
   status: {

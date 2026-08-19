@@ -15,6 +15,8 @@ const {
 
 router.use(protect);
 
+// Root GET — alias to /settings for convenience
+router.get('/', getQuickActionsSettings);
 router.get('/settings', getQuickActionsSettings);
 router.post('/settings', updateQuickActionsSettings);
 router.post('/mass-message', sendMassMessage);

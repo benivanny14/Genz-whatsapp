@@ -83,9 +83,6 @@ if ('serviceWorker' in navigator) {
         if (type === 'OPEN_CHAT' && conversationId) {
           window.dispatchEvent(new CustomEvent('open-chat', { detail: { conversationId } }));
         }
-        if (type === 'CALL_DECLINE') {
-          window.dispatchEvent(new CustomEvent('call-decline', { detail: event.data }));
-        }
         if (type === 'SYNC_MESSAGES') {
           window.dispatchEvent(new CustomEvent('process-offline-queue'));
         }

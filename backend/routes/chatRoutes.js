@@ -31,6 +31,7 @@ const {
   toggleKeepMessage,
   togglePinConversation,
   toggleArchiveConversation,
+  toggleMuteConversation,
   getArchivedConversations,
   searchMessages,
   getMediaGallery,
@@ -138,6 +139,7 @@ router.post("/messages/:messageId/screenshot-attempt", reportScreenshotAttempt);
 // Chat settings
 router.put("/conversations/:conversationId/pin", togglePinConversation);
 router.put("/conversations/:conversationId/archive", toggleArchiveConversation);
+router.put("/conversations/:conversationId/mute", toggleMuteConversation);
 
 // Chat management
 router.delete("/conversations/:chatId/clear", clearChat);

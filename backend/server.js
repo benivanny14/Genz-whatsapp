@@ -960,6 +960,7 @@ app.use(`${ADMIN_BASE_PATH}`, safeMiddleware(adminLimiter));
 app.use(`${ADMIN_BASE_PATH}/auth`, adminAuthRoutes);
 
 // File upload route (mounted under both /api and /api/v1)
+// NOTE: Overlaps with /api/media/upload - this is the legacy general upload route
 const handleUpload = async (req, res) => {
   try {
     if (!req.file) {

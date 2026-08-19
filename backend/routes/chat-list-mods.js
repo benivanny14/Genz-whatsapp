@@ -6,6 +6,9 @@ const { protect } = require('../middleware/auth');
 // Apply authentication middleware to all routes
 router.use(protect);
 
+// Root GET — alias to /settings for convenience
+router.get('/', chatListModsController.getChatListModsSettings);
+
 // Settings routes
 router.get('/settings', chatListModsController.getChatListModsSettings);
 router.post('/settings', chatListModsController.updateChatListModsSettings);

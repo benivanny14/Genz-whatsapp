@@ -11,6 +11,8 @@ const {
 
 router.use(protect);
 
+// Root GET — alias to /packs for convenience
+router.get('/', getPacks);
 router.get('/packs', getPacks);
 router.post('/packs/:packId/download', downloadPack);
 router.delete('/packs/:packId', removePack);

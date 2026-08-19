@@ -1960,6 +1960,42 @@ exports.toggleArchiveConversation = async (req, res) => {
   }
 };
 
+// Toggle mute conversation
+exports.toggleMuteConversation = async (req, res) => {
+  try {
+    const userId = getCurrentUserId(req);
+    const { conversationId } = req.params;
+    const { mutedUntil } = req.body;
+
+    const conversation = await Conversation.findById(conversationId);
+    if (!ensureParticipant(conversation, userId, res)) return;
+
+    // Check if currently muted
+    const currentMutedUntil = getMapValue(conversation.mutedUntil, userId);
+    const isCurrentlyMuted = currentMutedUntil && new Date(currentMutedUntil) > new Date();
+
+    if (isCurrentlyMuted) {
+      // Unmute
+      if (conversation.mutedUntil instanceof Map) {
+        conversation.mutedUntil.delete(userId);
+      } else {
+        delete conversation.mutedUntil[userId];
+      }
+      await conversation.save();
+      return res.json({ success: true, isMuted: false, conversation });
+    }
+
+    // Mute - default 1 year if no mutedUntil provided
+    const muteDuration = mutedUntil ? new Date(mutedUntil) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+    setMapValue(conversation, 'mutedUntil', userId, muteDuration);
+    await conversation.save();
+
+    res.json({ success: true, isMuted: true, mutedUntil: muteDuration, conversation });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // Get archived conversations
 exports.getArchivedConversations = async (req, res) => {
   try {
@@ -2455,7 +2491,12 @@ exports.forwardMessage = async (req, res) => {
   try {
     const userId = getCurrentUserId(req);
     const { messageId } = req.params;
-    const { targetConversationIds } = req.body;
+    let { targetConversationIds } = req.body;
+
+    // Accept both string and array for targetConversationIds
+    if (typeof targetConversationIds === 'string' && targetConversationIds.trim()) {
+      targetConversationIds = [targetConversationIds.trim()];
+    }
 
     if (
       !Array.isArray(targetConversationIds) ||
@@ -2463,7 +2504,7 @@ exports.forwardMessage = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "targetConversationIds must be a non-empty array",
+        message: "targetConversationIds must be a non-empty string or array",
       });
     }
 

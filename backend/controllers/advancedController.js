@@ -1755,3 +1755,103 @@ exports.getGifs = async (req, res) => {
   }
 };
 
+// @desc    AI Assistant - simple chatbot
+// @route   POST /api/advanced/ai-assistant
+exports.aiAssistant = async (req, res) => {
+  try {
+    const { message } = req.body;
+    
+    if (!message || !message.trim()) {
+      return res.status(400).json({ success: false, message: 'Message is required' });
+    }
+
+    // Simple rule-based AI responses
+    const lowerMsg = message.toLowerCase().trim();
+    let response = '';
+    
+    if (lowerMsg.includes('hello') || lowerMsg.includes('hi') || lowerMsg.includes('hey')) {
+      response = 'Hello! 👋 I\'m the Genz Messenger AI assistant. How can I help you today?';
+    } else if (lowerMsg.includes('help')) {
+      response = 'I can help you with:\n• Chat tips\n• Feature explanations\n• General questions\n\nJust ask me anything!';
+    } else if (lowerMsg.includes('feature') || lowerMsg.includes('what can')) {
+      response = 'Genz Messenger features:\n• Real-time messaging\n• Status/Stories\n• Voice notes\n• Group chats\n• AI assistant (me!)\n• Message translation\n• And many more! 🚀';
+    } else if (lowerMsg.includes('translate')) {
+      response = 'To translate a message, right-click on it and select "Translate". I support multiple languages!';
+    } else if (lowerMsg.includes('schedule')) {
+      response = 'To schedule a message:\n1. Type your message\n2. Click the calendar icon\n3. Choose date and time\n4. Click Schedule ✅';
+    } else if (lowerMsg.includes('status') || lowerMsg.includes('story')) {
+      response = 'Status/Stories disappear after 24 hours. You can post text, images, or videos. Find it in the Status tab!';
+    } else {
+      response = `I received your message: "${message}"\n\nI\'m a simple AI assistant. Try asking about:\n• Features\n• How to use the app\n• Tips and tricks`;
+    }
+
+    res.json({ success: true, response });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Translate message text
+// @route   POST /api/advanced/translate
+exports.translateMessage = async (req, res) => {
+  try {
+    const { text, targetLanguage } = req.body;
+    
+    if (!text || !text.trim()) {
+      return res.status(400).json({ success: false, message: 'Text is required' });
+    }
+
+    const target = targetLanguage || 'en';
+    
+    // Simple translation mapping for common phrases
+    const translations = {
+      'en': {
+        'habari': 'hello',
+        'asante': 'thank you',
+        'pole': 'sorry',
+        'ndio': 'yes',
+        'hapana': 'no',
+        'karibu': 'welcome',
+        'tafadhali': 'please',
+        'sawa': 'okay',
+        'nmapenda': 'I love',
+        'leo': 'today',
+        'kesho': 'tomorrow',
+        'jana': 'yesterday'
+      },
+      'sw': {
+        'hello': 'habari',
+        'thank you': 'asante',
+        'sorry': 'pole',
+        'yes': 'ndio',
+        'no': 'hapana',
+        'welcome': 'karibu',
+        'please': 'tafadhali',
+        'okay': 'sawa',
+        'today': 'leo',
+        'tomorrow': 'kesho',
+        'yesterday': 'jana'
+      }
+    };
+
+    const langDict = translations[target] || translations['en'];
+    let translatedText = text;
+    
+    // Apply translations
+    for (const [word, translation] of Object.entries(langDict)) {
+      const regex = new RegExp(`\\b${word}\\b`, 'gi');
+      translatedText = translatedText.replace(regex, translation);
+    }
+
+    res.json({
+      success: true,
+      originalText: text,
+      translatedText,
+      sourceLanguage: 'auto',
+      targetLanguage: target
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+

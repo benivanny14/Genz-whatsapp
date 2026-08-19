@@ -38,6 +38,8 @@ const {
   getStatusReplies,
   updateStatusPrivacy,
   getStatusStats,
+  aiAssistant,
+  translateMessage,
 } = require('../controllers/advancedController');
 const { protect } = require('../middleware/auth');
 
@@ -82,6 +84,8 @@ router.put('/conversations/:id/disappearing-messages', setDisappearingMessages);
 router.get('/search-messages', searchMessages);
 router.get('/link-preview', getLinkPreview);
 router.get('/gifs', getGifs);
+router.post('/ai-assistant', aiAssistant);
+router.post('/translate', translateMessage);
 
 // ── Chunked Upload (10GB support) ──
 const fs = require('fs');
