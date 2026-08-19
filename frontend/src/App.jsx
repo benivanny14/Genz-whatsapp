@@ -53,6 +53,7 @@ const SubscriptionPayment = lazy(() => import('./components/PaidFeatures/Subscri
 const GenzAfterWork = lazy(() => import('./components/PaidFeatures/GenzAfterWork'));
 const AdminPaymentManagement = lazy(() => import('./pages/AdminPaymentManagement'));
 const Winga = lazy(() => import('./pages/Winga'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -469,7 +470,7 @@ function App() {
             <Route path="/install" element={<InstallGuide />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/verify-phone" element={<VerifyPhone />} />
-            <Route path="/" element={<Navigate to="/chat" replace />} />
+            <Route path="/" element={<LandingPage />} />
             <Route path="*" element={<Navigate to="/chat" replace />} />
           </Routes>
         </Suspense>
