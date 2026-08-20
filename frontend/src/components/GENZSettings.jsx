@@ -496,7 +496,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
       return (
         <div className="flex flex-col items-center justify-center p-6 space-y-2 bg-white/5 rounded-xl border border-white/5">
           <RefreshCw size={24} className="animate-spin text-blue-400" />
-          <p className="text-xs text-blue-300">Inapakia backups... (Loading backups...)</p>
+          <p className="text-xs text-blue-300">Loading backups...</p>
         </div>
       );
     }
@@ -806,7 +806,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
                   disabled={paymentLoading || !manualSms.trim()}
                   className="mt-2 text-xs px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 disabled:opacity-40 transition-all"
                 >
-                  {paymentLoading ? 'Inasoma...' : '👁️ Soma SMS (Preview)'}
+                  {paymentLoading ? 'Reading...' : '👁️ Read SMS (Preview)'}
                 </button>
               </div>
 
@@ -816,7 +816,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-white/70 text-sm font-semibold">Your Payments:</p>
                     <button onClick={refreshMyPayments} className="text-white/50 hover:text-white text-[11px] flex items-center gap-1">
-                      <RefreshCw size={11} /> Onyesha upya
+                      <RefreshCw size={11} /> Refresh
                     </button>
                   </div>
                   <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
@@ -1827,27 +1827,6 @@ const PrivacyTab = ({ ctx }) => {
                 onClick={() => toggleMod('hideViewStatus')}
               />
               <ModItem
-                icon={<CheckCheck size={20} className="text-blue-400" />}
-                title="Read Receipts"
-                desc="Send read receipts to other users"
-                active={mods.readReceipts}
-                onClick={() => toggleMod('readReceipts')}
-              />
-              <ModItem
-                icon={<MessageSquare size={20} className="text-cyan-500" />}
-                title="Typing Indicators"
-                desc="Show the typing indicator while you type"
-                active={mods.typingIndicators}
-                onClick={() => toggleMod('typingIndicators')}
-              />
-              <ModItem
-                icon={<Wifi size={20} className="text-green-400" />}
-                title="Online Status"
-                desc="Broadcast your online status"
-                active={mods.onlineStatus}
-                onClick={() => toggleMod('onlineStatus')}
-              />
-              <ModItem
                 icon={<Shield size={20} className="text-yellow-500" />}
                 title="Fake Chat Cover"
                 desc="Hide real chats behind fake system update covers"
@@ -1974,7 +1953,7 @@ const PrivacyTab = ({ ctx }) => {
                 <Store size={16} className="mt-0.5 text-amber-400" />
                 <div>
                   <p className="text-xs font-bold text-white">Status &amp; WINGA activity alerts</p>
-                  <p className="text-[10px] text-white/50">Toasts za mtu aliyepost status au biashara kwenye WINGA</p>
+                  <p className="text-[10px] text-white/50">Notifications for status updates and WINGA business activity</p>
                 </div>
               </div>
               <button
@@ -2070,7 +2049,7 @@ const PrivacyTab = ({ ctx }) => {
                         <Play size={18} className="text-white ml-0.5" />
                       </button>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs text-white/60 truncate">Songi uliyochagua</p>
+                        <p className="text-xs text-white/60 truncate">Selected song</p>
                         <audio id="genz-chat-music-preview" src={mods.chatMusicUrl} preload="none" />
                       </div>
                       <button
@@ -2080,7 +2059,7 @@ const PrivacyTab = ({ ctx }) => {
                           setMods(prev => ({ ...prev, chatMusicUrl: '' }));
                         }}
                         className="text-red-400 hover:text-red-300 p-1"
-                        title="Ondoa muziki"
+                        title="Remove music"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -2091,7 +2070,7 @@ const PrivacyTab = ({ ctx }) => {
                   onClick={() => musicFileInputRef.current?.click()}
                   className="w-full py-3 px-4 bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/30 rounded-xl text-sm text-pink-300 transition-colors flex items-center justify-center gap-2"
                 >
-                  <Music size={16} /> {mods.chatMusicUrl ? 'Badilisha Muziki' : 'Chagua Muziki kutoka Kifaa'}
+                  <Music size={16} /> {mods.chatMusicUrl ? 'Change Music' : 'Select Music from Device'}
                 </button>
                 <input
                   type="file"
@@ -2100,7 +2079,7 @@ const PrivacyTab = ({ ctx }) => {
                   accept="audio/*"
                   onChange={handleMusicFileUpload}
                 />
-                <p className="text-[10px] text-white/30 text-center">Chagua faili la sauti kutoka kwenye kifaa chako</p>
+                <p className="text-[10px] text-white/30 text-center">Choose an audio file from your device</p>
               </div>
             )}
           </div>
@@ -2418,13 +2397,6 @@ const SocialTab = ({ ctx }) => {
               desc="Hide 'Forwarded' tag when you share messages"
               active={mods.noForwardLabel}
               onClick={() => toggleMod('noForwardLabel')}
-            />
-            <ModItem
-              icon={<Eye size={20} className="text-blue-400" />}
-              title="Hide Blue Ticks Color"
-              desc="Keep double ticks grey even after reading"
-              active={mods.hideBlueTickColor}
-              onClick={() => toggleMod('hideBlueTickColor')}
             />
             <ModItem
               icon={<Download size={20} className="text-purple-400" />}
