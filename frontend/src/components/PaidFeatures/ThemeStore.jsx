@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { X, Palette, Download, Star, Search, Sparkles, Check, Crown, Zap, Heart } from 'lucide-react';
+import { X, Palette, Download, Star, Search, Sparkles, Check, Crown, Zap, Heart, Lock } from 'lucide-react';
+import { useChat } from '../../context/ChatContext';
 
 const ThemeStore = ({ onClose, onApplyTheme }) => {
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTheme, setSelectedTheme] = useState(null);
   const [installedThemes, setInstalledThemes] = useState([]);
+  const { user } = useChat();
+  const isPremium = user?.premium || false;
 
   const categories = [
     { id: 'all', label: 'All Themes' },
@@ -166,12 +169,20 @@ const ThemeStore = ({ onClose, onApplyTheme }) => {
   });
 
   const handleInstallTheme = (theme) => {
+    // Premium themes require an active subscription
+    if (theme.isPremium && !isPremium) {
+      return; // Premium gate — blocked silently, UI shows Lock icon
+    }
     const newInstalled = [...installedThemes, theme.id];
     setInstalledThemes(newInstalled);
     localStorage.setItem('genz_installed_themes', JSON.stringify(newInstalled));
   };
 
   const handleApplyTheme = (theme) => {
+    // Premium themes require an active subscription
+    if (theme.isPremium && !isPremium) {
+      return; // Premium gate
+    }
     if (onApplyTheme) {
       onApplyTheme(theme);
     }
@@ -254,7 +265,12 @@ const ThemeStore = ({ onClose, onApplyTheme }) => {
                     </div>
                   )}
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    {!isThemeInstalled(theme.id) ? (
+                    {theme.isPremium && !isPremium ? (
+                      <div className="flex flex-col items-center gap-1">
+                        <Lock size={20} className="text-yellow-400" />
+                        <span className="text-yellow-400 text-xs font-medium">Premium Only</span>
+                      </div>
+                    ) : !isThemeInstalled(theme.id) ? (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

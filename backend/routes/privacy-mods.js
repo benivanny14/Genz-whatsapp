@@ -19,12 +19,12 @@ router.post('/anti-view-once', checkPremiumAccess, privacyController.toggleAntiV
 router.post('/disable-forwarded-tag', privacyController.toggleDisableForwardedTag);
 router.post('/hide-status-view', privacyController.toggleHideStatusView);
 router.post('/hide-read-receipts', privacyController.toggleHideReadReceipts);
-router.post('/who-viewed-profile', privacyController.toggleWhoViewedProfile);
-router.post('/contact-online-notifier', privacyController.toggleContactOnlineNotifier);
+router.post('/who-viewed-profile', checkPremiumAccess, privacyController.toggleWhoViewedProfile);
+router.post('/contact-online-notifier', checkPremiumAccess, privacyController.toggleContactOnlineNotifier);
 router.post('/auto-download-status', privacyController.toggleAutoDownloadStatus);
 router.post('/language-per-chat', privacyController.toggleLanguagePerChat);
-router.post('/custom-tick-per-contact', privacyController.toggleCustomTickPerContact);
-router.post('/custom-emoji-style', privacyController.toggleCustomEmojiStyle);
+router.post('/custom-tick-per-contact', checkPremiumAccess, privacyController.toggleCustomTickPerContact);
+router.post('/custom-emoji-style', checkPremiumAccess, privacyController.toggleCustomEmojiStyle);
 router.post('/block-alerts', privacyController.toggleBlockAlerts);
 router.get('/block-alerts', privacyController.getBlockAlerts);
 router.delete('/block-alerts', privacyController.clearBlockAlerts);

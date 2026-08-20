@@ -844,15 +844,17 @@ exports.sendMessage = async (req, res) => {
 
     if (!ensureParticipant(conversation, localUserId, res)) return;
 
-    // PREMIUM GATE: self-destruct and view-once require an active subscription
+    // PREMIUM GATE: self-destruct, view-once, and custom fonts require an active subscription
     let enforceSelfDestruct = isSelfDestruct;
     let enforceViewOnce = isViewOnce;
-    if ((isSelfDestruct || isViewOnce) && localUserId) {
+    let enforceFont = font;
+    if ((isSelfDestruct || isViewOnce || font) && localUserId) {
       const sender = await User.findById(localUserId).select('premium subscriptionExpiresAt');
       const hasPremium = sender && sender.premium && sender.subscriptionExpiresAt && new Date() <= new Date(sender.subscriptionExpiresAt);
       if (!hasPremium) {
         enforceSelfDestruct = false;
         enforceViewOnce = false;
+        enforceFont = null;
       }
     }
 
@@ -976,7 +978,7 @@ exports.sendMessage = async (req, res) => {
       ...(typeof allowScreenshot === 'boolean' ? { allowScreenshot } : {}),
       disappearAt,
       clientMessageId: messageId ? String(messageId) : undefined,
-      font: typeof font === 'string' && font ? font : null,
+      font: typeof enforceFont === 'string' && enforceFont ? enforceFont : null,
     });
 
     let populatedMessage = null;

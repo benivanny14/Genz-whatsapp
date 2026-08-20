@@ -8,7 +8,8 @@ const PREMIUM_FIELDS = [
   'antiDeleteMessages', 'antiDelete', 'antiDeleteStatus',
   'antiViewOnce', 'voiceEffect', 'selfDestruct',
   'chatBackgroundMusic', 'chatMusic', 'chatMusicUrl',
-  'glassMode', 'highResMedia'
+  'glassMode', 'highResMedia',
+  'antiScreenshot', 'storyHighlights', 'fakeChatCover'
 ];
 
 const isPremiumActive = (user) => {

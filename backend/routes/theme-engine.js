@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
+const { checkPremiumAccess } = require('../middleware/premiumAccess');
 const {
   getAvailableOptions,
   getThemeEngineSettings,
@@ -18,10 +19,10 @@ router.use(protect);
 
 router.get('/settings', getThemeEngineSettings);
 router.post('/settings', updateThemeEngineSettings);
-router.post('/font', updateFontSettings);
+router.post('/font', checkPremiumAccess, updateFontSettings);
 router.post('/mode', updateThemeMode);
-router.post('/colors', updateCustomColors);
-router.post('/ui-customization', updateUICustomization);
+router.post('/colors', checkPremiumAccess, updateCustomColors);
+router.post('/ui-customization', checkPremiumAccess, updateUICustomization);
 router.get('/options', getAvailableOptions);
 router.post('/toggle', toggleThemeEngine);
 router.post('/legacy-2014', toggleLegacy2014);

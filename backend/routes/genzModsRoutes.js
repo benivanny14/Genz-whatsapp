@@ -37,6 +37,6 @@ router.put('/online-status', updateOnlineStatus);
 router.put('/freeze-last-seen', freezeLastSeen);
 router.get('/stats', getModStats);
 router.get('/export', exportModSettings);
-router.post('/import', importModSettings);
+router.post('/import', checkPremiumAccess, importModSettings);
 
 module.exports = router;

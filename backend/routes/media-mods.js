@@ -12,10 +12,10 @@ router.get('/settings', mediaModsController.getMediaModsSettings);
 router.post('/settings', mediaModsController.updateMediaModsSettings);
 
 // Toggle routes for individual features
-router.post('/full-resolution', mediaModsController.toggleFullResolution);
-router.post('/1gb-video', mediaModsController.toggleOneGBVideo);
-router.post('/1000-photos', mediaModsController.toggleThousandPhotos);
-router.post('/auto-download-high-res', mediaModsController.toggleAutoDownloadHighRes);
+router.post('/full-resolution', checkPremiumAccess, mediaModsController.toggleFullResolution);
+router.post('/1gb-video', checkPremiumAccess, mediaModsController.toggleOneGBVideo);
+router.post('/1000-photos', checkPremiumAccess, mediaModsController.toggleThousandPhotos);
+router.post('/auto-download-high-res', checkPremiumAccess, mediaModsController.toggleAutoDownloadHighRes);
 router.post('/view-once-bypass', checkPremiumAccess, mediaModsController.toggleViewOnceBypass);
 router.post('/save-view-once', checkPremiumAccess, mediaModsController.toggleSaveViewOnce);
 router.post('/forward-without-tag', mediaModsController.toggleForwardWithoutTag);

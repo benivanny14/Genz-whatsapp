@@ -180,15 +180,17 @@ module.exports = function registerMessageHandlers(ctx) {
         disappearAt = new Date(Date.now() + timerHours * 60 * 60 * 1000);
       }
 
-      // PREMIUM GATE: self-destruct and view-once require active subscription
+      // PREMIUM GATE: self-destruct, view-once, and custom fonts require active subscription
       let enforceSelfDestruct = isSelfDestruct;
       let enforceViewOnce = isViewOnce;
-      if (isSelfDestruct || isViewOnce) {
+      let enforceFont = font;
+      if (isSelfDestruct || isViewOnce || font) {
         const senderUser = await User.findById(socket.userId).select('premium subscriptionExpiresAt');
         const hasPremium = senderUser && senderUser.premium && senderUser.subscriptionExpiresAt && new Date() <= new Date(senderUser.subscriptionExpiresAt);
         if (!hasPremium) {
           enforceSelfDestruct = false;
           enforceViewOnce = false;
+          enforceFont = null;
         }
       }
 
@@ -221,7 +223,7 @@ module.exports = function registerMessageHandlers(ctx) {
         longitude: typeof longitude === 'number' ? longitude : (longitude ? Number(longitude) : null),
         isLiveLocation: Boolean(isLiveLocation),
         liveLocationExpiresAt: liveLocationExpiresAt ? new Date(liveLocationExpiresAt) : null,
-        font: typeof font === 'string' && font ? font : null
+        font: typeof enforceFont === 'string' && enforceFont ? enforceFont : null
       });
 
       // Mark as processed only after successful persistence
