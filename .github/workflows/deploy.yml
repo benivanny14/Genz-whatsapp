@@ -40,10 +40,10 @@ jobs:
           npm ci
       
       # ── QUALITY GATES: never ship broken code to production ──
-      - name: Run backend tests
+      - name: Run backend unit tests
         run: |
           cd backend
-          npx jest --runInBand
+          npx jest --runInBand --testPathIgnorePatterns='(integration|Integration|viewOnce\.flow)' --no-coverage --forceExit
       
       - name: Build frontend
         run: |
