@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Download, Smartphone, ShieldAlert, RefreshCw } from 'lucide-react';
+import { apkDownloadUrl } from '../utils/versionManifest';
 import ReleaseUptake from '../components/ReleaseUptake.jsx';
 
 const Step = ({ icon: Icon, title, children }) => (
@@ -21,6 +22,18 @@ const Step = ({ icon: Icon, title, children }) => (
  * English) because our users are East African.
  */
 const InstallGuide = () => {
+  // Prefetch the APK in the background on mount
+  useEffect(() => {
+    try {
+      const link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.href = apkDownloadUrl();
+      link.as = 'fetch';
+      link.crossOrigin = 'anonymous';
+      document.head.appendChild(link);
+    } catch {}
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#0b141a] text-white">
       <div className="mx-auto max-w-3xl px-4 py-6">
@@ -106,13 +119,14 @@ const InstallGuide = () => {
           </Step>
 
           <a
-            href="/genz-whatsapp.apk"
+            href={apkDownloadUrl()}
             download="genz-whatsapp.apk"
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00a884] py-3 font-bold text-white hover:bg-[#00c795] transition-colors"
           >
             <Download size={18} />
             Download Android App
           </a>
+          <p className="text-center text-xs text-slate-500">Inapakia inaweza kuchukua mda mfupi ikiwa ni mara ya kwanza...</p>
           <p className="text-center text-xs text-slate-500">
             Android only — for now. iOS is coming soon.
           </p>

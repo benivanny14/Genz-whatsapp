@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Download, Shield, MessageCircle, Users, Lock, Image,
   Zap, Globe, Smartphone, ChevronDown, ChevronUp, Check,
-  Star, Wifi, Bell, Palette, ArrowRight, ExternalLink
+  Star, Wifi, Bell, Palette, ArrowRight, ExternalLink, RefreshCw
 } from 'lucide-react';
 import { fetchVersionManifest, apkDownloadUrl } from '../utils/versionManifest';
 
@@ -95,9 +95,19 @@ const LandingPage = () => {
   const [version, setVersion] = useState(null);
   const [openFaq, setOpenFaq] = useState(null);
   const [showTerms, setShowTerms] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     fetchVersionManifest().then(setVersion).catch(() => {});
+    // Prefetch the APK in the background so the download starts faster
+    try {
+      const link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.href = apkDownloadUrl();
+      link.as = 'fetch';
+      link.crossOrigin = 'anonymous';
+      document.head.appendChild(link);
+    } catch {}
   }, []);
 
   return (
@@ -150,10 +160,14 @@ const LandingPage = () => {
             <a
               href={apkDownloadUrl()}
               download="genz-whatsapp.apk"
+              onClick={() => { setDownloading(true); setTimeout(() => setDownloading(false), 3000); }}
               className="inline-flex items-center gap-3 bg-[#00a884] hover:bg-[#00c795] text-white font-bold text-lg px-8 py-4 rounded-2xl transition-all shadow-lg shadow-[#00a884]/25 hover:shadow-[#00a884]/40"
             >
-              <Download size={22} />
-              Pakua APK Bure
+              {downloading ? (
+                <><RefreshCw size={22} className="animate-spin" /> Inapakia...</>
+              ) : (
+                <><Download size={22} /> Pakua APK Bure</>
+              )}
             </a>
             {version && (
               <p className="text-xs text-slate-500">
