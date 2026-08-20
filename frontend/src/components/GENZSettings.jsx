@@ -39,13 +39,25 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
     toggleDNDMode, isDNDMode,
     getMessageStats,
     listCloudBackups, restoreCloudBackup, deleteCloudBackup,
-    selectedConversation
+    selectedConversation,
+    updateMods
   } = useChat();
   const { updateUserProfile } = useUser();
 
   const [showPrivacyAnimation, setShowPrivacyAnimation] = useState(false);
   const [voiceFxPreviewBusy, setVoiceFxPreviewBusy] = useState(false);
   const [applyScope, setApplyScope] = useState('global');
+
+  // Auto-persist mods to backend whenever they change (debounced)
+  const modsSaveTimerRef = useRef(null);
+  useEffect(() => {
+    if (!mods || typeof updateMods !== 'function') return;
+    if (modsSaveTimerRef.current) clearTimeout(modsSaveTimerRef.current);
+    modsSaveTimerRef.current = setTimeout(() => {
+      updateMods(mods).catch(() => {});
+    }, 800);
+    return () => { if (modsSaveTimerRef.current) clearTimeout(modsSaveTimerRef.current); };
+  }, [mods, updateMods]);
   const [wallpaperCategory, setWallpaperCategory] = useState('bright');
   const [previewWallpaper, setPreviewWallpaper] = useState(mods?.chatWallpaper);
 
@@ -404,6 +416,10 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
       const next = { ...prev, [key]: nextVal };
       if (key === 'autoReply') {
         updateAutoReply(nextVal, prev.autoReplyMsg || autoReplyMsg);
+      }
+      // Persist to backend + localStorage so settings survive reload
+      if (typeof updateMods === 'function') {
+        updateMods(next).catch(() => {});
       }
       return next;
     });

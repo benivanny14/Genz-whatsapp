@@ -173,7 +173,7 @@ module.exports = function registerConversationHandlers(ctx) {
   socket.on('user_online', async () => {
     try {
       if (!socket.userId) return;
-      const user = await User.findById(socket.userId).select('username settings contacts');
+      const user = await User.findById(socket.userId).select('username settings contacts genzMods');
       // Record online session in history
       if (socket._connectedAt) {
         const duration = Math.round((Date.now() - socket._connectedAt.getTime()) / 1000);
@@ -187,6 +187,12 @@ module.exports = function registerConversationHandlers(ctx) {
         });
       }
       await User.findByIdAndUpdate(socket.userId, { isOnline: true, lastSeen: new Date() });
+      // ENFORCE freezeLastSeen / hideOnline: if user has ghost mode active,
+      // skip broadcasting online status entirely.
+      const genzMods = user?.genzMods?.toObject?.() || user?.genzMods || {};
+      if (genzMods.freezeLastSeen || genzMods.hideOnline) {
+        return; // Do not broadcast online status
+      }
       // SECURITY (1.2): respect privacy settings for the online broadcast.
       const privacySettings = user?.settings?.privacy || {};
       const onlineSetting = resolveOnlineSetting(privacySettings);

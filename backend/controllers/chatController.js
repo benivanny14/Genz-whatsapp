@@ -1268,6 +1268,25 @@ exports.deleteMessage = async (req, res) => {
           message: "Only sender or group admin can delete for everyone",
         });
       }
+      // ENFORCE anti-delete: check if any receiver has antiDeleteMessages enabled.
+      // If so, preserve the content so the anti-revoke mod can surface it.
+      const participants = conversation.participants || [];
+      let anyReceiverHasAntiDelete = false;
+      try {
+        for (const pid of participants) {
+          const pIdStr = String(pid?._id || pid);
+          if (pIdStr === String(localUserId)) continue;
+          const receiverQuery = User.findById(pIdStr);
+          if (receiverQuery && typeof receiverQuery.select === 'function') {
+            const receiver = await receiverQuery.select('genzMods').lean();
+            const rMods = receiver?.genzMods || {};
+            if (rMods.antiDeleteMessages || rMods.antiDelete) {
+              anyReceiverHasAntiDelete = true;
+              break;
+            }
+          }
+        }
+      } catch (_) { /* anti-delete check is best-effort */ }
       // SECURITY (1.6): scrub the message content immediately so it can never
       // be re-read from the database, then schedule a hard delete after 30
       // days (the server-side sweep in startExpiredMessageCleanup is the
@@ -1280,6 +1299,20 @@ exports.deleteMessage = async (req, res) => {
       // and restore it (GET/POST /genz-mods/deleted-messages). Must be set
       // BEFORE the content is scrubbed below.
       message.originalContent = message.originalContent || message.content;
+      // ENFORCE anti-delete: if receiver has anti-delete on, preserve content
+      if (anyReceiverHasAntiDelete) {
+        await message.save();
+        const io = req.app.get('io');
+        if (io) {
+          io.to(message.conversationId.toString()).emit('message:deleted', {
+            messageId: message._id,
+            forEveryone: true,
+            deletedBy: localUserId,
+            antiDeleteBlocked: true
+          });
+        }
+        return res.status(200).json({ success: true, message: 'Message deleted (anti-delete preserved for recipients)' });
+      }
       message.content = '[deleted]';
       message.caption = '';
       message.mediaUrl = '';

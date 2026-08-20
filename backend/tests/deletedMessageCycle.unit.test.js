@@ -12,13 +12,16 @@
  * Plus the hard-delete retention rule: when the deleter has the anti-revoke
  * mod on, the 30-day purge is skipped so the viewer keeps working.
  */
-jest.mock('../models/User', () => ({
-  findById: jest.fn(),
-  findOne: jest.fn(),
-  find: jest.fn(),
-  updateOne: jest.fn(),
-  findByIdAndUpdate: jest.fn()
-}));
+jest.mock('../models/User', () => {
+  const chainable = () => ({ select: jest.fn().mockReturnThis(), lean: jest.fn().mockResolvedValue(null), populate: jest.fn().mockReturnThis(), sort: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([]) });
+  return {
+    findById: jest.fn().mockReturnValue(chainable()),
+    findOne: jest.fn().mockReturnValue(chainable()),
+    find: jest.fn().mockReturnValue(chainable()),
+    updateOne: jest.fn().mockResolvedValue(),
+    findByIdAndUpdate: jest.fn().mockResolvedValue()
+  };
+});
 
 jest.mock('../models/Conversation', () => ({
   findById: jest.fn(),

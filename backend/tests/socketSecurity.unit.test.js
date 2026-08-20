@@ -24,11 +24,14 @@ jest.mock('../models/Conversation', () => ({
   findOneAndUpdate: jest.fn(),
   findByIdAndUpdate: jest.fn()
 }));
-jest.mock('../models/User', () => ({
-  findById: jest.fn(),
-  findByIdAndUpdate: jest.fn(),
-  find: jest.fn()
-}));
+jest.mock('../models/User', () => {
+  const chainable = () => ({ select: jest.fn().mockReturnThis(), lean: jest.fn().mockResolvedValue(null), populate: jest.fn().mockReturnThis() });
+  return {
+    findById: jest.fn().mockReturnValue(chainable()),
+    findByIdAndUpdate: jest.fn().mockResolvedValue(),
+    find: jest.fn().mockReturnValue(chainable())
+  };
+});
 jest.mock('../models/Status', () => ({
   findById: jest.fn(),
   findByIdAndUpdate: jest.fn(),

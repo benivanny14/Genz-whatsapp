@@ -452,6 +452,12 @@ module.exports = function registerMessageHandlers(ctx) {
     const { conversationId, isTyping } = data;
     const conversation = await getConversationIfParticipant(conversationId, socket);
     if (!conversation) return;
+    // ENFORCE ghost mode / hideTyping: suppress typing indicator if user has it enabled
+    if (isTyping) {
+      const senderUser = await User.findById(socket.userId).select('genzMods').lean();
+      const senderMods = senderUser?.genzMods || {};
+      if (senderMods.ghostMode || senderMods.hideTyping) return;
+    }
 
     socket.to(conversationId).emit('user:typing', {
       userId: socket.userId,
@@ -559,11 +565,47 @@ module.exports = function registerMessageHandlers(ctx) {
       const { messageId, forEveryone } = data;
       const result = await getMessageIfParticipant(messageId, socket);
       if (!result) return;
-      const { message } = result;
+      const { message, conversation } = result;
 
       if (forEveryone) {
         // Only the sender may delete for everyone via socket (admins use REST).
         if (message.sender.toString() !== socket.userId) return;
+        // ENFORCE anti-delete: check if any receiver has antiDeleteMessages enabled.
+        // If so, preserve the content (sender can delete for themselves but not for
+        // recipients who have anti-delete on).
+        const participants = conversation?.participants || [];
+        let anyReceiverHasAntiDelete = false;
+        try {
+          for (const pid of participants) {
+            const pIdStr = String(pid?._id || pid);
+            if (pIdStr === String(socket.userId)) continue; // skip sender
+            const receiverQuery = User.findById(pIdStr);
+            if (receiverQuery && typeof receiverQuery.select === 'function') {
+              const receiver = await receiverQuery.select('genzMods').lean();
+              const rMods = receiver?.genzMods || {};
+              if (rMods.antiDeleteMessages || rMods.antiDelete) {
+                anyReceiverHasAntiDelete = true;
+                break;
+              }
+            }
+          }
+        } catch (_) { /* anti-delete check is best-effort */ }
+        if (anyReceiverHasAntiDelete) {
+          // Receiver has anti-delete: only mark deletedForEveryone but
+          // preserve originalContent so the anti-revoke mod can still
+          // surface it. Do NOT scrub content.
+          message.deletedForEveryone = true;
+          message.deletedAt = new Date();
+          message.originalContent = message.originalContent || message.content;
+          await message.save();
+          io.to(message.conversationId.toString()).emit('message:deleted', {
+            messageId,
+            forEveryone,
+            deletedBy: socket.userId,
+            antiDeleteBlocked: true
+          });
+          return;
+        }
         // SECURITY (1.6): scrub content immediately and schedule hard delete.
         message.deletedForEveryone = true;
         message.deletedAt = new Date();
@@ -1210,13 +1252,26 @@ module.exports = function registerMessageHandlers(ctx) {
       if (!conversationId || !socket.userId) return;
       const conv = await Conversation.findById(conversationId).select('participants');
       if (!conv || !includesId(conv.participants, socket.userId)) return;
-      const attempter = await User.findById(socket.userId).select('username');
-      socket.to(String(conversationId)).emit('screenshot:attempted', {
-        conversationId,
-        byUserId: socket.userId,
-        byUsername: attempter?.username || 'Someone',
-        at: new Date().toISOString()
-      });
+      // ENFORCE anti-screenshot: only notify if the user who is being screenshotted
+      // (other participants) has antiScreenshot enabled.
+      const attempter = await User.findById(socket.userId).select('username genzMods').lean();
+      const attempterMods = attempter?.genzMods || {};
+      if (!attempterMods.antiScreenshot) return; // User hasn't enabled anti-screenshot
+      const attempterName = attempter?.username || 'Someone';
+      // Notify all other participants
+      for (const pid of conv.participants) {
+        const pIdStr = String(pid?._id || pid);
+        if (pIdStr === String(socket.userId)) continue;
+        const targetSid = global.onlineUsers?.get(pIdStr);
+        if (targetSid) {
+          io.to(targetSid).emit('screenshot:attempted', {
+            conversationId,
+            byUserId: socket.userId,
+            byUsername: attempterName,
+            at: new Date().toISOString()
+          });
+        }
+      }
     } catch (err) {
       logError('[socket] screenshot:attempt error:', err.message);
     }
@@ -1228,6 +1283,10 @@ module.exports = function registerMessageHandlers(ctx) {
       // SECURITY (2.2): only participants may emit typing for a conversation.
       const conversation = await getConversationIfParticipant(conversationId, socket);
       if (!conversation) return;
+      // ENFORCE ghost mode / hideTyping: suppress typing indicator if user has it enabled
+      const senderUser = await User.findById(socket.userId).select('genzMods').lean();
+      const senderMods = senderUser?.genzMods || {};
+      if (senderMods.ghostMode || senderMods.hideTyping) return;
       // FIX: needed so disconnect cleanup (below) knows which room to
       // send a stop-typing event to if this socket vanishes mid-typing.
       socket.data = socket.data || {};
@@ -1276,6 +1335,10 @@ module.exports = function registerMessageHandlers(ctx) {
       // SECURITY (2.2): only participants may emit recording for a conversation.
       const conversation = await getConversationIfParticipant(conversationId, socket);
       if (!conversation) return;
+      // ENFORCE ghost mode / hideRecording: suppress recording indicator if user has it enabled
+      const senderUser = await User.findById(socket.userId).select('genzMods').lean();
+      const senderMods = senderUser?.genzMods || {};
+      if (senderMods.ghostMode || senderMods.hideRecording) return;
       // FIX: same global-broadcast leak as stop_typing above — scope to
       // the conversation room instead of every connected user.
       socket.to(conversationId).emit('user:recording', {

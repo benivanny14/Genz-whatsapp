@@ -1,9 +1,21 @@
-jest.mock('../models/User', () => ({
-  findById: jest.fn(),
-  findOne: jest.fn(),
-  find: jest.fn(),
-  updateOne: jest.fn()
-}));
+jest.mock('../models/User', () => {
+  const chainable = (val = null) => {
+    const obj = {
+      select: jest.fn().mockImplementation(() => obj),
+      lean: jest.fn().mockImplementation(() => Promise.resolve(val)),
+      populate: jest.fn().mockImplementation(() => obj),
+      sort: jest.fn().mockImplementation(() => obj),
+      limit: jest.fn().mockImplementation(() => obj)
+    };
+    return obj;
+  };
+  return {
+    findById: jest.fn().mockReturnValue(chainable()),
+    findOne: jest.fn().mockReturnValue(chainable()),
+    find: jest.fn().mockReturnValue(chainable()),
+    updateOne: jest.fn().mockResolvedValue()
+  };
+});
 
 jest.mock('../models/Conversation', () => ({
   findById: jest.fn(),
