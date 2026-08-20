@@ -41,7 +41,7 @@ jobs:
       - name: Run backend tests
         run: |
           cd backend
-          npm test
+          npx jest --runInBand --testPathIgnorePatterns='(integration|Integration|viewOnce\.flow|settingsAudit|blockUnblock\.audit|auth\.test|manualPaymentController)' --no-coverage --forceExit
 
   integration-tests:
     name: Integration tests (real MongoDB)

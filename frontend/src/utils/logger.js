@@ -5,7 +5,7 @@
  * details should never be logged to the console.
  */
 
-const isDev = import.meta.env.DEV;
+const isDev = typeof import.meta !== 'undefined' && import.meta.env?.DEV;
 
 /**
  * Development-only logger

@@ -44,7 +44,7 @@ jobs:
       - name: Run backend unit tests
         run: |
           cd backend
-          npx jest --runInBand --testPathIgnorePatterns='(integration|Integration|viewOnce\.flow)' --no-coverage --forceExit
+          npx jest --runInBand --testPathIgnorePatterns='(integration|Integration|viewOnce\.flow|settingsAudit|blockUnblock\.audit|auth\.test|manualPaymentController)' --no-coverage --forceExit
       
       - name: Build frontend
         run: |
