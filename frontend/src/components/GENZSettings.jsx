@@ -1770,20 +1770,7 @@ const PrivacyTab = ({ ctx }) => {
             </div>
           ) : (
             <div className="p-2">
-              <ModItem
-                icon={<Zap size={20} className="text-purple-500" />}
-                title="Ghost Mode"
-                desc="Hide typing and voice recording status"
-                active={mods.ghostMode}
-                onClick={() => toggleMod('ghostMode')}
-              />
-              <ModItem
-                icon={<EyeOff size={20} className="text-gray-400" />}
-                title="Freeze Last Seen"
-                desc="Appear offline to everyone while still seeing them online"
-                active={mods.freezeLastSeen}
-                onClick={() => toggleMod('freezeLastSeen')}
-              />
+              <p className="text-xs text-yellow-400 px-2 pb-2 font-semibold uppercase tracking-wider">🔒 Premium Features — requires active subscription</p>
               <ModItem
                 icon={<Lock size={20} className="text-red-500" />}
                 title="Anti-Delete Messages"
@@ -1797,13 +1784,6 @@ const PrivacyTab = ({ ctx }) => {
                 desc="Prevent taking screenshots of the screen"
                 active={mods.antiScreenshot}
                 onClick={() => toggleMod('antiScreenshot')}
-              />
-              <ModItem
-                icon={<CheckCheck size={20} className="text-blue-400" />}
-                title="Hide Read Receipts"
-                desc="Hide blue tick read receipts from others"
-                active={mods.hideReadReceipts}
-                onClick={() => toggleMod('hideReadReceipts')}
               />
               <ModItem
                 icon={<EyeOff size={20} className="text-purple-600" />}
@@ -1826,41 +1806,6 @@ const PrivacyTab = ({ ctx }) => {
                 active={mods.antiDeleteStatus}
                 onClick={() => toggleMod('antiDeleteStatus')}
               />
-              <ModItem
-                icon={<Mic size={20} className="text-green-500" />}
-                title="Hide Typing"
-                desc="Do not show the typing indicator"
-                active={mods.hideTyping}
-                onClick={() => toggleMod('hideTyping')}
-              />
-              <ModItem
-                icon={<MicOff size={20} className="text-orange-500" />}
-                title="Hide Recording"
-                desc="Do not show when you are recording"
-                active={mods.hideRecording}
-                onClick={() => toggleMod('hideRecording')}
-              />
-              <ModItem
-                icon={<EyeOff size={20} className="text-blue-500" />}
-                title="Hide Online"
-                desc="Do not broadcast when you are online"
-                active={mods.hideOnline}
-                onClick={() => toggleMod('hideOnline')}
-              />
-              <ModItem
-                icon={<CheckCheck size={20} className="text-gray-400" />}
-                title="Hide Second Tick"
-                desc="Hide the double-tick read indicator"
-                active={mods.hideSecondTick}
-                onClick={() => toggleMod('hideSecondTick')}
-              />
-              <ModItem
-                icon={<EyeOff size={20} className="text-indigo-500" />}
-                title="Hide View Status"
-                desc="Do not notify others when you view their status"
-                active={mods.hideViewStatus}
-                onClick={() => toggleMod('hideViewStatus')}
-              />
 
               <FakeChatSection ctx={{ mods, toggleMod }} />
 
@@ -1879,6 +1824,91 @@ const PrivacyTab = ({ ctx }) => {
                   <ChevronRight size={18} />
                 </div>
               </div>
+
+              {/* Voice Changer */}
+              <div className="bg-white/5 rounded-xl border border-white/10 mt-3">
+                <div className="p-4 bg-purple-900/30 border-b border-white/10 flex items-center gap-2 text-purple-400 font-bold">
+                  <Mic size={18} /> Voice Changer
+                </div>
+                <div className="p-4 space-y-3">
+                  <select
+                    value={mods.voiceEffect}
+                    onChange={(e) => setMods(prev => ({ ...prev, voiceEffect: e.target.value }))}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-500 text-white"
+                  >
+                    {VOICE_EFFECT_PRESETS.map((p) => (
+                      <option className="bg-gray-800 text-white" key={p.id} value={p.id}>
+                        {p.icon} {p.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Chat Background Music */}
+              <div className="bg-white/5 rounded-xl border border-white/10 mt-3">
+                <div className="p-4 bg-pink-900/30 border-b border-white/10 flex items-center gap-2 text-pink-400 font-bold">
+                  <Music size={18} /> Chat Background Music
+                </div>
+                <div className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-medium text-white text-sm">Enable Music</h3>
+                    <div
+                      onClick={() => toggleMod('chatMusic')}
+                      className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${mods.chatMusic ? 'bg-pink-500' : 'bg-white/10 border border-white/20'}`}
+                    >
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${mods.chatMusic ? 'right-1' : 'left-1'}`} />
+                    </div>
+                  </div>
+                  {mods.chatMusic && (
+                    <div>
+                      <input
+                        type="text"
+                        value={mods.chatMusicUrl || ''}
+                        onChange={(e) => setMods(prev => ({ ...prev, chatMusicUrl: e.target.value }))}
+                        placeholder="Paste music URL here"
+                        className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-sm text-white"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Glass Theme & Video Background */}
+              <div className="bg-white/5 rounded-xl border border-white/10 mt-3">
+                <div className="p-4 bg-blue-900/30 border-b border-white/10 flex items-center gap-2 text-blue-400 font-bold">
+                  <Layers size={18} /> Glass Theme & Video Background
+                </div>
+                <div className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Sparkles size={16} className="text-purple-400" />
+                      <span className="text-white text-sm">Glass Mode</span>
+                    </div>
+                    <button
+                      onClick={() => setMods(prev => ({ ...prev, glassMode: !prev.glassMode }))}
+                      className={`w-12 h-6 rounded-full relative transition-all ${mods?.glassMode ? 'bg-purple-500' : 'bg-white/10 border border-white/20'}`}
+                    >
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${mods?.glassMode ? 'right-1' : 'left-1'}`} />
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => setShowGlassManager(true)}
+                    className="w-full py-2 bg-blue-600/30 border border-blue-500/30 text-blue-300 rounded-lg text-sm flex items-center justify-center gap-2"
+                  >
+                    <Video size={14} /> Manage Glass & Video Background
+                  </button>
+                </div>
+              </div>
+
+              {/* Story Highlights */}
+              <ModItem
+                icon={<Star size={20} className="text-yellow-400" />}
+                title="Story Highlights"
+                desc="Save statuses as highlights that last forever"
+                active={mods?.storyHighlights}
+                onClick={() => toggleMod('storyHighlights')}
+              />
               {subscriptionStatus.expiryDate && (
                 <div className="p-3 text-center">
                   <p className="text-xs text-gray-400">
@@ -2255,6 +2285,71 @@ const ModsTab = ({ ctx }) => {
     const { autoReplyMsg, setAutoReplyMsg, mods, setMods, setShowGlassManager, setShowSystemDashboard, toggleMod, updateAutoReply } = ctx;
   return (
         <>
+        {/* ─── Privacy & Visibility (Free) ─── */}
+        <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
+          <div className="p-4 bg-green-900/30 border-b border-white/10 flex items-center gap-2 text-green-400 font-bold">
+            <EyeOff size={18} /> Privacy & Visibility (Free)
+          </div>
+          <div className="p-2">
+            <ModItem
+              icon={<Zap size={20} className="text-purple-500" />}
+              title="Ghost Mode"
+              desc="Hide typing and voice recording status"
+              active={mods.ghostMode}
+              onClick={() => toggleMod('ghostMode')}
+            />
+            <ModItem
+              icon={<EyeOff size={20} className="text-gray-400" />}
+              title="Freeze Last Seen"
+              desc="Appear offline to everyone while still seeing them online"
+              active={mods.freezeLastSeen}
+              onClick={() => toggleMod('freezeLastSeen')}
+            />
+            <ModItem
+              icon={<CheckCheck size={20} className="text-blue-400" />}
+              title="Hide Read Receipts"
+              desc="Hide blue tick read receipts from others"
+              active={mods.hideReadReceipts}
+              onClick={() => toggleMod('hideReadReceipts')}
+            />
+            <ModItem
+              icon={<Mic size={20} className="text-green-500" />}
+              title="Hide Typing"
+              desc="Do not show the typing indicator"
+              active={mods.hideTyping}
+              onClick={() => toggleMod('hideTyping')}
+            />
+            <ModItem
+              icon={<MicOff size={20} className="text-orange-500" />}
+              title="Hide Recording"
+              desc="Do not show when you are recording"
+              active={mods.hideRecording}
+              onClick={() => toggleMod('hideRecording')}
+            />
+            <ModItem
+              icon={<EyeOff size={20} className="text-blue-500" />}
+              title="Hide Online"
+              desc="Do not broadcast when you are online"
+              active={mods.hideOnline}
+              onClick={() => toggleMod('hideOnline')}
+            />
+            <ModItem
+              icon={<CheckCheck size={20} className="text-gray-400" />}
+              title="Hide Second Tick"
+              desc="Hide the double-tick read indicator"
+              active={mods.hideSecondTick}
+              onClick={() => toggleMod('hideSecondTick')}
+            />
+            <ModItem
+              icon={<EyeOff size={20} className="text-indigo-500" />}
+              title="Hide View Status"
+              desc="Do not notify others when you view their status"
+              active={mods.hideViewStatus}
+              onClick={() => toggleMod('hideViewStatus')}
+            />
+          </div>
+        </section>
+
         {/* Advanced Tools */}
         <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
           <div className="p-4 bg-purple-900/30 border-b border-white/10 flex items-center gap-2 text-purple-400 font-bold">
@@ -2291,42 +2386,6 @@ const ModsTab = ({ ctx }) => {
               active={mods.highResMedia}
               onClick={() => toggleMod('highResMedia')}
             />
-          </div>
-        </section>
-
-        {/* ─── Glass Theme + Video Background ─── */}
-        <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
-          <div className="p-4 bg-gradient-to-r from-blue-900/40 to-purple-900/40 border-b border-white/10 flex items-center gap-2 text-blue-400 font-bold">
-            <Layers size={18} /> Glass Theme &amp; Video Background
-          </div>
-          <div className="p-4 space-y-3">
-            <p className="text-gray-400 text-xs">Make the entire UI transparent like glass and set a video background</p>
-            <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
-              <div className="flex items-center gap-3">
-                <Sparkles size={18} className="text-purple-400" />
-                <div>
-                  <p className="text-white text-sm font-semibold">Glass Mode</p>
-                  <p className="text-[10px] text-gray-500">{mods.glassMode ? 'Active' : 'Disabled'}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setMods(prev => ({ ...prev, glassMode: !prev.glassMode }))}
-                className={`w-12 h-6 rounded-full relative transition-all ${mods?.glassMode ? 'bg-purple-500' : 'bg-white/10 border border-white/20'}`}
-              >
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${mods?.glassMode ? 'right-1' : 'left-1'}`} />
-              </button>
-            </div>
-            <button
-              onClick={() => setShowGlassManager(true)}
-              className="w-full py-3 bg-gradient-to-r from-blue-600/30 to-purple-600/30 border border-blue-500/30 text-blue-300 rounded-xl font-semibold text-sm hover:from-blue-600/50 hover:to-purple-600/50 transition-all flex items-center justify-center gap-2"
-            >
-              <Video size={16} /> Manage Glass Theme &amp; Video Background
-            </button>
-            {mods?.glassMode && mods?.videoBg && (
-              <div className="flex items-center gap-2 text-xs text-green-400 bg-green-500/10 border border-green-500/20 rounded-lg p-2">
-                <span>🎥</span> Video background enabled
-              </div>
-            )}
           </div>
         </section>
 
