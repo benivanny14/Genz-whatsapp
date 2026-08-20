@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Trash2, Settings, RefreshCw, X, Shield, Bell, Plus, Send, User as UserIcon } from 'lucide-react';
+import { MessageSquare, Trash2, Settings, RefreshCw, X, Shield, Bell, Plus, Send, User as UserIcon, Sparkles, MessageCircle } from 'lucide-react';
 import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
 
@@ -8,6 +8,7 @@ const BASE = `${resolveApiBase()}/fake-chat`;
 const FakeChatPanel = ({ onClose }) => {
   const [settings, setSettings] = useState(null);
   const [fakeChats, setFakeChats] = useState([]);
+  const [premadeConversations, setPremadeConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -15,7 +16,7 @@ const FakeChatPanel = ({ onClose }) => {
   const [chatDraft, setChatDraft] = useState({ contactName: '', contactPhone: '', messages: '' });
 
   useEffect(() => {
-    Promise.allSettled([fetchSettings(), fetchFakeChats()]).finally(() => setLoading(false));
+    Promise.allSettled([fetchSettings(), fetchFakeChats(), fetchPremadeConversations()]).finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -35,6 +36,36 @@ const FakeChatPanel = ({ onClose }) => {
       const data = await res.json();
       if (data?.success) setFakeChats(data.fakeChats || []);
     } catch (err) {}
+  };
+
+  const fetchPremadeConversations = async () => {
+    try {
+      const res = await authFetch(`${BASE}/premade`);
+      const data = await res.json();
+      if (data?.success) setPremadeConversations(data.conversations || []);
+    } catch (err) {}
+  };
+
+  const createFromTemplate = async (templateId) => {
+    try {
+      setSaving(true);
+      setError('');
+      const res = await authFetch(`${BASE}/create-from-template`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ templateId })
+      });
+      const data = await res.json();
+      if (data?.success) {
+        await fetchFakeChats();
+      } else {
+        setError(data?.message || 'Failed to create chat from template');
+      }
+    } catch (err) {
+      setError('Failed to create chat from template');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const updateSettings = async (newSettings) => {
@@ -201,20 +232,62 @@ const FakeChatPanel = ({ onClose }) => {
                 </div>
               </div>
 
-              {/* Create buttons */}
+              {/* Pre-made Conversations */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Sparkles size={16} className="text-[#00a884]" />
+                  <p className="text-gray-400 text-xs uppercase tracking-wide">Ready-Made Conversations</p>
+                </div>
+                
+                <p className="text-gray-400 text-xs">
+                  Select a pre-made conversation to instantly create a fake chat. These are realistic conversations between two people.
+                </p>
+                
+                {premadeConversations.length === 0 ? (
+                  <p className="text-gray-500 text-sm text-center py-4">No pre-made conversations available</p>
+                ) : (
+                  <div className="grid grid-cols-1 gap-2">
+                    {premadeConversations.map((conv) => (
+                      <button
+                        key={conv.id}
+                        onClick={() => createFromTemplate(conv.id)}
+                        disabled={saving}
+                        className="bg-[#0b141a] rounded-lg p-3 border border-white/10 hover:border-[#00a884]/50 transition-all text-left disabled:opacity-50"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-[#00a884]/20 flex items-center justify-center">
+                              <MessageCircle size={18} className="text-[#00a884]" />
+                            </div>
+                            <div>
+                              <p className="text-white text-sm font-medium">{conv.contactName}</p>
+                              <p className="text-gray-400 text-xs">{conv.category} • {conv.messageCount} messages</p>
+                            </div>
+                          </div>
+                          <div className="text-[#00a884]">
+                            <Plus size={18} />
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Manual Create button */}
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => { setShowCreateChat((v) => !v); setError(''); }}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#00a884] hover:bg-[#008f6f] text-white rounded-lg text-sm font-medium"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/15 text-white rounded-lg text-sm font-medium"
                 >
-                  <Plus size={16} /> New Fake Chat
+                  <Plus size={16} /> Create Custom Chat
                 </button>
               </div>
 
               {/* Create Fake Chat form */}
               {showCreateChat && (
                 <div className="bg-[#0b141a] rounded-xl border border-white/10 p-4 space-y-3">
-                  <p className="text-white text-sm font-semibold">New Fake Chat</p>
+                  <p className="text-white text-sm font-semibold">Custom Fake Chat</p>
                   <div>
                     <label className={labelClass}>Contact name</label>
                     <input
