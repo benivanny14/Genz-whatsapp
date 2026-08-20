@@ -10,6 +10,7 @@ import MassSenderModal from './MassSenderModal';
 import ProfileEditor from './ProfileEditor';
 import StoryHighlights from './StoryHighlights';
 import ArchiveChats from './ArchiveChats';
+import FakeChatCoverPanel from './FakeChatCoverPanel';
 import { AnimatePresence } from 'framer-motion';
 import { decryptMessage } from '../utils/formatDate';
 import { importChatFile } from '../utils/chatImporter';
@@ -93,6 +94,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   const [showMassSenderModal, setShowMassSenderModal] = useState(false);
   const [showArchiveChats, setShowArchiveChats] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
+  const [fakeChatCoverTarget, setFakeChatCoverTarget] = useState(null); // { chatId, chatName }
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const [trackVisitors, setTrackVisitors] = useState(false);
 
@@ -827,7 +829,21 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     setShowMenu(false);
   };
 
+  // Get fake chat cover for a conversation (from localStorage)
+  const getFakeChatCover = (convId) => {
+    try {
+      const covers = JSON.parse(localStorage.getItem('genz_fake_chat_covers') || '{}');
+      return covers[convId] || null;
+    } catch (e) {
+      return null;
+    }
+  };
+
   const getConversationName = (conv) => {
+    // Check for fake chat cover
+    const cover = getFakeChatCover(conv._id);
+    if (cover) return cover.contactName;
+
     if (conv.isGroup) {
       return conv.groupName;
     }
@@ -840,6 +856,12 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   };
 
   const getConversationAvatar = (conv) => {
+    // Check for fake chat cover
+    const cover = getFakeChatCover(conv._id);
+    if (cover) {
+      return `https://ui-avatars.com/api/?name=${encodeURIComponent(cover.contactName)}&background=random&color=fff`;
+    }
+
     if (conv.isGroup) {
       // Group: use group photo or fallback to first participant's avatar
       if (conv.groupPhoto) return conv.groupPhoto;
@@ -1490,7 +1512,10 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-dark-text font-medium truncate">
+                      <h3 className="text-dark-text font-medium truncate flex items-center gap-1">
+                        {getFakeChatCover(conv._id) && (
+                          <Shield size={12} className="text-yellow-400 flex-shrink-0" />
+                        )}
                         {getConversationName(conv)}
                       </h3>
                       <div className="flex items-center gap-2">
@@ -1751,6 +1776,19 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
               <Download size={16} />
               <span>Export Chat</span>
             </button>
+            <button
+              onClick={() => {
+                const conv = conversations.find(c => c._id === contextMenu.chatId);
+                const chatName = conv ? getConversationName(conv) : 'Chat';
+                setFakeChatCoverTarget({ chatId: contextMenu.chatId, chatName });
+                setContextMenu(null);
+              }}
+              className="w-full flex items-center gap-3 px-4 py-2 hover:bg-dark-hover text-yellow-400 transition-colors"
+            >
+              <Shield size={16} />
+              <span>Fake Chat Cover</span>
+              <span className="ml-auto text-xs text-dark-textSecondary">Hide</span>
+            </button>
             <div className="border-t border-dark-border my-1" />
             <div className="px-4 py-1 text-xs font-semibold text-dark-textSecondary uppercase tracking-wider">Assign to Tab</div>
             {chatTabs.filter(t => t !== 'All' && t !== 'Groups').map(tab => {
@@ -1936,6 +1974,14 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
           src={getConversationAvatar(enlargedProfile)}
           alt={getConversationName(enlargedProfile)}
           onClose={() => setEnlargedProfile(null)}
+        />
+      )}
+
+      {fakeChatCoverTarget && (
+        <FakeChatCoverPanel
+          chatId={fakeChatCoverTarget.chatId}
+          chatName={fakeChatCoverTarget.chatName}
+          onClose={() => setFakeChatCoverTarget(null)}
         />
       )}
     </aside>
