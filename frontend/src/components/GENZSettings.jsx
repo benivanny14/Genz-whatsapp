@@ -2052,31 +2052,55 @@ const PrivacyTab = ({ ctx }) => {
               >
                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${mods.chatMusic ? 'right-1' : 'left-1'}`} />
               </div>
-            </div>
-            {mods.chatMusic && (
+            </div>              {mods.chatMusic && (
               <div className="space-y-3">
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => musicFileInputRef.current?.click()}
-                    className="flex-1 py-2 px-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-sm text-white transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Upload size={14} /> Select File
-                  </button>
-                  <input
-                    type="file"
-                    ref={musicFileInputRef}
-                    hidden
-                    accept="audio/*"
-                    onChange={handleMusicFileUpload}
-                  />
-                </div>
+                {/* Music Player */}
+                {mods.chatMusicUrl && (
+                  <div className="bg-white/5 border border-pink-500/20 rounded-xl p-3">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => {
+                          const audio = document.getElementById('genz-chat-music-preview');
+                          if (audio) {
+                            if (audio.paused) audio.play(); else audio.pause();
+                          }
+                        }}
+                        className="w-10 h-10 rounded-full bg-pink-500 flex items-center justify-center flex-shrink-0 hover:bg-pink-600 transition-colors"
+                      >
+                        <Play size={18} className="text-white ml-0.5" />
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-white/60 truncate">Songi uliyochagua</p>
+                        <audio id="genz-chat-music-preview" src={mods.chatMusicUrl} preload="none" />
+                      </div>
+                      <button
+                        onClick={() => {
+                          const audio = document.getElementById('genz-chat-music-preview');
+                          if (audio) { audio.pause(); audio.currentTime = 0; }
+                          setMods(prev => ({ ...prev, chatMusicUrl: '' }));
+                        }}
+                        className="text-red-400 hover:text-red-300 p-1"
+                        title="Ondoa muziki"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <button
+                  onClick={() => musicFileInputRef.current?.click()}
+                  className="w-full py-3 px-4 bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/30 rounded-xl text-sm text-pink-300 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Music size={16} /> {mods.chatMusicUrl ? 'Badilisha Muziki' : 'Chagua Muziki kutoka Kifaa'}
+                </button>
                 <input
-                  type="text"
-                  placeholder="Or paste MP3 URL..."
-                  value={mods.chatMusicUrl || ''}
-                  onChange={(e) => setMods(prev => ({ ...prev, chatMusicUrl: e.target.value }))}
-                  className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-sm focus:ring-2 focus:ring-pink-500 text-white placeholder-blue-200/50"
+                  type="file"
+                  ref={musicFileInputRef}
+                  hidden
+                  accept="audio/*"
+                  onChange={handleMusicFileUpload}
                 />
+                <p className="text-[10px] text-white/30 text-center">Chagua faili la sauti kutoka kwenye kifaa chako</p>
               </div>
             )}
           </div>
