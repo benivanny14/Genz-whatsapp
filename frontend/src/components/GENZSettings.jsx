@@ -410,7 +410,22 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
     reader.readAsDataURL(file);
   };
 
+  // Premium-only fields that require an active subscription
+  const PREMIUM_FIELDS = [
+    'antiDeleteMessages', 'antiDelete', 'antiDeleteStatus',
+    'antiViewOnce', 'voiceEffect', 'selfDestruct',
+    'chatBackgroundMusic', 'chatMusic', 'chatMusicUrl',
+    'glassMode', 'highResMedia',
+    'antiScreenshot', 'storyHighlights', 'fakeChatCover'
+  ];
+
   const toggleMod = (key) => {
+    // Check if this is a premium feature and user is not premium
+    if (PREMIUM_FIELDS.includes(key) && isPrivacyLocked) {
+      setShowPaymentModal(true);
+      return;
+    }
+
     setMods((prev) => {
       const nextVal = !prev[key];
       const next = { ...prev, [key]: nextVal };
@@ -907,8 +922,8 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
   );
 };
 
-const ModItem = ({ icon, title, desc, active, onClick }) => (
-  <div className="flex justify-between items-center p-3 hover:bg-white/10 cursor-pointer rounded-lg transition-colors" onClick={onClick}>
+const ModItem = ({ icon, title, desc, active, onClick, locked = false }) => (
+  <div className={`flex justify-between items-center p-3 rounded-lg transition-colors ${locked ? 'bg-white/5 cursor-not-allowed opacity-60' : 'hover:bg-white/10 cursor-pointer'}`} onClick={locked ? undefined : onClick}>
     <div className="flex items-center gap-4">
       {icon}
       <div>
@@ -916,9 +931,13 @@ const ModItem = ({ icon, title, desc, active, onClick }) => (
         <p className="text-xs text-white/50">{desc}</p>
       </div>
     </div>
-    <div className={`w-10 h-5 rounded-full relative transition-colors ${active ? 'bg-[#25d366]' : 'bg-white/20'}`}>
-      <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${active ? 'right-1' : 'left-1'}`} />
-    </div>
+    {locked ? (
+      <Lock size={16} className="text-yellow-400" />
+    ) : (
+      <div className={`w-10 h-5 rounded-full relative transition-colors ${active ? 'bg-[#25d366]' : 'bg-white/20'}`}>
+        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${active ? 'right-1' : 'left-1'}`} />
+      </div>
+    )}
   </div>
 );
 
@@ -1677,7 +1696,7 @@ const UpdateHistory = () => {
 
 // Fake Chat section component
 const FakeChatSection = ({ ctx }) => {
-  const { mods, toggleMod } = ctx;
+  const { mods, toggleMod, isPrivacyLocked } = ctx;
   const [showFakeChatPanel, setShowFakeChatPanel] = useState(false);
 
   return (
@@ -1688,6 +1707,7 @@ const FakeChatSection = ({ ctx }) => {
         desc="Create fake conversations with pre-made chats"
         active={mods.fakeChatCover}
         onClick={() => toggleMod('fakeChatCover')}
+        locked={isPrivacyLocked}
       />
       {mods.fakeChatCover && (
         <button
@@ -1793,6 +1813,7 @@ const PrivacyTab = ({ ctx }) => {
                 desc="Prevent people from deleting messages they sent to you"
                 active={mods.antiDelete}
                 onClick={() => toggleMod('antiDelete')}
+                locked={isPrivacyLocked}
               />
               <ModItem
                 icon={<CameraOff size={20} className="text-orange-600" />}
@@ -1800,6 +1821,7 @@ const PrivacyTab = ({ ctx }) => {
                 desc="Prevent taking screenshots of the screen"
                 active={mods.antiScreenshot}
                 onClick={() => toggleMod('antiScreenshot')}
+                locked={isPrivacyLocked}
               />
               <ModItem
                 icon={<EyeOff size={20} className="text-purple-600" />}
@@ -1807,6 +1829,7 @@ const PrivacyTab = ({ ctx }) => {
                 desc="View 'View Once' images as many times as you want"
                 active={mods.antiViewOnce}
                 onClick={() => toggleMod('antiViewOnce')}
+                locked={isPrivacyLocked}
               />
               <ModItem
                 icon={<Timer size={20} className="text-pink-500" />}
@@ -1814,6 +1837,7 @@ const PrivacyTab = ({ ctx }) => {
                 desc="Messages self-destruct 10 seconds after being viewed"
                 active={mods.selfDestruct}
                 onClick={() => toggleMod('selfDestruct')}
+                locked={isPrivacyLocked}
               />
               <ModItem
                 icon={<Trash2 size={20} className="text-pink-600" />}
@@ -1821,9 +1845,10 @@ const PrivacyTab = ({ ctx }) => {
                 desc="See and restore deleted status updates"
                 active={mods.antiDeleteStatus}
                 onClick={() => toggleMod('antiDeleteStatus')}
+                locked={isPrivacyLocked}
               />
 
-              <FakeChatSection ctx={{ mods, toggleMod }} />
+              <FakeChatSection ctx={{ mods, toggleMod, isPrivacyLocked }} />
 
               <div
                 onClick={() => window.location.href = '/genz-after-work'}
@@ -1845,19 +1870,34 @@ const PrivacyTab = ({ ctx }) => {
               <div className="bg-white/5 rounded-xl border border-white/10 mt-3">
                 <div className="p-4 bg-purple-900/30 border-b border-white/10 flex items-center gap-2 text-purple-400 font-bold">
                   <Mic size={18} /> Voice Changer
+                  {isPrivacyLocked && <Lock size={14} className="ml-auto text-yellow-400" />}
                 </div>
                 <div className="p-4 space-y-3">
-                  <select
-                    value={mods.voiceEffect}
-                    onChange={(e) => setMods(prev => ({ ...prev, voiceEffect: e.target.value }))}
-                    className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-500 text-white"
-                  >
-                    {VOICE_EFFECT_PRESETS.map((p) => (
-                      <option className="bg-gray-800 text-white" key={p.id} value={p.id}>
-                        {p.icon} {p.label}
-                      </option>
-                    ))}
-                  </select>
+                  {isPrivacyLocked ? (
+                    <div className="text-center py-4">
+                      <Lock size={32} className="text-yellow-400 mx-auto mb-2" />
+                      <p className="text-yellow-400 text-sm font-semibold">Premium Required</p>
+                      <p className="text-gray-400 text-xs mt-1">Upgrade to use voice effects</p>
+                      <button
+                        onClick={() => setShowPaymentModal(true)}
+                        className="mt-3 px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/30 text-yellow-300 rounded-lg text-sm font-semibold transition-all"
+                      >
+                        Upgrade to Premium
+                      </button>
+                    </div>
+                  ) : (
+                    <select
+                      value={mods.voiceEffect}
+                      onChange={(e) => setMods(prev => ({ ...prev, voiceEffect: e.target.value }))}
+                      className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-500 text-white"
+                    >
+                      {VOICE_EFFECT_PRESETS.map((p) => (
+                        <option className="bg-gray-800 text-white" key={p.id} value={p.id}>
+                          {p.icon} {p.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
 
@@ -1865,26 +1905,43 @@ const PrivacyTab = ({ ctx }) => {
               <div className="bg-white/5 rounded-xl border border-white/10 mt-3">
                 <div className="p-4 bg-blue-900/30 border-b border-white/10 flex items-center gap-2 text-blue-400 font-bold">
                   <Layers size={18} /> Glass Theme & Video Background
+                  {isPrivacyLocked && <Lock size={14} className="ml-auto text-yellow-400" />}
                 </div>
                 <div className="p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Sparkles size={16} className="text-purple-400" />
-                      <span className="text-white text-sm">Glass Mode</span>
+                  {isPrivacyLocked ? (
+                    <div className="text-center py-4">
+                      <Lock size={32} className="text-yellow-400 mx-auto mb-2" />
+                      <p className="text-yellow-400 text-sm font-semibold">Premium Required</p>
+                      <p className="text-gray-400 text-xs mt-1">Upgrade to use glass theme & video backgrounds</p>
+                      <button
+                        onClick={() => setShowPaymentModal(true)}
+                        className="mt-3 px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/30 text-yellow-300 rounded-lg text-sm font-semibold transition-all"
+                      >
+                        Upgrade to Premium
+                      </button>
                     </div>
-                    <button
-                      onClick={() => setMods(prev => ({ ...prev, glassMode: !prev.glassMode }))}
-                      className={`w-12 h-6 rounded-full relative transition-all ${mods?.glassMode ? 'bg-purple-500' : 'bg-white/10 border border-white/20'}`}
-                    >
-                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${mods?.glassMode ? 'right-1' : 'left-1'}`} />
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => setShowGlassManager(true)}
-                    className="w-full py-2 bg-blue-600/30 border border-blue-500/30 text-blue-300 rounded-lg text-sm flex items-center justify-center gap-2"
-                  >
-                    <Video size={14} /> Manage Glass & Video Background
-                  </button>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Sparkles size={16} className="text-purple-400" />
+                          <span className="text-white text-sm">Glass Mode</span>
+                        </div>
+                        <button
+                          onClick={() => setMods(prev => ({ ...prev, glassMode: !prev.glassMode }))}
+                          className={`w-12 h-6 rounded-full relative transition-all ${mods?.glassMode ? 'bg-purple-500' : 'bg-white/10 border border-white/20'}`}
+                        >
+                          <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${mods?.glassMode ? 'right-1' : 'left-1'}`} />
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => setShowGlassManager(true)}
+                        className="w-full py-2 bg-blue-600/30 border border-blue-500/30 text-blue-300 rounded-lg text-sm flex items-center justify-center gap-2"
+                      >
+                        <Video size={14} /> Manage Glass & Video Background
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -1892,18 +1949,33 @@ const PrivacyTab = ({ ctx }) => {
               <div className="bg-white/5 rounded-xl border border-white/10 mt-3">
                 <div className="p-4 bg-pink-900/30 border-b border-white/10 flex items-center gap-2 text-pink-400 font-bold">
                   <Music size={18} /> Chat Background Music
+                  {isPrivacyLocked && <Lock size={14} className="ml-auto text-yellow-400" />}
                 </div>
                 <div className="p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-white text-sm">Enable Music</h3>
-                    <div
-                      onClick={() => toggleMod('chatMusic')}
-                      className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${mods.chatMusic ? 'bg-pink-500' : 'bg-white/10 border border-white/20'}`}
-                    >
-                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${mods.chatMusic ? 'right-1' : 'left-1'}`} />
+                  {isPrivacyLocked ? (
+                    <div className="text-center py-4">
+                      <Lock size={32} className="text-yellow-400 mx-auto mb-2" />
+                      <p className="text-yellow-400 text-sm font-semibold">Premium Required</p>
+                      <p className="text-gray-400 text-xs mt-1">Upgrade to use chat background music</p>
+                      <button
+                        onClick={() => setShowPaymentModal(true)}
+                        className="mt-3 px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/30 text-yellow-300 rounded-lg text-sm font-semibold transition-all"
+                      >
+                        Upgrade to Premium
+                      </button>
                     </div>
-                  </div>
-                  {mods.chatMusic && (
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-medium text-white text-sm">Enable Music</h3>
+                        <div
+                          onClick={() => toggleMod('chatMusic')}
+                          className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${mods.chatMusic ? 'bg-pink-500' : 'bg-white/10 border border-white/20'}`}
+                        >
+                          <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${mods.chatMusic ? 'right-1' : 'left-1'}`} />
+                        </div>
+                      </div>
+                      {mods.chatMusic && (
                     <div className="space-y-3">
                       {mods.chatMusicUrl && (
                         <div className="bg-white/5 border border-pink-500/20 rounded-xl p-3">
@@ -1953,6 +2025,8 @@ const PrivacyTab = ({ ctx }) => {
                       <p className="text-[10px] text-white/30 text-center">Choose an audio file from your device</p>
                     </div>
                   )}
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -1963,6 +2037,7 @@ const PrivacyTab = ({ ctx }) => {
                 desc="Save statuses as highlights that last forever"
                 active={mods?.storyHighlights}
                 onClick={() => toggleMod('storyHighlights')}
+                locked={isPrivacyLocked}
               />
               {subscriptionStatus.expiryDate && (
                 <div className="p-3 text-center">
@@ -2329,6 +2404,7 @@ const ModsTab = ({ ctx }) => {
               desc="Send images up to 50MB without quality loss"
               active={mods.highResMedia}
               onClick={() => toggleMod('highResMedia')}
+              locked={isPrivacyLocked}
             />
           </div>
         </section>
