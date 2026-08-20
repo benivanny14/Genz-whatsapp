@@ -2054,52 +2054,7 @@ const PrivacyTab = ({ ctx }) => {
 
         {showPrivacyAnimation && <PrivacyPolicyAnimation onClose={() => setShowPrivacyAnimation(false)} />}
 
-        {/* Voice Changer Section */}
-        <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
-          <div className="p-4 bg-blue-900/30 border-b border-white/10 flex items-center gap-2 text-purple-400 font-bold">
-            <Mic size={18} /> Voice Changer
-          </div>
-          <div className="p-4 space-y-3">
-            <p className="text-xs text-blue-300 mb-2">Change your voice when sending voice notes.</p>
-            <select
-              value={mods.voiceEffect}
-              onChange={(e) => setMods(prev => ({ ...prev, voiceEffect: e.target.value }))}
-              className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-500 text-white"
-            >
-              {VOICE_EFFECT_PRESETS.map((p) => (
-                <option className="bg-gray-800 text-white" key={p.id} value={p.id}>
-                  {p.icon} {p.label}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              disabled={voiceFxPreviewBusy}
-              onClick={async () => {
-                if (voiceFxPreviewBusy) return;
-                setVoiceFxPreviewBusy(true);
-                try {
-                  const raw = await createTestToneBlob();
-                  const out = await applyVoiceEffect(raw, mods.voiceEffect || 'none');
-                  const url = URL.createObjectURL(out);
-                  const audio = new Audio(url);
-                  const done = () => {
-                    URL.revokeObjectURL(url);
-                    setVoiceFxPreviewBusy(false);
-                  };
-                  audio.onended = done;
-                  audio.onerror = done;
-                  await audio.play();
-                } catch (e) {
-                  setVoiceFxPreviewBusy(false);
-                }
-              }}
-              className="text-[10px] text-purple-500 font-bold flex items-center gap-1 hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <Play size={10} /> {voiceFxPreviewBusy ? 'Playing…' : 'Listen to sample (no microphone)'}
-            </button>
-          </div>
-        </section>
+
 
 
 
@@ -2385,13 +2340,6 @@ const ModsTab = ({ ctx }) => {
           </div>
           <div className="p-2">
             <ModItem
-              icon={<Star size={20} className="text-yellow-400" />}
-              title="Story Highlights"
-              desc="Save statuses as highlights that last forever"
-              active={mods?.storyHighlights}
-              onClick={() => toggleMod('storyHighlights')}
-            />
-<ModItem
                icon={<Activity size={20} className="text-pink-400" />}
                title="Live Reactions"
               desc="Send floating emoji reactions during chat"
@@ -2473,107 +2421,6 @@ const SocialTab = ({ ctx }) => {
               active={mods.alwaysOnline}
               onClick={() => toggleMod('alwaysOnline')}
             />
-            <div className="p-3 bg-white/5 rounded-xl">
-              <div className="flex items-center gap-3 mb-2">
-                <Mic size={20} className="text-green-500" />
-                <div>
-                  <p className="text-white font-medium text-sm">Voice Effect</p>
-                  <p className="text-gray-400 text-xs">Apply an effect to your voice messages</p>
-                </div>
-              </div>
-              <select
-                value={mods.voiceEffect || 'none'}
-                onChange={(e) => setMods(prev => ({ ...prev, voiceEffect: e.target.value }))}
-                className="w-full px-3 py-2 bg-[#0b141a] text-white border border-[#00a884]/30 rounded-lg text-sm focus:border-[#00a884] focus:outline-none"
-              >
-                <option value="none">None</option>
-                <option value="robot">Robot</option>
-                <option value="chipmunk">Chipmunk</option>
-                <option value="deep">Deep</option>
-                <option value="helium">Helium</option>
-              </select>
-            </div>
-            <div className="p-3 bg-white/5 rounded-xl">
-              <div className="flex items-center gap-3 mb-2">
-                <Music size={20} className="text-purple-500" />
-                <div>
-                  <p className="text-white font-medium text-sm">Chat Background Music</p>
-                  <p className="text-gray-400 text-xs">Play music inside chat screens</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={!!mods.chatBackgroundMusic?.enabled}
-                  onChange={(e) => setMods(prev => ({ ...prev, chatBackgroundMusic: { ...prev.chatBackgroundMusic, enabled: e.target.checked } }))}
-                  className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-primary-600 focus:ring-primary-500"
-                />
-                <span className="text-white text-sm">Enable</span>
-              </div>
-              {mods.chatBackgroundMusic?.enabled && (
-                <input
-                  type="text"
-                  value={mods.chatBackgroundMusic?.track || ''}
-                  onChange={(e) => setMods(prev => ({ ...prev, chatBackgroundMusic: { ...prev.chatBackgroundMusic, track: e.target.value } }))}
-                  placeholder="Paste an audio track URL..."
-                  className="w-full mt-2 px-3 py-2 bg-[#0b141a] text-white border border-[#00a884]/30 rounded-lg text-sm focus:border-[#00a884] focus:outline-none"
-                />
-              )}
-            </div>
-          </div>
-
-          {/* Font Size Section */}
-          <div className="p-4 border-t border-white/10">
-            <h4 className="text-xs font-bold text-blue-300 mb-3 flex items-center gap-2">
-              <Edit3 size={14} /> Message Font Size
-            </h4>
-            <div className="flex gap-2">
-              {[
-                { key: 'small', label: 'Small', size: 'text-xs' },
-                { key: 'medium', label: 'Medium', size: 'text-sm' },
-                { key: 'large', label: 'Large', size: 'text-base' },
-                { key: 'xlarge', label: 'X-Large', size: 'text-lg' },
-              ].map(({ key, label, size }) => (
-                <button
-                  key={key}
-                  onClick={() => setMods(prev => ({ ...prev, fontSize: key }))}
-                  className={`flex-1 py-2 rounded-xl font-bold transition-all border ${
-                    (mods.fontSize || 'medium') === key
-                      ? 'bg-blue-600 border-blue-400 text-white'
-                      : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
-                  }`}
-                >
-                  <span className={size}>{label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Message Bubble Style */}
-          <div className="p-4 border-t border-white/10">
-            <h4 className="text-xs font-bold text-pink-300 mb-3 flex items-center gap-2">
-              <MessageSquare size={14} /> Bubble Style
-            </h4>
-            <div className="flex gap-2">
-              {[
-                { key: 'default', label: 'Default' },
-                { key: 'rounded', label: 'Rounded' },
-                { key: 'sharp', label: 'Sharp' },
-                { key: 'bubble', label: 'Bubble' },
-              ].map(({ key, label }) => (
-                <button
-                  key={key}
-                  onClick={() => setMods(prev => ({ ...prev, bubbleStyle: key }))}
-                  className={`flex-1 py-2 text-xs rounded-xl font-bold transition-all border ${
-                    (mods.bubbleStyle || 'default') === key
-                      ? 'bg-pink-600 border-pink-400 text-white'
-                      : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
           </div>
         </section>
         </> /* end social tab */
