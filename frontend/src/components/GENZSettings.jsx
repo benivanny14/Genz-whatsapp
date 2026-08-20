@@ -1872,6 +1872,74 @@ const PrivacyTab = ({ ctx }) => {
                 </div>
               </div>
 
+              {/* Chat Background Music */}
+              <div className="bg-white/5 rounded-xl border border-white/10 mt-3">
+                <div className="p-4 bg-pink-900/30 border-b border-white/10 flex items-center gap-2 text-pink-400 font-bold">
+                  <Music size={18} /> Chat Background Music
+                </div>
+                <div className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-medium text-white text-sm">Enable Music</h3>
+                    <div
+                      onClick={() => toggleMod('chatMusic')}
+                      className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${mods.chatMusic ? 'bg-pink-500' : 'bg-white/10 border border-white/20'}`}
+                    >
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${mods.chatMusic ? 'right-1' : 'left-1'}`} />
+                    </div>
+                  </div>
+                  {mods.chatMusic && (
+                    <div className="space-y-3">
+                      {mods.chatMusicUrl && (
+                        <div className="bg-white/5 border border-pink-500/20 rounded-xl p-3">
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => {
+                                const audio = document.getElementById('genz-chat-music-preview-paid');
+                                if (audio) {
+                                  if (audio.paused) audio.play(); else audio.pause();
+                                }
+                              }}
+                              className="w-10 h-10 rounded-full bg-pink-500 flex items-center justify-center flex-shrink-0 hover:bg-pink-600 transition-colors"
+                            >
+                              <Play size={18} className="text-white ml-0.5" />
+                            </button>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs text-white/60 truncate">Selected song</p>
+                              <audio id="genz-chat-music-preview-paid" src={mods.chatMusicUrl} preload="none" />
+                            </div>
+                            <button
+                              onClick={() => {
+                                const audio = document.getElementById('genz-chat-music-preview-paid');
+                                if (audio) { audio.pause(); audio.currentTime = 0; }
+                                setMods(prev => ({ ...prev, chatMusicUrl: '' }));
+                              }}
+                              className="text-red-400 hover:text-red-300 p-1"
+                              title="Remove music"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      <button
+                        onClick={() => musicFileInputRef.current?.click()}
+                        className="w-full py-3 px-4 bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/30 rounded-xl text-sm text-pink-300 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Music size={16} /> {mods.chatMusicUrl ? 'Change Music' : 'Select Music from Device'}
+                      </button>
+                      <input
+                        type="file"
+                        ref={musicFileInputRef}
+                        hidden
+                        accept="audio/*"
+                        onChange={handleMusicFileUpload}
+                      />
+                      <p className="text-[10px] text-white/30 text-center">Choose an audio file from your device</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Story Highlights */}
               <ModItem
                 icon={<Star size={20} className="text-yellow-400" />}
@@ -2033,73 +2101,7 @@ const PrivacyTab = ({ ctx }) => {
           </div>
         </section>
 
-        {/* Chat Background Music Section */}
-        <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
-          <div className="p-4 bg-blue-900/30 border-b border-white/10 flex items-center gap-2 text-pink-400 font-bold">
-            <Music size={18} /> Chat Background Music
-          </div>
-          <div className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium text-white text-sm">Enable Music in Chats</h3>
-              <div
-                onClick={() => toggleMod('chatMusic')}
-                className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${mods.chatMusic ? 'bg-pink-500' : 'bg-white/10 border border-white/20'}`}
-              >
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${mods.chatMusic ? 'right-1' : 'left-1'}`} />
-              </div>
-            </div>              {mods.chatMusic && (
-              <div className="space-y-3">
-                {/* Music Player */}
-                {mods.chatMusicUrl && (
-                  <div className="bg-white/5 border border-pink-500/20 rounded-xl p-3">
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => {
-                          const audio = document.getElementById('genz-chat-music-preview');
-                          if (audio) {
-                            if (audio.paused) audio.play(); else audio.pause();
-                          }
-                        }}
-                        className="w-10 h-10 rounded-full bg-pink-500 flex items-center justify-center flex-shrink-0 hover:bg-pink-600 transition-colors"
-                      >
-                        <Play size={18} className="text-white ml-0.5" />
-                      </button>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-white/60 truncate">Selected song</p>
-                        <audio id="genz-chat-music-preview" src={mods.chatMusicUrl} preload="none" />
-                      </div>
-                      <button
-                        onClick={() => {
-                          const audio = document.getElementById('genz-chat-music-preview');
-                          if (audio) { audio.pause(); audio.currentTime = 0; }
-                          setMods(prev => ({ ...prev, chatMusicUrl: '' }));
-                        }}
-                        className="text-red-400 hover:text-red-300 p-1"
-                        title="Remove music"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                )}
-                <button
-                  onClick={() => musicFileInputRef.current?.click()}
-                  className="w-full py-3 px-4 bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/30 rounded-xl text-sm text-pink-300 transition-colors flex items-center justify-center gap-2"
-                >
-                  <Music size={16} /> {mods.chatMusicUrl ? 'Change Music' : 'Select Music from Device'}
-                </button>
-                <input
-                  type="file"
-                  ref={musicFileInputRef}
-                  hidden
-                  accept="audio/*"
-                  onChange={handleMusicFileUpload}
-                />
-                <p className="text-[10px] text-white/30 text-center">Choose an audio file from your device</p>
-              </div>
-            )}
-          </div>
-        </section>
+
 
         {/* Cloud Backup */}
         <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
