@@ -10,6 +10,7 @@ const {
   updateVoiceNote
 } = require('../controllers/voiceController');
 const { protect } = require('../middleware/auth');
+const { checkPremiumAccess } = require('../middleware/premiumAccess');
 // FIX: this was the only upload route in the app that never ran
 // validateFileContent (magic-byte / real-content verification). Its own
 // fileFilter only checks the client-supplied `mimetype` header, which is
@@ -56,6 +57,7 @@ const upload = multer({
 });
 
 router.use(protect);
+router.use(checkPremiumAccess);
 
 // Routes
 router.post('/upload', upload.single('file'), validateFileContent, uploadVoiceNote);

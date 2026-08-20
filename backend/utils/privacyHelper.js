@@ -38,8 +38,8 @@ const applyPrivacyFilter = async (user, requesterId) => {
     delete filteredUser.bio;
   }
 
-  // PII: contacts (address book) na settings (blockedUsers, appLock, defaultMessageTimer,
-  // privacy config, n.k.) SIZI za kuonekana na watu wengine — hata kama wako kwenye conversation.
+  // PII: contacts (address book) and settings (blockedUsers, appLock, defaultMessageTimer,
+  // privacy config, etc.) — must not be visible to other users, even within a conversation.
   delete filteredUser.contacts;
   delete filteredUser.settings;
 

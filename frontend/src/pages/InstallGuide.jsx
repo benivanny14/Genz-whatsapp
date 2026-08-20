@@ -126,7 +126,7 @@ const InstallGuide = () => {
             <Download size={18} />
             Download Android App
           </a>
-          <p className="text-center text-xs text-slate-500">Inapakia inaweza kuchukua mda mfupi ikiwa ni mara ya kwanza...</p>
+          <p className="text-center text-xs text-slate-500">Loading may take a moment if it's your first time...</p>
           <p className="text-center text-xs text-slate-500">
             Android only — for now. iOS is coming soon.
           </p>

@@ -6,7 +6,7 @@ const { normalizeLocationData } = require('../utils/locationData');
 const { getActiveMutedUserIds, getActiveStatusBlockedUserIds } = require('../utils/statusMuteHelpers');
 const { verifyShareToken } = require('../utils/statusShareToken');
 
-// POST /api/status - weka status mpya
+// POST /api/status - create a new status
 exports.createStatus = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
@@ -114,7 +114,7 @@ exports.getStatuses = async (req, res) => {
     const mutedUserIds = getActiveMutedUserIds(viewer);
     const blockedStatusUserIds = getActiveStatusBlockedUserIds(viewer);
 
-    // Onyesha statuses za wote (kama WhatsApp)
+    // Show all statuses (like WhatsApp)
     const statuses = await Status.find({
       expiresAt: { $gt: new Date() }
     })
@@ -123,7 +123,7 @@ exports.getStatuses = async (req, res) => {
     .populate('reactions.user', 'username profilePicture')
     .sort({ createdAt: -1 });
 
-    // Ficha statuses za watu waliomblock
+    // Filter out statuses from blocked users
     const filtered = [];
     for (const s of statuses) {
       // Orphaned status (poster account deleted) must never crash the feed.
@@ -167,12 +167,12 @@ exports.getStatuses = async (req, res) => {
       filtered.push(s);
     }
 
-    // Gawanya: yangu na ya wengine
+    // Split: mine and others
     const myStatuses = filtered.filter(s => String(s.user._id) === String(userId));
     const othersStatuses = filtered.filter(s => String(s.user._id) !== String(userId));
 
-    // Safisha siri za user zisirudi kwa client (contacts/settings zilihitajika
-    // tu kwa privacy checks za server-side).
+    // Strip user secrets before sending to client (contacts/settings were needed
+    // only for server-side privacy checks).
     const stripUserSecrets = (statuses) => {
       statuses.forEach(s => {
         if (s.user && typeof s.user === 'object') {

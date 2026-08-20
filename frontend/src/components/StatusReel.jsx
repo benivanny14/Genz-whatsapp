@@ -207,7 +207,7 @@ const StatusReel = ({ onClose, initialStatuses = [] }) => {
       <div className="fixed inset-0 z-[400] bg-black flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-white text-sm">Inapakia Status Reel...</p>
+          <p className="text-white text-sm">Loading Status Reel...</p>
         </div>
       </div>
     );

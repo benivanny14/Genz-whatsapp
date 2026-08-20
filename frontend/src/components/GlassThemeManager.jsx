@@ -201,7 +201,7 @@ const GlassThemeManager = ({ mods, setMods, onClose }) => {
                 className="w-full py-3 border-2 border-dashed border-blue-500/40 rounded-xl text-blue-300 text-sm font-medium hover:bg-blue-500/10 transition-all flex items-center justify-center gap-2"
               >
                 {uploading ? (
-                  <><RefreshCw size={16} className="animate-spin" /> Inapakia...</>
+                  <><RefreshCw size={16} className="animate-spin" /> Loading...</>
                 ) : (
                   <><Upload size={16} /> Choose Video (max 100MB)</>
                 )}
@@ -216,7 +216,7 @@ const GlassThemeManager = ({ mods, setMods, onClose }) => {
 
               {/* URL input alternative */}
               <div>
-                <p className="text-gray-500 text-xs mb-1">Au weka URL ya video:</p>
+                <p className="text-gray-500 text-xs mb-1">Or enter video URL:</p>
                 <input
                   type="text"
                   value={videoPreviewUrl}
@@ -267,7 +267,7 @@ const GlassThemeManager = ({ mods, setMods, onClose }) => {
                 className="w-full py-3 border-2 border-dashed border-green-500/40 rounded-xl text-green-300 text-sm font-medium hover:bg-green-500/10 transition-all flex items-center justify-center gap-2"
               >
                 {uploading ? (
-                  <><RefreshCw size={16} className="animate-spin" /> Inapakia...</>
+                  <><RefreshCw size={16} className="animate-spin" /> Loading...</>
                 ) : (
                   <><Upload size={16} /> Choose Image (max 10MB)</>
                 )}
@@ -282,7 +282,7 @@ const GlassThemeManager = ({ mods, setMods, onClose }) => {
 
               {/* URL input alternative */}
               <div>
-                <p className="text-gray-500 text-xs mb-1">Au weka URL ya picha:</p>
+                <p className="text-gray-500 text-xs mb-1">Or enter image URL:</p>
                 <input
                   type="text"
                   value={imagePreviewUrl}

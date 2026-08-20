@@ -34,7 +34,7 @@ const accountLoginLimiter = rateLimit({
   },
   message: {
     success: false,
-    error: 'Attempts nyingi sana kwa account hii. Jaribu tena baadaye.'
+    error: 'Too many login attempts for this account. Please try again later.'
   },
   standardHeaders: true,
   legacyHeaders: false,

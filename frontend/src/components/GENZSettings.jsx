@@ -866,7 +866,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
                 className="w-full py-4 bg-gradient-to-r from-[#008069] to-[#25d366] hover:from-[#007a5e] hover:to-[#1ebe5d] text-white font-black text-base rounded-2xl flex items-center justify-center gap-3 transition-all shadow-lg shadow-green-500/20 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
               >
                 {paymentLoading ? (
-                  <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Inashughulikia...</>
+                  <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Processing...</>
                 ) : (
                   <>💳 Submit Payment — Tsh 10,000</>
                 )}

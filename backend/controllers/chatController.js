@@ -844,13 +844,25 @@ exports.sendMessage = async (req, res) => {
 
     if (!ensureParticipant(conversation, localUserId, res)) return;
 
+    // PREMIUM GATE: self-destruct and view-once require an active subscription
+    let enforceSelfDestruct = isSelfDestruct;
+    let enforceViewOnce = isViewOnce;
+    if ((isSelfDestruct || isViewOnce) && localUserId) {
+      const sender = await User.findById(localUserId).select('premium subscriptionExpiresAt');
+      const hasPremium = sender && sender.premium && sender.subscriptionExpiresAt && new Date() <= new Date(sender.subscriptionExpiresAt);
+      if (!hasPremium) {
+        enforceSelfDestruct = false;
+        enforceViewOnce = false;
+      }
+    }
+
     // Content moderation: block clearly harmful language before it is stored
     const textToCheck = `${content || ''} ${caption || ''}`;
     if (containsProfanity(textToCheck)) {
       return res.status(400).json({ success: false, message: 'Your message contains disallowed words. Please change your message.' });
     }
 
-    // âœ… Angalia kama mpokeaji amemzuia mtumaji
+    // Check if the receiver has blocked the sender
     const receiverId = conversation.participants.find(p => String(p) !== String(localUserId));
     if (receiverId) {
       const receiver = await User.findById(receiverId).select('blockedUsers');
@@ -910,13 +922,13 @@ exports.sendMessage = async (req, res) => {
         disappearAt = new Date(Date.now() + timer * 60 * 60 * 1000);
       }
       
-      if (isSelfDestruct && !disappearAt) {
-        disappearAt = getSelfDestructExpiry({ isSelfDestruct, selfDestructTimer });
+      if (enforceSelfDestruct && !disappearAt) {
+        disappearAt = getSelfDestructExpiry({ isSelfDestruct: enforceSelfDestruct, selfDestructTimer });
       }
 
       // View-once safety net: even if never opened, the content must not
       // live on the server indefinitely — TTL cleans it up after 24h.
-      if (isViewOnce && !disappearAt) {
+      if (enforceViewOnce && !disappearAt) {
         disappearAt = new Date(Date.now() + VIEW_ONCE_TTL_MS);
       }
     } catch (disappearErr) {
@@ -954,9 +966,9 @@ exports.sendMessage = async (req, res) => {
       fileSize: fileSize || 0,
       duration: duration || 0,
       replyTo: replyToId,
-      isViewOnce: Boolean(isViewOnce),
+      isViewOnce: Boolean(enforceViewOnce),
       isVideoNote: Boolean(isVideoNote),
-      isSelfDestruct: Boolean(isSelfDestruct),
+      isSelfDestruct: Boolean(enforceSelfDestruct),
       mentions: mentionData.mentions || [],
       // Anti-screenshot: the sender opts OUT of screenshot protection by
       // allowing screenshots (default true). Persisting the toggle is what
@@ -1014,7 +1026,7 @@ exports.sendMessage = async (req, res) => {
       updateQuery.$inc = incObject;
     }
 
-    // 3. Update mazungumzo (Conversation) ili iweke ujumbe huu kama ujumbe wa mwisho (Last Message)
+    // 3. Update the Conversation to set this as the last message
     await Conversation.findByIdAndUpdate(
       finalConversationId,
       updateQuery,
@@ -1027,7 +1039,7 @@ exports.sendMessage = async (req, res) => {
       messageId ? { clientMessageId: messageId } : {}
     );
     
-    // 4. Rudisha ujumbe uliosavewa kwenda Frontend (respond before socket/cache side effects)
+    // 4. Return the saved message to the frontend (respond before socket/cache side effects)
     res.status(201).json({ success: true, message: plainMessage });
 
     try {
@@ -2715,7 +2727,7 @@ exports.addReaction = async (req, res) => {
       return res.status(400).json({ success: false, message: "Message ID and emoji are required" });
     }
 
-    // 1. Hakikisha message ipo na user ni participant
+    // 1. Ensure message exists and user is a participant
     const message = await Message.findById(messageId);
     if (!message) {
       return res.status(404).json({ success: false, message: "Message not found" });
@@ -2728,8 +2740,8 @@ exports.addReaction = async (req, res) => {
 
     const io = req.app.get("io");
 
-    // 2. Jaribu kuweka reaction mpya kwanza (atomic — $ne guard inazuia
-    //    double-push race wakati watu wawili wanatuma same time).
+    // 2. Try adding a new reaction first (atomic — $ne guard prevents
+    //    double-push race when two users react at the same time).
     const newReactionResult = await Message.findOneAndUpdate(
       {
         _id: messageId,
@@ -2742,7 +2754,7 @@ exports.addReaction = async (req, res) => {
     );
 
     if (newReactionResult) {
-      // Ilifanikiwa kuweka reaction mpya
+      // Successfully added new reaction
       if (io) {
         io.to(message.conversationId.toString()).emit("message:reaction", {
           messageId,
@@ -2753,7 +2765,7 @@ exports.addReaction = async (req, res) => {
       return res.json({ success: true, message: "Reaction added", reactions: newReactionResult.reactions || [] });
     }
 
-    // 3. Ikiwa ilishafail (reaction tayari ipo), badilisha emoji (atomic)
+    // 3. If adding failed (reaction already exists), update the emoji (atomic)
     const updatedResult = await Message.findOneAndUpdate(
       {
         _id: messageId,

@@ -171,7 +171,7 @@ exports.contributeToCollaboration = async (req, res) => {
 
     if (!parent) return res.status(404).json({ success: false, message: 'Status not found' });
     if (parent.expiresAt && new Date(parent.expiresAt) < new Date()) {
-      return res.status(400).json({ success: false, message: 'Story imekwisha muda wake' });
+      return res.status(400).json({ success: false, message: 'Story has expired' });
     }
     if (!parent.isCollaborative || (!isCollaborator(parent, userId) && !isStatusOwner(parent, userId))) {
       return res.status(403).json({ success: false, message: 'You are not a collaborator on this story' });
@@ -402,7 +402,7 @@ exports.votePoll = async (req, res) => {
 
     // Check if already voted
     const existingVote = status.poll.voters?.find(v => String(v.user) === String(userId));
-    if (existingVote) return res.status(400).json({ success: false, message: 'Umesha kura' });
+    if (existingVote) return res.status(400).json({ success: false, message: 'You have already voted' });
 
     // Record vote
     if (!status.poll.voters) status.poll.voters = [];
@@ -1100,7 +1100,7 @@ exports.muteUserStatus = async (req, res) => {
     
     const alreadyMuted = user.mutedStatusUsers.find(m => String(m.user) === String(status.user));
     if (alreadyMuted) {
-      return res.status(400).json({ success: false, message: 'User tayari ameshazimwa' });
+      return res.status(400).json({ success: false, message: 'User is already muted' });
     }
 
     const durationMs = parseMuteDurationMs(duration);
@@ -1114,7 +1114,7 @@ exports.muteUserStatus = async (req, res) => {
     user.markModified('mutedStatusUsers');
     await user.save();
 
-    res.json({ success: true, message: 'User amezimwa' });
+    res.json({ success: true, message: 'User muted successfully' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -1139,7 +1139,7 @@ exports.unmuteUserStatus = async (req, res) => {
     user.markModified('mutedStatusUsers');
     await user.save();
 
-    res.json({ success: true, message: 'User ameondolewa kwenye mute', removed: before - user.mutedStatusUsers.length });
+    res.json({ success: true, message: 'User removed from mute', removed: before - user.mutedStatusUsers.length });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -1197,7 +1197,7 @@ exports.unblockUserStatus = async (req, res) => {
 
     await user.save();
 
-    res.json({ success: true, message: 'User ameondolewa kwenye block', removed: before - user.blockedStatusUsers.length });
+    res.json({ success: true, message: 'User removed from block', removed: before - user.blockedStatusUsers.length });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -1248,7 +1248,7 @@ exports.blockUserStatus = async (req, res) => {
     
     const alreadyBlocked = user.blockedStatusUsers.find(b => String(b.user) === String(status.user));
     if (alreadyBlocked) {
-      return res.status(400).json({ success: false, message: 'User tayari ameshablokiwa' });
+      return res.status(400).json({ success: false, message: 'User is already blocked' });
     }
 
     user.blockedStatusUsers.push({
@@ -1265,7 +1265,7 @@ exports.blockUserStatus = async (req, res) => {
     }
     await user.save();
 
-    res.json({ success: true, message: 'User ameblokiwa' });
+    res.json({ success: true, message: 'User blocked successfully' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -1285,7 +1285,7 @@ exports.saveToCollection = async (req, res) => {
     
     const alreadySaved = user.savedStatuses.find(s => String(s.status) === String(status._id));
     if (alreadySaved) {
-      return res.status(400).json({ success: false, message: 'Status tayari imesave' });
+      return res.status(400).json({ success: false, message: 'Status is already saved' });
     }
 
     user.savedStatuses.push({
@@ -1297,7 +1297,7 @@ exports.saveToCollection = async (req, res) => {
     user.markModified('savedStatuses');
     await user.save();
 
-    res.json({ success: true, message: 'Status imesave' });
+    res.json({ success: true, message: 'Status saved successfully' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

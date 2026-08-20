@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
+const { checkPremiumAccess } = require('../middleware/premiumAccess');
 const {
   getAntiRevokeSettings,
   updateAntiRevokeSettings,
@@ -13,6 +14,7 @@ const {
 } = require('../controllers/messageProtectionController');
 
 router.use(protect);
+router.use(checkPremiumAccess);
 
 router.get('/settings', getAntiRevokeSettings);
 router.post('/settings', updateAntiRevokeSettings);

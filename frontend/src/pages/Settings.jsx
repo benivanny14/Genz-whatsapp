@@ -525,7 +525,7 @@ const Settings = () => {
 
       const result = await checkForUpdate();
       if (result === 'updated') {
-        showStatus('success', 'Sasisho jipya limepatikana! Linaandaliwa...');
+        showStatus('success', 'New update found! Preparing...');
       } else if (result === 'up-to-date') {
         showStatus('success', 'You are on the latest version of the app.');
       } else if (result === 'unsupported') {
@@ -1021,7 +1021,7 @@ const Settings = () => {
         <SettingRow
           icon={Store}
           title="Status & WINGA activity alerts"
-          description="Toasts zinazoonyesha mtu alipost status au biashara kwenye WINGA."
+          description="Toasts when someone posts a status or listing on WINGA."
           control={<Toggle checked={mods?.activityNotifications !== false} onChange={() => setMods((prev) => ({ ...prev, activityNotifications: prev.activityNotifications === false }))} />}
         />
       </SettingSection>
@@ -1305,11 +1305,11 @@ const Settings = () => {
               </button>
             </div>
 
-            <h2 className="text-white font-bold text-lg mt-3">Sasisho jipya limepatikana</h2>
+            <h2 className="text-white font-bold text-lg mt-3">New Update Available</h2>
             <p className="text-sm text-blue-100/70 mt-1">
               {updateInfo.isWeb
-                ? 'Kuna version mpya ya GENZ. Reload ili kupata features mpya.'
-                : `Una version mpya ya GENZ — v${updateInfo.manifest.version}. Install ili kupata features mpya.`}
+                ? 'A new version of GENZ is available. Reload to get the latest features.'
+                : `A new version of GENZ — v${updateInfo.manifest.version}. Install to get the latest features.`}
             </p>
 
             <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm">

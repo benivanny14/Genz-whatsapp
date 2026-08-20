@@ -3,6 +3,30 @@ const User = require('../models/User');
 const Conversation = require('../models/Conversation');
 const { getUser } = require('../services/userScopedService');
 
+// Premium-only fields that require an active subscription to toggle
+const PREMIUM_FIELDS = [
+  'antiDeleteMessages', 'antiDelete', 'antiDeleteStatus',
+  'antiViewOnce', 'voiceEffect', 'selfDestruct',
+  'chatBackgroundMusic', 'chatMusic', 'chatMusicUrl',
+  'glassMode', 'highResMedia'
+];
+
+const isPremiumActive = (user) => {
+  if (!user) return false;
+  if (!user.premium || !user.subscriptionExpiresAt) return false;
+  return new Date() <= new Date(user.subscriptionExpiresAt);
+};
+
+const stripPremiumFields = (incoming) => {
+  const stripped = {};
+  for (const key of PREMIUM_FIELDS) {
+    if (Object.prototype.hasOwnProperty.call(incoming, key)) {
+      stripped[key] = incoming[key];
+    }
+  }
+  return stripped;
+};
+
 const includesId = (items = [], id) => {
   if (!Array.isArray(items)) return false;
   const target = id?._id ? id._id.toString() : id?.toString();
@@ -127,6 +151,18 @@ exports.updateGenzModsSettings = async (req, res) => {
     if (!user) return;
 
     const incoming = req.body.settings || req.body;
+
+    // PREMIUM GATE: strip premium-only fields if user has no active subscription
+    if (!isPremiumActive(user)) {
+      const premiumFields = stripPremiumFields(incoming);
+      if (Object.keys(premiumFields).length > 0) {
+        console.log(`Premium fields rejected for non-premium user ${user.username}:`, Object.keys(premiumFields));
+      }
+      for (const key of Object.keys(premiumFields)) {
+        delete incoming[key];
+      }
+    }
+
     const existing = user.genzMods?.toObject?.() || user.genzMods || {};
     const normalizedIncoming = normalizeIncomingMods(incoming, existing);
     user.genzMods = mergeSettings({ ...existing, ...normalizedIncoming });

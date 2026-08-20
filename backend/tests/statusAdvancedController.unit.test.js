@@ -200,7 +200,7 @@ describe('statusAdvancedController — collaboration', () => {
     const res = makeRes();
     await statusAdv.contributeToCollaboration(makeReq({ params: { id: VALID_ID }, body: { type: 'text' } }), res);
     expect(res.statusCode).toBe(400);
-    expect(res.body.message).toBe('Story imekwisha muda wake');
+    expect(res.body.message).toBe('Story has expired');
   });
 
   it('contributeToCollaboration rejects non-collaborators (403)', async () => {
@@ -371,7 +371,7 @@ describe('statusAdvancedController — polls/location/schedule', () => {
     const res = makeRes();
     await statusAdv.votePoll(makeReq({ params: { id: VALID_ID }, body: { optionIds: [0] } }), res);
     expect(res.statusCode).toBe(400);
-    expect(res.body.message).toBe('Umesha kura');
+    expect(res.body.message).toBe('You have already voted');
   });
 
   it('votePoll records the vote (happy path)', async () => {
@@ -724,7 +724,7 @@ describe('statusAdvancedController — share/download/mute/block/save/forward', 
     const res = makeRes();
     await statusAdv.muteUserStatus(makeReq({ params: { id: VALID_ID }, body: { duration: 24 } }), res);
     expect(res.statusCode).toBe(400);
-    expect(res.body.message).toBe('User tayari ameshazimwa');
+    expect(res.body.message).toBe('User is already muted');
   });
 
   it('muteUserStatus mutes the poster (happy path)', async () => {
@@ -737,7 +737,7 @@ describe('statusAdvancedController — share/download/mute/block/save/forward', 
     expect(user.mutedStatusUsers[0].user).toBe('user-2');
     expect(user.mutedStatusUsers[0].expiresAt).toBeInstanceOf(Date);
     expect(user.markModified).toHaveBeenCalledWith('mutedStatusUsers');
-    expect(res.body.message).toBe('User amezimwa');
+    expect(res.body.message).toBe('User muted successfully');
   });
 
   it('muteUserStatus parses string durations like "24h" into a future expiry', async () => {
@@ -920,7 +920,7 @@ describe('statusAdvancedController — share/download/mute/block/save/forward', 
     await statusAdv.blockUserStatus(makeReq({ params: { id: VALID_ID }, body: { blockChatsToo: true } }), res);
     expect(user.blockedStatusUsers).toHaveLength(1);
     expect(user.blockedUsers).toEqual(['user-2']);
-    expect(res.body.message).toBe('User ameblokiwa');
+    expect(res.body.message).toBe('User blocked successfully');
   });
 
   it('saveToCollection rejects duplicates (400)', async () => {
@@ -929,7 +929,7 @@ describe('statusAdvancedController — share/download/mute/block/save/forward', 
     const res = makeRes();
     await statusAdv.saveToCollection(makeReq({ params: { id: VALID_ID }, body: { folder: 'Favs' } }), res);
     expect(res.statusCode).toBe(400);
-    expect(res.body.message).toBe('Status tayari imesave');
+    expect(res.body.message).toBe('Status is already saved');
   });
 
   it('saveToCollection saves to a folder (happy path)', async () => {
@@ -941,7 +941,7 @@ describe('statusAdvancedController — share/download/mute/block/save/forward', 
     expect(user.savedStatuses).toHaveLength(1);
     expect(user.savedStatuses[0].folder).toBe('Favs');
     expect(user.markModified).toHaveBeenCalledWith('savedStatuses');
-    expect(res.body.message).toBe('Status imesave');
+    expect(res.body.message).toBe('Status saved successfully');
   });
 
   it('forwardStatus records a forward (happy path)', async () => {

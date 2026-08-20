@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
+const { checkPremiumAccess } = require('../middleware/premiumAccess');
 const {
   addToCloseFriends,
   createStatusHighlight,
@@ -16,6 +17,7 @@ const {
 } = require('../controllers/statusToolsController');
 
 router.use(protect);
+router.use(checkPremiumAccess);
 
 router.get('/settings', getStatusFeaturesSettings);
 router.post('/settings', updateStatusFeaturesSettings);

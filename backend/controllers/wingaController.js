@@ -93,7 +93,7 @@ exports.createBusiness = async (req, res) => {
       const resetAt = new Date(since.getTime() + 24 * 60 * 60 * 1000);
       return res.status(429).json({
         success: false,
-        message: `Umefikia kikomo cha biashara ${DAILY_LIMIT} kwa siku. Jaribu tena baada ya masaa 24.`,
+        message: `Daily listing limit of ${DAILY_LIMIT} reached. Try again after 24 hours.`,
         code: 'DAILY_LIMIT_REACHED',
         limit: DAILY_LIMIT,
         postedToday: postedCount,
@@ -322,10 +322,10 @@ exports.placeOrder = async (req, res) => {
     const listing = await Business.findById(id);
     if (!listing) return res.status(404).json({ success: false, message: 'Listing not found' });
     if (String(listing.userId) === userId) {
-      return res.status(400).json({ success: false, message: 'Huwezi kununua biashara yako mwenyewe' });
+      return res.status(400).json({ success: false, message: 'You cannot purchase your own listing' });
     }
     if (listing.isSold) {
-      return res.status(400).json({ success: false, message: 'Biashara hii imeuza' });
+      return res.status(400).json({ success: false, message: 'This listing is already sold' });
     }
 
     const user = req.user || {};

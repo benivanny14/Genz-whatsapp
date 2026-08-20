@@ -57,7 +57,7 @@ const setupSocket = (io) => {
           const key = `ratelimit:${socket.userId || socket.id}:${eventName || 'all'}`;
           const current = await rc.get(key);
           let events = current ? JSON.parse(current) : [];
-          // Safisha events zilizopita 10 seconds
+          // Filter events from the last 10 seconds
           events = events.filter((ts) => now - ts < RATE_LIMIT_WINDOW_MS);
           if (events.length >= RATE_LIMIT_MAX_EVENTS) {
             return true;
@@ -238,7 +238,7 @@ const setupSocket = (io) => {
     socket.on('disconnect', async () => {
       logInfo('User disconnected:', socket.id);
 
-      // 🔥 MUHIMU: Safisha kumbukumbu ili isijaze RAM (No Memory Leak)
+      // IMPORTANT: Clear listeners to prevent memory leaks
       socket.removeAllListeners();
 
       const disconnectedUserId = socketToUser.get(socket.id) || socket.userId;

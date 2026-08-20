@@ -19,12 +19,13 @@ const {
   importModSettings
 } = require('../controllers/genzModsController');
 const { protect } = require('../middleware/auth');
+const { checkPremiumAccess } = require('../middleware/premiumAccess');
 
 router.use(protect);
 router.put('/settings', updateGenzModsSettings);
 router.get('/settings', getGenzModsSettings);
-router.get('/deleted-messages', getDeletedMessages);
-router.post('/restore-message/:id', restoreDeletedMessage);
+router.get('/deleted-messages', checkPremiumAccess, getDeletedMessages);
+router.post('/restore-message/:id', checkPremiumAccess, restoreDeletedMessage);
 router.post('/auto-reply', processAutoReply);
 router.get('/auto-reply', getAutoReply);
 router.get('/user-status/:userId', getUserStatus);

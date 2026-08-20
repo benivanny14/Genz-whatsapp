@@ -671,7 +671,7 @@ const VoiceRecorder = ({
         {showEffects && (
           <div className="absolute bottom-14 right-0 bg-[#0b141a] border border-white/12 rounded-2xl p-3 shadow-2xl z-[250] w-[280px] max-h-[52vh] overflow-y-auto">
             <p className="text-white text-xs font-bold mb-2 flex items-center gap-1">
-              <Wand2 size={12} /> Voice changer (kama GENZ Settings)
+              <Wand2 size={12} /> Voice changer (like GENZ Settings)
             </p>
             <div className="grid grid-cols-4 gap-2">
               {VOICE_EFFECT_PRESETS.map((effect) => (

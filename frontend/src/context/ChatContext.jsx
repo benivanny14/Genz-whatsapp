@@ -1163,8 +1163,8 @@ export const ChatProvider = ({ children }) => {
           const myId = String(currentUserIdRef.current || '');
           if (sellerId && sellerId === myId && modsRef.current.activityNotifications !== false) {
             const buyer = order?.buyerUsername || 'Someone';
-            const title = order?.listingTitle || 'biashara';
-            showActivityToastRef.current('winga', `🛍️ ${buyer} anataka kununua "${title}"`);
+            const title = order?.listingTitle || 'listing';
+            showActivityToastRef.current('winga', `🛍️ ${buyer} wants to buy "${title}"`);
           }
         } catch (_) { /* ignore */ }
         fetchWingaRef.current();
@@ -1177,11 +1177,11 @@ export const ChatProvider = ({ children }) => {
           const buyerId = String(order?.buyerId || order?.buyer?._id || '');
           const myId = String(currentUserIdRef.current || '');
           if (buyerId && buyerId === myId && modsRef.current.activityNotifications !== false) {
-            const title = order?.listingTitle || 'biashara';
+            const title = order?.listingTitle || 'listing';
             const msg =
-              order?.status === 'confirmed' ? `✅ Muuzaji amethibitisha ombi lako la "${title}"` :
-              order?.status === 'declined' ? `❌ Muuzaji amekataa ombi lako la "${title}"` :
-              `📦 Ombi lako la "${title}" limebadilika`;
+              order?.status === 'confirmed' ? `✅ Seller confirmed your request for "${title}"` :
+              order?.status === 'declined' ? `❌ Seller declined your request for "${title}"` :
+              `📦 Your request for "${title}" has been updated`;
             showActivityToastRef.current('winga', msg);
           }
         } catch (_) { /* ignore */ }
@@ -2369,7 +2369,7 @@ export const ChatProvider = ({ children }) => {
       let savedMessage = newMessage;
       let resolvedServerId = null;
 
-      // 1. Kipaumbele: Tumia Socket kwanza (real-time) — wait for delivery ack
+      // 1. Priority: Use Socket first (real-time) — wait for delivery ack
       if (socketRef.current?.connected) {
         console.log("Sending message via Socket...");
         try {
@@ -2411,9 +2411,9 @@ export const ChatProvider = ({ children }) => {
         }
       }
 
-      // 2. Njia mbadala: Kama Socket haifanyi kazi, tumia HTTP API
+      // 2. Fallback: If Socket is not working, use HTTP API
       if (!messageSent && navigator.onLine && isMongoObjectId(newMessage.conversationId)) {
-        console.log("Socket haifanyi kazi, natumia HTTP API...");
+        console.log("Socket not working, falling back to HTTP API...");
         try {
           const data = await apiService.sendMessage(
             newMessage.conversationId,
@@ -2447,7 +2447,7 @@ export const ChatProvider = ({ children }) => {
         ));
       }
 
-      // 3. Kama zote zimefeli, weka foleni
+      // 3. If all attempts failed, enqueue the message
       if (!messageSent) {
         console.error("Message failed to send — no network or the server is down!");
         await DB.enqueueAction({ type: 'sendMessage', payload });

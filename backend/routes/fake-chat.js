@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
+const { checkPremiumAccess } = require('../middleware/premiumAccess');
 const {
   clearAllFakeData,
   createFakeChat,
@@ -15,6 +16,7 @@ const {
 } = require('../controllers/fakeChatController');
 
 router.use(protect);
+router.use(checkPremiumAccess);
 
 router.get('/settings', getFakeChatSettings);
 router.post('/settings', updateFakeChatSettings);

@@ -265,7 +265,7 @@ const TrailerStatusGenerator = ({ statuses, user, onClose }) => {
         privacy: 'contacts'
       });
       if (!data.success) throw new Error(data.message || 'Failed to create status');
-      setSuccess('Trailer imepost kama status!');
+      setSuccess('Trailer posted as status!');
       setTimeout(() => onClose(), 1500);
     } catch (err) {
       console.error('Post trailer error:', err);

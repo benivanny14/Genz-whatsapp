@@ -24,7 +24,7 @@ const serializeOutgoingMessage = (msgObj = {}, extras = {}) => {
           : '',
         messageType: replyTo.messageType,
         sender: serializeSender(replyTo.sender)
-        // ❌ Usiweke replyTo.replyTo hapa - hii inasababisha mzunguko
+        // Do not set replyTo.replyTo here — it causes infinite recursion
       };
     }
     return null;

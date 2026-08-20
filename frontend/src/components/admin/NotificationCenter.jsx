@@ -38,7 +38,7 @@ const NotificationCenter = () => {
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
         <StatCard label="Total Subscriptions" value={overview.totalSubscriptions} />
-        <StatCard label="Zinazofanya Kazi" value={overview.enabledSubscriptions} tone="emerald" />
+        <StatCard label="Active" value={overview.enabledSubscriptions} tone="emerald" />
       </div>
 
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">

@@ -605,6 +605,10 @@ describe('socket security — message:send persists allowScreenshot', () => {
       disappearingMessages: { enabled: false },
       save: jest.fn().mockResolvedValue(undefined)
     });
+    // Mock premium user so view-once is not stripped by the premium gate
+    User.findById.mockReturnValue({
+      select: jest.fn().mockResolvedValue({ premium: true, subscriptionExpiresAt: new Date(Date.now() + 86400000) })
+    });
     Message.create.mockResolvedValue({ _id: 'm1', conversationId: CONV_ID });
     Message.findById.mockReturnValue({
       populate: jest.fn().mockResolvedValue({ _id: 'm1', content: 'secret', sender: SENDER_ID })

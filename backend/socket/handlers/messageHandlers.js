@@ -179,8 +179,21 @@ module.exports = function registerMessageHandlers(ctx) {
         const timerHours = Number(conversation.disappearingMessages.timer) || 24;
         disappearAt = new Date(Date.now() + timerHours * 60 * 60 * 1000);
       }
-      if (isSelfDestruct && !disappearAt) {
-        disappearAt = getSelfDestructExpiry({ isSelfDestruct, selfDestructTimer });
+
+      // PREMIUM GATE: self-destruct and view-once require active subscription
+      let enforceSelfDestruct = isSelfDestruct;
+      let enforceViewOnce = isViewOnce;
+      if (isSelfDestruct || isViewOnce) {
+        const senderUser = await User.findById(socket.userId).select('premium subscriptionExpiresAt');
+        const hasPremium = senderUser && senderUser.premium && senderUser.subscriptionExpiresAt && new Date() <= new Date(senderUser.subscriptionExpiresAt);
+        if (!hasPremium) {
+          enforceSelfDestruct = false;
+          enforceViewOnce = false;
+        }
+      }
+
+      if (enforceSelfDestruct && !disappearAt) {
+        disappearAt = getSelfDestructExpiry({ isSelfDestruct: enforceSelfDestruct, selfDestructTimer });
       }
 
       const message = await Message.create({
@@ -194,9 +207,9 @@ module.exports = function registerMessageHandlers(ctx) {
         fileSize: fileSize || 0,
         duration: duration || 0,
         replyTo: replyToId,
-        isViewOnce: Boolean(isViewOnce),
+        isViewOnce: Boolean(enforceViewOnce),
         isVideoNote: Boolean(isVideoNote),
-        isSelfDestruct: Boolean(isSelfDestruct),
+        isSelfDestruct: Boolean(enforceSelfDestruct),
         // Anti-screenshot: persist the sender's toggle so the screenshot-attempt
         // endpoint + socket event work (same contract as chatController.sendMessage).
         ...(typeof allowScreenshot === 'boolean' ? { allowScreenshot } : {}),

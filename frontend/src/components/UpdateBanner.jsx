@@ -128,8 +128,8 @@ const UpdateBanner = () => {
           <p className="text-sm font-bold text-white">Update available — v{update.version}</p>
           <p className="text-xs text-slate-400 truncate">
             {update.isWeb
-              ? 'Kuna version mpya ya GENZ. Reload ili kupata features mpya.'
-              : 'Kuna version mpya ya GENZ. Install ili kupata features mpya.'}
+              ? 'A new version of GENZ is available. Reload to get the latest features.'
+              : 'A new version of GENZ is available. Install to get the latest features.'}
           </p>
           {update.changes?.length > 0 && (
             <ul className="mt-1.5 space-y-0.5">

@@ -11,83 +11,83 @@ const FEATURES = [
   {
     icon: MessageCircle,
     title: 'Real-time Messaging',
-    desc: 'Tuma na pokea ujumbe wa haraka kwa wakati halisi.',
+    desc: 'Send and receive instant messages in real time.',
   },
   {
     icon: Image,
     title: 'Media Sharing',
-    desc: 'Tuma picha, video, sauti, na nyaraka kwa urahisi.',
+    desc: 'Share photos, videos, audio, and documents easily.',
   },
   {
     icon: Users,
     title: 'Group Chats',
-    desc: 'Fanya makundi ya mazungumzo na marafiki yako.',
+    desc: 'Create group conversations with your friends.',
   },
   {
     icon: Lock,
     title: 'End-to-End Security',
-    desc: 'Ujumbe wako unalindwa na usalama wa hali ya juu.',
+    desc: 'Your messages are protected with high-level security.',
   },
   {
     icon: Bell,
     title: 'Push Notifications',
-    desc: 'Pata taarifa papo hapo hata ukiwa nje ya app.',
+    desc: 'Get instant notifications even when you are offline.',
   },
   {
     icon: Palette,
     title: 'Themes & Customization',
-    desc: 'Badilisha muonekano wa app kwa ladha yako.',
+    desc: 'Customize the app appearance to your liking.',
   },
   {
     icon: Shield,
     title: 'Anti-Delete',
-    desc: 'Ona ujumbe uliofutwa na mtu mwingine.',
+    desc: 'See messages that were deleted by the other person.',
   },
   {
     icon: Zap,
     title: 'Voice Effects',
-    desc: 'Ongeza sauti za kubahatisha kwenye voice notes.',
+    desc: 'Add fun voice effects to your voice notes.',
   },
 ];
 
 const STEPS = [
   {
     num: '1',
-    title: 'Pakua APK',
-    desc: 'Bonyeza kitufe cha Download hapo juu kupakua faili ya APK.',
+    title: 'Download APK',
+    desc: 'Tap the Download button above to get the APK file.',
   },
   {
     num: '2',
-    title: 'Sakinisha',
-    desc: 'Fungua faili uliyopakua na ubonyeze "Install". Weka ruhusa usakinishe kutoka vyanzo visivyojulikana ikiwa inahitajika.',
+    title: 'Install',
+    desc: 'Open the downloaded file and tap "Install". Allow installation from unknown sources if prompted.',
   },
   {
     num: '3',
-    title: 'Fungua App',
-    desc: 'Bonyeza "Open" baada ya usakinishaji kukamilika. Jisajili au ingia ili kuanza kuzungumza.',
+    title: 'Open App',
+    desc: 'Tap "Open" after installation is complete. Sign up or log in to start messaging.',
   },
 ];
 
 const FAQS = [
   {
-    q: 'Je, app hii ni ya bure?',
-    a: 'Ndiyo, Genz Messenger ni bure kabisa. Hakuna ada ya usajili au matumizi.',
+    q: 'Is this app free?',
+    a: 'Yes, Genz Messenger is completely free. There are no registration or usage fees.',
   },
   {
-    q: 'Je, data yangu inalindwa?',
-    a: 'Ndiyo. Ujumbe wako unalindwa na usalama wa hali ya juu. Hakuna mtu anayeweza kusoma ujumbe wako.',
+    q: 'Is my data protected?',
+    a: 'Yes. Your messages are protected with high-level security. No one can read your messages.',
   },
   {
-    q: 'Ninawezaje ku-update app?',
-    a: 'Ukiwa na version ya zamani, utapokea taarifa ya update ndani ya app. Bonyeze "Update" kupakua version mpya.',
+    q: 'How do I update the app?',
+    a: 'If you have an older version, you will receive an update notification inside the app. Tap "Update" to download the new version.',
   },
   {
-    q: 'Je, inafanya kazi kwenye Android yote?',
-    a: 'Ndiyo, inafanya kazi kwenye Android 6.0 na zaidi.',
+    q: 'Does it work on all Android devices?',
+    a: 'Yes, it works on Android 6.0 and above.',
   },
   {
-    q: 'Ninawezaje kuona ujumbe uliofutwa?',
-    a: 'Genz Messenger ina kipengele cha Anti-Delete kinachokuonyesha ujumbe uliofutwa na mtu mwingine.',
+    q: 'How can I see deleted messages?',
+    a: 'Genz Messenger has an Anti-Delete feature that shows you messages that were deleted by the other person.',
   },
 ];
 
@@ -151,8 +151,8 @@ const LandingPage = () => {
             <span className="text-[#00a884]">Genz</span> Messenger
           </h1>
           <p className="mt-4 text-lg text-slate-400 max-w-xl mx-auto">
-            App ya mazungumzo ya haraka, salama, na ya kisasa. 
-            Fanya mazungumzo na marafiki, familia, na wote wanaopenda.
+            A fast, secure, and modern messaging app.
+            Chat with friends, family, and everyone you care about.
           </p>
 
           {/* Download Button */}
@@ -164,7 +164,7 @@ const LandingPage = () => {
               className="inline-flex items-center gap-3 bg-[#00a884] hover:bg-[#00c795] text-white font-bold text-lg px-8 py-4 rounded-2xl transition-all shadow-lg shadow-[#00a884]/25 hover:shadow-[#00a884]/40"
             >
               {downloading ? (
-                <><RefreshCw size={22} className="animate-spin" /> Inapakia...</>
+                <><RefreshCw size={22} className="animate-spin" /> Loading...</>
               ) : (
                 <><Download size={22} /> Pakua APK Bure</>
               )}
@@ -273,27 +273,27 @@ const LandingPage = () => {
           <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
             <div className="flex items-center gap-3 mb-3">
               <Shield size={20} className="text-[#00a884]" />
-              <h3 className="font-semibold">Sheria za Matumizi</h3>
+              <h3 className="font-semibold">Terms of Service</h3>
             </div>
             <p className="text-sm text-slate-400 mb-4 leading-relaxed">
-              Kwa kutumia Genz Messenger, unakubali sheria zifuatazo:
+              By using Genz Messenger, you agree to the following terms:
             </p>
             <ul className="space-y-2 text-sm text-slate-500">
               <li className="flex items-start gap-2">
                 <Check size={14} className="text-[#00a884] mt-0.5 shrink-0" />
-                <span>Usitume ujumbe wa udhalilishaji, unyanyasaji, au uvumi.</span>
+                <span>Do not send messages that are harassing, abusive, or spam.</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check size={14} className="text-[#00a884] mt-0.5 shrink-0" />
-                <span>Heshimu faragha ya watumiaji wengine.</span>
+                <span>Respect the privacy of other users.</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check size={14} className="text-[#00a884] mt-0.5 shrink-0" />
-                <span>Usitumie app kwa shughuli zisizofaa au zinasaliti sheria.</span>
+                <span>Do not use the app for inappropriate or illegal activities.</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check size={14} className="text-[#00a884] mt-0.5 shrink-0" />
-                <span>Kila mtumiaji anawajibika kwa tabia yake ndani ya app.</span>
+                <span>Each user is responsible for their behavior within the app.</span>
               </li>
             </ul>
           </div>
@@ -302,27 +302,27 @@ const LandingPage = () => {
           <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
             <div className="flex items-center gap-3 mb-3">
               <Lock size={20} className="text-[#00a884]" />
-              <h3 className="font-semibold">Sera ya Faragha</h3>
+              <h3 className="font-semibold">Privacy Policy</h3>
             </div>
             <p className="text-sm text-slate-400 mb-4 leading-relaxed">
-              Faragha yako ni muhimu kwetu. Hii ndiyo jinsi tunavyolinda data yako:
+              Your privacy is important to us. Here is how we protect your data:
             </p>
             <ul className="space-y-2 text-sm text-slate-500">
               <li className="flex items-start gap-2">
                 <Check size={14} className="text-[#00a884] mt-0.5 shrink-0" />
-                <span>Ujumbe wako unalindwa na usalama wa hali ya juu.</span>
+                <span>Your messages are protected with high-level security.</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check size={14} className="text-[#00a884] mt-0.5 shrink-0" />
-                <span>Hatugawani data yako na watu wa tatu.</span>
+                <span>We do not share your data with third parties.</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check size={14} className="text-[#00a884] mt-0.5 shrink-0" />
-                <span>Unaweza kufuta akaunti yako wakati wowote.</span>
+                <span>You can delete your account at any time.</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check size={14} className="text-[#00a884] mt-0.5 shrink-0" />
-                <span>Tunahifadhi tu taarifa zinazohitajika kwa kazi ya app.</span>
+                <span>We only store information necessary for the app to function.</span>
               </li>
             </ul>
           </div>
@@ -331,9 +331,9 @@ const LandingPage = () => {
         {/* Additional Policies */}
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           {[
-            { title: 'Sheria za Kulipa', desc: 'Malipo yote yanafanywa kwa njia salama. Genz Messenger haichukui ada yoyote ya ziada.' },
-            { title: 'Uhalali wa Media', desc: 'Media zote zilizopakiwa ni za mmiliki wake. Usipakie media zisizofaa.' },
-            { title: 'Ujumbe Uliofutwa', desc: 'Kipengele cha Anti-Delete kinaonyesha ujumbe uliofutwa. Tumia kwa kujua ukweli, si kwa unyanyasaji.' },
+            { title: 'Payment Terms', desc: 'All payments are made through secure channels. Genz Messenger does not charge any additional fees.' },
+            { title: 'Media Ownership', desc: 'All uploaded media belongs to its owner. Do not upload inappropriate media.' },
+            { title: 'Deleted Messages', desc: 'The Anti-Delete feature shows messages that were deleted. Use it to know the truth, not for harassment.' },
           ].map(({ title, desc }) => (
             <div key={title} className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
               <h4 className="font-medium text-sm mb-2">{title}</h4>
@@ -348,7 +348,7 @@ const LandingPage = () => {
         <div className="p-8 rounded-3xl bg-gradient-to-br from-[#00a884]/10 to-[#00a884]/5 border border-[#00a884]/20">
           <Smartphone size={48} className="text-[#00a884] mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-3">
-            Anza Kutumia <span className="text-[#00a884]">Genz Messenger</span> Sasa
+            Start Using <span className="text-[#00a884]">Genz Messenger</span> Now
           </h2>
           <p className="text-slate-400 mb-6 max-w-md mx-auto">
             Pakua app, jisajili, na anza kuzungumza na marafiki yako. 
@@ -382,7 +382,7 @@ const LandingPage = () => {
             <span className="font-semibold text-sm">Genz Messenger</span>
           </div>
           <p className="text-xs text-slate-600 mb-4">
-            App ya mazungumzo ya haraka, salama, na ya kisasa.
+            A fast, secure, and modern messaging app.
           </p>
           <div className="flex items-center justify-center gap-4 text-xs text-slate-500">
             <Link to="/terms" className="hover:text-[#00a884] transition-colors">Sheria za Matumizi</Link>
