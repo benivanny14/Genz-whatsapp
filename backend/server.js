@@ -1074,15 +1074,21 @@ app.use('/api', (req, res) => {
 const frontendDistPath = path.resolve(__dirname, '../frontend/dist');
 const frontendIndexPath = path.join(frontendDistPath, 'index.html');
 if (fs.existsSync(frontendIndexPath)) {
-  // version.json + the APK must NEVER be cached: the in-app update banner and
+  // version.json must NEVER be cached: the in-app update banner and
   // the login page compare the served values against the installed build, so
-  // a day-old copy (express.static maxAge '1d') would hide new releases.
+  // a day-old copy would hide new releases.
   const sendNoCache = (file) => (req, res) => {
     res.setHeader('Cache-Control', 'no-store, max-age=0');
     res.sendFile(file);
   };
   app.get('/version.json', sendNoCache(path.join(frontendDistPath, 'version.json')));
-  app.get('/genz-whatsapp.apk', sendNoCache(path.join(frontendDistPath, 'genz-whatsapp.apk')));
+  // APK can be cached for 1 hour — the file is versioned and only changes on
+  // redeploy. Caching reduces cold-start latency on Render free tier.
+  const sendApkCached = (file) => (req, res) => {
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.sendFile(file);
+  };
+  app.get('/genz-whatsapp.apk', sendApkCached(path.join(frontendDistPath, 'genz-whatsapp.apk')));
   app.use(express.static(frontendDistPath, { maxAge: '1d', index: false }));
   app.get(/^\/(?!api\/|uploads\/|socket\.io).*/, (req, res, next) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') return next();
