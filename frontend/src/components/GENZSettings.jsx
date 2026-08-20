@@ -1845,35 +1845,6 @@ const PrivacyTab = ({ ctx }) => {
                 </div>
               </div>
 
-              {/* Chat Background Music */}
-              <div className="bg-white/5 rounded-xl border border-white/10 mt-3">
-                <div className="p-4 bg-pink-900/30 border-b border-white/10 flex items-center gap-2 text-pink-400 font-bold">
-                  <Music size={18} /> Chat Background Music
-                </div>
-                <div className="p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-white text-sm">Enable Music</h3>
-                    <div
-                      onClick={() => toggleMod('chatMusic')}
-                      className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${mods.chatMusic ? 'bg-pink-500' : 'bg-white/10 border border-white/20'}`}
-                    >
-                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${mods.chatMusic ? 'right-1' : 'left-1'}`} />
-                    </div>
-                  </div>
-                  {mods.chatMusic && (
-                    <div>
-                      <input
-                        type="text"
-                        value={mods.chatMusicUrl || ''}
-                        onChange={(e) => setMods(prev => ({ ...prev, chatMusicUrl: e.target.value }))}
-                        placeholder="Paste music URL here"
-                        className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-sm text-white"
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-
               {/* Glass Theme & Video Background */}
               <div className="bg-white/5 rounded-xl border border-white/10 mt-3">
                 <div className="p-4 bg-blue-900/30 border-b border-white/10 flex items-center gap-2 text-blue-400 font-bold">
