@@ -125,33 +125,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   const [startY, setStartY] = useState(0);
   const [longPressChatId, setLongPressChatId] = useState(null);
   const longPressTimerRef = useRef(null);
-  const [fakeCoverChats, setFakeCoverChats] = useState([]);
-  const [showFakeCoverPanel, setShowFakeCoverPanel] = useState(false);
 
-  // Load fake cover chats from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('genz_fake_cover_chats');
-    if (saved) {
-      setFakeCoverChats(JSON.parse(saved));
-    }
-  }, []);
-
-  // Save fake cover chats to localStorage
-  useEffect(() => {
-    localStorage.setItem('genz_fake_cover_chats', JSON.stringify(fakeCoverChats));
-  }, [fakeCoverChats]);
-
-  // Toggle fake cover for a chat
-  const toggleFakeCover = (chatId) => {
-    setFakeCoverChats(prev =>
-      prev.includes(chatId)
-        ? prev.filter(id => id !== chatId)
-        : [...prev, chatId]
-    );
-  };
-
-  // Check if chat has fake cover enabled
-  const hasFakeCover = (chatId) => fakeCoverChats.includes(chatId);
   const [iconSettings, setIconSettings] = useState(() => {
     try {
       const stored = localStorage.getItem('genz_icon_settings');
@@ -1789,18 +1763,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
             >
               <Download size={16} />
               <span>Export Chat</span>
-            </button>
-            <button
-              onClick={() => { toggleFakeCover(contextMenu.chatId); setContextMenu(null); }}
-              className="w-full flex items-center gap-3 px-4 py-2 hover:bg-dark-hover text-dark-text transition-colors"
-            >
-              <Shield size={16} />
-              <span>Fake Chat Cover</span>
-              {hasFakeCover(contextMenu.chatId) ? (
-                <Check size={14} className="text-primary-500 ml-auto" />
-              ) : (
-                <span className="ml-auto text-xs text-yellow-500">Premium</span>
-              )}
             </button>
             <div className="border-t border-dark-border my-1" />
             <div className="px-4 py-1 text-xs font-semibold text-dark-textSecondary uppercase tracking-wider">Assign to Tab</div>

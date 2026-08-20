@@ -25,6 +25,7 @@ import { getAnonId } from '../utils/updateAnalytics';
 import ErrorBoundary from './ErrorBoundary';
 import FakeChatPanel from './FakeChatPanel';
 
+
 const API_URL = resolveApiBase() || '/api';
 const SUBSCRIPTION_AMOUNT = 10000; // Tsh 10,000 kwa Premium (siku 30)
 
@@ -1658,11 +1659,45 @@ const UpdateHistory = () => {
   );
 };
 
+// Fake Chat section component
+const FakeChatSection = ({ ctx }) => {
+  const { mods, toggleMod } = ctx;
+  const [showFakeChatPanel, setShowFakeChatPanel] = useState(false);
+
+  return (
+    <>
+      <ModItem
+        icon={<Shield size={20} className="text-yellow-500" />}
+        title="Fake Chat"
+        desc="Create fake conversations with pre-made chats"
+        active={mods.fakeChatCover}
+        onClick={() => toggleMod('fakeChatCover')}
+      />
+      {mods.fakeChatCover && (
+        <button
+          onClick={() => setShowFakeChatPanel(true)}
+          className="w-full flex items-center gap-3 p-3 hover:bg-white/10 cursor-pointer rounded-lg transition-colors border border-yellow-500/20 bg-yellow-500/5 mx-0"
+        >
+          <div className="w-5 h-5 flex items-center justify-center">
+            <MessageSquare size={18} className="text-yellow-400" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-yellow-400">Open Fake Chat</h3>
+            <p className="text-xs text-white/50">Select from ready-made conversations</p>
+          </div>
+          <ChevronRight size={16} className="ml-auto text-yellow-400/50" />
+        </button>
+      )}
+      {showFakeChatPanel && <FakeChatPanel onClose={() => setShowFakeChatPanel(false)} />}
+    </>
+  );
+};
+
 // privacy tab content — extracted so a crash in one tab is scoped by
 // <ErrorBoundary> instead of blanking the whole settings panel.
 const PrivacyTab = ({ ctx }) => {
     const { backupActionLoading, backupError, backupProgress, close, connectedDevices, countdown, isPrivacyLocked, logoutDevice, mods, notificationSound, setMods, setNotificationSound, setShowPaymentModal, setShowPrivacyAnimation, setVoiceFxPreviewBusy, showPrivacyAnimation, subscriptionStatus, toggleMod, voiceFxPreviewBusy, handleMusicFileUpload, handleStartCloudBackup, musicFileInputRef, navigate, renderCloudBackupsList } = ctx;
-    const [showFakeChatPanel, setShowFakeChatPanel] = useState(false);
+
   // Server-side crash analytics toggle (opt-in): when enabled the ErrorBoundary
   // POSTs caught render crashes to /api/telemetry/crashes for the admin panel.
   const [crashReporting, setCrashReporting] = useState(() => {
@@ -1826,29 +1861,9 @@ const PrivacyTab = ({ ctx }) => {
                 active={mods.hideViewStatus}
                 onClick={() => toggleMod('hideViewStatus')}
               />
-              <ModItem
-                icon={<Shield size={20} className="text-yellow-500" />}
-                title="Fake Chat Cover"
-                desc="Hide real chats behind fake system update covers"
-                active={mods.fakeChatCover}
-                onClick={() => toggleMod('fakeChatCover')}
-              />
-              {mods.fakeChatCover && (
-                <button
-                  onClick={() => setShowFakeChatPanel(true)}
-                  className="w-full flex items-center gap-3 p-3 hover:bg-white/10 cursor-pointer rounded-lg transition-colors border border-yellow-500/20 bg-yellow-500/5 mx-0"
-                >
-                  <div className="w-5 h-5 flex items-center justify-center">
-                    <Edit3 size={18} className="text-yellow-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-yellow-400">Edit Fake Chats</h3>
-                    <p className="text-xs text-white/50">Create and manage fake conversations</p>
-                  </div>
-                  <ChevronRight size={16} className="ml-auto text-yellow-400/50" />
-                </button>
-              )}
-              {showFakeChatPanel && <FakeChatPanel onClose={() => setShowFakeChatPanel(false)} />}
+
+              <FakeChatSection ctx={{ mods, toggleMod }} />
+
               <div
                 onClick={() => window.location.href = '/genz-after-work'}
                 className="flex items-center gap-3 p-3 bg-gradient-to-r from-purple-500/10 to-pink-500/10 hover:from-purple-500/20 hover:to-pink-500/20 border border-purple-500/20 rounded-xl cursor-pointer transition-all"

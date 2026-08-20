@@ -17,7 +17,7 @@ import StorageManagement from '../components/StorageManagement';
 import AccountSwitcher from '../components/AccountSwitcher';
 import PrivacyPermissionSelector from '../components/PrivacyPermissionSelector';
 import ContactSelectorScreen from '../components/ContactSelectorScreen';
-import FakeChatPanel from '../components/FakeChatPanel';
+
 import LocationSharingPanel from '../components/LocationSharingPanel';
 import PasskeysSettings from '../components/PasskeysSettings';
 import { useUser } from '../context/UserContext';
@@ -345,7 +345,7 @@ const Settings = () => {
   const [showStorage, setShowStorage] = useState(false);
   const [showContactSelector, setShowContactSelector] = useState(false);
   const [contactSelectorConfig, setContactSelectorConfig] = useState(null);
-  const [showFakeChat, setShowFakeChat] = useState(false);
+
   const [showLocationSharing, setShowLocationSharing] = useState(false);
   const [showHelpCenter, setShowHelpCenter] = useState(false);
   const [apkVersion, setApkVersion] = useState(null);
@@ -422,8 +422,7 @@ const Settings = () => {
     { id: 'language', label: 'App language', icon: Languages },
     { id: 'linked', label: 'Linked devices', icon: Smartphone },
     { id: 'contacts', label: 'Contacts', icon: Users },
-    // Fake Chat tab - only in development
-    ...(import.meta.env.DEV ? [{ id: 'fake-chat', label: 'Fake Chat', icon: MessageSquare }] : []),
+
     { id: 'location', label: 'Location', icon: MapPin },
     { id: 'help', label: 'Help', icon: HelpCircle }
   ]), []);
@@ -1081,13 +1080,7 @@ const Settings = () => {
     </div>
   );
 
-  const renderFakeChat = () => (
-    <div className="space-y-4">
-      <SettingSection title="Fake Chat & Calls" description="Create fake conversations and call logs for testing.">
-        <SettingRow icon={MessageSquare} title="Fake Chat Settings" description="Manage fake chat and call features." onClick={() => setShowFakeChat(true)} />
-      </SettingSection>
-    </div>
-  );
+
 
   const renderLocation = () => (
     <div className="space-y-4">
@@ -1145,7 +1138,7 @@ const Settings = () => {
     if (activeTab === 'language') return renderLanguage();
     if (activeTab === 'linked') return renderLinked();
     if (activeTab === 'contacts') return renderContacts();
-    if (activeTab === 'fake-chat') return renderFakeChat();
+
     if (activeTab === 'location') return renderLocation();
     return renderHelp();
   };
@@ -1236,7 +1229,7 @@ const Settings = () => {
       {showAntiBanPanel && <AntiBanPanel onClose={() => setShowAntiBanPanel(false)} />}
       {showStatusPrivacyPanel && <StatusPrivacyPanel onClose={() => setShowStatusPrivacyPanel(false)} />}
       {showStorage && <StorageManagement onClose={() => setShowStorage(false)} />}
-      {import.meta.env.DEV && showFakeChat && <FakeChatPanel onClose={() => setShowFakeChat(false)} />}
+
       {showLocationSharing && <LocationSharingPanel onClose={() => setShowLocationSharing(false)} />}
       {showContactSelector && contactSelectorConfig && (
         <ContactSelectorScreen

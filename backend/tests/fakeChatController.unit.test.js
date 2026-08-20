@@ -98,30 +98,29 @@ describe('fakeChatController — settings', () => {
 describe('fakeChatController — create/delete', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('rejects createFakeChat without messages (validation)', async () => {
+  it('rejects createFakeChat without templateId (validation)', async () => {
     User.findById.mockResolvedValue(makeUser());
     const res = makeRes();
-    await fakeChat.createFakeChat(makeReq({ body: { contactName: 'Bob' } }), res);
+    await fakeChat.createFakeChat(makeReq({ body: {} }), res);
     expect(res.statusCode).toBe(400);
   });
 
   it('rejects creating when fake chat is disabled (403)', async () => {
     User.findById.mockResolvedValue(makeUser());
     const res = makeRes();
-    await fakeChat.createFakeChat(makeReq({ body: { contactName: 'Bob', messages: [{ content: 'hi' }] } }), res);
+    await fakeChat.createFakeChat(makeReq({ body: { templateId: 'couple-love' } }), res);
     expect(res.statusCode).toBe(403);
-    expect(res.body.message).toBe('Fake chat is disabled');
+    expect(res.body.message).toContain('Fake chat is disabled');
   });
 
-  it('creates a fake chat with messages (happy path)', async () => {
+  it('creates a fake chat from template (happy path)', async () => {
     User.findById.mockResolvedValue(makeUser({ fakeChatSettings: { fakeChatEnabled: true } }));
-    Conversation.create.mockResolvedValue({ _id: 'fc1' });
+    Conversation.create.mockResolvedValue({ _id: 'fc1', save: jest.fn().mockResolvedValue(undefined) });
     Message.create.mockResolvedValue({ _id: 'm1' });
     const res = makeRes();
-    await fakeChat.createFakeChat(makeReq({ body: { contactName: 'Bob', messages: [{ content: 'hi', isFromMe: true }] } }), res);
+    await fakeChat.createFakeChat(makeReq({ body: { templateId: 'couple-love' } }), res);
     expect(res.body.success).toBe(true);
     expect(res.body.conversationId).toBe('fc1');
-    expect(Message.create).toHaveBeenCalledTimes(1);
     expect(Conversation.create).toHaveBeenCalledWith(expect.objectContaining({ isFake: true }));
   });
 

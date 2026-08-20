@@ -2,14 +2,13 @@ const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
 const {
-  applyFakeCover,
   clearAllFakeData,
   createFakeChat,
-  createFromTemplate,
   deleteFakeChat,
   getFakeChatSettings,
   getFakeChats,
   getPremadeConversations,
+  getPremadeConversationDetail,
   resetFakeChatSettings,
   toggleFakeChat,
   updateFakeChatSettings,
@@ -26,7 +25,6 @@ router.post('/toggle', toggleFakeChat);
 router.delete('/clear-all', clearAllFakeData);
 router.post('/reset', resetFakeChatSettings);
 router.get('/premade', getPremadeConversations);
-router.post('/create-from-template', createFromTemplate);
-router.post('/apply-cover', applyFakeCover);
+router.get('/premade/:id', getPremadeConversationDetail);
 
 module.exports = router;

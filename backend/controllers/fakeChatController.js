@@ -1,4 +1,3 @@
-
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const { getUser, createSettingsMerger, createSettingsHandlers } = require('../services/userScopedService');
@@ -14,10 +13,9 @@ const defaultSettings = {
   notifyOnFake: false
 };
 
-
 const mergeSettings = createSettingsMerger(defaultSettings);
 
-// @desc    Get fake chat/calls settings
+// @desc    Get fake chat settings
 // @route   GET /api/fake-chat/settings
 // @access  Private
 const { getSettings: getFakeChatSettings, updateSettings: updateFakeChatSettings, resetSettings: resetFakeChatSettings } = createSettingsHandlers({
@@ -28,12 +26,51 @@ const { getSettings: getFakeChatSettings, updateSettings: updateFakeChatSettings
 
 exports.getFakeChatSettings = getFakeChatSettings;
 
-// @desc    Update fake chat/calls settings
+// @desc    Update fake chat settings
 // @route   POST /api/fake-chat/settings
 // @access  Private
 exports.updateFakeChatSettings = updateFakeChatSettings;
 
-// @desc    Create fake chat
+// @desc    Get all pre-made conversations
+// @route   GET /api/fake-chat/premade
+// @access  Private
+exports.getPremadeConversations = async (req, res) => {
+  try {
+    const templates = fakeConversations.map(conv => ({
+      id: conv.id,
+      contactName: conv.contactName,
+      contactPhone: conv.contactPhone,
+      category: conv.category,
+      messageCount: conv.messages.length
+    }));
+    
+    res.status(200).json({ success: true, conversations: templates });
+  } catch (error) {
+    console.error('Get pre-made conversations error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get pre-made conversation detail (with messages)
+// @route   GET /api/fake-chat/premade/:id
+// @access  Private
+exports.getPremadeConversationDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const template = fakeConversations.find(conv => conv.id === id);
+    
+    if (!template) {
+      return res.status(404).json({ success: false, message: 'Conversation not found' });
+    }
+    
+    res.status(200).json({ success: true, conversation: template });
+  } catch (error) {
+    console.error('Get pre-made conversation detail error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Create fake chat from pre-made conversation
 // @route   POST /api/fake-chat/create
 // @access  Private
 exports.createFakeChat = async (req, res) => {
@@ -41,16 +78,22 @@ exports.createFakeChat = async (req, res) => {
     const user = await getUser(req, res);
     if (!user) return;
 
-    const { contactName, contactPhone, messages, timestamp } = req.body;
+    const { templateId, timestamp } = req.body;
 
-    if (!contactName || !messages || !Array.isArray(messages)) {
-      return res.status(400).json({ success: false, message: 'Contact name and messages array are required' });
+    if (!templateId) {
+      return res.status(400).json({ success: false, message: 'Template ID is required' });
     }
 
     const settings = mergeSettings(user.fakeChatSettings?.toObject?.() || user.fakeChatSettings);
     
     if (!settings.fakeChatEnabled) {
-      return res.status(403).json({ success: false, message: 'Fake chat is disabled' });
+      return res.status(403).json({ success: false, message: 'Fake chat is disabled. Enable it in Settings first.' });
+    }
+
+    // Find the template
+    const template = fakeConversations.find(conv => conv.id === templateId);
+    if (!template) {
+      return res.status(404).json({ success: false, message: 'Conversation template not found' });
     }
 
     // Create fake conversation
@@ -58,24 +101,28 @@ exports.createFakeChat = async (req, res) => {
       participants: [user._id],
       isGroup: false,
       isFake: true,
-      fakeContactName: contactName,
-      fakeContactPhone: contactPhone,
+      fakeContactName: template.contactName,
+      fakeContactPhone: template.contactPhone,
       createdAt: timestamp ? new Date(timestamp) : new Date()
     });
 
-    // Create fake messages
+    // Create fake messages from template with realistic timestamps
+    const baseTime = timestamp ? new Date(timestamp) : new Date();
     const fakeMessages = await Promise.all(
-      messages.map(msg => Message.create({
+      template.messages.map((msg, index) => Message.create({
         conversationId: fakeConversation._id,
         sender: user._id,
         content: msg.content,
-        messageType: msg.messageType || 'text',
-        mediaUrl: msg.mediaUrl || null,
+        messageType: 'text',
         isFake: true,
-        fakeSenderName: msg.isFromMe ? user.username : contactName,
-        createdAt: msg.timestamp ? new Date(msg.timestamp) : new Date()
+        fakeSenderName: msg.isFromMe ? user.username : template.contactName,
+        createdAt: new Date(baseTime.getTime() + index * (2 + Math.floor(Math.random() * 4)) * 60000)
       }))
     );
+
+    // Update lastMessage
+    fakeConversation.lastMessage = fakeMessages[fakeMessages.length - 1]._id;
+    await fakeConversation.save();
 
     res.status(200).json({
       success: true,
@@ -99,7 +146,7 @@ exports.getFakeChats = async (req, res) => {
 
     const settings = mergeSettings(user.fakeChatSettings?.toObject?.() || user.fakeChatSettings);
 
-    // Enforce "auto delete fake" — purge fake data older than retention window.
+    // Enforce auto delete
     if (settings.autoDeleteFake) {
       const cutoff = Date.now() - (Number(settings.fakeRetentionDays) || 7) * 24 * 60 * 60 * 1000;
       const stale = await Conversation.find({
@@ -153,10 +200,9 @@ exports.deleteFakeChat = async (req, res) => {
     }
 
     if (!conversation.participants.some((p) => String(p) === String(user._id))) {
-      return res.status(403).json({ success: false, message: 'You do not have permission to delete this chat' });
+      return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
-    // Delete associated messages
     await Message.deleteMany({ conversationId: id });
     await Conversation.findByIdAndDelete(id);
 
@@ -200,7 +246,6 @@ exports.clearAllFakeData = async (req, res) => {
     const user = await getUser(req, res);
     if (!user) return;
 
-    // Delete fake conversations and their messages
     const fakeConversations = await Conversation.find({
       participants: user._id,
       isFake: true
@@ -226,161 +271,3 @@ exports.clearAllFakeData = async (req, res) => {
 // @route   POST /api/fake-chat/reset
 // @access  Private
 exports.resetFakeChatSettings = resetFakeChatSettings;
-
-// @desc    Get pre-made fake conversations
-// @route   GET /api/fake-chat/premade
-// @access  Private
-exports.getPremadeConversations = async (req, res) => {
-  try {
-    // Return conversation templates without full message content
-    const templates = fakeConversations.map(conv => ({
-      id: conv.id,
-      contactName: conv.contactName,
-      contactPhone: conv.contactPhone,
-      category: conv.category,
-      messageCount: conv.messages.length
-    }));
-    
-    res.status(200).json({ success: true, conversations: templates });
-  } catch (error) {
-    console.error('Get pre-made conversations error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// @desc    Create fake chat from pre-made conversation
-// @route   POST /api/fake-chat/create-from-template
-// @access  Private
-exports.createFromTemplate = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const { templateId, timestamp } = req.body;
-
-    if (!templateId) {
-      return res.status(400).json({ success: false, message: 'Template ID is required' });
-    }
-
-    const settings = mergeSettings(user.fakeChatSettings?.toObject?.() || user.fakeChatSettings);
-    
-    if (!settings.fakeChatEnabled) {
-      return res.status(403).json({ success: false, message: 'Fake chat is disabled' });
-    }
-
-    // Find the template
-    const template = fakeConversations.find(conv => conv.id === templateId);
-    if (!template) {
-      return res.status(404).json({ success: false, message: 'Template not found' });
-    }
-
-    // Create fake conversation
-    const fakeConversation = await Conversation.create({
-      participants: [user._id],
-      isGroup: false,
-      isFake: true,
-      fakeContactName: template.contactName,
-      fakeContactPhone: template.contactPhone,
-      createdAt: timestamp ? new Date(timestamp) : new Date()
-    });
-
-    // Create fake messages from template
-    const baseTime = timestamp ? new Date(timestamp) : new Date();
-    const fakeMessages = await Promise.all(
-      template.messages.map((msg, index) => Message.create({
-        conversationId: fakeConversation._id,
-        sender: user._id,
-        content: msg.content,
-        messageType: 'text',
-        isFake: true,
-        fakeSenderName: msg.isFromMe ? user.username : template.contactName,
-        // Add time gaps between messages (2-5 minutes apart)
-        createdAt: new Date(baseTime.getTime() + index * (2 + Math.floor(Math.random() * 4)) * 60000)
-      }))
-    );
-
-    res.status(200).json({
-      success: true,
-      conversationId: fakeConversation._id,
-      messages: fakeMessages,
-      message: 'Fake chat created from template successfully'
-    });
-  } catch (error) {
-    console.error('Create from template error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// @desc    Apply fake chat cover to a real conversation
-// @route   POST /api/fake-chat/apply-cover
-// @access  Private
-exports.applyFakeCover = async (req, res) => {
-  try {
-    const user = await getUser(req, res);
-    if (!user) return;
-
-    const { conversationId, templateId } = req.body;
-
-    if (!conversationId || !templateId) {
-      return res.status(400).json({ success: false, message: 'Conversation ID and Template ID are required' });
-    }
-
-    const settings = mergeSettings(user.fakeChatSettings?.toObject?.() || user.fakeChatSettings);
-    
-    if (!settings.fakeChatEnabled) {
-      return res.status(403).json({ success: false, message: 'Fake chat is disabled' });
-    }
-
-    // Find the template
-    const template = fakeConversations.find(conv => conv.id === templateId);
-    if (!template) {
-      return res.status(404).json({ success: false, message: 'Template not found' });
-    }
-
-    // Find the real conversation
-    const conversation = await Conversation.findById(conversationId);
-    if (!conversation) {
-      return res.status(404).json({ success: false, message: 'Conversation not found' });
-    }
-
-    // Check if user is participant
-    if (!conversation.participants.some(p => String(p) === String(user._id))) {
-      return res.status(403).json({ success: false, message: 'Not authorized' });
-    }
-
-    // Delete existing messages in this conversation
-    await Message.deleteMany({ conversationId: conversation._id });
-
-    // Create fake messages from template
-    const baseTime = new Date();
-    const fakeMessages = await Promise.all(
-      template.messages.map((msg, index) => Message.create({
-        conversationId: conversation._id,
-        sender: user._id,
-        content: msg.content,
-        messageType: 'text',
-        isFake: true,
-        fakeSenderName: msg.isFromMe ? user.username : template.contactName,
-        createdAt: new Date(baseTime.getTime() + index * (2 + Math.floor(Math.random() * 4)) * 60000)
-      }))
-    );
-
-    // Update conversation to be fake
-    conversation.isFake = true;
-    conversation.fakeContactName = template.contactName;
-    conversation.fakeContactPhone = template.contactPhone;
-    conversation.lastMessage = fakeMessages[fakeMessages.length - 1]._id;
-    await conversation.save();
-
-    res.status(200).json({
-      success: true,
-      conversationId: conversation._id,
-      messages: fakeMessages,
-      message: 'Fake cover applied successfully'
-    });
-  } catch (error) {
-    console.error('Apply fake cover error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
