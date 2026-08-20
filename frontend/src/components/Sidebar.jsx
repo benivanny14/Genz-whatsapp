@@ -1435,7 +1435,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                   )}
                   <div className="relative w-12 h-12 flex-shrink-0 cursor-pointer" onClick={(e) => { e.stopPropagation(); if (!chatSelectMode) setEnlargedProfile(conv); }} title="Tap to enlarge profile picture">
                     {(() => {
-                      const peerId = !conv.isGroup && !hasFakeCover(conv._id)
+                      const peerId = !conv.isGroup 
                         ? conv.participants?.find(p => String(p?._id || p) !== String(user?.id))?._id
                         : null;
                       const peerStatusUnseen = peerId ? (unviewedStatusByUser[String(peerId)] || 0) : 0;
@@ -1470,12 +1470,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                         </>
                       );
                     })()}
-                    {hasFakeCover(conv._id) ? (
-                      <div className="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden hover:opacity-80 transition-opacity">
-                        <Shield size={20} className="text-gray-400" />
-                      </div>
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-primary-600 flex items-center justify-center overflow-hidden hover:opacity-80 transition-opacity">
+                    <div className="w-12 h-12 rounded-full bg-primary-600 flex items-center justify-center overflow-hidden hover:opacity-80 transition-opacity">
                         {getConversationAvatar(conv) ? (
                           <img
                             src={getConversationAvatar(conv)}
@@ -1488,29 +1483,25 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                           </span>
                         )}
                       </div>
-                    )}
                     {/* GENZ MOD: Online Indicator */}
-                    {!conv.isGroup && onlineUsers.includes(conv.participants?.find(p => p._id !== user?.id)?._id) && !hasFakeCover(conv._id) && (
+                    {!conv.isGroup && onlineUsers.includes(conv.participants?.find(p => p._id !== user?.id)?._id)  && (
                       <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-[2.5px] border-[#111b21] rounded-full z-10 shadow-sm" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <h3 className="text-dark-text font-medium truncate">
-                        {hasFakeCover(conv._id) ? 'System Update' : getConversationName(conv)}
+                        {getConversationName(conv)}
                       </h3>
                       <div className="flex items-center gap-2">
-                        {hasFakeCover(conv._id) && (
-                          <Shield size={12} className="text-yellow-500" />
-                        )}
-                        {conv.isMuted && !hasFakeCover(conv._id) && (
+                        {conv.isMuted  && (
                           <VolumeX
                             size={12}
                             className={getIconColor(iconSettings.muteIconColor)}
                             style={{ order: iconSettings.muteIconPosition === 'left' ? '-1' : '1' }}
                           />
                         )}
-                        {isChatPinned(conv) && !hasFakeCover(conv._id) && (
+                        {isChatPinned(conv)  && (
                           <Pin
                             size={12}
                             className={`${getIconColor(iconSettings.pinIconColor)} rotate-45`}
@@ -1519,7 +1510,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                         )}
                         {/* WINGA symbol when this user has posted businesses */}
                         {(() => {
-                          const peerId = !conv.isGroup && !hasFakeCover(conv._id)
+                          const peerId = !conv.isGroup 
                             ? conv.participants?.find(p => String(p?._id || p) !== String(user?.id))?._id
                             : null;
                           const peerWinga = peerId ? (wingaByUser[String(peerId)] || null) : null;
@@ -1541,11 +1532,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                           );
                         })()}
                         {/* Unread count badge */}
-                        {hasFakeCover(conv._id) ? (
-                          <span className="text-xs text-dark-textSecondary">
-                            {formatConversationTime(new Date())}
-                          </span>
-                        ) : conv.unreadCount > 0 ? (
+                        {conv.unreadCount > 0 ? (
                           <span className="unread-badge">
                             {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
                           </span>
@@ -1594,9 +1581,9 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                           </p>
                         ) : (
                           <p className={`text-sm truncate flex-1 text-left min-w-0 ${
-                            hasFakeCover(conv._id) ? 'text-dark-textSecondary' : conv.unreadCount > 0 ? 'text-dark-text font-medium' : 'text-dark-textSecondary'
+                            conv.unreadCount > 0 ? 'text-dark-text font-medium' : 'text-dark-textSecondary'
                           }`}>
-                            {hasFakeCover(conv._id) ? 'System maintenance scheduled for tonight...' : getLastMessage(conv)}
+                            {getLastMessage(conv)}
                           </p>
                         )}
                         {conv.lastMessage && (conv.lastMessage.sender?._id || conv.lastMessage.sender) === (user?._id || user?.id) && (
