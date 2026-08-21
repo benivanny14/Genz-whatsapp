@@ -1732,7 +1732,8 @@ const FakeChatSection = ({ ctx }) => {
 // privacy tab content — extracted so a crash in one tab is scoped by
 // <ErrorBoundary> instead of blanking the whole settings panel.
 const PrivacyTab = ({ ctx }) => {
-    const { backupActionLoading, backupError, backupProgress, close, connectedDevices, countdown, isPrivacyLocked, logoutDevice, mods, notificationSound, setMods, setNotificationSound, setShowPaymentModal, setShowPrivacyAnimation, setVoiceFxPreviewBusy, showPrivacyAnimation, subscriptionStatus, toggleMod, voiceFxPreviewBusy, handleMusicFileUpload, handleStartCloudBackup, musicFileInputRef, navigate, renderCloudBackupsList } = ctx;
+  const { backupActionLoading, backupError, backupProgress, close, connectedDevices, countdown, logoutDevice, mods, notificationSound, setMods, setShowPaymentModal, setShowPrivacyAnimation, setVoiceFxPreviewBusy, showPrivacyAnimation, subscriptionStatus, toggleMod, voiceFxPreviewBusy, handleMusicFileUpload, handleStartCloudBackup, musicFileInputRef, navigate, renderCloudBackupsList } = ctx;
+  const premiumLocked = Boolean(ctx?.isPrivacyLocked);
 
   // Server-side crash analytics toggle (opt-in): when enabled the ErrorBoundary
   // POSTs caught render crashes to /api/telemetry/crashes for the admin panel.
@@ -1777,7 +1778,7 @@ const PrivacyTab = ({ ctx }) => {
             )}
           </div>
 
-          {isPrivacyLocked ? (
+          {premiumLocked ? (
             <div className="p-8 text-center">
               <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Lock size={40} className="text-red-500" />
@@ -1813,7 +1814,7 @@ const PrivacyTab = ({ ctx }) => {
                 desc="Prevent people from deleting messages they sent to you"
                 active={mods.antiDelete}
                 onClick={() => toggleMod('antiDelete')}
-                locked={isPrivacyLocked}
+                locked={premiumLocked}
               />
               <ModItem
                 icon={<CameraOff size={20} className="text-orange-600" />}
@@ -1821,7 +1822,7 @@ const PrivacyTab = ({ ctx }) => {
                 desc="Prevent taking screenshots of the screen"
                 active={mods.antiScreenshot}
                 onClick={() => toggleMod('antiScreenshot')}
-                locked={isPrivacyLocked}
+                locked={premiumLocked}
               />
               <ModItem
                 icon={<EyeOff size={20} className="text-purple-600" />}
@@ -1829,7 +1830,7 @@ const PrivacyTab = ({ ctx }) => {
                 desc="View 'View Once' images as many times as you want"
                 active={mods.antiViewOnce}
                 onClick={() => toggleMod('antiViewOnce')}
-                locked={isPrivacyLocked}
+                locked={premiumLocked}
               />
               <ModItem
                 icon={<Timer size={20} className="text-pink-500" />}
@@ -1837,7 +1838,7 @@ const PrivacyTab = ({ ctx }) => {
                 desc="Messages self-destruct 10 seconds after being viewed"
                 active={mods.selfDestruct}
                 onClick={() => toggleMod('selfDestruct')}
-                locked={isPrivacyLocked}
+                locked={premiumLocked}
               />
               <ModItem
                 icon={<Trash2 size={20} className="text-pink-600" />}
@@ -1845,10 +1846,10 @@ const PrivacyTab = ({ ctx }) => {
                 desc="See and restore deleted status updates"
                 active={mods.antiDeleteStatus}
                 onClick={() => toggleMod('antiDeleteStatus')}
-                locked={isPrivacyLocked}
+                locked={premiumLocked}
               />
 
-              <FakeChatSection ctx={{ mods, toggleMod, isPrivacyLocked }} />
+              <FakeChatSection ctx={{ mods, toggleMod, isPrivacyLocked: premiumLocked }} />
 
               <div
                 onClick={() => window.location.href = '/genz-after-work'}
@@ -1870,10 +1871,10 @@ const PrivacyTab = ({ ctx }) => {
               <div className="bg-white/5 rounded-xl border border-white/10 mt-3">
                 <div className="p-4 bg-purple-900/30 border-b border-white/10 flex items-center gap-2 text-purple-400 font-bold">
                   <Mic size={18} /> Voice Changer
-                  {isPrivacyLocked && <Lock size={14} className="ml-auto text-yellow-400" />}
+                  {premiumLocked && <Lock size={14} className="ml-auto text-yellow-400" />}
                 </div>
                 <div className="p-4 space-y-3">
-                  {isPrivacyLocked ? (
+                  {premiumLocked ? (
                     <div className="text-center py-4">
                       <Lock size={32} className="text-yellow-400 mx-auto mb-2" />
                       <p className="text-yellow-400 text-sm font-semibold">Premium Required</p>
@@ -1905,10 +1906,10 @@ const PrivacyTab = ({ ctx }) => {
               <div className="bg-white/5 rounded-xl border border-white/10 mt-3">
                 <div className="p-4 bg-blue-900/30 border-b border-white/10 flex items-center gap-2 text-blue-400 font-bold">
                   <Layers size={18} /> Glass Theme & Video Background
-                  {isPrivacyLocked && <Lock size={14} className="ml-auto text-yellow-400" />}
+                  {premiumLocked && <Lock size={14} className="ml-auto text-yellow-400" />}
                 </div>
                 <div className="p-4 space-y-3">
-                  {isPrivacyLocked ? (
+                  {premiumLocked ? (
                     <div className="text-center py-4">
                       <Lock size={32} className="text-yellow-400 mx-auto mb-2" />
                       <p className="text-yellow-400 text-sm font-semibold">Premium Required</p>
@@ -1949,10 +1950,10 @@ const PrivacyTab = ({ ctx }) => {
               <div className="bg-white/5 rounded-xl border border-white/10 mt-3">
                 <div className="p-4 bg-pink-900/30 border-b border-white/10 flex items-center gap-2 text-pink-400 font-bold">
                   <Music size={18} /> Chat Background Music
-                  {isPrivacyLocked && <Lock size={14} className="ml-auto text-yellow-400" />}
+                  {premiumLocked && <Lock size={14} className="ml-auto text-yellow-400" />}
                 </div>
                 <div className="p-4 space-y-3">
-                  {isPrivacyLocked ? (
+                  {premiumLocked ? (
                     <div className="text-center py-4">
                       <Lock size={32} className="text-yellow-400 mx-auto mb-2" />
                       <p className="text-yellow-400 text-sm font-semibold">Premium Required</p>
@@ -2037,7 +2038,7 @@ const PrivacyTab = ({ ctx }) => {
                 desc="Save statuses as highlights that last forever"
                 active={mods?.storyHighlights}
                 onClick={() => toggleMod('storyHighlights')}
-                locked={isPrivacyLocked}
+                locked={premiumLocked}
               />
               {subscriptionStatus.expiryDate && (
                 <div className="p-3 text-center">
@@ -2301,7 +2302,8 @@ const PrivacyTab = ({ ctx }) => {
 // mods tab content — extracted so a crash in one tab is scoped by
 // <ErrorBoundary> instead of blanking the whole settings panel.
 const ModsTab = ({ ctx }) => {
-    const { autoReplyMsg, setAutoReplyMsg, mods, setMods, isPrivacyLocked, setShowGlassManager, setShowSystemDashboard, toggleMod, updateAutoReply } = ctx;
+  const { autoReplyMsg, setAutoReplyMsg, mods, setMods, setShowGlassManager, setShowSystemDashboard, toggleMod, updateAutoReply } = ctx;
+  const premiumLocked = Boolean(ctx?.isPrivacyLocked);
   return (
         <>
         {/* ─── Privacy & Visibility (Free) ─── */}
@@ -2404,7 +2406,7 @@ const ModsTab = ({ ctx }) => {
               desc="Send images up to 50MB without quality loss"
               active={mods.highResMedia}
               onClick={() => toggleMod('highResMedia')}
-              locked={isPrivacyLocked}
+              locked={premiumLocked}
             />
           </div>
         </section>
