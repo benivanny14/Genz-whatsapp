@@ -147,7 +147,7 @@ const CropRotatePanel = ({ onClose, image, onSave }) => {
 
   return (
     <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-[#1a2e35] rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-[#1a2e35] rounded-2xl w-full max-w-4xl max-h-[95vh] md:max-h-[90vh] overflow-hidden flex flex-col m-2 md:m-0">
         {/* Header */}
         <div className="bg-[#0b141a] p-4 flex items-center justify-between border-b border-[#00a884]/20">
           <div className="flex items-center gap-3">
@@ -167,9 +167,9 @@ const CropRotatePanel = ({ onClose, image, onSave }) => {
           </div>
         </div>
 
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
           {/* Canvas Area */}
-          <div className="flex-1 bg-black/50 flex items-center justify-center p-4 relative">
+          <div className="flex-1 bg-black/50 flex items-center justify-center p-2 md:p-4 relative min-h-[200px] md:min-h-0">
             {imageLoaded && (
               <>
                 <canvas
@@ -192,7 +192,7 @@ const CropRotatePanel = ({ onClose, image, onSave }) => {
           </div>
 
           {/* Tools Panel */}
-          <div className="w-72 bg-[#0b141a] p-4 space-y-6 overflow-y-auto">
+          <div className="w-full md:w-72 bg-[#0b141a] p-3 md:p-4 space-y-4 md:space-y-6 overflow-y-auto max-h-[40vh] md:max-h-none">
             {/* Rotate */}
             <div>
               <p className="text-white/60 text-xs uppercase mb-3">Rotate</p>
@@ -238,7 +238,7 @@ const CropRotatePanel = ({ onClose, image, onSave }) => {
             {/* Aspect Ratio */}
             <div>
               <p className="text-white/60 text-xs uppercase mb-3">Aspect Ratio</p>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 md:grid-cols-3 gap-2">
                 {aspectRatios.map((ratio) => (
                   <button
                     key={ratio.id}

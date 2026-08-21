@@ -3924,8 +3924,8 @@ export const ChatProvider = ({ children }) => {
       }
     };
 
-    // Refresh every 5 minutes like WhatsApp
-    const refreshInterval = setInterval(refreshData, 5 * 60 * 1000);
+    // Refresh every 30 seconds for real-time status visibility (like WhatsApp)
+    const refreshInterval = setInterval(refreshData, 30 * 1000);
 
     // Refresh when app becomes visible again
     const handleVisibilityChange = () => {

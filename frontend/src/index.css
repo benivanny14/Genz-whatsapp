@@ -249,6 +249,80 @@ body {
   input, textarea, select {
     font-size: 16px !important;
   }
+
+  /* ── Fix all modals that overflow on mobile (min-width > 360px) ── */
+  .poll-modal,
+  .forward-dialog,
+  .broadcast-modal,
+  .mass-sender-modal,
+  .status-creator,
+  .profile-editor,
+  .ai-caption-modal,
+  .chunked-uploader,
+  .file-preview,
+  .audio-modal,
+  .schedule-modal,
+  .view-once-modal,
+  .live-location-modal,
+  .current-location-modal,
+  .otp-verification,
+  .two-factor-auth,
+  .block-user-modal,
+  .fingerprint-simulation,
+  .poll-modal-component,
+  .forward-dialog-component,
+  .broadcast-modal-component,
+  .mass-sender-modal-component,
+  .status-creator-component,
+  .profile-editor-component,
+  .ai-caption-component,
+  .chunked-uploader-component,
+  .file-preview-component,
+  .message-info-component,
+  .message-info-modal {
+    min-width: 0 !important;
+    width: calc(100vw - 32px) !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    max-width: calc(100vw - 32px) !important;
+  }
+
+  /* Contact/group info panels go full-width on mobile */
+  .contact-info-panel,
+  .group-info-panel,
+  .contact-info-component,
+  .group-info-component {
+    width: 100% !important;
+  }
+
+  /* Fix messages container scroll on mobile */
+  .flex-1.min-h-0.overflow-y-auto {
+    padding-bottom: 80px !important;
+  }
+
+  /* Message bubbles wider on mobile */
+  .message-bubble-sent,
+  .message-bubble-received {
+    max-width: 88% !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: pre-wrap !important;
+  }
+
+  /* Unread badge never hidden on mobile */
+  .unread-badge {
+    position: relative !important;
+    z-index: 20 !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  /* Fix settings scrollable on mobile */
+  .genz-mods-container,
+  .settings-scrollable,
+  .security-settings-scrollable {
+    max-height: calc(var(--app-height, 100dvh) - 120px) !important;
+  }
 }
 
 /* Custom Scrollbar */
@@ -279,6 +353,9 @@ body {
   padding: 6px 7px 8px 9px !important;
   max-width: 65%;
   word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: pre-wrap;
   position: relative;
 }
 
@@ -290,6 +367,9 @@ body {
   padding: 6px 7px 8px 9px !important;
   max-width: 65%;
   word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: pre-wrap;
   position: relative;
 }
 
@@ -931,8 +1011,18 @@ body {
   background: #25D366 !important;
   color: #ffffff !important;
   backdrop-filter: none !important;
-  z-index: 10 !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+  z-index: 20 !important;
   position: relative !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Ensure unread badge parent containers don't blur the badge */
+.glass-mode-active .unread-badge,
+.glass-mode-active .unread-badge * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 /* Reel mode for status */

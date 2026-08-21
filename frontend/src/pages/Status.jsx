@@ -779,9 +779,14 @@ const Status = () => {
     setShowSettings(false);
   };
 
-  const handleEditorSaveVideo = (video) => {
-    if (!video) return;
-    setUploadData((prev) => ({ ...prev, file: video }));
+  const handleEditorSaveVideo = (videoFile, videoUrl) => {
+    if (!videoFile) return;
+    // If a trimmed file (Blob/File) was passed, use it; otherwise pass the original URL
+    const file = videoFile instanceof Blob || videoFile instanceof File
+      ? videoFile
+      : (videoUrl || videoFile);
+    setUploadData((prev) => ({ ...prev, file, type: 'video' }));
+    if (videoUrl) setEditVideoUrl(videoUrl);
     setActivePanel(null);
     setShowSettings(false);
   };
