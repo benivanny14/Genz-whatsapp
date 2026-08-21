@@ -2,25 +2,12 @@ const Message = require('../models/Message');
 const User = require('../models/User');
 const Conversation = require('../models/Conversation');
 const { getUser } = require('../services/userScopedService');
+const { isPremiumActive, PREMIUM_MOD_FIELDS, getEffectiveGenzMods } = require('../utils/genzModsAccess');
 
 // Premium-only fields that require an active subscription to toggle
-const PREMIUM_FIELDS = [
-  'antiDeleteMessages', 'antiDelete', 'antiDeleteStatus',
-  'antiViewOnce', 'voiceEffect', 'selfDestruct',
-  'chatBackgroundMusic', 'chatMusic', 'chatMusicUrl',
-  'glassMode', 'highResMedia',
-  'antiScreenshot', 'storyHighlights', 'fakeChatCover'
-];
-
-const isPremiumActive = (user) => {
-  if (!user) return false;
-  if (!user.premium || !user.subscriptionExpiresAt) return false;
-  return new Date() <= new Date(user.subscriptionExpiresAt);
-};
-
 const stripPremiumFields = (incoming) => {
   const stripped = {};
-  for (const key of PREMIUM_FIELDS) {
+  for (const key of PREMIUM_MOD_FIELDS) {
     if (Object.prototype.hasOwnProperty.call(incoming, key)) {
       stripped[key] = incoming[key];
     }
@@ -35,8 +22,8 @@ const includesId = (items = [], id) => {
 };
 
 const defaultSettings = {
-  antiDeleteMessages: true,
-  antiDeleteStatus: true,
+  antiDeleteMessages: false,
+  antiDeleteStatus: false,
   ghostMode: false,
   hideLastSeen: false,
   hideOnline: false,
@@ -164,7 +151,7 @@ exports.updateGenzModsSettings = async (req, res) => {
       }
     }
 
-    const existing = user.genzMods?.toObject?.() || user.genzMods || {};
+    const existing = getEffectiveGenzMods(user.genzMods?.toObject?.() || user.genzMods || {}, user);
     const normalizedIncoming = normalizeIncomingMods(incoming, existing);
     user.genzMods = mergeSettings({ ...existing, ...normalizedIncoming });
     user.markModified('genzMods');
@@ -178,7 +165,7 @@ exports.updateGenzModsSettings = async (req, res) => {
     }
 
     await user.save();
-    res.status(200).json({ success: true, settings: user.genzMods });
+    res.status(200).json({ success: true, settings: getEffectiveGenzMods(user.genzMods, user) });
   } catch (error) {
     console.error('Update GENZ Mods error:', error);
     res.status(500).json({ success: false, message: error.message });
@@ -192,7 +179,7 @@ exports.getGenzModsSettings = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      settings: mergeSettings(user.genzMods?.toObject?.() || user.genzMods)
+      settings: getEffectiveGenzMods(mergeSettings(user.genzMods?.toObject?.() || user.genzMods), user)
     });
   } catch (error) {
     console.error('Get GENZ Mods error:', error);
@@ -313,7 +300,7 @@ exports.getUserStatus = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    const settings = mergeSettings(user.genzMods?.toObject?.() || user.genzMods);
+    const settings = getEffectiveGenzMods(mergeSettings(user.genzMods?.toObject?.() || user.genzMods), user);
     res.status(200).json({
       success: true,
       userStatus: {

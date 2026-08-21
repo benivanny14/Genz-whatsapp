@@ -300,7 +300,7 @@ exports.resetStatusFeaturesSettings = resetStatusFeaturesSettings;
 // ── Story highlights (route prefix /api/story-highlights) ───────────────────
 
 const STORY_HIGHLIGHTS_DEFAULTS = {
-  storyHighlightsEnabled: true,
+  storyHighlightsEnabled: false,
   maxHighlights: 50,
   autoArchive: false,
   archiveAfterDays: 30,

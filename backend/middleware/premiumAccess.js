@@ -1,5 +1,30 @@
 const User = require('../models/User');
 
+const hasActivePremium = (user) => Boolean(
+  user?.premium &&
+  user?.subscriptionExpiresAt &&
+  new Date() <= new Date(user.subscriptionExpiresAt)
+);
+
+const stripPremiumFields = (value, fields) => {
+  const target = value?.settings && typeof value.settings === 'object' ? value.settings : value;
+  if (!target || typeof target !== 'object') return;
+  for (const field of fields) delete target[field];
+};
+
+// Field-level gate for mixed settings endpoints that also contain free options.
+const stripPremiumSettingsFields = (fields) => async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user?._id || req.user?.id).select('premium subscriptionExpiresAt');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    if (!hasActivePremium(user)) stripPremiumFields(req.body, fields);
+    next();
+  } catch (error) {
+    console.error('Error in stripPremiumSettingsFields:', error);
+    res.status(500).json({ success: false, message: 'Failed to verify premium access' });
+  }
+};
+
 // Middleware to check if user has active premium subscription
 const checkPremiumAccess = async (req, res, next) => {
   try {
@@ -56,4 +81,4 @@ const checkPremiumAccess = async (req, res, next) => {
   }
 };
 
-module.exports = { checkPremiumAccess };
+module.exports = { checkPremiumAccess, stripPremiumSettingsFields };

@@ -203,12 +203,12 @@ export const DB = {
     const existingMods = await DB.getSetting('mods');
     if (!existingMods) {
       await DB.saveSetting('mods', {
-        antiDelete: true,
-        antiDeleteStatus: true,
+        antiDelete: false,
+        antiDeleteStatus: false,
         hideLastSeen: true,
         ghostMode: false,
         autoReply: false,
-        highResMedia: true,
+        highResMedia: false,
         antiScreenshot: false,
         selfDestruct: false,
         customTheme: '#075e54',
@@ -216,7 +216,7 @@ export const DB = {
         enableAppLock: false,
         hideReadReceipts: false,
         autoDownloadMedia: true,
-        antiViewOnce: true,
+        antiViewOnce: false,
         voiceEffect: 'none',
         chatMusic: false
       });

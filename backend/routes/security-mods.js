@@ -2,14 +2,14 @@ const express = require('express');
 const router = express.Router();
 const securityModsController = require('../controllers/securityController');
 const { protect } = require('../middleware/auth');
-const { checkPremiumAccess } = require('../middleware/premiumAccess');
+const { checkPremiumAccess, stripPremiumSettingsFields } = require('../middleware/premiumAccess');
 
 // Apply authentication middleware to all routes
 router.use(protect);
 
 // Settings routes
 router.get('/settings', securityModsController.getSecurityModsSettings);
-router.post('/settings', securityModsController.updateSecurityModsSettings);
+router.post('/settings', stripPremiumSettingsFields(['antiScreenshot']), securityModsController.updateSecurityModsSettings);
 
 // Toggle routes for individual features
 router.post('/anti-ban', securityModsController.toggleAntiBan);

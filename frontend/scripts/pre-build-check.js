@@ -13,9 +13,9 @@
  *   [REQUIRED]  public/screenshots/ has at least 2 images (PWA install)
  *   [REQUIRED]  capacitor.config.json has NO server.url (bundled/offline APK)
  *   [REQUIRED]  vite.config.js registers VitePWA in its plugins array
- *   [WARN]      keystore.properties / genz-release.keystore missing (build
- *               would fall back to the debug signature — never ship that)
- *   [WARN]      google-services.json missing (FCM push disabled — no crash)
+ *   [REQUIRED]  keystore.properties / genz-release.keystore present (release
+ *               builds must never fall back to the debug signature)
+ *   [WARN]      google-services.json missing (FCM push disabled)
  *   [REQUIRED]  public/version.json exists and versionCode >= Android's
  *               build.gradle versionCode (bump via `npm run bump:apk`)
  *   [WARN]      VITE_API_URL, if set, is HTTPS (production URL)
@@ -109,7 +109,7 @@ const keystoreFile = resolve(root, 'android/genz-release.keystore');
 if (existsSync(keystoreProps) && existsSync(keystoreFile)) {
   console.log('  ✓ release keystore found');
 } else {
-  warn('keystore.properties / genz-release.keystore missing — the build will sign with the DEBUG key. Do NOT ship a debug-signed APK (users cannot update it later). See docs/MWONGOZO_APK_NA_DEPLOY.md');
+  fail('keystore.properties / genz-release.keystore missing — release APK signing cannot fall back to the DEBUG key. See docs/MWONGOZO_APK_NA_DEPLOY.md');
 }
 
 // ── 7. google-services.json (warn only — FCM optional) ───────────────────

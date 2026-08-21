@@ -2,14 +2,17 @@ const express = require('express');
 const router = express.Router();
 const mediaModsController = require('../controllers/mediaToolsController');
 const { protect } = require('../middleware/auth');
-const { checkPremiumAccess } = require('../middleware/premiumAccess');
+const { checkPremiumAccess, stripPremiumSettingsFields } = require('../middleware/premiumAccess');
 
 // Apply authentication middleware to all routes
 router.use(protect);
 
 // Settings routes
 router.get('/settings', mediaModsController.getMediaModsSettings);
-router.post('/settings', mediaModsController.updateMediaModsSettings);
+router.post('/settings', stripPremiumSettingsFields([
+	'fullResolutionImages', 'oneGBVideoUpload', 'thousandPhotosBatch',
+	'autoDownloadHighRes', 'viewOnceBypass', 'saveViewOnceMedia'
+]), mediaModsController.updateMediaModsSettings);
 
 // Toggle routes for individual features
 router.post('/full-resolution', checkPremiumAccess, mediaModsController.toggleFullResolution);

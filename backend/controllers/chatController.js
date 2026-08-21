@@ -18,6 +18,7 @@ const { sendMentionNotification, sendNewMessageNotification } = require("../serv
 const { ensureUnreadMap, getUnreadCount } = require("../utils/unreadCount");
 const { containsProfanity } = require("../utils/contentFilter");
 const { scheduleHardDelete } = require("../utils/hardDelete");
+const { getEffectiveGenzMods } = require('../utils/genzModsAccess');
 const getCurrentUserId = (req) => {
   if (!req.user?._id) {
     throw new Error('Authentication required');
@@ -1278,8 +1279,8 @@ exports.deleteMessage = async (req, res) => {
           if (pIdStr === String(localUserId)) continue;
           const receiverQuery = User.findById(pIdStr);
           if (receiverQuery && typeof receiverQuery.select === 'function') {
-            const receiver = await receiverQuery.select('genzMods').lean();
-            const rMods = receiver?.genzMods || {};
+            const receiver = await receiverQuery.select('genzMods premium subscriptionExpiresAt').lean();
+            const rMods = getEffectiveGenzMods(receiver?.genzMods || {}, receiver);
             if (rMods.antiDeleteMessages || rMods.antiDelete) {
               anyReceiverHasAntiDelete = true;
               break;

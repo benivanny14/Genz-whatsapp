@@ -67,7 +67,7 @@ describe('storyHighlightsController — settings', () => {
     await storyHighlights.getStoryHighlightsSettings(makeReq(), res);
     expect(res.body.success).toBe(true);
     expect(res.body.settings.highlightPrivacy).toBe('contacts');
-    expect(res.body.settings.storyHighlightsEnabled).toBe(true); // default
+    expect(res.body.settings.storyHighlightsEnabled).toBe(false); // paid features are opt-in
     expect(res.body.settings.maxHighlights).toBe(50); // default
     expect(res.body.settings.archiveAfterDays).toBe(30); // default
   });
@@ -104,7 +104,7 @@ describe('storyHighlightsController — settings', () => {
     User.findById.mockResolvedValue(user);
     const res = makeRes();
     await storyHighlights.resetStoryHighlightsSettings(makeReq(), res);
-    expect(user.storyHighlightsSettings.storyHighlightsEnabled).toBe(true);
+    expect(user.storyHighlightsSettings.storyHighlightsEnabled).toBe(false);
     expect(user.storyHighlightsSettings.maxHighlights).toBe(50);
     expect(user.markModified).toHaveBeenCalledWith('storyHighlightsSettings');
     expect(user.save).toHaveBeenCalled();
@@ -136,7 +136,10 @@ describe('storyHighlightsController — highlights CRUD', () => {
 
   it('createStoryHighlight enforces the max limit', async () => {
     const highlights = Array.from({ length: 50 }, (_, i) => makeHighlight({ _id: `h${i}` }));
-    User.findById.mockResolvedValue(makeUser({ storyHighlights: highlights }));
+    User.findById.mockResolvedValue(makeUser({
+      storyHighlights: highlights,
+      storyHighlightsSettings: { storyHighlightsEnabled: true }
+    }));
     const res = makeRes();
     await storyHighlights.createStoryHighlight(makeReq({ body: { title: 'Trip', statusIds: ['s1'] } }), res);
     expect(res.statusCode).toBe(400);
@@ -144,7 +147,7 @@ describe('storyHighlightsController — highlights CRUD', () => {
   });
 
   it('createStoryHighlight pushes a new highlight (happy path)', async () => {
-    const user = makeUser();
+    const user = makeUser({ storyHighlightsSettings: { storyHighlightsEnabled: true } });
     User.findById.mockResolvedValue(user);
     const res = makeRes();
     await storyHighlights.createStoryHighlight(makeReq({

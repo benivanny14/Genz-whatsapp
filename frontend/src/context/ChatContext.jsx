@@ -116,7 +116,7 @@ const GENZ_SETTINGS_VERSION = 2;
 
 const DEFAULT_GENZ_SETTINGS = {
   mods: {
-    antiDelete: true,
+    antiDelete: false,
     ghostMode: false,
     hideLastSeen: true,
     freezeLastSeen: false,
@@ -151,7 +151,7 @@ const DEFAULT_GENZ_SETTINGS = {
     chatMusicUrl: '',
     // Keys shared with the GENZ Mods page / backend (kept in sync so a save
     // from either side never drops the other side's toggles).
-    antiDeleteStatus: true,
+    antiDeleteStatus: false,
     hideSecondTick: false,
     hideViewStatus: false,
     typingIndicators: true,
@@ -161,10 +161,8 @@ const DEFAULT_GENZ_SETTINGS = {
     hideRecording: false,
     autoReplyKeywords: [],
     // ── GENZ Exclusive — TikTok/Instagram features ──
-    // storyHighlights + collabStatus stay ON by default (they are visible
-    // features today); liveReactions / bubbleAnimations / reelMode are
-    // opt-in extras that only activate when the user toggles them on.
-    storyHighlights: true,
+    // Paid features are opt-in and remain disabled until enabled in Settings.
+    storyHighlights: false,
     liveReactions: false,
     collabStatus: true,
     bubbleAnimations: false,

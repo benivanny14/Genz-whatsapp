@@ -28,7 +28,9 @@ describe('View-once flow (integration)', () => {
     sender = await User.create({
       username: 'vo-sender',
       phoneNumber: '255700000101',
-      phoneVerified: true
+      phoneVerified: true,
+      premium: true,
+      subscriptionExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
     });
     receiver = await User.create({
       username: 'vo-receiver',

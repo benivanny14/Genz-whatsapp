@@ -77,9 +77,20 @@ describe('genzModsController — settings', () => {
     const res = makeRes();
     await genzMods.getGenzModsSettings(makeReq(), res);
     expect(res.body.settings.ghostMode).toBe(true);
-    expect(res.body.settings.antiDeleteMessages).toBe(true); // default
-    expect(res.body.settings.antiDelete).toBe(true); // mirrored for the frontend contract
+    expect(res.body.settings.antiDeleteMessages).toBe(false); // paid features are opt-in
+    expect(res.body.settings.antiDelete).toBe(false); // mirrored for the frontend contract
     expect(res.body.settings.hideOnline).toBe(false); // default
+  });
+
+  it('disables legacy premium mods for a non-premium user', async () => {
+    User.findById.mockResolvedValue(makeUser({
+      genzMods: { antiDeleteMessages: true, highResMedia: true, voiceEffect: 'robot' }
+    }));
+    const res = makeRes();
+    await genzMods.getGenzModsSettings(makeReq(), res);
+    expect(res.body.settings.antiDeleteMessages).toBe(false);
+    expect(res.body.settings.highResMedia).toBe(false);
+    expect(res.body.settings.voiceEffect).toBe('none');
   });
 
   it('updates settings and normalizes ghost mode (happy path)', async () => {
