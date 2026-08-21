@@ -2137,10 +2137,24 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     if (!contact) return;
     const name = contact.username || contact.name || contact.savedName || 'Contact';
     const phone = contact.phoneNumber || contact.phone || '';
+    const avatar = contact.profilePicture || '';
     await sendMessage(
       phone ? `📇 *${name}*\n${phone}` : `📇 *${name}*`,
       user?.username,
-      { messageType: 'text', replyTo: replyingTo }
+      {
+        messageType: 'contact',
+        structuredContent: [{
+          type: 'contact',
+          value: name,
+          meta: {
+            contactName: name,
+            contactPhone: phone,
+            contactAvatar: avatar,
+            contactId: contact._id,
+          },
+        }],
+        replyTo: replyingTo,
+      }
     );
     setReplyingTo(null);
   };
@@ -2343,7 +2357,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       handleSchedule, attachmentMenuRef, docInputRef,
       canSendMedia, currentUserIsAdmin, openCamera, fileInputRef,
       openAudioAttachment, openVideoNoteRecorder, handleShareLocation,
-      handleContactSimulation, canCreatePolls, setShowPollModal,
+      setShowContactPicker, canCreatePolls, setShowPollModal,
       handleSetDisappearingMessages, selectedConversation,
       setFloatingStickerMode, setShowPaymentModal, mentionState,
       mentionSuggestions, selectMention, handleFileUpload, audioInputRef,
@@ -2352,7 +2366,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       setShowFontPicker, showFontPicker, handleVoiceNoteSend, safeMods,
       sendRecordingStatus, sendButtonRef, showStickerPacks, setShowStickerPacks,
       floatingStickerMode, handleSendStickerWithCaption, AttachmentIcon
-}), [replyingTo, setReplyingTo, showMediaPanel, setShowMediaPanel, activeMediaTab, setActiveMediaTab, handleEmojiClick, setSelectedMedia, selectedMedia, editingMessage, setEditingMessage, setMessageInput, messageInput, inputRef, voiceRecorderActive, setVoiceRecorderActive, handleFormatText, handleSendMessage, showAttachmentMenu, setShowAttachmentMenu, isViewOnceEnabled, setIsViewOnceEnabled, allowScreenshotEnabled, setAllowScreenshotEnabled, handleSchedule, attachmentMenuRef, docInputRef, canSendMedia, currentUserIsAdmin, openCamera, fileInputRef, openAudioAttachment, openVideoNoteRecorder, handleShareLocation, handleContactSimulation, canCreatePolls, setShowPollModal, handleSetDisappearingMessages, selectedConversation, setFloatingStickerMode, setShowPaymentModal, mentionState, mentionSuggestions, selectMention, handleFileUpload, audioInputRef, cameraInputRef, adminOnlyMessagingEnabled, handleTyping, handleMentionKeyDown, closeMentionPicker, selectedFont, setShowFontPicker, showFontPicker, handleVoiceNoteSend, safeMods, sendRecordingStatus, sendButtonRef, showStickerPacks, setShowStickerPacks, floatingStickerMode, handleSendStickerWithCaption, AttachmentIcon]);
+}), [replyingTo, setReplyingTo, showMediaPanel, setShowMediaPanel, activeMediaTab, setActiveMediaTab, handleEmojiClick, setSelectedMedia, selectedMedia, editingMessage, setEditingMessage, setMessageInput, messageInput, inputRef, voiceRecorderActive, setVoiceRecorderActive, handleFormatText, handleSendMessage, showAttachmentMenu, setShowAttachmentMenu, isViewOnceEnabled, setIsViewOnceEnabled, allowScreenshotEnabled, setAllowScreenshotEnabled, handleSchedule, attachmentMenuRef, docInputRef, canSendMedia, currentUserIsAdmin, openCamera, fileInputRef, openAudioAttachment, openVideoNoteRecorder, handleShareLocation, setShowContactPicker, canCreatePolls, setShowPollModal, handleSetDisappearingMessages, selectedConversation, setFloatingStickerMode, setShowPaymentModal, mentionState, mentionSuggestions, selectMention, handleFileUpload, audioInputRef, cameraInputRef, adminOnlyMessagingEnabled, handleTyping, handleMentionKeyDown, closeMentionPicker, selectedFont, setShowFontPicker, showFontPicker, handleVoiceNoteSend, safeMods, sendRecordingStatus, sendButtonRef, showStickerPacks, setShowStickerPacks, floatingStickerMode, handleSendStickerWithCaption, AttachmentIcon]);
 
   const headerCtx = useMemo(() => ({
   safeMods, selectConversation, sidebarOpen, onOpenSidebar,

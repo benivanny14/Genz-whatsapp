@@ -24,7 +24,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
     handleSchedule, attachmentMenuRef, docInputRef,
     canSendMedia, currentUserIsAdmin, openCamera, fileInputRef,
     openAudioAttachment, openVideoNoteRecorder, handleShareLocation,
-    handleContactSimulation, canCreatePolls, setShowPollModal,
+    setShowContactPicker, canCreatePolls, setShowPollModal,
     handleSetDisappearingMessages, selectedConversation,
     setFloatingStickerMode, setShowPaymentModal, mentionState,
     mentionSuggestions, selectMention, handleFileUpload, audioInputRef,
@@ -195,7 +195,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                 <AttachmentIcon icon={<VideoIcon className="text-cyan-500" />} label="Video Note" onClick={openVideoNoteRecorder} disabled={!canSendMedia && !currentUserIsAdmin} title="Record a short circular video note" />
                 <AttachmentIcon icon={<MapPin className="text-green-500" />} label="Location" onClick={() => handleShareLocation('current')} disabled={!canSendMedia && !currentUserIsAdmin} />
                 <AttachmentIcon icon={<MapPin className="text-red-500" />} label="Live Loc." onClick={() => handleShareLocation('live')} disabled={!canSendMedia && !currentUserIsAdmin} />
-                <AttachmentIcon icon={<Contact className="text-blue-400" />} label="Contact" onClick={handleContactSimulation} disabled={!canSendMedia && !currentUserIsAdmin} />
+                <AttachmentIcon icon={<Contact className="text-blue-400" />} label="Contact" onClick={() => setShowContactPicker(true)} disabled={!canSendMedia && !currentUserIsAdmin} />
                 <AttachmentIcon icon={<BarChart2 className="text-yellow-600" />} label="Poll" disabled={!canCreatePolls && !currentUserIsAdmin} onClick={() => setShowPollModal(true)} />
                 <AttachmentIcon icon={<Clock className="text-purple-600" />} label="Disappear" onClick={handleSetDisappearingMessages} disabled={!selectedConversation} />
                 <AttachmentIcon icon={<DollarSign className="text-green-500" />} label="Pay" onClick={() => setShowPaymentModal(true)} disabled={!selectedConversation} title="TM WhatsApp Pay" />

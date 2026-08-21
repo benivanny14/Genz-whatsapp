@@ -495,24 +495,32 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                       </div>
                     )}
                     {/* ── Contact Card ── */}
-                    {message.messageType === 'contact' && (
-                      <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl p-3 min-w-[200px]">
-                        <div className="w-10 h-10 rounded-full bg-[#25d366]/20 flex items-center justify-center text-[#25d366] font-bold text-sm shrink-0">
-                          {(message.structuredContent?.[0]?.meta?.contactName || plaintextOf(message)).trim().charAt(0).toUpperCase()}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-white font-medium text-sm truncate">
-                            {message.structuredContent?.[0]?.meta?.contactName || plaintextOf(message)}
-                          </p>
-                          {message.structuredContent?.[0]?.meta?.contactPhone && (
-                            <p className="text-white/60 text-xs truncate">{message.structuredContent[0].meta.contactPhone}</p>
+                    {message.messageType === 'contact' && (() => {
+                      const meta = message.structuredContent?.[0]?.meta || {};
+                      const cName = meta.contactName || plaintextOf(message);
+                      const cPhone = meta.contactPhone || '';
+                      const cAvatar = meta.contactAvatar || '';
+                      return (
+                        <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl p-3 min-w-[200px]">
+                          {cAvatar ? (
+                            <img src={cAvatar} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-[#25d366]/20 flex items-center justify-center text-[#25d366] font-bold text-sm shrink-0">
+                              {cName.trim().charAt(0).toUpperCase()}
+                            </div>
                           )}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-white font-medium text-sm truncate">{cName}</p>
+                            {cPhone && (
+                              <p className="text-white/60 text-xs truncate">{cPhone}</p>
+                            )}
+                          </div>
+                          <span className="text-[10px] uppercase tracking-wide text-white/40 flex items-center gap-1 shrink-0">
+                            <Contact size={12} /> Contact
+                          </span>
                         </div>
-                        <span className="text-[10px] uppercase tracking-wide text-white/40 flex items-center gap-1 shrink-0">
-                          <Contact size={12} /> Contact
-                        </span>
-                      </div>
-                    )}
+                      );
+                    })()}
                     {(!['image', 'video', 'location', 'sticker', 'audio', 'structured', 'contact'].includes(message.messageType) ||
                       (plaintextOf(message) &&
                         plaintextOf(message) !== mediaSourceOf(message) &&
