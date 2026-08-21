@@ -2,9 +2,9 @@
   "version": "1.1.16",
   "versionCode": 19,
   "apkUrl": "/genz-whatsapp.apk",
-  "sha256": "433fdc9bdb3b68372b07f43293d228f56484c219718323ce96f1648f37496116",
-  "size": 11281356,
-  "releasedAt": "2026-08-21T12:13:50.379Z",
+  "sha256": "2906190d65a809f6c629642387b6d3e20978922d4b330dd4d6e10a2230e49937",
+  "size": 12482969,
+  "releasedAt": "2026-08-21T12:30:10.354Z",
   "changes": [
     "Mute status updates end-to-end (with unmute)",
     "Block from status + unblock management",
