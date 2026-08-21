@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useChat } from '../context/ChatContext';
 
 const NAV_ITEMS = [
-  { label: 'Chats', path: '/chat', icon: MessageCircle, match: (path) => path === '/' || path.startsWith('/chat') },
+  { label: 'Chats', path: '/chat', icon: MessageCircle, match: (path) => path.startsWith('/chat') },
   { label: 'Status', path: '/status', icon: CircleDot, match: (path) => path.startsWith('/status') },
   { label: 'Communities', path: '/communities', icon: UsersRound, match: (path) => path.startsWith('/communities') },
   { label: 'WINGA', path: '/winga', icon: Store, match: (path) => path.startsWith('/winga') },
@@ -11,12 +11,18 @@ const NAV_ITEMS = [
 ];
 
 const HIDDEN_PREFIXES = [
+  '/',
   '/login',
   '/register',
   '/pair-device',
   '/admin',
   '/admin-setup',
   '/system-control-x7k9',
+  '/forgot-password',
+  '/verify-phone',
+  '/privacy-policy',
+  '/terms',
+  '/install',
 ];
 
 const MobileBottomNav = () => {
