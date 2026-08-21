@@ -2301,7 +2301,7 @@ const PrivacyTab = ({ ctx }) => {
 // mods tab content — extracted so a crash in one tab is scoped by
 // <ErrorBoundary> instead of blanking the whole settings panel.
 const ModsTab = ({ ctx }) => {
-    const { autoReplyMsg, setAutoReplyMsg, mods, setMods, setShowGlassManager, setShowSystemDashboard, toggleMod, updateAutoReply } = ctx;
+    const { autoReplyMsg, setAutoReplyMsg, mods, setMods, isPrivacyLocked, setShowGlassManager, setShowSystemDashboard, toggleMod, updateAutoReply } = ctx;
   return (
         <>
         {/* ─── Privacy & Visibility (Free) ─── */}
