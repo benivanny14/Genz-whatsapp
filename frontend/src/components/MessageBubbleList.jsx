@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, Contact, Copy, Download, Edit, Eye, EyeOff, ExternalLink, Flag, Forward, Heart, Info, MoreVertical, Navigation, Pin, Reply, ShieldCheck, Star, Trash2 } from 'lucide-react';
+import { Clock, Contact, Copy, Download, Edit, Eye, EyeOff, ExternalLink, Flag, Forward, Heart, Info, MessageCircle, MoreVertical, Navigation, Pin, Reply, Share2, ShieldCheck, Star, Trash2 } from 'lucide-react';
 import FormattedText from './FormattedText';
 import SignedMedia from './SignedMedia';
 import AudioPlayer from './AudioPlayer';
@@ -494,30 +494,76 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                         })}
                       </div>
                     )}
-                    {/* ── Contact Card ── */}
+                    {/* ── Contact Card (WhatsApp-style with actions) ── */}
                     {message.messageType === 'contact' && (() => {
                       const meta = message.structuredContent?.[0]?.meta || {};
                       const cName = meta.contactName || plaintextOf(message);
                       const cPhone = meta.contactPhone || '';
                       const cAvatar = meta.contactAvatar || '';
+                      const cId = meta.contactId || '';
                       return (
-                        <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl p-3 min-w-[200px]">
-                          {cAvatar ? (
-                            <img src={cAvatar} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-[#25d366]/20 flex items-center justify-center text-[#25d366] font-bold text-sm shrink-0">
-                              {cName.trim().charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <p className="text-white font-medium text-sm truncate">{cName}</p>
-                            {cPhone && (
-                              <p className="text-white/60 text-xs truncate">{cPhone}</p>
+                        <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden min-w-[220px] max-w-[280px]">
+                          {/* Contact info */}
+                          <div className="flex items-center gap-3 p-3">
+                            {cAvatar ? (
+                              <img src={cAvatar} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-[#25d366]/20 flex items-center justify-center text-[#25d366] font-bold text-sm shrink-0">
+                                {cName.trim().charAt(0).toUpperCase()}
+                              </div>
                             )}
+                            <div className="min-w-0 flex-1">
+                              <p className="text-white font-medium text-sm truncate">{cName}</p>
+                              {cPhone && (
+                                <p className="text-white/60 text-xs truncate">{cPhone}</p>
+                              )}
+                            </div>
+                            <span className="text-[10px] uppercase tracking-wide text-white/40 flex items-center gap-1 shrink-0">
+                              <Contact size={12} /> Contact
+                            </span>
                           </div>
-                          <span className="text-[10px] uppercase tracking-wide text-white/40 flex items-center gap-1 shrink-0">
-                            <Contact size={12} /> Contact
-                          </span>
+                          {/* Action buttons (WhatsApp-style) */}
+                          <div className="flex border-t border-white/10">
+                            <button
+                              onClick={() => {
+                                if (cPhone) {
+                                  const telUrl = `tel:${cPhone.replace(/[^\d+]/g, '')}`;
+                                  window.open(telUrl, '_blank');
+                                }
+                              }}
+                              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-medium text-[#00a884] hover:bg-white/5 transition-colors border-r border-white/10"
+                            >
+                              <Contact size={13} />
+                              Ongeza
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (cId) {
+                                  window.dispatchEvent(new CustomEvent('open-chat', { detail: { contactId: cId } }));
+                                } else if (cPhone) {
+                                  window.location.href = `/new-chat?phone=${encodeURIComponent(cPhone)}`;
+                                }
+                              }}
+                              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-medium text-[#00a884] hover:bg-white/5 transition-colors border-r border-white/10"
+                            >
+                              <MessageCircle size={13} />
+                              Chat
+                            </button>
+                            <button
+                              onClick={() => {
+                                const text = cPhone ? `📇 ${cName}\n${cPhone}` : `📇 ${cName}`;
+                                if (navigator.share) {
+                                  navigator.share({ title: cName, text }).catch(() => {});
+                                } else {
+                                  navigator.clipboard?.writeText(text);
+                                }
+                              }}
+                              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-medium text-[#00a884] hover:bg-white/5 transition-colors"
+                            >
+                              <Share2 size={13} />
+                              Wasiliana
+                            </button>
+                          </div>
                         </div>
                       );
                     })()}
