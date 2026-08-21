@@ -1903,13 +1903,13 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
         )}
       </div>
 
-      <div className="relative z-10 p-4 pb-24 md:pb-4 border-t border-dark-border bg-dark-surface/85 backdrop-blur-sm">
+      <div className="relative z-10 px-4 py-2 md:py-3 border-t border-dark-border bg-dark-surface/85 backdrop-blur-sm">
         <button
           onClick={() => navigate('/new-group')}
-          className={`flex items-center gap-2 w-full p-2 hover:bg-dark-hover rounded-lg transition-colors ${!isOpen ? 'justify-center' : ''
+          className={`flex items-center gap-2 w-full px-3 py-1.5 hover:bg-dark-hover rounded-lg transition-colors text-sm ${!isOpen ? 'justify-center' : ''
             }`}
         >
-          <Users className="w-5 h-5 text-dark-text" />
+          <Users className="w-4 h-4 text-dark-text" />
           {isOpen && <span className="text-dark-text">New Group</span>}
         </button>
       </div>
