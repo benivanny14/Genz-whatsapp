@@ -9,7 +9,7 @@
     "dev:simple": "node scripts/cleanup-dev.js && vite",
     "dev:clean": "node scripts/cleanup-dev.js && vite --force",
     "build": "vite build",
-    "start": "vite preview --host 0.0.0.0 --port 80",
+    "start": "node scripts/serve-production.js",
     "preview": "vite preview",
     "preview:prod": "vite preview --host 0.0.0.0 --port 80",
     "clean": "node scripts/cleanup-dev.js",
