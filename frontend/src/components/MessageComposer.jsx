@@ -43,7 +43,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
           </div>
         )}
   
-        <div className="bg-dark-surface border-t border-dark-border px-2 py-2 md:p-4 relative z-20 flex-shrink-0" style={{ flex: '0 0 auto', position: 'relative' }}>
+        <div className="bg-dark-surface border-t border-dark-border px-1 py-1 md:px-2 md:py-2 lg:p-4 relative z-20 flex-shrink-0" style={{ flex: '0 0 auto', position: 'relative' }}>
           {showMediaPanel && (
             <div className="absolute bottom-full left-0 right-0 w-full z-50 overflow-hidden shadow-2xl border-t border-dark-border">
               <MediaPickerPanel
@@ -148,13 +148,13 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
             </div>
           )}
   
-          <form onSubmit={handleSendMessage} className="flex items-end gap-2 p-1.5 md:p-3 bg-dark-bg border border-dark-border rounded-2xl flex-shrink-0 z-50" role="form" aria-label="Send message">
+          <form onSubmit={handleSendMessage} className="flex items-end gap-1 md:gap-2 p-1 md:p-1.5 lg:p-3 bg-dark-bg border border-dark-border rounded-2xl flex-shrink-0 z-50" role="form" aria-label="Send message">
             {!voiceRecorderActive && (
-              <div className="flex items-center gap-1 md:gap-2 overflow-x-auto no-scrollbar max-w-[112px] sm:max-w-[160px] md:max-w-none flex-shrink-0 snap-x">
+              <div className="flex items-center gap-0.5 md:gap-2 overflow-x-auto no-scrollbar flex-shrink-0 snap-x min-w-0">
                 <button
                   type="button"
                   onClick={() => setShowMediaPanel(!showMediaPanel)}
-                  className={`p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center ${showMediaPanel ? 'bg-primary-600 text-white' : 'hover:bg-dark-hover text-dark-text'}`}
+                  className={`p-2 md:p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px] flex items-center justify-center ${showMediaPanel ? 'bg-primary-600 text-white' : 'hover:bg-dark-hover text-dark-text'}`}
                   title="Emoji & Media"
                   aria-label="Toggle media picker"
                   aria-expanded={showMediaPanel}
@@ -164,7 +164,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                 <button
                   type="button"
                   onClick={() => { setShowMediaPanel(false); setShowStickerPacks(!showStickerPacks); }}
-                  className={`p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center ${showStickerPacks ? 'bg-primary-600 text-white' : 'hover:bg-dark-hover text-dark-text'}`}
+                  className={`p-2 md:p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px] flex items-center justify-center ${showStickerPacks ? 'bg-primary-600 text-white' : 'hover:bg-dark-hover text-dark-text'}`}
                   title="Stickers (send with text)"
                   aria-label="Open sticker picker"
                   aria-expanded={showStickerPacks}
@@ -174,7 +174,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                 <button
                   type="button"
                   onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
-                  className={`p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center ${showAttachmentMenu ? 'bg-primary-600 text-white' : 'hover:bg-dark-hover text-dark-text'}`}
+                  className={`p-2 md:p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px] flex items-center justify-center ${showAttachmentMenu ? 'bg-primary-600 text-white' : 'hover:bg-dark-hover text-dark-text'}`}
                   title="Attachments"
                   aria-label="Open attachment menu"
                   aria-expanded={showAttachmentMenu}
@@ -184,7 +184,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                 <button
                   type="button"
                   onClick={() => setIsViewOnceEnabled(!isViewOnceEnabled)}
-                  className={`p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center ${isViewOnceEnabled ? 'bg-purple-600 text-white' : 'hover:bg-dark-hover text-dark-text'}`}
+                  className={`p-2 md:p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px] flex items-center justify-center ${isViewOnceEnabled ? 'bg-purple-600 text-white' : 'hover:bg-dark-hover text-dark-text'}`}
                   title="Send as View Once"
                   aria-label="Toggle view-once mode"
                   aria-pressed={isViewOnceEnabled}
@@ -195,8 +195,8 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                   <button
                     type="button"
                     onClick={() => setAllowScreenshotEnabled(!allowScreenshotEnabled)}
-                    className={`p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center ${allowScreenshotEnabled ? 'hover:bg-dark-hover text-dark-text' : 'bg-emerald-600 text-white'}`}
-                    title={allowScreenshotEnabled ? 'Screenshot protection OFF — receivers may screenshot this view-once message' : 'Screenshot protection ON — receivers cannot screenshot this view-once message'}
+                    className={`p-2 md:p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px] flex items-center justify-center ${allowScreenshotEnabled ? 'hover:bg-dark-hover text-dark-text' : 'bg-emerald-600 text-white'}`}
+                    title={allowScreenshotEnabled ? 'Screenshot protection OFF' : 'Screenshot protection ON'}
                     aria-label="Toggle screenshot protection for view-once message"
                     aria-pressed={!allowScreenshotEnabled}
                   >
@@ -208,11 +208,9 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('Schedule button clicked, calling handleSchedule');
                     handleSchedule();
-                    console.log('handleSchedule called, showScheduleModal should be true');
                   }}
-                  className="p-3 hover:bg-dark-hover rounded-lg transition-colors snap-center shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  className="p-2 md:p-3 hover:bg-dark-hover rounded-lg transition-colors snap-center shrink-0 min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px] flex items-center justify-center"
                   title="Schedule Message" aria-label="Schedule Message"
                 >
                   <CalendarClock className="w-5 h-5 text-dark-text" />
@@ -220,7 +218,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
               </div>
             )}
             {showAttachmentMenu && (
-              <div ref={attachmentMenuRef} className="absolute bottom-14 left-2 right-2 md:left-0 md:right-auto md:w-max md:max-w-2xl bg-dark-surface border border-dark-border rounded-xl shadow-xl p-3 grid grid-cols-4 gap-2 md:flex md:flex-row md:flex-wrap md:gap-2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <div ref={attachmentMenuRef} className="absolute bottom-14 left-1 right-1 md:left-0 md:right-auto md:w-max md:max-w-2xl bg-dark-surface border border-dark-border rounded-xl shadow-xl p-2 md:p-3 grid grid-cols-4 gap-1.5 md:grid-cols-5 md:gap-2 z-50 max-h-[50vh] overflow-y-auto animate-in fade-in slide-in-from-bottom-2 duration-200">
                 <AttachmentIcon icon={<FileText className="text-blue-500" />} label="Document" onClick={() => { setShowAttachmentMenu(false); docInputRef.current?.click(); }} disabled={!canSendMedia && !currentUserIsAdmin} />
                 <AttachmentIcon
                   icon={<Camera className="text-pink-500" />}
@@ -287,7 +285,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
   
             {/* ── Text input — hidden while VoiceRecorder is recording ── */}
             {!voiceRecorderActive && (
-              <div className="flex-1 flex items-center gap-2">
+              <div className="flex-1 flex items-center gap-1.5 min-w-0">
                 <input
                   ref={inputRef}
                   type="text"
@@ -302,12 +300,12 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                   onBlur={() => window.setTimeout(closeMentionPicker, 120)}
                   placeholder="Type a message..."
                   style={{ fontFamily: FONT_OPTIONS.find(f => f.value === selectedFont)?.fontFamily || 'sans-serif' }}
-                  className="flex-1 min-w-[100px] px-4 py-2.5 bg-dark-bg border border-dark-border rounded-2xl text-dark-text placeholder-dark-textSecondary focus:outline-none focus:border-primary-500 transition-colors text-base md:text-sm"
+                  className="flex-1 min-w-0 px-3 md:px-4 py-2 md:py-2.5 bg-dark-bg border border-dark-border rounded-2xl text-dark-text placeholder-dark-textSecondary focus:outline-none focus:border-primary-500 transition-colors text-base md:text-sm"
                 />
                 <button
                   type="button"
                   onClick={() => setShowFontPicker(!showFontPicker)}
-                  className="p-2.5 bg-dark-bg border border-dark-border rounded-2xl text-dark-text hover:bg-dark-hover transition-colors"
+                  className="hidden sm:flex p-2 md:p-2.5 bg-dark-bg border border-dark-border rounded-2xl text-dark-text hover:bg-dark-hover transition-colors flex-shrink-0"
                   title="Change font"
                 >
                   <Languages size={18} />
@@ -340,7 +338,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                 type="submit"
                 disabled={adminOnlyMessagingEnabled && !currentUserIsAdmin}
                 aria-label="Send message"
-                className="w-11 h-11 flex-shrink-0 flex items-center justify-center bg-primary-600 hover:bg-primary-500 rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-90 shadow-md shadow-primary-600/30 min-w-[44px] min-h-[44px]"
+                className="w-10 h-10 md:w-11 md:h-11 flex-shrink-0 flex items-center justify-center bg-primary-600 hover:bg-primary-500 rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-90 shadow-md shadow-primary-600/30 min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px]"
               >
                 <Send className="w-5 h-5 text-white" />
               </button>

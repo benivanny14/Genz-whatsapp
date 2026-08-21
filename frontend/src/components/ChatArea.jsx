@@ -1976,11 +1976,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         setTimeout(() => onClick?.(), 0);
       }}
       disabled={disabled}
-      className={`p-2 hover:bg-dark-hover rounded-lg cursor-pointer flex flex-col items-center gap-1 transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+      className={`p-1.5 md:p-2 hover:bg-dark-hover rounded-lg cursor-pointer flex flex-col items-center gap-0.5 md:gap-1 transition-colors min-w-0 ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       title={label}
     >
       {icon}
-      <span className="text-[10px] text-dark-text">{label}</span>
+      <span className="text-[9px] md:text-[10px] text-dark-text truncate max-w-[60px] text-center">{label}</span>
     </button>
   );
 
