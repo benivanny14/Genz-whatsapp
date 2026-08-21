@@ -27,6 +27,7 @@ import AudioPlayer from './AudioPlayer';
 import LiveReactions from './LiveReactions';
 import MediaPickerPanel from './MediaPickerPanel';
 import DrawingPanel from './DrawingPanel';
+import CropRotatePanel from './CropRotatePanel';
 import PaymentRequestModal, { PaymentRequestsPanel } from './PaidFeatures/PaymentRequestModal';
 import ChunkedUploader from './ChunkedUploader';
 import ContactInfo from './ContactInfo';
@@ -256,6 +257,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [showDrawingEditor, setShowDrawingEditor] = useState(false);
   const [drawingImageUrl, setDrawingImageUrl] = useState('');
   const [pendingImageFile, setPendingImageFile] = useState(null);
+  const [showCropEditor, setShowCropEditor] = useState(false);
+  const [cropImageUrl, setCropImageUrl] = useState('');
   // showPaymentModal already declared above at line 329 (original) for subscription payments
 
 
@@ -1377,13 +1380,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       return;
     }
 
-    // TM WhatsApp feature: Edit/doodle on images before sending
+    // TM WhatsApp feature: Crop then doodle on images before sending
     if (file.type.startsWith('image/') && !forcedType) {
-      const caption = window.prompt("Add a caption (optional):", "");
       const blobUrl = URL.createObjectURL(file);
-      setDrawingImageUrl(blobUrl);
-      setPendingImageFile({ file, caption: caption || '', opts: { isViewOnce, forcedType: null } });
-      setShowDrawingEditor(true);
+      setCropImageUrl(blobUrl);
+      setPendingImageFile({ file, caption: '', opts: { isViewOnce, forcedType: null } });
+      setShowCropEditor(true);
       if (e?.target) e.target.value = '';
       return;
     }
@@ -1491,6 +1493,27 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     });
 
     await uploadAndSendFile(editedFile, caption, opts.isViewOnce, opts.forcedType, null);
+  };
+
+  // Handle saving cropped image from CropRotatePanel → then open doodle editor
+  const handleCropSave = async (croppedBlob) => {
+    setShowCropEditor(false);
+    if (cropImageUrl) URL.revokeObjectURL(cropImageUrl);
+    setCropImageUrl('');
+    if (!pendingImageFile) return;
+
+    const { file, opts } = pendingImageFile;
+    // Convert cropped blob to File
+    const croppedFile = new File([croppedBlob], file.name, {
+      type: 'image/png',
+      lastModified: Date.now()
+    });
+    // Get URL for doodle editor
+    const croppedUrl = URL.createObjectURL(croppedBlob);
+    // Chain to doodle editor
+    setPendingImageFile({ file: croppedFile, caption: '', opts });
+    setDrawingImageUrl(croppedUrl);
+    setShowDrawingEditor(true);
   };
 
   // FEATURE ADD: view-once media had zero screenshot/recording protection —
@@ -2372,6 +2395,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       filteredMessages,
       showDrawingEditor, drawingImageUrl, setShowDrawingEditor, setDrawingImageUrl,
       setPendingImageFile, handleDrawingSave,
+      showCropEditor, cropImageUrl, setShowCropEditor, setCropImageUrl, handleCropSave,
       showPaymentModal, setShowPaymentModal,
       showFontPicker, setShowFontPicker, setSelectedFont, inputRef, selectedFont,
       showChunkedUploader, setShowChunkedUploader,
@@ -2396,7 +2420,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       handleExportChat, updateDisappearingMessages, toggleChatLock, safeMods,
       setMods, blockedUsers, showDisappearingPicker, setShowDisappearingPicker,
       applyDisappearingMessages, user, selectedConversation
-}), [showForwardModal, forwardingMessage, setShowForwardModal, setForwardingMessage, showSearchMessages, setShowSearchMessages, showMediaGallery, setShowMediaGallery, messageContextMenu, handleContextMenuDelete, handleEditClick, setMessageContextMenu, setReplyingTo, handleContextMenuStar, unpinMessage, pinMessage, addReaction, plaintextOf, handleReplyPrivately, textSelectionMenu, textSelectionMenuRef, handleCopySelection, handleSelectAllSelection, handleFormatSelection, setTextSelectionMenu, reportTarget, setReportTarget, showProductCatalogue, setShowProductCatalogue, sendMessage, replyingTo, showContactPicker, setShowContactPicker, handleShareContact, viewerMedia, setViewerMedia, showMessageInfoModal, messageInfoId, setShowMessageInfoModal, setMessageInfoId, showPollModal, setShowPollModal, handlePollSubmit, showGroupInfo, setShowGroupInfo, showFilePreview, previewFile, setShowFilePreview, showScheduleModal, setShowScheduleModal, messageInput, scheduleDateTime, setScheduleDateTime, confirmSchedule, isDNDMode, isSearching, chatSearchQuery, filteredMessages, showDrawingEditor, drawingImageUrl, setShowDrawingEditor, setDrawingImageUrl, setPendingImageFile, handleDrawingSave, showPaymentModal, setShowPaymentModal, showFontPicker, setShowFontPicker, setSelectedFont, inputRef, selectedFont, showChunkedUploader, setShowChunkedUploader, showCameraModal, closeCamera, setCameraMode, cameraMode, recordedVideoUrl, videoRef, canvasRef, setRecordedVideoUrl, sendRecordedVideo, capturePhoto, isRecordingVideo, videoDuration, stopVideoRecording, startVideoRecording, showVideoNoteModal, closeVideoNoteRecorder, recordedVideoNoteUrl, videoNotePreviewRef, setRecordedVideoNoteUrl, videoNoteChunksRef, sendVideoNote, isRecordingVideoNote, videoNoteDuration, stopVideoNoteRecording, startVideoNoteRecording, showAudioModal, closeAudioAttachment, recordedAudioUrl, setRecordedAudioUrl, sendRecordedAudioAttachment, audioDuration, isRecordingAudio, stopAudioAttachmentRecording, startAudioAttachmentRecording, showLiveLocationModal, setShowLiveLocationModal, setLiveLocationDuration, liveLocationDuration, liveLocationComment, setLiveLocationComment, confirmShareLiveLocation, showCurrentLocationModal, setShowCurrentLocationModal, currentLocationCoords, currentLocationComment, setCurrentLocationComment, confirmShareCurrentLocation, viewOnceModalOpen, viewOnceMessageData, closeViewOnceModal, mediaSourceOf, showContactInfo, otherUser, setShowContactInfo, setIsSearching, toggleMuteChat, blockUser, unblockUser, handleClearCurrentChat, handleDeleteCurrentChat, handleExportChat, updateDisappearingMessages, toggleChatLock, safeMods, setMods, blockedUsers, showDisappearingPicker, setShowDisappearingPicker, applyDisappearingMessages, user, selectedConversation]);
+}), [showForwardModal, forwardingMessage, setShowForwardModal, setForwardingMessage, showSearchMessages, setShowSearchMessages, showMediaGallery, setShowMediaGallery, messageContextMenu, handleContextMenuDelete, handleEditClick, setMessageContextMenu, setReplyingTo, handleContextMenuStar, unpinMessage, pinMessage, addReaction, plaintextOf, handleReplyPrivately, textSelectionMenu, textSelectionMenuRef, handleCopySelection, handleSelectAllSelection, handleFormatSelection, setTextSelectionMenu, reportTarget, setReportTarget, showProductCatalogue, setShowProductCatalogue, sendMessage, replyingTo, showContactPicker, setShowContactPicker, handleShareContact, viewerMedia, setViewerMedia, showMessageInfoModal, messageInfoId, setShowMessageInfoModal, setMessageInfoId, showPollModal, setShowPollModal, handlePollSubmit, showGroupInfo, setShowGroupInfo, showFilePreview, previewFile, setShowFilePreview, showScheduleModal, setShowScheduleModal, messageInput, scheduleDateTime, setScheduleDateTime, confirmSchedule, isDNDMode, isSearching, chatSearchQuery, filteredMessages, showDrawingEditor, drawingImageUrl, setShowDrawingEditor, setDrawingImageUrl, setPendingImageFile, handleDrawingSave, showCropEditor, cropImageUrl, setShowCropEditor, setCropImageUrl, handleCropSave, showPaymentModal, setShowPaymentModal, showFontPicker, setShowFontPicker, setSelectedFont, inputRef, selectedFont, showChunkedUploader, setShowChunkedUploader, showCameraModal, closeCamera, setCameraMode, cameraMode, recordedVideoUrl, videoRef, canvasRef, setRecordedVideoUrl, sendRecordedVideo, capturePhoto, isRecordingVideo, videoDuration, stopVideoRecording, startVideoRecording, showVideoNoteModal, closeVideoNoteRecorder, recordedVideoNoteUrl, videoNotePreviewRef, setRecordedVideoNoteUrl, videoNoteChunksRef, sendVideoNote, isRecordingVideoNote, videoNoteDuration, stopVideoNoteRecording, startVideoNoteRecording, showAudioModal, closeAudioAttachment, recordedAudioUrl, setRecordedAudioUrl, sendRecordedAudioAttachment, audioDuration, isRecordingAudio, stopAudioAttachmentRecording, startAudioAttachmentRecording, showLiveLocationModal, setShowLiveLocationModal, setLiveLocationDuration, liveLocationDuration, liveLocationComment, setLiveLocationComment, confirmShareLiveLocation, showCurrentLocationModal, setShowCurrentLocationModal, currentLocationCoords, currentLocationComment, setCurrentLocationComment, confirmShareCurrentLocation, viewOnceModalOpen, viewOnceMessageData, closeViewOnceModal, mediaSourceOf, showContactInfo, otherUser, setShowContactInfo, setIsSearching, toggleMuteChat, blockUser, unblockUser, handleClearCurrentChat, handleDeleteCurrentChat, handleExportChat, updateDisappearingMessages, toggleChatLock, safeMods, setMods, blockedUsers, showDisappearingPicker, setShowDisappearingPicker, applyDisappearingMessages, user, selectedConversation]);
 
   if (!selectedConversation) {
     return (

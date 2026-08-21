@@ -75,7 +75,7 @@ const Broadcast = () => {
         {/* New Broadcast Modal */}
         {showNewBroadcast && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] backdrop-blur-sm">
-            <div className="bg-gradient-to-br from-gray-900 to-black rounded-lg w-[500px] max-h-[80vh] overflow-hidden border border-white/10 shadow-2xl">
+            <div className="bg-gradient-to-br from-gray-900 to-black rounded-lg w-full max-w-[500px] max-h-[80vh] overflow-hidden border border-white/10 shadow-2xl m-4">
               <div className="p-4 border-b border-white/10 flex justify-between items-center">
                 <h3 className="text-lg font-bold text-white">New Broadcast</h3>
                 <button onClick={() => setShowNewBroadcast(false)} className="text-gray-400 hover:text-white" aria-label="Close">

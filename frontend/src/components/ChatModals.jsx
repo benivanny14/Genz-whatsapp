@@ -6,6 +6,7 @@ import ChunkedUploader from './ChunkedUploader';
 import ContactInfo from './ContactInfo';
 import ContactPickerModal from './ContactPickerModal';
 import DrawingPanel from './DrawingPanel';
+import CropRotatePanel from './CropRotatePanel';
 import LeafletMap from './LeafletMap';
 import FilePreview from './FilePreview';
 import ForwardDialog from './ForwardDialog';
@@ -55,6 +56,7 @@ const ChatModals = React.memo(function ChatModals({ ctx }) {
     filteredMessages,
     showDrawingEditor, drawingImageUrl, setShowDrawingEditor, setDrawingImageUrl,
     setPendingImageFile, handleDrawingSave,
+    showCropEditor, cropImageUrl, setShowCropEditor, setCropImageUrl, handleCropSave,
     showPaymentModal, setShowPaymentModal,
     showFontPicker, setShowFontPicker, setSelectedFont, inputRef, selectedFont,
     showChunkedUploader, setShowChunkedUploader,
@@ -381,6 +383,20 @@ const ChatModals = React.memo(function ChatModals({ ctx }) {
   
   
   
+         {/* ── Crop / Rotate Editor for chat images ── */}
+        {showCropEditor && cropImageUrl && (
+          <CropRotatePanel
+            image={cropImageUrl}
+            onClose={() => {
+              setShowCropEditor(false);
+              URL.revokeObjectURL(cropImageUrl);
+              setCropImageUrl('');
+              setPendingImageFile(null);
+            }}
+            onSave={handleCropSave}
+          />
+        )}
+
          {/* ── Drawing / Doodle Editor for chat media ── */}
         {showDrawingEditor && drawingImageUrl && (
           <DrawingPanel
