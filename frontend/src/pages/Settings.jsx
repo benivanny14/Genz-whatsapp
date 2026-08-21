@@ -1202,7 +1202,7 @@ const Settings = () => {
         </main>
       </div>
 
-      <div className="fixed bottom-24 left-4 right-4 z-20 sm:hidden">
+      <div className="fixed bottom-20 left-4 right-4 z-50 sm:hidden">
         <ActionButton onClick={() => saveSettings()} disabled={saving}>
           <Save size={16} /> {saving ? 'Saving...' : 'Save all'}
         </ActionButton>

@@ -924,7 +924,7 @@ const Status = () => {
     <div className="glass-surface h-screen w-screen flex items-center justify-center overflow-hidden font-sans" style={{ background: 'radial-gradient(1200px 700px at 18% 8%, rgba(255,45,120,0.20), transparent 55%), radial-gradient(1100px 700px at 88% 95%, rgba(124,92,255,0.20), transparent 55%), radial-gradient(900px 600px at 70% 20%, rgba(0,217,166,0.10), transparent 50%), #0c0a1e' }}>
       <div className="w-full h-full md:w-[98%] md:h-[96%] bg-white/5 backdrop-blur-xl shadow-2xl flex flex-col border border-white/10 rounded-2xl">
         <div className="genz-header text-white p-4 flex items-center justify-between">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-nowrap overflow-x-auto scrollbar-none max-w-[75vw] sm:max-w-none">
             <span className="genz-tag">GENZ</span>
             <button
               type="button"
