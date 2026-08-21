@@ -1967,7 +1967,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     }
   };
 
-  const AttachmentIcon = ({ icon, label, onClick, disabled }) => (
+  const AttachmentIcon = ({ icon, label, onClick, disabled, active, title }) => (
     <button
       type="button"
       onClick={(e) => {
@@ -1976,8 +1976,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         setTimeout(() => onClick?.(), 0);
       }}
       disabled={disabled}
-      className={`p-1.5 md:p-2 hover:bg-dark-hover rounded-lg cursor-pointer flex flex-col items-center gap-0.5 md:gap-1 transition-colors min-w-0 ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-      title={label}
+      className={`p-1.5 md:p-2 rounded-lg cursor-pointer flex flex-col items-center gap-0.5 md:gap-1 transition-colors min-w-0 ${active ? 'bg-primary-600/15 ring-1 ring-primary-500/40 text-primary-100' : 'hover:bg-dark-hover'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+      title={title || label}
+      aria-label={label}
+      aria-pressed={typeof active === 'boolean' ? active : undefined}
     >
       {icon}
       <span className="text-[9px] md:text-[10px] text-dark-text truncate max-w-[60px] text-center">{label}</span>

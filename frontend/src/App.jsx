@@ -1,5 +1,6 @@
 import React, { lazy, Suspense, useEffect, useState, useCallback } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
 import { useNativeBackButton } from './hooks/useNativeBackButton';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -17,6 +18,7 @@ import { applyAntiScreenshot, initAntiScreenshotListeners } from './utils/antiSc
 import toast, { Toaster } from 'react-hot-toast';
 import { useChat } from './context/ChatContext';
 import { useUser } from './context/UserContext';
+import { useAuth } from './context/AuthContext';
 import { getSocket } from './services/socket';
 
 // Lazy load pages for performance optimization
@@ -64,6 +66,18 @@ const PageLoader = () => (
     </div>
   </div>
 );
+
+const NativeAwareLanding = () => {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (!Capacitor.isNativePlatform()) {
+    return <LandingPage />;
+  }
+
+  if (loading) return <PageLoader />;
+
+  return <Navigate to={isAuthenticated ? '/chat' : '/login'} replace />;
+};
 
 const readStoredMods = (userId) => {
   try {
@@ -473,7 +487,7 @@ function App() {
             <Route path="/install" element={<InstallGuide />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/verify-phone" element={<VerifyPhone />} />
-            <Route path="/" element={<LandingPage />} />
+            <Route path="/" element={<NativeAwareLanding />} />
             <Route path="*" element={<Navigate to="/chat" replace />} />
           </Routes>
         </Suspense>

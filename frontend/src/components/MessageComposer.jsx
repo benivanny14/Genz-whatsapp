@@ -35,6 +35,10 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
     floatingStickerMode, handleSendStickerWithCaption, AttachmentIcon
   } = ctx;
 
+  const composerIconButton = 'w-10 h-10 flex-shrink-0 rounded-full flex items-center justify-center text-dark-textSecondary hover:text-dark-text hover:bg-dark-hover transition-colors active:scale-95';
+  const activeComposerIconButton = 'w-10 h-10 flex-shrink-0 rounded-full flex items-center justify-center bg-primary-600 text-white transition-colors active:scale-95';
+  const mobileStatusButton = 'h-8 px-2 rounded-full flex items-center gap-1.5 text-xs font-medium transition-colors active:scale-95';
+
   return (
     <>
   {replyingTo && (
@@ -148,102 +152,58 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
             </div>
           )}
   
-          <form onSubmit={handleSendMessage} className="flex items-end gap-1 md:gap-2 p-1 md:p-1.5 lg:p-3 bg-dark-bg border border-dark-border rounded-2xl flex-shrink-0 z-50" role="form" aria-label="Send message">
-            {!voiceRecorderActive && (
-              <div className="flex items-center gap-0.5 md:gap-2 overflow-x-auto no-scrollbar flex-shrink-0 snap-x min-w-0">
+          {isViewOnceEnabled && !voiceRecorderActive && (
+            <div className="mb-1 flex items-center justify-end gap-1 px-1">
+              <div className="flex max-w-full items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 text-emerald-100 shadow-sm">
+                <Eye size={14} className="flex-shrink-0" />
+                <span className="truncate text-xs font-medium">View once</span>
                 <button
                   type="button"
-                  onClick={() => setShowMediaPanel(!showMediaPanel)}
-                  className={`p-2 md:p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px] flex items-center justify-center ${showMediaPanel ? 'bg-primary-600 text-white' : 'hover:bg-dark-hover text-dark-text'}`}
-                  title="Emoji & Media"
-                  aria-label="Toggle media picker"
-                  aria-expanded={showMediaPanel}
+                  onClick={() => setAllowScreenshotEnabled(!allowScreenshotEnabled)}
+                  className={`${mobileStatusButton} ${allowScreenshotEnabled ? 'bg-white/10 text-dark-textSecondary hover:bg-white/15' : 'bg-emerald-600 text-white hover:bg-emerald-500'}`}
+                  title={allowScreenshotEnabled ? 'Screenshot protection OFF' : 'Screenshot protection ON'}
+                  aria-label="Toggle screenshot protection for view-once message"
+                  aria-pressed={!allowScreenshotEnabled}
                 >
-                  <Smile className="w-5 h-5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setShowMediaPanel(false); setShowStickerPacks(!showStickerPacks); }}
-                  className={`p-2 md:p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px] flex items-center justify-center ${showStickerPacks ? 'bg-primary-600 text-white' : 'hover:bg-dark-hover text-dark-text'}`}
-                  title="Stickers (send with text)"
-                  aria-label="Open sticker picker"
-                  aria-expanded={showStickerPacks}
-                >
-                  <Square className="w-5 h-5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
-                  className={`p-2 md:p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px] flex items-center justify-center ${showAttachmentMenu ? 'bg-primary-600 text-white' : 'hover:bg-dark-hover text-dark-text'}`}
-                  title="Attachments"
-                  aria-label="Open attachment menu"
-                  aria-expanded={showAttachmentMenu}
-                >
-                  <Paperclip className="w-5 h-5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsViewOnceEnabled(!isViewOnceEnabled)}
-                  className={`p-2 md:p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px] flex items-center justify-center ${isViewOnceEnabled ? 'bg-purple-600 text-white' : 'hover:bg-dark-hover text-dark-text'}`}
-                  title="Send as View Once"
-                  aria-label="Toggle view-once mode"
-                  aria-pressed={isViewOnceEnabled}
-                >
-                  <Eye size={20} />
-                </button>
-                {isViewOnceEnabled && (
-                  <button
-                    type="button"
-                    onClick={() => setAllowScreenshotEnabled(!allowScreenshotEnabled)}
-                    className={`p-2 md:p-3 rounded-lg transition-colors snap-center shrink-0 min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px] flex items-center justify-center ${allowScreenshotEnabled ? 'hover:bg-dark-hover text-dark-text' : 'bg-emerald-600 text-white'}`}
-                    title={allowScreenshotEnabled ? 'Screenshot protection OFF' : 'Screenshot protection ON'}
-                    aria-label="Toggle screenshot protection for view-once message"
-                    aria-pressed={!allowScreenshotEnabled}
-                  >
-                    {allowScreenshotEnabled ? <ShieldOff size={20} /> : <ShieldCheck size={20} />}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleSchedule();
-                  }}
-                  className="p-2 md:p-3 hover:bg-dark-hover rounded-lg transition-colors snap-center shrink-0 min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px] flex items-center justify-center"
-                  title="Schedule Message" aria-label="Schedule Message"
-                >
-                  <CalendarClock className="w-5 h-5 text-dark-text" />
+                  {allowScreenshotEnabled ? <ShieldOff size={14} /> : <ShieldCheck size={14} />}
+                  <span className="hidden min-[360px]:inline">{allowScreenshotEnabled ? 'Shield off' : 'Shield on'}</span>
                 </button>
               </div>
-            )}
+            </div>
+          )}
+
+          <form onSubmit={handleSendMessage} className="flex w-full items-end gap-2 flex-shrink-0 z-50" role="form" aria-label="Send message">
             {showAttachmentMenu && (
-              <div ref={attachmentMenuRef} className="absolute bottom-14 left-1 right-1 md:left-0 md:right-auto md:w-max md:max-w-2xl bg-dark-surface border border-dark-border rounded-xl shadow-xl p-2 md:p-3 grid grid-cols-4 gap-1.5 md:grid-cols-5 md:gap-2 z-50 max-h-[50vh] overflow-y-auto animate-in fade-in slide-in-from-bottom-2 duration-200">
-                <AttachmentIcon icon={<FileText className="text-blue-500" />} label="Document" onClick={() => { setShowAttachmentMenu(false); docInputRef.current?.click(); }} disabled={!canSendMedia && !currentUserIsAdmin} />
-                <AttachmentIcon
-                  icon={<Camera className="text-pink-500" />}
-                  label="Camera"
-                  onClick={() => { setShowAttachmentMenu(false); openCamera(); }}
-                  disabled={!canSendMedia && !currentUserIsAdmin}
-                  title="Camera (Emulator may need permission)"
-                />
-                <AttachmentIcon icon={<ImageIcon className="text-purple-500" />} label="Gallery" onClick={() => { setShowAttachmentMenu(false); fileInputRef.current?.click(); }} disabled={!canSendMedia && !currentUserIsAdmin} />
-                <AttachmentIcon icon={<Headphones className="text-orange-500" />} label="Audio" onClick={() => { setShowAttachmentMenu(false); openAudioAttachment(); }} disabled={!canSendMedia && !currentUserIsAdmin} title="Audio (Emulator may need permission)" />
-                <AttachmentIcon icon={<VideoIcon className="text-cyan-500" />} label="Video Note" onClick={() => openVideoNoteRecorder()} disabled={!canSendMedia && !currentUserIsAdmin} title="Record a short circular video note (like WhatsApp)" />
-                <AttachmentIcon icon={<MapPin className="text-green-500" />} label="Location" onClick={() => { setShowAttachmentMenu(false); handleShareLocation('current'); }} disabled={!canSendMedia && !currentUserIsAdmin} />
-                <AttachmentIcon icon={<MapPin className="text-red-500" />} label="Live Loc." onClick={() => { setShowAttachmentMenu(false); handleShareLocation('live'); }} disabled={!canSendMedia && !currentUserIsAdmin} />
-                <AttachmentIcon icon={<Contact className="text-blue-400" />} label="Contact" onClick={() => { setShowAttachmentMenu(false); handleContactSimulation(); }} disabled={!canSendMedia && !currentUserIsAdmin} />
-                <AttachmentIcon icon={<BarChart2 className="text-yellow-600" />} label="Poll" disabled={!canCreatePolls && !currentUserIsAdmin} onClick={() => { setShowAttachmentMenu(false); setShowPollModal(true); }} />
-                <AttachmentIcon icon={<Clock className="text-purple-600" />} label="Disappear" onClick={() => { setShowAttachmentMenu(false); handleSetDisappearingMessages(); }} disabled={!selectedConversation} />
-                {/* GENZ Ultra Attachments */}
-                  <AttachmentIcon icon={<Grid3x3 className="text-pink-400" />} label={floatingStickerMode ? "Stickers (Float)" : "Stickers"} onClick={() => { setShowStickerPacks(true); setShowAttachmentMenu(false); }} title={floatingStickerMode ? "Floating sticker mode ON" : ""} />
-                  <AttachmentIcon icon={<Radio size={16} className={floatingStickerMode ? "text-green-400" : "text-gray-500"} />} label="Float" onClick={() => { setShowAttachmentMenu(false); setFloatingStickerMode(!floatingStickerMode); }} title={floatingStickerMode ? "Disable floating stickers" : "Enable floating stickers (TikTok style)"} />
-                  <AttachmentIcon icon={<DollarSign className="text-green-500" />} label="Pay" onClick={() => { setShowAttachmentMenu(false); setShowPaymentModal(true); }} disabled={!selectedConversation} title="TM WhatsApp Pay" />
+              <div ref={attachmentMenuRef} className="absolute bottom-[calc(100%+8px)] left-2 right-2 md:left-2 md:right-auto md:w-[min(36rem,calc(100vw-1rem))] bg-dark-surface border border-dark-border rounded-2xl shadow-2xl p-2 md:p-3 grid grid-cols-4 sm:grid-cols-5 gap-1.5 md:gap-2 z-50 max-h-[min(58vh,420px)] overflow-y-auto animate-in fade-in slide-in-from-bottom-2 duration-200">
+                <AttachmentIcon icon={<CalendarClock className="text-[#00a884]" />} label="Schedule" onClick={handleSchedule} disabled={!selectedConversation} title="Schedule Message" />
+                <AttachmentIcon icon={<Eye className={isViewOnceEnabled ? 'text-white' : 'text-purple-500'} />} label="View Once" onClick={() => setIsViewOnceEnabled(!isViewOnceEnabled)} active={isViewOnceEnabled} title="Send as View Once" />
+                {isViewOnceEnabled && (
+                  <AttachmentIcon
+                    icon={allowScreenshotEnabled ? <ShieldOff className="text-gray-400" /> : <ShieldCheck className="text-emerald-400" />}
+                    label={allowScreenshotEnabled ? 'Shield Off' : 'Shield On'}
+                    onClick={() => setAllowScreenshotEnabled(!allowScreenshotEnabled)}
+                    active={!allowScreenshotEnabled}
+                    title={allowScreenshotEnabled ? 'Screenshot protection OFF' : 'Screenshot protection ON'}
+                  />
+                )}
+                <AttachmentIcon icon={<Grid3x3 className="text-pink-400" />} label={floatingStickerMode ? "Float Stickers" : "Stickers"} onClick={() => { setShowStickerPacks(true); }} title={floatingStickerMode ? "Floating sticker mode ON" : "Open stickers"} />
+                <AttachmentIcon icon={<Radio size={16} className={floatingStickerMode ? "text-green-400" : "text-gray-500"} />} label="Float" onClick={() => setFloatingStickerMode(!floatingStickerMode)} active={floatingStickerMode} title={floatingStickerMode ? "Disable floating stickers" : "Enable floating stickers"} />
+                <AttachmentIcon icon={<FileText className="text-blue-500" />} label="Document" onClick={() => docInputRef.current?.click()} disabled={!canSendMedia && !currentUserIsAdmin} />
+                <AttachmentIcon icon={<Camera className="text-pink-500" />} label="Camera" onClick={openCamera} disabled={!canSendMedia && !currentUserIsAdmin} title="Camera (Emulator may need permission)" />
+                <AttachmentIcon icon={<ImageIcon className="text-purple-500" />} label="Gallery" onClick={() => fileInputRef.current?.click()} disabled={!canSendMedia && !currentUserIsAdmin} />
+                <AttachmentIcon icon={<Headphones className="text-orange-500" />} label="Audio" onClick={openAudioAttachment} disabled={!canSendMedia && !currentUserIsAdmin} title="Audio (Emulator may need permission)" />
+                <AttachmentIcon icon={<VideoIcon className="text-cyan-500" />} label="Video Note" onClick={openVideoNoteRecorder} disabled={!canSendMedia && !currentUserIsAdmin} title="Record a short circular video note" />
+                <AttachmentIcon icon={<MapPin className="text-green-500" />} label="Location" onClick={() => handleShareLocation('current')} disabled={!canSendMedia && !currentUserIsAdmin} />
+                <AttachmentIcon icon={<MapPin className="text-red-500" />} label="Live Loc." onClick={() => handleShareLocation('live')} disabled={!canSendMedia && !currentUserIsAdmin} />
+                <AttachmentIcon icon={<Contact className="text-blue-400" />} label="Contact" onClick={handleContactSimulation} disabled={!canSendMedia && !currentUserIsAdmin} />
+                <AttachmentIcon icon={<BarChart2 className="text-yellow-600" />} label="Poll" disabled={!canCreatePolls && !currentUserIsAdmin} onClick={() => setShowPollModal(true)} />
+                <AttachmentIcon icon={<Clock className="text-purple-600" />} label="Disappear" onClick={handleSetDisappearingMessages} disabled={!selectedConversation} />
+                <AttachmentIcon icon={<DollarSign className="text-green-500" />} label="Pay" onClick={() => setShowPaymentModal(true)} disabled={!selectedConversation} title="TM WhatsApp Pay" />
               </div>
             )}
             {/* Quick emoji feature removed as requested */}
             {mentionState.open && mentionSuggestions.length > 0 && !showAttachmentMenu && (
-              <div className="absolute bottom-16 left-2 right-2 md:left-40 md:right-auto md:w-80 bg-dark-surface border border-dark-border rounded-xl shadow-xl p-2 z-50" style={{ maxHeight: 'calc(var(--app-height, 100vh) - 250px)' }}>
+              <div className="absolute bottom-[calc(100%+8px)] left-2 right-2 md:left-40 md:right-auto md:w-80 bg-dark-surface border border-dark-border rounded-xl shadow-xl p-2 z-50" style={{ maxHeight: 'calc(var(--app-height, 100vh) - 250px)' }}>
                 <div className="flex items-center gap-2 px-2 pb-2 text-[10px] uppercase tracking-wide text-dark-textSecondary">
                   <AtSign size={12} />
                   Mention
@@ -285,7 +245,17 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
   
             {/* ── Text input — hidden while VoiceRecorder is recording ── */}
             {!voiceRecorderActive && (
-              <div className="flex-1 flex items-center gap-1.5 min-w-0">
+              <div className="flex-1 min-w-0 flex items-center gap-1 rounded-[24px] bg-dark-bg border border-dark-border px-1.5 py-1 shadow-sm md:px-2 md:py-1.5">
+                <button
+                  type="button"
+                  onClick={() => { setShowAttachmentMenu(false); setShowStickerPacks(false); setShowMediaPanel(!showMediaPanel); }}
+                  className={showMediaPanel ? activeComposerIconButton : composerIconButton}
+                  title="Emoji & Media"
+                  aria-label="Toggle media picker"
+                  aria-expanded={showMediaPanel}
+                >
+                  <Smile className="w-5 h-5" />
+                </button>
                 <input
                   ref={inputRef}
                   type="text"
@@ -300,15 +270,57 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                   onBlur={() => window.setTimeout(closeMentionPicker, 120)}
                   placeholder="Type a message..."
                   style={{ fontFamily: FONT_OPTIONS.find(f => f.value === selectedFont)?.fontFamily || 'sans-serif' }}
-                  className="flex-1 min-w-0 px-3 md:px-4 py-2 md:py-2.5 bg-dark-bg border border-dark-border rounded-2xl text-dark-text placeholder-dark-textSecondary focus:outline-none focus:border-primary-500 transition-colors text-base md:text-sm"
+                  className="h-10 flex-1 min-w-[5rem] bg-transparent px-1.5 py-2 text-base text-dark-text placeholder-dark-textSecondary focus:outline-none md:px-2 md:text-sm"
                 />
                 <button
                   type="button"
+                  onClick={() => { setShowMediaPanel(false); setShowAttachmentMenu(false); setShowStickerPacks(!showStickerPacks); }}
+                  className={`${showStickerPacks ? activeComposerIconButton : composerIconButton} hidden sm:flex`}
+                  title="Stickers (send with text)"
+                  aria-label="Open sticker picker"
+                  aria-expanded={showStickerPacks}
+                >
+                  <Square className="w-5 h-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsViewOnceEnabled(!isViewOnceEnabled)}
+                  className={`${isViewOnceEnabled ? activeComposerIconButton : composerIconButton} hidden md:flex`}
+                  title="Send as View Once"
+                  aria-label="Toggle view-once mode"
+                  aria-pressed={isViewOnceEnabled}
+                >
+                  <Eye size={20} />
+                </button>
+                <button
+                  type="button"
                   onClick={() => setShowFontPicker(!showFontPicker)}
-                  className="hidden sm:flex p-2 md:p-2.5 bg-dark-bg border border-dark-border rounded-2xl text-dark-text hover:bg-dark-hover transition-colors flex-shrink-0"
+                  className={`${composerIconButton} hidden lg:flex`}
                   title="Change font"
                 >
                   <Languages size={18} />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSchedule();
+                  }}
+                  className={`${composerIconButton} hidden xl:flex`}
+                  title="Schedule Message" aria-label="Schedule Message"
+                >
+                  <CalendarClock className="w-5 h-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowMediaPanel(false); setShowStickerPacks(false); setShowAttachmentMenu(!showAttachmentMenu); }}
+                  className={showAttachmentMenu ? activeComposerIconButton : composerIconButton}
+                  title="Attachments"
+                  aria-label="Open attachment menu"
+                  aria-expanded={showAttachmentMenu}
+                >
+                  <Paperclip className="w-5 h-5" />
                 </button>
               </div>
             )}

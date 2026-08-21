@@ -93,6 +93,19 @@ describe('genzModsController — settings', () => {
     expect(res.body.settings.voiceEffect).toBe('none');
   });
 
+  it('returns disabled premium defaults even when the fields are absent for a non-premium user', async () => {
+    User.findById.mockResolvedValue(makeUser({ genzMods: { ghostMode: true } }));
+    const res = makeRes();
+    await genzMods.getGenzModsSettings(makeReq(), res);
+    expect(res.body.settings.ghostMode).toBe(true);
+    expect(res.body.settings.antiScreenshot).toBe(false);
+    expect(res.body.settings.glassMode).toBe(false);
+    expect(res.body.settings.storyHighlights).toBe(false);
+    expect(res.body.settings.fakeChatCover).toBe(false);
+    expect(res.body.settings.chatMusic).toBe(false);
+    expect(res.body.settings.chatMusicUrl).toBe('');
+  });
+
   it('updates settings and normalizes ghost mode (happy path)', async () => {
     const user = makeUser();
     User.findById.mockResolvedValue(user);

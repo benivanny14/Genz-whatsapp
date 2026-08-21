@@ -12,15 +12,19 @@ const isPremiumActive = (user) => Boolean(
   new Date() <= new Date(user.subscriptionExpiresAt)
 );
 
+const disabledPremiumValue = (field) => {
+  if (field === 'voiceEffect') return 'none';
+  if (field === 'chatBackgroundMusic') return { enabled: false, track: '' };
+  if (field === 'chatMusicUrl') return '';
+  return false;
+};
+
 const getEffectiveGenzMods = (settings = {}, user) => {
   const effective = { ...settings };
   if (isPremiumActive(user)) return effective;
 
   for (const field of PREMIUM_MOD_FIELDS) {
-    if (!Object.prototype.hasOwnProperty.call(effective, field)) continue;
-    effective[field] = field === 'voiceEffect' ? 'none' : (
-      field === 'chatBackgroundMusic' ? { enabled: false, track: '' } : false
-    );
+    effective[field] = disabledPremiumValue(field);
   }
 
   return effective;
