@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { ArrowLeft, Download, Smartphone, ShieldAlert, RefreshCw } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import { apkDownloadUrl } from '../utils/versionManifest';
 import ReleaseUptake from '../components/ReleaseUptake.jsx';
 
@@ -22,6 +23,11 @@ const Step = ({ icon: Icon, title, children }) => (
  * English) because our users are East African.
  */
 const InstallGuide = () => {
+  // APK users don't need installation instructions — redirect to chat
+  if (Capacitor.isNativePlatform()) {
+    return <Navigate to="/chat" replace />;
+  }
+
   // Prefetch the APK in the background on mount
   useEffect(() => {
     try {
