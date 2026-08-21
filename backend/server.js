@@ -1086,6 +1086,8 @@ if (fs.existsSync(frontendIndexPath)) {
   // redeploy. Caching reduces cold-start latency on Render free tier.
   const sendApkCached = (file) => (req, res) => {
     res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+    res.setHeader('Content-Disposition', 'attachment; filename="genz-whatsapp.apk"');
     res.sendFile(file);
   };
   app.get('/genz-whatsapp.apk', sendApkCached(path.join(frontendDistPath, 'genz-whatsapp.apk')));
