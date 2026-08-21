@@ -47,7 +47,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
           </div>
         )}
   
-        <div className="bg-dark-surface border-t border-dark-border px-1 py-1 md:px-2 md:py-2 lg:p-4 relative z-20 flex-shrink-0" style={{ flex: '0 0 auto', position: 'relative' }}>
+        <div className="bg-dark-surface border-t border-dark-border px-1 py-1 sm:px-2 sm:py-2 lg:p-4 relative z-20 flex-shrink-0" style={{ flex: '0 0 auto', position: 'relative' }}>
           {showMediaPanel && (
             <div className="absolute bottom-full left-0 right-0 w-full z-50 overflow-hidden shadow-2xl border-t border-dark-border">
               <MediaPickerPanel
@@ -174,7 +174,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
 
           <form onSubmit={handleSendMessage} className="flex w-full items-end gap-2 flex-shrink-0 z-50" role="form" aria-label="Send message">
             {showAttachmentMenu && (
-              <div ref={attachmentMenuRef} className="absolute bottom-[calc(100%+8px)] left-2 right-2 md:left-2 md:right-auto md:w-[min(36rem,calc(100vw-1rem))] bg-dark-surface border border-dark-border rounded-2xl shadow-2xl p-2 md:p-3 grid grid-cols-4 sm:grid-cols-5 gap-1.5 md:gap-2 z-50 max-h-[min(58vh,420px)] overflow-y-auto animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <div ref={attachmentMenuRef} className="absolute bottom-[calc(100%+8px)] left-2 right-2 md:left-2 md:right-auto md:w-[min(36rem,calc(100vw-1rem))] bg-dark-surface border border-dark-border rounded-2xl shadow-2xl p-2 md:p-3 grid grid-cols-4 sm:grid-cols-4 md:grid-cols-5 gap-1.5 md:gap-2 z-50 max-h-[min(58vh,420px)] overflow-y-auto animate-in fade-in slide-in-from-bottom-2 duration-200">
                 <AttachmentIcon icon={<CalendarClock className="text-[#00a884]" />} label="Schedule" onClick={handleSchedule} disabled={!selectedConversation} title="Schedule Message" />
                 <AttachmentIcon icon={<Eye className={isViewOnceEnabled ? 'text-white' : 'text-purple-500'} />} label="View Once" onClick={() => setIsViewOnceEnabled(!isViewOnceEnabled)} active={isViewOnceEnabled} title="Send as View Once" />
                 {isViewOnceEnabled && (
@@ -245,7 +245,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
   
             {/* ── Text input — hidden while VoiceRecorder is recording ── */}
             {!voiceRecorderActive && (
-              <div className="flex-1 min-w-0 flex items-center gap-1 rounded-[24px] bg-dark-bg border border-dark-border px-1.5 py-1 shadow-sm md:px-2 md:py-1.5">
+              <div className="flex-1 min-w-0 flex items-center gap-1 rounded-[24px] bg-dark-bg border border-dark-border px-1.5 py-1 shadow-sm sm:px-2 sm:py-1.5">
                 <button
                   type="button"
                   onClick={() => { setShowAttachmentMenu(false); setShowStickerPacks(false); setShowMediaPanel(!showMediaPanel); }}
@@ -270,7 +270,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                   onBlur={() => window.setTimeout(closeMentionPicker, 120)}
                   placeholder="Type a message..."
                   style={{ fontFamily: FONT_OPTIONS.find(f => f.value === selectedFont)?.fontFamily || 'sans-serif' }}
-                  className="h-10 flex-1 min-w-[5rem] bg-transparent px-1.5 py-2 text-base text-dark-text placeholder-dark-textSecondary focus:outline-none md:px-2 md:text-sm"
+                  className="h-10 flex-1 min-w-[3rem] bg-transparent px-1 py-2 text-base text-dark-text placeholder-dark-textSecondary focus:outline-none sm:min-w-[5rem] sm:px-1.5 sm:text-sm"
                 />
                 <button
                   type="button"
@@ -285,7 +285,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                 <button
                   type="button"
                   onClick={() => setIsViewOnceEnabled(!isViewOnceEnabled)}
-                  className={`${isViewOnceEnabled ? activeComposerIconButton : composerIconButton} hidden md:flex`}
+                  className={`${isViewOnceEnabled ? activeComposerIconButton : composerIconButton} hidden sm:flex`}
                   title="Send as View Once"
                   aria-label="Toggle view-once mode"
                   aria-pressed={isViewOnceEnabled}
@@ -295,7 +295,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                 <button
                   type="button"
                   onClick={() => setShowFontPicker(!showFontPicker)}
-                  className={`${composerIconButton} hidden lg:flex`}
+                  className={`${composerIconButton} hidden md:flex`}
                   title="Change font"
                 >
                   <Languages size={18} />
@@ -307,7 +307,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                     e.stopPropagation();
                     handleSchedule();
                   }}
-                  className={`${composerIconButton} hidden xl:flex`}
+                  className={`${composerIconButton} hidden lg:flex`}
                   title="Schedule Message" aria-label="Schedule Message"
                 >
                   <CalendarClock className="w-5 h-5" />
