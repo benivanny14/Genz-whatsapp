@@ -9,7 +9,7 @@ router.use(protect);
 
 // Settings routes
 router.get('/settings', customizationModsController.getCustomizationModsSettings);
-router.post('/settings', customizationModsController.updateCustomizationModsSettings);
+router.post('/settings', checkPremiumAccess, customizationModsController.updateCustomizationModsSettings);
 
 // Toggle routes for individual features — premium customizations require subscription
 router.post('/custom-ticks', checkPremiumAccess, customizationModsController.toggleCustomTicks);

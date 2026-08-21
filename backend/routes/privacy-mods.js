@@ -9,7 +9,7 @@ router.use(protect);
 
 // Settings routes
 router.get('/settings', privacyController.getPrivacyModsSettings);
-router.post('/settings', stripPremiumSettingsFields(['antiViewOnce']), privacyController.updatePrivacyModsSettings);
+router.post('/settings', stripPremiumSettingsFields(['antiViewOnce', 'whoViewedProfile', 'contactOnlineNotifier', 'customTickPerContact', 'customEmojiStyle']), privacyController.updatePrivacyModsSettings);
 
 // Toggle routes for individual features
 router.post('/freeze-last-seen', privacyController.toggleFreezeLastSeen);

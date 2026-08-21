@@ -9,7 +9,7 @@ router.use(protect);
 
 // Settings routes
 router.get('/settings', securityModsController.getSecurityModsSettings);
-router.post('/settings', stripPremiumSettingsFields(['antiScreenshot']), securityModsController.updateSecurityModsSettings);
+router.post('/settings', stripPremiumSettingsFields(['antiScreenshot', 'screenRecordingDetection']), securityModsController.updateSecurityModsSettings);
 
 // Toggle routes for individual features
 router.post('/anti-ban', securityModsController.toggleAntiBan);

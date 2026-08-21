@@ -136,6 +136,8 @@ export const UserProvider = ({ children }) => {
       displayName: authUser?.username || userProfile?.username || "GENZ User",
       deviceId: deviceId,
       deviceInfo: deviceInfo,
+      premium: authUser?.premium || false,
+      subscriptionExpiresAt: authUser?.subscriptionExpiresAt || null,
       settings: storedSettings || {
         privacy: {
           lastSeen: 'everyone',

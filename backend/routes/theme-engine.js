@@ -18,7 +18,7 @@ const {
 router.use(protect);
 
 router.get('/settings', getThemeEngineSettings);
-router.post('/settings', updateThemeEngineSettings);
+router.post('/settings', checkPremiumAccess, updateThemeEngineSettings);
 router.post('/font', checkPremiumAccess, updateFontSettings);
 router.post('/mode', updateThemeMode);
 router.post('/colors', checkPremiumAccess, updateCustomColors);

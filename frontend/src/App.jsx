@@ -189,12 +189,15 @@ function App() {
       try {
         const mods = readStoredMods(chatUser?._id || chatUser?.id);
         const root = document.documentElement;
-        if (mods.glassMode) {
+        // PREMIUM CHECK: Only apply premium mods if user has active subscription
+        const isPremiumActive = user?.premium && user?.subscriptionExpiresAt &&
+          new Date() <= new Date(user.subscriptionExpiresAt);
+        if (isPremiumActive && mods.glassMode) {
           root.classList.add('glass-mode-active');
         } else {
           root.classList.remove('glass-mode-active');
         }
-        // Sync video background
+        // Sync video background (premium only)
         let videoBg = document.getElementById('genz-video-bg');
         if (!videoBg) {
           videoBg = document.createElement('video');
@@ -228,7 +231,7 @@ function App() {
         root.style.setProperty('--genz-glass-tint', (Math.min(0.85, Math.max(0.35, frostAlpha + 0.1))).toFixed(3));
         root.style.setProperty('--genz-glass-header-tint', (Math.min(0.9, Math.max(0.45, frostAlpha + 0.3))).toFixed(3));
         root.style.setProperty('--genz-glass-blur', `${frostBlur}px`);
-        if (mods.glassMode) {
+        if (isPremiumActive && mods.glassMode) {
           frostLayer.style.background = `rgba(11, 20, 26, ${frostAlpha.toFixed(3)})`;
           frostLayer.style.backdropFilter = `blur(${frostBlur}px)`;
           frostLayer.style.webkitBackdropFilter = `blur(${frostBlur}px)`;
@@ -236,7 +239,7 @@ function App() {
         } else {
           frostLayer.style.display = 'none';
         }
-        const videoActive = Boolean(mods.glassMode && mods.videoBg && !String(mods.videoBg).startsWith('blob:'));
+        const videoActive = Boolean(isPremiumActive && mods.glassMode && mods.videoBg && !String(mods.videoBg).startsWith('blob:'));
         if (videoActive) {
           if (videoBg.dataset.src !== mods.videoBg) {
             videoBg.src = mods.videoBg;
@@ -260,7 +263,7 @@ function App() {
           bgImg.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:-1;pointer-events:none;display:none;';
           document.body.prepend(bgImg);
         }
-        const imgActive = Boolean(!videoActive && mods.glassMode && mods.bgImage && !String(mods.bgImage).startsWith('blob:'));
+        const imgActive = Boolean(!videoActive && isPremiumActive && mods.glassMode && mods.bgImage && !String(mods.bgImage).startsWith('blob:'));
         if (imgActive) {
           if (bgImg.dataset.src !== mods.bgImage) {
             bgImg.src = mods.bgImage;
@@ -273,7 +276,7 @@ function App() {
           bgImg.style.display = 'none';
         }
         initAntiScreenshotListeners();
-        applyAntiScreenshot(mods.antiScreenshot);
+        applyAntiScreenshot(isPremiumActive ? mods.antiScreenshot : null);
       } catch { /* silent */ }
     };
 
@@ -286,7 +289,7 @@ function App() {
       window.removeEventListener('genz-mods-updated', syncGlassMode);
       clearInterval(poll);
     };
-  }, [chatUser?._id]);
+  }, [chatUser?._id, user?.premium, user?.subscriptionExpiresAt]);
 
   // --- Notifications ---
   useEffect(() => {
