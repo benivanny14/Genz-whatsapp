@@ -3,11 +3,9 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// Production smoke — verifies the DEPLOYED web app on genz-whatsapp-1 through
-// its vite-preview proxy (the ONLY path the web app has to the API). Opt-in:
-// set PROD_SMOKE=1 (the normal local suite never runs this file). The proxy
-// path is exactly what broke in the Aug 2026 incident (GENZ_BACKEND_TARGET
-// pointed at localhost:5000 inside the frontend container → ECONNREFUSED).
+// Production smoke — verifies the DEPLOYED web app on genz-whatsapp-1 and its
+// separately deployed API on genz-whatsapp. Opt-in:
+// set PROD_SMOKE=1 (the normal local suite never runs this file).
 //
 // Run against production:
 //   cd frontend && PROD_SMOKE=1 npx playwright test --config=playwright.prod.config.js
@@ -25,7 +23,9 @@ const repoVersion = () => {
   }
 };
 
-test.describe('production smoke (via UI host proxy)', () => {
+const apiBase = process.env.PROD_API_URL || 'https://genz-whatsapp.onrender.com';
+
+test.describe('production smoke (UI + API hosts)', () => {
   test.skip(!enabled, 'PROD_SMOKE=1 required (production host)');
 
   test('SPA loads and React boots', async ({ page }) => {
@@ -40,11 +40,11 @@ test.describe('production smoke (via UI host proxy)', () => {
     expect(pageErrors).toEqual([]);
   });
 
-  test('/api/health reaches the backend through the proxy', async ({ request }) => {
+  test('/api/health reaches the production API', async ({ request }) => {
     await expect
       .poll(
         async () => {
-          const res = await request.get('/api/health', { timeout: 20_000 });
+          const res = await request.get(`${apiBase}/api/health`, { timeout: 20_000 });
           if (!res.ok()) return null;
           return await res.json();
         },
