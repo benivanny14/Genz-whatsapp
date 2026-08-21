@@ -61,3 +61,25 @@ services:
         value: /api/system-gateway-x9k
       - key: ADMIN_JWT_SECRET
         sync: false
+      # Firebase Cloud Messaging (server-side push notifications)
+      # Generate from Firebase Console → Project Settings → Service accounts →
+      # Generate new private key. Then run: node scripts/import-firebase-service-account.js <path-to-json>
+      # and copy the 5 values below to Render Dashboard.
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY_ID
+        sync: false
+      - key: FIREBASE_CLIENT_ID
+        sync: false
+      # WebAuthn / Passkey Relying Party ID (must match the production domain)
+      - key: RP_ID
+        value: genz-whatsapp-1.onrender.com
+      # Manual payment receiver details (shown to users in the payment modal)
+      - key: MANUAL_PAYMENT_RECEIVER_NAME
+        value: GENZ WhatsApp
+      - key: MANUAL_PAYMENT_RECEIVER_NUMBER
+        sync: false
