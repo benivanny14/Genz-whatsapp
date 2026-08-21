@@ -1272,13 +1272,15 @@ if (!isTestEnvironment) {
 if (require.main === module) {
   server.listen(PORT, '0.0.0.0', () => {
     logger.info('Server running', { port: PORT });
+    const fcmConfigured = Boolean(process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY);
     logger.info('TM Backend started', {
       port: PORT,
       environment: process.env.NODE_ENV || 'development',
       publicApiUrl: process.env.PUBLIC_API_URL || process.env.BACKEND_URL || `http://localhost:${PORT}`,
       frontendUrl: process.env.FRONTEND_URL || null,
       mediaStorage: isCloudinaryConfigured() ? 'cloudinary' : 'local',
-      redisConfigured: Boolean(process.env.REDIS_URL || process.env.REDIS_HOST)
+      redisConfigured: Boolean(process.env.REDIS_URL || process.env.REDIS_HOST),
+      fcmPush: fcmConfigured ? 'enabled' : 'disabled (set FIREBASE_* env vars to enable)'
     });
     startBackgroundServices(io).catch((error) => {
       logger.error('Failed to start background services', { message: error && error.message });

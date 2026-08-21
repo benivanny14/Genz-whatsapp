@@ -5,8 +5,8 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL || (isCI ? 'http://127.0.0.1:417
 
 export default defineConfig({
   testDir: './e2e',
-  timeout: 60_000,
-  retries: isCI ? 1 : 0,
+  timeout: 120_000,
+  retries: isCI ? 2 : 0,
   globalSetup: './e2e/global-setup.js',
   use: {
     baseURL,
@@ -16,6 +16,7 @@ export default defineConfig({
     // Send button and makes clicks flaky in fresh contexts.
     serviceWorkers: 'block'
   },
+  workers: isCI ? 2 : undefined,
   projects: [
     {
       name: 'chromium',

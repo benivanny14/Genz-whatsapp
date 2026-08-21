@@ -122,6 +122,7 @@ jobs:
   e2e:
     name: E2E (Playwright)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     services:
       mongodb:
         image: mongo:7
