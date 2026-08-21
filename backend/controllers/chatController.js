@@ -32,6 +32,18 @@ const includesId = (items = [], id) => {
   return items.some(item => (item?._id ? item._id.toString() : item?.toString()) === target);
 };
 
+const toFiniteNumberOrNull = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const toValidDateOrNull = (value) => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
 const getCache = async (req, key) => {
   const redisClient = req.app.get("redisClient");
   if (!redisClient || !redisClient.isOpen) return null;
@@ -831,6 +843,10 @@ exports.sendMessage = async (req, res) => {
       selfDestructTimer,
       allowScreenshot,
       font,
+      latitude,
+      longitude,
+      isLiveLocation,
+      liveLocationExpiresAt,
     } = req.body;
     
     // 1. The frontend may send 'conversationId' or 'chatId'; read both for safety
@@ -958,6 +974,10 @@ exports.sendMessage = async (req, res) => {
       }
     }
 
+    const messageLatitude = toFiniteNumberOrNull(latitude);
+    const messageLongitude = toFiniteNumberOrNull(longitude);
+    const messageLiveLocationExpiresAt = toValidDateOrNull(liveLocationExpiresAt);
+
     const message = await Message.create({
       conversationId: finalConversationId,
       sender: localUserId,
@@ -979,6 +999,10 @@ exports.sendMessage = async (req, res) => {
       ...(typeof allowScreenshot === 'boolean' ? { allowScreenshot } : {}),
       disappearAt,
       clientMessageId: messageId ? String(messageId) : undefined,
+      latitude: messageLatitude,
+      longitude: messageLongitude,
+      isLiveLocation: Boolean(isLiveLocation),
+      liveLocationExpiresAt: messageLiveLocationExpiresAt,
       font: typeof enforceFont === 'string' && enforceFont ? enforceFont : null,
     });
 
@@ -2597,6 +2621,8 @@ exports.forwardMessage = async (req, res) => {
 
     const forwardedMessages = [];
     const io = req.app.get("io");
+    const forwardedLatitude = toFiniteNumberOrNull(originalMessage.latitude);
+    const forwardedLongitude = toFiniteNumberOrNull(originalMessage.longitude);
 
     for (const targetConvId of targetConversationIds) {
       const targetConversation = await Conversation.findById(targetConvId);
@@ -2612,11 +2638,17 @@ exports.forwardMessage = async (req, res) => {
         conversationId: targetConvId,
         sender: userId,
         content: originalMessage.content,
+        caption: originalMessage.caption || '',
         messageType: originalMessage.messageType,
         mediaUrl: originalMessage.mediaUrl,
         fileName: originalMessage.fileName,
         fileSize: originalMessage.fileSize,
         duration: originalMessage.duration,
+        latitude: forwardedLatitude,
+        longitude: forwardedLongitude,
+        isLiveLocation: false,
+        liveLocationExpiresAt: null,
+        liveLocationStoppedAt: null,
         isForwarded: true,
         forwardedFrom: messageId,
         originalMessageId: messageId,

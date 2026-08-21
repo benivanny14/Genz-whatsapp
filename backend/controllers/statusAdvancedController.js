@@ -328,8 +328,8 @@ exports.getReactions = async (req, res) => {
     const counts = {};
     status.reactions.forEach(r => {
       const key = r.emoji || r.reactionId || 'unknown';
-      counts[key] = (counts[key] || 0) + 1
-1;    });
+      counts[key] = (counts[key] || 0) + 1;
+    });
 
     res.json({ success: true, reactions: counts });
   } catch (err) {

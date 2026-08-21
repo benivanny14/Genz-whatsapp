@@ -12,6 +12,7 @@ const StatusQRCodePanel = ({ onClose, status }) => {
   const [qrSize, setQrSize] = useState(256);
   const [includeLogo, setIncludeLogo] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
 
   const qrStyles = [
     { id: 'square', label: 'Square' },
@@ -33,13 +34,20 @@ const StatusQRCodePanel = ({ onClose, status }) => {
     generateQRCode();
   }, [qrStyle, qrColor, qrSize, includeLogo]);
 
+  const resolveStatusUrl = async () => {
+    const custom = customUrl.trim();
+    if (custom) return custom;
+    return buildShareUrl(status?._id || status?.id);
+  };
+
   const generateQRCode = async () => {
     setIsGenerating(true);
     try {
       const token = getAuthToken();
       // Owner statuses get an expiring share token so the QR works for anyone;
       // everyone else falls back to the plain (logged-in-only) link.
-      const statusUrl = customUrl || await buildShareUrl(status?._id || status?.id);
+      const statusUrl = await resolveStatusUrl();
+      setShareUrl(statusUrl);
       
       const response = await fetch(`${resolveApiBase()}/status-advanced/qr`, {
         method: 'POST',
@@ -64,7 +72,8 @@ const StatusQRCodePanel = ({ onClose, status }) => {
     } catch (error) {
       console.error('Error generating QR code:', error);
       // Fallback to external API
-      const statusUrl = customUrl || `${window.location.origin}/status/${status?._id || status?.id}`;
+      const statusUrl = customUrl.trim() || `${window.location.origin}/status/${status?._id || status?.id}`;
+      setShareUrl(statusUrl);
       const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}x${qrSize}&data=${encodeURIComponent(statusUrl)}&color=${qrColor.replace('#', '')}`;
       setQrCodeUrl(apiUrl);
     } finally {
@@ -79,13 +88,15 @@ const StatusQRCodePanel = ({ onClose, status }) => {
     link.click();
   };
 
-  const handleCopyLink = () => {
-    const statusUrl = customUrl || `${window.location.origin}/status/${status?._id || status?.id}`;
+  const handleCopyLink = async () => {
+    const statusUrl = shareUrl || await resolveStatusUrl();
+    setShareUrl(statusUrl);
     navigator.clipboard.writeText(statusUrl);
   };
 
   const handleShare = async () => {
-    const statusUrl = customUrl || `${window.location.origin}/status/${status?._id || status?.id}`;
+    const statusUrl = shareUrl || await resolveStatusUrl();
+    setShareUrl(statusUrl);
     if (navigator.share) {
       try {
         await navigator.share({

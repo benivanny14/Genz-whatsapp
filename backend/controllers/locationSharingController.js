@@ -21,6 +21,12 @@ const defaultSettings = {
 
 const mergeSettings = createSettingsMerger(defaultSettings);
 
+const parseCoordinate = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 // @desc    Get location sharing settings
 // @route   GET /api/location-sharing/settings
 // @access  Private
@@ -46,8 +52,10 @@ exports.shareLocation = async (req, res) => {
     if (!user) return;
 
     const { conversationId, latitude, longitude, address, accuracy } = req.body;
+    const parsedLatitude = parseCoordinate(latitude);
+    const parsedLongitude = parseCoordinate(longitude);
 
-    if (!conversationId || !latitude || !longitude) {
+    if (!conversationId || parsedLatitude === null || parsedLongitude === null) {
       return res.status(400).json({ success: false, message: 'Conversation ID, latitude, and longitude are required' });
     }
 
@@ -69,8 +77,8 @@ exports.shareLocation = async (req, res) => {
     }
 
     const locationData = {
-      latitude,
-      longitude,
+      latitude: parsedLatitude,
+      longitude: parsedLongitude,
       address: address || '',
       accuracy: accuracy || settings.locationAccuracy,
       timestamp: new Date()
@@ -81,8 +89,8 @@ exports.shareLocation = async (req, res) => {
       sender: user._id,
       content: `📍 Location shared`,
       messageType: 'location',
-      latitude,
-      longitude
+      latitude: parsedLatitude,
+      longitude: parsedLongitude
     });
 
     res.status(200).json({
@@ -168,8 +176,10 @@ exports.updateLiveLocation = async (req, res) => {
     if (!user) return;
 
     const { liveLocationId, latitude, longitude } = req.body;
+    const parsedLatitude = parseCoordinate(latitude);
+    const parsedLongitude = parseCoordinate(longitude);
 
-    if (!liveLocationId || !latitude || !longitude) {
+    if (!liveLocationId || parsedLatitude === null || parsedLongitude === null) {
       return res.status(400).json({ success: false, message: 'Live location ID, latitude, and longitude are required' });
     }
 
@@ -187,14 +197,14 @@ exports.updateLiveLocation = async (req, res) => {
 
     // Update location (in real implementation, this would notify participants)
     liveLocation.lastUpdate = new Date();
-    liveLocation.currentLocation = { latitude, longitude };
+    liveLocation.currentLocation = { latitude: parsedLatitude, longitude: parsedLongitude };
     user.markModified('liveLocations');
     await user.save();
 
     res.status(200).json({
       success: true,
       message: 'Live location updated',
-      location: { latitude, longitude },
+      location: { latitude: parsedLatitude, longitude: parsedLongitude },
       updatedAt: liveLocation.lastUpdate
     });
   } catch (error) {
@@ -305,12 +315,15 @@ exports.getNearbyFriends = async (req, res) => {
     if (!user) return;
 
     const { latitude, longitude, radius } = req.query;
+    const parsedLatitude = parseCoordinate(latitude);
+    const parsedLongitude = parseCoordinate(longitude);
 
-    if (!latitude || !longitude) {
+    if (parsedLatitude === null || parsedLongitude === null) {
       return res.status(400).json({ success: false, message: 'Latitude and longitude are required' });
     }
 
-    const searchRadius = radius || 5; // km
+    const parsedRadius = Number(radius);
+    const searchRadius = Number.isFinite(parsedRadius) && parsedRadius > 0 ? parsedRadius : 5; // km
 
     // Get user's conversations to find friends
     const conversations = await Conversation.find({
@@ -341,15 +354,17 @@ exports.getNearbyFriends = async (req, res) => {
           : [];
         if (hiddenFrom.includes(user._id.toString())) return null;
 
-        if (!friend.lastLocation || !friend.lastLocation.latitude || !friend.lastLocation.longitude) {
+        const friendLatitude = parseCoordinate(friend.lastLocation?.latitude);
+        const friendLongitude = parseCoordinate(friend.lastLocation?.longitude);
+        if (friendLatitude === null || friendLongitude === null) {
           return null;
         }
 
         const distance = calculateDistance(
-          parseFloat(latitude),
-          parseFloat(longitude),
-          friend.lastLocation.latitude,
-          friend.lastLocation.longitude
+          parsedLatitude,
+          parsedLongitude,
+          friendLatitude,
+          friendLongitude
         );
 
         return {
@@ -391,14 +406,16 @@ exports.updateLastLocation = async (req, res) => {
     if (!user) return;
 
     const { latitude, longitude, accuracy } = req.body;
+    const parsedLatitude = parseCoordinate(latitude);
+    const parsedLongitude = parseCoordinate(longitude);
 
-    if (!latitude || !longitude) {
+    if (parsedLatitude === null || parsedLongitude === null) {
       return res.status(400).json({ success: false, message: 'Latitude and longitude are required' });
     }
 
     user.lastLocation = {
-      latitude,
-      longitude,
+      latitude: parsedLatitude,
+      longitude: parsedLongitude,
       accuracy: accuracy || 'high',
       timestamp: new Date()
     };

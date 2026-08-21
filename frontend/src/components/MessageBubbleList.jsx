@@ -348,13 +348,14 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                          (!message.liveLocationExpiresAt || new Date(message.liveLocationExpiresAt) > new Date());
                        const lat = typeof message.latitude === 'number' ? message.latitude : null;
                        const lng = typeof message.longitude === 'number' ? message.longitude : null;
-                       const mapsUrl = lat && lng
+                       const hasCoords = lat !== null && lng !== null;
+                       const mapsUrl = hasCoords
                          ? `https://www.google.com/maps?q=${lat},${lng}`
                          : (plaintextOf(message).match(/https?:\/\/\S+/) || [null])[0];
-                       const directionsUrl = lat && lng
+                       const directionsUrl = hasCoords
                          ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
                          : null;
-                       const addressText = message.caption || (lat && lng ? `${lat.toFixed(4)}, ${lng.toFixed(4)}` : '');
+                       const addressText = message.caption || (hasCoords ? `${lat.toFixed(4)}, ${lng.toFixed(4)}` : '');
                        const timeRemaining = isLive && message.liveLocationExpiresAt
                          ? (() => { const diff = new Date(message.liveLocationExpiresAt) - new Date(); const h = Math.floor(diff / 3600000); const m = Math.floor((diff % 3600000) / 60000); return h > 0 ? `${h}h ${m}m` : `${m}m`; })()
                          : null;
@@ -363,8 +364,8 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                        {/* Real Interactive Map Preview (Leaflet + OpenStreetMap tiles) */}
                        <div className="relative h-48 overflow-hidden">
                          <LeafletMap
-                           center={lat && lng ? { lat, lng } : undefined}
-                           marker={lat && lng ? { lat, lng } : null}
+                           center={hasCoords ? { lat, lng } : undefined}
+                           marker={hasCoords ? { lat, lng } : null}
                            live={isLive}
                            zoom={15}
                            height="100%"

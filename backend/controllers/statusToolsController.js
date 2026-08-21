@@ -15,6 +15,7 @@
 const User = require('../models/User');
 const Status = require('../models/Status');
 const Message = require('../models/Message');
+const mongoose = require('mongoose');
 const {
   getUser,
   createSettingsMerger,
@@ -242,18 +243,33 @@ exports.getStatusViewers = async (req, res) => {
 
     const { statusId } = req.params;
 
-    const status = await Status.findById(statusId);
+    if (!mongoose.Types.ObjectId.isValid(statusId)) {
+      return res.status(404).json({ success: false, message: 'Status not found' });
+    }
+
+    const status = await Status.findById(statusId)
+      .populate('views.user', 'username profilePicture');
     if (!status) {
       return res.status(404).json({ success: false, message: 'Status not found' });
     }
 
-    if (status.user.toString() !== user._id.toString()) {
+    const ownerId = status.user || status.userId;
+    if (String(ownerId) !== String(user._id)) {
       return res.status(403).json({ success: false, message: 'You can only view your own status viewers' });
     }
 
-    const viewers = await User.find({
-      _id: { $in: status.viewedBy }
-    }).select('username profilePicture');
+    const viewers = (status.views || [])
+      .map((view) => {
+        const viewer = view.user?.toObject ? view.user.toObject() : view.user;
+        if (!viewer) return null;
+        return {
+          _id: viewer._id,
+          username: viewer.username,
+          profilePicture: viewer.profilePicture,
+          viewedAt: view.viewedAt || view.createdAt || view.timestamp || null
+        };
+      })
+      .filter(Boolean);
 
     res.status(200).json({ success: true, viewers });
   } catch (error) {
