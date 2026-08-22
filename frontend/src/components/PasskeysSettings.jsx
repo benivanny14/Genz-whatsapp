@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Key, Plus, Trash2, Loader2, Shield, AlertCircle, CheckCircle } from 'lucide-react';
 import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
-import { useConfirm } from './/ConfirmDialog';
+import { useConfirm } from './ConfirmDialog';
 
 const PasskeysSettings = () => {
   const confirm = useConfirm();
@@ -142,7 +142,36 @@ const PasskeysSettings = () => {
     );
   }
 
-  const isPasskeySupported = window.PublicKeyCredential !== undefined;
+  // Check actual WebAuthn capability, not just object existence.
+  // On Android WebView (Capacitor), PublicKeyCredential may exist but the
+  // underlying FIDO2/Credential Manager plugin may not be connected.
+  const [isPasskeySupported, setIsPasskeySupported] = useState(false);
+  const [webauthnNote, setWebauthnNote] = useState('');
+
+  useEffect(() => {
+    const checkSupport = async () => {
+      if (window.PublicKeyCredential === undefined) {
+        setIsPasskeySupported(false);
+        return;
+      }
+      try {
+        // Try the most reliable capability check first
+        if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
+          const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+          setIsPasskeySupported(available);
+          if (!available) {
+            setWebauthnNote('Your device does not have a platform authenticator (fingerprint/face/PIN) available for passkeys.');
+          }
+        } else {
+          // Fallback: assume supported if the API exists
+          setIsPasskeySupported(true);
+        }
+      } catch {
+        setIsPasskeySupported(false);
+      }
+    };
+    checkSupport();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -159,7 +188,17 @@ const PasskeysSettings = () => {
           <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
           <div>
             <p className="text-yellow-300 font-medium">Passkeys not supported</p>
-            <p className="text-yellow-400/80 text-sm">Your browser or device doesn't support WebAuthn passkeys. Update your browser or use a compatible device.</p>
+            <p className="text-yellow-400/80 text-sm">{webauthnNote || "Your browser or device doesn't support WebAuthn passkeys. Update your browser or use a compatible device."}</p>
+          </div>
+        </div>
+      )}
+
+      {isPasskeySupported && window.Capacitor?.isNativePlatform?.() && (
+        <div className="bg-blue-900/20 border border-blue-600/30 rounded-lg p-4 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0" />
+          <div>
+            <p className="text-blue-300 font-medium">Using app version</p>
+            <p className="text-blue-400/80 text-sm">Passkeys may not work fully in the app version. For the best experience, use GENZ Messenger in a web browser.</p>
           </div>
         </div>
       )}
