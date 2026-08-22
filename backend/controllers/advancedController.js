@@ -1621,13 +1621,25 @@ exports.getLinkPreview = async (req, res) => {
     res.setHeader('Cache-Control', 'public, max-age=300');
     const cacheKey = `link-preview:${parsedUrl.toString()}`;
     const preview = await cachedResponse(cacheKey, 300000, async () => {
-      // Fetch the HTML page
-      const response = await axios.get(parsedUrl.toString(), {
+      // Fetch the HTML page. Pin to the IP that was DNS-validated by
+      // assertSafeExternalUrl to prevent DNS rebinding attacks.
+      const resolvedIp = parsedUrl._resolvedIp;
+      const axiosConfig = {
         timeout: 5000,
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; GENZBot/1.0)' },
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; GENZBot/1.0)',
+          'Host': parsedUrl.hostname,
+        },
         maxRedirects: 0,
         maxContentLength: 500000 // 500KB max
-      });
+      };
+      if (resolvedIp) {
+        // Override DNS resolution so axios connects to the pre-validated IP
+        axiosConfig.lookup = (hostname, opts, cb) => {
+          cb(null, resolvedIp, 4);
+        };
+      }
+      const response = await axios.get(parsedUrl.toString(), axiosConfig);
 
       const html = response.data || '';
 

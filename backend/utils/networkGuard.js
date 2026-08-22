@@ -128,6 +128,10 @@ const assertSafeExternalUrl = async (rawUrl) => {
     throw error;
   }
 
+  // Return the resolved IP alongside the parsed URL so callers can pin the
+  // actual HTTP request to this IP, preventing DNS rebinding attacks.
+  const resolvedIp = records[0].address;
+  parsed._resolvedIp = resolvedIp;
   return parsed;
 };
 

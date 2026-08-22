@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { protect } = require('../middleware/auth');
 const multer = require('multer');
 const upload = multer({
   dest: "uploads/",
@@ -81,8 +82,7 @@ router.delete('/broadcast/:id', deleteBroadcast);
 router.post('/broadcast/:id/send', sendBroadcastMessage);
 
 router.put('/conversations/:id/disappearing-messages', setDisappearingMessages);
-router.get('/search-messages', searchMessages);
-router.get('/link-preview', getLinkPreview);
+router.get('/search-messages', searchMessages);  router.get('/link-preview', protect, getLinkPreview);
 router.get('/gifs', getGifs);
 router.post('/ai-assistant', aiAssistant);
 router.post('/translate', translateMessage);
