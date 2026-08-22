@@ -7,7 +7,7 @@ import {
   UserMinus, MessageSquare, ChevronRight, Loader2, QrCode, Ban,
   Crown, UserCheck, UserX, Zap, Calendar, ChevronDown, AlertTriangle,
   Copy, RefreshCw, Settings, Eye, EyeOff, Volume2, VolumeX, Star,
-  Info, Grid, Share2, Plus
+  Info, Grid, Share2, Plus, MessageCircle, User, Flag, Ban as BanIcon
 } from 'lucide-react';
 import { formatConversationTime } from '../utils/formatDate';
 import ContactPickerModal from './ContactPickerModal';
@@ -99,7 +99,7 @@ const Modal = ({ title, onClose, children, wide }) => (
 );
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-const GroupInfo = ({ group, onClose, currentUserId }) => {
+const GroupInfo = ({ group, onClose, currentUserId, onViewProfile, onStartChat }) => {
   const {
     getGroupInfo, updateGroupInfo, removeAdmin, makeAdmin,
     addParticipant, removeParticipant, leaveGroup,
@@ -143,6 +143,7 @@ const GroupInfo = ({ group, onClose, currentUserId }) => {
   const [newEvent, setNewEvent] = useState({ title: '', description: '', startTime: '', endTime: '' });
   const [eventBusy, setEventBusy] = useState(false);
   const photoInputRef = useRef(null);
+  const [memberContextMenu, setMemberContextMenu] = useState(null); // { member, position: { x, y } }
 
   // Load group info
   useEffect(() => {
@@ -192,11 +193,72 @@ const GroupInfo = ({ group, onClose, currentUserId }) => {
   };
 
   const handleBanMember = async (memberId, memberName) => {
-    const reason = window.prompt(`Ban reason for ${memberName || 'member'} (optional):`) ?? null;
+    const reason = window.prompt(`Enter ban reason for ${memberName}:`);
     if (reason === null) return; // cancelled
     const res = await banGroupMember(group._id, memberId, reason);
     if (res?.success) {
       setInfo(prev => ({ ...prev, participants: prev.participants.filter(p => !sameId(p._id, memberId)) }));
+    }
+  };
+
+  const handleViewProfile = (member) => {
+    setMemberContextMenu(null);
+    // Open ContactInfo modal for the member
+    if (onViewProfile) {
+      onViewProfile(member);
+    }
+  };
+
+  const handleSendMessage = (member) => {
+    setMemberContextMenu(null);
+    // Start a private chat with the member
+    if (onStartChat) {
+      onStartChat(member);
+    }
+  };
+
+  const handleReportMember = async (member) => {
+    setMemberContextMenu(null);
+    const reason = window.prompt(`Report ${member?.username || 'this user'} for:`);
+    if (!reason) return;
+    try {
+      const res = await fetch(`/api/users/${member._id}/report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reason,
+          groupId: group._id
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('Report submitted successfully');
+      } else {
+        alert(data.message || 'Failed to submit report');
+      }
+    } catch (error) {
+      console.error('Report error:', error);
+      alert('Failed to submit report');
+    }
+  };
+
+  const handleBlockMember = async (member) => {
+    setMemberContextMenu(null);
+    if (!window.confirm(`Block ${member?.username || 'this user'}?`)) return;
+    try {
+      const res = await fetch(`/api/users/${member._id}/block`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('User blocked successfully');
+      } else {
+        alert(data.message || 'Failed to block user');
+      }
+    } catch (error) {
+      console.error('Block error:', error);
+      alert('Failed to block user');
     }
   };
 
@@ -625,7 +687,27 @@ const GroupInfo = ({ group, onClose, currentUserId }) => {
                   const isGroupOwner = sameId(info?.owner || info?.createdBy, memberId);
 
                   return (
-                    <div key={memberId} className="flex items-center gap-3 px-5 py-3 hover:bg-white/5">
+                    <div 
+                      key={memberId} 
+                      className="flex items-center gap-3 px-5 py-3 hover:bg-white/5 cursor-pointer"
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        if (!isSelf) {
+                          setMemberContextMenu({
+                            member,
+                            position: { x: e.clientX, y: e.clientY }
+                          });
+                        }
+                      }}
+                      onClick={() => {
+                        if (!isSelf) {
+                          setMemberContextMenu({
+                            member,
+                            position: { x: window.innerWidth - 200, y: e.clientY }
+                          });
+                        }
+                      }}
+                    >
                       <Avatar src={member?.profilePicture} name={member?.username} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -641,7 +723,7 @@ const GroupInfo = ({ group, onClose, currentUserId }) => {
                         </p>
                       </div>
                       {!isSelf && isAdmin && (
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                           {!isMemberAdmin ? (
                             <button onClick={() => handleMakeAdmin(memberId)} className="p-1.5 text-[#00a884] hover:bg-[#00a884]/20 rounded" title="Make Admin" aria-label="Make admin">
                               <Shield size={15} />
@@ -1045,6 +1127,118 @@ const GroupInfo = ({ group, onClose, currentUserId }) => {
           </div>
         </Modal>
       )}
+
+      {/* Member Context Menu */}
+      <AnimatePresence>
+        {memberContextMenu && (
+          <>
+            <div 
+              className="fixed inset-0 z-[400]" 
+              onClick={() => setMemberContextMenu(null)}
+            />
+            <div
+              className="fixed bg-[#202c33] rounded-xl shadow-2xl border border-white/10 overflow-hidden z-[401] min-w-[200px]"
+              style={{
+                left: `${Math.min(memberContextMenu.position.x, window.innerWidth - 220)}px`,
+                top: `${memberContextMenu.position.y}px`,
+                transform: 'translateY(-100%)'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="py-1">
+                {/* View Profile */}
+                <button
+                  onClick={() => handleViewProfile(memberContextMenu.member)}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-white text-sm"
+                >
+                  <User size={16} className="text-[#00a884]" />
+                  View Profile
+                </button>
+
+                {/* Send Message */}
+                <button
+                  onClick={() => handleSendMessage(memberContextMenu.member)}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-white text-sm"
+                >
+                  <MessageCircle size={16} className="text-[#00a884]" />
+                  Message
+                </button>
+
+                {/* Report */}
+                <button
+                  onClick={() => handleReportMember(memberContextMenu.member)}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-white text-sm"
+                >
+                  <Flag size={16} className="text-orange-400" />
+                  Report
+                </button>
+
+                {/* Block */}
+                <button
+                  onClick={() => handleBlockMember(memberContextMenu.member)}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-white text-sm"
+                >
+                  <BanIcon size={16} className="text-red-400" />
+                  Block
+                </button>
+
+                {/* Admin Actions */}
+                {isAdmin && String(memberContextMenu.member._id) !== String(currentUserId) && (
+                  <>
+                    <div className="border-t border-white/10 my-1" />
+
+                    {!(info?.admins || []).some(a => sameId(a, memberContextMenu.member._id)) ? (
+                      <button
+                        onClick={() => {
+                          handleMakeAdmin(memberContextMenu.member._id);
+                          setMemberContextMenu(null);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-white text-sm"
+                      >
+                        <Shield size={16} className="text-[#00a884]" />
+                        Make Admin
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          handleRemoveAdmin(memberContextMenu.member._id);
+                          setMemberContextMenu(null);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-white text-sm"
+                      >
+                        <Shield size={16} className="text-yellow-400" />
+                        Remove Admin
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        handleRemoveMember(memberContextMenu.member._id);
+                        setMemberContextMenu(null);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-white text-sm"
+                    >
+                      <UserMinus size={16} className="text-orange-400" />
+                      Remove
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        handleBanMember(memberContextMenu.member._id, memberContextMenu.member?.username);
+                        setMemberContextMenu(null);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-white text-sm"
+                    >
+                      <Ban size={16} className="text-red-400" />
+                      Ban
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Add members */}
       {showAddMembers && (

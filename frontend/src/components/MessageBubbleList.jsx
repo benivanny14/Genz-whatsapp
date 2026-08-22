@@ -6,9 +6,11 @@ import AudioPlayer from './AudioPlayer';
 import DocumentMessage from './DocumentMessage';
 import LeafletMap from './LeafletMap';
 import StickerImage, { hasEmojiChar } from './StickerImage';
+import ContactCard from './ContactCard';
 import { renderTextWithMentions, LinkPreviewCard } from '../utils/chatText';
 import { extractFirstUrl, FONT_OPTIONS } from '../utils/chatTextHelpers';
 import { formatMessageTime } from '../utils/formatDate';
+import { decodeContactFromMessage } from '../utils/vcard';
 import toast from 'react-hot-toast';
 
 /**
@@ -494,79 +496,43 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                         })}
                       </div>
                     )}
-                    {/* ── Contact Card (WhatsApp-style with actions) ── */}
-                    {message.messageType === 'contact' && (() => {
-                      const meta = message.structuredContent?.[0]?.meta || {};
-                      const cName = meta.contactName || plaintextOf(message);
-                      const cPhone = meta.contactPhone || '';
-                      const cAvatar = meta.contactAvatar || '';
-                      const cId = meta.contactId || '';
-                      return (
-                        <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden min-w-[220px] max-w-[280px]">
-                          {/* Contact info */}
-                          <div className="flex items-center gap-3 p-3">
-                            {cAvatar ? (
-                              <img src={cAvatar} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
-                            ) : (
+
+                    {/* ── Contact Card ── */}
+                    {message.messageType === 'contact' && (
+                      <div className="my-2">
+                        {(() => {
+                          const contactData = message.structuredContent?.[0]?.meta;
+                          if (contactData && (contactData.name || contactData.phone)) {
+                            const decodedContact = decodeContactFromMessage(contactData);
+                            return (
+                              <ContactCard
+                                contact={decodedContact}
+                                isOwn={isOwnMessage(message)}
+                              />
+                            );
+                          }
+                          // Fallback for old format
+                          return (
+                            <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl p-3 min-w-[200px]">
                               <div className="w-10 h-10 rounded-full bg-[#25d366]/20 flex items-center justify-center text-[#25d366] font-bold text-sm shrink-0">
-                                {cName.trim().charAt(0).toUpperCase()}
+                                {(message.structuredContent?.[0]?.meta?.contactName || plaintextOf(message)).trim().charAt(0).toUpperCase()}
                               </div>
-                            )}
-                            <div className="min-w-0 flex-1">
-                              <p className="text-white font-medium text-sm truncate">{cName}</p>
-                              {cPhone && (
-                                <p className="text-white/60 text-xs truncate">{cPhone}</p>
-                              )}
+                              <div className="min-w-0 flex-1">
+                                <p className="text-white font-medium text-sm truncate">
+                                  {message.structuredContent?.[0]?.meta?.contactName || plaintextOf(message)}
+                                </p>
+                                {message.structuredContent?.[0]?.meta?.contactPhone && (
+                                  <p className="text-white/60 text-xs truncate">{message.structuredContent[0].meta.contactPhone}</p>
+                                )}
+                              </div>
+                              <span className="text-[10px] uppercase tracking-wide text-white/40 flex items-center gap-1 shrink-0">
+                                <Contact size={12} /> Contact
+                              </span>
                             </div>
-                            <span className="text-[10px] uppercase tracking-wide text-white/40 flex items-center gap-1 shrink-0">
-                              <Contact size={12} /> Contact
-                            </span>
-                          </div>
-                          {/* Action buttons (WhatsApp-style) */}
-                          <div className="flex border-t border-white/10">
-                            <button
-                              onClick={() => {
-                                if (cPhone) {
-                                  const telUrl = `tel:${cPhone.replace(/[^\d+]/g, '')}`;
-                                  window.open(telUrl, '_blank');
-                                }
-                              }}
-                              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-medium text-[#00a884] hover:bg-white/5 transition-colors border-r border-white/10"
-                            >
-                              <Contact size={13} />
-                              Ongeza
-                            </button>
-                            <button
-                              onClick={() => {
-                                if (cId) {
-                                  window.dispatchEvent(new CustomEvent('open-chat', { detail: { contactId: cId } }));
-                                } else if (cPhone) {
-                                  window.location.href = `/new-chat?phone=${encodeURIComponent(cPhone)}`;
-                                }
-                              }}
-                              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-medium text-[#00a884] hover:bg-white/5 transition-colors border-r border-white/10"
-                            >
-                              <MessageCircle size={13} />
-                              Chat
-                            </button>
-                            <button
-                              onClick={() => {
-                                const text = cPhone ? `📇 ${cName}\n${cPhone}` : `📇 ${cName}`;
-                                if (navigator.share) {
-                                  navigator.share({ title: cName, text }).catch(() => {});
-                                } else {
-                                  navigator.clipboard?.writeText(text);
-                                }
-                              }}
-                              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-medium text-[#00a884] hover:bg-white/5 transition-colors"
-                            >
-                              <Share2 size={13} />
-                              Wasiliana
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })()}
+                          );
+                        })()}
+                      </div>
+                    )}
                     {(!['image', 'video', 'location', 'sticker', 'audio', 'structured', 'contact'].includes(message.messageType) ||
                       (plaintextOf(message) &&
                         plaintextOf(message) !== mediaSourceOf(message) &&

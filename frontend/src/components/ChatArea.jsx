@@ -28,6 +28,8 @@ import LiveReactions from './LiveReactions';
 import MediaPickerPanel from './MediaPickerPanel';
 import DrawingPanel from './DrawingPanel';
 import CropRotatePanel from './CropRotatePanel';
+import ContactPickerModal from './ContactPickerModal';
+import { encodeContactForMessage } from '../utils/vcard';
 import PaymentRequestModal, { PaymentRequestsPanel } from './PaidFeatures/PaymentRequestModal';
 import ChunkedUploader from './ChunkedUploader';
 import ContactInfo from './ContactInfo';
@@ -46,7 +48,6 @@ import ProfileEnlarger from './ProfileEnlarger';
 import TypingIndicator from './TypingIndicator';
 import TypingStatus from './TypingStatus';
 import ReplyMessage from './ReplyMessage';
-import ContactPickerModal from './ContactPickerModal';
 import ProductCatalogue from './ProductCatalogue';
 import AutoRefreshIndicator from './AutoRefreshIndicator';
 import FloatingStickerOverlay from './FloatingStickerOverlay';
@@ -259,7 +260,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [pendingImageFile, setPendingImageFile] = useState(null);
   const [showCropEditor, setShowCropEditor] = useState(false);
   const [cropImageUrl, setCropImageUrl] = useState('');
-  // showPaymentModal already declared above at line 329 (original) for subscription payments
+  const [showStickerPacks, setShowStickerPacks] = useState(false);
+  const [floatingStickerMode, setFloatingStickerMode] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
 
   // Debug showScheduleModal state
@@ -297,10 +300,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [recordedAudioUrl, setRecordedAudioUrl] = useState(null);
 
   const [scheduleDateTime, setScheduleDateTime] = useState('');
-  const [showLiveReactions, setShowLiveReactions] = useState(false);
-  const [showStickerPacks, setShowStickerPacks] = useState(false);
-  const [floatingStickerMode, setFloatingStickerMode] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -1945,13 +1944,25 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   };
 
   const handleContactSimulation = () => {
-    const name = window.prompt("GENZ: Enter contact name to share:");
-    if (!name) return;
-    const phone = window.prompt(`GENZ: Enter phone number for ${name}:`) || '';
-    const plain = `Shared Contact: ${name}${phone ? ` · ${phone}` : ''}`;
+    setShowContactPicker(true);
+  };
+
+  const handleContactSelect = (contact) => {
+    const contactData = {
+      name: contact.savedName || contact.username || contact.name || 'Unknown',
+      phone: contact.phoneNumber || contact.phone || '',
+      email: contact.email || '',
+      avatar: contact.profilePicture || contact.avatar || '',
+      organization: contact.organization || '',
+      title: contact.title || ''
+    };
+    
+    const encodedContact = encodeContactForMessage(contactData);
+    const plain = `👤 ${contactData.name}`;
+    
     sendMessage(plain, user?.username, {
       messageType: 'contact',
-      structuredContent: [{ type: 'text', value: plain, meta: { contactName: name, contactPhone: phone } }],
+      structuredContent: [{ type: 'text', value: plain, meta: encodedContact }],
       replyTo: replyingTo
     });
     setReplyingTo(null);
@@ -1964,6 +1975,14 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         fileName: message.fileName || 'Unknown File'
       });
       setShowFilePreview(true);
+    }
+  };
+
+  const handleStartChatWithMember = (member) => {
+    // Create or select a private conversation with the member
+    if (member?._id) {
+      selectConversation(member._id);
+      setShowGroupInfo(false);
     }
   };
 
@@ -2400,8 +2419,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       reportTarget, setReportTarget,
       showProductCatalogue, setShowProductCatalogue, sendMessage,
       replyingTo,
-      showContactPicker, setShowContactPicker, handleShareContact,
+      showContactPicker, setShowContactPicker, handleContactSelect,
       viewerMedia, setViewerMedia,
+      viewProfile, handleStartChatWithMember,
       showMessageInfoModal, messageInfoId, setShowMessageInfoModal, setMessageInfoId,
       showPollModal, setShowPollModal, handlePollSubmit,
       showGroupInfo, setShowGroupInfo,
@@ -2436,7 +2456,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       handleExportChat, updateDisappearingMessages, toggleChatLock, safeMods,
       setMods, blockedUsers, showDisappearingPicker, setShowDisappearingPicker,
       applyDisappearingMessages, user, selectedConversation
-}), [showForwardModal, forwardingMessage, setShowForwardModal, setForwardingMessage, showSearchMessages, setShowSearchMessages, showMediaGallery, setShowMediaGallery, messageContextMenu, handleContextMenuDelete, handleEditClick, setMessageContextMenu, setReplyingTo, handleContextMenuStar, unpinMessage, pinMessage, addReaction, plaintextOf, handleReplyPrivately, textSelectionMenu, textSelectionMenuRef, handleCopySelection, handleSelectAllSelection, handleFormatSelection, setTextSelectionMenu, reportTarget, setReportTarget, showProductCatalogue, setShowProductCatalogue, sendMessage, replyingTo, showContactPicker, setShowContactPicker, handleShareContact, viewerMedia, setViewerMedia, showMessageInfoModal, messageInfoId, setShowMessageInfoModal, setMessageInfoId, showPollModal, setShowPollModal, handlePollSubmit, showGroupInfo, setShowGroupInfo, showFilePreview, previewFile, setShowFilePreview, showScheduleModal, setShowScheduleModal, messageInput, scheduleDateTime, setScheduleDateTime, confirmSchedule, isDNDMode, isSearching, chatSearchQuery, filteredMessages, showDrawingEditor, drawingImageUrl, setShowDrawingEditor, setDrawingImageUrl, setPendingImageFile, handleDrawingSave, showCropEditor, cropImageUrl, setShowCropEditor, setCropImageUrl, handleCropSave, showPaymentModal, setShowPaymentModal, showFontPicker, setShowFontPicker, setSelectedFont, inputRef, selectedFont, showChunkedUploader, setShowChunkedUploader, showCameraModal, closeCamera, setCameraMode, cameraMode, recordedVideoUrl, videoRef, canvasRef, setRecordedVideoUrl, sendRecordedVideo, capturePhoto, isRecordingVideo, videoDuration, stopVideoRecording, startVideoRecording, showVideoNoteModal, closeVideoNoteRecorder, recordedVideoNoteUrl, videoNotePreviewRef, setRecordedVideoNoteUrl, videoNoteChunksRef, sendVideoNote, isRecordingVideoNote, videoNoteDuration, stopVideoNoteRecording, startVideoNoteRecording, showAudioModal, closeAudioAttachment, recordedAudioUrl, setRecordedAudioUrl, sendRecordedAudioAttachment, audioDuration, isRecordingAudio, stopAudioAttachmentRecording, startAudioAttachmentRecording, showLiveLocationModal, setShowLiveLocationModal, setLiveLocationDuration, liveLocationDuration, liveLocationComment, setLiveLocationComment, confirmShareLiveLocation, showCurrentLocationModal, setShowCurrentLocationModal, currentLocationCoords, currentLocationComment, setCurrentLocationComment, confirmShareCurrentLocation, viewOnceModalOpen, viewOnceMessageData, closeViewOnceModal, mediaSourceOf, showContactInfo, otherUser, setShowContactInfo, setIsSearching, toggleMuteChat, blockUser, unblockUser, handleClearCurrentChat, handleDeleteCurrentChat, handleExportChat, updateDisappearingMessages, toggleChatLock, safeMods, setMods, blockedUsers, showDisappearingPicker, setShowDisappearingPicker, applyDisappearingMessages, user, selectedConversation]);
+}), [showForwardModal, forwardingMessage, setShowForwardModal, setForwardingMessage, showSearchMessages, setShowSearchMessages, showMediaGallery, setShowMediaGallery, messageContextMenu, handleContextMenuDelete, handleEditClick, setMessageContextMenu, setReplyingTo, handleContextMenuStar, unpinMessage, pinMessage, addReaction, plaintextOf, handleReplyPrivately, textSelectionMenu, textSelectionMenuRef, handleCopySelection, handleSelectAllSelection, handleFormatSelection, setTextSelectionMenu, reportTarget, setReportTarget, showProductCatalogue, setShowProductCatalogue, sendMessage, replyingTo, showContactPicker, setShowContactPicker, handleContactSelect, viewerMedia, setViewerMedia, viewProfile, handleStartChatWithMember, showMessageInfoModal, messageInfoId, setShowMessageInfoModal, setMessageInfoId, showPollModal, setShowPollModal, handlePollSubmit, showGroupInfo, setShowGroupInfo, showFilePreview, previewFile, setShowFilePreview, showScheduleModal, setShowScheduleModal, messageInput, scheduleDateTime, setScheduleDateTime, confirmSchedule, isDNDMode, isSearching, chatSearchQuery, filteredMessages, showDrawingEditor, drawingImageUrl, setShowDrawingEditor, setDrawingImageUrl, setPendingImageFile, handleDrawingSave, showCropEditor, cropImageUrl, setShowCropEditor, setCropImageUrl, handleCropSave, showPaymentModal, setShowPaymentModal, showFontPicker, setShowFontPicker, setSelectedFont, inputRef, selectedFont, showChunkedUploader, setShowChunkedUploader, showCameraModal, closeCamera, setCameraMode, cameraMode, recordedVideoUrl, videoRef, canvasRef, setRecordedVideoUrl, sendRecordedVideo, capturePhoto, isRecordingVideo, videoDuration, stopVideoRecording, startVideoRecording, showVideoNoteModal, closeVideoNoteRecorder, recordedVideoNoteUrl, videoNotePreviewRef, setRecordedVideoNoteUrl, videoNoteChunksRef, sendVideoNote, isRecordingVideoNote, videoNoteDuration, stopVideoNoteRecording, startVideoNoteRecording, showAudioModal, closeAudioAttachment, recordedAudioUrl, setRecordedAudioUrl, sendRecordedAudioAttachment, audioDuration, isRecordingAudio, stopAudioAttachmentRecording, startAudioAttachmentRecording, showLiveLocationModal, setShowLiveLocationModal, setLiveLocationDuration, liveLocationDuration, liveLocationComment, setLiveLocationComment, confirmShareLiveLocation, showCurrentLocationModal, setShowCurrentLocationModal, currentLocationCoords, currentLocationComment, setCurrentLocationComment, confirmShareCurrentLocation, viewOnceModalOpen, viewOnceMessageData, closeViewOnceModal, mediaSourceOf, showContactInfo, otherUser, setShowContactInfo, setIsSearching, toggleMuteChat, blockUser, unblockUser, handleClearCurrentChat, handleDeleteCurrentChat, handleExportChat, updateDisappearingMessages, toggleChatLock, safeMods, setMods, blockedUsers, showDisappearingPicker, setShowDisappearingPicker, applyDisappearingMessages, user, selectedConversation]);
 
   if (!selectedConversation) {
     return (

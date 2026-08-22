@@ -267,7 +267,7 @@ const ChatModals = React.memo(function ChatModals({ ctx }) {
           <ContactPickerModal
             onClose={() => setShowContactPicker(false)}
             onSelect={(contact) => {
-              handleShareContact(contact);
+              handleContactSelect(contact);
               setShowContactPicker(false);
             }}
           />
@@ -305,6 +305,8 @@ const ChatModals = React.memo(function ChatModals({ ctx }) {
               group={selectedConversation}
               currentUserId={user?._id || user?.id}
               onClose={() => setShowGroupInfo(false)}
+              onViewProfile={viewProfile}
+              onStartChat={handleStartChatWithMember}
             />
           )}
         </AnimatePresence>
