@@ -752,10 +752,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           { type: 'text', value: sanitizedMessage, font: selectedFont !== 'default' ? selectedFont : undefined },
           { type: selectedMedia.type, value: selectedMedia.url, meta: selectedMedia.meta }
         ];
-        await sendMessage(sanitizedMessage, user?.username || 'Me', finalOptions);
+        sendMessage(sanitizedMessage, user?.username || 'Me', finalOptions);
       } else {
         finalOptions.font = selectedFont !== 'default' ? selectedFont : undefined;
-        await sendMessage(sanitizedMessage, user?.username || 'Me', finalOptions);
+        sendMessage(sanitizedMessage, user?.username || 'Me', finalOptions);
       }
       // GENZ Exclusive: "Chat Bubble Animations" — confetti/hearts burst.
       // This used to just toggle a CSS class with no matching styles
@@ -765,6 +765,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       }
     }
 
+    // Clear input immediately (don't await sendMessage — optimistic update
+    // already shows the message in the UI. Blocking on the socket ack made
+    // the input feel laggy and delayed the status bar clear on APK.)
     setMessageInput('');
     setSelectedFont(mods?.defaultMessageFont || 'default');
     setIsViewOnceEnabled(false);

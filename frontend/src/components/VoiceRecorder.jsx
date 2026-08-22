@@ -2,6 +2,8 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 import { Mic, Send, Trash2, Lock, ChevronLeft, ChevronUp, Pause, Play, Square, Wand2 } from 'lucide-react';
 import { applyVoiceEffect, VOICE_EFFECT_PRESETS } from '../utils/voiceEffects';
 import toast from 'react-hot-toast';
+import { isNative } from '../services/capacitorBridge';
+
 
 /** WhatsApp-style accent */
 const WA_GREEN = '#25D366';
@@ -257,6 +259,22 @@ const VoiceRecorder = ({
         channelCount: 1
       };
 
+      // On native APK, request microphone permission explicitly.
+      // The web API getUserMedia handles the OS permission dialog on most
+      // devices, but on some Android WebViews we need to check first.
+      if (isNative()) {
+        try {
+          if (navigator.permissions && navigator.permissions.query) {
+            const status = await navigator.permissions.query({ name: 'microphone' });
+            if (status.state === 'denied') {
+              if (onFallback) onFallback();
+              else toast.error('Microphone permission denied. Please enable it in Settings.');
+              return;
+            }
+          }
+        } catch (_) { /* permissions API not supported — continue with getUserMedia */ }
+      }
+
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         if (onFallback) {
           onFallback();
@@ -265,7 +283,25 @@ const VoiceRecorder = ({
         }
         return;
       }
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: audioOpts });
+
+      // Try multiple MIME types in order of preference for Android WebView compatibility
+      const preferredMimeTypes = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4',
+        'audio/ogg;codecs=opus',
+        'audio/ogg',
+        ''
+      ];
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: audioOpts });
+      } catch (mediaErr) {
+        console.error('[VoiceRecorder] getUserMedia failed:', mediaErr);
+        if (onFallback) onFallback();
+        else toast.error('Microphone access denied. Please grant permission in Settings.');
+        return;
+      }
       streamRef.current = stream;
 
       try {
@@ -282,11 +318,8 @@ const VoiceRecorder = ({
         console.warn('[VoiceRecorder] Waveform analyser skipped:', ae);
       }
 
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : MediaRecorder.isTypeSupported('audio/webm')
-          ? 'audio/webm'
-          : '';
+      // Select a MIME type the current browser/WebView actually supports
+      const mimeType = preferredMimeTypes.find((mt) => mt && MediaRecorder.isTypeSupported(mt)) || '';
 
       const recorder = mimeType
         ? new MediaRecorder(stream, { mimeType, audioBitsPerSecond: 128000 })
@@ -450,6 +483,8 @@ const VoiceRecorder = ({
 
   const onTouchStart = (e) => {
     if (!canSend) return;
+    e.preventDefault(); // Prevent scroll/zoom conflicts on mobile APK
+    e.stopPropagation();
     startXRef.current = e.touches[0].clientX;
     startYRef.current = e.touches[0].clientY;
     startRecording();

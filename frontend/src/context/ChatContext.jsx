@@ -1008,6 +1008,12 @@ export const ChatProvider = ({ children }) => {
         const currentConvId = getStoredSelectedConversationId();
         if (currentConvId) {
           socket.emit('join:conversation', currentConvId);
+          // Re-mark the open chat as read on reconnect so the server-side
+          // unreadCount stays in sync (common source of stuck badges on APK).
+          setTimeout(() => {
+            const skipRead = Boolean(modsRef.current.hideReadReceipts || modsRef.current.ghostMode);
+            socket.emit('mark_as_read', { chatId: currentConvId, skipReadReceipts: skipRead });
+          }, 500);
         }
         
         window.dispatchEvent(new Event('process-offline-queue'));
@@ -2785,7 +2791,16 @@ export const ChatProvider = ({ children }) => {
     const skipReadReceipts = Boolean(
       modsRef.current.hideReadReceipts || modsRef.current.ghostMode
     );
+    // Send via socket (real-time) + HTTP fallback (for APK where socket may
+    // be unreliable). The HTTP fallback ensures the server-side unreadCount
+    // stays in sync even if the socket event is lost during a cold start.
     emitSafe('mark_as_read', { chatId, userId: currentUserId, skipReadReceipts });
+    // HTTP fallback — fire-and-forget, ensures the server is updated even if
+    // the socket delivery fails (common on APK during network transitions).
+    if (isMongoObjectId(chatId)) {
+      authFetch(`${BACKEND_URL}/chat/messages/${chatId}/read`, { method: 'PUT' })
+        .catch(() => {}); // best-effort — socket is primary
+    }
   };
 
   // ── Typing (Ghost Mode aware) ──

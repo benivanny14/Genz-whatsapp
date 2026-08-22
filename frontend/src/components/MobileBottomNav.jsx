@@ -11,7 +11,6 @@ const NAV_ITEMS = [
 ];
 
 const HIDDEN_PREFIXES = [
-  '/',
   '/login',
   '/register',
   '/pair-device',
@@ -25,13 +24,16 @@ const HIDDEN_PREFIXES = [
   '/install',
 ];
 
+// Paths that match exactly (not prefixes) — the landing page root
+const HIDDEN_EXACT = ['/'];
+
 const MobileBottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { selectedConversation, statusUnseenCount, wingaData } = useChat();
   const path = location.pathname;
 
-  const isHiddenRoute = HIDDEN_PREFIXES.some((prefix) => path.startsWith(prefix));
+  const isHiddenRoute = HIDDEN_EXACT.includes(path) || HIDDEN_PREFIXES.some((prefix) => path.startsWith(prefix));
   const isInsideOpenMobileChat = path.startsWith('/chat') && selectedConversation;
 
   if (isHiddenRoute || isInsideOpenMobileChat) return null;

@@ -8,6 +8,7 @@ import { authFetch } from '../utils/authFetch';
 import { API_URL } from '../utils/authSession';
 import { getDeviceId } from '../utils/deviceIdentity';
 import { isNative, showNativeNotification, initNativePush } from './capacitorBridge';
+import { LocalNotifications } from '@capacitor/local-notifications';
 
 const NOTIFICATION_SETTINGS_KEY = 'genz_notification_settings';
 const ENABLE_DEV_SERVICE_WORKER = import.meta.env.VITE_ENABLE_DEV_SERVICE_WORKER === 'true';
@@ -318,9 +319,17 @@ export const subscribeToWebPush = async (registration) => {
 };
 
 export const initialize = async () => {
-  // Native APK: register the FCM push token with the backend. Without a
-  // Firebase project the plugin degrades gracefully to local notifications.
+  // Native APK: request local notification permissions eagerly so the user
+  // sees the OS prompt on first launch (not silently failing on first msg).
   if (isNative()) {
+    try {
+      const perm = await LocalNotifications.requestPermissions();
+      console.log('[NotificationService] Local notification permission:', perm);
+    } catch (e) {
+      console.warn('[NotificationService] LocalNotifications permission request failed:', e?.message || e);
+    }
+    // Also register FCM push token with the backend. Without a
+    // Firebase project the plugin degrades gracefully to local notifications.
     const nativePush = await initNativePush();
     return { permission: 'granted', registration: null, push: nativePush };
   }
