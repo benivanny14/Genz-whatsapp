@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Download, RefreshCw, X } from 'lucide-react';
-import { getAppInfo, isNative } from '../services/capacitorBridge.js';
+import { getAppInfo, isNative, downloadUrl } from '../services/capacitorBridge.js';
 import { trackUpdateEvent } from '../utils/updateAnalytics.js';
 import { fetchVersionManifest, apkDownloadUrl } from '../utils/versionManifest.js';
 
@@ -160,19 +160,19 @@ const UpdateBanner = () => {
             </button>
           ) : (
             <>
-              <a
-                href={update.apkUrl}
-                onClick={() =>
+              <button
+                onClick={() => {
                   trackUpdateEvent('update_tapped', {
                     version: update.version,
                     versionCode: update.versionCode,
                     platform: 'apk',
-                  })
-                }
+                  });
+                  downloadUrl(update.apkUrl, `genz-whatsapp-v${update.version}.apk`);
+                }}
                 className="rounded-lg bg-[#00a884] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#00c795]"
               >
                 Update
-              </a>
+              </button>
             </>
           )}
         </div>
