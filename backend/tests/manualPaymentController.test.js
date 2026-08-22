@@ -1,6 +1,8 @@
 jest.mock('../models/ManualPayment', () => {
   const Mock = jest.fn();
   Mock.findOne = jest.fn();
+  Mock.findOneAndUpdate = jest.fn();
+  Mock.updateOne = jest.fn();
   Mock.find = jest.fn();
   Mock.findById = jest.fn();
   Mock.countDocuments = jest.fn();
@@ -414,43 +416,56 @@ describe('manual payment — admin details', () => {
 describe('manual payment — approve/reject', () => {
   beforeEach(() => jest.resetAllMocks());
 
-  it('returns 404 when approving a missing payment (auth)', async () => {
+  it('returns 404 when approving a missing payment (atomic claim fails)', async () => {
     const controller = require('../controllers/manualPaymentController');
+    // findOneAndUpdate returns null — payment doesn't exist or already claimed
+    ManualPayment.findOneAndUpdate.mockResolvedValue(null);
     ManualPayment.findById.mockResolvedValue(null);
     const res = makeRes();
     await controller.approvePayment(makeReq({ params: { id: 'pay-1' } }), res);
     expect(res.statusCode).toBe(404);
   });
 
-  it('rejects approving a duplicate payment (validation)', async () => {
+  it('rejects approving a duplicate payment (atomic claim fails, then findById finds Duplicate)', async () => {
     const controller = require('../controllers/manualPaymentController');
+    ManualPayment.findOneAndUpdate.mockResolvedValue(null);
     ManualPayment.findById.mockResolvedValue(makePayment({ status: 'Duplicate' }));
     const res = makeRes();
     await controller.approvePayment(makeReq({ params: { id: 'pay-1' } }), res);
     expect(res.statusCode).toBe(400);
+    expect(res.body.message).toMatch(/duplicate/i);
   });
 
-  it('rejects approving an already-approved payment (validation)', async () => {
+  it('rejects approving an already-approved payment (atomic claim fails, then findById finds Approved)', async () => {
     const controller = require('../controllers/manualPaymentController');
+    ManualPayment.findOneAndUpdate.mockResolvedValue(null);
     ManualPayment.findById.mockResolvedValue(makePayment({ status: 'Approved' }));
     const res = makeRes();
     await controller.approvePayment(makeReq({ params: { id: 'pay-1' } }), res);
     expect(res.statusCode).toBe(400);
+    expect(res.body.message).toMatch(/already approved/i);
   });
 
-  it('returns 404 when the payment user is missing (auth)', async () => {
+  it('returns 404 when the payment user is missing (claim succeeds but user gone)', async () => {
     const controller = require('../controllers/manualPaymentController');
-    ManualPayment.findById.mockResolvedValue(makePayment());
+    const payment = makePayment();
+    ManualPayment.findOneAndUpdate.mockResolvedValue(payment);
     User.findById.mockResolvedValue(null);
+    ManualPayment.updateOne.mockResolvedValue({});
     const res = makeRes();
     await controller.approvePayment(makeReq({ params: { id: 'pay-1' } }), res);
     expect(res.statusCode).toBe(404);
+    // Status should be rolled back to Pending
+    expect(ManualPayment.updateOne).toHaveBeenCalledWith(
+      { _id: payment._id, status: 'Approving' },
+      { $set: { status: 'Pending' } }
+    );
   });
 
   it('approves a payment and activates premium (happy path)', async () => {
     const controller = require('../controllers/manualPaymentController');
     const payment = makePayment();
-    ManualPayment.findById.mockResolvedValue(payment);
+    ManualPayment.findOneAndUpdate.mockResolvedValue(payment);
     const user = { premium: false, subscriptionExpiresAt: null, save: jest.fn().mockResolvedValue(undefined) };
     User.findById.mockResolvedValue(user);
     const res = makeRes();
@@ -464,13 +479,61 @@ describe('manual payment — approve/reject', () => {
   it('extends from the current expiry when still active (happy path)', async () => {
     const controller = require('../controllers/manualPaymentController');
     const payment = makePayment();
-    ManualPayment.findById.mockResolvedValue(payment);
+    ManualPayment.findOneAndUpdate.mockResolvedValue(payment);
     const future = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000);
     const user = { premium: true, subscriptionExpiresAt: future, save: jest.fn().mockResolvedValue(undefined) };
     User.findById.mockResolvedValue(user);
     const res = makeRes();
     await controller.approvePayment(makeReq({ params: { id: 'pay-1' } }), res);
     expect(user.subscriptionExpiresAt.getTime()).toBeGreaterThan(future.getTime());
+  });
+
+  it('rolls back to Pending on failure after claim (prevents stuck Approving status)', async () => {
+    const controller = require('../controllers/manualPaymentController');
+    const payment = makePayment();
+    ManualPayment.findOneAndUpdate.mockResolvedValue(payment);
+    const user = { premium: false, subscriptionExpiresAt: null, save: jest.fn().mockRejectedValue(new Error('DB write failed')) };
+    User.findById.mockResolvedValue(user);
+    ManualPayment.updateOne.mockResolvedValue({});
+    const res = makeRes();
+    await controller.approvePayment(makeReq({ params: { id: 'pay-1' } }), res);
+    expect(res.statusCode).toBe(500);
+    // Verify rollback was attempted
+    expect(ManualPayment.updateOne).toHaveBeenCalledWith(
+      { _id: payment._id, status: 'Approving' },
+      { $set: { status: 'Pending' } }
+    );
+  });
+
+  it('only one of two concurrent approve calls succeeds (double-approval prevention)', async () => {
+    const controller = require('../controllers/manualPaymentController');
+    const payment = makePayment();
+    const user = { premium: false, subscriptionExpiresAt: null, save: jest.fn().mockResolvedValue(undefined) };
+
+    // Simulate: first call wins the atomic claim, second call gets null
+    ManualPayment.findOneAndUpdate
+      .mockResolvedValueOnce(payment)    // First request claims the payment
+      .mockResolvedValueOnce(null);      // Second request fails (already claimed)
+    ManualPayment.findById.mockResolvedValue(makePayment({ status: 'Approved' }));
+    User.findById.mockResolvedValue(user);
+
+    const res1 = makeRes();
+    const res2 = makeRes();
+
+    // Run both concurrently
+    await Promise.all([
+      controller.approvePayment(makeReq({ params: { id: 'pay-1' } }), res1),
+      controller.approvePayment(makeReq({ params: { id: 'pay-1' } }), res2)
+    ]);
+
+    // Exactly one should succeed
+    const results = [res1, res2];
+    const successes = results.filter(r => r.body?.success === true);
+    const failures = results.filter(r => r.statusCode === 400);
+    expect(successes).toHaveLength(1);
+    expect(failures).toHaveLength(1);
+    // Subscription should only be extended once (30 days), not twice
+    expect(user.save).toHaveBeenCalledTimes(1);
   });
 
   it('rejects a payment without a reason (validation)', async () => {

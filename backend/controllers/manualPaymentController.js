@@ -427,44 +427,71 @@ exports.getUserProfile = async (req, res) => {
 // ---------------------------------------------------------------------
 exports.approvePayment = async (req, res) => {
   try {
-    const payment = await ManualPayment.findById(req.params.id);
-    if (!payment) return res.status(404).json({ success: false, message: 'Payment not found' });
-    if (payment.status === 'Duplicate') {
-      return res.status(400).json({ success: false, message: 'This payment is flagged as a duplicate. Resolve the duplicate before approving.' });
+    // TATIZO 1 FIX: Atomic claim to prevent double-approval race condition.
+    // Instead of findById → check → save (non-atomic), we use findOneAndUpdate
+    // to atomically transition the status from Pending/Expired to 'Approving'.
+    // Only one concurrent request can win this race; the rest get null.
+    const payment = await ManualPayment.findOneAndUpdate(
+      { _id: req.params.id, status: { $nin: ['Approved', 'Duplicate', 'Approving'] } },
+      { $set: { status: 'Approving' } },
+      { new: true }
+    );
+
+    if (!payment) {
+      // Either already approved, duplicate, currently being approved, or doesn't exist
+      const existing = await ManualPayment.findById(req.params.id);
+      if (!existing) return res.status(404).json({ success: false, message: 'Payment not found' });
+      if (existing.status === 'Duplicate') {
+        return res.status(400).json({ success: false, message: 'This payment is flagged as a duplicate. Resolve the duplicate before approving.' });
+      }
+      return res.status(400).json({ success: false, message: 'Payment already approved (or being approved)' });
     }
-    if (payment.status === 'Approved') {
-      return res.status(400).json({ success: false, message: 'Payment already approved' });
+
+    // Claim succeeded — proceed with subscription activation.
+    // If anything fails below, we roll back to 'Pending' in the catch block.
+    let user;
+    try {
+      user = await User.findById(payment.userId);
+      if (!user) {
+        // Roll back — user doesn't exist
+        await ManualPayment.updateOne({ _id: payment._id, status: 'Approving' }, { $set: { status: 'Pending' } });
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+
+      const now = new Date();
+      // Extend from current expiry if still active, otherwise start fresh from now.
+      const base = user.premium && user.subscriptionExpiresAt && new Date(user.subscriptionExpiresAt) > now
+        ? new Date(user.subscriptionExpiresAt)
+        : now;
+      const expiresAt = new Date(base);
+      expiresAt.setDate(expiresAt.getDate() + (payment.subscriptionDays || 30));
+
+      user.premium = true;
+      user.subscriptionExpiresAt = expiresAt;
+      await user.save();
+
+      payment.status = 'Approved';
+      payment.approvedAt = now;
+      payment.approvedBy = req.user._id;
+      payment.expiresAt = expiresAt;
+      payment.approvalHistory.push({ action: 'approved', by: req.user._id, byUsername: req.user.username, at: now });
+      await payment.save();
+
+      notifyUser(req, payment.userId, 'payment:approved', {
+        paymentId: payment._id,
+        expiresAt,
+        message: 'Your payment has been approved! Premium is now active.'
+      });
+
+      res.json({ success: true, message: 'Payment approved and subscription activated', payment });
+    } catch (innerError) {
+      // Roll back the 'Approving' status so the payment isn't stuck forever
+      await ManualPayment.updateOne(
+        { _id: payment._id, status: 'Approving' },
+        { $set: { status: 'Pending' } }
+      ).catch(() => {});
+      throw innerError;
     }
-
-    const user = await User.findById(payment.userId);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-
-    const now = new Date();
-    // Extend from current expiry if still active, otherwise start fresh from now.
-    const base = user.premium && user.subscriptionExpiresAt && new Date(user.subscriptionExpiresAt) > now
-      ? new Date(user.subscriptionExpiresAt)
-      : now;
-    const expiresAt = new Date(base);
-    expiresAt.setDate(expiresAt.getDate() + (payment.subscriptionDays || 30));
-
-    user.premium = true;
-    user.subscriptionExpiresAt = expiresAt;
-    await user.save();
-
-    payment.status = 'Approved';
-    payment.approvedAt = now;
-    payment.approvedBy = req.user._id;
-    payment.expiresAt = expiresAt;
-    payment.approvalHistory.push({ action: 'approved', by: req.user._id, byUsername: req.user.username, at: now });
-    await payment.save();
-
-    notifyUser(req, payment.userId, 'payment:approved', {
-      paymentId: payment._id,
-      expiresAt,
-      message: 'Your payment has been approved! Premium is now active.'
-    });
-
-    res.json({ success: true, message: 'Payment approved and subscription activated', payment });
   } catch (error) {
     console.error('[ManualPayment] approvePayment error:', error);
     res.status(500).json({ success: false, message: error.message || 'Failed to approve payment' });
