@@ -42,7 +42,6 @@ const {
   aiAssistant,
   translateMessage,
 } = require('../controllers/advancedController');
-const { protect } = require('../middleware/auth');
 
 router.use(protect);
 router.post('/schedule-message', scheduleMessage);
@@ -81,8 +80,8 @@ router.put('/broadcast/:id', updateBroadcast);
 router.delete('/broadcast/:id', deleteBroadcast);
 router.post('/broadcast/:id/send', sendBroadcastMessage);
 
-router.put('/conversations/:id/disappearing-messages', setDisappearingMessages);
-router.get('/search-messages', searchMessages);  router.get('/link-preview', protect, getLinkPreview);
+router.put('/conversations/:id/disappearing-messages', setDisappearingMessages);  router.get('/search-messages', searchMessages);
+  router.get('/link-preview', getLinkPreview);
 router.get('/gifs', getGifs);
 router.post('/ai-assistant', aiAssistant);
 router.post('/translate', translateMessage);
