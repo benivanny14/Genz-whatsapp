@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, Lock, Phone, UserPlus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Register = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTarget = searchParams.get('redirect') || '/chat';
   const { register } = useAuth();
   const [form, setForm] = useState({
     phoneNumber: '',
@@ -55,13 +57,13 @@ const Register = () => {
       console.log('[Register] Registration response:', data);
 
       if (data?.requiresPhoneVerification) {
-        navigate('/verify-phone', { replace: true });
+        navigate(`/verify-phone?redirect=${encodeURIComponent(redirectTarget)}`, { replace: true });
         return;
       }
 
       if (data?.success !== false && data?.token) {
         // Force a page reload to ensure session is properly initialized
-        window.location.href = '/chat';
+        window.location.href = redirectTarget;
       } else {
         setError(data?.message || 'Registration failed');
       }

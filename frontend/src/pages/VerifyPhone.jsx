@@ -18,6 +18,7 @@ const VerifyPhone = () => {
   const [searchParams] = useSearchParams();
   const { user, setIsAuthenticated, setUser: setAuthUser } = useAuth();
   const [phoneNumber, setPhoneNumber] = useState(searchParams.get('phone') || user?.phoneNumber || '');
+  const redirectTarget = searchParams.get('redirect') || '/chat';
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -102,7 +103,7 @@ const VerifyPhone = () => {
         setIsAuthenticated(true);
 
         setSuccess('Phone verified successfully!');
-        setTimeout(() => navigate('/chat'), 1500);
+        setTimeout(() => navigate(redirectTarget), 1500);
       } else {
         setError(res?.message || 'Verification failed. Please try again.');
       }
