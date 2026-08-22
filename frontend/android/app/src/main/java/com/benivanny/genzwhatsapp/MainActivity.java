@@ -1,8 +1,13 @@
 package com.benivanny.genzwhatsapp;
 
+import android.app.DownloadManager;
 import android.content.pm.ApplicationInfo;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.webkit.CookieManager;
 import android.webkit.GeolocationPermissions;
+import android.webkit.URLUtil;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -43,6 +48,44 @@ public class MainActivity extends BridgeActivity {
                             String origin, GeolocationPermissions.Callback callback) {
                         // Automatically grant geolocation for our own origin.
                         callback.invoke(origin, true, false);
+                    }
+                });
+            } catch (Exception ignored) {
+                // Bridge may not be ready yet.
+            }
+        });
+
+        // Native download listener — catches any download that the WebView would
+        // normally handle via <a download>.  The default WebView download handler
+        // is unreliable for cross-origin URLs on Android, so we route everything
+        // through Android's DownloadManager for consistent behavior.
+        runOnUiThread(() -> {
+            try {
+                WebView webView = getBridge().getWebView();
+                webView.setDownloadListener((url, userAgent, contentDisposition,
+                                            mimeType, contentLength) -> {
+                    try {
+                        DownloadManager.Request request =
+                                new DownloadManager.Request(Uri.parse(url));
+                        String cookies = CookieManager.getInstance().getCookie(url);
+                        request.addRequestHeader("cookie", cookies != null ? cookies : "");
+                        request.addRequestHeader("User-Agent",
+                                userAgent != null ? userAgent : "");
+                        request.setMimeType(mimeType);
+                        request.setDescription("Downloading file...");
+                        String filename = URLUtil.guessFileName(
+                                url, contentDisposition, mimeType);
+                        request.setTitle(filename);
+                        request.setNotificationVisibility(
+                                DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                        request.setDestinationInExternalPublicDir(
+                                Environment.DIRECTORY_DOWNLOADS, filename);
+                        DownloadManager dm = (DownloadManager)
+                                getSystemService(DOWNLOAD_SERVICE);
+                        if (dm != null) dm.enqueue(request);
+                    } catch (Exception e) {
+                        android.util.Log.e("MainActivity",
+                                "Download failed: " + e.getMessage(), e);
                     }
                 });
             } catch (Exception ignored) {
