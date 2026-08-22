@@ -2072,14 +2072,24 @@ export const ChatProvider = ({ children }) => {
       // ── Unread count sync (server is source of truth) ──
       socket.on('conversation:unread-update', ({ conversationId, unreadCount }) => {
         if (!conversationId) return;
-        const openChatId = getStoredSelectedConversationId();
+        const openChatId = selectedConversationIdRef.current || getStoredSelectedConversationId();
         const isOpenChat = openChatId && String(conversationId) === String(openChatId);
+        // FIX: If the chat is currently open, ALWAYS force unread to 0
+        // regardless of what the server says — this prevents stale server
+        // responses from resurrecting the unread badge after markAsRead.
         const effectiveCount = isOpenChat ? 0 : (unreadCount ?? 0);
-        setConversations(prev => prev.map(c =>
-          String(c._id) === String(conversationId)
+        setConversations(prev => prev.map(c => {
+          if (String(c._id) !== String(conversationId)) return c;
+          // FIX: Never increase unread count for a conversation that was
+          // locally marked as read — the server may lag behind the user.
+          const localCount = c.unreadCount || 0;
+          if (isOpenChat) return { ...c, unreadCount: 0 };
+          // Only update if the server count is higher (prevents stale
+          // server responses from removing locally-incremented badges)
+          return effectiveCount > localCount
             ? { ...c, unreadCount: effectiveCount }
-            : c
-        ));
+            : c;
+        }));
       });
 
       socket.on('profile_visitors', (visitors = []) => {
@@ -2813,6 +2823,7 @@ export const ChatProvider = ({ children }) => {
   };
 
   const markAsRead = (chatId) => {
+    // 1. Clear local state immediately (WhatsApp-style instant feel)
     setConversations(prev => prev.map(c =>
       c._id === chatId ? { ...c, unreadCount: 0 } : c
     ));
@@ -2823,15 +2834,21 @@ export const ChatProvider = ({ children }) => {
     const skipReadReceipts = Boolean(
       modsRef.current.hideReadReceipts || modsRef.current.ghostMode
     );
-    // Send via socket (real-time) + HTTP fallback (for APK where socket may
-    // be unreliable). The HTTP fallback ensures the server-side unreadCount
-    // stays in sync even if the socket event is lost during a cold start.
+    // 2. Send via socket (real-time)
     emitSafe('mark_as_read', { chatId, userId: currentUserId, skipReadReceipts });
-    // HTTP fallback — fire-and-forget, ensures the server is updated even if
-    // the socket delivery fails (common on APK during network transitions).
+    // 3. HTTP fallback — for APK where socket may be unreliable.
+    // Use both PUT endpoint AND the mark-as-read endpoint for maximum
+    // reliability. Fire-and-forget: errors are non-critical.
     if (isMongoObjectId(chatId)) {
+      // Primary: REST endpoint
       authFetch(`${BACKEND_URL}/chat/messages/${chatId}/read`, { method: 'PUT' })
-        .catch(() => {}); // best-effort — socket is primary
+        .catch(() => {});
+      // Secondary: socket-style endpoint via HTTP (covers backend variants)
+      authFetch(`${BACKEND_URL}/chat/mark-read`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId, userId: currentUserId })
+      }).catch(() => {});
     }
   };
 

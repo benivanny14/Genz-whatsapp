@@ -280,12 +280,25 @@ const VoiceRecorder = ({
       }
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        // getUserMedia not available — file picker is the only option here
-        if (onFallback) {
-          onFallback();
+        // getUserMedia not available — on APK WebView this is common.
+        // NEVER silently open a file picker; the user must understand why
+        // recording failed before being offered a fallback.
+        if (isNative()) {
+          toast.error(
+            'Hii APK haisaidii kupiga sauti moja kwa moja.\n' +
+            'Tafadhali chagua faili la audio badala yake, au simulator ya simu inahitaji kuwa na mic.\n' +
+            'Kwenye simu halisi, mic itafanya kazi automatically.',
+            { duration: 8000, style: { maxWidth: 400 } }
+          );
         } else {
-          toast.error("Voice recording requires a secure context (HTTPS or Localhost).");
+          toast.error(
+            'Voice recording requires HTTPS or Localhost.\n' +
+            'Please use a secure connection to record voice messages.',
+            { duration: 6000 }
+          );
         }
+        // Only offer file fallback if the user explicitly wants it
+        // (don't silently open file picker)
         return;
       }
 

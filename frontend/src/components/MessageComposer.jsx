@@ -84,14 +84,14 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
           )}
   
           {selectedMedia && (
-            <div className="mb-2 relative inline-block bg-dark-bg p-2 rounded-xl border border-dark-border max-w-[200px]">
+            <div className={`mb-2 relative inline-block p-2 rounded-xl border border-dark-border max-w-[200px] ${selectedMedia.type === 'sticker' ? 'bg-transparent' : 'bg-dark-bg'}`}>
               <button
                 onClick={() => setSelectedMedia(null)}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-md"
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-md z-10"
               >
                 <X size={14} />
               </button>
-              <img src={selectedMedia.url} alt="selected media" className="w-full h-auto rounded-lg max-h-32 object-contain" />
+              <img src={selectedMedia.url} alt="selected media" className={`w-full h-auto max-h-32 object-contain ${selectedMedia.type === 'sticker' ? 'rounded-none bg-transparent' : 'rounded-lg'}`} style={selectedMedia.type === 'sticker' ? { filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' } : undefined} />
               {selectedMedia.type === 'sticker' && (
                 <p className="text-[10px] text-dark-textSecondary mt-1 text-center">
                   Sticker will be sent with your message ✨

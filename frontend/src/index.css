@@ -2601,3 +2601,29 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Mobile-specific: prevent ANY text from overflowing buttons/containers */
+@media (max-width: 480px) {
+  nav button span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+  .flex.items-center button, .flex.items-center a {
+    min-width: 0;
+  }
+  /* Force truncate on any button with long Swahili labels */
+  button {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+}
+
+/* Sticker message: transparent background, no border */
+.sticker-message img, .sticker-message video {
+  background: transparent !important;
+  border: none !important;
+  mix-blend-mode: normal;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
