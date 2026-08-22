@@ -2569,3 +2569,35 @@ body {
 .leaflet-container a {
   color: #00a884;
 }
+
+/* ── TATIZO 4: Button text overflow prevention ─────────────────────────
+   Prevents long Swahili (or any language) button labels from breaking
+   the layout. Apply .btn-text-safe to any button that contains text
+   that might exceed its container width.
+   Usage: <button className="btn-text-safe ...">Long Swahili text</button>
+   For flex containers with icon + text, also add flex-1 min-w-0 to
+   the text wrapper so text-overflow: ellipsis actually fires.
+   ──────────────────────────────────────────────────────────────────── */
+.btn-text-safe {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  display: inline-block;
+}
+
+/* Flex button children: icon + text layout where text should truncate */
+.btn-text-safe-flex {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  overflow: hidden;
+  max-width: 100%;
+}
+.btn-text-safe-flex > *:not(:first-child) {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
