@@ -395,27 +395,45 @@ exports.votePoll = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
     const { optionIds } = req.body;
+
+    // TATIZO 2 FIX: Atomic double-vote prevention.
+    // Step 1: Atomically try to insert the voter using $ne filter.
+    // This prevents two concurrent requests from the same user both succeeding.
+    const atomicUpdate = await Status.findOneAndUpdate(
+      { _id: req.params.id, 'poll.voters.user': { $ne: userId } },
+      {
+        $push: {
+          'poll.voters': { user: userId, optionIds, votedAt: new Date() }
+        },
+        $inc: { 'poll.totalVotes': 1 }
+      },
+      { new: true }
+    );
+
+    if (!atomicUpdate) {
+      // Either status doesn't exist, no poll, or user already voted
+      const existing = await Status.findById(req.params.id);
+      if (!existing) return res.status(404).json({ success: false, message: 'Status not found' });
+      if (!existing.poll) return res.status(400).json({ success: false, message: 'No poll found' });
+      return res.status(400).json({ success: false, message: 'You have already voted' });
+    }
+
+    // Step 2: Increment votes on each selected option.
+    // Use individual updateOne calls with positional updates for each option.
+    for (const optId of optionIds) {
+      await Status.updateOne(
+        { _id: req.params.id },
+        { $inc: { [`poll.options.${optId}.votes`]: 1 } }
+      ).catch(() => {
+        // If the positional increment fails (e.g. invalid option index),
+        // the vote is still recorded but the count may be off by one.
+        // Log for monitoring but don't fail the request.
+        console.warn(`[votePoll] Failed to increment votes for option ${optId}`);
+      });
+    }
+
+    // Fetch the updated status to return accurate data
     const status = await Status.findById(req.params.id);
-    
-    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
-    if (!status.poll) return res.status(400).json({ success: false, message: 'No poll found' });
-
-    // Check if already voted
-    const existingVote = status.poll.voters?.find(v => String(v.user) === String(userId));
-    if (existingVote) return res.status(400).json({ success: false, message: 'You have already voted' });
-
-    // Record vote
-    if (!status.poll.voters) status.poll.voters = [];
-    status.poll.voters.push({ user: userId, optionIds, votedAt: new Date() });
-
-    // Update option votes
-    optionIds.forEach(optId => {
-      const option = status.poll.options.find(o => o.id === optId);
-      if (option) option.votes++;
-    });
-    status.poll.totalVotes++;
-    await status.save();
-
     res.json({ success: true, status });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

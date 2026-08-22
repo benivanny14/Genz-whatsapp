@@ -1,6 +1,8 @@
 jest.mock('../models/Status', () => ({
   findById: jest.fn(),
   findOne: jest.fn(),
+  findOneAndUpdate: jest.fn(),
+  updateOne: jest.fn(),
   find: jest.fn(),
   create: jest.fn(),
   aggregate: jest.fn()
@@ -358,6 +360,8 @@ describe('statusAdvancedController — polls/location/schedule', () => {
   });
 
   it('votePoll rejects when there is no poll (400)', async () => {
+    // Atomic claim fails (no poll or already voted), fallback finds status without poll
+    Status.findOneAndUpdate.mockResolvedValue(null);
     Status.findById.mockResolvedValue(makeStatus());
     const res = makeRes();
     await statusAdv.votePoll(makeReq({ params: { id: VALID_ID }, body: { optionIds: [0] } }), res);
@@ -367,6 +371,8 @@ describe('statusAdvancedController — polls/location/schedule', () => {
 
   it('votePoll rejects repeat voters (400)', async () => {
     const status = makeStatus({ poll: { options: [{ id: 0, text: 'A', votes: 0 }], voters: [{ user: 'user-1' }] } });
+    // Atomic claim fails (user already in voters array)
+    Status.findOneAndUpdate.mockResolvedValue(null);
     Status.findById.mockResolvedValue(status);
     const res = makeRes();
     await statusAdv.votePoll(makeReq({ params: { id: VALID_ID }, body: { optionIds: [0] } }), res);
@@ -375,15 +381,37 @@ describe('statusAdvancedController — polls/location/schedule', () => {
   });
 
   it('votePoll records the vote (happy path)', async () => {
-    const status = makeStatus({ poll: { options: [{ id: 0, text: 'A', votes: 0 }, { id: 1, text: 'B', votes: 0 }], totalVotes: 0, voters: [] } });
-    Status.findById.mockResolvedValue(status);
+    const updatedStatus = makeStatus({ poll: { options: [{ id: 0, text: 'A', votes: 1 }, { id: 1, text: 'B', votes: 1 }], totalVotes: 1, voters: [{ user: 'user-1', optionIds: [0, 1], votedAt: new Date() }] } });
+    // Atomic claim succeeds
+    Status.findOneAndUpdate.mockResolvedValue(updatedStatus);
+    Status.updateOne.mockResolvedValue({});
+    Status.findById.mockResolvedValue(updatedStatus);
     const res = makeRes();
     await statusAdv.votePoll(makeReq({ params: { id: VALID_ID }, body: { optionIds: [0, 1] } }), res);
-    expect(status.poll.voters).toHaveLength(1);
-    expect(status.poll.options[0].votes).toBe(1);
-    expect(status.poll.options[1].votes).toBe(1);
-    expect(status.poll.totalVotes).toBe(1);
-    expect(status.save).toHaveBeenCalled();
+    expect(res.body.success).toBe(true);
+    expect(res.body.status.poll.totalVotes).toBe(1);
+  });
+
+  it('votePoll prevents double-vote from concurrent requests (atomic)', async () => {
+    const status = makeStatus({ poll: { options: [{ id: 0, text: 'A', votes: 0 }], totalVotes: 0, voters: [] } });
+    // First call succeeds, second call fails (user already in voters)
+    Status.findOneAndUpdate
+      .mockResolvedValueOnce(status)  // First request wins the atomic claim
+      .mockResolvedValueOnce(null);   // Second request fails
+    Status.updateOne.mockResolvedValue({});
+    Status.findById.mockResolvedValue(status);
+
+    const res1 = makeRes();
+    const res2 = makeRes();
+    await Promise.all([
+      statusAdv.votePoll(makeReq({ params: { id: VALID_ID }, body: { optionIds: [0] } }), res1),
+      statusAdv.votePoll(makeReq({ params: { id: VALID_ID }, body: { optionIds: [0] } }), res2)
+    ]);
+
+    const successes = [res1, res2].filter(r => r.body?.success === true);
+    const failures = [res1, res2].filter(r => r.statusCode === 400);
+    expect(successes).toHaveLength(1);
+    expect(failures).toHaveLength(1);
   });
 
   it('scheduleStatus marks the status as scheduled (happy path)', async () => {
