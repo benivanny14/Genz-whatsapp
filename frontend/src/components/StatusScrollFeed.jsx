@@ -408,6 +408,12 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
                   muted={isMuted}
                   loop
                   playsInline
+                  autoPlay
+                  preload="auto"
+                  onError={(e) => {
+                    console.error('[StatusScrollFeed] Video load error:', e?.target?.src);
+                    e.target.style.display = 'none';
+                  }}
                   onClick={() => setIsMuted(!isMuted)}
                 />
               ) : status.type === 'location' ? (
