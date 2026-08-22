@@ -102,6 +102,37 @@ const debounce = (func, wait) => {
   };
 };
 
+/**
+ * Safely merge remote conversations with local state.
+ * Preserves locally-set unread counts to prevent stale server responses from
+ * "restoring" badges the user has already cleared on this device.
+ *
+ * Rules:
+ * - If the chat is currently open, unread = 0
+ * - Otherwise, keep the HIGHER of server and local counts (never go down)
+ * - Local-only (temporary) conversations are always preserved
+ */
+const mergeConversationsSafely = (localConversations, remoteConversations, openChatId) => {
+  const localOnly = localConversations.filter(
+    c => c._id && (c._id.startsWith('conv-') || c._id.startsWith('temp-'))
+  );
+  const mergedMap = new Map();
+  localOnly.forEach(c => mergedMap.set(c._id, c));
+  remoteConversations.forEach(c => {
+    const isOpen = openChatId && String(c._id) === String(openChatId);
+    const local = mergedMap.get(c._id);
+    const serverCount = c.unreadCount || 0;
+    const localCount = local?.unreadCount || 0;
+    mergedMap.set(c._id, {
+      ...c,
+      unreadCount: isOpen ? 0 : Math.max(serverCount, localCount)
+    });
+  });
+  return Array.from(mergedMap.values()).sort(
+    (a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
+  );
+};
+
 // ─── GENZ Settings Persistence ─────────────────────────────────────────────
 // FIX: Make settings keys user-specific to ensure data isolation between accounts
 const getGENZSettingsKey = (userId) => {
@@ -1083,30 +1114,12 @@ export const ChatProvider = ({ children }) => {
             const openChatId = selectedConversationIdRef.current || getStoredSelectedConversationId();
             const remoteIds = new Set(data.conversations.map((c) => String(c._id)));
             setConversations(prev => {
-              const mergedMap = new Map();
-              prev.forEach(c => {
+              const result = mergeConversationsSafely(prev, data.conversations, openChatId);
+              // Also drop conversations the server no longer returns
+              return result.filter(c => {
                 const id = String(c._id || '');
-                const isLocalOnly = id.startsWith('conv-') || id.startsWith('temp-');
-                if (isLocalOnly || remoteIds.has(id)) {
-                  mergedMap.set(c._id, c);
-                }
+                return id.startsWith('conv-') || id.startsWith('temp-') || remoteIds.has(id);
               });
-              data.conversations.forEach(c => {
-                const isOpen = openChatId && String(c._id) === String(openChatId);
-                // For open conversation: always force unreadCount to 0
-                // For others: use the HIGHER of local vs server count to
-                // avoid losing locally-incremented unread badges.
-                const local = mergedMap.get(c._id);
-                const serverCount = c.unreadCount || 0;
-                const localCount = local?.unreadCount || 0;
-                mergedMap.set(c._id, {
-                  ...c,
-                  unreadCount: isOpen ? 0 : Math.max(serverCount, localCount)
-                });
-              });
-              return Array.from(mergedMap.values()).sort(
-                (a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
-              );
             });
           }
         } catch (e) {
@@ -3275,13 +3288,7 @@ export const ChatProvider = ({ children }) => {
         if (conversationsData.status === 'fulfilled' && conversationsData.value?.success) {
           const remoteConversations = conversationsData.value.conversations || [];
           if (remoteConversations.length > 0 || !ENABLE_DEMO_DATA) {
-            setConversations(prev => {
-              const localOnlyConvs = prev.filter(c => c._id && (c._id.startsWith('conv-') || c._id.startsWith('temp-')));
-              const mergedMap = new Map();
-              localOnlyConvs.forEach(c => mergedMap.set(c._id, c));
-              remoteConversations.forEach(c => mergedMap.set(c._id, c));
-              return Array.from(mergedMap.values()).sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
-            });
+            setConversations(prev => mergeConversationsSafely(prev, remoteConversations, null));
             try {
               await Promise.all(remoteConversations.map((conversation) => DB.saveConversation(conversation)));
               // FIX: Prune any locally-cached conversation the server no longer returns
@@ -3966,16 +3973,7 @@ export const ChatProvider = ({ children }) => {
         if (conversationsData.status === 'fulfilled' && conversationsData.value?.success) {
           const remoteConversations = conversationsData.value.conversations || [];
           const openChatId = getStoredSelectedConversationId();
-          setConversations(prev => {
-            const localOnlyConvs = prev.filter(c => c._id && (c._id.startsWith('conv-') || c._id.startsWith('temp-')));
-            const mergedMap = new Map();
-            localOnlyConvs.forEach(c => mergedMap.set(c._id, c));
-            remoteConversations.forEach(c => {
-              const isOpen = openChatId && String(c._id) === String(openChatId);
-              mergedMap.set(c._id, isOpen ? { ...c, unreadCount: 0 } : c);
-            });
-            return Array.from(mergedMap.values()).sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
-          });
+          setConversations(prev => mergeConversationsSafely(prev, remoteConversations, openChatId));
         }
 
         if (statusesData.status === 'fulfilled' && statusesData.value?.success) {
@@ -5264,19 +5262,13 @@ export const ChatProvider = ({ children }) => {
       if (data?.success && Array.isArray(data.conversations)) {
         const remoteIds = new Set(data.conversations.map((c) => String(c._id)));
         setConversations(prev => {
-          // Keep local-only (not-yet-synced) conversations, but drop anything
-          // the server no longer returns (deleted/left elsewhere) instead of
-          // merging forever — otherwise removed chats never disappear.
-          const mergedMap = new Map();
-          prev.forEach(c => {
+          const openChatId = getStoredSelectedConversationId();
+          const result = mergeConversationsSafely(prev, data.conversations, openChatId);
+          // Also drop conversations the server no longer returns
+          return result.filter(c => {
             const id = String(c._id || '');
-            const isLocalOnly = id.startsWith('conv-') || id.startsWith('temp-');
-            if (isLocalOnly || remoteIds.has(id)) {
-              mergedMap.set(c._id, c);
-            }
+            return id.startsWith('conv-') || id.startsWith('temp-') || remoteIds.has(id);
           });
-          data.conversations.forEach(c => mergedMap.set(c._id, c));
-          return Array.from(mergedMap.values());
         });
         try {
           const cachedConvs = await DB.getConversations();
