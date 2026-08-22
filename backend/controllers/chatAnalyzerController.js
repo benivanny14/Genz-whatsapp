@@ -350,11 +350,21 @@ exports.exportAnalysisData = async (req, res) => {
     let exportData = '';
 
     if (format === 'csv') {
+      // Prevent CSV formula injection: values starting with =, +, -, @, or tab/CR
+      // are prefixed with a single quote so spreadsheet apps treat them as text.
+      const sanitizeCsvField = (value) => {
+        const str = String(value ?? '');
+        if (/^[=+\-@\t\r]/.test(str)) {
+          return `'${str}`;
+        }
+        return str.replace(/,/g, ' ');
+      };
+
       exportData = 'Date,Sender,Message Type,Content\n';
       messages.forEach(msg => {
-        const sender = msg.sender?.username || 'Unknown';
+        const sender = sanitizeCsvField(msg.sender?.username || 'Unknown');
         const date = new Date(msg.createdAt).toISOString();
-        const content = (msg.content || '').replace(/,/g, ' ');
+        const content = sanitizeCsvField(msg.content || '');
         exportData += `${date},${sender},${msg.messageType},${content}\n`;
       });
     } else if (format === 'json') {
