@@ -3,8 +3,10 @@ import { Users, Send, Edit, Trash2, MoreVertical, Clock, CheckCircle, AlertCircl
 import { motion, AnimatePresence } from 'framer-motion';
 import broadcastService from '../services/broadcastService';
 import toast from 'react-hot-toast';
+import { useConfirm } from './/ConfirmDialog';
 
 const BroadcastCard = ({ broadcast, onBroadcastUpdate, onBroadcastDelete, onSendMessage }) => {
+  const confirm = useConfirm();
   const [showActions, setShowActions] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -80,7 +82,7 @@ const BroadcastCard = ({ broadcast, onBroadcastUpdate, onBroadcastDelete, onSend
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`Are you sure you want to delete "${broadcast.name}"? This action cannot be undone.`)) {
+    if (!(await confirm(`Are you sure you want to delete "${broadcast.name}"? This action cannot be undone.`))) {
       return;
     }
 

@@ -3,10 +3,12 @@ import { Heart, MessageCircle, Bookmark, Share2, Send, X, MoreVertical, Eye, Clo
 import { motion, AnimatePresence } from 'framer-motion';
 import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
+import { usePrompt } from './/PromptDialog';
 
 const API_URL = resolveApiBase();
 
 const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId }) => {
+  const prompt = usePrompt();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [liked, setLiked] = useState({});
   const [saved, setSaved] = useState({});
@@ -234,7 +236,7 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
     e.stopPropagation();
     const status = statuses[currentIndex];
     if (!status) return;
-    const action = window.prompt('Options for this status:\n1. Copy link\n2. Report status\n\nEnter 1 or 2');
+    const action = (await prompt('Options for this status:\n1. Copy link\n2. Report status\n\nEnter 1 or 2'));
     if (action === '1') {
       const statusId = (status.id || status._id).replace('status-', '');
       try {
@@ -244,7 +246,7 @@ const StatusScrollFeed = ({ statuses, onClose, currentUserId, initialStatusId })
         alert('Could not copy link.');
       }
     } else if (action === '2') {
-      const reason = window.prompt('Reason for reporting this status:');
+      const reason = (await prompt('Reason for reporting this status:'));
       if (reason && reason.trim()) {
         alert(`Status reported. Reason: ${reason.trim()}`);
         setShowOptionsMenu(false);

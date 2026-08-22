@@ -3,8 +3,10 @@ import { LogOut, ShieldOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import adminApi from '../../services/adminApi';
 import { Table, EmptyRow } from './adminUi';
+import { useConfirm } from '../ConfirmDialog';
 
 const SessionManagement = () => {
+  const confirm = useConfirm();
   const [search, setSearch] = useState('');
   const [user, setUser] = useState(null);
   const [sessions, setSessions] = useState([]);
@@ -34,7 +36,7 @@ const SessionManagement = () => {
   };
 
   const revokeAll = async () => {
-    if (!window.confirm('Remove all sessions for this user? They will be logged out of all devices.')) return;
+    if (!(await confirm('Remove all sessions for this user? They will be logged out of all devices.'))) return;
     try {
       await adminApi.delete(`/admin/sessions/${user._id}/all`);
       toast.success('All sessions removed');

@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Key, Plus, Trash2, Loader2, Shield, AlertCircle, CheckCircle } from 'lucide-react';
 import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
+import { useConfirm } from './/ConfirmDialog';
 
 const PasskeysSettings = () => {
+  const confirm = useConfirm();
   const [passkeys, setPasskeys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [registering, setRegistering] = useState(false);
@@ -103,7 +105,7 @@ const PasskeysSettings = () => {
   };
 
   const handleDelete = async (passkeyId) => {
-    if (!window.confirm('Are you sure you want to delete this passkey?')) return;
+    if (!(await confirm('Are you sure you want to delete this passkey?'))) return;
 
     try {
       const res = await authFetch(`${API_URL}/auth/passkey/${passkeyId}`, {

@@ -8,10 +8,12 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { resolveApiBase } from '../utils/resolveApiBase';
+import { useConfirm } from './/ConfirmDialog';
 
 const API_URL = resolveApiBase();
 
 const StatusReel = ({ onClose, initialStatuses = [] }) => {
+  const confirm = useConfirm();
   const [reelGroups, setReelGroups] = useState([]);
   const [flatStatuses, setFlatStatuses] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -536,7 +538,7 @@ const StatusReel = ({ onClose, initialStatuses = [] }) => {
               { icon: <Download size={16} />, label: 'Save Status', action: handleSave },
               { icon: <Share2 size={16} />, label: 'Share', action: handleShare },
               { icon: <Trash2 size={16} className="text-red-400" />, label: 'Delete (Yours)', action: async () => {
-                if (!window.confirm('Delete this status?')) return;
+                if (!(await confirm('Delete this status?'))) return;
                 try {
                   const token = getAuthToken();
                   const statusId = currentId.replace('status-', '');

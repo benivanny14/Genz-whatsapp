@@ -3,8 +3,10 @@ import { Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import adminApi from '../../services/adminApi';
 import { Table, LoadingBlock, EmptyRow, StatCard } from './adminUi';
+import { useConfirm } from '../ConfirmDialog';
 
 const StatusStoriesManagement = ({ mode = 'status' }) => {
+  const confirm = useConfirm();
   const [statuses, setStatuses] = useState([]);
   const [highlights, setHighlights] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,7 +31,7 @@ const StatusStoriesManagement = ({ mode = 'status' }) => {
   useEffect(() => { load(); }, [load]);
 
   const remove = async (id) => {
-    if (!window.confirm('Delete this status?')) return;
+    if (!(await confirm('Delete this status?'))) return;
     try {
       await adminApi.delete(`/admin/statuses/${id}`);
       toast.success('Deleted');

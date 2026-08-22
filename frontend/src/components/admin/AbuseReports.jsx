@@ -3,6 +3,7 @@ import { AlertTriangle, Eye, CheckCircle, XCircle, Clock, Trash2, Filter } from 
 import toast from 'react-hot-toast';
 import adminApi from '../../services/adminApi';
 import { Table, LoadingBlock, EmptyRow, StatCard, Pager } from './adminUi';
+import { useConfirm } from '../ConfirmDialog';
 
 const STATUS_COLORS = {
   pending: 'text-amber-500',
@@ -55,6 +56,7 @@ const CONTENT_TYPE_LABELS = {
 };
 
 const AbuseReports = () => {
+  const confirm = useConfirm();
   const [reports, setReports] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -116,7 +118,7 @@ const AbuseReports = () => {
   };
 
   const deleteReport = async (id) => {
-    if (!window.confirm('Delete this report permanently?')) return;
+    if (!(await confirm('Delete this report permanently?'))) return;
     try {
       await adminApi.delete(`/admin/abuse-reports/${id}`);
       toast.success('Deleted');

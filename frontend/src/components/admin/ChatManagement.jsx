@@ -3,8 +3,10 @@ import { Trash2, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import adminApi from '../../services/adminApi';
 import { Table, LoadingBlock, EmptyRow, Pager } from './adminUi';
+import { useConfirm } from '../ConfirmDialog';
 
 const ChatManagement = () => {
+  const confirm = useConfirm();
   const [conversations, setConversations] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, pages: 1 });
   const [loading, setLoading] = useState(true);
@@ -37,7 +39,7 @@ const ChatManagement = () => {
   };
 
   const remove = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this conversation?')) return;
+    if (!(await confirm('Are you sure you want to delete this conversation?'))) return;
     try {
       await adminApi.delete(`/admin/chats/${id}`);
       toast.success('Deleted');

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Globe2, Lock, Plus, Search, Settings, UserPlus, UsersRound, Trash2, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import communityService from '../services/communityService';
+import { useConfirm } from '../components/ConfirmDialog';
+import { usePrompt } from '../components/PromptDialog';
 
 const DEFAULT_COMMUNITIES = [
   {
@@ -35,6 +37,8 @@ const DEFAULT_COMMUNITIES = [
 
 const Communities = () => {
   const navigate = useNavigate();
+  const confirm = useConfirm();
+  const prompt = usePrompt();
   const [activeTab, setActiveTab] = useState('joined');
   const [query, setQuery] = useState('');
   const [communities, setCommunities] = useState([]);
@@ -176,7 +180,7 @@ const Communities = () => {
   };
 
   const deleteCommunity = async (communityId) => {
-    if (!window.confirm('Delete this community permanently?')) return;
+    if (!(await confirm('Delete this community permanently?'))) return;
     try {
       await communityService.deleteCommunity(communityId);
       setCommunities((current) => current.filter((community) => community.id !== communityId));
@@ -187,7 +191,7 @@ const Communities = () => {
   };
 
   const manageCommunity = async (community) => {
-    const newName = window.prompt('Rename community:', community.name);
+    const newName = await prompt('Rename community:', { defaultValue: community.name });
     if (!newName || !newName.trim()) return;
     const name = newName.trim();
     try {

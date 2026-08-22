@@ -3,8 +3,10 @@ import { Trash2, BadgeCheck, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import adminApi from '../../services/adminApi';
 import { Table, LoadingBlock, EmptyRow, Pager } from './adminUi';
+import { useConfirm } from '../ConfirmDialog';
 
 const ChannelManagement = () => {
+  const confirm = useConfirm();
   const [channels, setChannels] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, pages: 1 });
   const [loading, setLoading] = useState(true);
@@ -36,7 +38,7 @@ const ChannelManagement = () => {
   };
 
   const remove = async (id) => {
-    if (!window.confirm('Delete this channel permanently?')) return;
+    if (!(await confirm('Delete this channel permanently?'))) return;
     try {
       await adminApi.delete(`/admin/channels/${id}`);
       toast.success('Deleted');

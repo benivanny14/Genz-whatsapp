@@ -12,6 +12,7 @@ import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { resolveMediaPlaybackUrl } from '../utils/sanitizeMediaUrl';
 import toast from 'react-hot-toast';
+import { useConfirm } from '../components/ConfirmDialog';
 
 const CATEGORY_META = [
   { id: 'nguo', label: 'Nguo', icon: Shirt },
@@ -85,6 +86,7 @@ const Winga = () => {
     selectConversation, refreshConversations
   } = useChat();
 
+  const confirm = useConfirm();
   const [view, setView] = useState('categories'); // 'categories' | 'category'
   const [activeCategory, setActiveCategory] = useState(null);
   const [showPost, setShowPost] = useState(false);
@@ -232,7 +234,7 @@ const Winga = () => {
   };
 
   const removeMyListing = async (listing) => {
-    if (!window.confirm(`Delete "${listing.title}"?`)) return;
+    if (!(await confirm(`Delete "${listing.title}"?`))) return;
     const data = await deleteWingaListing(listing._id);
     if (data?.success) toast.success('Biashara imefutwa');
     else toast.error(data?.message || 'Failed to delete');

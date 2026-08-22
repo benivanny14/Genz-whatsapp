@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Smartphone, Monitor, Tablet, Clock, Trash2, Power, Wifi, WifiOff, Pencil, Check, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import deviceService from '../services/deviceService';
+import { useConfirm } from './/ConfirmDialog';
 
 const DeviceCard = ({ device, onDeviceUpdate, onDeviceRemove }) => {
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -53,7 +55,7 @@ const DeviceCard = ({ device, onDeviceUpdate, onDeviceRemove }) => {
   const handleUnlinkDevice = async () => {
     if (loading) return;
     
-    const confirmed = window.confirm(`Are you sure you want to unlink "${device.name}"? This will remove access from this device.`);
+    const confirmed = (await confirm(`Are you sure you want to unlink "${device.name}"? This will remove access from this device.`));
     if (!confirmed) return;
     
     setLoading(true);

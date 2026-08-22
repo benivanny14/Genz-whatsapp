@@ -3,6 +3,7 @@ import { RefreshCcw, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import adminApi from '../../services/adminApi';
 import { StatCard, LoadingBlock } from './adminUi';
+import { useConfirm } from '../ConfirmDialog';
 
 const fmtDate = (d) => {
   if (!d) return '—';
@@ -10,6 +11,7 @@ const fmtDate = (d) => {
 };
 
 const BackupManagement = () => {
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({ groups: [], total: 0, totalSizeHuman: '0 B', usersWithBackups: 0, storage: 'local' });
 
@@ -28,7 +30,7 @@ const BackupManagement = () => {
   useEffect(() => { load(); }, [load]);
 
   const remove = async (backupId, username) => {
-    if (!window.confirm(`Delete this backup for "${username}"?\n${backupId}\n\nThis cannot be undone.`)) return;
+    if (!(await confirm(`Delete this backup for "${username}"?\n${backupId}\n\nThis cannot be undone.`))) return;
     try {
       await adminApi.delete(`/admin/backups/${backupId}`);
       toast.success('Backup deleted');

@@ -28,6 +28,8 @@ import { checkForUpdate, getAppUpdateInfo } from '../utils/appUpdate';
 import SettingsHelp from '../components/SettingsHelp';
 import api from '../services/api';
 import { getAppInfo, isNative } from '../services/capacitorBridge.js';
+import { useConfirm } from '../components/ConfirmDialog';
+import { usePrompt } from '../components/PromptDialog';
 
 const SETTINGS_KEY = 'genz_user_settings';
 
@@ -329,6 +331,8 @@ const Settings = () => {
   const { changeLanguage } = useLanguage();
   const { mods, setMods } = useChat();
   const navigate = useNavigate();
+  const confirm = useConfirm();
+  const prompt = usePrompt();
   const [activeTab, setActiveTab] = useState('profile');
   const [settingsData, setSettingsData] = useState(readStoredSettings);
   const [profileData, setProfileData] = useState({
@@ -803,7 +807,7 @@ const Settings = () => {
 
 
   const resetSettings = async () => {
-    if (!window.confirm('Reset all WhatsApp-style settings on this device?')) return;
+    if (!(await confirm('Reset all WhatsApp-style settings on this device?'))) return;
     try {
       const response = await userService.resetSettings();
       const saved = normalizeSettings(response.settings || DEFAULT_SETTINGS);
@@ -826,13 +830,13 @@ const Settings = () => {
   };
 
   const handleChangeNumber = async () => {
-    if (!settingsData.account.changeNumberGuard || window.confirm('Are you sure you want to change your phone number? This will migrate your account data.')) {
-      const newNumber = window.prompt('Enter your new phone number:');
+    if (!settingsData.account.changeNumberGuard || (await confirm('Are you sure you want to change your phone number? This will migrate your account data.'))) {
+      const newNumber = (await prompt('Enter your new phone number:'));
       if (!newNumber) return;
       try {
         let result = await userService.changeNumber(newNumber);
         if (result?.requiresOtp) {
-          const otp = window.prompt(`OTP sent to ${newNumber}. Enter the verification code:`);
+          const otp = (await prompt(`OTP sent to ${newNumber}. Enter the verification code:`));
           if (!otp) return;
           result = await userService.changeNumber(newNumber, { verifyOtp: otp });
         }
@@ -849,8 +853,8 @@ const Settings = () => {
   };
 
   const handleDeleteAccount = async () => {
-    if (!settingsData.account.deleteAccountGuard || window.confirm('Are you sure you want to delete your account? This action is irreversible and will erase all your data.')) {
-      const confirmWord = window.prompt('Type DELETE to confirm account deletion:');
+    if (!settingsData.account.deleteAccountGuard || (await confirm('Are you sure you want to delete your account? This action is irreversible and will erase all your data.'))) {
+      const confirmWord = (await prompt('Type DELETE to confirm account deletion:'));
       if (confirmWord === 'DELETE') {
         try {
           await userService.deleteAccount();

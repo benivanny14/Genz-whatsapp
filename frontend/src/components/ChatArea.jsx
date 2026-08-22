@@ -68,6 +68,7 @@ import MessageComposer from './MessageComposer';
 import ConversationHeader from './ConversationHeader';
 import MessageListArea from './MessageListArea';
 import ChatModals from './ChatModals';
+import { usePrompt } from './/PromptDialog';
 
 
 const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => { // Added mods and onOpenGENZSettings
@@ -92,6 +93,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   } = useChat();
   const { sendSticker, favoriteStickers, toggleFavoriteSticker } = useStickers();
   const user = chatUser || localUser;
+  const prompt = usePrompt();
   const [messageInput, setMessageInput] = useState('');
   const [selectedFont, setSelectedFont] = useState(mods?.defaultMessageFont || 'default');
   const [showFontPicker, setShowFontPicker] = useState(false);
@@ -1428,7 +1430,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
     const resolvedCaption = caption ?? (
       (outgoingFile.type.startsWith('image/') || outgoingFile.type.startsWith('video/'))
-        ? window.prompt("Add a caption (optional):", "")
+        ? (await prompt("Add a caption (optional):", { defaultValue: '' }))
         : null
     );
 
@@ -1630,7 +1632,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     }
   }, [showCameraModal, recordedVideoUrl]);
 
-  const capturePhoto = () => {
+  const capturePhoto = async () => {
     if (!videoRef.current || !canvasRef.current) return;
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -1642,7 +1644,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
       const formData = new FormData();
       formData.append('file', file);
-      const caption = window.prompt("Add a caption (optional):");
+      const caption = (await prompt("Add a caption (optional):"));
 
       try {
         const response = await authFetch(`${API_URL}/media/upload`, { method: 'POST', body: formData });
@@ -1706,7 +1708,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     const file = new File([blob], `video-${Date.now()}.webm`, { type: 'video/webm' });
     const formData = new FormData();
     formData.append('file', file);
-    const caption = window.prompt("Add a caption (optional):");
+    const caption = (await prompt("Add a caption (optional):"));
 
     try {
       const response = await authFetch(`${API_URL}/media/upload`, { method: 'POST', body: formData });

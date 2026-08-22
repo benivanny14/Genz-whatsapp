@@ -13,6 +13,8 @@ import { formatConversationTime } from '../utils/formatDate';
 import ContactPickerModal from './ContactPickerModal';
 import MediaGallery from './MediaGallery';
 import { mediaAPI } from '../services/api';
+import { useConfirm } from './/ConfirmDialog';
+import { usePrompt } from './/PromptDialog';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const DISAPPEARING_OPTIONS = [
@@ -113,6 +115,8 @@ const GroupInfo = ({ group, onClose, currentUserId, onViewProfile, onStartChat }
     fetchGroupEvents, createGroupEventFn, rsvpGroupEventFn,
   } = useChat();
 
+  const confirm = useConfirm();
+  const prompt = usePrompt();
   const [info, setInfo] = useState(group);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('info'); // info | members | media | events | settings
@@ -187,13 +191,13 @@ const GroupInfo = ({ group, onClose, currentUserId, onViewProfile, onStartChat }
   };
 
   const handleRemoveMember = async (memberId) => {
-    if (!window.confirm('Remove this member?')) return;
+    if (!(await confirm('Remove this member?'))) return;
     await removeParticipant(group._id, memberId);
     setInfo(prev => ({ ...prev, participants: prev.participants.filter(p => !sameId(p._id, memberId)) }));
   };
 
   const handleBanMember = async (memberId, memberName) => {
-    const reason = window.prompt(`Enter ban reason for ${memberName}:`);
+    const reason = (await prompt(`Enter ban reason for ${memberName}:`));
     if (reason === null) return; // cancelled
     const res = await banGroupMember(group._id, memberId, reason);
     if (res?.success) {
@@ -219,7 +223,7 @@ const GroupInfo = ({ group, onClose, currentUserId, onViewProfile, onStartChat }
 
   const handleReportMember = async (member) => {
     setMemberContextMenu(null);
-    const reason = window.prompt(`Report ${member?.username || 'this user'} for:`);
+    const reason = (await prompt(`Report ${member?.username || 'this user'} for:`));
     if (!reason) return;
     try {
       const res = await fetch(`/api/users/${member._id}/report`, {
@@ -244,7 +248,7 @@ const GroupInfo = ({ group, onClose, currentUserId, onViewProfile, onStartChat }
 
   const handleBlockMember = async (member) => {
     setMemberContextMenu(null);
-    if (!window.confirm(`Block ${member?.username || 'this user'}?`)) return;
+    if (!(await confirm(`Block ${member?.username || 'this user'}?`))) return;
     try {
       const res = await fetch(`/api/users/${member._id}/block`, {
         method: 'POST',
@@ -263,13 +267,13 @@ const GroupInfo = ({ group, onClose, currentUserId, onViewProfile, onStartChat }
   };
 
   const handleMakeAdmin = async (memberId) => {
-    if (!window.confirm('Make this member an admin?')) return;
+    if (!(await confirm('Make this member an admin?'))) return;
     await makeAdmin(group._id, memberId);
     setInfo(prev => ({ ...prev, admins: [...(prev.admins || []), memberId] }));
   };
 
   const handleRemoveAdmin = async (memberId) => {
-    if (!window.confirm('Remove admin role?')) return;
+    if (!(await confirm('Remove admin role?'))) return;
     await removeAdmin(group._id, memberId);
     setInfo(prev => ({ ...prev, admins: (prev.admins || []).filter(a => !sameId(a, memberId)) }));
   };
@@ -311,7 +315,7 @@ const GroupInfo = ({ group, onClose, currentUserId, onViewProfile, onStartChat }
   };
 
   const handleRegenerateInvite = async () => {
-    if (!window.confirm('Reset the invite link? The old link will no longer work.')) return;
+    if (!(await confirm('Reset the invite link? The old link will no longer work.'))) return;
     setInviteBusy(true);
     try {
       const res = await regenerateGroupInvite(group._id);
@@ -383,7 +387,7 @@ const GroupInfo = ({ group, onClose, currentUserId, onViewProfile, onStartChat }
 
   const handleTransferOwnership = async (memberId) => {
     const member = info?.participants?.find(p => sameId(p._id, memberId));
-    if (!window.confirm(`Transfer ownership to ${member?.username || 'this member'}? You will no longer be the owner.`)) return;
+    if (!(await confirm(`Transfer ownership to ${member?.username || 'this member'}? You will no longer be the owner.`))) return;
     const res = await transferGroupOwnership(group._id, memberId);
     if (res?.success) {
       setInfo(prev => ({ ...prev, owner: memberId, createdBy: memberId }));
@@ -634,7 +638,7 @@ const GroupInfo = ({ group, onClose, currentUserId, onViewProfile, onStartChat }
                     label="Exit group"
                     danger
                     onClick={async () => {
-                      if (!window.confirm('Exit this group?')) return;
+                      if (!(await confirm('Exit this group?'))) return;
                       const result = await leaveGroup(group._id);
                       if (result?.success === false) { alert(result.message || 'Could not exit group'); return; }
                       onClose?.();

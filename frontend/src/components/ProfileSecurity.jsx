@@ -3,10 +3,12 @@ import { Shield, X, Check, RefreshCw, Lock, Eye, EyeOff, AlertTriangle, Fingerpr
 import { motion, AnimatePresence } from 'framer-motion';
 import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
+import { useConfirm } from './/ConfirmDialog';
 
 const API_URL = resolveApiBase();
 
 const ProfileSecurity = ({ user, securitySettings, onUpdateSecurity, onClose }) => {
+  const confirm = useConfirm();
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showTwoFactor, setShowTwoFactor] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -88,7 +90,7 @@ const ProfileSecurity = ({ user, securitySettings, onUpdateSecurity, onClose }) 
   };
 
   const handleDisableTwoFactor = async () => {
-    if (!window.confirm('Are you sure you want to disable two-factor authentication?')) return;
+    if (!(await confirm('Are you sure you want to disable two-factor authentication?'))) return;
 
     setIsProcessing(true);
     try {

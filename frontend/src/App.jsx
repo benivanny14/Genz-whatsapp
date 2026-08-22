@@ -16,6 +16,8 @@ import notificationService from './services/notificationService';
 import { cleanupLocalBlobUrls, sanitizeBlobUrls } from './utils/sanitizeStorage';
 import { applyAntiScreenshot, initAntiScreenshotListeners } from './utils/antiScreenshot';
 import toast, { Toaster } from 'react-hot-toast';
+import { ConfirmDialogProvider } from './components/ConfirmDialog';
+import { PromptDialogProvider } from './components/PromptDialog';
 import { useChat } from './context/ChatContext';
 import { useUser } from './context/UserContext';
 import { useAuth } from './context/AuthContext';
@@ -443,6 +445,8 @@ function App() {
 
   return (
     <ErrorBoundary>
+      <ConfirmDialogProvider>
+      <PromptDialogProvider>
       <div className="genz-grain" aria-hidden="true" />
       {/* Global toast host — without <Toaster /> every toast.success()/
           toast.error() call across the app is a silent no-op. Styled to
@@ -531,6 +535,8 @@ function App() {
         </Suspense>
       </AdminAuthProvider>
       <MobileBottomNav />
+      </PromptDialogProvider>
+      </ConfirmDialogProvider>
     </ErrorBoundary>
   );
 }

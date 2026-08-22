@@ -27,6 +27,7 @@ import SessionManagement from '../components/admin/SessionManagement';
 import AbuseReports from '../components/admin/AbuseReports';
 import GenzAfterWorkManagement from '../components/admin/GenzAfterWorkManagement';
 import BackupManagement from '../components/admin/BackupManagement';
+import { usePrompt } from '../components/PromptDialog';
 
 // ---------------------------------------------------------------------
 // Section registry — all 33 requested modules, ALL now implemented and
@@ -92,6 +93,7 @@ const ComingSoonPanel = ({ label }) => (
 // in this browser — a lightweight frontend-regression signal without an
 // external error service. Shows only what this admin browser has observed.
 const FrontendCrashesPanel = () => {
+  const prompt = usePrompt();
   const [crashes, setCrashes] = useState(null);
   useEffect(() => {
     try {
@@ -595,7 +597,7 @@ const PaymentsSection = ({ statusFilter = 'All', title = 'Payment Management' })
   const act = async (id, action) => {
     let body = {};
     if (action === 'reject') {
-      const reason = window.prompt('Sababu ya kukataa (required):');
+      const reason = (await prompt('Sababu ya kukataa (required):'));
       if (!reason || !reason.trim()) {
         toast.error('A reason is required to reject a payment');
         return;

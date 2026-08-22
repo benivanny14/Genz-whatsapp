@@ -4,9 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import DeviceCard from '../components/DeviceCard';
 import deviceService from '../services/deviceService';
+import { useConfirm } from '../components/ConfirmDialog';
 
 const LinkedDevices = () => {
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showQRModal, setShowQRModal] = useState(false);
@@ -50,7 +52,7 @@ const LinkedDevices = () => {
   };
 
   const handleLogoutAll = async () => {
-    if (!window.confirm('Are you sure you want to logout from all devices except this one?')) {
+    if (!(await confirm('Are you sure you want to logout from all devices except this one?'))) {
       return;
     }
 

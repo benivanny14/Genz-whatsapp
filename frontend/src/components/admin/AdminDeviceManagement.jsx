@@ -3,8 +3,10 @@ import { Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import adminApi from '../../services/adminApi';
 import { Table, LoadingBlock, EmptyRow, Pager } from './adminUi';
+import { useConfirm } from '../ConfirmDialog';
 
 const AdminDeviceManagement = () => {
+  const confirm = useConfirm();
   const [devices, setDevices] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, pages: 1 });
   const [loading, setLoading] = useState(true);
@@ -25,7 +27,7 @@ const AdminDeviceManagement = () => {
   useEffect(() => { load(1); }, [load]);
 
   const revoke = async (id) => {
-    if (!window.confirm('Remove this device? The user will be logged out immediately.')) return;
+    if (!(await confirm('Remove this device? The user will be logged out immediately.'))) return;
     try {
       await adminApi.delete(`/admin/devices/${id}`);
       toast.success('Device removed');

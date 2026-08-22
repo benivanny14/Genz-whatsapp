@@ -3,8 +3,10 @@ import { Trash2, Users, UserMinus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import adminApi from '../../services/adminApi';
 import { Table, LoadingBlock, EmptyRow, Pager } from './adminUi';
+import { useConfirm } from '../ConfirmDialog';
 
 const GroupManagement = () => {
+  const confirm = useConfirm();
   const [groups, setGroups] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, pages: 1 });
   const [search, setSearch] = useState('');
@@ -47,7 +49,7 @@ const GroupManagement = () => {
   };
 
   const removeGroup = async (id) => {
-    if (!window.confirm('Delete this group permanently?')) return;
+    if (!(await confirm('Delete this group permanently?'))) return;
     try {
       await adminApi.delete(`/admin/groups/${id}`);
       toast.success('Group deleted');

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { isBiometricAvailable, authenticateWithBiometric } from '../services/capacitorBridge';
+import { useConfirm } from '../components/ConfirmDialog';
 
 // Ask for the real device biometric (APK) before a sensitive security action.
 // On the web (no native biometric) this simply allows the action.
@@ -18,6 +19,7 @@ const API_URL = resolveApiBase();
 
 const SecuritySettings = () => {
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [twoFactorLoading, setTwoFactorLoading] = useState(false);
   const [qrSetup, setQrSetup] = useState(null);
@@ -89,7 +91,7 @@ const SecuritySettings = () => {
     // Sensitive action: confirm identity with the device fingerprint in the APK.
     const ok = await confirmWithBiometric('Confirm your identity to disable two-factor authentication');
     if (!ok) { setErrorMsg('Biometric authentication failed. Please try again.'); return; }
-    if (!window.confirm('Disable two-factor authentication? You will no longer need an authenticator app to log in.')) return;
+    if (!(await confirm('Disable two-factor authentication? You will no longer need an authenticator app to log in.'))) return;
     setTwoFactorLoading(true);
     setErrorMsg('');
     try {
