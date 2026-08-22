@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Plus, Trash2, BarChart2 } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
+import toast from 'react-hot-toast';
 
 const PollModal = ({ onClose }) => {
   const { createPoll } = useChat();
@@ -27,12 +28,12 @@ const PollModal = ({ onClose }) => {
 
   const handleSubmit = () => {
     if (!question.trim()) {
-      alert("Please enter a poll question.");
+      toast.error("Please enter a poll question.");
       return;
     }
     const filteredOptions = (options || []).filter(opt => opt.trim() !== '');
     if (filteredOptions.length < 2) {
-      alert("Please enter at least 2 options.");
+      toast.error("Please enter at least 2 options.");
       return;
     }
     createPoll(question, filteredOptions);

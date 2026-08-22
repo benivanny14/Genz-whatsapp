@@ -686,7 +686,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                                     // Fallback for mobile devices
                                     if (navigator.clipboard && navigator.clipboard.writeText) {
                                       navigator.clipboard.writeText(text || '');
-                                      alert("Text Copied!");
+                                      toast.success("Text Copied!");
                                     } else {
                                       // Fallback for older browsers and non-HTTPS contexts
                                       const textArea = document.createElement('textarea');
@@ -697,17 +697,17 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                                       textArea.select();
                                       try {
                                         document.execCommand('copy');
-                                        alert("Text Copied!");
+                                        toast.success("Text Copied!");
                                       } catch (err) {
                                         console.error('Copy fallback error:', err);
-                                        alert('Failed to copy text');
+                                        toast.error('Failed to copy text');
                                       }
                                       document.body.removeChild(textArea);
                                     }
                                     setActiveMessageMenu(null);
                                   } catch (err) {
                                     console.error('Copy error:', err);
-                                    alert('Failed to copy text');
+                                    toast.error('Failed to copy text');
                                   }
                                 }}
                                 className="w-full px-4 py-2 text-left text-sm hover:bg-dark-hover flex items-center gap-3"

@@ -988,191 +988,61 @@ const Status = () => {
   return (
     <div className="glass-surface h-screen w-screen flex items-center justify-center overflow-hidden font-sans" style={{ background: 'radial-gradient(1200px 700px at 18% 8%, rgba(255,45,120,0.20), transparent 55%), radial-gradient(1100px 700px at 88% 95%, rgba(124,92,255,0.20), transparent 55%), radial-gradient(900px 600px at 70% 20%, rgba(0,217,166,0.10), transparent 50%), #0c0a1e' }}>
       <div className="w-full h-full md:w-[98%] md:h-[96%] bg-white/5 backdrop-blur-xl shadow-2xl flex flex-col border border-white/10 rounded-2xl">
-        <div className="genz-header text-white p-4 flex items-center justify-between">
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-nowrap overflow-x-auto scrollbar-none max-w-[75vw] sm:max-w-none">
+        <div className="genz-header text-white p-3 sm:p-4 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-nowrap">
             <span className="genz-tag">GENZ</span>
-            <button
-              type="button"
-              onClick={() => setShowReel(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#ffd447] text-[#14122b] rounded-full text-sm font-bold hover:opacity-90 transition-all shadow-lg genz-sticker"
-              title="Status Reel Mode" aria-label="Status Reel Mode"
-            >
-              <Film size={16} /> Reel
+            {/* Primary buttons — always visible */}
+            <button type="button" onClick={() => setShowReel(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#ffd447] text-[#14122b] rounded-full text-sm font-bold hover:opacity-90 transition-all shadow-lg genz-sticker" title="Reel" aria-label="Status Reel Mode">
+              <Film size={16} /> <span className="hidden sm:inline">Reel</span>
             </button>
-            <button
-              type="button"
-              onClick={() => setShowTrailer(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#7c5cff] text-white rounded-full text-sm font-bold hover:opacity-90 transition-all shadow-lg genz-sticker"
-              title="Movie Trailer Status" aria-label="Movie Trailer Status"
-            >
-              <Sparkles size={16} /> Trailer
+            <button type="button" onClick={() => setShowTrailer(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#7c5cff] text-white rounded-full text-sm font-bold hover:opacity-90 transition-all shadow-lg genz-sticker" title="Trailer" aria-label="Movie Trailer Status">
+              <Sparkles size={16} /> <span className="hidden sm:inline">Trailer</span>
             </button>
             {mods.storyHighlights !== false && (
-              <button
-                type="button"
-                onClick={() => setShowHighlights(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-full text-sm font-bold hover:opacity-90 transition-all shadow-lg"
-                title="Story Highlights" aria-label="Story Highlights"
-              >
+              <button type="button" onClick={() => setShowHighlights(true)} className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-full text-sm font-bold hover:opacity-90 transition-all shadow-lg" title="Highlights" aria-label="Story Highlights">
                 <Bookmark size={16} /> Highlights
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => setShowThemeStore(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-sm font-bold hover:opacity-90 transition-all shadow-lg"
-              title="Theme Store" aria-label="Theme Store"
-            >
-              <Palette size={16} /> Themes
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowMediaUploadEnhanced(true)}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="Enhanced Upload" aria-label="Enhanced Upload"
-            >
-              <Upload size={20} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowVoiceChanger(true)}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="Voice Changer" aria-label="Voice Changer"
-            >
-              <Zap size={20} />
-            </button>            <button
-              type="button"
-              onClick={() => setShowStatusArchive(true)}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="Archive"
-              aria-label="Archive"
-            >
-              <Archive size={20} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowStatusBlockedList(true)}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="Blocked from status"
-              aria-label="Blocked from status"
-            >
-              <Shield size={20} />
-            </button>
-            <button
-              type="button"
-              onClick={() => openStatusPanel(setShowStatusScheduler)}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="Schedule" aria-label="Schedule"
-            >
-              <Calendar size={20} />
-            </button>
-            <button
-              type="button"
-              onClick={() => openStatusPanel(setShowLocationTagging)}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="Location" aria-label="Location"
-            >
-              <MapPin size={20} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowStatusBackup(true)}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="Backup" aria-label="Backup"
-            >
-              <Cloud size={20} />
-            </button>
-            <button
-              type="button"
-              onClick={() => openStatusPanel(setShowStatusQRCode)}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="QR Code" aria-label="QR Code"
-            >
-              <QrCode size={20} />
-            </button>
-            <button
-              type="button"
-              onClick={() => openStatusPanel(setShowStatusPoll)}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="Poll" aria-label="Poll"
-            >
-              <BarChart3 size={20} />
-            </button>
-            <button
-              type="button"
-              onClick={() => openStatusPanel(setShowStatusMentions)}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="Mentions" aria-label="Mentions"
-            >
-              <AtSign size={20} />
-            </button>
-            <button
-              type="button"
-              onClick={() => openStatusPanel(setShowStatusHashtags)}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="Hashtags" aria-label="Hashtags"
-            >
-              <Hash size={20} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowStatusTemplates(true)}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="Templates" aria-label="Templates"
-            >
-              <Layout size={20} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowStatusDrafts(true)}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="Drafts" aria-label="Drafts"
-            >
-              <FileText size={20} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowStatusFavorites(true)}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="Favorites" aria-label="Favorites"
-            >
-              <Star size={20} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowStatusHistory(true)}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="History" aria-label="History"
-            >
-              <History size={20} />
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                setLoading(true);
-                await fetchStatuses();
-                setLoading(false);
-              }}
-              disabled={loading}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-             aria-label="Refresh">
+            {/* Overflow menu — icon-only on mobile, collapses all other buttons */}
+            <div className="relative">
+              <button type="button" onClick={() => setShowToolbarMenu(!showToolbarMenu)} className="p-2 hover:bg-white/20 rounded-full transition-colors" title="More tools" aria-label="More status tools" aria-expanded={showToolbarMenu}>
+                <MoreVertical size={20} />
+              </button>
+              {showToolbarMenu && (
+                <div className="absolute left-0 top-full mt-1 w-52 bg-[#111b21] border border-white/10 rounded-xl shadow-2xl z-[60] py-1 max-h-[60vh] overflow-y-auto">
+                  <button onClick={() => { setShowThemeStore(true); setShowToolbarMenu(false); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white"><Palette size={16} /> Themes</button>
+                  <button onClick={() => { setShowHighlights(true); setShowToolbarMenu(false); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white"><Bookmark size={16} /> Highlights</button>
+                  <button onClick={() => { setShowMediaUploadEnhanced(true); setShowToolbarMenu(false); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white"><Upload size={16} /> Enhanced Upload</button>
+                  <button onClick={() => { setShowVoiceChanger(true); setShowToolbarMenu(false); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white"><Zap size={16} /> Voice Changer</button>
+                  <button onClick={() => { setShowStatusArchive(true); setShowToolbarMenu(false); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white"><Archive size={16} /> Archive</button>
+                  <button onClick={() => { setShowStatusBlockedList(true); setShowToolbarMenu(false); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white"><Shield size={16} /> Blocked Users</button>
+                  <div className="border-t border-white/10 my-1" />
+                  <button onClick={() => { openStatusPanel(setShowStatusScheduler); setShowToolbarMenu(false); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white"><Calendar size={16} /> Schedule</button>
+                  <button onClick={() => { openStatusPanel(setShowLocationTagging); setShowToolbarMenu(false); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white"><MapPin size={16} /> Location</button>
+                  <button onClick={() => { setShowStatusBackup(true); setShowToolbarMenu(false); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white"><Cloud size={16} /> Backup</button>
+                  <button onClick={() => { openStatusPanel(setShowStatusQRCode); setShowToolbarMenu(false); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white"><QrCode size={16} /> QR Code</button>
+                  <button onClick={() => { openStatusPanel(setShowStatusPoll); setShowToolbarMenu(false); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white"><BarChart3 size={16} /> Poll</button>
+                  <div className="border-t border-white/10 my-1" />
+                  <button onClick={() => { openStatusPanel(setShowStatusMentions); setShowToolbarMenu(false); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white"><AtSign size={16} /> Mentions</button>
+                  <button onClick={() => { openStatusPanel(setShowStatusHashtags); setShowToolbarMenu(false); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white"><Hash size={16} /> Hashtags</button>
+                  <button onClick={() => { setShowStatusTemplates(true); setShowToolbarMenu(false); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white"><Layout size={16} /> Templates</button>
+                  <button onClick={() => { setShowStatusDrafts(true); setShowToolbarMenu(false); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white"><FileText size={16} /> Drafts</button>
+                  <button onClick={() => { setShowStatusFavorites(true); setShowToolbarMenu(false); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white"><Star size={16} /> Favorites</button>
+                  <button onClick={() => { setShowStatusHistory(true); setShowToolbarMenu(false); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white"><History size={16} /> History</button>
+                  <div className="border-t border-white/10 my-1" />
+                  <button onClick={() => { setShowSettings(true); setShowToolbarMenu(false); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white"><Settings size={16} /> Settings</button>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <button type="button" onClick={async () => { setLoading(true); await fetchStatuses(); setLoading(false); }} disabled={loading} className="p-2 hover:bg-white/20 rounded-full transition-colors" aria-label="Refresh">
               <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
             </button>
-            <button
-              type="button"
-              onClick={() => setShowSettings(true)}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-             aria-label="Settings">
-              <Settings size={20} />
+            <button type="button" onClick={() => setShowAddStatus(true)} className="p-2 hover:bg-white/20 rounded-full transition-colors" aria-label="Add">
+              <Plus size={24} />
             </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowAddStatus(true)}
-            className="p-2 hover:bg-white/20 rounded-full transition-colors"
-           aria-label="Add">
-            <Plus size={24} />
-          </button>
         </div>
 
         {error && (
@@ -1384,7 +1254,7 @@ const Status = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Status Type
                 </label>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-2">
                   {[
                     { value: 'text', icon: <Type className="w-4 h-4" />, label: 'Text' },
                     { value: 'image', icon: <Image className="w-4 h-4" />, label: 'Image' },

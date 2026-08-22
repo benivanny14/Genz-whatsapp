@@ -69,7 +69,7 @@ const ProfileEditor = ({ onClose }) => {
 
   const handleSave = async () => {
     if (!formData.username.trim()) {
-      alert('Username is required');
+      toast.error('Username is required');
       return;
     }
     

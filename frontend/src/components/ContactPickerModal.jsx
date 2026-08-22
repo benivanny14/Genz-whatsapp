@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Search, X, User, Phone, Check, Smartphone, BookOpen } from 'lucide-react';
 import { chatAPI } from '../services/api';
 import { getPhoneContacts, requestContactsPermission, isContactsAvailable } from '../utils/contacts';
+import toast from 'react-hot-toast';
 
 const ContactPickerModal = ({ onClose, onSelect, title = 'Share Contact' }) => {
   const [contacts, setContacts] = useState([]);
@@ -29,13 +30,13 @@ const ContactPickerModal = ({ onClose, onSelect, title = 'Share Contact' }) => {
 
   const loadPhoneContacts = async () => {
     if (!isContactsAvailable()) {
-      alert('Phone contacts are only available on the mobile app');
+      toast.error('Phone contacts are only available on the mobile app');
       return;
     }
 
     const hasPermission = await requestContactsPermission();
     if (!hasPermission) {
-      alert('Contacts permission is required to access phone contacts');
+      toast.error('Contacts permission required. Check app settings.');
       return;
     }
 
@@ -45,7 +46,7 @@ const ContactPickerModal = ({ onClose, onSelect, title = 'Share Contact' }) => {
       setPhoneContacts(contacts);
     } catch (error) {
       console.error('Failed to load phone contacts:', error);
-      alert('Failed to load phone contacts');
+      toast.error('Failed to load phone contacts');
     } finally {
       setPhoneContactsLoading(false);
     }

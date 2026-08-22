@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Zap, X, Check, RefreshCw, Plus, Trash2, Edit2, Search, Star, Archive, Reply, Share2, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 
 const MessageQuickAction = ({ message, actions, onCreateAction, onUpdateAction, onDeleteAction, onExecuteAction, onClose }) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -146,7 +147,7 @@ const MessageQuickAction = ({ message, actions, onCreateAction, onUpdateAction, 
         <button
           onClick={() => {
             // In a full implementation, this would open a settings modal
-            alert('Manage actions feature coming soon');
+            toast('Manage actions — coming soon!', { icon: '🚧' });
           }}
           className="w-full text-gray-400 py-2 rounded-lg hover:text-white transition-colors text-sm"
         >

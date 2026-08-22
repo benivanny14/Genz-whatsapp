@@ -216,7 +216,7 @@ const ChannelView = () => {
       {/* Composer — owner only */}
       {isOwner && (
         <div className="flex items-center gap-2 px-3 py-2.5 bg-[#202c33] border-t border-[#2a3942]">
-          <button className="text-[#8696a0] hover:text-white p-2" title="Attach media (coming soon)" aria-label="Attach media (coming soon)">
+          <button className="text-[#8696a0] hover:text-white p-2" title="Attach media" aria-label="Attach media">
             <ImageIcon size={20} />
           </button>
           <input

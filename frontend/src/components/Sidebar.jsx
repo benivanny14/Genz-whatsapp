@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useChat } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
 import userService from '../services/userService';
@@ -321,7 +322,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     
     const scheduledTime = new Date(dateStr);
     if (isNaN(scheduledTime.getTime())) {
-      alert('Invalid date format');
+      toast.error('Invalid date format');
       return;
     }
     
@@ -335,7 +336,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     const newMessages = [...scheduledMessages, newScheduledMessage];
     setScheduledMessages(newMessages);
     localStorage.setItem('genz_scheduled_messages', JSON.stringify(newMessages));
-    alert(`Message scheduled for ${scheduledTime.toLocaleString()}`);
+    toast.success(`Message scheduled for ${scheduledTime.toLocaleString()}`);
   };
 
   // Import Chat from WhatsApp/MODs
@@ -365,9 +366,9 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
           });
           localStorage.setItem('genz_imported_chats', JSON.stringify(existingImports));
           
-          alert(`Chat imported successfully (${importedData.length} messages)! You can now view it in the imported chats section.`);
+          toast.success(`Chat imported (${importedData.length} messages)!`);
         } catch (error) {
-          alert('Failed to import chat. Please ensure the file is in the correct format.');
+          toast.error('Failed to import chat. Check the file format.');
         }
       };
       reader.readAsText(file);
@@ -662,14 +663,14 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     if (!confirm('Are you sure you want to clear all messages in this chat?')) return;
 
     const result = await clearChat(chatId);
-    if (!result?.success) alert(result?.message || 'Failed to clear chat');
+    if (!result?.success) toast.error(result?.message || 'Failed to clear chat');
   };
 
   const handleDeleteChat = async (chatId) => {
     if (!confirm('Are you sure you want to delete this chat? This action cannot be undone.')) return;
 
     const result = await deleteChat(chatId);
-    if (!result?.success) alert(result?.message || 'Failed to delete chat');
+    if (!result?.success) toast.error(result?.message || 'Failed to delete chat');
   };
 
   // FEATURE ADD: multi-select delete for chats, WhatsApp-style - long-press
