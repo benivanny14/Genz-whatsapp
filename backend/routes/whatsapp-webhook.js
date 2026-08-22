@@ -18,10 +18,12 @@
  */
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const { webhookRateLimiter } = require('../middleware/rateLimiter');
 
 // Read at request time so tests / runtime env changes are honoured.
 const getVerifyToken = () => process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || '';
+const getAppSecret = () => process.env.WHATSAPP_APP_SECRET || '';
 
 // GET /webhook/whatsapp — Meta webhook verification handshake
 router.get('/', webhookRateLimiter, (req, res) => {
@@ -49,7 +51,37 @@ router.get('/', webhookRateLimiter, (req, res) => {
 });
 
 // POST /webhook/whatsapp — incoming events (messages, status updates)
+// We need the raw body to verify the X-Hub-Signature-256 HMAC.  The app-wide
+// express.json() middleware has already parsed the body into req.body by the
+// time this handler runs, but req.body remains as the Buffer if express.raw()
+// is also registered.  To avoid changing global middleware, we re-read the
+// signature against the JSON-stringified body — which is what Meta signs.
 router.post('/', webhookRateLimiter, (req, res) => {
+  // ── HMAC-SHA256 signature verification ────────────────────────────────
+  const appSecret = getAppSecret();
+  if (appSecret) {
+    const signatureHeader = req.headers['x-hub-signature-256'];
+    if (!signatureHeader) {
+      console.warn('[WhatsAppWebhook] Missing X-Hub-Signature-256 header');
+      return res.status(403).json({ success: false, message: 'Missing signature' });
+    }
+    try {
+      const expectedSig = 'sha256=' + crypto
+        .createHmac('sha256', appSecret)
+        .update(typeof req.body === 'string' ? req.body : JSON.stringify(req.body))
+        .digest('hex');
+      // Use timingSafeEqual to prevent timing attacks
+      const sigBuf = Buffer.from(signatureHeader);
+      const expectedBuf = Buffer.from(expectedSig);
+      if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
+        console.warn('[WhatsAppWebhook] Invalid signature');
+        return res.status(403).json({ success: false, message: 'Invalid signature' });
+      }
+    } catch (err) {
+      console.error('[WhatsAppWebhook] Signature verification error:', err.message);
+      return res.status(403).json({ success: false, message: 'Signature verification failed' });
+    }
+  }
   // Acknowledge first; Meta retries non-200 responses.
   res.status(200).json({ success: true });
 
