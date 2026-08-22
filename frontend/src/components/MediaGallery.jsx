@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useChat } from '../context/ChatContext';
+import { downloadUrl } from '../services/capacitorBridge';
 import { X, Download, Image as ImageIcon, Film, Music, FileText, Link, File } from 'lucide-react';
 
 const MEDIA_TYPES = {
@@ -204,9 +205,9 @@ const MediaGallery = ({ conversationId, onClose }) => {
                       {dur && <p className="text-white/40 text-xs">{dur}</p>}
                       <audio src={url} controls className="mt-1 w-full h-8" style={{ height: '32px' }} />
                     </div>
-                    <a href={url} download className="flex-shrink-0">
+                    <button onClick={() => downloadUrl(url, item.fileName || 'audio')} className="flex-shrink-0">
                       <Download size={16} className="text-white/30 hover:text-white/70 transition-colors" />
-                    </a>
+                    </button>
                   </div>
                 );
               })}

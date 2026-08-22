@@ -8,6 +8,7 @@ import LeafletMap from './LeafletMap';
 import StickerImage, { hasEmojiChar } from './StickerImage';
 import ContactCard from './ContactCard';
 import { renderTextWithMentions, LinkPreviewCard } from '../utils/chatText';
+import { downloadUrl } from '../services/capacitorBridge';
 import { extractFirstUrl, FONT_OPTIONS } from '../utils/chatTextHelpers';
 import { formatMessageTime } from '../utils/formatDate';
 import { decodeContactFromMessage } from '../utils/vcard';
@@ -882,9 +883,9 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
 
                     {/* Download button for media types — never for view-once */}
                     {!message.isViewOnce && (message.messageType === 'image' || message.messageType === 'video' || message.messageType === 'audio' || message.messageType === 'file') && mediaSourceOf(message) && (
-                      <a href={mediaSourceOf(message)} download className="absolute top-0 left-0 hidden group-hover:flex bg-dark-surface px-2 py-1 rounded text-sm hover:bg-dark-hover -mt-8" title="Download">
+                      <button onClick={() => downloadUrl(mediaSourceOf(message), message.fileName || 'download')} className="absolute top-0 left-0 hidden group-hover:flex bg-dark-surface px-2 py-1 rounded text-sm hover:bg-dark-hover -mt-8" title="Download">
                         <Download size={14} />
-                      </a>
+                      </button>
                     )}
                   </div>
                 </div>
