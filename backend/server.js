@@ -362,6 +362,12 @@ const startExpiredMessageCleanup = (ioInstance) => {
       }).select('_id conversationId').lean();
 
       if (expiredSelfDestruct.length > 0) {
+        // TATIZO 4 FIX: Clean up Cloudinary media BEFORE deleting documents.
+        const { cleanupCloudinaryForQuery } = require('./utils/hardDelete');
+        await cleanupCloudinaryForQuery(
+          { _id: { $in: expiredSelfDestruct.map((m) => m._id) } },
+          'self-destruct-sweep'
+        );
         await Message.deleteMany({
           _id: { $in: expiredSelfDestruct.map((m) => m._id) }
         });
@@ -379,11 +385,15 @@ const startExpiredMessageCleanup = (ioInstance) => {
       }
 
       // Also handle view-once messages that should be permanently removed
-      const viewOnceResult = await Message.deleteMany({
+      // TATIZO 4 FIX: Clean up Cloudinary media BEFORE deleting documents.
+      const viewOnceQuery = {
         isViewOnce: true,
         isConsumed: true,
         createdAt: { $lt: new Date(now.getTime() - 24 * 60 * 60 * 1000) } // Delete after 24 hours
-      });
+      };
+      const { cleanupCloudinaryForQuery } = require('./utils/hardDelete');
+      await cleanupCloudinaryForQuery(viewOnceQuery, 'view-once-sweep');
+      const viewOnceResult = await Message.deleteMany(viewOnceQuery);
 
       if (viewOnceResult.deletedCount > 0) {
         logger.debug('Deleted old view-once messages', { count: viewOnceResult.deletedCount });
@@ -393,10 +403,13 @@ const startExpiredMessageCleanup = (ioInstance) => {
       // than 30 days ago — backstop for the per-delete setTimeout (which is
       // lost on restart).
       const hardDeleteCutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      const hardDeleteResult = await Message.deleteMany({
+      const hardDeleteBackstopQuery = {
         deletedForEveryone: true,
         deletedAt: { $lte: hardDeleteCutoff }
-      });
+      };
+      // TATIZO 4 FIX: Clean up Cloudinary media BEFORE deleting documents.
+      await cleanupCloudinaryForQuery(hardDeleteBackstopQuery, 'hard-delete-backstop');
+      const hardDeleteResult = await Message.deleteMany(hardDeleteBackstopQuery);
       if (hardDeleteResult.deletedCount > 0) {
         logger.debug('Hard-deleted expired deletedForEveryone messages', { count: hardDeleteResult.deletedCount });
       }

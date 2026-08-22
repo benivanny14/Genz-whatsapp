@@ -63,6 +63,9 @@ exports.deleteConversation = async (req, res) => {
     const conversation = await Conversation.findById(req.params.id);
     if (!conversation) return res.status(404).json({ success: false, message: 'Conversation not found' });
 
+    // TATIZO 3 FIX: Clean up Cloudinary media BEFORE deleting documents.
+    const { cleanupCloudinaryForQuery } = require('../utils/hardDelete');
+    await cleanupCloudinaryForQuery({ conversationId: conversation._id }, 'delete-conversation');
     await Message.deleteMany({ conversationId: conversation._id });
     await conversation.deleteOne();
 
@@ -137,6 +140,9 @@ exports.deleteGroup = async (req, res) => {
     const group = await Conversation.findOne({ _id: req.params.id, isGroup: true });
     if (!group) return res.status(404).json({ success: false, message: 'Group not found' });
 
+    // TATIZO 3 FIX: Clean up Cloudinary media BEFORE deleting documents.
+    const { cleanupCloudinaryForQuery } = require('../utils/hardDelete');
+    await cleanupCloudinaryForQuery({ conversationId: group._id }, 'delete-group');
     await Message.deleteMany({ conversationId: group._id });
     await group.deleteOne();
 

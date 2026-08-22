@@ -141,11 +141,69 @@ const scheduleHardDelete = async (message, deleterId) => {
   tick();
 };
 
+/**
+ * Batch-clean Cloudinary media for a set of messages BEFORE they are deleted.
+ * Accepts a MongoDB query filter (e.g. { sender: userId }) — finds all
+ * matching messages with media, extracts publicIds, and batch-deletes them.
+ * This is best-effort: failures are logged but never throw.
+ *
+ * @param {object} query - MongoDB filter for Message.find()
+ * @param {string} [label] - Human-readable label for log messages
+ */
+const cleanupCloudinaryForQuery = async (query, label = 'bulk') => {
+  if (!isCloudinaryConfigured?.()) return;
+
+  try {
+    const mediaMessages = await Message.find({
+      ...query,
+      mediaUrl: { $exists: true, $ne: null, $ne: '' }
+    }).select('mediaUrl messageType').lean();
+
+    if (mediaMessages.length === 0) return;
+
+    // Collect publicIds with their resource types
+    const toDelete = [];
+    for (const msg of mediaMessages) {
+      const publicId = extractCloudinaryPublicId(msg.mediaUrl);
+      if (publicId) {
+        toDelete.push({ publicId, resourceType: cloudinaryResourceType(msg.messageType) });
+      }
+    }
+
+    if (toDelete.length === 0) return;
+
+    console.log(`[HardDelete:${label}] Cleaning up ${toDelete.length} Cloudinary files...`);
+
+    // Batch-delete by resource type (Cloudinary API supports batch delete)
+    const byType = {};
+    for (const { publicId, resourceType } of toDelete) {
+      if (!byType[resourceType]) byType[resourceType] = [];
+      byType[resourceType].push(publicId);
+    }
+
+    const { deleteFiles } = require('../config/cloudinary');
+    for (const [resourceType, ids] of Object.entries(byType)) {
+      try {
+        await deleteFiles(ids, resourceType);
+      } catch (err) {
+        console.warn(`[HardDelete:${label}] Batch Cloudinary delete failed:`, {
+          resourceType,
+          count: ids.length,
+          error: err?.message
+        });
+      }
+    }
+  } catch (err) {
+    console.warn(`[HardDelete:${label}] Cloudinary cleanup query failed (continuing):`, err?.message);
+  }
+};
+
 module.exports = {
   scheduleHardDelete,
   antiRevokeRetainsMessage,
   hardDeleteDelayFor,
   extractCloudinaryPublicId,
   cloudinaryResourceType,
-  deleteCloudinaryMedia
+  deleteCloudinaryMedia,
+  cleanupCloudinaryForQuery
 };

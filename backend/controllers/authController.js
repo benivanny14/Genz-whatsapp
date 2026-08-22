@@ -662,6 +662,10 @@ exports.deleteAccount = async (req, res) => {
     // SECURITY (1.6): hard-delete all messages sent by the user (data
     // erasure) instead of leaving them soft-deleted in the database.
     const Message = require('../models/Message');
+    // TATIZO 1 FIX: Clean up Cloudinary media BEFORE deleting documents
+    // to prevent orphaned files from accumulating on Cloudinary.
+    const { cleanupCloudinaryForQuery } = require('../utils/hardDelete');
+    await cleanupCloudinaryForQuery({ sender: userId }, 'account-deletion');
     await Message.deleteMany({ sender: userId });
 
     // Remove user from groups

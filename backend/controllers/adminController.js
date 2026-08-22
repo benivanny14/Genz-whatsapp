@@ -371,6 +371,9 @@ exports.deleteUser = async (req, res) => {
     // Hard-delete data erasure: messages, statuses, linked devices, self-chats.
     const uid = user._id;
     const uidStr = uid.toString();
+    // TATIZO 2 FIX: Clean up Cloudinary media BEFORE deleting documents.
+    const { cleanupCloudinaryForQuery } = require('../utils/hardDelete');
+    await cleanupCloudinaryForQuery({ sender: uid }, 'admin-delete-user');
     await Message.deleteMany({ sender: uid });
     await Status.deleteMany({ user: uid });
     await Status.deleteMany({ userId: uidStr });

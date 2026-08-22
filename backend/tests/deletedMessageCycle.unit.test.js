@@ -296,3 +296,19 @@ describe('cloudinaryResourceType', () => {
     expect(cloudinaryResourceType(undefined)).toBe('image');
   });
 });
+
+describe('cleanupCloudinaryForQuery', () => {
+  const { cleanupCloudinaryForQuery } = require('../utils/hardDelete');
+
+  it('is exported and is a function', () => {
+    expect(typeof cleanupCloudinaryForQuery).toBe('function');
+  });
+
+  it('does not throw when Cloudinary is not configured', async () => {
+    // When CLOUDINARY env vars are not set, isCloudinaryConfigured returns false
+    // and cleanupCloudinaryForQuery should return silently
+    await expect(
+      cleanupCloudinaryForQuery({ sender: 'nonexistent-user' }, 'test')
+    ).resolves.toBeUndefined();
+  });
+});
