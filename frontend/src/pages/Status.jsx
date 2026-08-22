@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Plus, X, Eye, Clock, Camera, Image, Type, Upload, RefreshCw, Film, Sparkles, Bookmark, Settings, Music, Download, Bell, Shield, TrendingUp, BarChart3, Palette, Share2, Accessibility, Mic, Archive, Users, Volume2, Zap, Heart, Calendar, MapPin, Cloud, QrCode, AtSign, Hash, Edit, Copy, Pin, Flag, Layout, FileText, Star, History, BellOff, Trash2, Forward, RotateCcw, Grid, Timer, Brush, Crop, Scissors } from 'lucide-react';
+import { Plus, X, Eye, Clock, Camera, Image, Type, Upload, RefreshCw, Film, Sparkles, Bookmark, Settings, Music, Download, Bell, Shield, TrendingUp, BarChart3, Palette, Share2, Accessibility, Mic, Archive, Users, Volume2, Zap, Heart, Calendar, MapPin, Cloud, QrCode, AtSign, Hash, Edit, Copy, Pin, Flag, Layout, FileText, Star, History, BellOff, Trash2, Forward, RotateCcw, Grid, Timer, Brush, Crop, Scissors, MoreVertical } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { authFetch } from '../utils/authFetch';
 import { getAuthToken } from '../utils/tokenStore';
@@ -116,6 +116,8 @@ const Status = () => {
   const [showStatusSave, setShowStatusSave] = useState(false);
   const [showStatusForward, setShowStatusForward] = useState(false);
   const [selectedStatusForPanel, setSelectedStatusForPanel] = useState(null);
+  const [expandedStatusMenu, setExpandedStatusMenu] = useState(null);
+  const [showToolbarMenu, setShowToolbarMenu] = useState(false);
   const [showVideoTools, setShowVideoTools] = useState(false);
   const [showDrawing, setShowDrawing] = useState(false);
   const [showCropRotate, setShowCropRotate] = useState(false);
@@ -1296,6 +1298,8 @@ const Status = () => {
                           </p>
                         </div>
                         <div className="flex items-center gap-2 text-gray-400 text-sm flex-shrink-0">
+                          <span className="text-xs text-gray-500 whitespace-nowrap">{statusTime(status)}</span>
+                          {group.isMuted && <BellOff size={12} className="text-yellow-400" />}
                           <button
                             type="button"
                             onClick={(e) => {
@@ -1307,214 +1311,54 @@ const Status = () => {
                                 ? 'text-blue-400 hover:bg-blue-400/20'
                                 : 'text-gray-500 hover:bg-gray-500/20'
                             }`}
-                            title={isStatusNotificationEnabled(status.user?._id || status.user?.id) ? 'Notifications On' : 'Notifications Off'}
+                            title="Notifications"
                           >
                             <Bell size={14} />
                           </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedStatusForPanel(status);
-                              setShowStatusAnalytics(true);
-                            }}
-                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
-                            title="Analytics"
-                          >
-                            <BarChart3 size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedStatusForPanel(status);
-                              setShowCrossPlatform(true);
-                            }}
-                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
-                            title="Share"
-                          >
-                            <Share2 size={14} />
-                          </button>
-                          {mods.collabStatus !== false && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedStatusForPanel(status);
-                              setShowStatusCollaboration(true);
-                            }}
-                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
-                            title="Collaborate"
-                          >
-                            <Users size={14} />
-                          </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedStatusForPanel(status);
-                              setShowStatusReminder(true);
-                            }}
-                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
-                            title="Set Reminder"
-                          >
-                            <Bell size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedStatusForPanel(status);
-                              setShowStatusReaction(true);
-                            }}
-                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
-                            title="React"
-                          >
-                            <Heart size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedStatusForPanel(status);
-                              setShowStatusForward(true);
-                            }}
-                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
-                            title="Forward"
-                          >
-                            <Forward size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedStatusForPanel(status);
-                              setShowStatusSave(true);
-                            }}
-                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
-                            title="Save"
-                          >
-                            <Bookmark size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedStatusForPanel(status);
-                              setShowStatusDownload(true);
-                            }}
-                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
-                            title="Download"
-                          >
-                            <Download size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedStatusForPanel(status);
-                              setShowStatusShare(true);
-                            }}
-                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
-                            title="Share"
-                          >
-                            <Share2 size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedStatusForPanel(status);
-                              setShowStatusEdit(true);
-                            }}
-                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
-                            title="Edit"
-                          >
-                            <Edit size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedStatusForPanel(status);
-                              setShowStatusDuplicate(true);
-                            }}
-                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
-                            title="Duplicate"
-                          >
-                            <Copy size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedStatusForPanel(status);
-                              setShowStatusPin(true);
-                            }}
-                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-[#00a884] transition-colors"
-                            title="Pin"
-                          >
-                            <Pin size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedStatusForPanel(status);
-                              setShowStatusReport(true);
-                            }}
-                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-red-400 transition-colors"
-                            title="Report"
-                          >
-                            <Flag size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (group.isMuted) {
-                                unmuteStatusUser(status);
-                              } else {
-                                setSelectedStatusForPanel(status);
-                                setShowStatusMute(true);
-                              }
-                            }}
-                            className={`p-1.5 rounded-full transition-colors ${
-                              group.isMuted
-                                ? 'text-yellow-400 hover:bg-yellow-400/20'
-                                : 'hover:bg-white/20 hover:text-yellow-400'
-                            }`}
-                            title={group.isMuted ? 'Unmute' : 'Mute'}
-                          >
-                            <BellOff size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedStatusForPanel(status);
-                              setShowStatusBlock(true);
-                            }}
-                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-red-400 transition-colors"
-                            title="Block"
-                          >
-                            <Shield size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedStatusForPanel(status);
-                              setShowStatusDelete(true);
-                            }}
-                            className="p-1.5 rounded-full hover:bg-white/20 hover:text-red-400 transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                          <Clock size={14} />
-                          <span>{statusTime(status)}</span>
+                          {/* More actions dropdown — WhatsApp style */}
+                          <div className="relative">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setExpandedStatusMenu(expandedStatusMenu === group.ownerId ? null : group.ownerId);
+                              }}
+                              className="p-1.5 rounded-full hover:bg-white/20 hover:text-white transition-colors"
+                              title="More actions"
+                            >
+                              <MoreVertical size={14} />
+                            </button>
+                            {expandedStatusMenu === group.ownerId && (
+                              <div
+                                className="absolute right-0 top-full mt-1 w-48 bg-[#111b21] border border-white/10 rounded-xl shadow-2xl z-[60] py-1 max-h-[60vh] overflow-y-auto"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <button onClick={() => { setSelectedStatusForPanel(status); setShowStatusAnalytics(true); setExpandedStatusMenu(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white">📊 Analytics</button>
+                                <button onClick={() => { setSelectedStatusForPanel(status); setShowCrossPlatform(true); setExpandedStatusMenu(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white">↗ Share</button>
+                                {mods.collabStatus !== false && <button onClick={() => { setSelectedStatusForPanel(status); setShowStatusCollaboration(true); setExpandedStatusMenu(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white">👥 Collaborate</button>}
+                                <button onClick={() => { setSelectedStatusForPanel(status); setShowStatusReaction(true); setExpandedStatusMenu(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white">❤️ React</button>
+                                <button onClick={() => { setSelectedStatusForPanel(status); setShowStatusForward(true); setExpandedStatusMenu(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white">↪️ Forward</button>
+                                <button onClick={() => { setSelectedStatusForPanel(status); setShowStatusSave(true); setExpandedStatusMenu(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white">🔖 Save</button>
+                                <button onClick={() => { setSelectedStatusForPanel(status); setShowStatusDownload(true); setExpandedStatusMenu(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white">⬇️ Download</button>
+                                <button onClick={() => { setSelectedStatusForPanel(status); setShowStatusEdit(true); setExpandedStatusMenu(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white">✏️ Edit</button>
+                                <button onClick={() => { setSelectedStatusForPanel(status); setShowStatusDuplicate(true); setExpandedStatusMenu(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white">📋 Duplicate</button>
+                                <button onClick={() => { setSelectedStatusForPanel(status); setShowStatusPin(true); setExpandedStatusMenu(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white">📌 Pin</button>
+                                <button onClick={() => { setSelectedStatusForPanel(status); setShowStatusReminder(true); setExpandedStatusMenu(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-white">⏰ Reminder</button>
+                                <div className="border-t border-white/10 my-1" />
+                                <button
+                                  onClick={() => {
+                                    if (group.isMuted) { unmuteStatusUser(status); } else { setSelectedStatusForPanel(status); setShowStatusMute(true); }
+                                    setExpandedStatusMenu(null);
+                                  }}
+                                  className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-yellow-400">
+                                  {group.isMuted ? '🔔 Unmute' : '🔕 Mute'}
+                                </button>
+                                <button onClick={() => { setSelectedStatusForPanel(status); setShowStatusReport(true); setExpandedStatusMenu(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-red-400">🚩 Report</button>
+                                <button onClick={() => { setSelectedStatusForPanel(status); setShowStatusBlock(true); setExpandedStatusMenu(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-red-400">🚫 Block</button>
+                                <button onClick={() => { setSelectedStatusForPanel(status); setShowStatusDelete(true); setExpandedStatusMenu(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 text-red-400">🗑️ Delete</button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );

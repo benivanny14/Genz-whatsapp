@@ -92,13 +92,10 @@ const MusicTrimmer = ({ file, onTrim }) => {
     };
   }, [file]);
 
-  useEffect(() => {
-    if (applied) {
-      setApplied(null);
-      onTrim(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [start, end]);
+  // BUG FIX: Removed the useEffect that was resetting applied state on
+  // start/end change. The old code called onTrim(null) every time the
+  // user adjusted sliders AFTER clicking Apply, which undid the trim
+  // silently. Reset only happens via the Reset button or new file load.
 
   const handlePreviewPlay = () => {
     const a = previewRef.current;

@@ -328,8 +328,7 @@ const VoiceRecorder = ({
         } else {
           // Unknown error — show message, do NOT fallback silently
           toast.error(
-            'Recording failed: ' + (mediaErr?.message || errName || 'Unknown error') + '.
-Jaribu tena au chagua faili la audio.',
+            'Recording failed: ' + (mediaErr?.message || errName || 'Unknown error') + '. Jaribu tena au chagua faili la audio.',
             { duration: 6000 }
           );
           if (onFallback) onFallback();
