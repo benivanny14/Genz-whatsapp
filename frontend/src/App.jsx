@@ -20,6 +20,7 @@ import { useChat } from './context/ChatContext';
 import { useUser } from './context/UserContext';
 import { useAuth } from './context/AuthContext';
 import { getSocket } from './services/socket';
+import { authenticateWithBiometric } from './services/capacitorBridge';
 
 // Lazy load pages for performance optimization
 const Chat = lazy(() => import('./pages/Chat'));
@@ -401,6 +402,43 @@ function App() {
     };
     window.addEventListener('pwa-update-available', handleUpdate);
     return () => window.removeEventListener('pwa-update-available', handleUpdate);
+  }, []);
+
+  // --- App Lock: Biometric authentication on resume (APK only) ---
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return undefined;
+
+    let isLocked = false;
+
+    const checkAppLock = async () => {
+      const isEnabled = localStorage.getItem('genz_biometric_enabled') === 'true';
+      if (!isEnabled || isLocked) return;
+
+      isLocked = true;
+      try {
+        const auth = await authenticateWithBiometric({
+          reason: 'Unlock GENZ Messenger',
+          allowDeviceCredential: true
+        });
+        if (!auth.verified) {
+          CapacitorApp.minimizeApp();
+        }
+      } catch (err) {
+        console.error('App lock error:', err);
+      } finally {
+        isLocked = false;
+      }
+    };
+
+    const listener = CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) setTimeout(checkAppLock, 300);
+    });
+
+    checkAppLock();
+
+    return () => {
+      listener.then(l => l.remove());
+    };
   }, []);
 
   return (

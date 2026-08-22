@@ -370,6 +370,15 @@ export const ChatProvider = ({ children }) => {
     selectedConversationIdRef.current = selectedConversation?._id || null;
   }, [selectedConversation?._id]);
 
+  // Auto-mark as read when selected conversation changes (WhatsApp behavior).
+  // Ensures the unread badge clears immediately, even on APK where the socket
+  // mark_as_read can be unreliable on network transitions.
+  useEffect(() => {
+    if (selectedConversation?._id && currentUserId) {
+      markAsRead(selectedConversation._id);
+    }
+  }, [selectedConversation?._id, currentUserId]);
+
   const selectedConversationStorageKey = React.useMemo(
     () => currentUserId ? `selectedConversationId:${currentUserId}` : 'selectedConversationId',
     [currentUserId]
@@ -1263,7 +1272,9 @@ export const ChatProvider = ({ children }) => {
             }
             
             // Only append to active chat view if it's the open chat
-            const currentSelectedId = getStoredSelectedConversationId();
+            // FIX: Use the ref (updated in real-time) instead of localStorage
+            // which can be stale on APK (cold start, token-only sessions).
+            const currentSelectedId = selectedConversationIdRef.current || getStoredSelectedConversationId();
 
             if (String(incoming.conversationId) === String(currentSelectedId)) {
               setConversations(prevConvs => prevConvs.map(c =>
@@ -2382,7 +2393,7 @@ export const ChatProvider = ({ children }) => {
             const timeoutId = setTimeout(() => {
               cleanup();
               resolve(false);
-            }, 4000);
+            }, 1500);
             const onDelivered = ({ messageId, serverMessageId }) => {
               if (String(messageId) !== String(clientMessageId)) return;
               cleanup();
