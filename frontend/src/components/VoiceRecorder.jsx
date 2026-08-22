@@ -267,8 +267,12 @@ const VoiceRecorder = ({
           if (navigator.permissions && navigator.permissions.query) {
             const status = await navigator.permissions.query({ name: 'microphone' });
             if (status.state === 'denied') {
-              if (onFallback) onFallback();
-              else toast.error('Microphone permission denied. Please enable it in Settings.');
+              // TATIZO 1 FIX: Permission explicitly denied — tell the user,
+              // do NOT silently open a file picker which is confusing.
+              toast.error(
+                'Huna ruhusa ya microphone.\nNenda kwenye Settings za simu yako → Apps → GENZ → Permissions → Microphone uiruhusu.',
+                { duration: 8000, style: { maxWidth: 400 } }
+              );
               return;
             }
           }
@@ -276,6 +280,7 @@ const VoiceRecorder = ({
       }
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        // getUserMedia not available — file picker is the only option here
         if (onFallback) {
           onFallback();
         } else {
@@ -298,8 +303,37 @@ const VoiceRecorder = ({
         stream = await navigator.mediaDevices.getUserMedia({ audio: audioOpts });
       } catch (mediaErr) {
         console.error('[VoiceRecorder] getUserMedia failed:', mediaErr);
-        if (onFallback) onFallback();
-        else toast.error('Microphone access denied. Please grant permission in Settings.');
+        // TATIZO 1 FIX: Differentiate error types before deciding what to do.
+        // Never silently call onFallback — the user must understand WHY it failed.
+        const errName = mediaErr?.name || '';
+
+        if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
+          // User explicitly denied the permission (or browser policy blocks it).
+          // Show a clear message — do NOT open a file picker.
+          if (isNative()) {
+            toast.error(
+              'Ruhusa ya microphone imekataliwa.\nNenda kwenye Settings za simu yako → Apps → GENZ → Permissions → Microphone.',
+              { duration: 8000, style: { maxWidth: 400 } }
+            );
+          } else {
+            toast.error(
+              'Microphone permission denied. Please allow microphone access in your browser settings.',
+              { duration: 6000 }
+            );
+          }
+        } else if (errName === 'NotFoundError') {
+          // No microphone on the device at all — file picker is a valid fallback
+          toast.error('Hakuna microphone kwenye kifaa hiki. Chagua faili la audio badala yake.');
+          if (onFallback) onFallback();
+        } else {
+          // Unknown error — show message, do NOT fallback silently
+          toast.error(
+            'Recording failed: ' + (mediaErr?.message || errName || 'Unknown error') + '.
+Jaribu tena au chagua faili la audio.',
+            { duration: 6000 }
+          );
+          if (onFallback) onFallback();
+        }
         return;
       }
       streamRef.current = stream;
@@ -385,11 +419,24 @@ const VoiceRecorder = ({
       if (!ghostMode && sendRecordingStatus) sendRecordingStatus(true);
       if (navigator.vibrate) navigator.vibrate(40);
     } catch (err) {
-      if (onFallback) {
-        onFallback();
+      // TATIZO 1 FIX: Outer catch — distinguish error types, never fallback silently.
+      console.error('[VoiceRecorder] Recording start error:', err);
+      const errName = err?.name || '';
+
+      if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
+        if (isNative()) {
+          toast.error(
+            'Ruhusa ya microphone imekataliwa.\nNenda kwenye Settings za simu yako → Apps → GENZ → Permissions → Microphone.',
+            { duration: 8000, style: { maxWidth: 400 } }
+          );
+        } else {
+          toast.error('Microphone permission denied. Please allow microphone access in your browser.');
+        }
+      } else if (errName === 'NotFoundError') {
+        toast.error('Hakuna microphone kwenye kifaa hiki.');
+        if (onFallback) onFallback();
       } else {
-        setError('Microphone permission denied');
-        console.error('VoiceRecorder error:', err);
+        setError(err?.message || 'Recording failed. Please try again.');
       }
       isRecordingRef.current = false;
     }
