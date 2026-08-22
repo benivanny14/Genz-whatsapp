@@ -1097,13 +1097,33 @@ if (fs.existsSync(frontendIndexPath)) {
   app.get('/version.json', sendNoCache(path.join(frontendDistPath, 'version.json')));
   // APK can be cached for 1 hour — the file is versioned and only changes on
   // redeploy. Caching reduces cold-start latency on Render free tier.
-  const sendApkCached = (file) => (req, res) => {
-    res.setHeader('Cache-Control', 'public, max-age=3600');
-    res.setHeader('Content-Type', 'application/vnd.android.package-archive');
-    res.setHeader('Content-Disposition', 'attachment; filename="genz-whatsapp.apk"');
-    res.sendFile(file);
-  };
-  app.get('/genz-whatsapp.apk', sendApkCached(path.join(frontendDistPath, 'genz-whatsapp.apk')));
+  //
+  // IMPORTANT: We use raw streams (writeHead + createReadStream) instead of
+  // res.sendFile() because Express's send module can override the Content-Type
+  // header, causing Chrome/Android to save the APK as a .zip file. APK files
+  // are ZIP archives internally, so without the explicit
+  // application/vnd.android.package-archive Content-Type Chrome renames them.
+  //
+  // We also fall back to frontend/public/ in case build-apk.js removed the
+  // APK from dist/ (it copies it to public/ instead).
+  const frontendPublicApk = path.resolve(__dirname, '../frontend/public/genz-whatsapp.apk');
+  app.get('/genz-whatsapp.apk', (req, res) => {
+    const apkPath = fs.existsSync(path.join(frontendDistPath, 'genz-whatsapp.apk'))
+      ? path.join(frontendDistPath, 'genz-whatsapp.apk')
+      : frontendPublicApk;
+    if (!fs.existsSync(apkPath)) {
+      return res.status(404).json({ error: 'APK not found' });
+    }
+    const stat = fs.statSync(apkPath);
+    res.writeHead(200, {
+      'Content-Type': 'application/vnd.android.package-archive',
+      'Content-Disposition': 'attachment; filename="genz-whatsapp.apk"',
+      'Cache-Control': 'public, max-age=3600',
+      'Content-Length': stat.size,
+      'X-Content-Type-Options': 'nosniff',
+    });
+    fs.createReadStream(apkPath).pipe(res);
+  });
   app.use(express.static(frontendDistPath, { maxAge: '1d', index: false }));
   app.get(/^\/(?!api\/|uploads\/|socket\.io).*/, (req, res, next) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') return next();
