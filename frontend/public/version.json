@@ -1,10 +1,10 @@
 {
-  "version": "1.1.17",
-  "versionCode": 20,
+  "version": "1.1.19",
+  "versionCode": 22,
   "apkUrl": "/genz-whatsapp.apk",
-  "sha256": "c33a248214beed52212bc340283a62bdae1874f64105f71ab5fdff5dd3235f36",
-  "size": 12503629,
-  "releasedAt": "2026-08-22T01:25:02.331Z",
+  "sha256": "152e285ac717eaec17a09df59d66b9c24f3fdaa30ed732bd04d5228812d186ad",
+  "size": 12503817,
+  "releasedAt": "2026-08-22T02:39:28.305Z",
   "changes": [
     "Mobile layout fixes",
     "Settings save button fix",
@@ -12,6 +12,11 @@
     "Contact sharing like WhatsApp",
     "Bottom nav hidden on landing",
     "APK Content-Type fix",
-    "MongoDB connection fix"
+    "MongoDB connection fix",
+    "APK voice recording fix",
+    "APK notifications fix",
+    "APK unread count fix",
+    "Message send instant",
+    "Bottom nav icons fix"
   ]
 }
