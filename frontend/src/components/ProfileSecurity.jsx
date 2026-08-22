@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Shield, X, Check, RefreshCw, Lock, Eye, EyeOff, AlertTriangle, Fingerprint, Smartphone } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Shield, X, Check, RefreshCw, Lock, Eye, EyeOff, AlertTriangle, Fingerprint, Smartphone, QrCode } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
@@ -10,11 +10,106 @@ const ProfileSecurity = ({ user, securitySettings, onUpdateSecurity, onClose }) 
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showTwoFactor, setShowTwoFactor] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [twoFactorStep, setTwoFactorStep] = useState('status'); // 'status', 'setup', 'verify', 'enabled'
+  const [twoFactorData, setTwoFactorData] = useState({ qrCode: null, secret: null });
+  const [twoFactorToken, setTwoFactorToken] = useState('');
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [formData, setFormData] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
+
+  useEffect(() => {
+    fetchTwoFactorStatus();
+  }, []);
+
+  const fetchTwoFactorStatus = async () => {
+    try {
+      const res = await authFetch(`${API_URL}/security/2fa/status`);
+      const data = await res.json();
+      if (data.success) {
+        setTwoFactorEnabled(data.enabled || false);
+      }
+    } catch (error) {
+      console.error('Failed to fetch 2FA status:', error);
+    }
+  };
+
+  const handleGenerateTwoFactor = async () => {
+    setIsProcessing(true);
+    try {
+      const res = await authFetch(`${API_URL}/security/2fa/generate`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTwoFactorData({ qrCode: data.qrCodeDataUrl, secret: data.secret });
+        setTwoFactorStep('verify');
+      } else {
+        alert(data.message || 'Failed to generate 2FA secret');
+      }
+    } catch (error) {
+      console.error('Generate 2FA error:', error);
+      alert('Failed to connect to the server');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleVerifyTwoFactor = async () => {
+    if (!twoFactorToken || twoFactorToken.length !== 6) {
+      alert('Please enter a valid 6-digit code');
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const res = await authFetch(`${API_URL}/security/2fa/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: twoFactorToken })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTwoFactorEnabled(true);
+        setTwoFactorStep('enabled');
+        setTwoFactorToken('');
+        onUpdateSecurity?.({ ...securitySettings, twoFactor: true });
+      } else {
+        alert(data.message || 'Invalid code. Please try again.');
+      }
+    } catch (error) {
+      console.error('Verify 2FA error:', error);
+      alert('Failed to verify code');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDisableTwoFactor = async () => {
+    if (!window.confirm('Are you sure you want to disable two-factor authentication?')) return;
+
+    setIsProcessing(true);
+    try {
+      const res = await authFetch(`${API_URL}/security/2fa/disable`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTwoFactorEnabled(false);
+        setTwoFactorStep('status');
+        onUpdateSecurity?.({ ...securitySettings, twoFactor: false });
+      } else {
+        alert(data.message || 'Failed to disable 2FA');
+      }
+    } catch (error) {
+      console.error('Disable 2FA error:', error);
+      alert('Failed to disable 2FA');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const securityOptions = [
     {
@@ -22,7 +117,7 @@ const ProfileSecurity = ({ user, securitySettings, onUpdateSecurity, onClose }) 
       title: 'Two-Factor Authentication',
       description: 'Add an extra layer of security',
       icon: Smartphone,
-      enabled: securitySettings?.twoFactor || false
+      enabled: twoFactorEnabled
     },
     {
       id: 'biometric',
@@ -36,11 +131,21 @@ const ProfileSecurity = ({ user, securitySettings, onUpdateSecurity, onClose }) 
       title: 'Login Alerts',
       description: 'Get notified of new logins',
       icon: Eye,
-      enabled: securitySettings?.loginAlerts || true
+      enabled: securitySettings?.loginAlerts !== false
     }
   ];
 
   const handleToggleSecurity = async (optionId) => {
+    if (optionId === 'two_factor') {
+      if (twoFactorEnabled) {
+        handleDisableTwoFactor();
+      } else {
+        setShowTwoFactor(true);
+        setTwoFactorStep('setup');
+      }
+      return;
+    }
+
     setIsProcessing(true);
     await new Promise(resolve => setTimeout(resolve, 500));
     setIsProcessing(false);
@@ -163,6 +268,105 @@ const ProfileSecurity = ({ user, securitySettings, onUpdateSecurity, onClose }) 
               </div>
             )}
           </div>
+
+          {/* 2FA Setup Modal */}
+          <AnimatePresence>
+            {showTwoFactor && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                onClick={() => setShowTwoFactor(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.95, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.95, opacity: 0 }}
+                  className="bg-[#1a2e35] rounded-2xl w-full max-w-md p-6 border border-[#00a884]/20"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <QrCode className="text-[#00a884]" size={20} />
+                      <h3 className="text-white font-semibold">Two-Factor Authentication</h3>
+                    </div>
+                    <button
+                      onClick={() => setShowTwoFactor(false)}
+                      className="text-gray-400 hover:text-white"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+
+                  {twoFactorStep === 'setup' && (
+                    <div className="space-y-4">
+                      <p className="text-gray-300 text-sm">
+                        Scan the QR code with your authenticator app (Google Authenticator, Authy, etc.) to enable 2FA.
+                      </p>
+                      <button
+                        onClick={handleGenerateTwoFactor}
+                        disabled={isProcessing}
+                        className="w-full bg-[#00a884] text-white py-3 rounded-lg hover:bg-[#008f72] transition-colors disabled:bg-[#00a884]/50 disabled:cursor-not-allowed"
+                      >
+                        {isProcessing ? 'Generating...' : 'Generate QR Code'}
+                      </button>
+                    </div>
+                  )}
+
+                  {twoFactorStep === 'verify' && (
+                    <div className="space-y-4">
+                      {twoFactorData.qrCode && (
+                        <div className="flex justify-center">
+                          <img src={twoFactorData.qrCode} alt="2FA QR Code" className="w-48 h-48 rounded-lg" />
+                        </div>
+                      )}
+                      {twoFactorData.secret && (
+                        <div className="bg-[#0b141a] rounded-lg p-3">
+                          <p className="text-gray-400 text-xs mb-1">Secret key (manual entry):</p>
+                          <p className="text-white font-mono text-sm break-all">{twoFactorData.secret}</p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-gray-400 text-xs mb-1">Enter 6-digit code</p>
+                        <input
+                          type="text"
+                          value={twoFactorToken}
+                          onChange={(e) => setTwoFactorToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          placeholder="000000"
+                          className="w-full bg-[#0b141a] text-white px-3 py-2 rounded-lg border border-[#00a884]/30 focus:border-[#00a884] focus:outline-none text-center text-2xl tracking-widest"
+                          maxLength={6}
+                        />
+                      </div>
+                      <button
+                        onClick={handleVerifyTwoFactor}
+                        disabled={isProcessing || twoFactorToken.length !== 6}
+                        className="w-full bg-[#00a884] text-white py-3 rounded-lg hover:bg-[#008f72] transition-colors disabled:bg-[#00a884]/50 disabled:cursor-not-allowed"
+                      >
+                        {isProcessing ? 'Verifying...' : 'Verify & Enable'}
+                      </button>
+                    </div>
+                  )}
+
+                  {twoFactorStep === 'enabled' && (
+                    <div className="space-y-4 text-center">
+                      <div className="w-16 h-16 bg-[#00a884]/20 rounded-full flex items-center justify-center mx-auto">
+                        <Check className="text-[#00a884]" size={32} />
+                      </div>
+                      <p className="text-white font-medium">2FA Enabled Successfully!</p>
+                      <p className="text-gray-400 text-sm">Your account is now protected with two-factor authentication.</p>
+                      <button
+                        onClick={() => setShowTwoFactor(false)}
+                        className="w-full bg-[#00a884] text-white py-3 rounded-lg hover:bg-[#008f72] transition-colors"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  )}
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Security Options */}
           {securityOptions.map(option => {

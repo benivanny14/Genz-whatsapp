@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Plus, X, Eye, Clock, Camera, Image, Type, Upload, RefreshCw, Film, Sparkles, Bookmark, Settings, Music, Download, Bell, Shield, TrendingUp, BarChart3, Palette, Share2, Accessibility, Mic, Archive, Users, Volume2, Zap, Heart, Calendar, MapPin, Cloud, QrCode, AtSign, Hash, Edit, Copy, Pin, Flag, Layout, FileText, Star, History, BellOff, Trash2, Forward, RotateCcw, Grid, Timer } from 'lucide-react';
+import { Plus, X, Eye, Clock, Camera, Image, Type, Upload, RefreshCw, Film, Sparkles, Bookmark, Settings, Music, Download, Bell, Shield, TrendingUp, BarChart3, Palette, Share2, Accessibility, Mic, Archive, Users, Volume2, Zap, Heart, Calendar, MapPin, Cloud, QrCode, AtSign, Hash, Edit, Copy, Pin, Flag, Layout, FileText, Star, History, BellOff, Trash2, Forward, RotateCcw, Grid, Timer, Brush, Crop, Scissors } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { authFetch } from '../utils/authFetch';
 import { getAuthToken } from '../utils/tokenStore';
@@ -15,6 +15,7 @@ import FiltersPanel from '../components/FiltersPanel';
 import BeautyRetouchPanel from '../components/BeautyRetouchPanel';
 import BackgroundToolsPanel from '../components/BackgroundToolsPanel';
 import VideoToolsPanel from '../components/VideoToolsPanel';
+import CropRotatePanel from '../components/CropRotatePanel';
 import ARFilterPanel from '../components/ARFilterPanel';
 import AudioPanel from '../components/AudioPanel';
 import CrossPlatformSharingPanel from '../components/CrossPlatformSharingPanel';
@@ -115,6 +116,10 @@ const Status = () => {
   const [showStatusSave, setShowStatusSave] = useState(false);
   const [showStatusForward, setShowStatusForward] = useState(false);
   const [selectedStatusForPanel, setSelectedStatusForPanel] = useState(null);
+  const [showVideoTools, setShowVideoTools] = useState(false);
+  const [showDrawing, setShowDrawing] = useState(false);
+  const [showCropRotate, setShowCropRotate] = useState(false);
+  const [showMusicTrimmer, setShowMusicTrimmer] = useState(false);
   const [uploadData, setUploadData] = useState(() => {
     let savedPrivacy = 'contacts';
     try {
@@ -540,6 +545,63 @@ const Status = () => {
       }
       return { ...prev, file, type };
     });
+  };
+
+  const handleOpenVideoTools = () => {
+    if (uploadData.file && uploadData.type === 'video') {
+      const url = URL.createObjectURL(uploadData.file);
+      setEditVideoUrl(url);
+      setShowVideoTools(true);
+    }
+  };
+
+  const handleOpenDrawing = () => {
+    if (uploadData.file && (uploadData.type === 'image' || uploadData.type === 'livePhoto' || uploadData.type === 'dualCamera')) {
+      const url = URL.createObjectURL(uploadData.file);
+      setEditImageUrl(url);
+      setShowDrawing(true);
+    }
+  };
+
+  const handleOpenCropRotate = () => {
+    if (uploadData.file && (uploadData.type === 'image' || uploadData.type === 'livePhoto' || uploadData.type === 'dualCamera')) {
+      const url = URL.createObjectURL(uploadData.file);
+      setEditImageUrl(url);
+      setShowCropRotate(true);
+    }
+  };
+
+  const handleOpenMusicTrimmer = () => {
+    if (uploadData.file && (uploadData.type === 'audio' || uploadData.type === 'music')) {
+      setShowMusicTrimmer(true);
+    }
+  };
+
+  const handleVideoToolsSave = (file, url) => {
+    setUploadData((prev) => ({ ...prev, file, type: 'video' }));
+    setEditVideoUrl(url);
+    setShowVideoTools(false);
+  };
+
+  const handleDrawingSave = (blob) => {
+    const file = new File([blob], 'edited-image.png', { type: 'image/png' });
+    setUploadData((prev) => ({ ...prev, file, type: 'image' }));
+    setEditImageUrl(URL.createObjectURL(blob));
+    setShowDrawing(false);
+  };
+
+  const handleCropRotateSave = (blob) => {
+    const file = new File([blob], 'cropped-image.png', { type: 'image/png' });
+    setUploadData((prev) => ({ ...prev, file, type: 'image' }));
+    setEditImageUrl(URL.createObjectURL(blob));
+    setShowCropRotate(false);
+  };
+
+  const handleMusicTrimSave = (trimmedFile) => {
+    if (trimmedFile) {
+      setUploadData((prev) => ({ ...prev, file: trimmedFile, type: 'audio' }));
+    }
+    setShowMusicTrimmer(false);
   };
 
   // ── Voice status recording ──
@@ -1628,6 +1690,53 @@ const Status = () => {
                 </div>
               )}
 
+              {/* Editing Tools */}
+              {uploadData.file && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Editing Tools
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {uploadData.type === 'video' && (
+                      <button
+                        type="button"
+                        onClick={handleOpenVideoTools}
+                        className="px-3 py-2 bg-[#00a884] text-white rounded-lg text-sm hover:bg-[#008f6f] flex items-center gap-2"
+                      >
+                        <Film size={16} /> Trim Video
+                      </button>
+                    )}
+                    {(uploadData.type === 'image' || uploadData.type === 'livePhoto' || uploadData.type === 'dualCamera') && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleOpenDrawing}
+                          className="px-3 py-2 bg-[#00a884] text-white rounded-lg text-sm hover:bg-[#008f6f] flex items-center gap-2"
+                        >
+                          <Brush size={16} /> Draw
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleOpenCropRotate}
+                          className="px-3 py-2 bg-[#00a884] text-white rounded-lg text-sm hover:bg-[#008f6f] flex items-center gap-2"
+                        >
+                          <Crop size={16} /> Crop/Rotate
+                        </button>
+                      </>
+                    )}
+                    {(uploadData.type === 'audio' || uploadData.type === 'music') && (
+                      <button
+                        type="button"
+                        onClick={handleOpenMusicTrimmer}
+                        className="px-3 py-2 bg-[#00a884] text-white rounded-lg text-sm hover:bg-[#008f6f] flex items-center gap-2"
+                      >
+                        <Scissors size={16} /> Trim Music
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {uploadData.type === 'voice' && (
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -2498,10 +2607,37 @@ const Status = () => {
           />
         )}
         {showStatusForward && selectedStatusForPanel && (
-          <StatusForwardPanel 
+          <StatusForwardPanel
             onClose={() => { setShowStatusForward(false); setSelectedStatusForPanel(null); }}
             status={selectedStatusForPanel}
             onForward={(data) => console.log('Status forwarded:', data)}
+          />
+        )}
+        {showVideoTools && editVideoUrl && (
+          <VideoToolsPanel
+            onClose={() => setShowVideoTools(false)}
+            video={editVideoUrl}
+            onSave={handleVideoToolsSave}
+          />
+        )}
+        {showDrawing && editImageUrl && (
+          <DrawingPanel
+            onClose={() => setShowDrawing(false)}
+            image={editImageUrl}
+            onSave={handleDrawingSave}
+          />
+        )}
+        {showCropRotate && editImageUrl && (
+          <CropRotatePanel
+            onClose={() => setShowCropRotate(false)}
+            image={editImageUrl}
+            onSave={handleCropRotateSave}
+          />
+        )}
+        {showMusicTrimmer && uploadData.file && (
+          <MusicTrimmer
+            file={uploadData.file}
+            onTrim={handleMusicTrimSave}
           />
         )}
       </div>
