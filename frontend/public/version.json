@@ -1,15 +1,17 @@
 {
-  "version": "1.1.16",
-  "versionCode": 19,
+  "version": "1.1.17",
+  "versionCode": 20,
   "apkUrl": "/genz-whatsapp.apk",
-  "sha256": "2906190d65a809f6c629642387b6d3e20978922d4b330dd4d6e10a2230e49937",
-  "size": 12482969,
-  "releasedAt": "2026-08-21T12:30:10.354Z",
+  "sha256": "c33a248214beed52212bc340283a62bdae1874f64105f71ab5fdff5dd3235f36",
+  "size": 12503629,
+  "releasedAt": "2026-08-22T01:25:02.331Z",
   "changes": [
-    "Mute status updates end-to-end (with unmute)",
-    "Block from status + unblock management",
-    "Expiring share tokens for public links",
-    "Status privacy: no more everyone",
-    "Full e2e + backend suites green"
+    "Mobile layout fixes",
+    "Settings save button fix",
+    "Status toolbar scroll",
+    "Contact sharing like WhatsApp",
+    "Bottom nav hidden on landing",
+    "APK Content-Type fix",
+    "MongoDB connection fix"
   ]
 }
