@@ -2,9 +2,9 @@
   "version": "1.1.25",
   "versionCode": 28,
   "apkUrl": "/genz-whatsapp.apk",
-  "sha256": "bd74cb0611474813386809fcc758af4abc009bbe2691865c2f38562c475ced83",
-  "size": 12573458,
-  "releasedAt": "2026-08-22T20:24:53.791Z",
+  "sha256": "dae9bee87b216de9af6a3e1b19234c280246c3174f02133534484822c19bce49",
+  "size": 12573514,
+  "releasedAt": "2026-08-22T22:20:55.276Z",
   "changes": [
     "Mobile layout fixes",
     "Settings save button fix",
