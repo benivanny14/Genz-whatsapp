@@ -236,3 +236,63 @@ describe('hard-delete retention rule (anti-revoke)', () => {
     expect(hardDeleteDelayFor({})).toBe(THIRTY_DAYS_MS);
   });
 });
+
+describe('extractCloudinaryPublicId', () => {
+  const { extractCloudinaryPublicId } = require('../utils/hardDelete');
+
+  it('extracts publicId from a standard Cloudinary image URL', () => {
+    const url = 'https://res.cloudinary.com/demo/image/upload/v1234567890/chat/photo.jpg';
+    expect(extractCloudinaryPublicId(url)).toBe('chat/photo');
+  });
+
+  it('extracts publicId from a URL without version number', () => {
+    const url = 'https://res.cloudinary.com/demo/image/upload/chat/photo.jpg';
+    // The regex treats the first segment after upload/ as folder (optional group),
+    // so the publicId is just the filename without extension.
+    expect(extractCloudinaryPublicId(url)).toBe('photo');
+  });
+
+  it('extracts publicId from a video URL', () => {
+    const url = 'https://res.cloudinary.com/demo/video/upload/v1/videos/clip.mp4';
+    expect(extractCloudinaryPublicId(url)).toBe('videos/clip');
+  });
+
+  it('extracts publicId with query parameters', () => {
+    const url = 'https://res.cloudinary.com/demo/image/upload/v1/chat/photo.jpg?foo=bar';
+    expect(extractCloudinaryPublicId(url)).toBe('chat/photo');
+  });
+
+  it('returns null for non-Cloudinary URLs', () => {
+    expect(extractCloudinaryPublicId('https://example.com/image.jpg')).toBeNull();
+    expect(extractCloudinaryPublicId('/uploads/local-file.jpg')).toBeNull();
+    expect(extractCloudinaryPublicId(null)).toBeNull();
+    expect(extractCloudinaryPublicId('')).toBeNull();
+    expect(extractCloudinaryPublicId(undefined)).toBeNull();
+  });
+});
+
+describe('cloudinaryResourceType', () => {
+  const { cloudinaryResourceType } = require('../utils/hardDelete');
+
+  it('returns image for image messageType', () => {
+    expect(cloudinaryResourceType('image')).toBe('image');
+  });
+
+  it('returns video for video messageType', () => {
+    expect(cloudinaryResourceType('video')).toBe('video');
+  });
+
+  it('returns video for audio messageType', () => {
+    expect(cloudinaryResourceType('audio')).toBe('video');
+  });
+
+  it('returns video for voice messageType', () => {
+    expect(cloudinaryResourceType('voice')).toBe('video');
+  });
+
+  it('returns image for unknown messageType', () => {
+    expect(cloudinaryResourceType('sticker')).toBe('image');
+    expect(cloudinaryResourceType('gif')).toBe('image');
+    expect(cloudinaryResourceType(undefined)).toBe('image');
+  });
+});

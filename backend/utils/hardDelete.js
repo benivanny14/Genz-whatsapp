@@ -18,6 +18,7 @@
  */
 const Message = require('../models/Message');
 const User = require('../models/User');
+const { deleteFile, isCloudinaryConfigured } = require('../config/cloudinary');
 
 const MAX_TIMEOUT_MS = 2147483647; // 2^31 - 1 (~24.8 days)
 const HARD_DELETE_DELAY_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -38,6 +39,63 @@ const hardDeleteDelayFor = (settings) => {
   const days = Number(settings.cacheRetentionDays);
   const safeDays = Number.isFinite(days) && days > 0 ? days : DEFAULT_CACHE_RETENTION_DAYS;
   return safeDays * DAY_MS;
+};
+
+/**
+ * Extract a Cloudinary publicId from a Cloudinary URL.
+ * Cloudinary URLs have the shape:
+ *   https://res.cloudinary.com/{cloud}/image/upload/{publicId}.{ext}
+ * This mirrors the regex used in mediaController.js addMediaReference.
+ */
+const extractCloudinaryPublicId = (url) => {
+  if (!url || typeof url !== 'string') return null;
+  const match = url.match(/\/upload\/(?:[^/]+\/)?(?:v\d+\/)?(.+?)(?:\.[a-z0-9]+)?(?:[?#].*)?$/i);
+  return match?.[1] || null;
+};
+
+/**
+ * Map a message's messageType to the Cloudinary resourceType.
+ * Cloudinary uses 'video' for both video and audio resources.
+ */
+const cloudinaryResourceType = (messageType) => {
+  if (messageType === 'image') return 'image';
+  if (messageType === 'video' || messageType === 'audio' || messageType === 'voice') return 'video';
+  // stickers, gifs, documents — treat as 'image' (Cloudinary default)
+  return 'image';
+};
+
+/**
+ * Delete associated Cloudinary media files for a message before removing
+ * the MongoDB document. Failures are logged but do not block the
+ * document deletion — we never want a stuck message because Cloudinary
+ * was temporarily unreachable.
+ */
+const deleteCloudinaryMedia = async (message) => {
+  if (!isCloudinaryConfigured?.()) return;
+
+  const urls = [
+    message.mediaUrl,
+    message.localPreview,
+    message.structuredContent?.[0]?.value // sticker URL
+  ].filter(Boolean);
+
+  for (const url of urls) {
+    const publicId = extractCloudinaryPublicId(url);
+    if (!publicId) continue;
+
+    try {
+      const result = await deleteFile(publicId, cloudinaryResourceType(message.messageType));
+      if (!result?.success) {
+        console.warn('[HardDelete] Cloudinary delete returned non-ok:', { publicId, result });
+      }
+    } catch (err) {
+      // Best-effort — log and continue. The document will still be deleted.
+      console.warn('[HardDelete] Cloudinary delete failed (continuing):', {
+        publicId,
+        error: err?.message
+      });
+    }
+  }
 };
 
 /**
@@ -64,8 +122,15 @@ const scheduleHardDelete = async (message, deleterId) => {
   let remaining = delay;
   const tick = () => {
     if (remaining <= 0) {
-      Message.deleteOne({ _id: message._id, deletedForEveryone: true }).catch((cleanupErr) => {
-        console.error('[HardDelete] cleanup failed:', cleanupErr?.message, { messageId: String(message._id) });
+      // TATIZO 3 FIX: Delete Cloudinary media BEFORE removing the document.
+      // This prevents orphaned files from accumulating on Cloudinary.
+      deleteCloudinaryMedia(message).then(() => {
+        Message.deleteOne({ _id: message._id, deletedForEveryone: true }).catch((cleanupErr) => {
+          console.error('[HardDelete] cleanup failed:', cleanupErr?.message, { messageId: String(message._id) });
+        });
+      }).catch(() => {
+        // deleteCloudinaryMedia swallows errors, but just in case:
+        Message.deleteOne({ _id: message._id, deletedForEveryone: true }).catch(() => {});
       });
       return;
     }
@@ -76,4 +141,11 @@ const scheduleHardDelete = async (message, deleterId) => {
   tick();
 };
 
-module.exports = { scheduleHardDelete, antiRevokeRetainsMessage, hardDeleteDelayFor };
+module.exports = {
+  scheduleHardDelete,
+  antiRevokeRetainsMessage,
+  hardDeleteDelayFor,
+  extractCloudinaryPublicId,
+  cloudinaryResourceType,
+  deleteCloudinaryMedia
+};
