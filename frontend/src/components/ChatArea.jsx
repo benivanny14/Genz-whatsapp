@@ -1240,16 +1240,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     if (type === 'current') {
       const toastId = toast.loading('Fetching your current location...');
 
-      const handleFallback = (errMsg) => {
-        toast.dismiss(toastId);
-        // Default fallback to Dar es Salaam/Nairobi region coordinates
-        const fallbackCoords = { latitude: -6.7924, longitude: 39.2083, accuracy: 1500 };
-        setCurrentLocationCoords(fallbackCoords);
-        setCurrentLocationComment('');
-        setShowCurrentLocationModal(true);
-        toast.error('Could not get your exact location. Opened with default location.');
-      };
-
       try {
         navigator.geolocation.getCurrentPosition(
           (position) => {
@@ -1260,14 +1250,30 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
             setShowCurrentLocationModal(true);
           },
           (error) => {
+            toast.dismiss(toastId);
             console.warn('Geolocation error code:', error.code, error.message);
-            handleFallback(error.message || 'GPS failed');
+            if (error.code === 1) {
+              // PERMISSION_DENIED — send user to system settings
+              toast.error(
+                'Location permission denied. Go to Settings > Apps > GENZ Messenger > Permissions and enable Location.',
+                { duration: 8000 }
+              );
+            } else if (error.code === 2) {
+              // POSITION_UNAVAILABLE
+              toast.error('Unable to determine your location. Please check that GPS is enabled and try again.', { duration: 5000 });
+            } else if (error.code === 3) {
+              // TIMEOUT
+              toast.error('Location request timed out. Please try again.', { duration: 5000 });
+            } else {
+              toast.error('Could not get your location. Please try again.', { duration: 5000 });
+            }
           },
           { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
         );
       } catch (err) {
+        toast.dismiss(toastId);
         console.error('Geolocation exception:', err);
-        handleFallback('API blocked/unsupported');
+        toast.error('Location sharing is not available on this device.', { duration: 5000 });
       }
     } else if (type === 'live') {
       if (isLiveLocationActive) return; // Already sharing

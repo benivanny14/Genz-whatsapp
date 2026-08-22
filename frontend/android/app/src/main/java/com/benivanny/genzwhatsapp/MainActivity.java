@@ -2,7 +2,10 @@ package com.benivanny.genzwhatsapp;
 
 import android.content.pm.ApplicationInfo;
 import android.os.Bundle;
+import android.webkit.GeolocationPermissions;
+import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
+import android.webkit.WebView;
 
 import com.getcapacitor.BridgeActivity;
 
@@ -26,5 +29,25 @@ public class MainActivity extends BridgeActivity {
                 }
             });
         }
+
+        // Allow geolocation in WebView — when the web page requests
+        // navigator.geolocation, the WebView needs a WebChromeClient that
+        // responds to onGeolocationPermissionsShowPrompt.  Capacitor's default
+        // bridge handles most permissions but not geolocation.
+        runOnUiThread(() -> {
+            try {
+                WebView webView = getBridge().getWebView();
+                webView.setWebChromeClient(new WebChromeClient() {
+                    @Override
+                    public void onGeolocationPermissionsShowPrompt(
+                            String origin, GeolocationPermissions.Callback callback) {
+                        // Automatically grant geolocation for our own origin.
+                        callback.invoke(origin, true, false);
+                    }
+                });
+            } catch (Exception ignored) {
+                // Bridge may not be ready yet.
+            }
+        });
     }
 }

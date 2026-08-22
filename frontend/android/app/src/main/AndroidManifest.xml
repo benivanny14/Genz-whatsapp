@@ -56,6 +56,8 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- CAMERA + RECORD_AUDIO stay: used for photo/video messages and voice notes. -->
     <uses-permission android:name="android.permission.CAMERA" />
