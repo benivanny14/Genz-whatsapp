@@ -1384,7 +1384,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
 
       <div
         ref={chatListRef}
-        className="relative z-10 flex-1 overflow-y-auto scrollbar-thin bg-dark-surface/70 backdrop-blur-[1px]"
+        className="relative z-10 flex-1 overflow-y-auto scrollbar-thin bg-dark-surface/70 backdrop-blur-[1px] pb-20 md:pb-0"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}

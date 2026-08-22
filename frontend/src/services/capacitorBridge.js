@@ -125,7 +125,8 @@ let pushListenersAttached = false;
  * Register the native push token with the backend.
  * POST /api/notifications/fcm/register (already exists — designed for FCM).
  */
-const registerNativeToken = async (token) => {
+const registerNativeToken = async (token, attempt = 1) => {
+  const MAX_ATTEMPTS = 3;
   try {
     const res = await authFetch(`${API_URL}/notifications/fcm/register`, {
       method: 'POST',
@@ -144,9 +145,22 @@ const registerNativeToken = async (token) => {
       }).catch(() => {});
       return true;
     }
+    // Retry on failure (backend might be starting up on free tier)
+    if (attempt < MAX_ATTEMPTS) {
+      const delay = attempt * 3000; // 3s, 6s, 9s
+      console.warn(`[CapacitorBridge] FCM registration attempt ${attempt} failed, retrying in ${delay}ms...`);
+      await new Promise(r => setTimeout(r, delay));
+      return registerNativeToken(token, attempt + 1);
+    }
     return false;
   } catch (e) {
-    console.warn('[CapacitorBridge] FCM token registration failed:', e?.message || e);
+    if (attempt < MAX_ATTEMPTS) {
+      const delay = attempt * 3000;
+      console.warn(`[CapacitorBridge] FCM registration attempt ${attempt} failed (${e?.message}), retrying in ${delay}ms...`);
+      await new Promise(r => setTimeout(r, delay));
+      return registerNativeToken(token, attempt + 1);
+    }
+    console.warn('[CapacitorBridge] FCM token registration failed after retries:', e?.message || e);
     return false;
   }
 };
@@ -221,6 +235,14 @@ export const initNativePush = async () => {
       });
       PushNotifications.addListener('pushNotificationActionPerformed', (event) => {
         routeIncomingPush(event?.notification);
+      });
+      // Re-register FCM token when app comes back to foreground.
+      // This handles: (a) backend was down during initial registration,
+      // (b) token expired, (c) server restarted and lost tokens.
+      App.addListener('appStateChange', ({ isActive }) => {
+        if (isActive && FCM_ENABLED) {
+          PushNotifications.register();
+        }
       });
       pushListenersAttached = true;
     }

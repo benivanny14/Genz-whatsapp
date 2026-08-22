@@ -1079,22 +1079,30 @@ export const ChatProvider = ({ children }) => {
         try {
           const data = await apiService.getConversations();
           if (data?.success && Array.isArray(data.conversations)) {
-            const openChatId = getStoredSelectedConversationId();
+            // Use the ref (real-time) instead of localStorage (stale on APK)
+            const openChatId = selectedConversationIdRef.current || getStoredSelectedConversationId();
             const remoteIds = new Set(data.conversations.map((c) => String(c._id)));
             setConversations(prev => {
               const mergedMap = new Map();
               prev.forEach(c => {
                 const id = String(c._id || '');
                 const isLocalOnly = id.startsWith('conv-') || id.startsWith('temp-');
-                // Drop conversations the server no longer returns (deleted/left
-                // elsewhere) instead of keeping them around forever.
                 if (isLocalOnly || remoteIds.has(id)) {
                   mergedMap.set(c._id, c);
                 }
               });
               data.conversations.forEach(c => {
                 const isOpen = openChatId && String(c._id) === String(openChatId);
-                mergedMap.set(c._id, isOpen ? { ...c, unreadCount: 0 } : c);
+                // For open conversation: always force unreadCount to 0
+                // For others: use the HIGHER of local vs server count to
+                // avoid losing locally-incremented unread badges.
+                const local = mergedMap.get(c._id);
+                const serverCount = c.unreadCount || 0;
+                const localCount = local?.unreadCount || 0;
+                mergedMap.set(c._id, {
+                  ...c,
+                  unreadCount: isOpen ? 0 : Math.max(serverCount, localCount)
+                });
               });
               return Array.from(mergedMap.values()).sort(
                 (a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
@@ -1311,16 +1319,22 @@ export const ChatProvider = ({ children }) => {
           }
           await DB.saveMessage(incoming);
         } catch (e) { }
-        setConversations(prev => prev.map(c => {
-          if (c._id === incoming.conversationId) {
-            return {
-              ...c,
-              lastMessage: incoming,
-              updatedAt: new Date()
-            };
-          }
-          return c;
-        }));
+        setConversations(prev => {
+          const updated = prev.map(c => {
+            if (c._id === incoming.conversationId) {
+              const isOpenConv = selectedConversationIdRef.current && String(c._id) === String(selectedConversationIdRef.current);
+              return {
+                ...c,
+                lastMessage: incoming,
+                updatedAt: new Date(),
+                unreadCount: isOpenConv ? 0 : (c.unreadCount || 0) + 1
+              };
+            }
+            return c;
+          });
+          // Re-sort so the most recently active conversation is on top
+          return [...updated].sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+        });
         } catch (err) {
           console.error('[ChatContext] message:received handler error:', err);
         }
@@ -2314,7 +2328,9 @@ export const ChatProvider = ({ children }) => {
       content: typeof outboundContent === 'string' ? outboundContent : '',
       sender: { _id: currentUserId, username: senderName || authUser?.username },
       messageType: messageType || 'text',
-      status: 'sending',
+      // Show as 'sent' immediately (WhatsApp-style instant feel).
+      // The socket ack will upgrade to 'delivered' when server confirms.
+      status: 'sent',
       createdAt: new Date().toISOString(),
       conversationId: targetConversationId,
       clientMessageId,
@@ -2342,7 +2358,10 @@ export const ChatProvider = ({ children }) => {
       await DB.saveMessage(newMessage);
       if (selectedConversation && String(selectedConversation._id) === String(targetConversationId)) {
         const updatedConv = { ...selectedConversation, lastMessage: newMessage, updatedAt: new Date() };
-        setConversations(prev => prev.map(c => c._id === updatedConv._id ? updatedConv : c));
+        setConversations(prev => {
+          const updated = prev.map(c => c._id === updatedConv._id ? updatedConv : c);
+          return [...updated].sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+        });
         await DB.saveConversation(updatedConv);
       }
     } catch (dbError) {
@@ -2390,10 +2409,12 @@ export const ChatProvider = ({ children }) => {
         try {
           emitSafe('message:send', payload);
           messageSent = await new Promise((resolve) => {
+            // 800ms timeout — fast enough for perceived instant delivery
+            // while still allowing the server ack to arrive for status updates.
             const timeoutId = setTimeout(() => {
               cleanup();
               resolve(false);
-            }, 1500);
+            }, 800);
             const onDelivered = ({ messageId, serverMessageId }) => {
               if (String(messageId) !== String(clientMessageId)) return;
               cleanup();

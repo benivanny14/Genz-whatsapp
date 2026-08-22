@@ -41,8 +41,8 @@ const MobileBottomNav = () => {
   const wingaUnseen = wingaData?.totalUnseen || 0;
 
   return (
-    <nav className="md:hidden fixed left-0 right-0 bottom-0 z-40 border-t border-white/10 bg-[#111b21]/95 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
-      <div className="grid grid-cols-5 px-1 py-1.5">
+    <nav className="max-md:flex md:hidden fixed left-0 right-0 bottom-0 z-50 border-t border-white/10 bg-[#111b21]/95 backdrop-blur-xl shadow-[0_-4px_20px_rgba(0,0,0,0.5)]" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      <div className="grid grid-cols-5 px-1 pt-1.5 pb-[max(6px,env(safe-area-inset-bottom))]">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const active = item.match(path);
