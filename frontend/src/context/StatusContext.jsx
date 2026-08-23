@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import { getAuthToken } from '../utils/tokenStore';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { useUser } from './UserContext';
+import { getSocket } from '../services/socket';
 import { resolveApiBase } from '../utils/resolveApiBase';
+import { getAuthToken } from '../utils/tokenStore';
 
 const StatusContext = createContext(null);
 
@@ -21,23 +23,10 @@ const authHeaders = () => {
 };
 
 const StatusProvider = ({ children }) => {
+  const { user } = useUser();
   const [statuses, setStatuses] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [socket, setSocket] = useState(null);
-  const socketRef = useRef(null);
-
-  // ── Set current user (called from parent) ──
-  const setUser = useCallback((user) => {
-    setCurrentUser(user);
-  }, []);
-
-  // ── Set socket instance (called from parent) ──
-  const setSocketInstance = useCallback((io) => {
-    setSocket(io);
-    socketRef.current = io;
-  }, []);
 
   // ── Fetch all statuses ──
   const fetchStatuses = useCallback(async () => {
@@ -87,7 +76,6 @@ const StatusProvider = ({ children }) => {
   // ── Create media status (image/video) ──
   const createMediaStatus = useCallback(async (formData) => {
     try {
-      // First upload the media
       const token = getAuthToken();
       const uploadRes = await fetch(`${API_BASE()}/status/upload`, {
         method: 'POST',
@@ -99,7 +87,6 @@ const StatusProvider = ({ children }) => {
       const uploadData = await uploadRes.json();
       if (!uploadData.success) throw new Error('Upload failed');
 
-      // Then create the status
       const res = await fetch(`${API_BASE()}/status`, {
         method: 'POST',
         headers: authHeaders(),
@@ -132,7 +119,6 @@ const StatusProvider = ({ children }) => {
       });
       const data = await res.json();
       if (data.success) {
-        // Update local state
         setStatuses(prev => prev.map(s => {
           if (s._id === statusId) {
             return { ...s, isViewed: true, viewCount: data.viewCount || s.viewCount };
@@ -214,6 +200,7 @@ const StatusProvider = ({ children }) => {
 
   // ── Listen for socket events ──
   useEffect(() => {
+    const socket = getSocket();
     if (!socket) return;
 
     const handleCreated = (status) => {
@@ -243,23 +230,20 @@ const StatusProvider = ({ children }) => {
       socket.off('status:deleted', handleDeleted);
       socket.off('status:viewed', handleViewed);
     };
-  }, [socket]);
+  }, []);
 
-  // ── Auto-fetch on mount ──
+  // ── Auto-fetch on mount when user is available ──
   useEffect(() => {
-    if (currentUser) {
+    if (user) {
       fetchStatuses();
     }
-  }, [currentUser, fetchStatuses]);
+  }, [user, fetchStatuses]);
 
   const value = {
     statuses,
-    currentUser,
+    currentUser: user,
     loading,
     error,
-    socket,
-    setUser,
-    setSocketInstance,
     fetchStatuses,
     createTextStatus,
     createMediaStatus,

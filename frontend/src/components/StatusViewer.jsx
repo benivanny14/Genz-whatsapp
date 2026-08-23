@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useStatusContext } from '../context/StatusContext'
+import { getSocket } from '../services/socket'
 import { X, Volume2, VolumeX, Send, Eye, Trash2, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react'
 import ReactPlayer from 'react-player'
 import './StatusViewer.css'
@@ -19,7 +20,8 @@ const formatRemainingTime = (expiresAt) => {
 }
 
 const StatusViewer = ({ user, initialIndex = 0, onClose }) => {
-  const { currentUser, viewStatus, deleteStatus, socket } = useStatusContext()
+  const { currentUser, viewStatus, deleteStatus } = useStatusContext()
+  const socket = getSocket()
   const [currentIndex, setCurrentIndex] = useState(initialIndex)
   const [progress, setProgress] = useState(0)
   const [isPaused, setIsPaused] = useState(false)

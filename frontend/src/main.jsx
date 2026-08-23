@@ -8,6 +8,7 @@ import { UserProvider } from './context/UserContext'
 import { ChatProvider } from './context/ChatContext'
 import { StickerProvider } from './context/StickerContext'
 import { AuthProvider } from './context/AuthContext'
+import { StatusProvider } from './context/StatusContext'
 import { LanguageProvider } from './context/LanguageContext'
 import { cleanupLocalBlobUrls } from './utils/sanitizeStorage'
 import { initViewportHeightFix } from './utils/useViewportHeight'
@@ -107,7 +108,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <UserProvider>
             <ChatProvider>
               <StickerProvider>
-                <App />
+                <StatusProvider>
+                  <App />
+                </StatusProvider>
               </StickerProvider>
             </ChatProvider>
           </UserProvider>
