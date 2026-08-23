@@ -1,23 +1,58 @@
 let memoryAccessToken = null;
 let memoryRefreshToken = null;
 
-// Access tokens are held in memory only. The persistent session is the
-// httpOnly cookie set by the backend, which JavaScript cannot read. Stale
-// pre-cookie-migration tokens used to be read from localStorage, which caused
-// 401 loops after the real session expired, so they are no longer read. The
-// keys are still removed on logout/401 via clearAuthTokens.
-export const getAuthToken = () => memoryAccessToken || undefined;
+// Persistence strategy: tokens are held in memory (fast reads) AND
+// localStorage (survives app restart on APK / WebView). The httpOnly cookie
+// set by the backend is the fallback for web browsers, but on Android
+// WebView sameSite=None cookies are often blocked as third-party, so the
+// localStorage copy is the reliable restore path on native APKs. Stale
+// tokens are caught by the getMe() verification in AuthContext — if the
+// token is expired, a refresh is attempted before the user sees a login
+// screen.
+const STORAGE_TOKEN_KEY = 'token';
+const STORAGE_REFRESH_KEY = 'refreshToken';
 
-export const getRefreshToken = () => memoryRefreshToken || undefined;
+export const getAuthToken = () => {
+  if (memoryAccessToken) return memoryAccessToken;
+  // Fallback: read from localStorage (APK restart / WebView reload)
+  try {
+    const stored = localStorage.getItem(STORAGE_TOKEN_KEY);
+    if (stored && stored !== 'null' && stored !== 'undefined') {
+      memoryAccessToken = stored; // cache back into memory
+      return stored;
+    }
+  } catch (_) { /* localStorage unavailable */ }
+  return undefined;
+};
+
+export const getRefreshToken = () => {
+  if (memoryRefreshToken) return memoryRefreshToken;
+  try {
+    const stored = localStorage.getItem(STORAGE_REFRESH_KEY);
+    if (stored && stored !== 'null' && stored !== 'undefined') {
+      memoryRefreshToken = stored;
+      return stored;
+    }
+  } catch (_) { /* localStorage unavailable */ }
+  return undefined;
+};
 
 export const setAuthTokens = ({ token, refreshToken }) => {
-  if (token) memoryAccessToken = token;
-  if (refreshToken) memoryRefreshToken = refreshToken;
+  if (token) {
+    memoryAccessToken = token;
+    try { localStorage.setItem(STORAGE_TOKEN_KEY, token); } catch (_) {}
+  }
+  if (refreshToken) {
+    memoryRefreshToken = refreshToken;
+    try { localStorage.setItem(STORAGE_REFRESH_KEY, refreshToken); } catch (_) {}
+  }
 };
 
 export const clearAuthTokens = () => {
   memoryAccessToken = null;
   memoryRefreshToken = null;
-  localStorage.removeItem('token');
-  localStorage.removeItem('refreshToken');
+  try {
+    localStorage.removeItem(STORAGE_TOKEN_KEY);
+    localStorage.removeItem(STORAGE_REFRESH_KEY);
+  } catch (_) {}
 };
