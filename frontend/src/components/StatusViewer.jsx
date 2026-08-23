@@ -3,7 +3,7 @@ import { useStatusContext } from '../context/StatusContext'
 import { getSocket } from '../services/socket'
 import { resolveApiBase } from '../utils/resolveApiBase'
 import { getAuthToken } from '../utils/tokenStore'
-import { X, Volume2, VolumeX, Send, Eye, Trash2, ChevronLeft, ChevronRight, Pause, Play, Forward, Download, Smile, Share2, Link2, Copy, Check } from 'lucide-react'
+import { X, Volume2, VolumeX, Send, Eye, Trash2, ChevronLeft, ChevronRight, Pause, Play, Forward, Download, Smile, Share2, Link2, Copy, Check, Music } from 'lucide-react'
 import ReactPlayer from 'react-player'
 import ForwardDialog from './ForwardDialog'
 import './StatusViewer.css'
@@ -296,17 +296,37 @@ const StatusViewer = ({ user, initialIndex = 0, onClose }) => {
         )}
 
         {currentStatus.type === 'video' && (
-          <ReactPlayer
-            url={currentStatus.content}
-            playing={!isPaused}
-            muted={isMuted}
-            loop={false}
-            width="100%"
-            height="100%"
-            onDuration={d => setDuration(d * 1000)}
-            onEnded={goNext}
-            style={{ objectFit: 'cover' }}
-          />
+          <>
+            <ReactPlayer
+              url={currentStatus.content}
+              playing={!isPaused}
+              muted={isMuted}
+              loop={false}
+              width="100%"
+              height="100%"
+              onDuration={d => setDuration(d * 1000)}
+              onEnded={goNext}
+              style={{ objectFit: 'cover' }}
+            />
+            {/* Background music player */}
+            {currentStatus.music?.file && (
+              <audio
+                src={currentStatus.music.file}
+                autoPlay={!isPaused}
+                loop={false}
+                muted={isMuted}
+                onEnded={goNext}
+              />
+            )}
+          </>
+        )}
+
+        {/* Music Tag */}
+        {currentStatus.music && (
+          <div className="music-tag">
+            <Music size={14} />
+            <span>{currentStatus.music.title || 'Music'}</span>
+          </div>
         )}
 
         {/* Pause Indicator */}

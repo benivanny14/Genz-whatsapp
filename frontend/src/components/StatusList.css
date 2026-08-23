@@ -315,3 +315,22 @@
 .status-remaining-time svg {
   opacity: 0.8;
 }
+
+/* Status Thumbnail */
+.status-thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.text-thumbnail {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 10px;
+  text-align: center;
+  padding: 4px;
+  border-radius: 50%;
+}

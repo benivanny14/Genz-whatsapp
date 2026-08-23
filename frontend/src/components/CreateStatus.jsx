@@ -150,7 +150,7 @@ const CreateStatus = ({ onClose }) => {
     }
 
     const formData = new FormData()
-    formData.append(mode, finalFile)
+    formData.append('file', finalFile)
     formData.append('caption', caption)
     formData.append('duration', trimEnd - trimStart)
     
@@ -163,7 +163,7 @@ const CreateStatus = ({ onClose }) => {
       }))
     }
 
-    await createMediaStatus(formData, mode)
+    await createMediaStatus(formData)
     onClose()
   }
 

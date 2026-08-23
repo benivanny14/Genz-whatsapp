@@ -87,15 +87,18 @@ const StatusProvider = ({ children }) => {
       const uploadData = await uploadRes.json();
       if (!uploadData.success) throw new Error('Upload failed');
 
+      const file = formData.get('file');
+      const type = file?.type?.startsWith('image/') ? 'image' : 'video';
+
       const res = await fetch(`${API_BASE()}/status`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({
-          type: formData.get('image') ? 'image' : 'video',
+          type,
           content: uploadData.fileUrl,
           caption: formData.get('caption') || '',
           music: formData.get('music') ? JSON.parse(formData.get('music')) : undefined,
-          duration: formData.get('duration') || 0
+          duration: Number(formData.get('duration')) || 0
         })
       });
       const data = await res.json();

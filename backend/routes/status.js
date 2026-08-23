@@ -330,6 +330,35 @@ router.get('/:id/reactions', protect, async (req, res) => {
   }
 });
 
+// ============ REPLY TO STATUS ============
+router.post('/:id/reply', protect, async (req, res) => {
+  try {
+    const { message } = req.body;
+    if (!message?.trim()) {
+      return res.status(400).json({ success: false, message: 'Message is required' });
+    }
+
+    const status = await Status.findById(req.params.id);
+    if (!status) {
+      return res.status(404).json({ success: false, message: 'Status not found' });
+    }
+
+    if (!status.replies) status.replies = [];
+    status.replies.push({
+      senderId: req.user._id,
+      message: message.trim(),
+      createdAt: new Date()
+    });
+
+    await status.save();
+
+    res.json({ success: true, reply: status.replies[status.replies.length - 1] });
+  } catch (error) {
+    console.error('Reply error:', error);
+    res.status(500).json({ success: false, message: 'Failed to reply' });
+  }
+});
+
 // ============ UPLOAD MEDIA ============
 router.post('/upload', protect, upload.single('file'), async (req, res) => {
   try {

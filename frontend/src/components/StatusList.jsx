@@ -151,7 +151,25 @@ const StatusList = ({ onViewArchive }) => {
           : setShowCreate(true)
         }>
           <div className="my-status-avatar">
-            <img src={currentUser?.profilePicture || '/default-avatar.png'} alt="" />
+            {groupedStatuses.myStatus.length > 0 && groupedStatuses.myStatus[0].statuses[0] ? (
+              <>
+                {groupedStatuses.myStatus[0].statuses[0].type === 'image' && (
+                  <img src={groupedStatuses.myStatus[0].statuses[0].content} alt="My status" className="status-thumbnail" />
+                )}
+                {groupedStatuses.myStatus[0].statuses[0].type === 'video' && (
+                  <video src={groupedStatuses.myStatus[0].statuses[0].content} className="status-thumbnail" muted />
+                )}
+                {groupedStatuses.myStatus[0].statuses[0].type === 'text' && (
+                  <div className="status-thumbnail text-thumbnail" style={{ 
+                    background: groupedStatuses.myStatus[0].statuses[0].textStatus?.backgroundColor || '#128C7E' 
+                  }}>
+                    <span>{groupedStatuses.myStatus[0].statuses[0].textStatus?.text?.substring(0, 20)}...</span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <img src={currentUser?.profilePicture || '/default-avatar.png'} alt="" />
+            )}
             <div className="add-status-badge" onClick={(e) => { e.stopPropagation(); setShowCreate(true) }}>
               <Plus size={14} />
             </div>

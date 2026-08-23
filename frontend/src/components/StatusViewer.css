@@ -412,3 +412,20 @@
 .share-close-btn:hover {
   background: #00c49a;
 }
+
+/* Music Tag */
+.music-tag {
+  position: absolute;
+  bottom: 80px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(4px);
+  padding: 6px 12px;
+  border-radius: 20px;
+  color: #fff;
+  font-size: 12px;
+  z-index: 10;
+}

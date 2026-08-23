@@ -1,0 +1,269 @@
+/* StatusReel.css */
+.status-reel-overlay {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-reel-container {
+  width: 100%;
+  max-width: 400px;
+  height: 100vh;
+  position: relative;
+  background: #000;
+}
+
+.reel-progress-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  z-index: 10;
+}
+
+.reel-progress-segment {
+  flex: 1;
+  height: 3px;
+  background: rgba(255,255,255,0.3);
+  border-radius: 2px;
+}
+
+.reel-progress-fill {
+  height: 100%;
+  background: #fff;
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+.reel-header {
+  position: absolute;
+  top: 20px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  z-index: 10;
+}
+
+.reel-header img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}
+
+.reel-header div {
+  flex: 1;
+}
+
+.reel-header h4 {
+  color: #fff;
+  font-size: 14px;
+  margin: 0;
+}
+
+.reel-header span {
+  color: rgba(255,255,255,0.7);
+  font-size: 12px;
+}
+
+.reel-header button {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 8px;
+}
+
+.reel-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reel-media {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.reel-text {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+  color: #fff;
+}
+
+.reel-text h1 {
+  font-size: 28px;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.reel-music-tag,
+.reel-location-tag {
+  position: absolute;
+  bottom: 100px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #fff;
+  font-size: 12px;
+  background: rgba(0,0,0,0.5);
+  padding: 6px 12px;
+  border-radius: 20px;
+  z-index: 10;
+}
+
+.reel-caption {
+  position: absolute;
+  bottom: 140px;
+  left: 16px;
+  right: 80px;
+  color: #fff;
+  font-size: 14px;
+  background: rgba(0,0,0,0.5);
+  padding: 8px;
+  border-radius: 8px;
+  z-index: 10;
+}
+
+.reel-actions {
+  position: absolute;
+  right: 16px;
+  bottom: 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  z-index: 10;
+}
+
+.reel-actions button {
+  background: none;
+  border: none;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.reel-nav {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 30%;
+  z-index: 5;
+  cursor: pointer;
+}
+
+.reel-nav.left { left: 0; }
+.reel-nav.right { right: 0; }
+
+/* Comment Modal */
+.reel-comment-modal {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #1f2c34;
+  padding: 16px;
+  border-radius: 12px 12px 0 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reel-comment-modal h3 {
+  color: #e9edef;
+  font-size: 16px;
+  margin: 0;
+}
+
+.reel-comment-modal input {
+  background: #0b141a;
+  border: 1px solid #374045;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #e9edef;
+  font-size: 14px;
+  outline: none;
+}
+
+.reel-comment-modal input:focus {
+  border-color: #00a884;
+}
+
+.reel-comment-modal button {
+  background: #00a884;
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.reel-comment-modal button:hover {
+  background: #00c49a;
+}
+
+/* Actions Menu */
+.reel-actions-menu {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #1f2c34;
+  padding: 16px;
+  border-radius: 12px 12px 0 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reel-actions-menu button {
+  background: none;
+  border: none;
+  color: #e9edef;
+  padding: 12px;
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.reel-actions-menu button:hover {
+  background: #374045;
+}
+
+.reel-actions-menu button:last-child {
+  color: #8696a0;
+  text-align: center;
+  border-top: 1px solid #374045;
+  margin-top: 4px;
+  padding-top: 12px;
+}
