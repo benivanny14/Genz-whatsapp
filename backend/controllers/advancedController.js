@@ -396,7 +396,7 @@ exports.createStatus = async (req, res) => {
     try {
       const currentUser = await User.findById(currentUserId).select('statusFeaturesSettings settings');
       const configured = Number(currentUser?.statusFeaturesSettings?.statusDuration);
-      if (Number.isFinite(configured) && configured >= 24 && configured <= 168) {
+      if (Number.isFinite(configured) && configured >= 24 && configured <= 24) {
         statusHours = configured;
       }
       const savedPrivacy = currentUser?.settings?.privacy?.status;
@@ -1863,6 +1863,26 @@ exports.translateMessage = async (req, res) => {
       targetLanguage: target
     });
   } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Force cleanup all expired statuses immediately
+// @route   POST /api/advanced/status/cleanup
+// @access  Private (admin or any authenticated user)
+exports.cleanupExpiredStatuses = async (req, res) => {
+  try {
+    const result = await Status.deleteMany({
+      expiresAt: { $lte: new Date() }
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Cleaned up ${result.deletedCount} expired statuses`,
+      deletedCount: result.deletedCount
+    });
+  } catch (error) {
+    console.error('Error cleaning up expired statuses:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

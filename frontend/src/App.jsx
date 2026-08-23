@@ -30,7 +30,6 @@ const Settings = lazy(() => import('./pages/Settings'));
 const NewChat = lazy(() => import('./pages/NewChat'));
 const NewGroup = lazy(() => import('./pages/NewGroup'));
 const Status = lazy(() => import('./pages/Status'));
-const SharedStatusView = lazy(() => import('./pages/SharedStatusView'));
 const Broadcast = lazy(() => import('./pages/Broadcast'));
 const Starred = lazy(() => import('./pages/Starred'));
 const Archived = lazy(() => import('./pages/Archived'));
@@ -495,8 +494,6 @@ function App() {
             <Route path="/new-chat" element={<ProtectedRoute><NewChat /></ProtectedRoute>} />
             <Route path="/new-group" element={<ProtectedRoute><NewGroup /></ProtectedRoute>} />
             <Route path="/status" element={<ProtectedRoute><Status /></ProtectedRoute>} />
-            {/* Public shared-status view (QR code / share links) — no login required */}
-            <Route path="/status/:statusId" element={<SharedStatusView />} />
             <Route path="/broadcast" element={<ProtectedRoute><Broadcasts /></ProtectedRoute>} />
             <Route path="/broadcast/simple" element={<ProtectedRoute><Broadcast /></ProtectedRoute>} />
             <Route path="/linked-devices" element={<ProtectedRoute><LinkedDevices /></ProtectedRoute>} />

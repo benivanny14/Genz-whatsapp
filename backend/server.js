@@ -831,7 +831,7 @@ const productRoutes = require('./routes/productRoutes');
 const scheduledMessageRoutes = require('./routes/scheduledMessageRoutes');
 const stickerRoutes = require('./routes/stickerRoutes');
 const statusRoutes = require('./routes/status');
-const statusAdvancedRoutes = require('./routes/status-advanced');
+
 const paymentRoutes = require('./routes/paymentRoutes');
 const paymentFeaturesRoutes = require('./routes/payment-features');
 const settingsRoutes = require('./routes/settingsRoutes');
@@ -868,9 +868,8 @@ const mediaCompressorRoutes = require('./routes/media-compressor');
 const mediaEditorRoutes = require('./routes/media-editor');
 const multiAccountsRoutes = require('./routes/multi-accounts');
 const quickActionsRoutes = require('./routes/quick-actions');
-const statusFeaturesRoutes = require('./routes/status-features');
+
 const storageManagerRoutes = require('./routes/storage-manager');
-const storyHighlightsRoutes = require('./routes/story-highlights');
 const textRepeaterRoutes = require('./routes/text-repeater');
 const themeEngineRoutes = require('./routes/theme-engine');
 const whatsappWebRoutes = require('./routes/whatsapp-web');
@@ -915,7 +914,7 @@ const API_ROUTE_MOUNTS = [
   ['/products', productRoutes],
   ['/scheduled-messages', scheduledMessageRoutes],
   ['/status', statusRoutes],
-  ['/status-advanced', statusAdvancedRoutes],
+
   ['/payment-features', paymentFeaturesRoutes],
   ['/channels', channelRoutes],
   // Newly-wired feature routes (previously orphaned controllers)
@@ -937,9 +936,8 @@ const API_ROUTE_MOUNTS = [
   ['/media-editor', mediaEditorRoutes],
   ['/multi-accounts', multiAccountsRoutes],
   ['/quick-actions', quickActionsRoutes],
-  ['/status-features', statusFeaturesRoutes],
+
   ['/storage-manager', storageManagerRoutes],
-  ['/story-highlights', storyHighlightsRoutes],
   ['/text-repeater', textRepeaterRoutes],
   ['/theme-engine', themeEngineRoutes],
   ['/whatsapp-web', whatsappWebRoutes],

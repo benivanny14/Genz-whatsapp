@@ -12,7 +12,7 @@ import ContactManager from '../components/ContactManager';
 import { fetchVersionManifest } from '../utils/versionManifest';
 import { BlockedUsersList } from '../components/BlockUnblock';
 import AntiBanPanel from '../components/AntiBanPanel';
-import StatusPrivacyPanel from '../components/StatusPrivacyPanel';
+import StatusPrivacy from '../components/StatusPrivacy';
 import StorageManagement from '../components/StorageManagement';
 import AccountSwitcher from '../components/AccountSwitcher';
 import PrivacyPermissionSelector from '../components/PrivacyPermissionSelector';
@@ -1225,7 +1225,7 @@ const Settings = () => {
         </div>
       )}
       {showAntiBanPanel && <AntiBanPanel onClose={() => setShowAntiBanPanel(false)} />}
-      {showStatusPrivacyPanel && <StatusPrivacyPanel onClose={() => setShowStatusPrivacyPanel(false)} />}
+      {showStatusPrivacyPanel && <StatusPrivacy onClose={() => setShowStatusPrivacyPanel(false)} />}
       {showStorage && <StorageManagement onClose={() => setShowStorage(false)} />}
 
       {showLocationSharing && <LocationSharingPanel onClose={() => setShowLocationSharing(false)} />}

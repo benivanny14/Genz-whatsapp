@@ -1,0 +1,263 @@
+.status-viewer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.viewer-top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  padding: 12px 16px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
+}
+
+.progress-bars {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.progress-bar-container {
+  flex: 1;
+  height: 3px;
+  background: rgba(255,255,255,0.3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: #fff;
+  border-radius: 2px;
+}
+
+.viewer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.viewer-user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.viewer-user-info img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.viewer-user-info h4 {
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.viewer-user-info span {
+  color: rgba(255,255,255,0.7);
+  font-size: 12px;
+}
+
+.viewer-actions {
+  display: flex;
+  gap: 16px;
+}
+
+.viewer-actions button {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+}
+
+.viewer-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.text-status-display {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+}
+
+.text-status-display h1 {
+  font-size: 28px;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.status-media {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.pause-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: rgba(255,255,255,0.8);
+  background: rgba(0,0,0,0.4);
+  border-radius: 50%;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-area {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 30%;
+  z-index: 5;
+}
+
+.nav-area.left { left: 0; }
+.nav-area.right { right: 0; }
+
+.viewer-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px;
+  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.view-count-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.reply-input-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: rgba(255,255,255,0.15);
+  border-radius: 24px;
+  padding: 4px 4px 4px 16px;
+}
+
+.reply-input-container input {
+  flex: 1;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 15px;
+  outline: none;
+}
+
+.reply-input-container input::placeholder {
+  color: rgba(255,255,255,0.6);
+}
+
+.reply-input-container button {
+  background: #00a884;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  cursor: pointer;
+}
+
+.delete-btn {
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: #ff4444;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.viewers-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+}
+
+.viewers-content {
+  width: 100%;
+  max-height: 60%;
+  background: #1f2c34;
+  border-radius: 20px 20px 0 0;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.viewers-content h3 {
+  color: #fff;
+  margin-bottom: 16px;
+  font-size: 16px;
+}
+
+.viewer-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #374045;
+}
+
+.viewer-item img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.viewer-item span {
+  flex: 1;
+  color: #e9edef;
+  font-size: 15px;
+}
+
+.viewer-item small {
+  color: #8696a0;
+  font-size: 12px;
+}

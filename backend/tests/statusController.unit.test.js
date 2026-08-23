@@ -165,12 +165,12 @@ describe('statusController — createStatus', () => {
 
   it('uses the configured status duration when valid (happy path)', async () => {
     Status.create.mockResolvedValue(makeStatus());
-    User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ statusFeaturesSettings: { statusDuration: 72 } }) });
+    User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ statusFeaturesSettings: { statusDuration: 24 } }) });
     Status.findById.mockReturnValue({ populate: jest.fn().mockResolvedValue(makeStatus()) });
     const res = makeRes();
     await statusCtrl.createStatus(makeReq({ body: { type: 'text', content: 'x' } }), res);
     const expiresAt = Status.create.mock.calls[0][0].expiresAt;
-    expect(expiresAt.getTime()).toBeGreaterThan(Date.now() + 71 * 3600000);
+    expect(expiresAt.getTime()).toBeGreaterThan(Date.now() + 23 * 3600000);
   });
 
   it('normalizes latitude/longitude location payloads', async () => {

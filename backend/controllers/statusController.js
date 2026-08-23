@@ -40,7 +40,7 @@ exports.createStatus = async (req, res) => {
     try {
       const currentUser = await User.findById(userId).select('statusFeaturesSettings');
       const configured = Number(currentUser?.statusFeaturesSettings?.statusDuration);
-      if (Number.isFinite(configured) && configured >= 24 && configured <= 168) {
+      if (Number.isFinite(configured) && configured >= 24 && configured <= 24) {
         statusHours = configured;
       }
     } catch (e) {
@@ -416,6 +416,143 @@ exports.uploadCollageImages = async (req, res) => {
       imageUrls: imageUrls
     });
   } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// GET /api/status/my-status - Get current user's own statuses
+exports.getMyStatus = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const statuses = await Status.find({
+      userId,
+      expiresAt: { $gt: new Date() }
+    })
+      .populate('userId', 'username profilePicture')
+      .sort({ createdAt: -1 });
+
+    const totalViews = statuses.reduce((sum, s) => sum + (s.viewCount || s.views?.length || 0), 0);
+
+    res.json({
+      statuses,
+      totalViews,
+      count: statuses.length
+    });
+  } catch (err) {
+    console.error('Get my status error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// GET /api/status/feed - Get statuses feed grouped by user (WhatsApp-style)
+exports.getFeed = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId).select('contacts');
+    const contactIds = (user.contacts || []).map(c => c.user || c._id);
+
+    const statuses = await Status.find({
+      userId: { $in: [...contactIds, userId] },
+      expiresAt: { $gt: new Date() }
+    })
+      .populate('userId', 'username profilePicture')
+      .sort({ createdAt: -1 })
+      .limit(100);
+
+    // Group by user
+    const userMap = new Map();
+    statuses.forEach(status => {
+      const uid = String(status.userId?._id || status.userId);
+      if (!uid) return;
+
+      const isViewed = status.views?.some(v => String(v.userId) === String(userId));
+
+      if (!userMap.has(uid)) {
+        userMap.set(uid, {
+          user: {
+            _id: uid,
+            username: status.userId?.username || 'Unknown',
+            profilePic: status.userId?.profilePicture || ''
+          },
+          statuses: [],
+          hasUnviewed: false
+        });
+      }
+
+      const group = userMap.get(uid);
+      group.statuses.push(status);
+      if (!isViewed) group.hasUnviewed = true;
+    });
+
+    const result = Array.from(userMap.values());
+
+    // Sort: unviewed first, then by most recent
+    result.sort((a, b) => {
+      if (a.hasUnviewed !== b.hasUnviewed) return b.hasUnviewed ? 1 : -1;
+      const ta = new Date(a.statuses[0]?.createdAt || 0);
+      const tb = new Date(b.statuses[0]?.createdAt || 0);
+      return tb - ta;
+    });
+
+    res.json(result);
+  } catch (err) {
+    console.error('Get feed error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// GET /api/status/archive - Get archived statuses
+exports.getArchived = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const statuses = await Status.find({
+      userId,
+      archived: true
+    })
+      .populate('userId', 'username profilePicture')
+      .sort({ createdAt: -1 });
+
+    res.json({ archived: statuses });
+  } catch (err) {
+    console.error('Get archived error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// POST /api/status/archive/:id - Archive a status
+exports.archiveStatus = async (req, res) => {
+  try {
+    const status = await Status.findById(req.params.id);
+    if (!status) {
+      return res.status(404).json({ success: false, message: 'Status not found' });
+    }
+    if (String(status.userId) !== String(req.user._id)) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    status.archived = true;
+    await status.save();
+    res.json({ success: true, message: 'Status archived' });
+  } catch (err) {
+    console.error('Archive status error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// POST /api/status/unarchive/:id - Unarchive a status
+exports.unarchiveStatus = async (req, res) => {
+  try {
+    const status = await Status.findById(req.params.id);
+    if (!status) {
+      return res.status(404).json({ success: false, message: 'Status not found' });
+    }
+    if (String(status.userId) !== String(req.user._id)) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    status.archived = false;
+    await status.save();
+    res.json({ success: true, message: 'Status unarchived' });
+  } catch (err) {
+    console.error('Unarchive status error:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 };

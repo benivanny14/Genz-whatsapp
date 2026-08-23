@@ -41,6 +41,7 @@ const {
   getStatusStats,
   aiAssistant,
   translateMessage,
+  cleanupExpiredStatuses,
 } = require('../controllers/advancedController');
 
 router.use(protect);
@@ -59,6 +60,7 @@ router.post('/status', createStatus);
 router.post('/status/upload', upload.single('file'), validateFileContent, uploadStatusMedia);
 router.get('/status/reel', getStatusReel);
 router.get('/status/stats', getStatusStats);
+router.post('/status/cleanup', cleanupExpiredStatuses);
 router.get('/status', getStatuses);
 router.get('/status/:id', getStatusDetails);
 router.get('/status/:id/replies', getStatusReplies);

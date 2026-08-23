@@ -1,0 +1,124 @@
+.privacy-overlay {
+  position: fixed;
+  inset: 0;
+  background: #111b21;
+  z-index: 1000;
+}
+
+.privacy-container {
+  max-width: 600px;
+  margin: 0 auto;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.privacy-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: #1f2c34;
+  position: sticky;
+  top: 0;
+}
+
+.privacy-header h3 {
+  color: #e9edef;
+  font-size: 18px;
+}
+
+.privacy-header button {
+  background: none;
+  border: none;
+  color: #8696a0;
+  cursor: pointer;
+}
+
+.save-btn {
+  color: #00a884 !important;
+  font-weight: 600;
+}
+
+.privacy-options {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.privacy-option {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: #1f2c34;
+  border-radius: 12px;
+  cursor: pointer;
+  color: #e9edef;
+  border: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.privacy-option.selected {
+  border-color: #00a884;
+  background: #0a332c;
+}
+
+.privacy-option input {
+  margin-left: auto;
+  accent-color: #00a884;
+  width: 20px;
+  height: 20px;
+}
+
+.privacy-option div {
+  flex: 1;
+}
+
+.privacy-option span {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.privacy-option small {
+  color: #8696a0;
+  font-size: 13px;
+}
+
+.contacts-list {
+  padding: 16px;
+}
+
+.contacts-list h4 {
+  color: #00a884;
+  font-size: 14px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.contact-item:hover {
+  background: #2a3942;
+}
+
+.contact-item img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.contact-item span {
+  flex: 1;
+  color: #e9edef;
+}
