@@ -583,7 +583,18 @@ app.use(helmet({
 }));
 
 // Compression middleware for performance
-app.use(compression());
+app.use(compression({
+  filter: (req, res) => {
+    // SECURITY: never compress binary downloads — gzip-encoding an APK
+    // causes Android to save it as .zip instead of .apk. The explicit
+    // writeHead in the /genz-whatsapp.apk route sets
+    // Content-Type: application/vnd.android.package-archive, but if the
+    // compression stream wraps the response it can re-add
+    // Content-Encoding: gzip and corrupt the download.
+    if (req.path && req.path.endsWith('.apk')) return false;
+    return compression.filter(req, res);
+  }
+}));
 
 // Rate limiting for API endpoints
 const apiLimiter = rateLimit({
@@ -1118,6 +1129,7 @@ if (fs.existsSync(frontendIndexPath)) {
     res.writeHead(200, {
       'Content-Type': 'application/vnd.android.package-archive',
       'Content-Disposition': 'attachment; filename="genz-whatsapp.apk"',
+      'Content-Encoding': 'identity',
       'Cache-Control': 'public, max-age=3600',
       'Content-Length': stat.size,
       'X-Content-Type-Options': 'nosniff',
