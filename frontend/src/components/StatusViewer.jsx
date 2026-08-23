@@ -3,8 +3,9 @@ import { useStatusContext } from '../context/StatusContext'
 import { getSocket } from '../services/socket'
 import { resolveApiBase } from '../utils/resolveApiBase'
 import { getAuthToken } from '../utils/tokenStore'
-import { X, Volume2, VolumeX, Send, Eye, Trash2, ChevronLeft, ChevronRight, Pause, Play, Forward, Download, Smile } from 'lucide-react'
+import { X, Volume2, VolumeX, Send, Eye, Trash2, ChevronLeft, ChevronRight, Pause, Play, Forward, Download, Smile, Share2, Link2, Copy, Check } from 'lucide-react'
 import ReactPlayer from 'react-player'
+import ForwardDialog from './ForwardDialog'
 import './StatusViewer.css'
 
 // Format remaining time as "Xh Ym" or "Ym" or "<1m"
@@ -36,6 +37,10 @@ const StatusViewer = ({ user, initialIndex = 0, onClose }) => {
   const [remainingTime, setRemainingTime] = useState('')
   const [showReactions, setShowReactions] = useState(false)
   const [showForward, setShowForward] = useState(false)
+  const [shareLoading, setShareLoading] = useState(false)
+  const [shareLink, setShareLink] = useState('')
+  const [copied, setCopied] = useState(false)
+  const [showSharePanel, setShowSharePanel] = useState(false)
   const progressRef = useRef(null)
   const containerRef = useRef(null)
   const touchStartX = useRef(0)
@@ -153,6 +158,63 @@ const StatusViewer = ({ user, initialIndex = 0, onClose }) => {
       console.error('React error:', err)
     }
     setShowReactions(false)
+  }
+
+  // Generate share token/link
+  const handleShare = async () => {
+    if (!isOwner || !currentStatus?._id) return
+    setShareLoading(true)
+    try {
+      const token = getAuthToken()
+      const res = await fetch(`${resolveApiBase()}/status/${currentStatus._id}/share-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+      })
+      const data = await res.json()
+      if (data.shareUrl) {
+        setShareLink(data.shareUrl)
+        setShowSharePanel(true)
+      }
+    } catch (err) {
+      console.error('Share error:', err)
+    } finally {
+      setShareLoading(false)
+    }
+  }
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareLink)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      // Fallback
+      const input = document.createElement('input')
+      input.value = shareLink
+      document.body.appendChild(input)
+      input.select()
+      document.execCommand('copy')
+      document.body.removeChild(input)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const handleNativeShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${currentStatus.userId?.username}'s Status`,
+          text: currentStatus.textStatus?.text || 'Check out this status',
+          url: shareLink
+        })
+      } catch (err) {
+        // User cancelled
+      }
+    }
   }
 
   const QUICK_REACTIONS = ['❤️', '😂', '😮', '😢', '🙏', '🔥']
@@ -288,6 +350,18 @@ const StatusViewer = ({ user, initialIndex = 0, onClose }) => {
           </button>
         )}
 
+        {/* Forward button — available to everyone */}
+        <button className="action-btn" onClick={() => setShowForward(true)} title="Forward">
+          <Forward size={20} />
+        </button>
+
+        {/* Share link button — owner only */}
+        {isOwner && (
+          <button className="action-btn" onClick={handleShare} title="Share link" disabled={shareLoading}>
+            <Share2 size={20} />
+          </button>
+        )}
+
         <button className="action-btn" onClick={() => setShowReactions(!showReactions)} title="React">
           <Smile size={20} />
         </button>
@@ -327,6 +401,42 @@ const StatusViewer = ({ user, initialIndex = 0, onClose }) => {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Share Link Panel */}
+      {showSharePanel && (
+        <div className="share-panel" onClick={() => setShowSharePanel(false)}>
+          <div className="share-panel-content" onClick={e => e.stopPropagation()}>
+            <h3>Share Status Link</h3>
+            <p className="share-panel-desc">Anyone with this link can view this status for 24 hours.</p>
+            <div className="share-link-row">
+              <input type="text" readOnly value={shareLink} className="share-link-input" />
+              <button className="share-copy-btn" onClick={handleCopyLink}>
+                {copied ? <Check size={18} /> : <Copy size={18} />}
+              </button>
+            </div>
+            <div className="share-actions">
+              {navigator.share && (
+                <button className="share-native-btn" onClick={handleNativeShare}>
+                  Share via...
+                </button>
+              )}
+              <button className="share-close-btn" onClick={() => setShowSharePanel(false)}>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Forward Dialog */}
+      {showForward && (
+        <ForwardDialog
+          messageId={currentStatus._id}
+          messageContent={currentStatus.textStatus?.text || currentStatus.caption || '[Status]'}
+          conversationId={null}
+          isStatusForward={true}
+          statusData={currentStatus}
+          onClose={() => setShowForward(false)}
+        />
       )}
     </div>
   )

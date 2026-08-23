@@ -307,3 +307,108 @@
   color: #8696a0;
   font-size: 12px;
 }
+
+/* Share Link Panel */
+.share-panel {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 20px;
+}
+
+.share-panel-content {
+  background: #1f2c34;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 420px;
+  width: 100%;
+}
+
+.share-panel-content h3 {
+  color: #e9edef;
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.share-panel-desc {
+  color: #8696a0;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.share-link-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.share-link-input {
+  flex: 1;
+  background: #0b141a;
+  border: 1px solid #374045;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #e9edef;
+  font-size: 13px;
+  outline: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.share-copy-btn {
+  background: #00a884;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.share-copy-btn:hover {
+  background: #00c49a;
+}
+
+.share-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.share-native-btn {
+  background: #374045;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  color: #e9edef;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.share-native-btn:hover {
+  background: #4a5568;
+}
+
+.share-close-btn {
+  background: #00a884;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 20px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.share-close-btn:hover {
+  background: #00c49a;
+}

@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { useChat } from '../context/ChatContext';
 import { X as FiX, Check as FiCheck } from 'lucide-react';
 
-const ForwardDialog = ({ messageId, messageContent, conversationId, onClose }) => {
+const ForwardDialog = ({ messageId, messageContent, conversationId, onClose, isStatusForward, statusData }) => {
   const [selectedChats, setSelectedChats] = useState(new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const { conversations, forwardMessage } = useChat();
+  const { conversations, forwardMessage, sendMessage } = useChat();
 
   // Filter out current conversation and get available chats
   const availableChats = conversations.filter(conv => conv._id !== conversationId);
@@ -33,18 +33,42 @@ const ForwardDialog = ({ messageId, messageContent, conversationId, onClose }) =
     setLoading(true);
     setError('');
     try {
-      const response = await forwardMessage(messageId, Array.from(selectedChats));
-      if (response.success) {
+      let response;
+
+      if (isStatusForward && statusData) {
+        // Forward status as message to each selected chat
+        const statusText = statusData.textStatus?.text || statusData.caption || 'Check out this status';
+        const statusMedia = statusData.content;
+        const username = statusData.userId?.username || 'Someone';
+        let allSuccess = true;
+
+        for (const convId of Array.from(selectedChats)) {
+          const fwdContent = statusMedia && statusData.type !== 'text'
+            ? statusMedia
+            : `*${username}'s Status:*\n${statusText}`;
+          const senderName = username;
+          const result = await sendMessage(fwdContent, senderName, {
+            isForwarded: true,
+            targetConversationId: convId
+          });
+          if (!result?.success) allSuccess = false;
+        }
+        response = { success: allSuccess };
+      } else {
+        response = await forwardMessage(messageId, Array.from(selectedChats));
+      }
+
+      if (response?.success) {
         setSuccess(true);
         setTimeout(() => {
           onClose?.();
         }, 1500);
       } else {
-        setError(response.message || 'Failed to forward message');
+        setError(response?.message || 'Failed to forward');
       }
     } catch (err) {
       console.error('Forward error:', err);
-      setError('Failed to forward message');
+      setError('Failed to forward');
     } finally {
       setLoading(false);
     }
@@ -71,9 +95,29 @@ const ForwardDialog = ({ messageId, messageContent, conversationId, onClose }) =
           <div className="p-4 border-b border-gray-700">
             <p className="text-gray-400 text-xs mb-2">Message to forward:</p>
             <div className="bg-gray-700 rounded p-3">
-              <p className="text-white text-sm truncate">
-                {messageContent || '[Media]'}
-              </p>
+              {isStatusForward && statusData?.type === 'image' && statusData?.content && (
+                <img src={statusData.content} alt="" className="w-full h-32 object-cover rounded mb-2" />
+              )}
+              {isStatusForward && statusData?.type === 'video' && statusData?.content && (
+                <video src={statusData.content} className="w-full h-32 object-cover rounded mb-2" muted />
+              )}
+              {isStatusForward && statusData?.type === 'text' && (
+                <div className="rounded p-3 mb-2" style={{ backgroundColor: statusData.textStatus?.backgroundColor || '#128C7E' }}>
+                  <p className="text-white text-sm" style={{ color: statusData.textStatus?.fontColor }}>
+                    {statusData.textStatus?.text}
+                  </p>
+                </div>
+              )}
+              {!isStatusForward && (
+                <p className="text-white text-sm truncate">
+                  {messageContent || '[Media]'}
+                </p>
+              )}
+              {isStatusForward && (
+                <p className="text-gray-400 text-xs mt-1">
+                  Forwarded status from {statusData?.userId?.username || 'someone'}
+                </p>
+              )}
             </div>
           </div>
 

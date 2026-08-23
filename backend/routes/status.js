@@ -578,6 +578,81 @@ router.post('/:id/poll/vote', protect, async (req, res) => {
   }
 });
 
+// ============ SHARE TOKEN & PUBLIC SHARE VIEW ============
+const { createShareToken, verifyShareToken } = require('../utils/statusShareToken');
+const mongoose = require('mongoose');
+
+// PUBLIC: View a shared status via share token (no auth required)
+router.get('/shared/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({ success: false, message: 'Status not found' });
+    }
+    const status = await Status.findById(id)
+      .populate('userId', 'username profilePicture');
+    if (!status) {
+      return res.status(404).json({ success: false, message: 'Status not found' });
+    }
+    // Expired?
+    if (status.expiresAt && new Date(status.expiresAt).getTime() <= Date.now()) {
+      return res.status(410).json({ success: false, message: 'Status has expired' });
+    }
+    // Archived?
+    if (status.archived) {
+      return res.status(410).json({ success: false, message: 'Status is no longer available' });
+    }
+    // Verify share token
+    const shareToken = verifyShareToken(req.query.share || req.query.token);
+    const hasValidToken = Boolean(shareToken) && String(shareToken.statusId) === String(status._id);
+    if (!hasValidToken) {
+      return res.status(403).json({ success: false, message: 'Invalid or expired share link' });
+    }
+    // Return minimal status data (no viewer/privacy leaks)
+    res.json({
+      success: true,
+      status: {
+        _id: status._id,
+        type: status.type,
+        content: status.content,
+        textStatus: status.textStatus,
+        caption: status.caption,
+        username: status.userId?.username || 'Someone',
+        profilePicture: status.userId?.profilePicture || '',
+        createdAt: status.createdAt,
+        expiresAt: status.expiresAt
+      }
+    });
+  } catch (err) {
+    console.error('Shared status view error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Generate share token (owner only)
+router.post('/:id/share-token', protect, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({ success: false, message: 'Status not found' });
+    }
+    const status = await Status.findById(id);
+    if (!status) {
+      return res.status(404).json({ success: false, message: 'Status not found' });
+    }
+    if (String(status.userId) !== String(req.user._id)) {
+      return res.status(403).json({ success: false, message: 'Only the owner can generate a share link' });
+    }
+    const token = createShareToken(status._id);
+    const baseUrl = process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`;
+    const shareUrl = `${baseUrl}/status/shared/${status._id}?share=${token}`;
+    res.json({ success: true, token, shareUrl });
+  } catch (err) {
+    console.error('Share token error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ============ FORWARD STATUS ============
 router.post('/:id/forward', protect, async (req, res) => {
   try {

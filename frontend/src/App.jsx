@@ -28,6 +28,7 @@ import { authenticateWithBiometric } from './services/capacitorBridge';
 const Chat = lazy(() => import('./pages/Chat'));
 const Settings = lazy(() => import('./pages/Settings'));
 const NewChat = lazy(() => import('./pages/NewChat'));
+const SharedStatus = lazy(() => import('./components/SharedStatus'));
 const NewGroup = lazy(() => import('./pages/NewGroup'));
 const Status = lazy(() => import('./pages/Status'));
 const Broadcast = lazy(() => import('./pages/Broadcast'));
@@ -493,6 +494,7 @@ function App() {
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/new-chat" element={<ProtectedRoute><NewChat /></ProtectedRoute>} />
             <Route path="/new-group" element={<ProtectedRoute><NewGroup /></ProtectedRoute>} />
+            <Route path="/status/shared/:id" element={<SharedStatus />} />
             <Route path="/status" element={<ProtectedRoute><Status /></ProtectedRoute>} />
             <Route path="/broadcast" element={<ProtectedRoute><Broadcasts /></ProtectedRoute>} />
             <Route path="/broadcast/simple" element={<ProtectedRoute><Broadcast /></ProtectedRoute>} />
