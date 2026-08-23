@@ -1,48 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import EmojiPicker, { Theme, EmojiStyle } from 'emoji-picker-react';
-import { Smile, Square, Search, Clock } from 'lucide-react';
-
-const STICKER_PACKS = [
-  {
-    id: 'trending',
-    name: '🔥 Trending',
-    description: 'Popular stickers right now',
-    stickers: [
-      'https://cdn-icons-png.flaticon.com/512/3532/3532827.png',
-      'https://cdn-icons-png.flaticon.com/512/4457/4457090.png',
-      'https://cdn-icons-png.flaticon.com/512/2584/2584606.png',
-      'https://cdn-icons-png.flaticon.com/512/3003/3003935.png',
-      'https://cdn-icons-png.flaticon.com/512/4213/4213958.png',
-      'https://cdn-icons-png.flaticon.com/512/5290/5290058.png',
-    ]
-  },
-  {
-    id: 'love',
-    name: '💕 Love & Vibes',
-    description: 'Romantic stickers',
-    stickers: [
-      'https://cdn-icons-png.flaticon.com/512/2589/2589175.png',
-      'https://cdn-icons-png.flaticon.com/512/833/833472.png',
-      'https://cdn-icons-png.flaticon.com/512/3003/3003935.png',
-      'https://cdn-icons-png.flaticon.com/512/4213/4213958.png',
-      'https://cdn-icons-png.flaticon.com/512/5290/5290058.png',
-      'https://cdn-icons-png.flaticon.com/512/2248/2248718.png',
-    ]
-  },
-  {
-    id: 'reactions',
-    name: '😂 Reactions',
-    description: 'Express your feelings',
-    stickers: [
-      'https://cdn-icons-png.flaticon.com/512/4379/4379460.png',
-      'https://cdn-icons-png.flaticon.com/512/2584/2584606.png',
-      'https://cdn-icons-png.flaticon.com/512/5220/5220249.png',
-      'https://cdn-icons-png.flaticon.com/512/3079/3079233.png',
-      'https://cdn-icons-png.flaticon.com/512/3079/3079230.png',
-      'https://cdn-icons-png.flaticon.com/512/3079/3079246.png',
-    ]
-  }
-];
+import { Smile, Square } from 'lucide-react';
+import StickerPicker from './StickerPicker';
 
 const MediaPickerPanel = ({
     activeTab = 'emoji',
@@ -52,7 +11,7 @@ const MediaPickerPanel = ({
     theme = 'dark'
   }) => {
   return (
-    <div className="flex flex-col h-[350px] w-full bg-[#1a2332] border-t border-gray-700 shadow-2xl z-40 transition-transform duration-300 ease-out origin-bottom transform translate-y-0">
+    <div className="flex flex-col h-[45vh] max-h-[380px] min-h-[280px] w-full bg-[#1a2332] border-t border-gray-700 shadow-2xl z-40 transition-transform duration-300 ease-out origin-bottom transform translate-y-0">
       
       {/* Content Area */}
       <div className="flex-1 overflow-hidden relative">
@@ -81,7 +40,13 @@ const MediaPickerPanel = ({
         )}
 
         {activeTab === 'sticker' && (
-          <StickerPanel onStickerSelect={onStickerSelect} />
+          <div className="absolute inset-0 w-full h-full overflow-y-auto animate-fadeIn">
+            {/* Full WhatsApp-style sticker picker: Favorites, Recents, Store,
+                downloadable packs, and custom sticker creator — same
+                component used from the Attachments menu, now also reachable
+                from the main emoji/media button on every screen size. */}
+            <StickerPicker onStickerSelect={onStickerSelect} />
+          </div>
         )}
       </div>
 
@@ -105,96 +70,6 @@ const MediaPickerPanel = ({
         </button>
       </div>
 </div>
-  );
-};
-
-const StickerPanel = ({ onStickerSelect }) => {
-  const [activePack, setActivePack] = useState('trending');
-  const [recentlyUsed, setRecentlyUsed] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('genz_recent_stickers') || '[]');
-    } catch { return []; }
-  });
-
-  const currentPack = STICKER_PACKS.find(p => p.id === activePack) || STICKER_PACKS[0];
-
-  const handleSelect = (stickerUrl) => {
-    const updated = [stickerUrl, ...recentlyUsed.filter(s => s !== stickerUrl)].slice(0, 12);
-    setRecentlyUsed(updated);
-    localStorage.setItem('genz_recent_stickers', JSON.stringify(updated));
-    
-    const safeOnStickerSelect = (stickerUrl, options = {}) => {
-      if (typeof onStickerSelect === 'function') {
-        const isCallbackWithOptions = onStickerSelect.length > 1;
-        if (isCallbackWithOptions) {
-          onStickerSelect(stickerUrl, options);
-        } else {
-          onStickerSelect(stickerUrl);
-        }
-      }
-    };
-    
-    safeOnStickerSelect(stickerUrl);
-  };
-
-  return (
-    <div className="flex flex-col h-full w-full bg-[#1a2332] animate-fadeIn">
-      {/* Pack tabs */}
-      <div className="flex gap-2 p-2 overflow-x-auto border-b border-gray-700 scrollbar-thin">
-        {recentlyUsed.length > 0 && (
-          <button
-            onClick={(e) => { e.preventDefault(); setActivePack('recent'); }}
-            className={`flex-shrink-0 p-2 rounded-lg transition-all ${
-              activePack === 'recent' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-800'
-            }`}
-          >
-            <Clock size={20} />
-          </button>
-        )}
-        {STICKER_PACKS.map(pack => (
-          <button
-            key={pack.id}
-            onClick={(e) => { e.preventDefault(); setActivePack(pack.id); }}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-              activePack === pack.id
-                ? 'bg-green-600/20 text-green-400'
-                : 'text-gray-400 hover:bg-gray-800'
-            }`}
-          >
-            {pack.name}
-          </button>
-        ))}
-      </div>
-
-      {/* Grid */}
-      <div className="flex-1 overflow-y-auto p-2 scrollbar-thin">
-        {activePack === 'recent' && recentlyUsed.length === 0 && (
-          <div className="flex justify-center items-center h-full text-gray-500 text-sm">
-            No recently used stickers
-          </div>
-        )}
-        
-        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2 p-2">
-          {activePack === 'recent' ? recentlyUsed.map((url, i) => (
-            <button
-              key={`recent-${i}`}
-              onClick={(e) => { e.preventDefault(); handleSelect(url); }}
-              className="aspect-square rounded-lg p-2 hover:bg-gray-700 transition-all active:scale-95"
-            >
-              <img src={url} alt="sticker" className="w-full h-full object-contain" loading="lazy" />
-            </button>
-          )) : currentPack.stickers.map((url, i) => (
-            <button
-              key={`${currentPack.id}-${i}`}
-              onClick={(e) => { e.preventDefault(); handleSelect(url); }}
-              className="aspect-square rounded-lg p-2 hover:bg-gray-700 transition-all active:scale-95"
-            >
-              <img src={url} alt="sticker" className="w-full h-full object-contain" loading="lazy" />
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
   );
 };
 

@@ -17,6 +17,7 @@ const {
   editMessage,
   deleteMessage,
   markAsRead,
+  markConversationAsRead,
   addReaction,
   removeReaction,
   reportScreenshotAttempt,
@@ -119,6 +120,11 @@ router.delete("/messages/:id/admin-delete-for-everyone", requirePhoneVerified, (
   next();
 }, deleteMessage);
 router.put("/messages/:id/read", markAsRead);
+// Whole-conversation "mark as read" — this is what the frontend's HTTP
+// fallback (mark_as_read on APK when socket is unreliable) actually needs.
+// Kept as two paths since the frontend already calls both as a fallback pair.
+router.put("/messages/:chatId/read-all", markConversationAsRead);
+router.post("/mark-read", markConversationAsRead);
 router.put("/messages/:id/star", toggleStarMessage);
 router.put("/messages/:id/lock", toggleMessageLock);
 router.put("/messages/:id/keep", toggleKeepMessage);

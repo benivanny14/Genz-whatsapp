@@ -24,13 +24,6 @@ const {
   checkAvailability,
   getMyOnlineHistory,
   getUserOnlineHistory,
-  checkPasskeyAvailable,
-  passkeyRegisterOptions,
-  passkeyRegisterVerify,
-  passkeyLoginOptions,
-  passkeyLoginVerify,
-   getPasskeys,
-  deletePasskey,
   forgotPassword,
   resetPassword,
   verifyPhoneOTP,
@@ -90,14 +83,9 @@ router.post('/check-availability', discoveryLimiter, checkAvailabilityValidators
 router.get('/users/me/online-history', protect, getMyOnlineHistory);
 router.get('/users/:id/online-history', protect, getUserOnlineHistory);
 
-// Passkey (WebAuthn) routes
-router.post('/passkey/check', discoveryLimiter, checkPasskeyAvailable);
-router.post('/passkey/register/options', protect, passkeyRegisterOptions);
-router.post('/passkey/register/verify', protect, passkeyRegisterVerify);
-router.post('/passkey/login/options', passkeyLoginOptions);
-router.post('/passkey/login/verify', passkeyLoginVerify);
-router.get('/passkey/list', protect, getPasskeys);
-router.delete('/passkey/:id', protect, deletePasskey);
+// Passkey (WebAuthn) feature removed at user's request — was unreliable
+// in this environment. Routes intentionally deleted (not just hidden) so
+// they 404 instead of silently failing.
 
 // Password reset (forgot password) — rate-limited, no auth required.
 router.post('/forgot-password', authSensitiveLimiter, forgotPassword);

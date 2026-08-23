@@ -19,7 +19,7 @@ import PrivacyPermissionSelector from '../components/PrivacyPermissionSelector';
 import ContactSelectorScreen from '../components/ContactSelectorScreen';
 
 import LocationSharingPanel from '../components/LocationSharingPanel';
-import PasskeysSettings from '../components/PasskeysSettings';
+
 import { useUser } from '../context/UserContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useChat } from '../context/ChatContext';
@@ -35,7 +35,6 @@ const SETTINGS_KEY = 'genz_user_settings';
 
 const DEFAULT_SETTINGS = {
   account: {
-    passkeys: false,
     securityNotifications: true,
     changeNumberGuard: true,
     requestAccountInfoAt: null,
@@ -419,7 +418,6 @@ const Settings = () => {
   const tabs = useMemo(() => ([
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'account', label: 'Account', icon: KeyRound },
-    { id: 'passkeys', label: 'Passkeys', icon: Fingerprint },
     { id: 'privacy', label: 'Privacy', icon: Lock },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'storage', label: 'Storage and data', icon: Database },
@@ -903,10 +901,7 @@ const Settings = () => {
       <SettingSection title="Feature Library" description="Every GENZ feature in one place — chat tools, appearance, privacy, data, messaging and account.">
         <SettingRow icon={LayoutGrid} title="Open Feature Library" description="Explore and use all available GENZ features." onClick={() => navigate('/features')} />
       </SettingSection>
-      <SettingSection title="Account" description="Security, passkeys, account information, and account actions.">
-        <SettingRow icon={KeyRound} title="Passkeys" description="Store passkey preference for secure sign-in and backups." control={
-          <Toggle checked={settingsData.account.passkeys} onChange={() => toggleSetting('account.passkeys')} />
-        } />
+      <SettingSection title="Account" description="Security, account information, and account actions.">
         <SettingRow icon={Bell} title="Security notifications" description="Show alerts when security codes or sessions change." control={
           <Toggle checked={settingsData.account.securityNotifications} onChange={() => toggleSetting('account.securityNotifications')} />
         } />
@@ -1135,7 +1130,6 @@ const Settings = () => {
   const renderActiveTab = () => {
     if (activeTab === 'profile') return renderProfile();
     if (activeTab === 'account') return renderAccount();
-    if (activeTab === 'passkeys') return <PasskeysSettings />;
     if (activeTab === 'privacy') return renderPrivacy();
     if (activeTab === 'notifications') return renderNotifications();
     if (activeTab === 'storage') return renderStorage();

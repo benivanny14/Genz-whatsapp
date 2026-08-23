@@ -20,7 +20,6 @@ import MessageInfo from './MessageInfo';
 import ForwardDialog from './ForwardDialog';
 import ReportDialog from './ReportDialog';
 import VoiceWaveform from './VoiceWaveform';
-import VoiceMessageBubble from './VoiceMessageBubble';
 import VoiceRecorder from './VoiceRecorder';
 import DocumentMessage from './DocumentMessage';
 import AudioPlayer from './AudioPlayer';

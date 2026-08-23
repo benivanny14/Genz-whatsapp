@@ -2849,19 +2849,20 @@ export const ChatProvider = ({ children }) => {
     );
     // 2. Send via socket (real-time)
     emitSafe('mark_as_read', { chatId, userId: currentUserId, skipReadReceipts });
-    // 3. HTTP fallback — for APK where socket may be unreliable.
-    // Use both PUT endpoint AND the mark-as-read endpoint for maximum
-    // reliability. Fire-and-forget: errors are non-critical.
+    // BUGFIX: /chat/messages/:id/read expects a single MESSAGE id and
+    // /chat/mark-read used to not exist at all — both were silent no-ops,
+    // which is why already-read chats kept reappearing as unread on APK
+    // (socket-unreliable) sessions. This now hits the real whole-
+    // conversation reset endpoint, with one fallback path.
     if (isMongoObjectId(chatId)) {
-      // Primary: REST endpoint
-      authFetch(`${BACKEND_URL}/chat/messages/${chatId}/read`, { method: 'PUT' })
-        .catch(() => {});
-      // Secondary: socket-style endpoint via HTTP (covers backend variants)
       authFetch(`${BACKEND_URL}/chat/mark-read`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chatId, userId: currentUserId })
-      }).catch(() => {});
+        body: JSON.stringify({ chatId, userId: currentUserId, skipReadReceipts })
+      }).catch(() => {
+        authFetch(`${BACKEND_URL}/chat/messages/${chatId}/read-all`, { method: 'PUT' })
+          .catch(() => {});
+      });
     }
   };
 

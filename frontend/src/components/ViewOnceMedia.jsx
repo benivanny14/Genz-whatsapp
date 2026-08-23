@@ -52,10 +52,24 @@ const ViewOnceMedia = ({ media, onViewed, onClose }) => {
 
   const handleView = () => {
     setHasViewed(true);
-    setTimeout(() => {
-      onViewed?.(media._id);
-      onClose();
-    }, 5000); // Media disappears after 5 seconds of viewing
+    // BUGFIX: this used to hard-close after a fixed 5s regardless of media
+    // type or length — a 20s video, or a long text caption, got cut off
+    // mid-view ("closes before the user finishes reading/watching"). Images
+    // now stay open until the user closes them; video/audio close when
+    // playback actually ends via onEnded below, matching WhatsApp behaviour.
+    if (media.type === 'image' || media.type === 'file') {
+      // No natural "end" event for a still image — give a generous reading
+      // window instead of a near-instant one, and let the user close early.
+      setTimeout(() => {
+        onViewed?.(media._id);
+        onClose();
+      }, 30000);
+    }
+  };
+
+  const handleMediaEnded = () => {
+    onViewed?.(media._id);
+    onClose();
   };
 
   const getMediaIcon = (type) => {
@@ -162,6 +176,7 @@ const ViewOnceMedia = ({ media, onViewed, onClose }) => {
                     src={media.url}
                     controls
                     autoPlay
+                    onEnded={handleMediaEnded}
                     className="max-w-full max-h-full"
                   />
                 </div>

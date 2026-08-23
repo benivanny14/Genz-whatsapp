@@ -151,15 +151,6 @@ const SecuritySettings = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <Lock className="w-4 h-4 text-gray-500" />
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white">Passkeys</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Sign in securely without a password</p>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>

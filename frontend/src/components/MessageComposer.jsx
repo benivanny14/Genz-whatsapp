@@ -186,7 +186,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                     title={allowScreenshotEnabled ? 'Screenshot protection OFF' : 'Screenshot protection ON'}
                   />
                 )}
-                <AttachmentIcon icon={<Grid3x3 className="text-pink-400" />} label={floatingStickerMode ? "Float Stickers" : "Stickers"} onClick={() => { setShowStickerPacks(true); }} title={floatingStickerMode ? "Floating sticker mode ON" : "Open stickers"} />
+                <AttachmentIcon icon={<Grid3x3 className="text-pink-400" />} label={floatingStickerMode ? "Float Stickers" : "Stickers"} onClick={() => { setShowStickerPacks(true); inputRef.current?.blur(); }} title={floatingStickerMode ? "Floating sticker mode ON" : "Open stickers"} />
                 <AttachmentIcon icon={<Radio size={16} className={floatingStickerMode ? "text-green-400" : "text-gray-500"} />} label="Float" onClick={() => setFloatingStickerMode(!floatingStickerMode)} active={floatingStickerMode} title={floatingStickerMode ? "Disable floating stickers" : "Enable floating stickers"} />
                 <AttachmentIcon icon={<FileText className="text-blue-500" />} label="Document" onClick={() => docInputRef.current?.click()} disabled={!canSendMedia && !currentUserIsAdmin} />
                 <AttachmentIcon icon={<Camera className="text-pink-500" />} label="Camera" onClick={openCamera} disabled={!canSendMedia && !currentUserIsAdmin} title="Camera (Emulator may need permission)" />
@@ -248,7 +248,16 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
               <div className="flex-1 min-w-0 flex items-center gap-1 rounded-[24px] bg-dark-bg border border-dark-border px-1.5 py-1 shadow-sm sm:px-2 sm:py-1.5">
                 <button
                   type="button"
-                  onClick={() => { setShowAttachmentMenu(false); setShowStickerPacks(false); setShowMediaPanel(!showMediaPanel); }}
+                  onClick={() => {
+                    setShowAttachmentMenu(false);
+                    setShowStickerPacks(false);
+                    const opening = !showMediaPanel;
+                    setShowMediaPanel(opening);
+                    // WhatsApp behavior: dismiss the phone's native keyboard
+                    // when opening the emoji/sticker panel so the panel gets
+                    // the full space instead of being squeezed behind it.
+                    if (opening) inputRef.current?.blur();
+                  }}
                   className={showMediaPanel ? activeComposerIconButton : composerIconButton}
                   title="Emoji & Media"
                   aria-label="Toggle media picker"
@@ -267,6 +276,13 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                   value={messageInput}
                   onChange={(e) => handleTyping(e.target.value, e.target.selectionStart)}
                   onKeyDown={handleMentionKeyDown}
+                  onFocus={() => {
+                    // Tapping the text field again should bring back the
+                    // native keyboard and hide the emoji/sticker panel, just
+                    // like WhatsApp does.
+                    if (showMediaPanel) setShowMediaPanel(false);
+                    if (showStickerPacks) setShowStickerPacks(false);
+                  }}
                   onBlur={() => window.setTimeout(closeMentionPicker, 120)}
                   placeholder="Type a message..."
                   style={{ fontFamily: FONT_OPTIONS.find(f => f.value === selectedFont)?.fontFamily || 'sans-serif' }}
@@ -274,7 +290,13 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                 />
                 <button
                   type="button"
-                  onClick={() => { setShowMediaPanel(false); setShowAttachmentMenu(false); setShowStickerPacks(!showStickerPacks); }}
+                  onClick={() => {
+                    setShowMediaPanel(false);
+                    setShowAttachmentMenu(false);
+                    const opening = !showStickerPacks;
+                    setShowStickerPacks(opening);
+                    if (opening) inputRef.current?.blur();
+                  }}
                   className={`${showStickerPacks ? activeComposerIconButton : composerIconButton} hidden sm:flex`}
                   title="Stickers (send with text)"
                   aria-label="Open sticker picker"

@@ -236,7 +236,7 @@ const FeatureLibrary = () => {
   const [customEmojis, setCustomEmojis] = usePersistent('genz_custom_emojis', []);
   const [hashtags, setHashtags] = usePersistent('genz_hashtags', []);
   const [activeShares, setActiveShares] = usePersistent('genz_active_location_shares', []);
-  const [profileSecurity, setProfileSecurity] = usePersistent('genz_profile_security', { twoFactor: false, passkeys: false, loginAlerts: true });
+  const [profileSecurity, setProfileSecurity] = usePersistent('genz_profile_security', { twoFactor: false, loginAlerts: true });
   const [backupStatus, setBackupStatus] = usePersistent('genz_backup_status', { lastBackup: null, enabled: false });
   const [messageEditing, setMessageEditing] = usePersistent('genz_message_editing', { messageEditingEnabled: false, showEditIndicator: true });
   const [tabs, setTabs] = usePersistent('genz_tabs', [{ id: 'tab-1', label: 'Chats' }, { id: 'tab-2', label: 'Status' }]);

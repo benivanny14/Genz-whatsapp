@@ -180,16 +180,16 @@ module.exports = function registerMessageHandlers(ctx) {
         disappearAt = new Date(Date.now() + timerHours * 60 * 60 * 1000);
       }
 
-      // PREMIUM GATE: self-destruct, view-once, and custom fonts require active subscription
+      // BUGFIX (self-destruct/view-once "don't work at all" on APK): same
+      // silent-strip issue as the HTTP sendMessage path — see chatController.js
+      // for the full explanation. Only custom font remains premium-gated.
       let enforceSelfDestruct = isSelfDestruct;
       let enforceViewOnce = isViewOnce;
       let enforceFont = font;
-      if (isSelfDestruct || isViewOnce || font) {
+      if (font) {
         const senderUser = await User.findById(socket.userId).select('premium subscriptionExpiresAt');
         const hasPremium = senderUser && senderUser.premium && senderUser.subscriptionExpiresAt && new Date() <= new Date(senderUser.subscriptionExpiresAt);
         if (!hasPremium) {
-          enforceSelfDestruct = false;
-          enforceViewOnce = false;
           enforceFont = null;
         }
       }

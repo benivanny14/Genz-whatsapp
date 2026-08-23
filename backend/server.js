@@ -822,7 +822,6 @@ const channelRoutes = require('./routes/channelRoutes');
 const securityRoutes = require('./routes/securityRoutes');
 const genzModsRoutes = require('./routes/genzModsRoutes');
 const backupRoutes = require('./routes/backupRoutes');
-const voiceRoutes = require('./routes/voiceRoutes');
 const authRoutes = require('./routes/authRoutes');
 const adminAuthRoutes = require('./routes/adminAuthRoutes');
 const adminRoutes = require('./routes/adminRoutes');
@@ -912,7 +911,6 @@ const API_ROUTE_MOUNTS = [
   ['/genz-mods', genzModsRoutes],
   ['/backup', backupRoutes],
   ['/stickers', stickerRoutes],
-  ['/voice', voiceRoutes],
   ['/notifications', notificationRoutes],
   ['/products', productRoutes],
   ['/scheduled-messages', scheduledMessageRoutes],

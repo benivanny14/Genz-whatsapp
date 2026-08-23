@@ -5,8 +5,8 @@ import { useChat } from '../context/ChatContext';
 const NAV_ITEMS = [
   { label: 'Chats', path: '/chat', icon: MessageCircle, match: (path) => path.startsWith('/chat') },
   { label: 'Status', path: '/status', icon: CircleDot, match: (path) => path.startsWith('/status') },
-  { label: 'Communities', path: '/communities', icon: UsersRound, match: (path) => path.startsWith('/communities') },
-  { label: 'WINGA', path: '/winga', icon: Store, match: (path) => path.startsWith('/winga') },
+  { label: 'Groups', path: '/communities', icon: UsersRound, match: (path) => path.startsWith('/communities') },
+  { label: 'Winga', path: '/winga', icon: Store, match: (path) => path.startsWith('/winga') },
   { label: 'Me', path: '/settings', icon: Sparkles, match: (path) => path.startsWith('/settings') || path.startsWith('/linked-devices') },
 ];
 
@@ -41,8 +41,21 @@ const MobileBottomNav = () => {
   const wingaUnseen = wingaData?.totalUnseen || 0;
 
   return (
-    <nav className="max-md:flex md:hidden fixed left-0 right-0 bottom-0 z-50 border-t border-white/10 bg-[#111b21]/95 backdrop-blur-xl shadow-[0_-4px_20px_rgba(0,0,0,0.5)]" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-      <div className="grid grid-cols-5 px-1 pt-1.5 pb-[max(6px,env(safe-area-inset-bottom))]">
+    <nav
+      className="max-md:flex md:hidden fixed left-0 right-0 bottom-0 z-50 border-t border-white/10 bg-[#111b21]/95 backdrop-blur-xl shadow-[0_-4px_20px_rgba(0,0,0,0.5)]"
+      style={{
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        paddingLeft: 'env(safe-area-inset-left, 0px)',
+        paddingRight: 'env(safe-area-inset-right, 0px)',
+      }}
+    >
+      {/* BUGFIX (layout): fixed px-1 + no per-item width control let long
+          labels ("Communities") wrap to 2 lines while short ones ("Me")
+          stayed on 1, breaking vertical alignment across the bar. Grid
+          columns are now equal-width and each button fills its column, so
+          icons/labels line up evenly on every side regardless of label
+          length or screen width. */}
+      <div className="grid grid-cols-5 gap-0.5 px-2 pt-1.5 pb-[max(6px,env(safe-area-inset-bottom))]">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const active = item.match(path);
@@ -53,7 +66,7 @@ const MobileBottomNav = () => {
               type="button"
               data-testid={`nav-${item.path.replace('/', '')}`}
               onClick={() => navigate(item.path)}
-              className={`relative flex min-h-[56px] flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] font-semibold transition ${
+              className={`relative flex w-full min-h-[56px] flex-col items-center justify-center gap-0.5 rounded-xl text-[10.5px] font-semibold transition ${
                 active ? 'text-[#25d366]' : 'text-white/55 hover:bg-white/5 hover:text-white'
               }`}
               aria-current={active ? 'page' : undefined}
@@ -69,7 +82,7 @@ const MobileBottomNav = () => {
                   </span>
                 )}
               </span>
-              <span className="leading-tight">{item.label}</span>
+              <span className="leading-tight whitespace-nowrap">{item.label}</span>
             </button>
           );
         })}
