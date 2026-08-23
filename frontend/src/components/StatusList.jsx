@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useCallback } from 'react'
 import { useStatusContext } from '../context/StatusContext'
-import { Plus, Camera, RefreshCw, Volume2, VolumeX, Clock, Archive, Eye, ChevronRight } from 'lucide-react'
+import { Plus, Camera, RefreshCw, Volume2, VolumeX, Clock, Archive, Eye, ChevronRight, Lock } from 'lucide-react'
 import StatusViewer from './StatusViewer'
 import StatusArchive from './StatusArchive'
+import StatusPrivacy from './StatusPrivacy'
 import CreateStatus from './CreateStatus'
 import './StatusList.css'
 
@@ -36,6 +37,7 @@ const StatusList = ({ onViewArchive }) => {
   const { statuses, currentUser, loading, fetchStatuses } = useStatusContext()
   const [showCreate, setShowCreate] = useState(false)
   const [showArchive, setShowArchive] = useState(false)
+  const [showPrivacy, setShowPrivacy] = useState(false)
   const [viewerUser, setViewerUser] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
 
@@ -127,6 +129,9 @@ const StatusList = ({ onViewArchive }) => {
         <div className="header-actions">
           <button className="archive-link" onClick={() => setShowArchive(true)} title="Archived Status">
             <Archive size={20} />
+          </button>
+          <button className="privacy-link" onClick={() => setShowPrivacy(true)} title="Status Privacy">
+            <Lock size={20} />
           </button>
           <button className="refresh-btn" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw size={20} className={refreshing ? 'animate-spin' : ''} />
@@ -288,6 +293,7 @@ const StatusList = ({ onViewArchive }) => {
       {/* Modals */}
       {showCreate && <CreateStatus onClose={() => setShowCreate(false)} />}
       {showArchive && <StatusArchive onClose={() => setShowArchive(false)} onViewStatus={handleViewStatus} />}
+      {showPrivacy && <StatusPrivacy onClose={() => setShowPrivacy(false)} />}
       {viewerUser && (
         <StatusViewer
           user={viewerUser}
