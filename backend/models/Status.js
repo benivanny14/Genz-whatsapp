@@ -83,6 +83,32 @@ const statusSchema = new mongoose.Schema({
     message: { type: String, required: true },
     createdAt: { type: Date, default: Date.now }
   }],
+  // Poll support
+  poll: {
+    question: { type: String },
+    options: [{
+      id: { type: Number },
+      text: { type: String },
+      votes: { type: Number, default: 0 }
+    }],
+    allowMultiple: { type: Boolean, default: false },
+    expiresAt: { type: Date },
+    totalVotes: { type: Number, default: 0 },
+    voters: [{
+      user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      optionIds: [Number],
+      votedAt: { type: Date }
+    }]
+  },
+  // Forward support
+  forwards: [{
+    forwardedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    contacts: [{ type: mongoose.Schema.Types.ObjectId }],
+    groups: [{ type: mongoose.Schema.Types.ObjectId }],
+    message: { type: String },
+    forwardedAt: { type: Date }
+  }],
+  forwardCount: { type: Number, default: 0 },
   // Duration in seconds (for video)
   duration: { type: Number, default: 0 },
   // Expiry (auto-delete after 24h)

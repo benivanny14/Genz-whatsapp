@@ -487,4 +487,210 @@ router.post('/unarchive/:id', protect, async (req, res) => {
   }
 });
 
+// ============ CREATE POLL ============
+router.post('/:id/poll', protect, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { question, options, allowMultiple, expiresAt } = req.body;
+    const status = await Status.findById(req.params.id);
+    
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+    if (String(status.userId) !== String(userId)) return res.status(403).json({ success: false, message: 'You do not have permission' });
+
+    if (!question || !Array.isArray(options) || options.length < 2) {
+      return res.status(400).json({ success: false, message: 'Question and at least 2 options are required' });
+    }
+
+    status.poll = {
+      question,
+      options: options.map((opt, idx) => ({
+        id: idx,
+        text: opt,
+        votes: 0
+      })),
+      allowMultiple: Boolean(allowMultiple),
+      expiresAt: expiresAt ? new Date(expiresAt) : null,
+      totalVotes: 0,
+      voters: []
+    };
+    await status.save();
+
+    res.json({ success: true, status });
+  } catch (err) {
+    console.error('Create poll error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ============ VOTE ON POLL ============
+router.post('/:id/poll/vote', protect, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { optionIds } = req.body;
+    const status = await Status.findById(req.params.id);
+    
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+    if (!status.poll) return res.status(400).json({ success: false, message: 'This status has no poll' });
+
+    if (status.poll.expiresAt && new Date() > status.poll.expiresAt) {
+      return res.status(400).json({ success: false, message: 'Poll has expired' });
+    }
+
+    const existingVote = status.poll.voters.find(v => String(v.user) === String(userId));
+    if (existingVote) {
+      return res.status(400).json({ success: false, message: 'You have already voted in this poll' });
+    }
+
+    if (!Array.isArray(optionIds) || optionIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'At least one option is required' });
+    }
+
+    if (!status.poll.allowMultiple && optionIds.length > 1) {
+      return res.status(400).json({ success: false, message: 'Multiple selections not allowed' });
+    }
+
+    const validOptionIds = status.poll.options.map(o => o.id);
+    const invalidOptions = optionIds.filter(id => !validOptionIds.includes(id));
+    if (invalidOptions.length > 0) {
+      return res.status(400).json({ success: false, message: 'Invalid option IDs' });
+    }
+
+    optionIds.forEach(optId => {
+      const option = status.poll.options.find(o => o.id === optId);
+      if (option) {
+        option.votes = (option.votes || 0) + 1;
+      }
+    });
+
+    status.poll.totalVotes = (status.poll.totalVotes || 0) + 1;
+    status.poll.voters.push({
+      user: userId,
+      optionIds,
+      votedAt: new Date()
+    });
+
+    await status.save();
+
+    res.json({ success: true, status });
+  } catch (err) {
+    console.error('Vote poll error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ============ FORWARD STATUS ============
+router.post('/:id/forward', protect, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { contacts, groups, message: customMessage } = req.body;
+    const status = await Status.findById(req.params.id);
+    
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+
+    if (!status.forwards) status.forwards = [];
+    status.forwards.push({
+      forwardedBy: userId,
+      contacts: contacts || [],
+      groups: groups || [],
+      message: customMessage || '',
+      forwardedAt: new Date()
+    });
+    status.forwardCount = (status.forwardCount || 0) + 1;
+    await status.save();
+
+    const Conversation = require('../models/Conversation');
+    const Message = require('../models/Message');
+    const { getUnreadCount } = require('../utils/unreadCount');
+    const io = req.app.get('io');
+
+    const quotedStatus = {
+      statusId: status._id.toString(),
+      ownerName: status.userId?.username || 'Status',
+      preview: status.content || status.caption || 'Status',
+      type: status.type || 'text',
+      mediaUrl: status.content || null
+    };
+
+    const content = customMessage || (status.content || status.caption || '📸 Status');
+    const targetConversationIds = [...(contacts || []), ...(groups || [])];
+
+    const results = [];
+    for (const convId of targetConversationIds) {
+      try {
+        const conversation = await Conversation.findById(convId);
+        if (!conversation) continue;
+
+        if (!conversation.participants.some(p => String(p) === String(userId))) {
+          continue;
+        }
+
+        const message = await Message.create({
+          conversationId: conversation._id,
+          sender: userId,
+          content: content,
+          messageType: 'text',
+          replyTo: null,
+          quotedStatus
+        });
+
+        const populatedMessage = await Message.findById(message._id)
+          .populate('sender', 'username profilePicture');
+
+        const outgoingMessage = {
+          _id: message._id,
+          conversationId: conversation._id,
+          sender: populatedMessage.sender,
+          content: message.content,
+          messageType: message.messageType,
+          quotedStatus,
+          createdAt: message.createdAt
+        };
+
+        conversation.lastMessage = message._id;
+        conversation.updatedAt = new Date();
+
+        if (conversation.participants) {
+          const incObject = {};
+          conversation.participants.forEach((p) => {
+            if (String(p) !== String(userId)) {
+              incObject[`unreadCount.${String(p)}`] = 1;
+            }
+          });
+          if (Object.keys(incObject).length > 0) {
+            await Conversation.findByIdAndUpdate(
+              conversation._id,
+              { $inc: incObject },
+              { new: true }
+            );
+          }
+        }
+
+        await conversation.save();
+
+        if (io) {
+          io.to(String(conversation._id)).emit('message:received', outgoingMessage);
+          conversation.participants.forEach((p) => {
+            if (String(p) !== String(userId)) {
+              io.to(String(p)).emit('conversation:unread-update', {
+                conversationId: conversation._id,
+                unreadCount: getUnreadCount(conversation, String(p))
+              });
+            }
+          });
+        }
+
+        results.push({ conversationId: convId, success: true, message: outgoingMessage });
+      } catch (err) {
+        console.error('Error forwarding to conversation:', convId, err);
+        results.push({ conversationId: convId, success: false, error: err.message });
+      }
+    }
+
+    res.json({ success: true, status, results });
+  } catch (err) {
+    console.error('Forward status error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
