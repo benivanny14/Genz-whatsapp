@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useStatusContext } from '../context/StatusContext'
 import { getSocket } from '../services/socket'
-import { X, Volume2, VolumeX, Send, Eye, Trash2, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react'
+import { resolveApiBase } from '../utils/resolveApiBase'
+import { getAuthToken } from '../utils/tokenStore'
+import { X, Volume2, VolumeX, Send, Eye, Trash2, ChevronLeft, ChevronRight, Pause, Play, Forward, Download, Smile } from 'lucide-react'
 import ReactPlayer from 'react-player'
 import './StatusViewer.css'
 
@@ -32,6 +34,8 @@ const StatusViewer = ({ user, initialIndex = 0, onClose }) => {
   const [viewers, setViewers] = useState([])
   const [duration, setDuration] = useState(5000) // default 5s for images
   const [remainingTime, setRemainingTime] = useState('')
+  const [showReactions, setShowReactions] = useState(false)
+  const [showForward, setShowForward] = useState(false)
   const progressRef = useRef(null)
   const containerRef = useRef(null)
   const touchStartX = useRef(0)
@@ -116,11 +120,48 @@ const StatusViewer = ({ user, initialIndex = 0, onClose }) => {
     setShowReply(false)
   }
 
+  // Save/Download status
+  const handleSave = async () => {
+    if (!currentStatus?.content) return
+    try {
+      const link = document.createElement('a')
+      link.href = currentStatus.content
+      link.download = `status-${currentStatus._id}`
+      link.target = '_blank'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (err) {
+      console.error('Save error:', err)
+    }
+  }
+
+  // React with emoji
+  const handleReaction = async (emoji) => {
+    if (!currentStatus?._id) return
+    try {
+      const token = getAuthToken()
+      await fetch(`${resolveApiBase()}/status/${currentStatus._id}/react`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ emoji })
+      })
+    } catch (err) {
+      console.error('React error:', err)
+    }
+    setShowReactions(false)
+  }
+
+  const QUICK_REACTIONS = ['❤️', '😂', '😮', '😢', '🙏', '🔥']
+
   const fetchViewers = async () => {
     if (!isOwner) return
     try {
-      const res = await fetch(`http://localhost:5000/api/status/viewers/${currentStatus._id}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      const res = await fetch(`${resolveApiBase()}/status/viewers/${currentStatus._id}`, {
+        headers: { Authorization: `Bearer ${getAuthToken()}` }
       })
       const data = await res.json()
       setViewers(data.viewers || [])
@@ -241,6 +282,16 @@ const StatusViewer = ({ user, initialIndex = 0, onClose }) => {
           </button>
         </div>
 
+        {!isOwner && (
+          <button className="action-btn" onClick={handleSave} title="Save status">
+            <Download size={20} />
+          </button>
+        )}
+
+        <button className="action-btn" onClick={() => setShowReactions(!showReactions)} title="React">
+          <Smile size={20} />
+        </button>
+
         {isOwner && (
           <button className="delete-btn" onClick={() => {
             deleteStatus(currentStatus._id)
@@ -250,6 +301,17 @@ const StatusViewer = ({ user, initialIndex = 0, onClose }) => {
           </button>
         )}
       </div>
+
+      {/* Quick Reaction Bar */}
+      {showReactions && (
+        <div className="reaction-bar">
+          {QUICK_REACTIONS.map((emoji) => (
+            <button key={emoji} className="reaction-emoji" onClick={() => handleReaction(emoji)}>
+              {emoji}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Viewers Modal */}
       {showViewers && (
