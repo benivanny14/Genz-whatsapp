@@ -94,7 +94,7 @@ export default defineConfig({
         // groups. Split vendor libs for caching and the chat subtree into
         // separately-cached chunks so one panel change doesn't invalidate the
         // whole chat bundle.
-        advancedChunks: {
+advancedChunks: {
           groups: [
             { name: 'vendor-motion', test: /framer-motion/ },
             { name: 'vendor-icons', test: /lucide-react/ },
@@ -111,8 +111,7 @@ export default defineConfig({
           ]
         }
       },
-      // Externalize react-player and ffmpeg modules so Rolldown doesn't try to bundle them
-      external: ['react-player', '@ffmpeg/ffmpeg', '@ffmpeg/util']
+      manualChunks: {}
     },
     // FeatureLibrary (optional page) is 693 kB raw / ~104 kB gzip — it
     // statically imports dozens of feature components, so it stays a single
