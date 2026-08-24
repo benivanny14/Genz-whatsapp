@@ -393,18 +393,26 @@ exports.createStatus = async (req, res) => {
     // Set expiration to the user's configured status duration (default 24 hours)
     let statusHours = 24;
     let userDefaultPrivacy = 'contacts';
+    let defaultExcludedViewers = [];
+    let defaultIncludedViewers = [];
     try {
-      const currentUser = await User.findById(currentUserId).select('statusFeaturesSettings settings');
+      const currentUser = await User.findById(currentUserId).select('statusFeaturesSettings statusPrivacySettings settings');
       const configured = Number(currentUser?.statusFeaturesSettings?.statusDuration);
       if (Number.isFinite(configured) && configured >= 24 && configured <= 24) {
         statusHours = configured;
       }
-      const savedPrivacy = currentUser?.settings?.privacy?.status;
+      const savedPrivacy = currentUser?.statusPrivacySettings?.type || currentUser?.settings?.privacy?.status;
       // 'everyone' is deliberately not accepted (WhatsApp parity): a legacy
       // saved default of 'everyone' falls back to contacts-only.
       if (savedPrivacy && ['contacts', 'contacts_except', 'only_share_with', 'only_me', 'nobody'].includes(savedPrivacy)) {
         userDefaultPrivacy = savedPrivacy;
       }
+      defaultExcludedViewers = Array.isArray(currentUser?.statusPrivacySettings?.exceptUsers)
+        ? currentUser.statusPrivacySettings.exceptUsers
+        : [];
+      defaultIncludedViewers = Array.isArray(currentUser?.statusPrivacySettings?.allowedUsers)
+        ? currentUser.statusPrivacySettings.allowedUsers
+        : [];
     } catch (e) {
       // fall back to 24h default and contacts privacy
     }
@@ -424,8 +432,10 @@ exports.createStatus = async (req, res) => {
       textColor: textColor || '#ffffff',
       font: font || 'sans-serif',
       privacy: privacy === 'everyone' ? 'contacts' : (privacy || userDefaultPrivacy),
-      excludedViewers: Array.isArray(excludedViewers) ? excludedViewers : [],
-      includedViewers: Array.isArray(includedViewers) ? includedViewers : [],
+      excludedUsers: Array.isArray(excludedViewers) ? excludedViewers : defaultExcludedViewers,
+      includedUsers: Array.isArray(includedViewers) ? includedViewers : defaultIncludedViewers,
+      excludedViewers: Array.isArray(excludedViewers) ? excludedViewers : defaultExcludedViewers,
+      includedViewers: Array.isArray(includedViewers) ? includedViewers : defaultIncludedViewers,
       collabUserId: collabUserId || '',
       collabUsername: collabUsername || '',
       linkUrl: linkUrl || '',
@@ -526,7 +536,8 @@ exports.getStatuses = async (req, res) => {
         // support, matching WhatsApp's My Contacts Except.../Only Share
         // With... options - previously only everyone/contacts/only_me existed.
         if (statusPrivacy === 'only_share_with') {
-          const isIncluded = (s.includedViewers || []).some((id) => String(id) === String(currentUserId));
+          const included = [...(s.includedViewers || []), ...(s.includedUsers || [])];
+          const isIncluded = included.some((id) => String(id) === String(currentUserId));
           if (!isIncluded) continue;
         } else if (statusPrivacy !== 'everyone') {
           const poster = await User.findById(posterId).select('contacts');
@@ -538,7 +549,8 @@ exports.getStatuses = async (req, res) => {
           if (!viewerIsContact) continue;
 
           if (statusPrivacy === 'contacts_except') {
-            const isExcluded = (s.excludedViewers || []).some((id) => String(id) === String(currentUserId));
+            const excluded = [...(s.excludedViewers || []), ...(s.excludedUsers || [])];
+            const isExcluded = excluded.some((id) => String(id) === String(currentUserId));
             if (isExcluded) continue;
           }
         }
@@ -623,12 +635,13 @@ exports.viewStatus = async (req, res) => {
       return res.status(404).json({ message: 'Status has expired' });
     }
 
-    if (status.privacy === 'only_me' && status.userId.toString() !== currentUserId) {
+    const ownerId = String(status.userId || status.user);
+    if (status.privacy === 'only_me' && ownerId !== currentUserId) {
       return res.status(403).json({ message: 'You cannot view this status' });
     }
 
-    const alreadyViewed = status.views.some(v => v.user?.toString() === currentUserId);
-    const isOwner = status.userId.toString() === currentUserId;
+    const alreadyViewed = (status.views || []).some(v => String(v.user || v.userId) === currentUserId);
+    const isOwner = ownerId === currentUserId;
     // FIX: previously the owner opening their own status counted as a "view"
     // (they'd show up in their own viewers list), and even for real viewers
     // there was no realtime push to the owner — the view only showed up once
@@ -636,21 +649,26 @@ exports.viewStatus = async (req, res) => {
     // the eye-icon count and viewers list live while the owner is looking at
     // their own status.
     if (!alreadyViewed && !isOwner) {
-      const viewEntry = { user: currentUserId, viewedAt: new Date() };
+      const viewEntry = { user: currentUserId, userId: currentUserId, viewedAt: new Date() };
       status.views.push(viewEntry);
       status.viewsCount = status.views.length;
+      status.viewCount = status.views.length;
       await status.save();
 
       try {
         const io = req.app.get('io');
         const onlineUsers = global.onlineUsers || new Map();
-        const ownerSid = onlineUsers.get(String(status.userId));
+        const ownerSid = onlineUsers.get(ownerId);
         if (io && ownerSid) {
-          const populatedStatus = await Status.findById(status._id).populate('views.user', 'username profilePicture');
+          const populatedStatus = await Status.findById(status._id)
+            .populate('views.user', 'username profilePicture')
+            .populate('views.userId', 'username profilePicture');
           io.to(ownerSid).emit('status:viewed', {
             _id: status._id,
+            statusId: String(status._id),
             views: populatedStatus.views,
-            viewsCount: populatedStatus.viewsCount
+            viewsCount: populatedStatus.viewsCount,
+            viewCount: populatedStatus.viewCount
           });
         }
       } catch (notifyErr) {
@@ -691,7 +709,8 @@ exports.getStatusDetails = async (req, res) => {
         return res.status(403).json({ message: 'You cannot view this status' });
       }
       if (statusPrivacy === 'only_share_with') {
-        const isIncluded = (status.includedViewers || []).some((id) => String(id) === String(currentUserId));
+        const included = [...(status.includedViewers || []), ...(status.includedUsers || [])];
+        const isIncluded = included.some((id) => String(id) === String(currentUserId));
         if (!isIncluded) {
           return res.status(403).json({ message: 'You cannot view this status' });
         }
@@ -706,7 +725,8 @@ exports.getStatusDetails = async (req, res) => {
           return res.status(403).json({ message: 'You cannot view this status' });
         }
         if (statusPrivacy === 'contacts_except') {
-          const isExcluded = (status.excludedViewers || []).some((id) => String(id) === String(currentUserId));
+          const excluded = [...(status.excludedViewers || []), ...(status.excludedUsers || [])];
+          const isExcluded = excluded.some((id) => String(id) === String(currentUserId));
           if (isExcluded) {
             return res.status(403).json({ message: 'You cannot view this status' });
           }
@@ -766,8 +786,14 @@ exports.updateStatusPrivacy = async (req, res) => {
     if (privacy && allowed.includes(privacy)) {
       status.privacy = privacy;
     }
-    if (Array.isArray(excludedViewers)) status.excludedViewers = excludedViewers;
-    if (Array.isArray(includedViewers)) status.includedViewers = includedViewers;
+    if (Array.isArray(excludedViewers)) {
+      status.excludedViewers = excludedViewers;
+      status.excludedUsers = excludedViewers;
+    }
+    if (Array.isArray(includedViewers)) {
+      status.includedViewers = includedViewers;
+      status.includedUsers = includedViewers;
+    }
     await status.save();
 
     res.status(200).json({ success: true, status });
@@ -823,7 +849,9 @@ exports.getStatusViewers = async (req, res) => {
 
     const status = await Status.findById(statusId)
       .populate('views.user', 'username profilePicture')
-      .populate('reactions.user', 'username profilePicture');
+      .populate('views.userId', 'username profilePicture')
+      .populate('reactions.user', 'username profilePicture')
+      .populate('reactions.userId', 'username profilePicture');
 
     if (!status) {
       return res.status(404).json({ message: 'Status not found' });
@@ -838,9 +866,13 @@ exports.getStatusViewers = async (req, res) => {
       success: true,
       // Drop views/reactions whose author was deleted so the frontend never
       // crashes trying to read fields off a null populated user.
-      viewers: (status.views || []).filter((v) => v.user),
-      reactions: (status.reactions || []).filter((r) => r.user),
-      viewCount: (status.views || []).filter((v) => v.user).length
+      viewers: (status.views || [])
+        .map((v) => ({ ...((v.toObject && v.toObject()) || v), user: v.user || v.userId, userId: v.userId || v.user }))
+        .filter((v) => v.user || v.userId),
+      reactions: (status.reactions || [])
+        .map((r) => ({ ...((r.toObject && r.toObject()) || r), user: r.user || r.userId, userId: r.userId || r.user }))
+        .filter((r) => r.user || r.userId),
+      viewCount: (status.views || []).filter((v) => v.user || v.userId).length
     });
   } catch (error) {
     console.error('Error fetching status viewers:', error);
@@ -1089,6 +1121,7 @@ exports.likeStatus = async (req, res) => {
     }
 
     const userIdToUse = currentUserId;
+    status.likes = Array.isArray(status.likes) ? status.likes : [];
     const likeIndex = status.likes.findIndex(l => String(l.user) === String(userIdToUse));
 
     if (likeIndex > -1) {
@@ -1126,6 +1159,7 @@ exports.saveStatus = async (req, res) => {
     }
 
     const userIdToUse = currentUserId;
+    status.saves = Array.isArray(status.saves) ? status.saves : [];
     const saveIndex = status.saves.findIndex(s => String(s.user) === String(userIdToUse));
 
     if (saveIndex > -1) {
@@ -1163,6 +1197,7 @@ exports.shareStatus = async (req, res) => {
     }
 
     const userIdToUse = currentUserId;
+    status.shares = Array.isArray(status.shares) ? status.shares : [];
     
     // Add to shares (track who shared)
     if (!status.shares.some(s => String(s.sharedBy) === String(userIdToUse))) {
@@ -1221,6 +1256,7 @@ exports.reshareStatus = async (req, res) => {
     });
 
     // Add to original status reshares
+    originalStatus.reshares = Array.isArray(originalStatus.reshares) ? originalStatus.reshares : [];
     originalStatus.reshares.push({
       userId: currentUserId,
       username,

@@ -218,9 +218,11 @@ const StatusProvider = ({ children }) => {
       setStatuses(prev => prev.filter(s => s._id !== statusId));
     };
 
-    const handleViewed = ({ statusId, viewCount }) => {
+    const handleViewed = ({ statusId, _id, viewCount, viewsCount }) => {
+      const id = statusId || _id;
+      const nextCount = viewCount ?? viewsCount;
       setStatuses(prev => prev.map(s =>
-        s._id === statusId ? { ...s, viewCount } : s
+        s._id === id ? { ...s, viewCount: nextCount ?? s.viewCount, viewsCount: nextCount ?? s.viewsCount } : s
       ));
     };
 

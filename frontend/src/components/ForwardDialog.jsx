@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useChat } from '../context/ChatContext';
 import { X as FiX, Check as FiCheck } from 'lucide-react';
+import { resolveApiBase } from '../utils/resolveApiBase';
+import { getAuthToken } from '../utils/tokenStore';
 
 const ForwardDialog = ({ messageId, messageContent, conversationId, onClose, isStatusForward, statusData }) => {
   const [selectedChats, setSelectedChats] = useState(new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const { conversations, forwardMessage, sendMessage } = useChat();
+  const { conversations, forwardMessage } = useChat();
 
   // Filter out current conversation and get available chats
   const availableChats = conversations.filter(conv => conv._id !== conversationId);
@@ -36,24 +38,27 @@ const ForwardDialog = ({ messageId, messageContent, conversationId, onClose, isS
       let response;
 
       if (isStatusForward && statusData) {
-        // Forward status as message to each selected chat
-        const statusText = statusData.textStatus?.text || statusData.caption || 'Check out this status';
-        const statusMedia = statusData.content;
-        const username = statusData.userId?.username || 'Someone';
-        let allSuccess = true;
-
-        for (const convId of Array.from(selectedChats)) {
-          const fwdContent = statusMedia && statusData.type !== 'text'
-            ? statusMedia
-            : `*${username}'s Status:*\n${statusText}`;
-          const senderName = username;
-          const result = await sendMessage(fwdContent, senderName, {
-            isForwarded: true,
-            targetConversationId: convId
-          });
-          if (!result?.success) allSuccess = false;
+        const token = getAuthToken();
+        const res = await fetch(`${resolveApiBase()}/status/${statusData._id}/forward`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({
+            contacts: Array.from(selectedChats),
+            groups: [],
+            message: ''
+          })
+        });
+        const data = await res.json();
+        response = {
+          ...data,
+          success: Boolean(data.success) && (data.results || []).some((item) => item.success)
+        };
+        if (!res.ok || !response.success) {
+          response.message = data.message || 'Failed to forward status';
         }
-        response = { success: allSuccess };
       } else {
         response = await forwardMessage(messageId, Array.from(selectedChats));
       }

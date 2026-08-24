@@ -7,6 +7,12 @@ import StatusPrivacy from './StatusPrivacy'
 import CreateStatus from './CreateStatus'
 import './StatusList.css'
 
+const idOf = (value) => {
+  if (!value) return ''
+  if (typeof value === 'object') return String(value._id || value.id || value.user || value.userId || '')
+  return String(value)
+}
+
 // Format remaining time as "Xh Ym" or "Ym" or "<1m"
 const formatRemainingTime = (expiresAt) => {
   if (!expiresAt) return ''
@@ -46,14 +52,15 @@ const StatusList = ({ onViewArchive }) => {
     const groups = new Map()
 
     for (const status of statuses || []) {
-      const userId = status.userId?._id || status.userId
+      const statusUser = (status.userId && typeof status.userId === 'object') ? status.userId : status.user
+      const userId = idOf(status.userId || status.user)
       if (!userId) continue
 
       if (!groups.has(userId)) {
         groups.set(userId, {
           userId,
-          username: status.userId?.username || 'Unknown',
-          profilePicture: status.userId?.profilePicture || '',
+          username: statusUser?.username || status.username || 'Unknown',
+          profilePicture: statusUser?.profilePicture || '',
           isMuted: status.isMuted || false,
           statuses: [],
           totalViews: 0
@@ -72,7 +79,7 @@ const StatusList = ({ onViewArchive }) => {
     const viewedUpdates = [] // viewed
 
     groups.forEach((group) => {
-      if (group.userId === currentUser?.id || group.userId === currentUser?._id) {
+      if (group.userId === idOf(currentUser)) {
         myStatus.push(group)
       } else {
         const hasUnviewed = group.statuses.some(s => !s.isViewed)

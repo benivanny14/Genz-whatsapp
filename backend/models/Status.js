@@ -1,13 +1,27 @@
 const mongoose = require('mongoose');
 
 const viewSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  // Legacy advanced-status paths stored the viewer under `user`.
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   viewedAt: { type: Date, default: Date.now }
 });
 
 const reactionSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   emoji: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const replySchema = new mongoose.Schema({
+  senderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  username: { type: String, default: '' },
+  message: { type: String, default: '' },
+  content: { type: String, default: '' },
+  type: { type: String, default: 'text' },
+  mediaUrl: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -20,6 +34,12 @@ const musicSchema = new mongoose.Schema({
 }, { _id: false });
 
 const statusSchema = new mongoose.Schema({
+  // `user` is kept for legacy controllers/tests; new status APIs use `userId`.
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    index: true
+  },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -28,18 +48,24 @@ const statusSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['text', 'image', 'video'],
+    enum: ['text', 'image', 'video', 'voice', 'audio', 'gif', 'link', 'music', 'quiz', 'question', 'countdown', 'location', 'collage', 'boomerang', 'livePhoto', 'dualCamera', 'timer'],
     required: true
   },
+  username: { type: String, default: '' },
   content: {
     type: String,
     default: ''
   },
+  mediaUrl: { type: String, default: '' },
+  mediaType: { type: String, default: '' },
   caption: {
     type: String,
     default: '',
     maxlength: 500
   },
+  backgroundColor: { type: String, default: '#00a884' },
+  textColor: { type: String, default: '#ffffff' },
+  font: { type: String, default: 'sans-serif' },
   // Text status styling
   textStatus: {
     text: { type: String, default: '' },
@@ -52,7 +78,7 @@ const statusSchema = new mongoose.Schema({
   // Privacy settings
   privacy: {
     type: String,
-    enum: ['contacts', 'contacts_except', 'only_share_with', 'nobody'],
+    enum: ['contacts', 'contacts_except', 'only_share_with', 'nobody', 'only_me', 'everyone'],
     default: 'contacts'
   },
   excludedUsers: [{
@@ -63,6 +89,27 @@ const statusSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
+  excludedViewers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  includedViewers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  collabUserId: { type: String, default: '' },
+  collabUsername: { type: String, default: '' },
+  storyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Status', default: null },
+  linkUrl: { type: String, default: '' },
+  quizQuestion: { type: String, default: '' },
+  quizOptions: { type: mongoose.Schema.Types.Mixed, default: [] },
+  quizCorrectAnswer: { type: mongoose.Schema.Types.Mixed, default: 0 },
+  questionText: { type: String, default: '' },
+  countdownDate: { type: String, default: '' },
+  countdownTime: { type: String, default: '' },
+  locationData: { type: mongoose.Schema.Types.Mixed, default: null },
+  collageImages: { type: mongoose.Schema.Types.Mixed, default: [] },
+  timerSeconds: { type: Number, default: 5 },
   // Muted by
   mutedBy: [{
     type: mongoose.Schema.Types.ObjectId,
@@ -75,14 +122,33 @@ const statusSchema = new mongoose.Schema({
   },
   // Views & engagement
   viewCount: { type: Number, default: 0 },
+  viewsCount: { type: Number, default: 0 },
   views: [viewSchema],
   reactions: [reactionSchema],
-  // Replies
-  replies: [{
-    senderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    message: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now }
+  likes: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    likedAt: { type: Date, default: Date.now }
   }],
+  likesCount: { type: Number, default: 0 },
+  saves: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    savedAt: { type: Date, default: Date.now }
+  }],
+  savesCount: { type: Number, default: 0 },
+  shares: [{
+    sharedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    platform: { type: String, default: 'status' },
+    sharedAt: { type: Date, default: Date.now }
+  }],
+  shareCount: { type: Number, default: 0 },
+  reshares: [{
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    username: { type: String, default: '' },
+    originalStatusId: { type: mongoose.Schema.Types.ObjectId, ref: 'Status' },
+    resharedAt: { type: Date, default: Date.now }
+  }],
+  // Replies
+  replies: [replySchema],
   // Poll support
   poll: {
     question: { type: String },
@@ -117,11 +183,19 @@ const statusSchema = new mongoose.Schema({
     default: () => new Date(Date.now() + 24 * 60 * 60 * 1000),
     index: { expireAfterSeconds: 0 }
   },
+  timestamp: { type: Date, default: Date.now },
   createdAt: { type: Date, default: Date.now }
 });
 
 // Indexes
+statusSchema.pre('validate', function setLegacyAliases(next) {
+  if (!this.user && this.userId) this.user = this.userId;
+  if (!this.userId && this.user) this.userId = this.user;
+  next();
+});
+
 statusSchema.index({ userId: 1, createdAt: -1 });
 statusSchema.index({ userId: 1, expiresAt: -1 });
+statusSchema.index({ user: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Status', statusSchema);

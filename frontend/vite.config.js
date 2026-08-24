@@ -110,7 +110,9 @@ export default defineConfig({
             { name: 'chat-area', test: /components\/ChatArea/ }
           ]
         }
-      }
+      },
+      // Externalize react-player and ffmpeg modules so Rolldown doesn't try to bundle them
+      external: ['react-player', '@ffmpeg/ffmpeg', '@ffmpeg/util']
     },
     // FeatureLibrary (optional page) is 693 kB raw / ~104 kB gzip — it
     // statically imports dozens of feature components, so it stays a single

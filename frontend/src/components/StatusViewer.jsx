@@ -22,6 +22,12 @@ const formatRemainingTime = (expiresAt) => {
   return '<1m left'
 }
 
+const idOf = (value) => {
+  if (!value) return ''
+  if (typeof value === 'object') return String(value._id || value.id || value.user || value.userId || '')
+  return String(value)
+}
+
 const StatusViewer = ({ user, initialIndex = 0, onClose }) => {
   const { currentUser, viewStatus, deleteStatus } = useStatusContext()
   const socket = getSocket()
@@ -47,7 +53,10 @@ const StatusViewer = ({ user, initialIndex = 0, onClose }) => {
 
   const statuses = user?.statuses || []
   const currentStatus = statuses[currentIndex]
-  const isOwner = currentUser?.id === currentStatus?.userId?._id
+  const currentUserId = idOf(currentUser)
+  const statusOwnerId = idOf(currentStatus?.userId || currentStatus?.user)
+  const statusOwner = (currentStatus?.userId && typeof currentStatus.userId === 'object') ? currentStatus.userId : currentStatus?.user
+  const isOwner = Boolean(currentUserId && statusOwnerId && currentUserId === statusOwnerId)
 
   // Update remaining time every 30 seconds
   useEffect(() => {
@@ -60,10 +69,10 @@ const StatusViewer = ({ user, initialIndex = 0, onClose }) => {
 
   // Mark as viewed
   useEffect(() => {
-    if (currentStatus && !currentStatus.isViewed) {
+    if (currentStatus && !isOwner && !currentStatus.isViewed) {
       viewStatus(currentStatus._id)
     }
-  }, [currentStatus, viewStatus])
+  }, [currentStatus, isOwner, viewStatus])
 
   // Progress timer
   useEffect(() => {
@@ -113,16 +122,41 @@ const StatusViewer = ({ user, initialIndex = 0, onClose }) => {
     }
   }
 
-  const handleSendReply = () => {
-    if (!replyText.trim() || !socket) return
-    socket.emit('reply_to_status', {
-      statusId: currentStatus._id,
-      ownerId: currentStatus.userId._id,
-      senderId: currentUser.id,
-      message: replyText
-    })
-    setReplyText('')
-    setShowReply(false)
+  const handleSendReply = async () => {
+    const message = replyText.trim()
+    if (!message || !currentStatus?._id) return
+    setIsPaused(true)
+    try {
+      const token = getAuthToken()
+      const res = await fetch(`${resolveApiBase()}/status/${currentStatus._id}/reply`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ message })
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to reply')
+      }
+      setReplyText('')
+      setShowReply(false)
+    } catch (err) {
+      console.error('Status reply error:', err)
+      if (socket) {
+        socket.emit('reply_to_status', {
+          statusId: currentStatus._id,
+          ownerId: statusOwnerId,
+          senderId: currentUserId,
+          message
+        })
+        setReplyText('')
+        setShowReply(false)
+      }
+    } finally {
+      setIsPaused(false)
+    }
   }
 
   // Save/Download status
@@ -207,7 +241,7 @@ const StatusViewer = ({ user, initialIndex = 0, onClose }) => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `${currentStatus.userId?.username}'s Status`,
+          title: `${statusOwner?.username || currentStatus.username || 'Someone'}'s Status`,
           text: currentStatus.textStatus?.text || 'Check out this status',
           url: shareLink
         })
@@ -256,9 +290,9 @@ const StatusViewer = ({ user, initialIndex = 0, onClose }) => {
         
         <div className="viewer-header">
           <div className="viewer-user-info">
-            <img src={currentStatus.userId?.profilePicture || '/default-avatar.png'} alt="" />
+            <img src={statusOwner?.profilePicture || '/default-avatar.png'} alt="" />
             <div>
-              <h4>{currentStatus.userId?.username}</h4>
+              <h4>{statusOwner?.username || currentStatus.username || 'Status'}</h4>
               <span>{new Date(currentStatus.createdAt).toLocaleTimeString()}{remainingTime ? ` • ${remainingTime}` : ''}</span>
             </div>
           </div>
