@@ -831,6 +831,7 @@ const productRoutes = require('./routes/productRoutes');
 const scheduledMessageRoutes = require('./routes/scheduledMessageRoutes');
 const stickerRoutes = require('./routes/stickerRoutes');
 const statusRoutes = require('./routes/status');
+const storyHighlightRoutes = require('./routes/storyHighlights');
 
 const paymentRoutes = require('./routes/paymentRoutes');
 const paymentFeaturesRoutes = require('./routes/payment-features');
@@ -914,6 +915,9 @@ const API_ROUTE_MOUNTS = [
   ['/products', productRoutes],
   ['/scheduled-messages', scheduledMessageRoutes],
   ['/status', statusRoutes],
+  ['/status-advanced', statusRoutes],
+  ['/status-features', statusRoutes],
+  ['/story-highlights', storyHighlightRoutes],
 
   ['/payment-features', paymentFeaturesRoutes],
   ['/channels', channelRoutes],
