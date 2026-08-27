@@ -402,6 +402,10 @@ const CreateStatus = ({ onClose }) => {
     )
   }
 
+  // Image/Video Mode with editing
+  return (
+    <div className="create-status-overlay">
+      <div className="media-create-container">
         <div className="create-toolbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px' }}>
           <button onClick={() => setMode('select')}><X /></button>
           
