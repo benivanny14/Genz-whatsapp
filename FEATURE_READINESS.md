@@ -71,6 +71,10 @@ kwa mkono kabla ya kutoa toleo.
 |---|---|
 | Kuunda status: text / media / poll | ✅ (S1, S5, S7) |
 | Privacy: everyone / contacts / only_me / contacts_except | ✅ (S2, S3, S32, S33) |
+| Kuunda status: text / media / poll / multi-status upload | ✅ (S1, S5, S7, multi-upload) |
+| Privacy: contacts / contacts_except / only_share_with / only_me | ✅ (S2, S3, S32, S33, CHANGELOG v1.1.16) |
+| Per-status privacy & Share to Status privacy validation | ✅ (MessageShareToStatus & CreateStatus) |
+| Anti-Revoke Status (view deleted status if viewed prior) | ✅ (antiRevokeStatus privacy mod) |
 | Edit, hashtags, location, mention, pin, favorite | ✅ (S6, S9–S15) |
 | Archive, reminder, duplicate, schedule, share link | ✅ (S16–S22) |
 | Report, insights, analytics, QR | ✅ (S23–S26) |
