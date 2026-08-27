@@ -15,7 +15,6 @@ const defaultSettings = {
   languagePerChat: false,
   customTickPerContact: false,
   customEmojiStyle: false,
-  blockAlerts: false
   blockAlerts: false,
   antiRevokeStatus: false
 };

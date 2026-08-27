@@ -1,7 +1,6 @@
 const Status = require('../../models/Status');
 const User = require('../../models/User');
 const { logInfo, logError } = require('../../config/winston');
-const { logError } = require('../../config/winston');
 
 /**
  * Clean status socket handlers.
