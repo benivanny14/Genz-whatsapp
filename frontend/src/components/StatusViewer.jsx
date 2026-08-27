@@ -3,7 +3,7 @@ import { useStatusContext } from '../context/StatusContext'
 import { getSocket } from '../services/socket'
 import { resolveApiBase } from '../utils/resolveApiBase'
 import { getAuthToken } from '../utils/tokenStore'
-import { X, Volume2, VolumeX, Send, Eye, Trash2, ChevronLeft, ChevronRight, Pause, Play, Forward, Download, Smile, Share2, Link2, Copy, Check, Music } from 'lucide-react'
+import { X, Volume2, VolumeX, Send, Eye, EyeOff, CheckCheck, Heart, Trash2, ChevronLeft, ChevronRight, Pause, Play, Forward, Download, Smile, Share2, Link2, Copy, Check, Music } from 'lucide-react'
 import ReactPlayer from 'react-player'
 import ForwardDialog from './ForwardDialog'
 import './StatusViewer.css'
@@ -28,13 +28,16 @@ const idOf = (value) => {
   return String(value)
 }
 
-const StatusViewer = ({ user, initialIndex = 0, onClose }) => {
+const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
   const { currentUser, viewStatus, deleteStatus } = useStatusContext()
   const socket = getSocket()
   const [currentIndex, setCurrentIndex] = useState(initialIndex)
   const [progress, setProgress] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
+  const [ghostMode, setGhostMode] = useState(false)
+  const [markedSeen, setMarkedSeen] = useState(false)
+  const [copyToast, setCopyToast] = useState('')
   const [replyText, setReplyText] = useState('')
   const [showReply, setShowReply] = useState(false)
   const [showViewers, setShowViewers] = useState(false)
@@ -67,12 +70,33 @@ const StatusViewer = ({ user, initialIndex = 0, onClose }) => {
     return () => clearInterval(interval)
   }, [currentStatus?.expiresAt])
 
-  // Mark as viewed
+  // Mark as viewed (skip if Ghost Mode is active)
   useEffect(() => {
-    if (currentStatus && !isOwner && !currentStatus.isViewed) {
+    if (currentStatus && !isOwner && !currentStatus.isViewed && !ghostMode) {
       viewStatus(currentStatus._id)
     }
-  }, [currentStatus, isOwner, viewStatus])
+  }, [currentStatus, isOwner, viewStatus, ghostMode])
+
+  const handleManualMarkSeen = () => {
+    if (currentStatus?._id && !isOwner) {
+      viewStatus(currentStatus._id)
+      setMarkedSeen(true)
+      setCopyToast('Marked as seen ✔✔')
+      setTimeout(() => setCopyToast(''), 2000)
+    }
+  }
+
+  const handleCopyContent = async () => {
+    const textToCopy = currentStatus?.caption || currentStatus?.content || currentStatus?.textStatus?.text || ''
+    if (!textToCopy) return
+    try {
+      await navigator.clipboard.writeText(textToCopy)
+      setCopyToast('Text copied to clipboard!')
+      setTimeout(() => setCopyToast(''), 2000)
+    } catch (err) {
+      console.error('Copy error:', err)
+    }
+  }
 
   // Progress timer
   useEffect(() => {
@@ -268,6 +292,14 @@ const StatusViewer = ({ user, initialIndex = 0, onClose }) => {
     }
   }
 
+  const isMentioned = Boolean(
+    currentUser?.username && (
+      currentStatus?.collabUsername === currentUser.username ||
+      currentStatus?.caption?.includes(`@${currentUser.username}`) ||
+      currentStatus?.content?.includes(`@${currentUser.username}`)
+    )
+  )
+
   if (!currentStatus) return null
 
   return (
@@ -292,11 +324,39 @@ const StatusViewer = ({ user, initialIndex = 0, onClose }) => {
           <div className="viewer-user-info">
             <img src={statusOwner?.profilePicture || '/default-avatar.png'} alt="" />
             <div>
-              <h4>{statusOwner?.username || currentStatus.username || 'Status'}</h4>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                {statusOwner?.username || currentStatus.username || 'Status'}
+                {(currentStatus.isDeleted || currentStatus.deleted) && (
+                  <span style={{ background: '#ef4444', color: '#ffffff', fontSize: '10px', padding: '1px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                    DELETED
+                  </span>
+                )}
+                {currentStatus.collabUsername && (
+                  <span style={{ background: 'rgba(255,255,255,0.2)', fontSize: '11px', padding: '1px 6px', borderRadius: '4px' }}>
+                    @{currentStatus.collabUsername}
+                  </span>
+                )}
+              </h4>
               <span>{new Date(currentStatus.createdAt).toLocaleTimeString()}{remainingTime ? ` • ${remainingTime}` : ''}</span>
             </div>
           </div>
-          <div className="viewer-actions">
+          <div className="viewer-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {copyToast && (
+              <span style={{ background: '#00a884', color: '#fff', fontSize: '12px', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>
+                {copyToast}
+              </span>
+            )}
+            <button onClick={handleCopyContent} title="Copy Text / Caption">
+              <Copy size={20} />
+            </button>
+            <button onClick={() => setGhostMode(!ghostMode)} title={ghostMode ? 'Ghost View Mode Active' : 'Enable Ghost View'}>
+              {ghostMode ? <EyeOff size={20} color="#00a884" /> : <Eye size={20} />}
+            </button>
+            {!isOwner && (
+              <button onClick={handleManualMarkSeen} title="Mark as Seen ✔✔" style={{ color: markedSeen ? '#00a884' : '#ffffff' }}>
+                <CheckCheck size={22} />
+              </button>
+            )}
             {currentStatus.type === 'video' && (
               <button onClick={() => setIsMuted(!isMuted)}>
                 {isMuted ? <VolumeX size={22} /> : <Volume2 size={22} />}
@@ -327,6 +387,27 @@ const StatusViewer = ({ user, initialIndex = 0, onClose }) => {
 
         {currentStatus.type === 'image' && (
           <img src={currentStatus.content} alt="status" className="status-media" />
+        )}
+
+        {['voice', 'audio'].includes(currentStatus.type) && (
+          <div className="voice-status-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', padding: '24px', width: '100%', height: '100%', background: currentStatus.backgroundColor || '#075E54' }}>
+            <audio src={currentStatus.content || currentStatus.mediaUrl} autoPlay={!isPaused} onEnded={goNext} />
+            <div className="audio-waveform-bars" style={{ display: 'flex', alignItems: 'center', gap: '4px', height: '60px' }}>
+              {[40, 65, 30, 85, 95, 50, 75, 45, 90, 60, 35, 80, 100, 70, 55, 40, 85, 60].map((h, i) => (
+                <div 
+                  key={i} 
+                  style={{
+                    width: '5px',
+                    height: `${h}%`,
+                    background: '#00a884',
+                    borderRadius: '4px',
+                    animation: isPaused ? 'none' : `pulseWave 0.8s ease-in-out infinite alternate ${i * 0.05}s`
+                  }} 
+                />
+              ))}
+            </div>
+            <span style={{ color: '#fff', fontSize: '14px', fontWeight: '500' }}>Voice Status • Playing...</span>
+          </div>
         )}
 
         {currentStatus.type === 'video' && (
@@ -413,6 +494,21 @@ const StatusViewer = ({ user, initialIndex = 0, onClose }) => {
         {isOwner && (
           <button className="action-btn" onClick={handleShare} title="Share link" disabled={shareLoading}>
             <Share2 size={20} />
+          </button>
+        )}
+
+        <button className="action-btn" onClick={() => handleReaction('❤️')} title="Like Status (1-Tap)" style={{ color: '#00a884' }}>
+          <Heart size={20} fill="#00a884" />
+        </button>
+
+        {isMentioned && typeof onReshare === 'function' && (
+          <button 
+            className="action-btn reshare-btn" 
+            onClick={() => onReshare(currentStatus)} 
+            title="Add to My Status"
+            style={{ background: '#00a884', color: '#ffffff', borderRadius: '16px', padding: '4px 10px', fontSize: '12px', fontWeight: 'bold' }}
+          >
+            + Add to My Status
           </button>
         )}
 

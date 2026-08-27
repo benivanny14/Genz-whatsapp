@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react'
 import { useStatusContext } from '../context/StatusContext'
-import { X, Type, Image, Video, Music, Scissors, Send, Volume2 } from 'lucide-react'
+import { X, Type, Image, Video, Music, Scissors, Send, Volume2, RotateCw, Paintbrush, Eraser, Share2, Split } from 'lucide-react'
 import { FFmpeg } from '@ffmpeg/ffmpeg'
 import { fetchFile } from '@ffmpeg/util'
 import './CreateStatus.css'
@@ -16,11 +16,24 @@ const TEXT_COLORS = [
   { bg: '#2D3436', font: '#FFFFFF' }
 ]
 
+const FONT_STYLES = [
+  { id: 'sans', name: 'Sans-Serif', family: 'sans-serif' },
+  { id: 'serif', name: 'Serif', family: 'serif' },
+  { id: 'monospace', name: 'Monospace', family: 'monospace' },
+  { id: 'cursive', name: 'cursive' },
+  { id: 'gothic', name: 'Impact, sans-serif' }
+]
+
 const CreateStatus = ({ onClose }) => {
   const { createTextStatus, createMediaStatus } = useStatusContext()
   const [mode, setMode] = useState('select') // select | text | image | video | preview
   const [text, setText] = useState('')
   const [selectedColor, setSelectedColor] = useState(TEXT_COLORS[0])
+  const [fontIndex, setFontIndex] = useState(0)
+  const [taggedContact, setTaggedContact] = useState('')
+  const [rotation, setRotation] = useState(0)
+  const [autoSplit, setAutoSplit] = useState(false)
+  const [crossPost, setCrossPost] = useState(false)
   const [mediaFile, setMediaFile] = useState(null)
   const [mediaPreview, setMediaPreview] = useState(null)
   const [caption, setCaption] = useState('')
@@ -128,12 +141,14 @@ const CreateStatus = ({ onClose }) => {
   }
 
   const handleSubmit = async () => {
+    const currentFont = FONT_STYLES[fontIndex]?.id || 'sans'
     if (mode === 'text') {
       await createTextStatus({
         text,
         backgroundColor: selectedColor.bg,
         fontColor: selectedColor.font,
-        fontStyle: 'normal'
+        fontStyle: currentFont,
+        collabUsername: taggedContact.trim()
       })
       onClose()
       return
@@ -152,6 +167,8 @@ const CreateStatus = ({ onClose }) => {
     const formData = new FormData()
     formData.append('file', finalFile)
     formData.append('caption', caption)
+    formData.append('fontStyle', currentFont)
+    if (taggedContact.trim()) formData.append('collabUsername', taggedContact.trim())
     formData.append('duration', trimEnd - trimStart)
     
     if (musicFile) {
@@ -214,8 +231,29 @@ const CreateStatus = ({ onClose }) => {
     return (
       <div className="create-status-overlay" style={{ background: selectedColor.bg }}>
         <div className="text-create-container">
-          <div className="create-toolbar top">
+          <div className="create-toolbar top" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '8px' }}>
             <button onClick={() => setMode('select')}><X color={selectedColor.font} /></button>
+            
+            <button 
+              type="button"
+              className="font-selector-btn"
+              onClick={() => setFontIndex((prev) => (prev + 1) % FONT_STYLES.length)}
+              style={{
+                background: 'rgba(255,255,255,0.2)',
+                color: selectedColor.font,
+                border: 'none',
+                padding: '4px 10px',
+                borderRadius: '16px',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                fontFamily: FONT_STYLES[fontIndex].family
+              }}
+              title="Change Font Style"
+            >
+              Font: {FONT_STYLES[fontIndex].name}
+            </button>
+
             <div className="color-picker">
               {TEXT_COLORS.map((c, i) => (
                 <button 
@@ -231,10 +269,28 @@ const CreateStatus = ({ onClose }) => {
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Type a status"
-            style={{ color: selectedColor.font }}
+            placeholder="Type a status..."
+            style={{ color: selectedColor.font, fontFamily: FONT_STYLES[fontIndex].family }}
             maxLength={700}
           />
+
+          <div style={{ padding: '0 16px 8px', width: '100%', maxWidth: '500px' }}>
+            <input 
+              type="text"
+              placeholder="Tag contact (e.g. @username)"
+              value={taggedContact}
+              onChange={(e) => setTaggedContact(e.target.value)}
+              style={{
+                width: '100%',
+                background: 'rgba(255,255,255,0.15)',
+                border: '1px solid rgba(255,255,255,0.3)',
+                borderRadius: '8px',
+                padding: '6px 12px',
+                color: selectedColor.font,
+                fontSize: '13px'
+              }}
+            />
+          </div>
           
           <button 
             className="send-status-btn" 
@@ -252,19 +308,48 @@ const CreateStatus = ({ onClose }) => {
   return (
     <div className="create-status-overlay">
       <div className="media-create-container">
-        <div className="create-toolbar">
+        <div className="create-toolbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px' }}>
           <button onClick={() => setMode('select')}><X /></button>
-          <span>{mode === 'video' ? 'Video Status' : 'Photo Status'}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {mode === 'image' && (
+              <button 
+                type="button"
+                onClick={() => setRotation((prev) => (prev + 90) % 360)}
+                style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
+                title="Rotate 90°"
+              >
+                <RotateCw size={20} />
+              </button>
+            )}
+            {mode === 'video' && (
+              <button 
+                type="button"
+                onClick={() => setAutoSplit(!autoSplit)}
+                style={{ background: autoSplit ? '#00a884' : 'transparent', border: '1px solid #00a884', borderRadius: '12px', padding: '2px 8px', color: '#fff', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                title="Auto-split into 30s clips"
+              >
+                <Split size={14} /> Auto 30s Split
+              </button>
+            )}
+            <button 
+              type="button"
+              onClick={() => setCrossPost(!crossPost)}
+              style={{ background: crossPost ? '#1877F2' : 'transparent', border: '1px solid #1877F2', borderRadius: '12px', padding: '2px 8px', color: '#fff', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              title="Cross-post to Facebook / Social Story"
+            >
+              <Share2 size={14} /> Social Story
+            </button>
+          </div>
           <button onClick={handleSubmit} disabled={isProcessing}>
             {isProcessing ? 'Processing...' : <Send size={20} />}
           </button>
         </div>
 
-        <div className="media-preview">
+        <div className="media-preview" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {mode === 'image' ? (
-            <img src={mediaPreview} alt="preview" />
+            <img src={mediaPreview} alt="preview" style={{ transform: `rotate(${rotation}deg)`, transition: 'transform 0.3s ease' }} />
           ) : (
-            <video ref={videoRef} src={mediaPreview} controls muted loop />
+            <video ref={videoRef} src={mediaPreview} controls muted loop style={{ transform: `rotate(${rotation}deg)` }} />
           )}
         </div>
 
