@@ -22,6 +22,7 @@ router.post('/hide-read-receipts', privacyController.toggleHideReadReceipts);
 router.post('/who-viewed-profile', checkPremiumAccess, privacyController.toggleWhoViewedProfile);
 router.post('/contact-online-notifier', checkPremiumAccess, privacyController.toggleContactOnlineNotifier);
 router.post('/auto-download-status', privacyController.toggleAutoDownloadStatus);
+router.post('/anti-revoke-status', privacyController.toggleAntiRevokeStatus);
 router.post('/language-per-chat', privacyController.toggleLanguagePerChat);
 router.post('/custom-tick-per-contact', checkPremiumAccess, privacyController.toggleCustomTickPerContact);
 router.post('/custom-emoji-style', checkPremiumAccess, privacyController.toggleCustomEmojiStyle);

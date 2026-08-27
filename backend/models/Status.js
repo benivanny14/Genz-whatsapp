@@ -118,9 +118,22 @@ const statusSchema = new mongoose.Schema({
     ref: 'User'
   }],
   // Archive status
+  // Archive & Revoke status
   archived: {
     type: Boolean,
     default: false
+  },
+  isRevoked: {
+    type: Boolean,
+    default: false
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false
+  },
+  deletedAt: {
+    type: Date,
+    default: null
   },
   // Views & engagement
   viewCount: { type: Number, default: 0 },

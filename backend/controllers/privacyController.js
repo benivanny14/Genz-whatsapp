@@ -16,6 +16,8 @@ const defaultSettings = {
   customTickPerContact: false,
   customEmojiStyle: false,
   blockAlerts: false
+  blockAlerts: false,
+  antiRevokeStatus: false
 };
 
 
@@ -375,6 +377,28 @@ exports.clearBlockAlerts = async (req, res) => {
     res.json({ success: true, message: 'Block alerts cleared' });
   } catch (error) {
     console.error('Clear block alerts error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Toggle Anti-Revoke Status
+// @route   POST /api/privacy-mods/anti-revoke-status
+// @access  Private
+exports.toggleAntiRevokeStatus = async (req, res) => {
+  try {
+    const user = await getUser(req, res);
+    if (!user) return;
+
+    const existing = user.privacyModsSettings?.toObject?.() || user.privacyModsSettings || {};
+    const newValue = !existing.antiRevokeStatus;
+    
+    user.privacyModsSettings = mergeSettings({ ...existing, antiRevokeStatus: newValue });
+    user.markModified('privacyModsSettings');
+    await user.save();
+
+    res.json({ success: true, antiRevokeStatus: newValue });
+  } catch (error) {
+    console.error('Toggle anti revoke status error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
