@@ -246,14 +246,20 @@ const StatusProvider = ({ children }) => {
       ));
     };
 
+    const handleMentioned = ({ statusOwnerUsername }) => {
+      toast(`${statusOwnerUsername || 'Someone'} tagged you in their status 🏷️`, { duration: 4000 });
+    };
+
     socket.on('status:created', handleCreated);
     socket.on('status:deleted', handleDeleted);
     socket.on('status:viewed', handleViewed);
+    socket.on('status:mentioned', handleMentioned);
 
     return () => {
       socket.off('status:created', handleCreated);
       socket.off('status:deleted', handleDeleted);
       socket.off('status:viewed', handleViewed);
+      socket.off('status:mentioned', handleMentioned);
     };
   }, []);
 

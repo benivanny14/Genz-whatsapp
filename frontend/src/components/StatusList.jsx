@@ -40,13 +40,36 @@ const getStatusRingSegments = (statuses) => {
 }
 
 const StatusList = ({ onViewArchive }) => {
-  const { statuses, currentUser, loading, fetchStatuses } = useStatusContext()
+  const { statuses, currentUser, loading, fetchStatuses, createTextStatus, createCustomStatus } = useStatusContext()
   const [showCreate, setShowCreate] = useState(false)
   const [showArchive, setShowArchive] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [showMutedAccordion, setShowMutedAccordion] = useState(false)
   const [viewerUser, setViewerUser] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
+
+  const handleReshareStatus = useCallback(async (statusToReshare) => {
+    if (!statusToReshare) return;
+    try {
+      if (statusToReshare.type === 'text') {
+        const textContent = statusToReshare.textStatus?.text || statusToReshare.content || '';
+        await createTextStatus({
+          text: textContent,
+          backgroundColor: statusToReshare.textStatus?.backgroundColor || statusToReshare.backgroundColor || '#128C7E',
+          fontColor: statusToReshare.textStatus?.fontColor || statusToReshare.textColor || '#FFFFFF',
+          fontStyle: statusToReshare.textStatus?.fontStyle || 'sans-serif'
+        });
+      } else if (createCustomStatus) {
+        await createCustomStatus({
+          type: statusToReshare.type || 'image',
+          content: statusToReshare.content || statusToReshare.mediaUrl || '',
+          caption: statusToReshare.caption || ''
+        });
+      }
+    } catch (err) {
+      console.error('Reshare status error:', err);
+    }
+  }, [createTextStatus, createCustomStatus]);
 
   // Group statuses by user (WhatsApp-style)
   const groupedStatuses = useMemo(() => {
@@ -332,6 +355,7 @@ const StatusList = ({ onViewArchive }) => {
           user={viewerUser}
           initialIndex={0}
           onClose={() => setViewerUser(null)}
+          onReshare={handleReshareStatus}
         />
       )}
     </div>

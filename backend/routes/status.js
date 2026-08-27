@@ -362,6 +362,25 @@ router.post('/', protect, async (req, res) => {
 
     await emitStatusCreated(req, status);
 
+    // Handle tag / mention notification
+    const targetTag = req.body.collabUsername || req.body.taggedContact || req.body.textStatus?.taggedContact;
+    if (targetTag) {
+      const cleanUsername = String(targetTag).replace(/^@/, '').trim();
+      if (cleanUsername) {
+        const taggedUser = await User.findOne({ username: new RegExp(`^${cleanUsername}$`, 'i') });
+        if (taggedUser) {
+          const io = req.app.get('io');
+          if (io) {
+            io.to(String(taggedUser._id)).emit('status:mentioned', {
+              statusId: String(status._id),
+              statusOwnerUsername: creator?.username || req.user.username || 'Contact',
+              createdAt: status.createdAt
+            });
+          }
+        }
+      }
+    }
+
     res.status(201).json({ success: true, status: populated });
   } catch (error) {
     console.error('Create status error:', error);
