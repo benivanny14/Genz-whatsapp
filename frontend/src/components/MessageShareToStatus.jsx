@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Share2, X, Check, RefreshCw, Clock, Eye, Smile, Image as ImageIcon, Video, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useStatusContext } from '../context/StatusContext';
 
-const MessageShareToStatus = ({ message, onShareToStatus, onClose }) => {
+const MessageShareToStatus = ({ message = {}, onShareToStatus, onClose }) => {
+  const { createTextStatus, createCustomStatus } = useStatusContext();
   const [caption, setCaption] = useState('');
   const [audience, setAudience] = useState('all'); // all, contacts, except
   const [isSharing, setIsSharing] = useState(false);
@@ -13,19 +15,42 @@ const MessageShareToStatus = ({ message, onShareToStatus, onClose }) => {
     { id: 'except', label: 'My contacts except...', description: 'Exclude some contacts' },
   ];
 
+  const isMedia = Boolean(message?.mediaUrl || message?.type === 'image' || message?.type === 'video' || message?.messageType === 'image' || message?.messageType === 'video');
+  const mediaType = (message?.type === 'video' || message?.messageType === 'video') ? 'video' : 'image';
+
   const handleShare = async () => {
     setIsSharing(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsSharing(false);
+    try {
+      if (isMedia && createCustomStatus) {
+        const mediaUrl = message.mediaUrl || message.content || message.media;
+        await createCustomStatus({
+          type: mediaType,
+          content: mediaUrl,
+          caption: caption || message.caption || message.content || '',
+          privacy: audience === 'all' ? 'contacts' : audience
+        });
+      } else if (createTextStatus) {
+        const textContent = message.content || (typeof message === 'string' ? message : 'Shared Message');
+        await createTextStatus({
+          text: caption ? `${textContent}\n\n${caption}` : textContent,
+          backgroundColor: '#128C7E',
+          fontColor: '#FFFFFF'
+        });
+      }
 
-    if (onShareToStatus) {
-      onShareToStatus({
-        messageId: message._id,
-        caption,
-        audience
-      });
+      if (onShareToStatus) {
+        onShareToStatus({
+          messageId: message._id,
+          caption,
+          audience
+        });
+      }
+    } catch (err) {
+      console.error('Error sharing message to status:', err);
+    } finally {
+      setIsSharing(false);
+      onClose?.();
     }
-    onClose();
   };
 
   const getMessagePreview = () => {

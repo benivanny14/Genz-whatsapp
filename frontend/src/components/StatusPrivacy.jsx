@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { X, Check, Users, UserX, UserCheck, Download } from 'lucide-react'
+import { X, Check, Users, UserX, UserCheck } from 'lucide-react'
 import { getAuthToken } from '../utils/tokenStore'
 import { resolveApiBase } from '../utils/resolveApiBase'
 import './StatusPrivacy.css'
@@ -9,15 +9,6 @@ const StatusPrivacy = ({ onClose }) => {
   const [contacts, setContacts] = useState([])
   const [selectedUsers, setSelectedUsers] = useState([])
   const [loading, setLoading] = useState(true)
-  const [autoSaveStatus, setAutoSaveStatus] = useState(() => {
-    return localStorage.getItem('auto_save_status') === 'true'
-  })
-
-  const toggleAutoSave = () => {
-    const val = !autoSaveStatus
-    setAutoSaveStatus(val)
-    localStorage.setItem('auto_save_status', String(val))
-  }
 
   const API_BASE = resolveApiBase()
   const authHeaders = () => {
@@ -146,22 +137,6 @@ const StatusPrivacy = ({ onClose }) => {
               onChange={() => setPrivacyType('only_share_with')}
             />
           </label>
-
-          <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <Download size={20} color="#00a884" />
-              <div>
-                <span style={{ display: 'block', color: '#fff', fontSize: '14px', fontWeight: '500' }}>Auto-Save Incoming Statuses</span>
-                <small style={{ color: '#8696a0', fontSize: '12px' }}>Automatically save status photos/videos to device</small>
-              </div>
-            </div>
-            <input 
-              type="checkbox"
-              checked={autoSaveStatus}
-              onChange={toggleAutoSave}
-              style={{ accentColor: '#00a884', width: '18px', height: '18px', cursor: 'pointer' }}
-            />
-          </div>
         </div>
 
         {(privacyType === 'contacts_except' || privacyType === 'only_share_with') && (

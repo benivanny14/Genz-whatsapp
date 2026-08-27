@@ -113,6 +113,26 @@ const StatusProvider = ({ children }) => {
     }
   }, [fetchStatuses]);
 
+  // ── Create custom status (direct payload) ──
+  const createCustomStatus = useCallback(async (statusData) => {
+    try {
+      const res = await fetch(`${API_BASE()}/status`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(statusData)
+      });
+      const data = await res.json();
+      if (data.success) {
+        await fetchStatuses();
+        return data;
+      }
+      throw new Error(data.message || 'Failed to create status');
+    } catch (err) {
+      console.error('Create custom status error:', err);
+      throw err;
+    }
+  }, [fetchStatuses]);
+
   // ── View status ──
   const viewStatus = useCallback(async (statusId) => {
     try {
@@ -252,6 +272,7 @@ const StatusProvider = ({ children }) => {
     fetchStatuses,
     createTextStatus,
     createMediaStatus,
+    createCustomStatus,
     viewStatus,
     deleteStatus,
     muteStatus,

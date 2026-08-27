@@ -307,57 +307,15 @@ const CreateStatus = ({ onClose }) => {
   return (
     <div className="create-status-overlay">
       <div className="media-create-container">
-        <div className="create-toolbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px' }}>
+        <div className="create-toolbar">
           <button onClick={() => setMode('select')}><X /></button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={() => setIsHd(!isHd)}
-              style={{
-                background: isHd ? '#00a884' : 'rgba(255,255,255,0.15)',
-                border: '1px solid #00a884',
-                borderRadius: '6px',
-                color: '#fff',
-                fontWeight: 'bold',
-                fontSize: '11px',
-                padding: '2px 6px',
-                cursor: 'pointer'
-              }}
-              title="Toggle HD Quality"
-            >
-              HD
-            </button>
-            <div style={{ display: 'flex', gap: '4px' }}>
-              {['🔥', '❤️', '😂', '👑', '✨'].map(st => (
-                <button
-                  key={st}
-                  type="button"
-                  onClick={() => setSelectedSticker(selectedSticker === st ? '' : st)}
-                  style={{
-                    background: selectedSticker === st ? 'rgba(0,168,132,0.4)' : 'transparent',
-                    border: 'none',
-                    borderRadius: '50%',
-                    fontSize: '16px',
-                    cursor: 'pointer',
-                    padding: '2px'
-                  }}
-                >
-                  {st}
-                </button>
-              ))}
-            </div>
-          </div>
+          <span>{mode === 'video' ? 'Video Status' : 'Photo Status'}</span>
           <button onClick={handleSubmit} disabled={isProcessing}>
             {isProcessing ? 'Processing...' : <Send size={20} />}
           </button>
         </div>
 
-        <div className="media-preview" style={{ position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {selectedSticker && (
-            <div style={{ position: 'absolute', top: '20px', right: '20px', fontSize: '56px', zIndex: 10, pointerEvents: 'none' }}>
-              {selectedSticker}
-            </div>
-          )}
+        <div className="media-preview">
           {mode === 'image' ? (
             <img src={mediaPreview} alt="preview" />
           ) : (

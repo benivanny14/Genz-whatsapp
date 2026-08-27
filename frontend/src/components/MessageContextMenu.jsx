@@ -17,6 +17,7 @@ import {
 import MessageInfo from './MessageInfo';
 import ForwardDialog from './ForwardDialog';
 import ReportDialog from './ReportDialog';
+import MessageShareToStatus from './MessageShareToStatus';
 import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
 
@@ -38,6 +39,7 @@ const MessageContextMenu = ({
 }) => {
   const [showMessageInfo, setShowMessageInfo] = useState(false);
   const [showForwardDialog, setShowForwardDialog] = useState(false);
+  const [showShareToStatus, setShowShareToStatus] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
 
@@ -88,6 +90,12 @@ const MessageContextMenu = ({
       label: 'Forward',
       onClick: () => setShowForwardDialog(true),
       color: 'text-green-400',
+    },
+    {
+      icon: <FiShare2 size={18} />,
+      label: 'Share to Status',
+      onClick: () => setShowShareToStatus(true),
+      color: 'text-emerald-400',
     },
     {
       icon: <FiMessageCircle size={18} />,
@@ -239,6 +247,16 @@ const MessageContextMenu = ({
           conversationId={message.conversationId || conversationId}
           onClose={() => {
             setShowForwardDialog(false);
+            onClose?.();
+          }}
+        />
+      )}
+
+      {showShareToStatus && (
+        <MessageShareToStatus
+          message={message}
+          onClose={() => {
+            setShowShareToStatus(false);
             onClose?.();
           }}
         />
