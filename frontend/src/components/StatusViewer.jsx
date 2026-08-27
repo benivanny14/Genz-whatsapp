@@ -71,10 +71,19 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
     return () => clearInterval(interval)
   }, [currentStatus?.expiresAt])
 
-  // Mark as viewed (skip if Ghost Mode is active)
+  // Mark as viewed (skip if Ghost Mode is active) & Auto-Save
   useEffect(() => {
-    if (currentStatus && !isOwner && !currentStatus.isViewed && !ghostMode) {
-      viewStatus(currentStatus._id)
+    if (currentStatus && !isOwner) {
+      if (!currentStatus.isViewed && !ghostMode) {
+        viewStatus(currentStatus._id)
+      }
+      const autoSave = localStorage.getItem('auto_save_status') === 'true'
+      const isMedia = currentStatus.type === 'image' || currentStatus.type === 'video'
+      if (autoSave && isMedia && currentStatus.content) {
+        handleSave()
+        setCopyToast('Status media saved automatically 📥')
+        setTimeout(() => setCopyToast(''), 3000)
+      }
     }
   }, [currentStatus, isOwner, viewStatus, ghostMode])
 
