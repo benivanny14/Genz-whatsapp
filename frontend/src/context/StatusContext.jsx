@@ -238,8 +238,19 @@ const StatusProvider = ({ children }) => {
     if (!socket) return;
 
     const handleCreated = (status) => {
+      const creatorId = status?.userId?._id || status?.userId || status?.user?._id || status?.user;
+      if (creatorId) {
+        try {
+          const rawUser = localStorage.getItem('user');
+          const currentUser = rawUser ? JSON.parse(rawUser) : null;
+          const blockedUsers = new Set((currentUser?.blockedUsers || []).map(u => String(u._id || u)));
+          if (blockedUsers.has(String(creatorId))) return;
+        } catch (e) {
+          // ignore parsing errors
+        }
+      }
       setStatuses(prev => {
-        const exists = prev.some(s => s._id === status._id);
+        const exists = prev.some(s => String(s._id) === String(status._id));
         if (exists) return prev;
         return [status, ...prev];
       });

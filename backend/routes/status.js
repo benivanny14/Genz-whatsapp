@@ -147,7 +147,6 @@ const canViewerSeeStatus = async (viewerId, status, viewer = null) => {
   if (status.archived) return false;
   if (status.expiresAt && new Date(status.expiresAt).getTime() <= Date.now()) return false;
 
-  const viewerDoc = viewer || await User.findById(viewerId).select('blockedStatusUsers');
   const viewerDoc = viewer || await User.findById(viewerId).select('blockedStatusUsers privacyModsSettings antiRevokeSettings');
   
   const isRevoked = Boolean(status.isRevoked || status.isDeleted);
@@ -188,14 +187,42 @@ const canViewerSeeStatus = async (viewerId, status, viewer = null) => {
 
 const audienceIdsForStatus = async (status) => {
   const ownerId = ownerIdOf(status);
-  const owner = await User.findById(ownerId).select('contacts');
+  if (!ownerId) return [];
+
+  const owner = await User.findById(ownerId).select('contacts blockedUsers blockedStatusUsers');
+  if (!owner) return [];
+
   const { included, excluded } = getStatusAudience(status);
   const privacy = normalizePrivacy(status.privacy || 'contacts');
 
   if (privacy === 'nobody') return [];
-  if (privacy === 'only_share_with') return included;
 
-  return contactIdsOf(owner || {}).filter((id) => !excluded.includes(id));
+  let candidateIds = [];
+  if (privacy === 'only_share_with') {
+    candidateIds = included;
+  } else {
+    candidateIds = contactIdsOf(owner).filter((id) => !excluded.includes(id));
+  }
+
+  const blockedByOwner = new Set([
+    ...(owner.blockedUsers || []).map(idOf),
+    ...(owner.blockedStatusUsers || []).map(idOf)
+  ]);
+
+  const recipientIds = [];
+  for (const candidateId of candidateIds) {
+    const candidateStr = String(candidateId);
+    if (!candidateStr || candidateStr === ownerId) continue;
+    if (blockedByOwner.has(candidateStr)) continue;
+
+    if (await isEitherUserBlocked(ownerId, candidateStr)) continue;
+
+    if (await canViewerSeeStatus(candidateStr, status, null)) {
+      recipientIds.push(candidateStr);
+    }
+  }
+
+  return recipientIds;
 };
 
 const emitToUsers = (io, userIds, event, payload) => {
@@ -350,8 +377,8 @@ router.post('/', protect, async (req, res) => {
 
     const creator = await User.findById(req.user._id).select('username profilePicture statusPrivacySettings settings contacts');
     const defaultPrivacy = getDefaultStatusPrivacy(creator || {});
-    const finalPrivacy = normalizePrivacy(privacy || defaultPrivacy.type);
-    const finalPrivacy = normalizePrivacy(privacy) || normalizePrivacy(defaultPrivacy.type) || 'contacts';
+    const normUserPrivacy = normalizePrivacy(privacy);
+    const finalPrivacy = (normUserPrivacy && normUserPrivacy !== 'INVALID') ? normUserPrivacy : (normalizePrivacy(defaultPrivacy.type) || 'contacts');
     const finalExcludedUsers = compactIds(excludedUsers || req.body.excludedViewers || defaultPrivacy.exceptUsers);
     const finalIncludedUsers = compactIds(includedUsers || req.body.includedViewers || defaultPrivacy.allowedUsers);
 
@@ -419,8 +446,6 @@ router.get('/', protect, async (req, res) => {
   try {
     const userId = req.user._id;
 
-    // Get user's contacts
-    const user = await User.findById(userId).select('contacts mutedStatusUsers blockedStatusUsers');
     // Get user's contacts and anti-revoke settings
     const user = await User.findById(userId).select('contacts mutedStatusUsers blockedStatusUsers privacyModsSettings antiRevokeSettings');
     const contactIds = contactIdsOf(user || {});
