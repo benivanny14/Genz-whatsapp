@@ -44,6 +44,7 @@ const StatusList = ({ onViewArchive }) => {
   const [showCreate, setShowCreate] = useState(false)
   const [showArchive, setShowArchive] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
+  const [showMutedAccordion, setShowMutedAccordion] = useState(false)
   const [viewerUser, setViewerUser] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
 
@@ -270,11 +271,18 @@ const StatusList = ({ onViewArchive }) => {
         </div>
       )}
 
-      {/* Muted Section */}
-      {groupedStatuses.recentUpdates.some(g => g.isMuted) || groupedStatuses.viewedUpdates.some(g => g.isMuted) ? (
+      {/* Collapsible Muted Section */}
+      {(groupedStatuses.recentUpdates.some(g => g.isMuted) || groupedStatuses.viewedUpdates.some(g => g.isMuted)) && (
         <div className="status-section muted-section">
-          <h3 className="section-title">Muted</h3>
-          {[...groupedStatuses.recentUpdates, ...groupedStatuses.viewedUpdates]
+          <h3 
+            className="section-title" 
+            onClick={() => setShowMutedAccordion(!showMutedAccordion)}
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+          >
+            <span>Muted updates</span>
+            <span style={{ fontSize: '12px', color: '#8696a0' }}>{showMutedAccordion ? '▲ Hide' : '▼ Show'}</span>
+          </h3>
+          {showMutedAccordion && [...groupedStatuses.recentUpdates, ...groupedStatuses.viewedUpdates]
             .filter(g => g.isMuted)
             .map((group) => (
               <div
@@ -297,7 +305,7 @@ const StatusList = ({ onViewArchive }) => {
             ))
           }
         </div>
-      ) : null}
+      )}
 
       {/* Empty State */}
       {groupedStatuses.recentUpdates.length === 0 &&

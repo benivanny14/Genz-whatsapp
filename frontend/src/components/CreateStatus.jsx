@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react'
 import { useStatusContext } from '../context/StatusContext'
-import { X, Type, Image, Video, Music, Scissors, Send, Volume2, RotateCw, Paintbrush, Eraser, Share2, Split } from 'lucide-react'
+import { X, Type, Image, Video, Music, Scissors, Send, Volume2 } from 'lucide-react'
 import { FFmpeg } from '@ffmpeg/ffmpeg'
 import { fetchFile } from '@ffmpeg/util'
 import './CreateStatus.css'
@@ -31,9 +31,8 @@ const CreateStatus = ({ onClose }) => {
   const [selectedColor, setSelectedColor] = useState(TEXT_COLORS[0])
   const [fontIndex, setFontIndex] = useState(0)
   const [taggedContact, setTaggedContact] = useState('')
-  const [rotation, setRotation] = useState(0)
-  const [autoSplit, setAutoSplit] = useState(false)
-  const [crossPost, setCrossPost] = useState(false)
+  const [isHd, setIsHd] = useState(false)
+  const [selectedSticker, setSelectedSticker] = useState('')
   const [mediaFile, setMediaFile] = useState(null)
   const [mediaPreview, setMediaPreview] = useState(null)
   const [caption, setCaption] = useState('')
@@ -310,46 +309,59 @@ const CreateStatus = ({ onClose }) => {
       <div className="media-create-container">
         <div className="create-toolbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px' }}>
           <button onClick={() => setMode('select')}><X /></button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {mode === 'image' && (
-              <button 
-                type="button"
-                onClick={() => setRotation((prev) => (prev + 90) % 360)}
-                style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
-                title="Rotate 90°"
-              >
-                <RotateCw size={20} />
-              </button>
-            )}
-            {mode === 'video' && (
-              <button 
-                type="button"
-                onClick={() => setAutoSplit(!autoSplit)}
-                style={{ background: autoSplit ? '#00a884' : 'transparent', border: '1px solid #00a884', borderRadius: '12px', padding: '2px 8px', color: '#fff', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                title="Auto-split into 30s clips"
-              >
-                <Split size={14} /> Auto 30s Split
-              </button>
-            )}
-            <button 
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
               type="button"
-              onClick={() => setCrossPost(!crossPost)}
-              style={{ background: crossPost ? '#1877F2' : 'transparent', border: '1px solid #1877F2', borderRadius: '12px', padding: '2px 8px', color: '#fff', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-              title="Cross-post to Facebook / Social Story"
+              onClick={() => setIsHd(!isHd)}
+              style={{
+                background: isHd ? '#00a884' : 'rgba(255,255,255,0.15)',
+                border: '1px solid #00a884',
+                borderRadius: '6px',
+                color: '#fff',
+                fontWeight: 'bold',
+                fontSize: '11px',
+                padding: '2px 6px',
+                cursor: 'pointer'
+              }}
+              title="Toggle HD Quality"
             >
-              <Share2 size={14} /> Social Story
+              HD
             </button>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              {['🔥', '❤️', '😂', '👑', '✨'].map(st => (
+                <button
+                  key={st}
+                  type="button"
+                  onClick={() => setSelectedSticker(selectedSticker === st ? '' : st)}
+                  style={{
+                    background: selectedSticker === st ? 'rgba(0,168,132,0.4)' : 'transparent',
+                    border: 'none',
+                    borderRadius: '50%',
+                    fontSize: '16px',
+                    cursor: 'pointer',
+                    padding: '2px'
+                  }}
+                >
+                  {st}
+                </button>
+              ))}
+            </div>
           </div>
           <button onClick={handleSubmit} disabled={isProcessing}>
             {isProcessing ? 'Processing...' : <Send size={20} />}
           </button>
         </div>
 
-        <div className="media-preview" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="media-preview" style={{ position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {selectedSticker && (
+            <div style={{ position: 'absolute', top: '20px', right: '20px', fontSize: '56px', zIndex: 10, pointerEvents: 'none' }}>
+              {selectedSticker}
+            </div>
+          )}
           {mode === 'image' ? (
-            <img src={mediaPreview} alt="preview" style={{ transform: `rotate(${rotation}deg)`, transition: 'transform 0.3s ease' }} />
+            <img src={mediaPreview} alt="preview" />
           ) : (
-            <video ref={videoRef} src={mediaPreview} controls muted loop style={{ transform: `rotate(${rotation}deg)` }} />
+            <video ref={videoRef} src={mediaPreview} controls muted loop />
           )}
         </div>
 

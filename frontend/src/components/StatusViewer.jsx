@@ -42,6 +42,7 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
   const [showReply, setShowReply] = useState(false)
   const [showViewers, setShowViewers] = useState(false)
   const [viewers, setViewers] = useState([])
+  const [viewerSearchQuery, setViewerSearchQuery] = useState('')
   const [duration, setDuration] = useState(5000) // default 5s for images
   const [remainingTime, setRemainingTime] = useState('')
   const [showReactions, setShowReactions] = useState(false)
@@ -389,27 +390,6 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
           <img src={currentStatus.content} alt="status" className="status-media" />
         )}
 
-        {['voice', 'audio'].includes(currentStatus.type) && (
-          <div className="voice-status-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', padding: '24px', width: '100%', height: '100%', background: currentStatus.backgroundColor || '#075E54' }}>
-            <audio src={currentStatus.content || currentStatus.mediaUrl} autoPlay={!isPaused} onEnded={goNext} />
-            <div className="audio-waveform-bars" style={{ display: 'flex', alignItems: 'center', gap: '4px', height: '60px' }}>
-              {[40, 65, 30, 85, 95, 50, 75, 45, 90, 60, 35, 80, 100, 70, 55, 40, 85, 60].map((h, i) => (
-                <div 
-                  key={i} 
-                  style={{
-                    width: '5px',
-                    height: `${h}%`,
-                    background: '#00a884',
-                    borderRadius: '4px',
-                    animation: isPaused ? 'none' : `pulseWave 0.8s ease-in-out infinite alternate ${i * 0.05}s`
-                  }} 
-                />
-              ))}
-            </div>
-            <span style={{ color: '#fff', fontSize: '14px', fontWeight: '500' }}>Voice Status • Playing...</span>
-          </div>
-        )}
-
         {currentStatus.type === 'video' && (
           <>
             <ReactPlayer
@@ -541,14 +521,25 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
       {showViewers && (
         <div className="viewers-modal" onClick={() => { setShowViewers(false); setIsPaused(false) }}>
           <div className="viewers-content" onClick={e => e.stopPropagation()}>
-            <h3>Viewed by {viewers.length}</h3>
-            {viewers.map((v, i) => (
-              <div key={i} className="viewer-item">
-                <img src={v.userId?.profilePicture || '/default-avatar.png'} alt="" />
-                <span>{v.userId?.username}</span>
-                <small>{new Date(v.viewedAt).toLocaleTimeString()}</small>
-              </div>
-            ))}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <h3 style={{ margin: 0 }}>Viewed by {viewers.length}</h3>
+              <input 
+                type="text" 
+                placeholder="Search viewer..." 
+                value={viewerSearchQuery}
+                onChange={(e) => setViewerSearchQuery(e.target.value)}
+                style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '14px', padding: '4px 10px', color: '#fff', fontSize: '12px', width: '130px' }}
+              />
+            </div>
+            {viewers
+              .filter(v => (v.userId?.username || '').toLowerCase().includes(viewerSearchQuery.toLowerCase()))
+              .map((v, i) => (
+                <div key={i} className="viewer-item">
+                  <img src={v.userId?.profilePicture || '/default-avatar.png'} alt="" />
+                  <span>{v.userId?.username}</span>
+                  <small>{new Date(v.viewedAt).toLocaleTimeString()}</small>
+                </div>
+              ))}
           </div>
         </div>
       )}

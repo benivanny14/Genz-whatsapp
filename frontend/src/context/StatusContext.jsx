@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import toast from 'react-hot-toast';
 import { useUser } from './UserContext';
 import { getSocket } from '../services/socket';
 import { resolveApiBase } from '../utils/resolveApiBase';
@@ -208,10 +207,6 @@ const StatusProvider = ({ children }) => {
     if (!socket) return;
 
     const handleCreated = (status) => {
-      const posterName = status?.username || status?.userId?.username || 'Someone';
-      if (status?.userId?._id !== user?._id) {
-        toast(`${posterName} uploaded a new status 🟢`, { duration: 3000 });
-      }
       setStatuses(prev => {
         const exists = prev.some(s => s._id === status._id);
         if (exists) return prev;
