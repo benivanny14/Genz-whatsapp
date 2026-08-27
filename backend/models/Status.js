@@ -48,6 +48,8 @@ const statusSchema = new mongoose.Schema({
   },
   type: {
     type: String,
+    // Note: core status types used in frontend UI are 'text', 'image', 'video', 'voice', 'audio'.
+    // UNUSED: 'quiz', 'question', 'countdown', 'location', 'collage', 'boomerang', 'livePhoto', 'dualCamera', 'timer', 'link' have no active frontend UI creation/rendering as of Aug 2026.
     enum: ['text', 'image', 'video', 'voice', 'audio', 'gif', 'link', 'music', 'quiz', 'question', 'countdown', 'location', 'collage', 'boomerang', 'livePhoto', 'dualCamera', 'timer'],
     required: true
   },
@@ -125,6 +127,7 @@ const statusSchema = new mongoose.Schema({
   viewsCount: { type: Number, default: 0 },
   views: [viewSchema],
   reactions: [reactionSchema],
+  // UNUSED: likes, saves, shares, reshares are schema fields kept for backward-compatibility; main reactions use reactions array.
   likes: [{
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     likedAt: { type: Date, default: Date.now }
