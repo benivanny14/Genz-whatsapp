@@ -336,11 +336,6 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
             <div>
               <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
                 {statusOwner?.username || currentStatus.username || 'Status'}
-                {(currentStatus.isDeleted || currentStatus.deleted) && (
-                  <span style={{ background: '#ef4444', color: '#ffffff', fontSize: '10px', padding: '1px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
-                    DELETED
-                  </span>
-                )}
                 {currentStatus.collabUsername && (
                   <span style={{ background: 'rgba(255,255,255,0.2)', fontSize: '11px', padding: '1px 6px', borderRadius: '4px' }}>
                     @{currentStatus.collabUsername}
