@@ -60,9 +60,12 @@ const viewerIdOf = (view = {}) => idOf(view.userId || view.user);
 const reactionUserIdOf = (reaction = {}) => idOf(reaction.userId || reaction.user);
 
 const normalizePrivacy = (privacy) => {
+  if (!privacy) return null;
   if (privacy === 'everyone') return 'contacts';
   if (privacy === 'only_me') return 'nobody';
   return VALID_PRIVACY.has(privacy) ? privacy : 'contacts';
+  if (VALID_PRIVACY.has(privacy)) return privacy;
+  return 'INVALID';
 };
 
 const getStatusAudience = (status = {}) => ({
@@ -112,6 +115,9 @@ const normalizeStatusForClient = (status, viewerId, mutedUserIds = new Set()) =>
   statusObj.viewsCount = statusObj.viewsCount || statusObj.viewCount;
   statusObj.isViewed = (statusObj.views || []).some((view) => viewerIdOf(view) === String(viewerId));
   statusObj.isMuted = mutedUserIds.has(ownerId) || (statusObj.mutedBy || []).some((id) => idOf(id) === String(viewerId));
+  statusObj.isRevoked = Boolean(statusObj.isRevoked || statusObj.isDeleted);
+  statusObj.isDeleted = Boolean(statusObj.isRevoked || statusObj.isDeleted);
+  statusObj.deletedAt = statusObj.deletedAt || null;
   return statusObj;
 };
 
@@ -142,6 +148,21 @@ const canViewerSeeStatus = async (viewerId, status, viewer = null) => {
   if (status.expiresAt && new Date(status.expiresAt).getTime() <= Date.now()) return false;
 
   const viewerDoc = viewer || await User.findById(viewerId).select('blockedStatusUsers');
+  const viewerDoc = viewer || await User.findById(viewerId).select('blockedStatusUsers privacyModsSettings antiRevokeSettings');
+  
+  const isRevoked = Boolean(status.isRevoked || status.isDeleted);
+  if (isRevoked) {
+    if (ownerId === viewerIdStr) return false;
+    const hasAntiRevoke = Boolean(
+      viewerDoc?.privacyModsSettings?.antiRevokeStatus ||
+      viewerDoc?.privacyModsSettings?.antiRevoke ||
+      viewerDoc?.antiRevokeSettings?.antiRevokeEnabled
+    );
+    const alreadyViewed = (status.views || []).some(v => viewerIdOf(v) === viewerIdStr);
+    if (!hasAntiRevoke || !alreadyViewed) return false;
+  } else if (ownerId === viewerIdStr) {
+    return true;
+  }
   const blockedStatusUserIds = getActiveStatusBlockedUserIds(viewerDoc || {});
   if (blockedStatusUserIds.has(ownerId)) return false;
   if (await isEitherUserBlocked(viewerId, ownerId)) return false;
@@ -323,9 +344,14 @@ router.post('/', protect, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Media status requires content URL' });
     }
 
+    if (privacy && normalizePrivacy(privacy) === 'INVALID') {
+      return res.status(400).json({ success: false, message: 'Invalid privacy value' });
+    }
+
     const creator = await User.findById(req.user._id).select('username profilePicture statusPrivacySettings settings contacts');
     const defaultPrivacy = getDefaultStatusPrivacy(creator || {});
     const finalPrivacy = normalizePrivacy(privacy || defaultPrivacy.type);
+    const finalPrivacy = normalizePrivacy(privacy) || normalizePrivacy(defaultPrivacy.type) || 'contacts';
     const finalExcludedUsers = compactIds(excludedUsers || req.body.excludedViewers || defaultPrivacy.exceptUsers);
     const finalIncludedUsers = compactIds(includedUsers || req.body.includedViewers || defaultPrivacy.allowedUsers);
 
@@ -395,9 +421,17 @@ router.get('/', protect, async (req, res) => {
 
     // Get user's contacts
     const user = await User.findById(userId).select('contacts mutedStatusUsers blockedStatusUsers');
+    // Get user's contacts and anti-revoke settings
+    const user = await User.findById(userId).select('contacts mutedStatusUsers blockedStatusUsers privacyModsSettings antiRevokeSettings');
     const contactIds = contactIdsOf(user || {});
     const mutedUserIds = getActiveMutedUserIds(user || {});
     const blockedStatusUserIds = getActiveStatusBlockedUserIds(user || {});
+
+    const hasAntiRevoke = Boolean(
+      user?.privacyModsSettings?.antiRevokeStatus ||
+      user?.privacyModsSettings?.antiRevoke ||
+      user?.antiRevokeSettings?.antiRevokeEnabled
+    );
 
     // Find statuses from contacts + self that aren't expired
     const statuses = await Status.find({
@@ -414,6 +448,14 @@ router.get('/', protect, async (req, res) => {
     for (const status of statuses) {
       const ownerId = ownerIdOf(status);
       if (ownerId !== String(userId) && blockedStatusUserIds.has(ownerId)) continue;
+
+      const isRevoked = Boolean(status.isRevoked || status.isDeleted);
+      if (isRevoked) {
+        if (ownerId === String(userId)) continue;
+        const alreadyViewed = (status.views || []).some(v => viewerIdOf(v) === String(userId));
+        if (!hasAntiRevoke || !alreadyViewed) continue;
+      }
+
       if (!(await canViewerSeeStatus(userId, status, user))) continue;
       result.push(normalizeStatusForClient(status, userId, mutedUserIds));
     }
@@ -476,6 +518,11 @@ router.delete('/:id', protect, async (req, res) => {
     }
 
     await Status.findByIdAndDelete(req.params.id);
+    status.isRevoked = true;
+    status.isDeleted = true;
+    status.deletedAt = new Date();
+    await status.save();
+
     await emitStatusDeleted(req, status);
     res.json({ success: true, message: 'Status deleted' });
   } catch (error) {

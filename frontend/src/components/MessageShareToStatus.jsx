@@ -1,40 +1,79 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Share2, X, Check, RefreshCw, Clock, Eye, Smile, Image as ImageIcon, Video, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStatusContext } from '../context/StatusContext';
+import { getAuthToken } from '../utils/tokenStore';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
 const MessageShareToStatus = ({ message = {}, onShareToStatus, onClose }) => {
   const { createTextStatus, createCustomStatus } = useStatusContext();
   const [caption, setCaption] = useState('');
-  const [audience, setAudience] = useState('all'); // all, contacts, except
+  const [audience, setAudience] = useState('contacts'); // contacts, contacts_except, only_share_with
+  const [contacts, setContacts] = useState([]);
+  const [selectedUsers, setSelectedUsers] = useState([]);
   const [isSharing, setIsSharing] = useState(false);
 
   const audiences = [
-    { id: 'all', label: 'My contacts', description: 'Share with all contacts' },
-    { id: 'contacts', label: 'Selected contacts', description: 'Choose specific contacts' },
-    { id: 'except', label: 'My contacts except...', description: 'Exclude some contacts' },
+    { id: 'contacts', label: 'My contacts', description: 'Share with all contacts' },
+    { id: 'contacts_except', label: 'My contacts except...', description: 'Exclude specific contacts' },
+    { id: 'only_share_with', label: 'Only share with...', description: 'Share with selected contacts' },
   ];
 
   const isMedia = Boolean(message?.mediaUrl || message?.type === 'image' || message?.type === 'video' || message?.messageType === 'image' || message?.messageType === 'video');
   const mediaType = (message?.type === 'video' || message?.messageType === 'video') ? 'video' : 'image';
 
+  useEffect(() => {
+    fetchContacts();
+  }, []);
+
+  const fetchContacts = async () => {
+    try {
+      const token = getAuthToken();
+      const res = await fetch(`${resolveApiBase()}/auth/me`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+      });
+      const data = await res.json();
+      setContacts(data.user?.contacts || []);
+    } catch (err) {
+      console.error('Fetch contacts error:', err);
+    }
+  };
+
+  const toggleUser = (userId) => {
+    setSelectedUsers(prev =>
+      prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
+    );
+  };
+
   const handleShare = async () => {
     setIsSharing(true);
     try {
+      const privacy = audience;
+      const excludedUsers = privacy === 'contacts_except' ? selectedUsers : [];
+      const includedUsers = privacy === 'only_share_with' ? selectedUsers : [];
+
       if (isMedia && createCustomStatus) {
         const mediaUrl = message.mediaUrl || message.content || message.media;
         await createCustomStatus({
           type: mediaType,
           content: mediaUrl,
           caption: caption || message.caption || message.content || '',
-          privacy: audience === 'all' ? 'contacts' : audience
+          privacy,
+          excludedUsers,
+          includedUsers
         });
       } else if (createTextStatus) {
         const textContent = message.content || (typeof message === 'string' ? message : 'Shared Message');
         await createTextStatus({
           text: caption ? `${textContent}\n\n${caption}` : textContent,
           backgroundColor: '#128C7E',
-          fontColor: '#FFFFFF'
+          fontColor: '#FFFFFF',
+          privacy,
+          excludedUsers,
+          includedUsers
         });
       }
 
@@ -42,7 +81,8 @@ const MessageShareToStatus = ({ message = {}, onShareToStatus, onClose }) => {
         onShareToStatus({
           messageId: message._id,
           caption,
-          audience
+          audience: privacy,
+          selectedUsers
         });
       }
     } catch (err) {
@@ -117,6 +157,7 @@ const MessageShareToStatus = ({ message = {}, onShareToStatus, onClose }) => {
             {audiences.map(aud => (
               <button
                 key={aud.id}
+                type="button"
                 onClick={() => setAudience(aud.id)}
                 className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
                   audience === aud.id
@@ -135,6 +176,33 @@ const MessageShareToStatus = ({ message = {}, onShareToStatus, onClose }) => {
             ))}
           </div>
         </div>
+
+        {/* Contact Selection Checklist */}
+        {(audience === 'contacts_except' || audience === 'only_share_with') && (
+          <div className="mb-4 max-h-36 overflow-y-auto bg-[#0b141a] rounded-lg p-3 border border-[#00a884]/20 space-y-2">
+            <p className="text-gray-300 text-xs font-semibold mb-1">
+              {audience === 'contacts_except' ? 'Hide status from:' : 'Share status with:'}
+            </p>
+            {contacts.length === 0 ? (
+              <p className="text-gray-500 text-xs">No contacts found</p>
+            ) : (
+              contacts.map(c => {
+                const cId = String(c.user?._id || c.user || c._id || '');
+                const isSelected = selectedUsers.includes(cId);
+                return (
+                  <div
+                    key={cId}
+                    onClick={() => toggleUser(cId)}
+                    className="flex items-center justify-between p-1.5 rounded cursor-pointer hover:bg-white/5 transition-colors"
+                  >
+                    <span className="text-white text-xs">{c.savedName || c.username || 'Contact'}</span>
+                    {isSelected && <Check size={14} className="text-[#00a884]" />}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
 
         {/* Status Info */}
         <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-4">

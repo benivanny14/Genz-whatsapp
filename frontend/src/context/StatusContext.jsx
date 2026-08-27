@@ -58,7 +58,11 @@ const StatusProvider = ({ children }) => {
         headers: authHeaders(),
         body: JSON.stringify({
           type: 'text',
-          textStatus: textData
+          textStatus: textData,
+          privacy: textData?.privacy,
+          excludedUsers: textData?.excludedUsers,
+          includedUsers: textData?.includedUsers,
+          collabUsername: textData?.collabUsername
         })
       });
       const data = await res.json();
@@ -89,6 +93,9 @@ const StatusProvider = ({ children }) => {
 
       const file = formData.get('file');
       const type = file?.type?.startsWith('image/') ? 'image' : 'video';
+      const privacy = formData.get('privacy');
+      const excludedUsers = formData.get('excludedUsers');
+      const includedUsers = formData.get('includedUsers');
 
       const res = await fetch(`${API_BASE()}/status`, {
         method: 'POST',
@@ -98,7 +105,11 @@ const StatusProvider = ({ children }) => {
           content: uploadData.fileUrl,
           caption: formData.get('caption') || '',
           music: formData.get('music') ? JSON.parse(formData.get('music')) : undefined,
-          duration: Number(formData.get('duration')) || 0
+          duration: Number(formData.get('duration')) || 0,
+          privacy: privacy || undefined,
+          excludedUsers: excludedUsers ? JSON.parse(excludedUsers) : undefined,
+          includedUsers: includedUsers ? JSON.parse(includedUsers) : undefined,
+          collabUsername: formData.get('collabUsername') || undefined
         })
       });
       const data = await res.json();
