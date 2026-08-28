@@ -64,7 +64,12 @@ module.exports = function registerMessageHandlers(ctx) {
         allowScreenshot,
         font
       } = data;
-      const safeContent = content || fileName || (mediaUrl ? `${messageType || 'media'} message` : '') || (structuredContent && structuredContent.length ? 'Structured Message' : '');
+      // SECURITY: sanitize text content to prevent XSS in stored messages
+      const { sanitizeSocketMessage } = require('../../utils/socketSanitize');
+      const sanitized = sanitizeSocketMessage({ text: content, caption });
+      const cleanContent = sanitized.text || content;
+      const cleanCaption = sanitized.caption || caption;
+      const safeContent = cleanContent || fileName || (mediaUrl ? `${messageType || 'media'} message` : '') || (structuredContent && structuredContent.length ? 'Structured Message' : '');
       if (!safeContent) {
         return socket.emit('message:error', { error: 'Message content or media is required' });
       }

@@ -1431,6 +1431,13 @@ io.use(async (socket, next) => {
       if (decoded.typ === "refresh") {
         return next(new Error("Invalid token type for socket"));
       }
+
+      // SECURITY: check if the token has been blacklisted (logout / rotation)
+      const { isTokenBlacklisted } = require('./middleware/tokenBlacklist');
+      if (await isTokenBlacklisted(token)) {
+        return next(new Error("Token has been revoked"));
+      }
+
       const user = await User.findById(decoded.id).select(
         "-passwordHash -twoFactorSecret",
       );
@@ -1455,6 +1462,24 @@ io.use(async (socket, next) => {
 });
 
 setupSocket(io);
+
+// SECURITY: periodic token blacklist validation — disconnect sockets whose
+// JWT has been revoked (logout, password change, token rotation).
+const { isTokenBlacklisted } = require('./middleware/tokenBlacklist');
+setInterval(async () => {
+  try {
+    const sockets = await io.fetchSockets();
+    for (const s of sockets) {
+      try {
+        const tkn = s.handshake?.auth?.token;
+        if (tkn && await isTokenBlacklisted(tkn)) {
+          s.disconnect(true);
+          logger.info('Disconnected socket with blacklisted token', { socketId: s.id });
+        }
+      } catch { /* ignore per-socket errors */ }
+    }
+  } catch { /* ignore sweep errors */ }
+}, 5 * 60 * 1000); // every 5 minutes
 
 // Legacy socket handlers have been removed. All socket functionality is now
 // handled by the modern socket layer in backend/socket/index.js which provides:
