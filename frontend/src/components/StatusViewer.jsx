@@ -528,6 +528,7 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
               height="100%"
               onDuration={d => setDuration(d * 1000)}
               onEnded={goNext}
+              onError={(e) => { if (e?.type !== 'AbortError') console.warn('Video error:', e) }}
               style={{ objectFit: 'cover' }}
             />
             {/* Background music player */}
@@ -538,6 +539,7 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
                 loop={false}
                 muted={isMuted}
                 onEnded={goNext}
+                onError={(e) => { if (e?.type !== 'AbortError') console.warn('Music error:', e) }}
               />
             )}
           </>
@@ -564,6 +566,7 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
               controls
               autoPlay={!isPaused}
               onEnded={goNext}
+              onError={(e) => { if (e?.type !== 'AbortError') console.warn('Voice error:', e) }}
               style={{ width: '85%', maxWidth: '340px', borderRadius: '24px', height: '40px' }}
             />
             {currentStatus.caption && (

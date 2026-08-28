@@ -54,7 +54,7 @@ const VoiceChangerPanel = ({ onClose, onApplyEffect }) => {
     const audio = new Audio(URL.createObjectURL(audioBlob));
     audio.onplay = () => setIsPlaying(true);
     audio.onended = () => setIsPlaying(false);
-    audio.play();
+    audio.play().catch(() => {});
   };
 
   const handleApply = () => {

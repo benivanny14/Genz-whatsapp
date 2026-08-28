@@ -80,7 +80,7 @@ const AudioPanel = ({ onClose, onSave }) => {
       if (isPlaying) {
         audioRef.current.pause();
       } else {
-        audioRef.current.play();
+        audioRef.current.play().catch(() => {});
       }
       setIsPlaying(!isPlaying);
     }

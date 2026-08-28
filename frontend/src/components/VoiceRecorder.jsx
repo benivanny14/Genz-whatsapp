@@ -605,7 +605,7 @@ const VoiceRecorder = ({
                 previewAudioRef.current.pause();
                 setIsPlayingPreview(false);
               } else {
-                previewAudioRef.current.play();
+                previewAudioRef.current.play().catch(() => {});
                 setIsPlayingPreview(true);
               }
             }}

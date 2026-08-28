@@ -40,7 +40,7 @@ const VideoPlayer = ({ videoUrl, onClose, onDownload, onShare, autoPlay = false 
 
   useEffect(() => {
     if (autoPlay && videoRef.current) {
-      videoRef.current.play();
+      videoRef.current.play().catch(() => {});
     }
   }, [autoPlay]);
 
@@ -49,7 +49,7 @@ const VideoPlayer = ({ videoUrl, onClose, onDownload, onShare, autoPlay = false 
     if (isPlaying) {
       video.pause();
     } else {
-      video.play();
+      video.play().catch(() => {});
     }
     setIsPlaying(!isPlaying);
   };

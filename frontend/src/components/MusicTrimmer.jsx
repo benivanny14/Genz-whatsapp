@@ -106,7 +106,7 @@ const MusicTrimmer = ({ file, onTrim }) => {
       return;
     }
     a.currentTime = start;
-    a.play();
+    a.play().catch(() => {});
     setIsPreviewPlaying(true);
   };
 

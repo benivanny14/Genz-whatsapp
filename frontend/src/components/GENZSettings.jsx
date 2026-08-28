@@ -1988,7 +1988,7 @@ const PrivacyTab = ({ ctx }) => {
                               onClick={() => {
                                 const audio = document.getElementById('genz-chat-music-preview-paid');
                                 if (audio) {
-                                  if (audio.paused) audio.play(); else audio.pause();
+                                  if (audio.paused) audio.play().catch(() => {}); else audio.pause();
                                 }
                               }}
                               className="w-10 h-10 rounded-full bg-pink-500 flex items-center justify-center flex-shrink-0 hover:bg-pink-600 transition-colors"

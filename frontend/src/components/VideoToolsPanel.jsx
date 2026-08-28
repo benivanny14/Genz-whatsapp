@@ -64,7 +64,7 @@ const VideoToolsPanel = ({ onClose, video, onSave }) => {
       if (videoRef.current.currentTime < trimStart || videoRef.current.currentTime >= trimEnd) {
         videoRef.current.currentTime = trimStart;
       }
-      videoRef.current.play();
+      videoRef.current.play().catch(() => {});
     }
     setIsPlaying(!isPlaying);
   };
@@ -246,7 +246,7 @@ const VideoToolsPanel = ({ onClose, video, onSave }) => {
     });
 
     recorder.start();
-    videoEl.play();
+    videoEl.play().catch(() => {});
 
     const drawFrame = () => {
       if (videoEl.currentTime >= trimEnd || videoEl.paused) {
