@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { X, Check, Users, UserX, UserCheck } from 'lucide-react'
+import { X, Check, Users, UserX, UserCheck, Search } from 'lucide-react'
 import { getAuthToken } from '../utils/tokenStore'
 import { resolveApiBase } from '../utils/resolveApiBase'
 import './StatusPrivacy.css'
@@ -9,6 +9,7 @@ const StatusPrivacy = ({ onClose }) => {
   const [contacts, setContacts] = useState([])
   const [selectedUsers, setSelectedUsers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [contactSearchQuery, setContactSearchQuery] = useState('')
 
   const API_BASE = resolveApiBase()
   const authHeaders = () => {
@@ -18,11 +19,6 @@ const StatusPrivacy = ({ onClose }) => {
       ...(token ? { Authorization: `Bearer ${token}` } : {})
     }
   }
-
-  useEffect(() => {
-    fetchPrivacy()
-    fetchContacts()
-  }, [])
 
   const fetchPrivacy = async () => {
     try {
@@ -51,6 +47,11 @@ const StatusPrivacy = ({ onClose }) => {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchPrivacy()
+    fetchContacts()
+  }, [])
 
   const [replySettings, setReplySettings] = useState('everyone')
   const [isGhostMode, setIsGhostMode] = useState(false)
@@ -149,19 +150,46 @@ const StatusPrivacy = ({ onClose }) => {
         </div>
 
         {(privacyType === 'contacts_except' || privacyType === 'only_share_with') && (
-          <div className="contacts-list">
-            <h4>{privacyType === 'contacts_except' ? 'Hide status from' : 'Share status with'}</h4>
+          <div className="contacts-list" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
+            <h4 style={{ padding: '12px 16px', color: '#8696a0', fontSize: '13px' }}>
+              {privacyType === 'contacts_except' ? 'Hide status from' : 'Share status with'}
+            </h4>
+            
+            {/* Search input */}
+            <div style={{ padding: '0 16px 12px', position: 'sticky', top: 0, background: '#111b21', zIndex: 1 }}>
+              <div style={{ position: 'relative' }}>
+                <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#8696a0' }} />
+                <input
+                  type="text"
+                  value={contactSearchQuery}
+                  onChange={(e) => setContactSearchQuery(e.target.value)}
+                  placeholder="Search contacts..."
+                  style={{
+                    width: '100%', padding: '10px 12px 10px 36px',
+                    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '8px', color: '#fff', fontSize: '14px', boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+            </div>
+            
             {loading ? (
-              <p>Loading contacts...</p>
+              <p style={{ padding: '20px', textAlign: 'center', color: '#8696a0' }}>Loading contacts...</p>
             ) : (
-              contacts.map(contact => (
+              contacts
+                .filter(contact => {
+                  const name = (contact.savedName || contact.username || '').toLowerCase()
+                  return name.includes(contactSearchQuery.toLowerCase())
+                })
+                .map(contact => (
                 <div 
                   key={contact._id || contact.user} 
                   className="contact-item"
                   onClick={() => toggleUser(contact.user || contact._id)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 16px', cursor: 'pointer', minHeight: '48px' }}
                 >
-                  <img src={contact.profilePicture || '/default-avatar.png'} alt="" />
-                  <span>{contact.savedName || contact.username}</span>
+                  <img src={contact.profilePicture || '/default-avatar.png'} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%' }} loading="lazy" />
+                  <span style={{ flex: 1, color: '#e9edef' }}>{contact.savedName || contact.username}</span>
                   {selectedUsers.includes(contact.user || contact._id) && <Check size={18} color="#00a884" />}
                 </div>
               ))

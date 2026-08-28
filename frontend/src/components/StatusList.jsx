@@ -309,36 +309,53 @@ const StatusList = ({ onViewArchive }) => {
       {/* Collapsible Muted Section */}
       {(groupedStatuses.recentUpdates.some(g => g.isMuted) || groupedStatuses.viewedUpdates.some(g => g.isMuted)) && (
         <div className="status-section muted-section">
-          <h3 
-            className="section-title" 
+          <button
             onClick={() => setShowMutedAccordion(!showMutedAccordion)}
-            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '12px', background: 'none', border: 'none', cursor: 'pointer',
+              minHeight: '48px'
+            }}
+            aria-expanded={showMutedAccordion}
+            aria-label="Toggle muted statuses"
           >
-            <span>Muted updates</span>
-            <span style={{ fontSize: '12px', color: '#8696a0' }}>{showMutedAccordion ? '▲ Hide' : '▼ Show'}</span>
-          </h3>
-          {showMutedAccordion && [...groupedStatuses.recentUpdates, ...groupedStatuses.viewedUpdates]
-            .filter(g => g.isMuted)
-            .map((group) => (
-              <div
-                key={group.userId}
-                className="status-user-item"
-                onClick={() => handleViewStatus(group)}
-              >
-                <div className="status-ring viewed"
-                  style={{ background: getStatusRingSegments(group.statuses) }}>
-                  <img src={group.profilePicture || '/default-avatar.png'} alt="" className="status-avatar-inner" />
-                </div>
-                <div className="status-user-info">
-                  <h4>{group.username}</h4>
-                  <p>
-                    {group.statuses.length} status{group.statuses.length > 1 ? 'es' : ''}
-                  </p>
-                </div>
-                <VolumeX size={16} className="muted-icon" />
-              </div>
-            ))
-          }
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <VolumeX size={18} color="#8696a0" />
+              <span style={{ color: '#e9edef', fontSize: '14px', fontWeight: 500 }}>Muted updates</span>
+              <span style={{ fontSize: '11px', color: '#8696a0', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '12px' }}>
+                {[...groupedStatuses.recentUpdates, ...groupedStatuses.viewedUpdates].filter(g => g.isMuted).length}
+              </span>
+            </div>
+            <span style={{ color: '#8696a0', transition: 'transform 0.2s', transform: showMutedAccordion ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+              ▼
+            </span>
+          </button>
+          {showMutedAccordion && (
+            <div style={{ padding: '0 12px', animation: 'slideDown 0.2s ease' }}>
+              {[...groupedStatuses.recentUpdates, ...groupedStatuses.viewedUpdates]
+                .filter(g => g.isMuted)
+                .map((group) => (
+                  <div
+                    key={group.userId}
+                    className="status-user-item"
+                    onClick={() => handleViewStatus(group)}
+                  >
+                    <div className="status-ring viewed"
+                      style={{ background: getStatusRingSegments(group.statuses) }}>
+                      <img src={group.profilePicture || '/default-avatar.png'} alt="" className="status-avatar-inner" loading="lazy" />
+                    </div>
+                    <div className="status-user-info">
+                      <h4>{group.username}</h4>
+                      <p>
+                        {group.statuses.length} status{group.statuses.length > 1 ? 'es' : ''}
+                      </p>
+                    </div>
+                    <VolumeX size={16} color="#8696a0" />
+                  </div>
+                ))
+              }
+            </div>
+          )}
         </div>
       )}
 
@@ -346,10 +363,34 @@ const StatusList = ({ onViewArchive }) => {
       {groupedStatuses.recentUpdates.length === 0 &&
         groupedStatuses.viewedUpdates.length === 0 &&
         groupedStatuses.myStatus.length === 0 && (
-        <div className="status-empty">
-          <Camera size={48} className="text-gray-500" />
-          <p>No status updates yet</p>
-          <span>Tap + to share a status</span>
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          justifyContent: 'center', padding: '48px 16px', textAlign: 'center'
+        }}>
+          <div style={{
+            width: '100px', height: '100px', borderRadius: '50%',
+            background: 'rgba(0,168,132,0.1)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center', marginBottom: '16px'
+          }}>
+            <Camera size={48} color="#00a884" />
+          </div>
+          <h3 style={{ color: '#e9edef', fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
+            No status updates yet
+          </h3>
+          <p style={{ color: '#8696a0', fontSize: '14px', marginBottom: '20px' }}>
+            Tap the button below to share your first status
+          </p>
+          <button
+            onClick={() => setShowCreate(true)}
+            style={{
+              background: '#00a884', color: '#fff', border: 'none',
+              padding: '12px 24px', borderRadius: '24px', fontSize: '14px',
+              fontWeight: 600, cursor: 'pointer', display: 'flex',
+              alignItems: 'center', gap: '8px', minHeight: '48px'
+            }}
+          >
+            <Camera size={18} /> Create Status
+          </button>
         </div>
       )}
 

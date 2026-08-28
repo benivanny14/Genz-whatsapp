@@ -115,22 +115,31 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
     }
   }
 
-  // Progress timer
+  // Progress timer — syncs with actual content duration
   useEffect(() => {
     if (isPaused || showReply || showViewers) return
-    
+
+    // Determine actual duration based on status type
+    const actualDuration = currentStatus?.type === 'video'
+      ? (duration || 30000) // Video uses player duration or 30s fallback
+      : currentStatus?.type === 'voice' || currentStatus?.type === 'audio'
+      ? 10000 // Audio: 10 seconds
+      : currentStatus?.type === 'text'
+      ? 7000 // Text: 7 seconds
+      : 5000 // Image: 5 seconds
+
     const interval = setInterval(() => {
       setProgress(prev => {
         if (prev >= 100) {
           goNext()
           return 0
         }
-        return prev + (100 / (duration / 100))
+        return prev + (100 / (actualDuration / 100))
       })
     }, 100)
 
     return () => clearInterval(interval)
-  }, [isPaused, duration, showReply, showViewers])
+  }, [isPaused, duration, currentStatus?.type, showReply, showViewers])
 
   const goNext = useCallback(() => {
     if (currentIndex < statuses.length - 1) {
