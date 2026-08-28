@@ -1,7 +1,7 @@
-const crypto = require('crypto');
-const { promisify } = require('util');
-const mongoose = require('mongoose');
-const { createDefaultWhatsAppSettings } = require('../utils/whatsappSettings');
+const crypto = require("crypto");
+const { promisify } = require("util");
+const mongoose = require("mongoose");
+const { createDefaultWhatsAppSettings } = require("../utils/whatsappSettings");
 
 const scrypt = promisify(crypto.scrypt);
 const PASSWORD_KEY_LENGTH = 64;
@@ -11,331 +11,361 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    trim: true
+    trim: true,
   },
   phoneNumber: {
     type: String,
     required: true,
     unique: true,
-    trim: true
+    trim: true,
   },
 
   passwordHash: {
     type: String,
-    default: ''
+    default: "",
   },
   deviceId: {
     type: String,
     unique: true,
     sparse: true,
-    trim: true
+    trim: true,
   },
   role: {
     type: String,
-    enum: ['user', 'admin'],
-    default: 'user'
+    enum: ["user", "admin"],
+    default: "user",
   },
 
   passwordChangedAt: {
     type: Date,
-    default: null
+    default: null,
   },
   // SECURITY (2.1): bumped on every refresh-token rotation so old refresh
   // tokens (which embed this version) are rejected as stale.
   refreshTokenVersion: {
     type: Number,
-    default: 0
+    default: 0,
   },
   resetOTP: {
     type: String,
-    default: null
+    default: null,
   },
   resetOTPExpiry: {
     type: Date,
-    default: null
+    default: null,
   },
   phoneVerified: {
     type: Boolean,
-    default: false
+    default: false,
   },
   phoneVerificationOTP: {
     type: String,
-    default: null
+    default: null,
   },
   phoneVerificationOTPExpiry: {
     type: Date,
-    default: null
+    default: null,
   },
   // Change-number OTP persisted on the user so it survives restarts and
   // multi-instance deployments (previously stored in-memory on req.app.locals).
   changeNumberOTP: {
     type: String,
-    default: null
+    default: null,
   },
   changeNumberOTPExpiry: {
     type: Date,
-    default: null
+    default: null,
   },
   changeNumberNewPhone: {
     type: String,
-    default: null
+    default: null,
   },
   twoFactorSecret: {
     type: String,
-    default: null
+    default: null,
   },
   // WebAuthn challenges persisted on the document (not in-memory) so passkey
   // flows survive server restarts and work across multiple instances.
   passkeyRegisterChallenge: {
     type: String,
-    default: null
+    default: null,
   },
   passkeyRegisterChallengeExpiry: {
     type: Date,
-    default: null
+    default: null,
   },
   passkeyLoginChallenge: {
     type: String,
-    default: null
+    default: null,
   },
   passkeyLoginChallengeExpiry: {
     type: Date,
-    default: null
+    default: null,
   },
   twoFactorEnabled: {
     type: Boolean,
-    default: false
+    default: false,
   },
   twoFactorVerified: {
     type: Boolean,
-    default: false
+    default: false,
   },
-  fcmTokens: [{
-    type: String,
-    default: []
-  }],
+  fcmTokens: [
+    {
+      type: String,
+      default: [],
+    },
+  ],
   securitySettings: {
     loginAlerts: {
       type: Boolean,
-      default: true
+      default: true,
     },
     sessionTimeout: {
       type: Number,
-      default: 30
+      default: 30,
     },
     requireTwoFactorForPayments: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
   },
   backupSettings: {
     enabled: {
       type: Boolean,
-      default: false
+      default: false,
     },
     interval: {
       type: String,
-      enum: ['hourly', 'daily', 'weekly', 'monthly'],
-      default: 'daily'
+      enum: ["hourly", "daily", "weekly", "monthly"],
+      default: "daily",
     },
     lastBackupAt: {
       type: Date,
-      default: null
-    }
+      default: null,
+    },
   },
   settings: {
     type: mongoose.Schema.Types.Mixed,
-    default: createDefaultWhatsAppSettings
+    default: createDefaultWhatsAppSettings,
   },
   profilePicture: {
     type: String,
-    default: null
+    default: null,
   },
   status: {
     type: String,
-    enum: ['online', 'offline', 'away'],
-    default: 'offline'
+    enum: ["online", "offline", "away"],
+    default: "offline",
   },
   isOnline: {
     type: Boolean,
-    default: false
+    default: false,
   },
-  onlineHistory: [{
-    connectedAt: { type: Date },
-    disconnectedAt: { type: Date },
-    duration: { type: Number, default: 0 }, // seconds
-    // SECURITY (3.8): retention marker — entries older than 30 days are
-    // pruned by the server cron (see startExpiredMessageCleanup). A TTL
-    // index is deliberately NOT used here: MongoDB TTL on an array field
-    // would delete the entire user document when a sub-entry expires.
-    expiresAt: { type: Date, default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) }
-  }],
+  onlineHistory: [
+    {
+      connectedAt: { type: Date },
+      disconnectedAt: { type: Date },
+      duration: { type: Number, default: 0 }, // seconds
+      // SECURITY (3.8): retention marker — entries older than 30 days are
+      // pruned by the server cron (see startExpiredMessageCleanup). A TTL
+      // index is deliberately NOT used here: MongoDB TTL on an array field
+      // would delete the entire user document when a sub-entry expires.
+      expiresAt: {
+        type: Date,
+        default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    },
+  ],
   lastSeen: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
   premium: {
     type: Boolean,
-    default: false
+    default: false,
   },
   subscriptionExpiresAt: {
     type: Date,
-    default: null
+    default: null,
   },
   isAdmin: {
     type: Boolean,
-    default: false
+    default: false,
   },
   isBlocked: {
     type: Boolean,
-    default: false
+    default: false,
   },
   about: {
     type: String,
-    default: 'Hey there! I am using Genz Messenger'
+    default: "Hey there! I am using Genz Messenger",
   },
   bio: {
     type: String,
-    default: ''
+    default: "",
   },
-  contacts: [{
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    savedName: { type: String, required: true }
-  }],
-  profileVisitors: [{
-    visitorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    visitorName: { type: String, default: 'Someone' },
-    visitorPicture: { type: String, default: null },
-    timestamp: { type: Date, default: Date.now }
-  }],
-  blockedUsers: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  }],
+  contacts: [
+    {
+      user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      savedName: { type: String, required: true },
+    },
+  ],
+  profileVisitors: [
+    {
+      visitorId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      visitorName: { type: String, default: "Someone" },
+      visitorPicture: { type: String, default: null },
+      timestamp: { type: Date, default: Date.now },
+    },
+  ],
+  blockedUsers: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+  ],
   // Passkeys (WebAuthn / FIDO2 passwordless authentication)
-  passkeys: [{
-    credentialId: { type: String, required: true },
-    publicKey: { type: String, required: true },
-    counter: { type: Number, default: 0 },
-    deviceType: { type: String, default: 'platform' },
-    deviceName: { type: String, default: '' },
-    createdAt: { type: Date, default: Date.now }
-  }],
+  passkeys: [
+    {
+      credentialId: { type: String, required: true },
+      publicKey: { type: String, required: true },
+      counter: { type: Number, default: 0 },
+      deviceType: { type: String, default: "platform" },
+      deviceName: { type: String, default: "" },
+      createdAt: { type: Date, default: Date.now },
+    },
+  ],
   // Sticker system: which packs the user has "added" (WhatsApp-style, packs
   // live in a shared catalog and each user just keeps a list of pack IDs
   // they've downloaded) and any individual stickers they've favorited.
   downloadedStickerPackIds: {
     type: [String],
-    default: []
+    default: [],
   },
   favoriteStickers: {
     type: [String],
-    default: []
+    default: [],
   },
   autoReplyEnabled: {
     type: Boolean,
-    default: false
+    default: false,
   },
   autoReplyMessage: {
     type: String,
-    default: ''
+    default: "",
   },
   genzMods: {
     type: mongoose.Schema.Types.Mixed,
-    default: {}
+    default: {},
   },
   // Business account fields
   isBusinessAccount: {
     type: Boolean,
-    default: false
+    default: false,
   },
   businessProfile: {
     businessName: {
       type: String,
-      default: ''
+      default: "",
     },
     businessCategory: {
       type: String,
-      enum: ['retail', 'services', 'food', 'technology', 'healthcare', 'education', 'entertainment', 'other'],
-      default: 'other'
+      enum: [
+        "retail",
+        "services",
+        "food",
+        "technology",
+        "healthcare",
+        "education",
+        "entertainment",
+        "other",
+      ],
+      default: "other",
     },
     businessAddress: {
       type: String,
-      default: ''
+      default: "",
     },
     businessWebsite: {
       type: String,
-      default: ''
+      default: "",
     },
     businessDescription: {
       type: String,
-      default: ''
+      default: "",
     },
     businessHours: {
       type: String,
-      default: ''
-    }
+      default: "",
+    },
   },
   // Business catalog
-  catalog: [{
-    productId: String,
-    name: String,
-    description: String,
-    price: Number,
-    currency: {
-      type: String,
-      default: 'USD'
+  catalog: [
+    {
+      productId: String,
+      name: String,
+      description: String,
+      price: Number,
+      currency: {
+        type: String,
+        default: "USD",
+      },
+      imageUrl: String,
+      inStock: {
+        type: Boolean,
+        default: true,
+      },
     },
-    imageUrl: String,
-    inStock: {
-      type: Boolean,
-      default: true
-    }
-  }],
+  ],
   // Quick replies for business
-  quickReplies: [{
-    id: String,
-    message: String,
-    shortcut: String
-  }],
+  quickReplies: [
+    {
+      id: String,
+      message: String,
+      shortcut: String,
+    },
+  ],
   // Away message for business
   awayMessage: {
     enabled: {
       type: Boolean,
-      default: false
+      default: false,
     },
     message: {
       type: String,
-      default: ''
-    }
+      default: "",
+    },
   },
   failedLoginAttempts: {
     type: Number,
-    default: 0
+    default: 0,
   },
   lockUntil: {
     type: Date,
-    default: null
+    default: null,
   },
   lastFailedLoginAt: {
     type: Date,
-    default: null
+    default: null,
   },
-  activeSessions: [{
-    token: String,
-    device: String,
-    ip: String,
-    userAgent: String,
-    createdAt: { type: Date, default: Date.now },
-    lastActiveAt: { type: Date, default: Date.now }
-  }],
+  activeSessions: [
+    {
+      token: String,
+      device: String,
+      ip: String,
+      userAgent: String,
+      createdAt: { type: Date, default: Date.now },
+      lastActiveAt: { type: Date, default: Date.now },
+    },
+  ],
   createdAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
   updatedAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
 
   // ── Feature settings/data used by the mod-feature controllers ──
@@ -361,7 +391,10 @@ const userSchema = new mongoose.Schema({
   chatSearchSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
   searchHistory: { type: mongoose.Schema.Types.Mixed, default: [] },
   chatSortSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
-  collaborativeStatusSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
+  collaborativeStatusSettings: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {},
+  },
   collaborativeStatuses: { type: mongoose.Schema.Types.Mixed, default: [] },
   dataUsageSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
   fakeChatSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
@@ -377,7 +410,12 @@ const userSchema = new mongoose.Schema({
   connectedDevices: { type: mongoose.Schema.Types.Mixed, default: [] },
   quickActionsSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
   closeFriends: { type: mongoose.Schema.Types.Mixed, default: [] },
-  statusFeaturesSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
+  statusFeaturesSettings: { 
+    ghostMode: { type: Boolean, default: false },
+    statusDuration: { type: Number, default: 24 },
+    hideSeenFrom: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    defaultPrivacy: { type: String, default: 'contacts' }
+  },
   statusHighlights: { type: mongoose.Schema.Types.Mixed, default: [] },
   viewedStatuses: { type: mongoose.Schema.Types.Mixed, default: [] },
   statusReelModeSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
@@ -390,7 +428,7 @@ const userSchema = new mongoose.Schema({
   whatsappWebSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
   whatsappWebSessions: { type: mongoose.Schema.Types.Mixed, default: [] },
   suspiciousActivities: { type: mongoose.Schema.Types.Mixed, default: [] },
-  warningLevel: { type: String, default: 'none' },
+  warningLevel: { type: String, default: "none" },
   warningUntil: { type: Date, default: null },
   blockAlerts: { type: mongoose.Schema.Types.Mixed, default: [] },
   messageModsSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
@@ -412,37 +450,40 @@ const userSchema = new mongoose.Schema({
   blockedStatusUsers: { type: mongoose.Schema.Types.Mixed, default: [] },
   mutedStatusUsers: { type: mongoose.Schema.Types.Mixed, default: [] },
   savedStatuses: { type: mongoose.Schema.Types.Mixed, default: [] },
-  closeFriends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  callLinkSettings: { type: mongoose.Schema.Types.Mixed, default: { links: [] } }
+  closeFriends: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  callLinkSettings: {
+    type: mongoose.Schema.Types.Mixed,
+    default: { links: [] },
+  },
 });
 
 // Update last seen before saving
-userSchema.pre('save', function(next) {
+userSchema.pre("save", function (next) {
   this.updatedAt = Date.now();
   next();
 });
 
-userSchema.methods.setPassword = async function(password) {
+userSchema.methods.setPassword = async function (password) {
   // SECURITY (1.4): matches the controller-level 12-char minimum so no
   // code path can set a weaker password than the registration policy.
   if (!password || password.length < 12) {
-    throw new Error('Password must be at least 12 characters long');
+    throw new Error("Password must be at least 12 characters long");
   }
 
-  const salt = crypto.randomBytes(16).toString('hex');
+  const salt = crypto.randomBytes(16).toString("hex");
   const derivedKey = await scrypt(password, salt, PASSWORD_KEY_LENGTH);
-  this.passwordHash = `${salt}:${derivedKey.toString('hex')}`;
+  this.passwordHash = `${salt}:${derivedKey.toString("hex")}`;
   this.passwordChangedAt = new Date();
 };
 
-userSchema.methods.comparePassword = async function(password) {
-  if (!password || !this.passwordHash || !this.passwordHash.includes(':')) {
+userSchema.methods.comparePassword = async function (password) {
+  if (!password || !this.passwordHash || !this.passwordHash.includes(":")) {
     return false;
   }
 
-  const [salt, storedHash] = this.passwordHash.split(':');
+  const [salt, storedHash] = this.passwordHash.split(":");
   const derivedKey = await scrypt(password, salt, PASSWORD_KEY_LENGTH);
-  const storedBuffer = Buffer.from(storedHash, 'hex');
+  const storedBuffer = Buffer.from(storedHash, "hex");
 
   if (storedBuffer.length !== derivedKey.length) {
     return false;
@@ -451,7 +492,7 @@ userSchema.methods.comparePassword = async function(password) {
   return crypto.timingSafeEqual(storedBuffer, derivedKey);
 };
 
-userSchema.methods.toSafeJSON = function() {
+userSchema.methods.toSafeJSON = function () {
   const user = this.toObject();
   delete user.passwordHash;
   delete user.twoFactorSecret;
@@ -468,27 +509,30 @@ const MAX_LOGIN_ATTEMPTS = 5;
 const LOCK_TIME_MS = 30 * 60 * 1000; // 30 minutes
 
 // Virtual to check if account is currently locked
-userSchema.virtual('isAccountLocked').get(function() {
+userSchema.virtual("isAccountLocked").get(function () {
   return !!(this.lockUntil && this.lockUntil > new Date());
 });
 
 // Increment failed login attempts, lock account if threshold exceeded
-userSchema.methods.incLoginAttempts = async function() {
+userSchema.methods.incLoginAttempts = async function () {
   // If there was a previous lock that has expired, reset
   if (this.lockUntil && this.lockUntil < new Date()) {
     return this.updateOne({
       $set: { failedLoginAttempts: 1, lastFailedLoginAt: new Date() },
-      $unset: { lockUntil: 1 }
+      $unset: { lockUntil: 1 },
     });
   }
 
   const updates = {
     $inc: { failedLoginAttempts: 1 },
-    $set: { lastFailedLoginAt: new Date() }
+    $set: { lastFailedLoginAt: new Date() },
   };
 
   // Lock account if reaching max attempts
-  if (this.failedLoginAttempts + 1 >= MAX_LOGIN_ATTEMPTS && !this.isAccountLocked) {
+  if (
+    this.failedLoginAttempts + 1 >= MAX_LOGIN_ATTEMPTS &&
+    !this.isAccountLocked
+  ) {
     updates.$set.lockUntil = new Date(Date.now() + LOCK_TIME_MS);
   }
 
@@ -496,15 +540,15 @@ userSchema.methods.incLoginAttempts = async function() {
 };
 
 // Reset failed login attempts on successful login
-userSchema.methods.resetLoginAttempts = async function() {
+userSchema.methods.resetLoginAttempts = async function () {
   return this.updateOne({
     $set: { failedLoginAttempts: 0 },
-    $unset: { lockUntil: 1, lastFailedLoginAt: 1 }
+    $unset: { lockUntil: 1, lastFailedLoginAt: 1 },
   });
 };
 
 // Check if user has active premium
-userSchema.methods.hasActivePremium = function() {
+userSchema.methods.hasActivePremium = function () {
   if (!this.premium || !this.subscriptionExpiresAt) {
     return false;
   }
@@ -512,18 +556,21 @@ userSchema.methods.hasActivePremium = function() {
 };
 
 // Get subscription status
-userSchema.methods.getSubscriptionStatus = function() {
+userSchema.methods.getSubscriptionStatus = function () {
   if (!this.premium) {
-    return 'free';
+    return "free";
   }
   if (this.hasActivePremium()) {
-    return 'active';
+    return "active";
   }
-  return 'expired';
+  return "expired";
 };
 
 // Partial index for online-presence queries (e.g. "who is online now").
 // Only documents where isOnline === true are indexed, keeping it small.
-userSchema.index({ isOnline: 1 }, { partialFilterExpression: { isOnline: true } });
+userSchema.index(
+  { isOnline: 1 },
+  { partialFilterExpression: { isOnline: true } },
+);
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.model("User", userSchema);

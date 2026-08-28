@@ -642,13 +642,25 @@ exports.viewStatus = async (req, res) => {
 
     const alreadyViewed = (status.views || []).some(v => String(v.user || v.userId) === currentUserId);
     const isOwner = ownerId === currentUserId;
+    
+    // Check if viewer has Ghost Mode enabled
+    const User = require('../models/User');
+    const viewer = await User.findById(currentUserId).select('statusFeaturesSettings');
+    const isGhost = viewer?.statusFeaturesSettings?.ghostMode || false;
+    
+    // Check if owner has hidden this viewer from their seen list
+    const owner = await User.findById(ownerId).select('statusFeaturesSettings');
+    const hideSeenFrom = owner?.statusFeaturesSettings?.hideSeenFrom || [];
+    const isHiddenFromOwner = hideSeenFrom.some(id => String(id) === currentUserId);
+    
     // FIX: previously the owner opening their own status counted as a "view"
     // (they'd show up in their own viewers list), and even for real viewers
     // there was no realtime push to the owner — the view only showed up once
     // the owner manually reopened the status and refetched. WhatsApp updates
     // the eye-icon count and viewers list live while the owner is looking at
     // their own status.
-    if (!alreadyViewed && !isOwner) {
+    // Ghost Mode and Hide Seen From prevent view recording
+    if (!alreadyViewed && !isOwner && !isGhost && !isHiddenFromOwner) {
       const viewEntry = { user: currentUserId, userId: currentUserId, viewedAt: new Date() };
       status.views.push(viewEntry);
       status.viewsCount = status.views.length;
@@ -949,7 +961,12 @@ exports.deleteStatus = async (req, res) => {
       return res.status(403).json({ message: 'You can only delete your own status' });
     }
 
-    await Status.findByIdAndDelete(req.params.id);
+    // Soft delete (Anti-Revoke) - mark as revoked instead of hard delete
+    status.isRevoked = true;
+    status.revokedAt = new Date();
+    status.isDeleted = true;
+    status.deletedAt = new Date();
+    await status.save();
 
     const io = req.app.get('io');
     if (io) {

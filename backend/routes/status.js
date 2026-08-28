@@ -401,9 +401,15 @@ router.post('/', protect, async (req, res) => {
       }
     }
 
-    // Calculate expiration based on statusDuration in hours (default 24h, max 48h)
+    // Calculate expiration based on statusDuration in hours (default 24h, max 72h)
     const hours = Math.min(Math.max(parseInt(statusDuration) || 24, 1), 72);
     const expiresAt = new Date(Date.now() + hours * 3600000);
+
+    // Calculate max video duration (default 60s, 420s/7m for premium)
+    const user = await User.findById(req.user._id).select('role subscription');
+    const isPremium = user?.role === 'admin' || user?.subscription?.tier === 'premium' || user?.subscription?.tier === 'premium+';
+    const maxVideoDuration = isPremium ? 420 : 60;
+    const finalMaxDuration = Math.min(parseInt(maxDuration) || 60, maxVideoDuration);
 
     const status = await Status.create({
       user: req.user._id,
@@ -432,7 +438,7 @@ router.post('/', protect, async (req, res) => {
       mentions: processedMentions,
       replySettings: ['everyone', 'contacts', 'nobody'].includes(replySettings) ? replySettings : 'everyone',
       quality: ['hd', 'standard', 'saver'].includes(quality) ? quality : 'standard',
-      maxDuration: parseInt(maxDuration) || 60,
+      maxDuration: finalMaxDuration,
       statusDuration: hours,
       expiresAt,
       addYoursPrompt: addYoursPrompt || '',
@@ -720,6 +726,12 @@ router.post('/:id/react', protect, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Emoji is required' });
     }
 
+    // Whitelist 8 emoji presets (WhatsApp 2026 style)
+    const allowedEmojis = ['❤️', '😂', '😮', '😢', '🙏', '👍', '👎', '🔥'];
+    if (!allowedEmojis.includes(emoji)) {
+      return res.status(400).json({ success: false, message: 'Invalid emoji. Only preset reactions are allowed' });
+    }
+
     const status = await Status.findById(req.params.id);
     if (!status) {
       return res.status(404).json({ success: false, message: 'Status not found' });
@@ -805,6 +817,17 @@ router.post('/:id/reply', protect, async (req, res) => {
     const viewer = await User.findById(req.user._id).select('blockedStatusUsers');
     if (!(await canViewerSeeStatus(req.user._id, status, viewer))) {
       return res.status(403).json({ success: false, message: 'You cannot reply to this status' });
+    }
+
+    // Check reply permission
+    const replySetting = status.replySettings || 'everyone';
+    if (replySetting === 'nobody') {
+      return res.status(403).json({ success: false, message: 'Replies are disabled for this status' });
+    }
+    if (replySetting === 'contacts') {
+      const owner = await User.findById(ownerIdOf(status)).select('contacts');
+      const isContact = (owner?.contacts || []).some(c => idOf(c?.user || c) === String(req.user._id));
+      if (!isContact) return res.status(403).json({ success: false, message: 'Only contacts can reply' });
     }
 
     if (!status.replies) status.replies = [];
@@ -1358,6 +1381,43 @@ router.get('/search', protect, async (req, res) => {
     res.json({ success: true, statuses });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ============ LINK PREVIEW ============
+router.post('/link-preview', protect, async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url) {
+      return res.status(400).json({ success: false, message: 'URL is required' });
+    }
+
+    // Simple link preview (in production, use open-graph-scraper or link-preview-js)
+    const domain = new URL(url).hostname;
+    const preview = {
+      url,
+      title: 'Link Preview',
+      description: 'Click to view link',
+      image: '',
+      domain
+    };
+
+    res.json({ success: true, preview });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to fetch link preview' });
+  }
+});
+
+// ============ CALL LINK ============
+router.post('/call-link', protect, async (req, res) => {
+  try {
+    const { type = 'video' } = req.body;
+    const callId = require('crypto').randomBytes(16).toString('hex');
+    const callLink = `${process.env.FRONTEND_URL || 'https://genz.app'}/call/${callId}`;
+    
+    res.json({ success: true, callLink, callId, type });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to generate call link' });
   }
 });
 
