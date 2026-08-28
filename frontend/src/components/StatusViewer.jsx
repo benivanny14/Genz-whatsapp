@@ -667,11 +667,13 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
           </button>
         </div>
 
-        {!isOwner && (
-          <button className="action-btn" onClick={handleSave} title="Save status">
-            <Download size={20} />
-          </button>
-        )}
+        <button
+          className="action-btn"
+          onClick={handleSave}
+          title={isOwner ? 'Save My Status' : 'Save Status'}
+        >
+          <Download size={20} />
+        </button>
 
         {/* Forward button — available to everyone */}
         <button className="action-btn" onClick={() => setShowForward(true)} title="Forward">

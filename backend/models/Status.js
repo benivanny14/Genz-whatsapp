@@ -307,7 +307,10 @@ const statusSchema = new mongoose.Schema({
   // Expiry (auto-delete after 24h)
   expiresAt: {
     type: Date,
-    default: () => new Date(Date.now() + 24 * 60 * 60 * 1000),
+    default: function() {
+      const hours = this.statusDuration || 24;
+      return new Date(Date.now() + hours * 60 * 60 * 1000);
+    },
     index: { expireAfterSeconds: 0 },
   },
   // Scheduling

@@ -275,7 +275,10 @@ const StatusProvider = ({ children }) => {
     };
 
     const handleDeleted = ({ statusId }) => {
-      setStatuses(prev => prev.filter(s => s._id !== statusId));
+      // Anti-Delete: mark as deleted instead of removing from list
+      setStatuses(prev => prev.map(s =>
+        s._id === statusId ? { ...s, isDeleted: true, isRevoked: true, deletedAt: new Date().toISOString() } : s
+      ));
     };
 
     const handleViewed = ({ statusId, _id, viewCount, viewsCount }) => {

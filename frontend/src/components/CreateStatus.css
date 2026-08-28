@@ -278,3 +278,51 @@
   cursor: pointer;
   font-size: 14px;
 }
+
+/* ═══════ Bottom Sheet Styles ═══════ */
+.bottom-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: bs-overlay-in 0.2s ease;
+}
+
+@keyframes bs-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.bottom-sheet {
+  width: 100%;
+  max-width: 500px;
+  max-height: 65vh;
+  background: #1f2c34;
+  border-radius: 20px 20px 0 0;
+  padding: 12px 20px 24px;
+  overflow-y: auto;
+  animation: bs-slide-up 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes bs-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.bottom-sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  margin: 0 auto 16px;
+}
+
+.bottom-sheet h3 {
+  color: #e9edef;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 12px;
+}

@@ -77,6 +77,31 @@ const IMAGE_FILTERS = [
   { id: 'fade', name: 'Fade', css: 'contrast(0.85) brightness(1.1) saturate(0.8)' },
 ]
 
+// ── Bottom Toolbar Icon Button ──
+const BottomToolBtn = ({ icon, label, active, onClick }) => (
+  <button
+    onClick={onClick}
+    style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px',
+      background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px',
+      color: active ? '#00a884' : '#8696a0',
+      transition: 'color 0.15s'
+    }}
+  >
+    {icon}
+    <span style={{ fontSize: '10px', fontWeight: active ? 600 : 400 }}>{label}</span>
+  </button>
+)
+
+const sheetMenuBtnStyle = {
+  display: 'flex', alignItems: 'center', gap: '12px',
+  padding: '12px', width: '100%',
+  background: 'rgba(255,255,255,0.05)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: '12px', cursor: 'pointer',
+  color: '#e9edef', textAlign: 'left', fontSize: '14px'
+}
+
 const CreateStatus = ({ onClose }) => {
   const { createTextStatus, createMediaStatus, createCustomStatus } = useStatusContext()
   const [mode, setMode] = useState('select') // select | text | image | video | voice | preview
@@ -109,6 +134,7 @@ const CreateStatus = ({ onClose }) => {
   const [showDurationPicker, setShowDurationPicker] = useState(false)
   const [showFilterPicker, setShowFilterPicker] = useState(false)
   const [imageFilter, setImageFilter] = useState('none')
+  const [activeBottomSheet, setActiveBottomSheet] = useState(null) // null | 'caption' | 'trim' | 'music' | 'draw' | 'filter' | 'privacy'
   const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [scheduledAt, setScheduledAt] = useState('')
   const [showReplySettingsModal, setShowReplySettingsModal] = useState(false)
@@ -1069,132 +1095,209 @@ const CreateStatus = ({ onClose }) => {
           </div>
         )}
 
-        {/* Caption */}
-        <div className="caption-input">
-          <input 
-            type="text" placeholder="Add a caption..."
-            value={caption} onChange={(e) => setCaption(e.target.value)}
-          />
+        {/* ═══════ WhatsApp-style Bottom Toolbar ═══════ */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-around',
+          padding: '10px 4px', background: 'rgba(0,0,0,0.5)',
+          borderTop: '1px solid rgba(255,255,255,0.08)', width: '100%'
+        }}>
+          <BottomToolBtn icon={<Type size={20} />} label="Caption" active={activeBottomSheet === 'caption'} onClick={() => setActiveBottomSheet(activeBottomSheet === 'caption' ? null : 'caption')} />
+          {mode === 'video' && <BottomToolBtn icon={<Scissors size={20} />} label="Trim" active={activeBottomSheet === 'trim'} onClick={() => setActiveBottomSheet(activeBottomSheet === 'trim' ? null : 'trim')} />}
+          <BottomToolBtn icon={<Music size={20} />} label="Music" active={activeBottomSheet === 'music'} onClick={() => setActiveBottomSheet(activeBottomSheet === 'music' ? null : 'music')} />
+          {mode === 'image' && <BottomToolBtn icon={<PenTool size={20} />} label="Draw" active={isDrawing} onClick={() => {
+            const newDrawing = !isDrawing
+            setIsDrawing(newDrawing)
+            if (newDrawing) {
+              setTimeout(() => initCanvas(mediaItems[activeIndex]?.drawnPreview || mediaItems[activeIndex]?.preview), 100)
+            }
+          }} />}
+          {mode === 'image' && <BottomToolBtn icon={<span style={{ fontSize: '18px' }}>🎨</span>} label="Filter" active={activeBottomSheet === 'filter'} onClick={() => setActiveBottomSheet(activeBottomSheet === 'filter' ? null : 'filter')} />}
+          <BottomToolBtn icon={<Users size={20} />} label="Privacy" active={activeBottomSheet === 'privacy'} onClick={() => setActiveBottomSheet(activeBottomSheet === 'privacy' ? null : 'privacy')} />
+          <BottomToolBtn icon={<BarChart3 size={20} />} label="More" active={activeBottomSheet === 'more'} onClick={() => setActiveBottomSheet(activeBottomSheet === 'more' ? null : 'more')} />
         </div>
 
-        {/* Video Trimming */}
-        {mode === 'video' && (
-          <div className="trim-section">
-            <div className="trim-header"><Scissors size={18} /><span>Trim Video</span></div>
-            <div className="trim-controls">
-              <div className="trim-row">
-                <label>Start: {trimStart}s</label>
-                <input type="range" min={0} max={Math.max(0, (videoRef.current?.duration || 60) - 5)} value={trimStart}
-                  onChange={(e) => { const val = Number(e.target.value); setTrimStart(val); if (val >= trimEnd) setTrimEnd(val + 5) }} />
-              </div>
-              <div className="trim-row">
-                <label>End: {trimEnd}s</label>
-                <input type="range" min={trimStart + 1} max={videoRef.current?.duration || 60} value={trimEnd}
-                  onChange={(e) => setTrimEnd(Number(e.target.value))} />
-              </div>
-              <small>Duration: {trimEnd - trimStart}s</small>
-            </div>
-          </div>
-        )}
-
-        {/* Music Section */}
-        <div className="music-section">
-          <div className="music-header"><Music size={18} /><span>Add Music</span></div>
-          {!musicFile ? (
-            <label className="music-upload">
-              <Volume2 size={20} /><span>Choose from device</span>
-              <input type="file" accept="audio/*" hidden onChange={(e) => { if (e.target.files[0]) { setMusicFile(e.target.files[0]); setMusicEnd(15) } }} />
-            </label>
-          ) : (
-            <div className="music-editor">
-              <div className="music-file-name">{musicFile.name}</div>
-              <div className="trim-row">
-                <label>Start: {musicStart}s</label>
-                <input type="range" min={0} max={30} value={musicStart}
-                  onChange={(e) => { const val = Number(e.target.value); setMusicStart(val); if (val >= musicEnd) setMusicEnd(val + 5) }} />
-              </div>
-              <div className="trim-row">
-                <label>End: {musicEnd}s</label>
-                <input type="range" min={musicStart + 1} max={60} value={musicEnd}
-                  onChange={(e) => setMusicEnd(Number(e.target.value))} />
-              </div>
-              <div className="trim-row">
-                <label>Volume: {Math.round(musicVolume * 100)}%</label>
-                <input type="range" min={0} max={1} step={0.1} value={musicVolume}
-                  onChange={(e) => setMusicVolume(Number(e.target.value))} />
-              </div>
-              <button className="remove-music" onClick={() => setMusicFile(null)}>Remove Music</button>
-            </div>
-          )}
-        </div>
-
-        {/* Drawing Toolbar (when drawing mode is active) */}
-        {isDrawing && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: 'rgba(0,0,0,0.5)' }}>
-            <span style={{ color: '#fff', fontSize: '12px', fontWeight: 600 }}>✏️ Drawing</span>
-            <div style={{ display: 'flex', gap: '4px' }}>
-              {['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#FFFFFF', '#000000'].map(c => (
-                <button
-                  key={c}
-                  onClick={() => setDrawColor(c)}
-                  style={{
-                    width: '24px', height: '24px', borderRadius: '50%', background: c,
-                    border: drawColor === c ? '3px solid #00a884' : '2px solid rgba(255,255,255,0.3)',
-                    cursor: 'pointer'
-                  }}
-                />
-              ))}
-            </div>
-            <input
-              type="range" min={1} max={20} value={drawBrushSize}
-              onChange={(e) => setDrawBrushSize(Number(e.target.value))}
-              style={{ width: '60px' }}
-              title={`Brush: ${drawBrushSize}px`}
-            />
-            <button onClick={clearCanvas} style={{ ...mediaAdvancedBtnStyle, color: '#f59e0b' }}>Clear</button>
-            <button onClick={applyDrawing} style={{ ...mediaAdvancedBtnStyle, color: '#00a884', fontWeight: 600 }}>✓ Done</button>
-            <button onClick={() => setIsDrawing(false)} style={{ ...mediaAdvancedBtnStyle, color: '#ef4444' }}>Cancel</button>
-          </div>
-        )}
-
-        {/* Advanced Settings Bar */}
-        <div style={{ display: 'flex', gap: '8px', padding: '8px 12px', flexWrap: 'wrap', background: 'rgba(0,0,0,0.3)' }}>
-          <button onClick={() => setShowReplySettingsModal(true)} style={mediaAdvancedBtnStyle}>
-            <ShieldAlert size={14} /> Reply: {replySettings}
-          </button>
-          <button onClick={() => setShowQualityModal(true)} style={mediaAdvancedBtnStyle}>
-            <Award size={14} /> {quality.toUpperCase()}
-          </button>
-          <button onClick={() => setShowDurationPicker(true)} style={mediaAdvancedBtnStyle}>
-            <Clock size={14} /> {statusDuration}h
-          </button>
-          {mode === 'image' && (
-            <button
-              onClick={() => {
-                setIsDrawing(!isDrawing)
-                if (!isDrawing) {
-                  setTimeout(() => {
-                    initCanvas(mediaItems[activeIndex]?.drawnPreview || mediaItems[activeIndex]?.preview)
-                  }, 100)
-                }
-              }}
-              style={{ ...mediaAdvancedBtnStyle, color: isDrawing ? '#00a884' : '#fff' }}
+        {/* ═══════ Bottom Sheets ═══════ */}
+        {activeBottomSheet && (
+          <div
+            className="bottom-sheet-overlay"
+            onClick={() => setActiveBottomSheet(null)}
+          >
+            <div
+              className="bottom-sheet"
+              onClick={e => e.stopPropagation()}
             >
-              ✏️ Draw
-            </button>
-          )}
-          {mode === 'image' && (
-            <button onClick={() => setShowFilterPicker(true)} style={mediaAdvancedBtnStyle}>
-              🎨 Filter
-            </button>
-          )}
-          <button onClick={() => setShowScheduleModal(true)} style={mediaAdvancedBtnStyle}>
-            📅 Schedule
-          </button>
-          <button onClick={() => setShowPollModal(true)} style={mediaAdvancedBtnStyle}>
-            <BarChart3 size={14} /> Poll
-          </button>
-        </div>
+              <div className="bottom-sheet-handle" />
+
+              {/* Caption Sheet */}
+              {activeBottomSheet === 'caption' && (
+                <>
+                  <h3 style={{ color: '#e9edef', fontSize: '16px', fontWeight: 600, margin: '0 0 12px' }}>Caption</h3>
+                  <input
+                    type="text" placeholder="Add a caption..."
+                    value={caption} onChange={(e) => setCaption(e.target.value)}
+                    autoFocus
+                    style={{ width: '100%', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '10px', padding: '12px', color: '#fff', fontSize: '14px', boxSizing: 'border-box' }}
+                  />
+                </>
+              )}
+
+              {/* Trim Sheet */}
+              {activeBottomSheet === 'trim' && mode === 'video' && (
+                <>
+                  <h3 style={{ color: '#e9edef', fontSize: '16px', fontWeight: 600, margin: '0 0 12px' }}>✂️ Trim Video</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#8696a0', fontSize: '12px', marginBottom: '4px' }}>
+                        <span>Start: {trimStart}s</span>
+                      </div>
+                      <input type="range" min={0} max={Math.max(0, (videoRef.current?.duration || 60) - 5)} value={trimStart}
+                        onChange={(e) => { const val = Number(e.target.value); setTrimStart(val); if (val >= trimEnd) setTrimEnd(val + 5) }}
+                        style={{ width: '100%' }} />
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#8696a0', fontSize: '12px', marginBottom: '4px' }}>
+                        <span>End: {trimEnd}s</span>
+                      </div>
+                      <input type="range" min={trimStart + 1} max={videoRef.current?.duration || 60} value={trimEnd}
+                        onChange={(e) => setTrimEnd(Number(e.target.value))}
+                        style={{ width: '100%' }} />
+                    </div>
+                    <div style={{ color: '#00a884', fontSize: '13px', textAlign: 'center' }}>
+                      Duration: {trimEnd - trimStart}s
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Music Sheet */}
+              {activeBottomSheet === 'music' && (
+                <>
+                  <h3 style={{ color: '#e9edef', fontSize: '16px', fontWeight: 600, margin: '0 0 12px' }}>🎵 Add Music</h3>
+                  {!musicFile ? (
+                    <label style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
+                      padding: '24px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px',
+                      border: '2px dashed rgba(255,255,255,0.2)', cursor: 'pointer'
+                    }}>
+                      <Volume2 size={28} color="#00a884" />
+                      <span style={{ color: '#8696a0', fontSize: '13px' }}>Choose audio from device</span>
+                      <input type="file" accept="audio/*" hidden onChange={(e) => { if (e.target.files[0]) { setMusicFile(e.target.files[0]); setMusicEnd(15) } }} />
+                    </label>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ color: '#00a884', fontSize: '13px', textAlign: 'center' }}>🎶 {musicFile.name}</div>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#8696a0', fontSize: '12px', marginBottom: '4px' }}>
+                          <span>Start: {musicStart}s</span>
+                        </div>
+                        <input type="range" min={0} max={30} value={musicStart}
+                          onChange={(e) => { const val = Number(e.target.value); setMusicStart(val); if (val >= musicEnd) setMusicEnd(val + 5) }}
+                          style={{ width: '100%' }} />
+                      </div>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#8696a0', fontSize: '12px', marginBottom: '4px' }}>
+                          <span>End: {musicEnd}s</span>
+                        </div>
+                        <input type="range" min={musicStart + 1} max={60} value={musicEnd}
+                          onChange={(e) => setMusicEnd(Number(e.target.value))}
+                          style={{ width: '100%' }} />
+                      </div>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#8696a0', fontSize: '12px', marginBottom: '4px' }}>
+                          <span>Volume: {Math.round(musicVolume * 100)}%</span>
+                        </div>
+                        <input type="range" min={0} max={1} step={0.1} value={musicVolume}
+                          onChange={(e) => setMusicVolume(Number(e.target.value))}
+                          style={{ width: '100%' }} />
+                      </div>
+                      <button onClick={() => setMusicFile(null)} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', padding: '8px', color: '#ef4444', fontSize: '13px', cursor: 'pointer' }}>
+                        Remove Music
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Filter Sheet */}
+              {activeBottomSheet === 'filter' && mode === 'image' && (
+                <>
+                  <h3 style={{ color: '#e9edef', fontSize: '16px', fontWeight: 600, margin: '0 0 12px' }}>🎨 Filters</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+                    {IMAGE_FILTERS.map(f => (
+                      <button
+                        key={f.id}
+                        onClick={() => setImageFilter(f.id)}
+                        style={{
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
+                          background: imageFilter === f.id ? 'rgba(0,168,132,0.2)' : 'rgba(255,255,255,0.05)',
+                          border: imageFilter === f.id ? '2px solid #00a884' : '1px solid rgba(255,255,255,0.15)',
+                          borderRadius: '10px', padding: '8px', cursor: 'pointer'
+                        }}
+                      >
+                        <div style={{ width: '52px', height: '52px', borderRadius: '8px', overflow: 'hidden', background: 'rgba(255,255,255,0.15)' }}>
+                          {mediaItems[activeIndex]?.preview && (
+                            <img src={mediaItems[activeIndex].preview} alt=""
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', filter: f.css }} />
+                          )}
+                        </div>
+                        <span style={{ color: '#fff', fontSize: '10px', fontWeight: imageFilter === f.id ? '600' : '400' }}>{f.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Privacy Sheet */}
+              {activeBottomSheet === 'privacy' && (
+                <>
+                  <h3 style={{ color: '#e9edef', fontSize: '16px', fontWeight: 600, margin: '0 0 12px' }}>🔒 Privacy</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {[
+                      { val: 'contacts', icon: <Users size={18} />, label: 'My contacts', desc: 'Share with all contacts' },
+                      { val: 'contacts_except', icon: <UserX size={18} />, label: 'Contacts except...', desc: 'Hide from selected' },
+                      { val: 'only_share_with', icon: <UserCheck size={18} />, label: 'Only share with...', desc: 'Share only with selected' },
+                      { val: 'only_me', icon: <Lock size={18} />, label: 'Only me', desc: 'Private to you only' }
+                    ].map(opt => (
+                      <button key={opt.val} onClick={() => setPrivacy(opt.val)} style={{
+                        display: 'flex', alignItems: 'center', gap: '12px', padding: '12px',
+                        background: privacy === opt.val ? 'rgba(0,168,132,0.15)' : 'rgba(255,255,255,0.05)',
+                        border: privacy === opt.val ? '1px solid #00a884' : '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '10px', cursor: 'pointer', color: '#e9edef', textAlign: 'left', width: '100%'
+                      }}>
+                        <span style={{ color: privacy === opt.val ? '#00a884' : '#8696a0' }}>{opt.icon}</span>
+                        <div><div style={{ fontSize: '14px' }}>{opt.label}</div><div style={{ fontSize: '11px', color: '#667781' }}>{opt.desc}</div></div>
+                        {privacy === opt.val && <Check size={18} color="#00a884" style={{ marginLeft: 'auto' }} />}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* More Sheet (Schedule, Poll, Reply, Quality, Duration) */}
+              {activeBottomSheet === 'more' && (
+                <>
+                  <h3 style={{ color: '#e9edef', fontSize: '16px', fontWeight: 600, margin: '0 0 12px' }}>More Options</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <button onClick={() => { setActiveBottomSheet(null); setShowScheduleModal(true) }} style={sheetMenuBtnStyle}><span>📅</span><div><div>Schedule</div><div style={{ fontSize: '11px', color: '#667781' }}>Publish later</div></div></button>
+                    <button onClick={() => { setActiveBottomSheet(null); setShowPollModal(true) }} style={sheetMenuBtnStyle}><span>📊</span><div><div>Create Poll</div><div style={{ fontSize: '11px', color: '#667781' }}>Ask a question</div></div></button>
+                    <button onClick={() => { setActiveBottomSheet(null); setShowReplySettingsModal(true) }} style={sheetMenuBtnStyle}><span>💬</span><div><div>Reply Settings</div><div style={{ fontSize: '11px', color: '#667781' }}>Who can reply ({replySettings})</div></div></button>
+                    <button onClick={() => { setActiveBottomSheet(null); setShowQualityModal(true) }} style={sheetMenuBtnStyle}><span>🎬</span><div><div>Quality</div><div style={{ fontSize: '11px', color: '#667781' }}>{quality.toUpperCase()}</div></div></button>
+                    <button onClick={() => { setActiveBottomSheet(null); setShowDurationPicker(true) }} style={sheetMenuBtnStyle}><span>⏱️</span><div><div>Duration</div><div style={{ fontSize: '11px', color: '#667781' }}>{statusDuration}h</div></div></button>
+                  </div>
+                </>
+              )}
+
+              <button
+                onClick={() => setActiveBottomSheet(null)}
+                style={{
+                  width: '100%', padding: '12px', marginTop: '12px',
+                  background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '10px',
+                  color: '#e9edef', fontSize: '14px', fontWeight: 600, cursor: 'pointer'
+                }}
+              >Done</button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Per-Status Audience Selection Modal ── */}
