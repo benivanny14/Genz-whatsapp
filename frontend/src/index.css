@@ -216,6 +216,65 @@
   }
 }
 
+/* ═══ WCAG 2.1 AA Focus Styles ═══ */
+input:focus,
+textarea:focus,
+select:focus,
+button:focus-visible,
+a:focus-visible,
+[role='button']:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #00a884;
+  outline-offset: 2px;
+}
+
+/* Remove default outline for mouse users */
+button:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ═══ Contrast improvements ═══ */
+/* Ensure minimum 4.5:1 contrast ratio for text */
+.text-gray-500 {
+  color: #9ca3af !important; /* Upgraded from #6b7280 */
+}
+
+/* ═══ Touch device optimizations ═══ */
+@media (hover: none) and (pointer: coarse) {
+  /* Increase tap targets on touch devices */
+  button, a, input, select, textarea {
+    min-height: 44px;
+  }
+
+  /* Remove hover effects on touch devices */
+  .hover\:bg-dark-hover:hover {
+    background-color: transparent;
+  }
+  .hover\:bg-gray-800:hover {
+    background-color: transparent;
+  }
+}
+
+/* ═══ Reduced motion support ═══ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ═══ Print styles ═══ */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
 /* Unread message badge styling - match WhatsApp design */
 .unread-badge {
   background-color: #25D366 !important;

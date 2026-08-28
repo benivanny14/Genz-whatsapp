@@ -61,7 +61,12 @@ const Chat = () => {
         // Keeps the header/input bar from sliding off the top of the
         // screen when the on-screen keyboard opens (see
         // utils/useViewportHeight.js for the full explanation).
-        transform: 'translateY(var(--app-offset-top, 0px))'
+        transform: 'translateY(var(--app-offset-top, 0px))',
+        // iOS safe area insets for notch/Dynamic Island
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        paddingLeft: 'env(safe-area-inset-left, 0px)',
+        paddingRight: 'env(safe-area-inset-right, 0px)'
       }}
     >
       {/* Offline indicator */}

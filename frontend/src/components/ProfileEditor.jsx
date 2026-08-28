@@ -105,14 +105,14 @@ const ProfileEditor = ({ onClose }) => {
   };
 
   return (
-    <div className="absolute inset-0 z-[150] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-dark-surface w-full max-w-md rounded-2xl shadow-2xl border border-dark-border overflow-hidden">
+    <div className="absolute inset-0 z-[150] bg-black/60 flex items-end md:items-center justify-center p-4 backdrop-blur-sm">
+      <div className="bg-dark-surface w-full max-w-md rounded-t-2xl md:rounded-2xl shadow-2xl border border-dark-border overflow-hidden max-h-[90vh] overflow-y-auto">
         <div className="p-4 bg-primary-600 flex justify-between items-center text-white">
           <div className="flex items-center gap-2">
             <User size={20} />
             <h2 className="font-bold text-lg">Edit Profile</h2>
           </div>
-          <button onClick={onClose} className="hover:bg-white/20 p-1 rounded-full" aria-label="Close"><X size={20} /></button>
+          <button onClick={onClose} className="hover:bg-white/20 p-2 min-w-[44px] min-h-[44px] rounded-full flex items-center justify-center" aria-label="Close profile editor"><X size={20} /></button>
         </div>
         <div className="p-4 space-y-4">
           <div className="flex items-center justify-center mb-4">
@@ -125,7 +125,7 @@ const ProfileEditor = ({ onClose }) => {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-0 right-0 bg-primary-600 p-1.5 rounded-full text-white hover:bg-primary-700"
+                className="absolute bottom-0 right-0 bg-primary-600 p-2 min-w-[44px] min-h-[44px] rounded-full text-white hover:bg-primary-700 flex items-center justify-center"
                aria-label="Camera">
                 <Camera size={16} />
               </button>
@@ -146,7 +146,7 @@ const ProfileEditor = ({ onClose }) => {
               name="username"
               value={formData.username}
               onChange={handleChange}
-              className="w-full bg-dark-bg border border-dark-border rounded-lg p-3 text-dark-text focus:outline-none focus:border-primary-500"
+              className="w-full bg-dark-bg border border-dark-border rounded-lg p-3.5 min-h-[48px] text-dark-text focus:outline-none focus:border-primary-500 text-base"
               placeholder="Enter username"
             />
           </div>
@@ -164,7 +164,7 @@ const ProfileEditor = ({ onClose }) => {
               name="bio"
               value={formData.bio}
               onChange={handleChange}
-              className="w-full bg-dark-bg border border-dark-border rounded-lg p-3 text-dark-text focus:outline-none focus:border-primary-500 resize-none h-24"
+              className="w-full bg-dark-bg border border-dark-border rounded-lg p-3.5 min-h-[96px] text-dark-text focus:outline-none focus:border-primary-500 resize-none text-base"
               placeholder="Write something about yourself..."
               maxLength={150}
             />
@@ -173,7 +173,7 @@ const ProfileEditor = ({ onClose }) => {
 
           <button
             onClick={handleSave}
-            className={`w-full text-white font-bold py-3 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 ${
+            className={`w-full text-white font-bold py-3.5 min-h-[48px] rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 ${
               saved ? 'bg-green-500 hover:bg-green-600' : 'bg-primary-600 hover:bg-primary-700'
             }`}
           >
