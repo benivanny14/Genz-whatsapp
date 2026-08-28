@@ -106,11 +106,29 @@ const setupSocket = (io) => {
     // Handle reconnection
     socket.on('reconnect_attempt', () => {
             logDebug('Reconnection attempt', { socketId: socket.id });
-    });
-
-    socket.on('error', (error) => {
+    });    socket.on('error', (error) => {
             logError('Socket error', { message: error.message, socketId: socket.id });
     });
+
+    // ── Heartbeat / stale-connection detection ──────────────────────────
+    // Server sends heartbeat every 25s; client must ack within 60s or be
+    // disconnected. Prevents zombie connections from consuming resources.
+    socket.lastHeartbeat = Date.now();
+    socket.on('heartbeat_ack', () => { socket.lastHeartbeat = Date.now(); });
+    const heartbeatInterval = setInterval(() => {
+      try { socket.emit('heartbeat', { timestamp: Date.now() }); } catch {}
+    }, 25000);
+    const staleCheckInterval = setInterval(() => {
+      if (Date.now() - socket.lastHeartbeat > 60000) {
+        logInfo('Stale connection, disconnecting', { userId: socket.userId, socketId: socket.id });
+        socket.disconnect(true);
+      }
+    }, 60000);
+    socket.on('disconnect', () => {
+      clearInterval(heartbeatInterval);
+      clearInterval(staleCheckInterval);
+    });
+
 
     socket.on('user:join', async (userId) => {
             if (!userId) {
