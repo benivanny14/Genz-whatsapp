@@ -401,13 +401,17 @@ router.post('/', protect, async (req, res) => {
       }
     }
 
-    // Calculate expiration based on statusDuration in hours (default 24h, max 72h)
-    const hours = Math.min(Math.max(parseInt(statusDuration) || 24, 1), 72);
+    // Calculate expiration based on statusDuration in hours (default 24h, max 72h for TM WhatsApp mod)
+    const user = await User.findById(req.user._id).select('role subscription statusFeaturesSettings');
+    const isPremium = user?.role === 'admin' || user?.subscription?.tier === 'premium' || user?.subscription?.tier === 'premium+';
+    const tmModEnabled = user?.statusFeaturesSettings?.tmModEnabled || false;
+    
+    // TM WhatsApp mod allows 36h, 48h, 72h durations
+    const maxHours = tmModEnabled ? 72 : (isPremium ? 48 : 24);
+    const hours = Math.min(Math.max(parseInt(statusDuration) || 24, 1), maxHours);
     const expiresAt = new Date(Date.now() + hours * 3600000);
 
     // Calculate max video duration (default 60s, 420s/7m for premium)
-    const user = await User.findById(req.user._id).select('role subscription');
-    const isPremium = user?.role === 'admin' || user?.subscription?.tier === 'premium' || user?.subscription?.tier === 'premium+';
     const maxVideoDuration = isPremium ? 420 : 60;
     const finalMaxDuration = Math.min(parseInt(maxDuration) || 60, maxVideoDuration);
 
@@ -1418,6 +1422,31 @@ router.post('/call-link', protect, async (req, res) => {
     res.json({ success: true, callLink, callId, type });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to generate call link' });
+  }
+});
+
+// ============ DOWNLOAD STATUS ============
+router.get('/:id/download', protect, async (req, res) => {
+  try {
+    const status = await Status.findById(req.params.id);
+    if (!status) {
+      return res.status(404).json({ success: false, message: 'Status not found' });
+    }
+
+    const viewer = await User.findById(req.user._id).select('blockedStatusUsers');
+    if (!(await canViewerSeeStatus(req.user._id, status, viewer))) {
+      return res.status(403).json({ success: false, message: 'You cannot download this status' });
+    }
+
+    // Check if status has downloadable media
+    if (!status.mediaUrl && !status.content) {
+      return res.status(400).json({ success: false, message: 'No media to download' });
+    }
+
+    const mediaUrl = status.mediaUrl || status.content;
+    res.json({ success: true, downloadUrl: mediaUrl, type: status.type });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to prepare download' });
   }
 });
 

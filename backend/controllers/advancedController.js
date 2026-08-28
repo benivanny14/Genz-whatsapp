@@ -651,7 +651,8 @@ exports.viewStatus = async (req, res) => {
     // Check if owner has hidden this viewer from their seen list
     const owner = await User.findById(ownerId).select('statusFeaturesSettings');
     const hideSeenFrom = owner?.statusFeaturesSettings?.hideSeenFrom || [];
-    const isHiddenFromOwner = hideSeenFrom.some(id => String(id) === currentUserId);
+    const hideSeenFromStatuses = owner?.statusFeaturesSettings?.hideSeenFromStatuses || false;
+    const isHiddenFromOwner = hideSeenFrom.some(id => String(id) === currentUserId) || hideSeenFromStatuses;
     
     // FIX: previously the owner opening their own status counted as a "view"
     // (they'd show up in their own viewers list), and even for real viewers

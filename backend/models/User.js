@@ -414,7 +414,9 @@ const userSchema = new mongoose.Schema({
     ghostMode: { type: Boolean, default: false },
     statusDuration: { type: Number, default: 24 },
     hideSeenFrom: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-    defaultPrivacy: { type: String, default: 'contacts' }
+    defaultPrivacy: { type: String, default: 'contacts' },
+    tmModEnabled: { type: Boolean, default: false },
+    hideSeenFromStatuses: { type: Boolean, default: false }
   },
   statusHighlights: { type: mongoose.Schema.Types.Mixed, default: [] },
   viewedStatuses: { type: mongoose.Schema.Types.Mixed, default: [] },
