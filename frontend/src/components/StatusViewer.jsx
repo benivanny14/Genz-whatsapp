@@ -3,9 +3,10 @@ import { useStatusContext } from '../context/StatusContext'
 import { getSocket } from '../services/socket'
 import { resolveApiBase } from '../utils/resolveApiBase'
 import { getAuthToken } from '../utils/tokenStore'
-import { X, Volume2, VolumeX, Send, Eye, EyeOff, CheckCheck, Heart, Trash2, ChevronLeft, ChevronRight, Pause, Play, Forward, Download, Smile, Share2, Link2, Copy, Check, Music } from 'lucide-react'
+import { X, Volume2, VolumeX, Send, Eye, EyeOff, CheckCheck, Heart, Trash2, ChevronLeft, ChevronRight, Pause, Play, Forward, Download, Smile, Share2, Link2, Copy, Check, Music, Mic, BarChart3 } from 'lucide-react'
 import ReactPlayer from 'react-player'
 import ForwardDialog from './ForwardDialog'
+import StatusAnalytics from './StatusAnalytics'
 import './StatusViewer.css'
 
 // Format remaining time as "Xh Ym" or "Ym" or "<1m"
@@ -51,9 +52,13 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
   const [shareLink, setShareLink] = useState('')
   const [copied, setCopied] = useState(false)
   const [showSharePanel, setShowSharePanel] = useState(false)
+  const [showAnalytics, setShowAnalytics] = useState(false)
+  const [pollVotes, setPollVotes] = useState({}) // { statusId: selectedOptionIds }
+  const [showPollResults, setShowPollResults] = useState(false)
   const progressRef = useRef(null)
   const containerRef = useRef(null)
   const touchStartX = useRef(0)
+  const voiceAudioRef = useRef(null)
 
   const statuses = user?.statuses || []
   const currentStatus = statuses[currentIndex]
@@ -351,6 +356,30 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
     }
   }
 
+  // Poll vote handler
+  const handlePollVote = async (optionId) => {
+    if (!currentStatus?._id || !currentStatus.poll) return
+    const alreadyVoted = pollVotes[currentStatus._id]
+    if (alreadyVoted) return // already voted
+    try {
+      const token = getAuthToken()
+      const res = await fetch(`${resolveApiBase()}/status/${currentStatus._id}/poll/vote`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ optionIds: [optionId] })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setPollVotes(prev => ({ ...prev, [currentStatus._id]: [optionId] }))
+      }
+    } catch (err) {
+      console.error('Poll vote error:', err)
+    }
+  }
+
   const QUICK_REACTIONS = ['❤️', '😂', '😮', '😢', '🙏', '🔥']
 
   const fetchViewers = async () => {
@@ -428,7 +457,7 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
                 <CheckCheck size={22} />
               </button>
             )}
-            {currentStatus.type === 'video' && (
+            {(currentStatus.type === 'video' || currentStatus.type === 'voice' || currentStatus.type === 'audio') && (
               <button onClick={() => setIsMuted(!isMuted)}>
                 {isMuted ? <VolumeX size={22} /> : <Volume2 size={22} />}
               </button>
@@ -486,11 +515,91 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
           </>
         )}
 
+        {/* Voice / Audio Status */}
+        {(currentStatus.type === 'voice' || currentStatus.type === 'audio') && (
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            width: '100%', height: '100%', background: 'linear-gradient(135deg, #0d1f35 0%, #1a1a2e 50%, #16213e 100%)',
+            padding: '32px'
+          }}>
+            <div style={{
+              width: '120px', height: '120px', borderRadius: '50%',
+              background: 'rgba(0,168,132,0.15)', border: '3px solid rgba(0,168,132,0.4)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px'
+            }}>
+              <Mic size={48} color="#00a884" />
+            </div>
+            <p style={{ color: '#8696a0', fontSize: '14px', marginBottom: '16px' }}>Voice Status</p>
+            <audio
+              ref={voiceAudioRef}
+              src={currentStatus.content}
+              controls
+              autoPlay={!isPaused}
+              onEnded={goNext}
+              style={{ width: '85%', maxWidth: '340px', borderRadius: '24px', height: '40px' }}
+            />
+            {currentStatus.caption && (
+              <p style={{ color: '#fff', fontSize: '13px', marginTop: '16px', textAlign: 'center', opacity: 0.8 }}>
+                {currentStatus.caption}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Music Tag */}
         {currentStatus.music && (
           <div className="music-tag">
             <Music size={14} />
             <span>{currentStatus.music.title || 'Music'}</span>
+          </div>
+        )}
+
+        {/* Poll Display */}
+        {currentStatus.poll && currentStatus.poll.question && (
+          <div style={{
+            position: 'absolute', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
+            background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)',
+            borderRadius: '16px', padding: '16px', width: '85%', maxWidth: '340px',
+            border: '1px solid rgba(255,255,255,0.15)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+              <BarChart3 size={16} color="#00a884" />
+              <span style={{ color: '#fff', fontSize: '13px', fontWeight: '600' }}>{currentStatus.poll.question}</span>
+            </div>
+            {(currentStatus.poll.options || []).map((opt) => {
+              const totalVotes = currentStatus.poll.totalVotes || 1
+              const pct = Math.round(((opt.votes || 0) / totalVotes) * 100)
+              const voted = pollVotes[currentStatus._id]?.includes(opt.id)
+              return (
+                <button
+                  key={opt.id}
+                  onClick={() => handlePollVote(opt.id)}
+                  disabled={!isOwner && voted !== undefined}
+                  style={{
+                    display: 'block', width: '100%', marginBottom: '6px',
+                    background: voted ? 'rgba(0,168,132,0.25)' : 'rgba(255,255,255,0.08)',
+                    border: voted ? '1px solid #00a884' : '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '10px', padding: '10px 12px', color: '#fff', fontSize: '13px',
+                    cursor: voted ? 'default' : 'pointer', textAlign: 'left', position: 'relative', overflow: 'hidden'
+                  }}
+                >
+                  {voted && (
+                    <div style={{
+                      position: 'absolute', top: 0, left: 0, height: '100%', width: `${pct}%`,
+                      background: 'rgba(0,168,132,0.15)', borderRadius: '10px'
+                    }} />
+                  )}
+                  <span style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between' }}>
+                    <span>{opt.text}</span>
+                    {voted && <span style={{ color: '#00a884', fontWeight: '600' }}>{pct}%</span>}
+                  </span>
+                </button>
+              )
+            })}
+            <div style={{ color: '#8696a0', fontSize: '11px', marginTop: '4px' }}>
+              {currentStatus.poll.totalVotes || 0} vote{(currentStatus.poll.totalVotes || 0) !== 1 ? 's' : ''}
+              {currentStatus.poll.allowMultiple && ' • Multiple selections allowed'}
+            </div>
           </div>
         )}
 
@@ -509,10 +618,20 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
       {/* Bottom Actions */}
       <div className="viewer-bottom">
         {isOwner && (
-          <button className="view-count-btn" onClick={fetchViewers}>
-            <Eye size={18} />
-            <span>{currentStatus.viewCount || 0}</span>
-          </button>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button className="view-count-btn" onClick={fetchViewers}>
+              <Eye size={18} />
+              <span>{currentStatus.viewCount || 0}</span>
+            </button>
+            <button
+              className="view-count-btn"
+              onClick={() => setShowAnalytics(true)}
+              title="View Analytics"
+              style={{ background: 'rgba(0,0,0,0.5)', borderRadius: '20px', border: 'none', color: '#fff', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+            >
+              <BarChart3 size={16} />
+            </button>
+          </div>
         )}
         
         <div className="reply-input-container">
@@ -636,6 +755,11 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Analytics Modal */}
+      {showAnalytics && currentStatus && (
+        <StatusAnalytics statusId={currentStatus._id} onClose={() => setShowAnalytics(false)} />
       )}
 
       {/* Forward Dialog */}

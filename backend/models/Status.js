@@ -152,6 +152,7 @@ const statusSchema = new mongoose.Schema({
   locationData: { type: mongoose.Schema.Types.Mixed, default: null },
   collageImages: { type: mongoose.Schema.Types.Mixed, default: [] },
   timerSeconds: { type: Number, default: 5 },
+  imageFilter: { type: String, default: 'none' },
   // Muted by
   mutedBy: [
     {
@@ -309,6 +310,10 @@ const statusSchema = new mongoose.Schema({
     default: () => new Date(Date.now() + 24 * 60 * 60 * 1000),
     index: { expireAfterSeconds: 0 },
   },
+  // Scheduling
+  scheduledAt: { type: Date, default: null },
+  isScheduled: { type: Boolean, default: false },
+  isPublished: { type: Boolean, default: true },
   timestamp: { type: Date, default: Date.now },
   createdAt: { type: Date, default: Date.now },
 });

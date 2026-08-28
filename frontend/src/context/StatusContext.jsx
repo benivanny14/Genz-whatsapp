@@ -58,17 +58,23 @@ const StatusProvider = ({ children }) => {
         headers: authHeaders(),
         body: JSON.stringify({
           type: 'text',
-          textStatus: textData,
+          content: textData?.text || '',
+          textStatus: {
+            text: textData?.text || '',
+            backgroundColor: textData?.backgroundColor || '#128C7E',
+            fontColor: textData?.fontColor || '#FFFFFF',
+            fontStyle: textData?.fontStyle || 'normal'
+          },
           privacy: textData?.privacy,
           excludedUsers: textData?.excludedUsers,
           includedUsers: textData?.includedUsers,
           collabUsername: textData?.collabUsername,
           mentions: textData?.mentions,
-          replySettings: textData?.replySettings,
-          quality: textData?.quality,
-          statusDuration: textData?.statusDuration,
+          replySettings: textData?.replySettings || 'everyone',
+          quality: textData?.quality || 'standard',
+          statusDuration: textData?.statusDuration || 24,
           maxDuration: textData?.maxDuration,
-          addYoursPrompt: textData?.addYoursPrompt
+          addYoursPrompt: textData?.addYoursPrompt || ''
         })
       });
       const data = await res.json();
@@ -117,9 +123,9 @@ const StatusProvider = ({ children }) => {
           includedUsers: includedUsers ? JSON.parse(includedUsers) : undefined,
           collabUsername: formData.get('collabUsername') || undefined,
           mentions: formData.get('mentions') ? JSON.parse(formData.get('mentions')) : undefined,
-          replySettings: formData.get('replySettings') || undefined,
-          quality: formData.get('quality') || undefined,
-          statusDuration: formData.get('statusDuration') ? Number(formData.get('statusDuration')) : undefined,
+          replySettings: formData.get('replySettings') || 'everyone',
+          quality: formData.get('quality') || 'standard',
+          statusDuration: formData.get('statusDuration') ? Number(formData.get('statusDuration')) : 24,
           maxDuration: formData.get('maxDuration') ? Number(formData.get('maxDuration')) : undefined,
           addYoursPrompt: formData.get('addYoursPrompt') || undefined
         })

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { useStatusContext } from '../context/StatusContext'
-import { X, Type, Image, Video, Music, Scissors, Send, Volume2, Users, Check, UserX, UserCheck, Lock, Plus, Trash2, AtSign, Sparkles, Smile, PenTool, Crop, Clock, ShieldAlert, Award, FileText, Music2, Share2, EyeOff, RotateCw } from 'lucide-react'
+import { X, Type, Image, Video, Music, Scissors, Send, Volume2, Users, Check, UserX, UserCheck, Lock, Plus, Trash2, AtSign, Smile, Mic, MicOff, Clock, ShieldAlert, Award, ChevronDown, List, BarChart3 } from 'lucide-react'
 import { getAuthToken } from '../utils/tokenStore'
 import { resolveApiBase } from '../utils/resolveApiBase'
 import { FFmpeg } from '@ffmpeg/ffmpeg'
@@ -26,20 +26,70 @@ const FONT_STYLES = [
   { id: 'gothic', name: 'Impact, sans-serif' }
 ]
 
+const DURATION_OPTIONS = [
+  { value: 1, label: '1 hour' },
+  { value: 6, label: '6 hours' },
+  { value: 12, label: '12 hours' },
+  { value: 24, label: '24 hours' },
+  { value: 36, label: '36 hours (TM)' },
+  { value: 48, label: '48 hours (Premium)' },
+  { value: 72, label: '72 hours (TM Max)' }
+]
+
+// Shared button styles
+const advancedBtnStyle = (color) => ({
+  background: 'rgba(255,255,255,0.15)',
+  border: '1px solid rgba(255,255,255,0.3)',
+  borderRadius: '12px',
+  color: color || '#fff',
+  fontSize: '11px',
+  padding: '4px 10px',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '4px',
+  cursor: 'pointer',
+  whiteSpace: 'nowrap'
+})
+
+const mediaAdvancedBtnStyle = {
+  background: 'rgba(255,255,255,0.1)',
+  border: '1px solid rgba(255,255,255,0.2)',
+  borderRadius: '12px',
+  color: '#fff',
+  fontSize: '11px',
+  padding: '4px 10px',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '4px',
+  cursor: 'pointer',
+  whiteSpace: 'nowrap'
+}
+
+// Image filter presets
+const IMAGE_FILTERS = [
+  { id: 'none', name: 'Original', css: 'none' },
+  { id: 'warm', name: 'Warm', css: 'sepia(0.3) saturate(1.4) brightness(1.05)' },
+  { id: 'cool', name: 'Cool', css: 'saturate(0.9) hue-rotate(15deg) brightness(1.05)' },
+  { id: 'bw', name: 'B&W', css: 'grayscale(1) contrast(1.1)' },
+  { id: 'vintage', name: 'Vintage', css: 'sepia(0.5) contrast(0.9) brightness(0.95) saturate(1.2)' },
+  { id: 'bright', name: 'Bright', css: 'brightness(1.2) saturate(1.1)' },
+  { id: 'contrast', name: 'Contrast', css: 'contrast(1.4) saturate(1.1)' },
+  { id: 'fade', name: 'Fade', css: 'contrast(0.85) brightness(1.1) saturate(0.8)' },
+]
+
 const CreateStatus = ({ onClose }) => {
-  const { createTextStatus, createMediaStatus } = useStatusContext()
-  const [mode, setMode] = useState('select') // select | text | image | video | preview
+  const { createTextStatus, createMediaStatus, createCustomStatus } = useStatusContext()
+  const [mode, setMode] = useState('select') // select | text | image | video | voice | preview
   const [text, setText] = useState('')
   const [selectedColor, setSelectedColor] = useState(TEXT_COLORS[0])
   const [fontIndex, setFontIndex] = useState(0)
   const [taggedContact, setTaggedContact] = useState('')
-  const [isHd, setIsHd] = useState(false)
   const [selectedSticker, setSelectedSticker] = useState('')
   
   // Multi-media queue & audience states
-  const [mediaItems, setMediaItems] = useState([]) // [{ file, preview, type, caption, trimStart, trimEnd }]
+  const [mediaItems, setMediaItems] = useState([])
   const [activeIndex, setActiveIndex] = useState(0)
-  const [privacy, setPrivacy] = useState('contacts') // contacts | contacts_except | only_share_with | only_me
+  const [privacy, setPrivacy] = useState('contacts')
   const [selectedUsers, setSelectedUsers] = useState([])
   const [showAudienceModal, setShowAudienceModal] = useState(false)
   const [contacts, setContacts] = useState([])
@@ -50,24 +100,40 @@ const CreateStatus = ({ onClose }) => {
   const [musicFile, setMusicFile] = useState(null)
 
   // WhatsApp 2026 & TM Features State
-  const [mentions, setMentions] = useState([])
-  const [showMentionModal, setShowMentionModal] = useState(false)
   const [replySettings, setReplySettings] = useState('everyone')
   const [quality, setQuality] = useState('standard')
   const [statusDuration, setStatusDuration] = useState(24)
-  const [maxVideoDuration, setMaxVideoDuration] = useState(60)
   const [addYoursPrompt, setAddYoursPrompt] = useState('')
   const [showAddYoursModal, setShowAddYoursModal] = useState(false)
-  const [filterStyle, setFilterStyle] = useState('none')
-  const [isDrawing, setIsDrawing] = useState(false)
-  const [drawingColor, setDrawingColor] = useState('#FF0000')
-  const [brushSize, setBrushSize] = useState(4)
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false)
+  const [showDurationPicker, setShowDurationPicker] = useState(false)
+  const [showFilterPicker, setShowFilterPicker] = useState(false)
+  const [imageFilter, setImageFilter] = useState('none')
+  const [showScheduleModal, setShowScheduleModal] = useState(false)
+  const [scheduledAt, setScheduledAt] = useState('')
+  const [showReplySettingsModal, setShowReplySettingsModal] = useState(false)
+  const [showQualityModal, setShowQualityModal] = useState(false)
   const [musicStart, setMusicStart] = useState(0)
   const [musicEnd, setMusicEnd] = useState(15)
   const [musicVolume, setMusicVolume] = useState(0.5)
   const [isProcessing, setIsProcessing] = useState(false)
   const videoRef = useRef(null)
   const ffmpegRef = useRef(null)
+
+  // Voice recording state
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordingTime, setRecordingTime] = useState(0)
+  const [audioBlob, setAudioBlob] = useState(null)
+  const [audioUrl, setAudioUrl] = useState(null)
+  const mediaRecorderRef = useRef(null)
+  const recordingIntervalRef = useRef(null)
+  const audioChunksRef = useRef([])
+
+  // Poll creation state
+  const [showPollModal, setShowPollModal] = useState(false)
+  const [pollQuestion, setPollQuestion] = useState('')
+  const [pollOptions, setPollOptions] = useState(['', ''])
+  const [pollAllowMultiple, setPollAllowMultiple] = useState(false)
 
   useEffect(() => {
     const fetchContacts = async () => {
@@ -86,6 +152,13 @@ const CreateStatus = ({ onClose }) => {
       }
     }
     fetchContacts()
+  }, [])
+
+  // Cleanup recording interval on unmount
+  useEffect(() => {
+    return () => {
+      if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current)
+    }
   }, [])
 
   // Initialize FFmpeg
@@ -124,6 +197,56 @@ const CreateStatus = ({ onClose }) => {
     })
   }
 
+  // Voice Recording Functions
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream)
+      mediaRecorderRef.current = mediaRecorder
+      audioChunksRef.current = []
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data)
+      }
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        setAudioBlob(blob)
+        setAudioUrl(URL.createObjectURL(blob))
+        stream.getTracks().forEach(t => t.stop())
+      }
+
+      mediaRecorder.start()
+      setIsRecording(true)
+      setRecordingTime(0)
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1)
+      }, 1000)
+    } catch (err) {
+      console.error('Microphone access denied:', err)
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop()
+    }
+    setIsRecording(false)
+    if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current)
+  }
+
+  const discardRecording = () => {
+    setAudioBlob(null)
+    setAudioUrl(null)
+    setRecordingTime(0)
+  }
+
+  const formatRecordingTime = (seconds) => {
+    const m = Math.floor(seconds / 60)
+    const s = seconds % 60
+    return `${m}:${s.toString().padStart(2, '0')}`
+  }
+
   const toggleUser = (userId) => {
     setSelectedUsers(prev =>
       prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
@@ -131,77 +254,6 @@ const CreateStatus = ({ onClose }) => {
   }
 
   // Trim video using FFmpeg.wasm
-  const trimVideo = async () => {
-    if (!mediaFile || trimEnd <= trimStart) return mediaFile
-    
-    setIsProcessing(true)
-    try {
-      const ffmpeg = await loadFFmpeg()
-      const inputName = 'input' + mediaFile.name.substring(mediaFile.name.lastIndexOf('.'))
-      const outputName = 'trimmed.mp4'
-      
-      await ffmpeg.writeFile(inputName, await fetchFile(mediaFile))
-      
-      await ffmpeg.exec([
-        '-i', inputName,
-        '-ss', `${trimStart}`,
-        '-t', `${trimEnd - trimStart}`,
-        '-c', 'copy',
-        outputName
-      ])
-      
-      const data = await ffmpeg.readFile(outputName)
-      const trimmedBlob = new Blob([data.buffer], { type: 'video/mp4' })
-      const trimmedFile = new File([trimmedBlob], 'trimmed-status.mp4', { type: 'video/mp4' })
-      
-      setIsProcessing(false)
-      return trimmedFile
-    } catch (err) {
-      console.error('Trim error:', err)
-      setIsProcessing(false)
-      return mediaFile
-    }
-  }
-
-  // Mix audio with video
-  const mixAudioWithVideo = async (videoFile, audioFile) => {
-    if (!audioFile) return videoFile
-    
-    setIsProcessing(true)
-    try {
-      const ffmpeg = await loadFFmpeg()
-      
-      await ffmpeg.writeFile('video.mp4', await fetchFile(videoFile))
-      await ffmpeg.writeFile('audio.mp3', await fetchFile(audioFile))
-      
-      await ffmpeg.exec([
-        '-i', 'video.mp4',
-        '-i', 'audio.mp3',
-        '-ss', `${musicStart}`,
-        '-t', `${musicEnd - musicStart}`,
-        '-filter_complex',
-        `[1:a]volume=${musicVolume}[a1];[0:a][a1]amix=inputs=2:duration=first:dropout_transition=3[outa]`,
-        '-map', '0:v',
-        '-map', '[outa]',
-        '-c:v', 'copy',
-        '-c:a', 'aac',
-        '-shortest',
-        'mixed.mp4'
-      ])
-      
-      const data = await ffmpeg.readFile('mixed.mp4')
-      const mixedBlob = new Blob([data.buffer], { type: 'video/mp4' })
-      const mixedFile = new File([mixedBlob], 'status-with-music.mp4', { type: 'video/mp4' })
-      
-      setIsProcessing(false)
-      return mixedFile
-    } catch (err) {
-      console.error('Mix error:', err)
-      setIsProcessing(false)
-      return videoFile
-    }
-  }
-
   const trimVideoForItem = async (item) => {
     if (!item.file || (item.trimEnd || 30) <= (item.trimStart || 0)) return item.file
     try {
@@ -226,6 +278,54 @@ const CreateStatus = ({ onClose }) => {
     }
   }
 
+  // Mix audio with video
+  const mixAudioWithVideo = async (videoFile, audioFile) => {
+    if (!audioFile) return videoFile
+    setIsProcessing(true)
+    try {
+      const ffmpeg = await loadFFmpeg()
+      await ffmpeg.writeFile('video.mp4', await fetchFile(videoFile))
+      await ffmpeg.writeFile('audio.mp3', await fetchFile(audioFile))
+      await ffmpeg.exec([
+        '-i', 'video.mp4',
+        '-i', 'audio.mp3',
+        '-ss', `${musicStart}`,
+        '-t', `${musicEnd - musicStart}`,
+        '-filter_complex',
+        `[1:a]volume=${musicVolume}[a1];[0:a][a1]amix=inputs=2:duration=first:dropout_transition=3[outa]`,
+        '-map', '0:v',
+        '-map', '[outa]',
+        '-c:v', 'copy',
+        '-c:a', 'aac',
+        '-shortest',
+        'mixed.mp4'
+      ])
+      const data = await ffmpeg.readFile('mixed.mp4')
+      const mixedBlob = new Blob([data.buffer], { type: 'video/mp4' })
+      setIsProcessing(false)
+      return new File([mixedBlob], 'status-with-music.mp4', { type: 'video/mp4' })
+    } catch (err) {
+      console.error('Mix error:', err)
+      setIsProcessing(false)
+      return videoFile
+    }
+  }
+
+  // Poll helpers
+  const updatePollOption = (index, value) => {
+    setPollOptions(prev => {
+      const updated = [...prev]
+      updated[index] = value
+      return updated
+    })
+  }
+  const addPollOption = () => {
+    if (pollOptions.length < 6) setPollOptions(prev => [...prev, ''])
+  }
+  const removePollOption = (index) => {
+    if (pollOptions.length > 2) setPollOptions(prev => prev.filter((_, i) => i !== index))
+  }
+
   const handleSubmit = async () => {
     setIsProcessing(true)
     try {
@@ -233,7 +333,86 @@ const CreateStatus = ({ onClose }) => {
       const excludedUsers = privacy === 'contacts_except' ? selectedUsers : undefined
       const includedUsers = privacy === 'only_share_with' ? selectedUsers : undefined
 
-      if (mode === 'text') {
+      // Voice status submission
+      if (mode === 'voice' && audioBlob) {
+        const formData = new FormData()
+        formData.append('file', audioBlob, `voice-status-${Date.now()}.webm`)
+        formData.append('caption', caption || '')
+        formData.append('privacy', privacy)
+        if (excludedUsers?.length) formData.append('excludedUsers', JSON.stringify(excludedUsers))
+        if (includedUsers?.length) formData.append('includedUsers', JSON.stringify(includedUsers))
+        formData.append('replySettings', replySettings)
+        formData.append('quality', quality)
+        formData.append('statusDuration', String(statusDuration))
+
+        // Upload audio first
+        const token = getAuthToken()
+        const uploadRes = await fetch(`${resolveApiBase()}/status/upload`, {
+          method: 'POST',
+          headers: { Authorization: token ? `Bearer ${token}` : '' },
+          body: formData
+        })
+        const uploadData = await uploadRes.json()
+        if (!uploadData.success) throw new Error('Audio upload failed')
+
+        await createCustomStatus({
+          type: 'voice',
+          content: uploadData.fileUrl,
+          caption: caption || '',
+          privacy,
+          excludedUsers,
+          includedUsers,
+          replySettings,
+          quality,
+          statusDuration,
+          addYoursPrompt: addYoursPrompt || undefined,
+          ...(pollQuestion.trim() && pollOptions.filter(o => o.trim()).length >= 2 ? {
+            poll: {
+              question: pollQuestion,
+              options: pollOptions.filter(o => o.trim()),
+              allowMultiple: pollAllowMultiple
+            }
+          } : {})
+        })
+        onClose()
+        return
+      }
+
+      // Scheduled status — use the schedule endpoint
+      if (scheduledAt && mode !== 'voice') {
+        const token = getAuthToken()
+        const scheduleBody = {
+          scheduledAt,
+          type: mode === 'text' ? 'text' : (mediaItems[activeIndex]?.type || mode),
+          content: mode === 'text' ? text : (mediaItems[activeIndex]?.preview || ''),
+          caption: caption || '',
+          textStatus: mode === 'text' ? {
+            text,
+            backgroundColor: selectedColor.bg,
+            fontColor: selectedColor.font,
+            fontStyle: currentFont
+          } : undefined,
+          privacy,
+          excludedUsers,
+          includedUsers,
+          replySettings,
+          quality,
+          statusDuration,
+          ...(imageFilter !== 'none' ? { imageFilter } : {})
+        }
+        const res = await fetch(`${resolveApiBase()}/status/schedule`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify(scheduleBody)
+        })
+        const data = await res.json()
+        if (!data.success) throw new Error(data.message || 'Schedule failed')
+        onClose()
+        return
+      }
+
+      // Voice status submission
+      if (mode === 'voice' && audioBlob) {
         await createTextStatus({
           text,
           backgroundColor: selectedColor.bg,
@@ -242,13 +421,18 @@ const CreateStatus = ({ onClose }) => {
           collabUsername: taggedContact.trim(),
           privacy,
           excludedUsers,
-          includedUsers
+          includedUsers,
+          replySettings,
+          quality,
+          statusDuration,
+          addYoursPrompt: addYoursPrompt || undefined
         })
         onClose()
         return
       }
 
-      const itemsToUpload = mediaItems.length > 0 ? mediaItems : (mediaFile ? [{ file: mediaFile, preview: mediaPreview, type: mode, caption, trimStart, trimEnd }] : [])
+      // Media status submission
+      const itemsToUpload = mediaItems.length > 0 ? mediaItems : []
       if (itemsToUpload.length === 0) return
 
       for (let i = 0; i < itemsToUpload.length; i++) {
@@ -271,6 +455,11 @@ const CreateStatus = ({ onClose }) => {
         formData.append('privacy', privacy)
         if (excludedUsers?.length) formData.append('excludedUsers', JSON.stringify(excludedUsers))
         if (includedUsers?.length) formData.append('includedUsers', JSON.stringify(includedUsers))
+        formData.append('replySettings', replySettings)
+        formData.append('quality', quality)
+        formData.append('statusDuration', String(statusDuration))
+        if (addYoursPrompt.trim()) formData.append('addYoursPrompt', addYoursPrompt)
+        if (imageFilter !== 'none') formData.append('imageFilter', imageFilter)
 
         if (musicFile && i === activeIndex) {
           formData.append('music', JSON.stringify({
@@ -294,6 +483,7 @@ const CreateStatus = ({ onClose }) => {
     }
   }
 
+  // ────────── SELECT MODE ──────────
   if (mode === 'select') {
     return (
       <div className="create-status-overlay">
@@ -332,13 +522,147 @@ const CreateStatus = ({ onClose }) => {
                 onChange={(e) => handleFileSelect(e, 'video')} 
               />
             </label>
+
+            <button onClick={() => setMode('voice')} className="create-option">
+              <Mic size={28} color="#00a884" />
+              <span>Voice</span>
+            </button>
           </div>
         </div>
       </div>
     )
   }
 
-  // Text Mode
+  // ────────── VOICE RECORDING MODE ──────────
+  if (mode === 'voice') {
+    return (
+      <div className="create-status-overlay" style={{ background: '#1a1a2e' }}>
+        <div className="text-create-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          {/* Top Bar */}
+          <div className="create-toolbar top" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '8px' }}>
+            <button onClick={() => { discardRecording(); setMode('select'); }}><X color="#fff" /></button>
+            <span style={{ color: '#fff', fontSize: '14px', fontWeight: 600 }}>Voice Status</span>
+            <div style={{ width: 24 }} />
+          </div>
+
+          {/* Recording Visualization */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '24px' }}>
+            {isRecording && (
+              <div style={{
+                width: '120px', height: '120px', borderRadius: '50%',
+                background: 'rgba(239,68,68,0.2)', border: '3px solid #ef4444',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                animation: 'pulse 1.5s ease-in-out infinite'
+              }}>
+                <Mic size={48} color="#ef4444" />
+              </div>
+            )}
+            {!isRecording && !audioUrl && (
+              <div style={{
+                width: '120px', height: '120px', borderRadius: '50%',
+                background: 'rgba(255,255,255,0.1)', border: '3px solid rgba(255,255,255,0.3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <Mic size={48} color="#8696a0" />
+              </div>
+            )}
+            {!isRecording && audioUrl && (
+              <div style={{
+                width: '120px', height: '120px', borderRadius: '50%',
+                background: 'rgba(0,168,132,0.2)', border: '3px solid #00a884',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <Music size={48} color="#00a884" />
+              </div>
+            )}
+
+            <div style={{ color: '#fff', fontSize: '28px', fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>
+              {formatRecordingTime(recordingTime)}
+            </div>
+
+            {audioUrl && !isRecording && (
+              <audio src={audioUrl} controls style={{ width: '280px', height: '36px', borderRadius: '18px' }} />
+            )}
+          </div>
+
+          {/* Caption for voice */}
+          <div style={{ padding: '0 16px 8px', width: '100%', maxWidth: '500px' }}>
+            <input 
+              type="text"
+              placeholder="Add a caption..."
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              style={{
+                width: '100%',
+                background: 'rgba(255,255,255,0.15)',
+                border: '1px solid rgba(255,255,255,0.3)',
+                borderRadius: '8px',
+                padding: '6px 12px',
+                color: '#fff',
+                fontSize: '13px'
+              }}
+            />
+          </div>
+
+          {/* Record / Stop / Discard buttons */}
+          <div style={{ display: 'flex', gap: '16px', padding: '12px' }}>
+            {isRecording ? (
+              <button
+                onClick={stopRecording}
+                style={{
+                  width: '64px', height: '64px', borderRadius: '50%',
+                  background: '#ef4444', border: 'none', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}
+              >
+                <div style={{ width: '20px', height: '20px', background: '#fff', borderRadius: '3px' }} />
+              </button>
+            ) : audioUrl ? (
+              <>
+                <button
+                  onClick={discardRecording}
+                  style={{
+                    width: '48px', height: '48px', borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}
+                >
+                  <Trash2 size={22} color="#ef4444" />
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={isProcessing}
+                  style={{
+                    width: '64px', height: '64px', borderRadius: '50%',
+                    background: '#00a884', border: 'none', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}
+                >
+                  {isProcessing ? <span style={{ color: '#fff', fontSize: '11px' }}>...</span> : <Send size={26} color="#fff" />}
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={startRecording}
+                style={{
+                  width: '64px', height: '64px', borderRadius: '50%',
+                  background: '#ef4444', border: 'none', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 0 0 4px rgba(239,68,68,0.3)'
+                }}
+              >
+                <Mic size={30} color="#fff" />
+              </button>
+            )}
+          </div>
+
+          <style>{`@keyframes pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.7; } }`}</style>
+        </div>
+      </div>
+    )
+  }
+
+  // ────────── TEXT MODE ──────────
   if (mode === 'text') {
     return (
       <div className="create-status-overlay" style={{ background: selectedColor.bg }}>
@@ -371,8 +695,8 @@ const CreateStatus = ({ onClose }) => {
                 <button 
                   key={i} 
                   className="color-dot" 
-                  style={{ background: c.bg, border: selectedColor.bg === c.bg ? '2px solid white' : 'none' }}
-                  onClick={() => setSelectedColor(c)}
+                  style={{ background: c.bg, border: selectedColor.bg === c.bg ? '2px solid white' : 'none' }} 
+                  onClick={() => setSelectedColor(c)} 
                 />
               ))}
             </div>
@@ -403,6 +727,19 @@ const CreateStatus = ({ onClose }) => {
               }}
             />
           </div>
+
+          {/* Text mode advanced settings row */}
+          <div style={{ display: 'flex', gap: '8px', padding: '0 16px 12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button onClick={() => setShowReplySettingsModal(true)} style={advancedBtnStyle(selectedColor.font)}>
+              <ShieldAlert size={14} /> Reply: {replySettings}
+            </button>
+            <button onClick={() => setShowDurationPicker(true)} style={advancedBtnStyle(selectedColor.font)}>
+              <Clock size={14} /> {statusDuration}h
+            </button>
+            <button onClick={() => setShowPollModal(true)} style={advancedBtnStyle(selectedColor.font)}>
+              <BarChart3 size={14} /> Poll
+            </button>
+          </div>
           
           <button 
             className="send-status-btn" 
@@ -412,11 +749,100 @@ const CreateStatus = ({ onClose }) => {
             <Send size={24} />
           </button>
         </div>
+
+        {/* ── Reply Settings Modal ── */}
+        {showReplySettingsModal && (
+          <div className="privacy-overlay" style={{ zIndex: 100 }}>
+            <div className="privacy-container" style={{ maxWidth: '340px' }}>
+              <div className="privacy-header">
+                <button onClick={() => setShowReplySettingsModal(false)}><X size={20} /></button>
+                <h3>Who can reply</h3>
+                <button onClick={() => setShowReplySettingsModal(false)} className="save-btn">Done</button>
+              </div>
+              <div className="privacy-options">
+                {['everyone', 'contacts', 'nobody'].map(val => (
+                  <label key={val} className={`privacy-option ${replySettings === val ? 'selected' : ''}`}>
+                    <div><span style={{ textTransform: 'capitalize' }}>{val}</span></div>
+                    <input type="radio" name="reply_settings" checked={replySettings === val} onChange={() => setReplySettings(val)} />
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Duration Picker Modal ── */}
+        {showDurationPicker && (
+          <div className="privacy-overlay" style={{ zIndex: 100 }}>
+            <div className="privacy-container" style={{ maxWidth: '340px' }}>
+              <div className="privacy-header">
+                <button onClick={() => setShowDurationPicker(false)}><X size={20} /></button>
+                <h3>Status Duration</h3>
+                <button onClick={() => setShowDurationPicker(false)} className="save-btn">Done</button>
+              </div>
+              <div className="privacy-options">
+                {DURATION_OPTIONS.map(opt => (
+                  <label key={opt.value} className={`privacy-option ${statusDuration === opt.value ? 'selected' : ''}`}>
+                    <div><span>{opt.label}</span></div>
+                    <input type="radio" name="duration" checked={statusDuration === opt.value} onChange={() => setStatusDuration(opt.value)} />
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Poll Modal ── */}
+        {showPollModal && (
+          <div className="privacy-overlay" style={{ zIndex: 100 }}>
+            <div className="privacy-container" style={{ maxWidth: '380px' }}>
+              <div className="privacy-header">
+                <button onClick={() => { setShowPollModal(false); setPollQuestion(''); setPollOptions(['', '']); }}><X size={20} /></button>
+                <h3>Create Poll</h3>
+                <button onClick={() => setShowPollModal(false)} className="save-btn">Done</button>
+              </div>
+              <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <input
+                  type="text"
+                  placeholder="Ask a question..."
+                  value={pollQuestion}
+                  onChange={(e) => setPollQuestion(e.target.value)}
+                  style={{ width: '100%', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', padding: '10px', color: '#fff', fontSize: '14px' }}
+                />
+                {pollOptions.map((opt, i) => (
+                  <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder={`Option ${i + 1}`}
+                      value={opt}
+                      onChange={(e) => updatePollOption(i, e.target.value)}
+                      style={{ flex: 1, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', padding: '8px', color: '#fff', fontSize: '13px' }}
+                    />
+                    {pollOptions.length > 2 && (
+                      <button onClick={() => removePollOption(i)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                        <X size={16} color="#ef4444" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {pollOptions.length < 6 && (
+                  <button onClick={addPollOption} style={{ background: 'rgba(255,255,255,0.1)', border: '1px dashed rgba(255,255,255,0.3)', borderRadius: '8px', padding: '8px', color: '#00a884', fontSize: '13px', cursor: 'pointer' }}>
+                    + Add option
+                  </button>
+                )}
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#fff', fontSize: '13px', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={pollAllowMultiple} onChange={(e) => setPollAllowMultiple(e.target.checked)} />
+                  Allow multiple selections
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
 
-  // Image/Video Mode with editing
+  // ────────── IMAGE/VIDEO MODE ──────────
   return (
     <div className="create-status-overlay">
       <div className="media-create-container">
@@ -438,7 +864,6 @@ const CreateStatus = ({ onClose }) => {
               gap: '4px',
               cursor: 'pointer'
             }}
-            title="Choose per-status audience"
           >
             <Users size={14} color="#00a884" />
             <span>
@@ -461,9 +886,13 @@ const CreateStatus = ({ onClose }) => {
             </div>
           )}
           {((mediaItems[activeIndex]?.type || mode) === 'image') ? (
-            <img src={mediaItems[activeIndex]?.preview || mediaPreview} alt="preview" />
+            <img
+              src={mediaItems[activeIndex]?.preview}
+              alt="preview"
+              style={{ filter: IMAGE_FILTERS.find(f => f.id === imageFilter)?.css || 'none' }}
+            />
           ) : (
-            <video ref={videoRef} src={mediaItems[activeIndex]?.preview || mediaPreview} controls muted loop />
+            <video ref={videoRef} src={mediaItems[activeIndex]?.preview} controls muted loop />
           )}
         </div>
 
@@ -476,13 +905,9 @@ const CreateStatus = ({ onClose }) => {
                 onClick={() => { setActiveIndex(idx); setMode(item.type); }}
                 style={{
                   position: 'relative',
-                  width: '52px',
-                  height: '52px',
-                  borderRadius: '8px',
-                  overflow: 'hidden',
+                  width: '52px', height: '52px', borderRadius: '8px', overflow: 'hidden',
                   border: activeIndex === idx ? '2px solid #00a884' : '1px solid rgba(255,255,255,0.3)',
-                  cursor: 'pointer',
-                  flexShrink: 0
+                  cursor: 'pointer', flexShrink: 0
                 }}
               >
                 {item.type === 'image' ? (
@@ -503,50 +928,24 @@ const CreateStatus = ({ onClose }) => {
                       })
                     }}
                     style={{
-                      position: 'absolute',
-                      top: 2,
-                      right: 2,
-                      background: 'rgba(0,0,0,0.75)',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '50%',
-                      width: '16px',
-                      height: '16px',
-                      fontSize: '10px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justify: 'center',
-                      cursor: 'pointer'
+                      position: 'absolute', top: 2, right: 2,
+                      background: 'rgba(0,0,0,0.75)', color: '#fff', border: 'none',
+                      borderRadius: '50%', width: '16px', height: '16px', fontSize: '10px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
                     }}
-                  >
-                    ×
-                  </button>
+                  >×</button>
                 )}
               </div>
             ))}
             <label
               style={{
-                width: '52px',
-                height: '52px',
-                borderRadius: '8px',
-                border: '1px dashed #00a884',
-                display: 'flex',
-                alignItems: 'center',
-                justify: 'center',
-                cursor: 'pointer',
-                flexShrink: 0,
-                color: '#00a884'
+                width: '52px', height: '52px', borderRadius: '8px',
+                border: '1px dashed #00a884', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', flexShrink: 0, color: '#00a884'
               }}
-              title="Add more photos/videos"
             >
               <Plus size={20} />
-              <input
-                type="file"
-                accept="image/*,video/*"
-                multiple
-                hidden
-                onChange={(e) => handleFileSelect(e, 'image')}
-              />
+              <input type="file" accept="image/*,video/*" multiple hidden onChange={(e) => handleFileSelect(e, 'image')} />
             </label>
           </div>
         )}
@@ -554,181 +953,311 @@ const CreateStatus = ({ onClose }) => {
         {/* Caption */}
         <div className="caption-input">
           <input 
-            type="text" 
-            placeholder="Add a caption..."
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
+            type="text" placeholder="Add a caption..."
+            value={caption} onChange={(e) => setCaption(e.target.value)}
           />
         </div>
 
         {/* Video Trimming */}
         {mode === 'video' && (
           <div className="trim-section">
-            <div className="trim-header">
-              <Scissors size={18} />
-              <span>Trim Video</span>
-            </div>
+            <div className="trim-header"><Scissors size={18} /><span>Trim Video</span></div>
             <div className="trim-controls">
               <div className="trim-row">
                 <label>Start: {trimStart}s</label>
-                <input 
-                  type="range" 
-                  min={0} 
-                  max={Math.max(0, (videoRef.current?.duration || 60) - 5)}
-                  value={trimStart}
-                  onChange={(e) => {
-                    const val = Number(e.target.value)
-                    setTrimStart(val)
-                    if (val >= trimEnd) setTrimEnd(val + 5)
-                  }}
-                />
+                <input type="range" min={0} max={Math.max(0, (videoRef.current?.duration || 60) - 5)} value={trimStart}
+                  onChange={(e) => { const val = Number(e.target.value); setTrimStart(val); if (val >= trimEnd) setTrimEnd(val + 5) }} />
               </div>
               <div className="trim-row">
                 <label>End: {trimEnd}s</label>
-                <input 
-                  type="range" 
-                  min={trimStart + 1} 
-                  max={videoRef.current?.duration || 60}
-                  value={trimEnd}
-                  onChange={(e) => setTrimEnd(Number(e.target.value))}
-                />
+                <input type="range" min={trimStart + 1} max={videoRef.current?.duration || 60} value={trimEnd}
+                  onChange={(e) => setTrimEnd(Number(e.target.value))} />
               </div>
-              <small>Duration: {trimEnd - trimStart}s (Max 30s for status)</small>
+              <small>Duration: {trimEnd - trimStart}s</small>
             </div>
           </div>
         )}
 
         {/* Music Section */}
         <div className="music-section">
-          <div className="music-header">
-            <Music size={18} />
-            <span>Add Music</span>
-          </div>
-          
+          <div className="music-header"><Music size={18} /><span>Add Music</span></div>
           {!musicFile ? (
             <label className="music-upload">
-              <Volume2 size={20} />
-              <span>Choose from device</span>
-              <input 
-                type="file" 
-                accept="audio/*" 
-                hidden 
-                onChange={(e) => {
-                  if (e.target.files[0]) {
-                    setMusicFile(e.target.files[0])
-                    setMusicEnd(15)
-                  }
-                }}
-              />
+              <Volume2 size={20} /><span>Choose from device</span>
+              <input type="file" accept="audio/*" hidden onChange={(e) => { if (e.target.files[0]) { setMusicFile(e.target.files[0]); setMusicEnd(15) } }} />
             </label>
           ) : (
             <div className="music-editor">
               <div className="music-file-name">{musicFile.name}</div>
               <div className="trim-row">
                 <label>Start: {musicStart}s</label>
-                <input 
-                  type="range" 
-                  min={0} 
-                  max={30}
-                  value={musicStart}
-                  onChange={(e) => {
-                    const val = Number(e.target.value)
-                    setMusicStart(val)
-                    if (val >= musicEnd) setMusicEnd(val + 5)
-                  }}
-                />
+                <input type="range" min={0} max={30} value={musicStart}
+                  onChange={(e) => { const val = Number(e.target.value); setMusicStart(val); if (val >= musicEnd) setMusicEnd(val + 5) }} />
               </div>
               <div className="trim-row">
                 <label>End: {musicEnd}s</label>
-                <input 
-                  type="range" 
-                  min={musicStart + 1} 
-                  max={60}
-                  value={musicEnd}
-                  onChange={(e) => setMusicEnd(Number(e.target.value))}
-                />
+                <input type="range" min={musicStart + 1} max={60} value={musicEnd}
+                  onChange={(e) => setMusicEnd(Number(e.target.value))} />
               </div>
               <div className="trim-row">
                 <label>Volume: {Math.round(musicVolume * 100)}%</label>
-                <input 
-                  type="range" 
-                  min={0} 
-                  max={1} 
-                  step={0.1}
-                  value={musicVolume}
-                  onChange={(e) => setMusicVolume(Number(e.target.value))}
-                />
+                <input type="range" min={0} max={1} step={0.1} value={musicVolume}
+                  onChange={(e) => setMusicVolume(Number(e.target.value))} />
               </div>
-              <button className="remove-music" onClick={() => setMusicFile(null)}>
-                Remove Music
-              </button>
+              <button className="remove-music" onClick={() => setMusicFile(null)}>Remove Music</button>
             </div>
           )}
         </div>
+
+        {/* Advanced Settings Bar */}
+        <div style={{ display: 'flex', gap: '8px', padding: '8px 12px', flexWrap: 'wrap', background: 'rgba(0,0,0,0.3)' }}>
+          <button onClick={() => setShowReplySettingsModal(true)} style={mediaAdvancedBtnStyle}>
+            <ShieldAlert size={14} /> Reply: {replySettings}
+          </button>
+          <button onClick={() => setShowQualityModal(true)} style={mediaAdvancedBtnStyle}>
+            <Award size={14} /> {quality.toUpperCase()}
+          </button>
+          <button onClick={() => setShowDurationPicker(true)} style={mediaAdvancedBtnStyle}>
+            <Clock size={14} /> {statusDuration}h
+          </button>
+          {mode === 'image' && (
+            <button onClick={() => setShowFilterPicker(true)} style={mediaAdvancedBtnStyle}>
+              🎨 Filter
+            </button>
+          )}
+          <button onClick={() => setShowScheduleModal(true)} style={mediaAdvancedBtnStyle}>
+            📅 Schedule
+          </button>
+          <button onClick={() => setShowPollModal(true)} style={mediaAdvancedBtnStyle}>
+            <BarChart3 size={14} /> Poll
+          </button>
+        </div>
       </div>
 
-      {/* Per-Status Audience Selection Modal */}
+      {/* ── Per-Status Audience Selection Modal ── */}
       {showAudienceModal && (
         <div className="privacy-overlay" style={{ zIndex: 100 }}>
           <div className="privacy-container" style={{ maxWidth: '360px' }}>
             <div className="privacy-header">
-              <button type="button" onClick={() => setShowAudienceModal(false)}><X size={20} /></button>
+              <button onClick={() => setShowAudienceModal(false)}><X size={20} /></button>
               <h3>Status Audience</h3>
-              <button type="button" onClick={() => setShowAudienceModal(false)} className="save-btn">Done</button>
+              <button onClick={() => setShowAudienceModal(false)} className="save-btn">Done</button>
             </div>
             <div className="privacy-options">
-              <label className={`privacy-option ${privacy === 'contacts' ? 'selected' : ''}`}>
-                <Users size={18} />
-                <div>
-                  <span>My contacts</span>
-                  <small>Share with all contacts</small>
-                </div>
-                <input type="radio" name="per_status_privacy" checked={privacy === 'contacts'} onChange={() => setPrivacy('contacts')} />
-              </label>
-
-              <label className={`privacy-option ${privacy === 'contacts_except' ? 'selected' : ''}`}>
-                <UserX size={18} />
-                <div>
-                  <span>My contacts except...</span>
-                  <small>Hide from selected contacts</small>
-                </div>
-                <input type="radio" name="per_status_privacy" checked={privacy === 'contacts_except'} onChange={() => setPrivacy('contacts_except')} />
-              </label>
-
-              <label className={`privacy-option ${privacy === 'only_share_with' ? 'selected' : ''}`}>
-                <UserCheck size={18} />
-                <div>
-                  <span>Only share with...</span>
-                  <small>Share only with selected contacts</small>
-                </div>
-                <input type="radio" name="per_status_privacy" checked={privacy === 'only_share_with'} onChange={() => setPrivacy('only_share_with')} />
-              </label>
-
-              <label className={`privacy-option ${privacy === 'only_me' ? 'selected' : ''}`}>
-                <Lock size={18} />
-                <div>
-                  <span>Only me</span>
-                  <small>Private to you only</small>
-                </div>
-                <input type="radio" name="per_status_privacy" checked={privacy === 'only_me'} onChange={() => setPrivacy('only_me')} />
-              </label>
+              {[
+                { val: 'contacts', icon: <Users size={18} />, label: 'My contacts', desc: 'Share with all contacts' },
+                { val: 'contacts_except', icon: <UserX size={18} />, label: 'My contacts except...', desc: 'Hide from selected contacts' },
+                { val: 'only_share_with', icon: <UserCheck size={18} />, label: 'Only share with...', desc: 'Share only with selected contacts' },
+                { val: 'only_me', icon: <Lock size={18} />, label: 'Only me', desc: 'Private to you only' }
+              ].map(opt => (
+                <label key={opt.val} className={`privacy-option ${privacy === opt.val ? 'selected' : ''}`}>
+                  {opt.icon}
+                  <div><span>{opt.label}</span><small>{opt.desc}</small></div>
+                  <input type="radio" name="per_status_privacy" checked={privacy === opt.val} onChange={() => setPrivacy(opt.val)} />
+                </label>
+              ))}
             </div>
-
             {(privacy === 'contacts_except' || privacy === 'only_share_with') && (
               <div className="contacts-list" style={{ maxHeight: '180px', overflowY: 'auto' }}>
                 <h4>{privacy === 'contacts_except' ? 'Hide status from' : 'Share status with'}</h4>
                 {contacts.map(c => {
-                  const cId = String(c.user?._id || c.user || c._id || '');
+                  const cId = String(c.user?._id || c.user || c._id || '')
                   return (
                     <div key={cId} className="contact-item" onClick={() => toggleUser(cId)}>
                       <img src={c.profilePicture || '/default-avatar.png'} alt="" />
                       <span>{c.savedName || c.username}</span>
                       {selectedUsers.includes(cId) && <Check size={18} color="#00a884" />}
                     </div>
-                  );
+                  )
                 })}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Reply Settings Modal ── */}
+      {showReplySettingsModal && (
+        <div className="privacy-overlay" style={{ zIndex: 100 }}>
+          <div className="privacy-container" style={{ maxWidth: '340px' }}>
+            <div className="privacy-header">
+              <button onClick={() => setShowReplySettingsModal(false)}><X size={20} /></button>
+              <h3>Who can reply</h3>
+              <button onClick={() => setShowReplySettingsModal(false)} className="save-btn">Done</button>
+            </div>
+            <div className="privacy-options">
+              {['everyone', 'contacts', 'nobody'].map(val => (
+                <label key={val} className={`privacy-option ${replySettings === val ? 'selected' : ''}`}>
+                  <div><span style={{ textTransform: 'capitalize' }}>{val}</span></div>
+                  <input type="radio" name="reply_settings_media" checked={replySettings === val} onChange={() => setReplySettings(val)} />
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Quality Modal ── */}
+      {showQualityModal && (
+        <div className="privacy-overlay" style={{ zIndex: 100 }}>
+          <div className="privacy-container" style={{ maxWidth: '340px' }}>
+            <div className="privacy-header">
+              <button onClick={() => setShowQualityModal(false)}><X size={20} /></button>
+              <h3>Media Quality</h3>
+              <button onClick={() => setShowQualityModal(false)} className="save-btn">Done</button>
+            </div>
+            <div className="privacy-options">
+              {[
+                { val: 'hd', label: 'HD', desc: 'Best quality, larger file' },
+                { val: 'standard', label: 'Standard', desc: 'Recommended' },
+                { val: 'saver', label: 'Data Saver', desc: 'Smaller file, lower quality' }
+              ].map(opt => (
+                <label key={opt.val} className={`privacy-option ${quality === opt.val ? 'selected' : ''}`}>
+                  <div><span>{opt.label}</span><small>{opt.desc}</small></div>
+                  <input type="radio" name="quality" checked={quality === opt.val} onChange={() => setQuality(opt.val)} />
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Duration Picker Modal ── */}
+      {showDurationPicker && (
+        <div className="privacy-overlay" style={{ zIndex: 100 }}>
+          <div className="privacy-container" style={{ maxWidth: '340px' }}>
+            <div className="privacy-header">
+              <button onClick={() => setShowDurationPicker(false)}><X size={20} /></button>
+              <h3>Status Duration</h3>
+              <button onClick={() => setShowDurationPicker(false)} className="save-btn">Done</button>
+            </div>
+            <div className="privacy-options">
+              {DURATION_OPTIONS.map(opt => (
+                <label key={opt.value} className={`privacy-option ${statusDuration === opt.value ? 'selected' : ''}`}>
+                  <div><span>{opt.label}</span></div>
+                  <input type="radio" name="duration_media" checked={statusDuration === opt.value} onChange={() => setStatusDuration(opt.value)} />
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Poll Modal ── */}
+      {showPollModal && (
+        <div className="privacy-overlay" style={{ zIndex: 100 }}>
+          <div className="privacy-container" style={{ maxWidth: '380px' }}>
+            <div className="privacy-header">
+              <button onClick={() => { setShowPollModal(false); setPollQuestion(''); setPollOptions(['', '']); }}><X size={20} /></button>
+              <h3>Create Poll</h3>
+              <button onClick={() => setShowPollModal(false)} className="save-btn">Done</button>
+            </div>
+            <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <input type="text" placeholder="Ask a question..." value={pollQuestion}
+                onChange={(e) => setPollQuestion(e.target.value)}
+                style={{ width: '100%', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', padding: '10px', color: '#fff', fontSize: '14px' }} />
+              {pollOptions.map((opt, i) => (
+                <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input type="text" placeholder={`Option ${i + 1}`} value={opt}
+                    onChange={(e) => updatePollOption(i, e.target.value)}
+                    style={{ flex: 1, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', padding: '8px', color: '#fff', fontSize: '13px' }} />
+                  {pollOptions.length > 2 && (
+                    <button onClick={() => removePollOption(i)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                      <X size={16} color="#ef4444" />
+                    </button>
+                  )}
+                </div>
+              ))}
+              {pollOptions.length < 6 && (
+                <button onClick={addPollOption} style={{ background: 'rgba(255,255,255,0.1)', border: '1px dashed rgba(255,255,255,0.3)', borderRadius: '8px', padding: '8px', color: '#00a884', fontSize: '13px', cursor: 'pointer' }}>
+                  + Add option
+                </button>
+              )}
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#fff', fontSize: '13px', cursor: 'pointer' }}>
+                <input type="checkbox" checked={pollAllowMultiple} onChange={(e) => setPollAllowMultiple(e.target.checked)} />
+                Allow multiple selections
+              </label>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Filter Picker Modal ── */}
+      {showFilterPicker && (
+        <div className="privacy-overlay" style={{ zIndex: 100 }}>
+          <div className="privacy-container" style={{ maxWidth: '380px' }}>
+            <div className="privacy-header">
+              <button onClick={() => setShowFilterPicker(false)}><X size={20} /></button>
+              <h3>🎨 Image Filters</h3>
+              <button onClick={() => setShowFilterPicker(false)} className="save-btn">Done</button>
+            </div>
+            <div style={{ padding: '16px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+              {IMAGE_FILTERS.map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => setImageFilter(f.id)}
+                  style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
+                    background: imageFilter === f.id ? 'rgba(0,168,132,0.2)' : 'rgba(255,255,255,0.05)',
+                    border: imageFilter === f.id ? '2px solid #00a884' : '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '10px', padding: '8px', cursor: 'pointer'
+                  }}
+                >
+                  <div style={{
+                    width: '52px', height: '52px', borderRadius: '8px', overflow: 'hidden',
+                    background: 'rgba(255,255,255,0.15)'
+                  }}>
+                    {mediaItems[activeIndex]?.preview && (
+                      <img
+                        src={mediaItems[activeIndex].preview}
+                        alt=""
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', filter: f.css }}
+                      />
+                    )}
+                  </div>
+                  <span style={{ color: '#fff', fontSize: '10px', fontWeight: imageFilter === f.id ? '600' : '400' }}>
+                    {f.name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Schedule Modal ── */}
+      {showScheduleModal && (
+        <div className="privacy-overlay" style={{ zIndex: 100 }}>
+          <div className="privacy-container" style={{ maxWidth: '380px' }}>
+            <div className="privacy-header">
+              <button onClick={() => { setShowScheduleModal(false); setScheduledAt(''); }}><X size={20} /></button>
+              <h3>📅 Schedule Status</h3>
+              <button onClick={() => setShowScheduleModal(false)} className="save-btn">Done</button>
+            </div>
+            <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <p style={{ color: '#8696a0', fontSize: '13px', margin: 0 }}>
+                Choose when to publish this status. It will be posted automatically.
+              </p>
+              <input
+                type="datetime-local"
+                value={scheduledAt}
+                onChange={(e) => setScheduledAt(e.target.value)}
+                min={new Date().toISOString().slice(0, 16)}
+                style={{
+                  width: '100%', background: 'rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px',
+                  padding: '12px', color: '#fff', fontSize: '14px'
+                }}
+              />
+              {scheduledAt && (
+                <div style={{ color: '#00a884', fontSize: '13px', textAlign: 'center' }}>
+                  Will be published at: {new Date(scheduledAt).toLocaleString()}
+                </div>
+              )}
+              <div style={{ color: '#667781', fontSize: '11px', textAlign: 'center' }}>
+                {scheduledAt ? '✅ Scheduled — will post automatically' : '⬜ Set a date and time to schedule'}
+              </div>
+            </div>
           </div>
         </div>
       )}

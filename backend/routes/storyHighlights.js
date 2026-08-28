@@ -38,20 +38,32 @@ router.get("/", async (req, res) => {
 // POST /api/story-highlights/create - Create new highlight
 router.post("/create", async (req, res) => {
   try {
-    const { name, color, statusIds, coverUrl } = req.body;
-    if (!name || !name.trim()) {
+    const { name, title, color, category, statusIds, coverUrl, coverImage } = req.body;
+    const highlightName = name || title;
+    const highlightColor = color || coverImage ? '' : (category ? undefined : undefined);
+    if (!highlightName || !highlightName.trim()) {
       return res
         .status(400)
         .json({ success: false, message: "Name is required" });
     }
 
+    // Resolve ring color from category index or direct color string
+    const HIGHLIGHT_COLORS = [
+      'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)',
+      'linear-gradient(45deg,#1cb5e0,#000851)',
+      'linear-gradient(45deg,#00b09b,#96c93d)',
+      'linear-gradient(45deg,#f7971e,#ffd200)',
+      'linear-gradient(45deg,#8e44ad,#3498db)',
+      'linear-gradient(45deg,#e74c3c,#c0392b)',
+    ];
+    const resolvedColor = color || (category !== undefined ? HIGHLIGHT_COLORS[Number(category) || 0] : HIGHLIGHT_COLORS[0]);
+    const resolvedCover = coverUrl || coverImage || '';
+
     const highlight = await StoryHighlight.create({
       userId: req.user._id,
-      name: name.trim(),
-      color:
-        color ||
-        "linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)",
-      coverUrl: coverUrl || "",
+      name: highlightName.trim(),
+      color: resolvedColor,
+      coverUrl: resolvedCover,
       statuses: statusIds || [],
     });
 

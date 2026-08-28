@@ -65,7 +65,6 @@ const normalizePrivacy = (privacy) => {
   if (!privacy) return null;
   if (privacy === 'everyone') return 'contacts';
   if (privacy === 'only_me') return 'nobody';
-  return VALID_PRIVACY.has(privacy) ? privacy : 'contacts';
   if (VALID_PRIVACY.has(privacy)) return privacy;
   return 'INVALID';
 };
@@ -448,7 +447,8 @@ router.post('/', protect, async (req, res) => {
       addYoursPrompt: addYoursPrompt || '',
       parentStatusId: parentStatusId || null,
       locationSticker: locationSticker || undefined,
-      linkPreview: linkPreview || undefined
+      linkPreview: linkPreview || undefined,
+      imageFilter: req.body.imageFilter || 'none'
     });
 
     if (parentStatusId && mongoose.Types.ObjectId.isValid(parentStatusId)) {
@@ -582,7 +582,6 @@ router.delete('/:id', protect, async (req, res) => {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
-    await Status.findByIdAndDelete(req.params.id);
     status.isRevoked = true;
     status.isDeleted = true;
     status.deletedAt = new Date();
@@ -1559,6 +1558,222 @@ router.post('/:id/forward', protect, async (req, res) => {
     res.json({ success: true, status, results });
   } catch (err) {
     console.error('Forward status error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ============ SAVED / BOOKMARKED STATUSES ============
+router.get('/saved', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('savedStatuses');
+    const saved = Array.isArray(user?.savedStatuses) ? user.savedStatuses : [];
+    if (saved.length === 0) return res.json({ success: true, statuses: [] });
+
+    const statusIds = saved.map(s => s.statusId || s._id || s).filter(Boolean);
+    const statuses = await Status.find({ _id: { $in: statusIds } })
+      .populate('userId', 'username profilePicture')
+      .populate('user', 'username profilePicture')
+      .sort({ createdAt: -1 });
+
+    // Preserve original saved order and attach savedAt
+    const savedMap = new Map(saved.map(s => [String(s.statusId || s._id || s), s.savedAt]));
+    const ordered = statuses
+      .map(s => {
+        const obj = s.toObject ? s.toObject() : { ...s };
+        obj.savedAt = savedMap.get(String(s._id)) || s.createdAt;
+        return obj;
+      })
+      .sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
+
+    res.json({ success: true, statuses: ordered });
+  } catch (err) {
+    console.error('Get saved statuses error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ============ STATUS ANALYTICS ============
+router.get('/analytics/:statusId', protect, async (req, res) => {
+  try {
+    const { statusId } = req.params;
+    const status = await Status.findById(statusId)
+      .populate('views.userId', 'username profilePicture')
+      .populate('views.user', 'username profilePicture');
+
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+    if (ownerIdOf(status) !== String(req.user._id)) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    const analytics = await StatusAnalytics.findOne({ statusId });
+
+    // Compute stats from the status itself
+    const viewCount = status.views?.length || 0;
+    const reactionCount = status.reactions?.length || 0;
+    const replyCount = status.replies?.length || 0;
+    const screenshotCount = analytics?.screenshots || 0;
+    const forwardCount = status.forwardCount || 0;
+
+    // Unique viewers
+    const uniqueViewerIds = new Set(
+      (status.views || []).map(v => String(v.userId || v.user)).filter(Boolean)
+    );
+
+    // Viewers by time (hour distribution)
+    const hourDistribution = {};
+    (status.views || []).forEach(v => {
+      const hour = new Date(v.viewedAt).getHours();
+      hourDistribution[hour] = (hourDistribution[hour] || 0) + 1;
+    });
+
+    // Peak hour
+    let peakHour = 0;
+    let peakCount = 0;
+    Object.entries(hourDistribution).forEach(([h, c]) => {
+      if (c > peakCount) { peakHour = Number(h); peakCount = c; }
+    });
+
+    // Reaction breakdown
+    const reactionBreakdown = {};
+    (status.reactions || []).forEach(r => {
+      reactionBreakdown[r.emoji] = (reactionBreakdown[r.emoji] || 0) + 1;
+    });
+
+    res.json({
+      success: true,
+      analytics: {
+        statusId: status._id,
+        views: viewCount,
+        uniqueViews: uniqueViewerIds.size,
+        reactions: reactionCount,
+        reactionBreakdown,
+        replies: replyCount,
+        screenshots: screenshotCount,
+        forwards: forwardCount,
+        peakHour,
+        peakCount,
+        hourDistribution,
+        createdAt: status.createdAt,
+        expiresAt: status.expiresAt
+      }
+    });
+  } catch (err) {
+    console.error('Get status analytics error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ============ SCHEDULED STATUSES ============
+router.post('/schedule', protect, async (req, res) => {
+  try {
+    const { scheduledAt, type, content, caption, textStatus, music, privacy, excludedUsers, includedUsers, mentions, replySettings, quality, statusDuration } = req.body;
+
+    if (!scheduledAt) return res.status(400).json({ success: false, message: 'scheduledAt is required' });
+    const scheduledDate = new Date(scheduledAt);
+    if (isNaN(scheduledDate.getTime()) || scheduledDate <= new Date()) {
+      return res.status(400).json({ success: false, message: 'scheduledAt must be a future date' });
+    }
+    if (!type || !['text', 'image', 'video', 'voice'].includes(type)) {
+      return res.status(400).json({ success: false, message: 'Invalid status type' });
+    }
+
+    const hours = Math.min(Math.max(parseInt(statusDuration) || 24, 1), 72);
+    const expiresAt = new Date(scheduledDate.getTime() + hours * 3600000);
+
+    const status = await Status.create({
+      user: req.user._id,
+      userId: req.user._id,
+      type,
+      content: content || '',
+      mediaUrl: type !== 'text' ? (content || '') : '',
+      mediaType: type !== 'text' ? type : '',
+      caption: caption || '',
+      textStatus: type === 'text' ? {
+        text: textStatus?.text || content || '',
+        backgroundColor: textStatus?.backgroundColor || '#128C7E',
+        fontColor: textStatus?.fontColor || '#FFFFFF',
+        fontStyle: textStatus?.fontStyle || 'normal'
+      } : undefined,
+      music: music || undefined,
+      privacy: privacy || 'contacts',
+      excludedUsers: excludedUsers || [],
+      includedUsers: includedUsers || [],
+      excludedViewers: excludedUsers || [],
+      includedViewers: includedUsers || [],
+      mentions: mentions || [],
+      replySettings: replySettings || 'everyone',
+      quality: quality || 'standard',
+      statusDuration: hours,
+      expiresAt,
+      scheduledAt: scheduledDate,
+      isScheduled: true,
+      isPublished: false
+    });
+
+    res.status(201).json({ success: true, status, message: `Status scheduled for ${scheduledDate.toLocaleString()}` });
+  } catch (err) {
+    console.error('Schedule status error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/status/scheduled - List user's scheduled statuses
+router.get('/scheduled', protect, async (req, res) => {
+  try {
+    const statuses = await Status.find({
+      ...ownerMatchQuery([req.user._id]),
+      isScheduled: true,
+      isPublished: false
+    })
+      .populate('userId', 'username profilePicture')
+      .populate('user', 'username profilePicture')
+      .sort({ scheduledAt: 1 });
+
+    res.json({ success: true, statuses });
+  } catch (err) {
+    console.error('Get scheduled statuses error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /api/status/scheduled/:id - Cancel a scheduled status
+router.delete('/scheduled/:id', protect, async (req, res) => {
+  try {
+    const status = await Status.findById(req.params.id);
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+    if (ownerIdOf(status) !== String(req.user._id)) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    await Status.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Scheduled status cancelled' });
+  } catch (err) {
+    console.error('Cancel scheduled status error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/status/publish-scheduled - Publish due scheduled statuses (called by cron)
+router.post('/publish-scheduled', protect, async (req, res) => {
+  try {
+    const dueStatuses = await Status.find({
+      isScheduled: true,
+      isPublished: false,
+      scheduledAt: { $lte: new Date() }
+    });
+
+    let published = 0;
+    for (const status of dueStatuses) {
+      status.isPublished = true;
+      status.isScheduled = false;
+      await status.save();
+      published++;
+      // Emit to audience
+      await emitStatusCreated(req, status);
+    }
+
+    res.json({ success: true, published });
+  } catch (err) {
+    console.error('Publish scheduled error:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 });
