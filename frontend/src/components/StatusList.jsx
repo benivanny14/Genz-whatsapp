@@ -159,7 +159,7 @@ const StatusList = ({ onViewArchive }) => {
   }
 
   return (
-    <div className="status-list">
+    <div className="status-list pb-24 md:pb-4">
       {/* Header */}
       <div className="status-list-header">
         <h2>Status</h2>

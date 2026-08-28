@@ -1183,7 +1183,7 @@ const Settings = () => {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex min-w-fit items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition ${isActive ? 'bg-[#00a884] text-white shadow' : 'text-blue-100/70 hover:bg-white/10 hover:text-white'}`}
+                  className={`flex min-w-fit items-center gap-3 rounded-xl px-3 py-3 md:py-2.5 min-h-[48px] text-left text-sm font-semibold transition ${isActive ? 'bg-[#00a884] text-white shadow' : 'text-blue-100/70 hover:bg-white/10 hover:text-white'}`}
                 >
                   <Icon size={18} />
                   <span className="whitespace-nowrap">{tab.label}</span>

@@ -146,15 +146,73 @@
   }
 }
 
-/* Safe area padding for mobile devices with notches/home indicators */
+/* ═══ Safe area padding for mobile devices with notches/home indicators ═══ */
 @supports (padding: max(0px)) {
   .pb-safe {
     padding-bottom: max(env(safe-area-inset-bottom), 16px);
   }
 
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .pl-safe {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .pr-safe {
+    padding-right: env(safe-area-inset-right);
+  }
+
   /* Add padding to messages container to account for fixed input bar */
   .flex-1.min-h-0.overflow-y-auto {
     padding-bottom: 80px !important;
+  }
+}
+
+/* ═══ Mobile responsiveness fixes ═══ */
+
+/* Minimum font size for readability on small screens */
+@media (max-width: 640px) {
+  body, html {
+    font-size: 15px;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Ensure all interactive elements meet 44x44px minimum touch target */
+  button, a, input[type='checkbox'], input[type='radio'], select, [role='button'] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Prevent horizontal scroll */
+  * {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+
+  /* Better text rendering */
+  p, span, li, td, th, label, small, h1, h2, h3, h4, h5, h6 {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+}
+
+/* ═══ iOS notch / Dynamic Island support ═══ */
+@supports (padding: env(safe-area-inset-top)) {
+  .ios-safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  .ios-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .ios-safe-left {
+    padding-left: env(safe-area-inset-left);
+  }
+  .ios-safe-right {
+    padding-right: env(safe-area-inset-right);
   }
 }
 

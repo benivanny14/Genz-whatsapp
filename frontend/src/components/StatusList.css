@@ -258,10 +258,12 @@
 /* FAB */
 .fab-create-status {
   position: fixed;
-  bottom: 24px;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   right: 24px;
   width: 56px;
   height: 56px;
+  min-width: 56px;
+  min-height: 56px;
   background: #00a884;
   border-radius: 50%;
   border: none;
