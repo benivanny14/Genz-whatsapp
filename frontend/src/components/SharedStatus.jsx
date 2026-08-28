@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { resolveApiBase } from '../utils/resolveApiBase'
 import { getAuthToken } from '../utils/tokenStore'
-import { X, Clock, AlertCircle } from 'lucide-react'
+import { X, Clock, AlertCircle, Download, QrCode, Share2, Heart } from 'lucide-react'
 import ReactPlayer from 'react-player'
 import './SharedStatus.css'
 
@@ -12,6 +12,8 @@ const SharedStatus = () => {
   const [status, setStatus] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [showQR, setShowQR] = useState(false)
+  const [liked, setLiked] = useState(false)
 
   useEffect(() => {
     const fetchShared = async () => {
@@ -50,11 +52,28 @@ const SharedStatus = () => {
     return `${minutes}m left`
   }
 
+  const handleNativeShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${status.username}'s Status`,
+          text: status.textStatus?.text || 'Check out this status',
+          url: window.location.href
+        })
+      } catch (err) { /* cancelled */ }
+    }
+  }
+
+  const getQRCodeUrl = () => {
+    const url = encodeURIComponent(window.location.href)
+    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${url}&bgcolor=1a1a2e&color=00a884`
+  }
+
   if (loading) {
     return (
       <div className="shared-status-page">
         <div className="shared-status-loading">
-          <div className="spinner" />
+          <div className="shared-spinner" />
           <p>Loading status...</p>
         </div>
       </div>
@@ -65,10 +84,10 @@ const SharedStatus = () => {
     return (
       <div className="shared-status-page">
         <div className="shared-status-error">
-          <AlertCircle size={48} color="#8696a0" />
+          <AlertCircle size={56} color="#8696a0" />
           <h2>Unable to load status</h2>
           <p>{error}</p>
-          <button onClick={() => window.history.back()}>Go Back</button>
+          <button className="shared-btn-primary" onClick={() => window.history.back()}>Go Back</button>
         </div>
       </div>
     )
@@ -76,6 +95,7 @@ const SharedStatus = () => {
 
   return (
     <div className="shared-status-page">
+      {/* Header */}
       <div className="shared-status-header">
         <div className="shared-user-info">
           {status.profilePicture && (
@@ -90,11 +110,30 @@ const SharedStatus = () => {
             </span>
           </div>
         </div>
-        <button className="shared-close" onClick={() => window.history.back()}>
-          <X size={24} />
-        </button>
+        <div className="shared-header-actions">
+          <button className="shared-icon-btn" onClick={handleNativeShare} title="Share">
+            <Share2 size={20} />
+          </button>
+          <button className="shared-icon-btn" onClick={() => setShowQR(!showQR)} title="QR Code">
+            <QrCode size={20} />
+          </button>
+          <button className="shared-close" onClick={() => window.history.back()}>
+            <X size={24} />
+          </button>
+        </div>
       </div>
 
+      {/* QR Code Panel */}
+      {showQR && (
+        <div className="shared-qr-panel">
+          <div className="shared-qr-card">
+            <img src={getQRCodeUrl()} alt="QR Code" className="shared-qr-image" />
+            <p className="shared-qr-text">Scan to view this status</p>
+          </div>
+        </div>
+      )}
+
+      {/* Content */}
       <div className="shared-status-content">
         {status.type === 'text' && (
           <div
@@ -123,13 +162,31 @@ const SharedStatus = () => {
           />
         )}
 
+        {(status.type === 'voice' || status.type === 'audio') && (
+          <div className="shared-voice-status">
+            <div className="shared-voice-icon">🎤</div>
+            <p className="shared-voice-label">Voice Status</p>
+            <audio src={status.content} controls autoPlay style={{ width: '85%', maxWidth: '340px', borderRadius: '24px' }} />
+          </div>
+        )}
+
         {status.caption && (
           <div className="shared-caption">{status.caption}</div>
         )}
       </div>
 
+      {/* Footer */}
       <div className="shared-footer">
-        <p>Viewed via share link • Expires with the original status</p>
+        <button
+          className={`shared-like-btn ${liked ? 'liked' : ''}`}
+          onClick={() => setLiked(!liked)}
+        >
+          <Heart size={20} fill={liked ? '#ef4444' : 'none'} color={liked ? '#ef4444' : '#8696a0'} />
+        </button>
+        <p className="shared-footer-text">Shared via Genz Messenger</p>
+        <a href="https://github.com/benivanny14/Genz-whatsapp" target="_blank" rel="noreferrer" className="shared-download-btn">
+          <Download size={16} /> Get the App
+        </a>
       </div>
     </div>
   )

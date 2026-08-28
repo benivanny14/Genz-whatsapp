@@ -7,6 +7,7 @@ import StatusPrivacy from './StatusPrivacy'
 import CreateStatus from './CreateStatus'
 import StoryHighlights from './StoryHighlights'
 import SavedStatuses from './SavedStatuses'
+import StatusHistory from './StatusHistory'
 import './StatusList.css'
 
 const idOf = (value) => {
@@ -47,6 +48,7 @@ const StatusList = ({ onViewArchive }) => {
   const [showArchive, setShowArchive] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [showSaved, setShowSaved] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
   const [showMutedAccordion, setShowMutedAccordion] = useState(false)
   const [viewerUser, setViewerUser] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
@@ -167,6 +169,9 @@ const StatusList = ({ onViewArchive }) => {
           </button>
           <button className="privacy-link" onClick={() => setShowSaved(true)} title="Saved Statuses">
             <Bookmark size={20} />
+          </button>
+          <button className="privacy-link" onClick={() => setShowHistory(true)} title="Status History">
+            <Clock size={20} />
           </button>
           <button className="privacy-link" onClick={() => setShowPrivacy(true)} title="Status Privacy">
             <Lock size={20} />
@@ -357,6 +362,7 @@ const StatusList = ({ onViewArchive }) => {
       {showCreate && <CreateStatus onClose={() => setShowCreate(false)} />}
       {showArchive && <StatusArchive onClose={() => setShowArchive(false)} onViewStatus={handleViewStatus} />}
       {showSaved && <SavedStatuses onClose={() => setShowSaved(false)} onViewStatus={handleViewStatus} />}
+      {showHistory && <StatusHistory onClose={() => setShowHistory(false)} onViewStatus={handleViewStatus} />}
       {showPrivacy && <StatusPrivacy onClose={() => setShowPrivacy(false)} />}
       {viewerUser && (
         <StatusViewer

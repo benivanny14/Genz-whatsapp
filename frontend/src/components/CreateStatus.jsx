@@ -135,6 +135,14 @@ const CreateStatus = ({ onClose }) => {
   const [pollOptions, setPollOptions] = useState(['', ''])
   const [pollAllowMultiple, setPollAllowMultiple] = useState(false)
 
+  // Drawing/Pen tool state
+  const [isDrawing, setIsDrawing] = useState(false)
+  const [drawColor, setDrawColor] = useState('#FF0000')
+  const [drawBrushSize, setDrawBrushSize] = useState(4)
+  const canvasRef = useRef(null)
+  const isDrawingRef = useRef(false)
+  const lastPosRef = useRef({ x: 0, y: 0 })
+
   useEffect(() => {
     const fetchContacts = async () => {
       try {
@@ -326,6 +334,85 @@ const CreateStatus = ({ onClose }) => {
     if (pollOptions.length > 2) setPollOptions(prev => prev.filter((_, i) => i !== index))
   }
 
+  // ── Drawing/Pen Tool Functions ──
+  const initCanvas = (imgSrc) => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      canvas.width = img.naturalWidth
+      canvas.height = img.naturalHeight
+      ctx.drawImage(img, 0, 0)
+    }
+    img.src = imgSrc
+  }
+
+  const getCanvasPos = (e) => {
+    const canvas = canvasRef.current
+    if (!canvas) return { x: 0, y: 0 }
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
+    }
+  }
+
+  const startDrawing = (e) => {
+    if (!isDrawing) return
+    isDrawingRef.current = true
+    const pos = getCanvasPos(e)
+    lastPosRef.current = pos
+    const ctx = canvasRef.current?.getContext('2d')
+    if (ctx) {
+      ctx.beginPath()
+      ctx.moveTo(pos.x, pos.y)
+    }
+  }
+
+  const draw = (e) => {
+    if (!isDrawingRef.current || !canvasRef.current) return
+    e.preventDefault()
+    const ctx = canvasRef.current.getContext('2d')
+    const pos = getCanvasPos(e)
+    ctx.strokeStyle = drawColor
+    ctx.lineWidth = drawBrushSize
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.lineTo(pos.x, pos.y)
+    ctx.stroke()
+    lastPosRef.current = pos
+  }
+
+  const stopDrawing = () => {
+    isDrawingRef.current = false
+  }
+
+  const clearCanvas = () => {
+    const currentPreview = mediaItems[activeIndex]?.preview
+    if (currentPreview) initCanvas(currentPreview)
+  }
+
+  const applyDrawing = () => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const dataUrl = canvas.toDataURL('image/png')
+    // Update the current media item's preview with the drawn overlay
+    setMediaItems(prev => {
+      const updated = [...prev]
+      if (updated[activeIndex]) {
+        updated[activeIndex] = { ...updated[activeIndex], drawnPreview: dataUrl }
+      }
+      return updated
+    })
+    setIsDrawing(false)
+  }
+
   const handleSubmit = async () => {
     setIsProcessing(true)
     try {
@@ -446,8 +533,18 @@ const CreateStatus = ({ onClose }) => {
           }
         }
 
+        // Use drawn preview if available for images
+        let fileToUpload = finalFile
+        if (item.type === 'image' && item.drawnPreview) {
+          try {
+            const response = await fetch(item.drawnPreview)
+            const blob = await response.blob()
+            fileToUpload = new File([blob], `drawn-${item.file.name}.png`, { type: 'image/png' })
+          } catch (err) { /* fallback to original */ }
+        }
+
         const formData = new FormData()
-        formData.append('file', finalFile)
+        formData.append('file', fileToUpload)
         formData.append('caption', item.caption || caption || '')
         formData.append('fontStyle', currentFont)
         if (taggedContact.trim()) formData.append('collabUsername', taggedContact.trim())
@@ -886,11 +983,33 @@ const CreateStatus = ({ onClose }) => {
             </div>
           )}
           {((mediaItems[activeIndex]?.type || mode) === 'image') ? (
-            <img
-              src={mediaItems[activeIndex]?.preview}
-              alt="preview"
-              style={{ filter: IMAGE_FILTERS.find(f => f.id === imageFilter)?.css || 'none' }}
-            />
+            <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+              <img
+                src={mediaItems[activeIndex]?.drawnPreview || mediaItems[activeIndex]?.preview}
+                alt="preview"
+                style={{
+                  filter: IMAGE_FILTERS.find(f => f.id === imageFilter)?.css || 'none',
+                  width: '100%', height: '100%', objectFit: 'contain'
+                }}
+              />
+              {isDrawing && (
+                <canvas
+                  ref={canvasRef}
+                  onMouseDown={startDrawing}
+                  onMouseMove={draw}
+                  onMouseUp={stopDrawing}
+                  onMouseLeave={stopDrawing}
+                  onTouchStart={startDrawing}
+                  onTouchMove={draw}
+                  onTouchEnd={stopDrawing}
+                  style={{
+                    position: 'absolute', top: 0, left: 0,
+                    width: '100%', height: '100%',
+                    cursor: 'crosshair', touchAction: 'none'
+                  }}
+                />
+              )}
+            </div>
           ) : (
             <video ref={videoRef} src={mediaItems[activeIndex]?.preview} controls muted loop />
           )}
@@ -1009,6 +1128,35 @@ const CreateStatus = ({ onClose }) => {
           )}
         </div>
 
+        {/* Drawing Toolbar (when drawing mode is active) */}
+        {isDrawing && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: 'rgba(0,0,0,0.5)' }}>
+            <span style={{ color: '#fff', fontSize: '12px', fontWeight: 600 }}>✏️ Drawing</span>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              {['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#FFFFFF', '#000000'].map(c => (
+                <button
+                  key={c}
+                  onClick={() => setDrawColor(c)}
+                  style={{
+                    width: '24px', height: '24px', borderRadius: '50%', background: c,
+                    border: drawColor === c ? '3px solid #00a884' : '2px solid rgba(255,255,255,0.3)',
+                    cursor: 'pointer'
+                  }}
+                />
+              ))}
+            </div>
+            <input
+              type="range" min={1} max={20} value={drawBrushSize}
+              onChange={(e) => setDrawBrushSize(Number(e.target.value))}
+              style={{ width: '60px' }}
+              title={`Brush: ${drawBrushSize}px`}
+            />
+            <button onClick={clearCanvas} style={{ ...mediaAdvancedBtnStyle, color: '#f59e0b' }}>Clear</button>
+            <button onClick={applyDrawing} style={{ ...mediaAdvancedBtnStyle, color: '#00a884', fontWeight: 600 }}>✓ Done</button>
+            <button onClick={() => setIsDrawing(false)} style={{ ...mediaAdvancedBtnStyle, color: '#ef4444' }}>Cancel</button>
+          </div>
+        )}
+
         {/* Advanced Settings Bar */}
         <div style={{ display: 'flex', gap: '8px', padding: '8px 12px', flexWrap: 'wrap', background: 'rgba(0,0,0,0.3)' }}>
           <button onClick={() => setShowReplySettingsModal(true)} style={mediaAdvancedBtnStyle}>
@@ -1020,6 +1168,21 @@ const CreateStatus = ({ onClose }) => {
           <button onClick={() => setShowDurationPicker(true)} style={mediaAdvancedBtnStyle}>
             <Clock size={14} /> {statusDuration}h
           </button>
+          {mode === 'image' && (
+            <button
+              onClick={() => {
+                setIsDrawing(!isDrawing)
+                if (!isDrawing) {
+                  setTimeout(() => {
+                    initCanvas(mediaItems[activeIndex]?.drawnPreview || mediaItems[activeIndex]?.preview)
+                  }, 100)
+                }
+              }}
+              style={{ ...mediaAdvancedBtnStyle, color: isDrawing ? '#00a884' : '#fff' }}
+            >
+              ✏️ Draw
+            </button>
+          )}
           {mode === 'image' && (
             <button onClick={() => setShowFilterPicker(true)} style={mediaAdvancedBtnStyle}>
               🎨 Filter

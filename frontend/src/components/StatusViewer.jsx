@@ -3,7 +3,7 @@ import { useStatusContext } from '../context/StatusContext'
 import { getSocket } from '../services/socket'
 import { resolveApiBase } from '../utils/resolveApiBase'
 import { getAuthToken } from '../utils/tokenStore'
-import { X, Volume2, VolumeX, Send, Eye, EyeOff, CheckCheck, Heart, Trash2, ChevronLeft, ChevronRight, Pause, Play, Forward, Download, Smile, Share2, Link2, Copy, Check, Music, Mic, BarChart3 } from 'lucide-react'
+import { X, Volume2, VolumeX, Send, Eye, EyeOff, CheckCheck, Heart, Trash2, ChevronLeft, ChevronRight, Pause, Play, Forward, Download, Smile, Share2, Link2, Copy, Check, Music, Mic, BarChart3, QrCode, Clock } from 'lucide-react'
 import ReactPlayer from 'react-player'
 import ForwardDialog from './ForwardDialog'
 import StatusAnalytics from './StatusAnalytics'
@@ -53,6 +53,8 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
   const [copied, setCopied] = useState(false)
   const [showSharePanel, setShowSharePanel] = useState(false)
   const [showAnalytics, setShowAnalytics] = useState(false)
+  const [showQRCode, setShowQRCode] = useState(false)
+  const [qrData, setQrData] = useState('')
   const [pollVotes, setPollVotes] = useState({}) // { statusId: selectedOptionIds }
   const [showPollResults, setShowPollResults] = useState(false)
   const progressRef = useRef(null)
@@ -321,6 +323,23 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
       console.error('Share error:', err)
     } finally {
       setShareLoading(false)
+    }
+  }
+
+  const handleShowQR = async () => {
+    if (!currentStatus?._id) return
+    try {
+      const token = getAuthToken()
+      const res = await fetch(`${resolveApiBase()}/status/${currentStatus._id}/qr`, {
+        headers: { Authorization: token ? `Bearer ${token}` : '' }
+      })
+      const data = await res.json()
+      if (data.success && data.shareUrl) {
+        setQrData(data.shareUrl)
+        setShowQRCode(true)
+      }
+    } catch (err) {
+      console.error('QR error:', err)
     }
   }
 
@@ -666,6 +685,13 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
           </button>
         )}
 
+        {/* QR Code button — owner only */}
+        {isOwner && (
+          <button className="action-btn" onClick={handleShowQR} title="Show QR Code">
+            <QrCode size={20} />
+          </button>
+        )}
+
         <button className="action-btn" onClick={() => handleReaction('❤️')} title="Like Status (1-Tap)" style={{ color: '#00a884' }}>
           <Heart size={20} fill="#00a884" />
         </button>
@@ -752,6 +778,51 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
                 </button>
               )}
               <button className="share-close-btn" onClick={() => setShowSharePanel(false)}>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QR Code Modal */}
+      {showQRCode && qrData && (
+        <div className="viewers-modal" onClick={() => setShowQRCode(false)}>
+          <div className="viewers-content" onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+            <h3 style={{ margin: 0 }}>Scan to View Status</h3>
+            <div style={{ background: '#fff', borderRadius: '16px', padding: '20px' }}>
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}&bgcolor=ffffff&color=00a884`}
+                alt="QR Code"
+                style={{ width: '200px', height: '200px', borderRadius: '8px' }}
+              />
+            </div>
+            <p style={{ color: '#8696a0', fontSize: '12px', textAlign: 'center', maxWidth: '280px' }}>
+              Anyone with this QR code can view this status until it expires.
+            </p>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={async () => {
+                  try {
+                    const response = await fetch(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qrData)}&bgcolor=ffffff&color=00a884`)
+                    const blob = await response.blob()
+                    const blobUrl = window.URL.createObjectURL(blob)
+                    const link = document.createElement('a')
+                    link.href = blobUrl
+                    link.download = `status-qr-${currentStatus._id}.png`
+                    document.body.appendChild(link)
+                    link.click()
+                    document.body.removeChild(link)
+                  } catch (err) { console.error(err) }
+                }}
+                style={{ background: '#00a884', border: 'none', borderRadius: '8px', padding: '8px 16px', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Download QR
+              </button>
+              <button
+                onClick={() => setShowQRCode(false)}
+                style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '8px', padding: '8px 16px', color: '#fff', fontSize: '13px', cursor: 'pointer' }}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

@@ -1778,4 +1778,105 @@ router.post('/publish-scheduled', protect, async (req, res) => {
   }
 });
 
+// ============ QR CODE DATA ============
+router.get('/:id/qr', protect, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({ success: false, message: 'Invalid status ID' });
+    }
+    const status = await Status.findById(id)
+      .populate('userId', 'username profilePicture');
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+
+    // Generate share token for QR
+    const token = createShareToken(status._id);
+    const baseUrl = process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`;
+    const shareUrl = `${baseUrl}/status/shared/${status._id}?share=${token}`;
+
+    res.json({
+      success: true,
+      qrData: shareUrl,
+      shareUrl,
+      token
+    });
+  } catch (err) {
+    console.error('QR code error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ============ STATUS HISTORY (expired + archived) ============
+router.get('/history', protect, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const skip = (page - 1) * limit;
+
+    // Fetch expired + archived statuses for this user
+    const statuses = await Status.find({
+      ...ownerMatchQuery([userId]),
+      $or: [
+        { expiresAt: { $lte: new Date() } },
+        { archived: true },
+        { isRevoked: true },
+        { isDeleted: true }
+      ]
+    })
+      .populate('userId', 'username profilePicture')
+      .populate('user', 'username profilePicture')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Status.countDocuments({
+      ...ownerMatchQuery([userId]),
+      $or: [
+        { expiresAt: { $lte: new Date() } },
+        { archived: true },
+        { isRevoked: true },
+        { isDeleted: true }
+      ]
+    });
+
+    res.json({
+      success: true,
+      statuses,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (err) {
+    console.error('Get status history error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ============ RESTORE ARCHIVED STATUS ============
+router.post('/history/:id/restore', protect, async (req, res) => {
+  try {
+    const status = await Status.findById(req.params.id);
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+    if (ownerIdOf(status) !== String(req.user._id)) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    if (status.expiresAt && new Date(status.expiresAt).getTime() <= Date.now()) {
+      return res.status(400).json({ success: false, message: 'Cannot restore expired status' });
+    }
+    status.archived = false;
+    status.isRevoked = false;
+    status.isDeleted = false;
+    await status.save();
+    await emitStatusCreated(req, status);
+    res.json({ success: true, message: 'Status restored' });
+  } catch (err) {
+    console.error('Restore status error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
