@@ -52,8 +52,17 @@ const StatusPrivacy = ({ onClose }) => {
     }
   }
 
+  const [replySettings, setReplySettings] = useState('everyone')
+  const [isGhostMode, setIsGhostMode] = useState(false)
+  const [statusDuration, setStatusDuration] = useState(24)
+
   const savePrivacy = async () => {
-    const payload = { type: privacyType }
+    const payload = {
+      type: privacyType,
+      replySettings,
+      isGhostMode,
+      statusDuration
+    }
     
     if (privacyType === 'only_share_with') {
       payload.allowedUsers = selectedUsers

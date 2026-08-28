@@ -7,6 +7,8 @@ const mongoose = require('mongoose');
 const { protect } = require('../middleware/auth');
 const Status = require('../models/Status');
 const User = require('../models/User');
+const DraftStatus = require('../models/DraftStatus');
+const StatusAnalytics = require('../models/StatusAnalytics');
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const { createShareToken, verifyShareToken } = require('../utils/statusShareToken');
@@ -357,7 +359,11 @@ const createStatusReplyMessage = async (req, status, content, conversationId = n
 // ============ CREATE STATUS ============
 router.post('/', protect, async (req, res) => {
   try {
-    const { type, content, caption, textStatus, music, privacy, excludedUsers, includedUsers, duration } = req.body;
+    const {
+      type, content, caption, textStatus, music, privacy, excludedUsers, includedUsers, duration,
+      mentions, replySettings, quality, statusDuration, maxDuration, addYoursPrompt, parentStatusId,
+      locationSticker, linkPreview
+    } = req.body;
 
     if (!type || !['text', 'image', 'video'].includes(type)) {
       return res.status(400).json({ success: false, message: 'Invalid status type' });
@@ -382,6 +388,23 @@ router.post('/', protect, async (req, res) => {
     const finalExcludedUsers = compactIds(excludedUsers || req.body.excludedViewers || defaultPrivacy.exceptUsers);
     const finalIncludedUsers = compactIds(includedUsers || req.body.includedViewers || defaultPrivacy.allowedUsers);
 
+    // Resolve mentions (max 5)
+    let processedMentions = [];
+    if (Array.isArray(mentions) && mentions.length > 0) {
+      const uniqueUsernames = Array.from(new Set(mentions.map(m => String(m.username || m).replace(/^@/, '').trim()))).slice(0, 5);
+      for (const uname of uniqueUsernames) {
+        if (!uname) continue;
+        const uDoc = await User.findOne({ username: new RegExp(`^${uname}$`, 'i') }).select('_id username');
+        if (uDoc) {
+          processedMentions.push({ user: uDoc._id, username: uDoc.username, notified: false });
+        }
+      }
+    }
+
+    // Calculate expiration based on statusDuration in hours (default 24h, max 48h)
+    const hours = Math.min(Math.max(parseInt(statusDuration) || 24, 1), 72);
+    const expiresAt = new Date(Date.now() + hours * 3600000);
+
     const status = await Status.create({
       user: req.user._id,
       userId: req.user._id,
@@ -405,8 +428,22 @@ router.post('/', protect, async (req, res) => {
       includedUsers: finalIncludedUsers,
       excludedViewers: finalExcludedUsers,
       includedViewers: finalIncludedUsers,
-      duration: duration || 0
+      duration: duration || 0,
+      mentions: processedMentions,
+      replySettings: ['everyone', 'contacts', 'nobody'].includes(replySettings) ? replySettings : 'everyone',
+      quality: ['hd', 'standard', 'saver'].includes(quality) ? quality : 'standard',
+      maxDuration: parseInt(maxDuration) || 60,
+      statusDuration: hours,
+      expiresAt,
+      addYoursPrompt: addYoursPrompt || '',
+      parentStatusId: parentStatusId || null,
+      locationSticker: locationSticker || undefined,
+      linkPreview: linkPreview || undefined
     });
+
+    if (parentStatusId && mongoose.Types.ObjectId.isValid(parentStatusId)) {
+      await Status.findByIdAndUpdate(parentStatusId, { $inc: { addYoursCount: 1 } });
+    }
 
     // Populate userId for frontend
     const populated = await Status.findById(status._id)
@@ -415,22 +452,15 @@ router.post('/', protect, async (req, res) => {
 
     await emitStatusCreated(req, status);
 
-    // Handle tag / mention notification
-    const targetTag = req.body.collabUsername || req.body.taggedContact || req.body.textStatus?.taggedContact;
-    if (targetTag) {
-      const cleanUsername = String(targetTag).replace(/^@/, '').trim();
-      if (cleanUsername) {
-        const taggedUser = await User.findOne({ username: new RegExp(`^${cleanUsername}$`, 'i') });
-        if (taggedUser) {
-          const io = req.app.get('io');
-          if (io) {
-            io.to(String(taggedUser._id)).emit('status:mentioned', {
-              statusId: String(status._id),
-              statusOwnerUsername: creator?.username || req.user.username || 'Contact',
-              createdAt: status.createdAt
-            });
-          }
-        }
+    // Notify mentioned users (Socket & DM)
+    const io = req.app.get('io');
+    for (const m of processedMentions) {
+      if (io) {
+        io.to(String(m.user)).emit('status:mentioned', {
+          statusId: String(status._id),
+          statusOwnerUsername: creator?.username || req.user.username || 'Contact',
+          createdAt: status.createdAt
+        });
       }
     }
 
@@ -1171,6 +1201,162 @@ router.post('/:id/share-token', protect, async (req, res) => {
     res.json({ success: true, token, shareUrl });
   } catch (err) {
     console.error('Share token error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/status/share/:token - Access status by share token directly
+router.get('/share/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+    const shareToken = verifyShareToken(token);
+    if (!shareToken || !shareToken.statusId) {
+      return res.status(403).json({ success: false, message: 'Invalid or expired share token' });
+    }
+    const status = await Status.findById(shareToken.statusId).populate('userId', 'username profilePicture');
+    if (!status) {
+      return res.status(404).json({ success: false, message: 'Status not found' });
+    }
+    res.json({
+      success: true,
+      status: {
+        _id: status._id,
+        type: status.type,
+        content: status.content || status.mediaUrl || '',
+        textStatus: status.textStatus?.text ? status.textStatus : {
+          text: status.content || '',
+          backgroundColor: status.backgroundColor || '#128C7E',
+          fontColor: status.textColor || '#FFFFFF'
+        },
+        caption: status.caption,
+        username: status.userId?.username || status.user?.username || 'Someone',
+        profilePicture: status.userId?.profilePicture || status.user?.profilePicture || '',
+        createdAt: status.createdAt,
+        expiresAt: status.expiresAt
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/status/revoked - Fetch revoked / soft-deleted statuses for contacts with anti-revoke enabled
+router.get('/revoked', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('contacts privacyModsSettings antiRevokeSettings');
+    const hasAntiRevoke = Boolean(
+      user?.privacyModsSettings?.antiRevokeStatus ||
+      user?.privacyModsSettings?.antiRevoke ||
+      user?.antiRevokeSettings?.antiRevokeEnabled
+    );
+
+    if (!hasAntiRevoke) {
+      return res.json({ success: true, statuses: [] });
+    }
+
+    const contactIds = contactIdsOf(user || {});
+    const revokedStatuses = await Status.find({
+      ...ownerMatchQuery(contactIds),
+      $or: [{ isRevoked: true }, { isDeleted: true }],
+      'views.userId': req.user._id
+    }).populate('user', 'username profilePicture').sort({ deletedAt: -1, createdAt: -1 });
+
+    res.json({ success: true, statuses: revokedStatuses });
+  } catch (error) {
+    console.error('Fetch revoked statuses error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch revoked statuses' });
+  }
+});
+
+// ============ STATUS DRAFTS ============
+router.get('/drafts', protect, async (req, res) => {
+  try {
+    const drafts = await DraftStatus.find({ userId: req.user._id }).sort({ updatedAt: -1 });
+    res.json({ success: true, drafts });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to fetch drafts' });
+  }
+});
+
+router.post('/drafts', protect, async (req, res) => {
+  try {
+    const { type, content, caption, textStatus, music, privacy, excludedUsers, includedUsers } = req.body;
+    const draft = await DraftStatus.create({
+      userId: req.user._id,
+      type: type || 'text',
+      content: content || '',
+      caption: caption || '',
+      textStatus,
+      music,
+      privacy: privacy || 'contacts',
+      excludedUsers: excludedUsers || [],
+      includedUsers: includedUsers || []
+    });
+    res.status(201).json({ success: true, draft });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to save draft' });
+  }
+});
+
+router.delete('/drafts/:id', protect, async (req, res) => {
+  try {
+    await DraftStatus.findOneAndDelete({ _id: req.params.id, userId: req.user._id });
+    res.json({ success: true, message: 'Draft deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to delete draft' });
+  }
+});
+
+// ============ SCREENSHOT ATTEMPT ============
+router.post('/:id/screenshot-attempt', protect, async (req, res) => {
+  try {
+    const status = await Status.findById(req.params.id);
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+
+    await StatusAnalytics.findOneAndUpdate(
+      { statusId: status._id, userId: ownerIdOf(status) },
+      { $inc: { screenshots: 1 } },
+      { upsert: true, new: true }
+    );
+
+    const io = req.app.get('io');
+    const ownerId = ownerIdOf(status);
+    if (io && ownerId && ownerId !== String(req.user._id)) {
+      const viewer = await User.findById(req.user._id).select('username');
+      emitToUsers(io, [ownerId], 'status:screenshot-detected', {
+        statusId: status._id,
+        viewerId: req.user._id,
+        viewerUsername: viewer?.username || 'Someone',
+        timestamp: new Date()
+      });
+    }
+
+    res.json({ success: true, message: 'Screenshot registered' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ============ STATUS SEARCH ============
+router.get('/search', protect, async (req, res) => {
+  try {
+    const query = req.query.q || '';
+    if (!query.trim()) return res.json({ success: true, statuses: [] });
+
+    const user = await User.findById(req.user._id).select('contacts');
+    const contactIds = contactIdsOf(user || {});
+    const regex = new RegExp(query.trim(), 'i');
+
+    const statuses = await Status.find({
+      ...ownerMatchQuery([...contactIds, req.user._id]),
+      $or: [{ caption: regex }, { content: regex }, { 'textStatus.text': regex }],
+      archived: { $ne: true },
+      isRevoked: { $ne: true },
+      isDeleted: { $ne: true }
+    }).populate('user', 'username profilePicture').sort({ createdAt: -1 });
+
+    res.json({ success: true, statuses });
+  } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });

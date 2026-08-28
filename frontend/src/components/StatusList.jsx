@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useCallback } from 'react'
 import { useStatusContext } from '../context/StatusContext'
-import { Plus, Camera, RefreshCw, Volume2, VolumeX, Clock, Archive, Eye, ChevronRight, Lock } from 'lucide-react'
+import { Plus, Camera, RefreshCw, Volume2, VolumeX, Clock, Archive, Eye, ChevronRight, Lock, Search, Star, Bookmark } from 'lucide-react'
 import StatusViewer from './StatusViewer'
 import StatusArchive from './StatusArchive'
 import StatusPrivacy from './StatusPrivacy'
 import CreateStatus from './CreateStatus'
+import StoryHighlights from './StoryHighlights'
 import './StatusList.css'
 
 const idOf = (value) => {
@@ -47,6 +48,7 @@ const StatusList = ({ onViewArchive }) => {
   const [showMutedAccordion, setShowMutedAccordion] = useState(false)
   const [viewerUser, setViewerUser] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const handleReshareStatus = useCallback(async (statusToReshare) => {
     if (!statusToReshare) return;

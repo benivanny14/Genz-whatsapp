@@ -141,6 +141,72 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
     }
   }, [currentIndex])
 
+  // Keyboard Shortcuts (ArrowRight, ArrowLeft, Space, Esc, M)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (showReply || showViewers) return
+      if (e.key === 'ArrowRight') goNext()
+      else if (e.key === 'ArrowLeft') goPrev()
+      else if (e.key === ' ') { e.preventDefault(); setIsPaused(prev => !prev); }
+      else if (e.key === 'Escape') onClose()
+      else if (e.key === 'm' || e.key === 'M') setIsMuted(prev => !prev)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [goNext, goPrev, onClose, showReply, showViewers])
+
+  // Screenshot Detection Listener
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && currentStatus?._id) {
+        fetch(`${resolveApiBase()}/status/${currentStatus._id}/screenshot-attempt`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(getAuthToken() ? { Authorization: `Bearer ${getAuthToken()}` } : {})
+          }
+        }).catch(() => {})
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [currentStatus?._id])
+
+  // One-Click & Batch Download
+  const handleDownloadStatus = async (statusToDownload) => {
+    const s = statusToDownload || currentStatus
+    if (!s) return
+    const url = s.content || s.mediaUrl || ''
+    if (!url) return
+    try {
+      const response = await fetch(url)
+      const blob = await response.blob()
+      const blobUrl = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.download = `genz-status-${s._id || Date.now()}.${s.type === 'video' ? 'mp4' : 'jpg'}`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(blobUrl)
+      setCopyToast('Status downloaded!')
+      setTimeout(() => setCopyToast(''), 2500)
+    } catch (err) {
+      console.error('Download error:', err)
+    }
+  }
+
+  const handleBatchDownloadAll = async () => {
+    if (!statuses.length) return
+    setCopyToast(`Downloading ${statuses.length} statuses...`)
+    for (const s of statuses) {
+      await handleDownloadStatus(s)
+      await new Promise(r => setTimeout(r, 400))
+    }
+    setCopyToast('Batch download complete!')
+    setTimeout(() => setCopyToast(''), 2500)
+  }
+
   // Touch handlers for swipe
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX

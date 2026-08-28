@@ -4,21 +4,33 @@ import { X, Archive, RotateCcw, Trash2, Eye } from 'lucide-react'
 import './StatusArchive.css'
 
 const StatusArchive = ({ onClose, onViewStatus }) => {
+  const [activeTab, setActiveTab] = useState('archived') // archived | deleted
   const [archived, setArchived] = useState([])
+  const [revoked, setRevoked] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchArchived()
+    fetchRevoked()
   }, [])
 
   const fetchArchived = async () => {
     try {
       const res = await api.get('/status/archive')
-      setArchived(res.data.archived || res.data)
+      setArchived(res.data.archived || res.data || [])
     } catch (err) {
       console.error('Failed to fetch archived statuses:', err)
     }
     setLoading(false)
+  }
+
+  const fetchRevoked = async () => {
+    try {
+      const res = await api.get('/status/revoked')
+      setRevoked(res.data.statuses || [])
+    } catch (err) {
+      console.error('Failed to fetch revoked statuses:', err)
+    }
   }
 
   const unarchive = async (statusId) => {

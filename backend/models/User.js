@@ -412,6 +412,7 @@ const userSchema = new mongoose.Schema({
   blockedStatusUsers: { type: mongoose.Schema.Types.Mixed, default: [] },
   mutedStatusUsers: { type: mongoose.Schema.Types.Mixed, default: [] },
   savedStatuses: { type: mongoose.Schema.Types.Mixed, default: [] },
+  closeFriends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   callLinkSettings: { type: mongoose.Schema.Types.Mixed, default: { links: [] } }
 });
 

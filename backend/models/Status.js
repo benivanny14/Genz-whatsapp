@@ -135,6 +135,58 @@ const statusSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  revokedAt: {
+    type: Date,
+    default: null
+  },
+  mentions: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    username: { type: String, default: '' },
+    notified: { type: Boolean, default: false }
+  }],
+  replySettings: {
+    type: String,
+    enum: ['everyone', 'contacts', 'nobody'],
+    default: 'everyone'
+  },
+  quality: {
+    type: String,
+    enum: ['hd', 'standard', 'saver'],
+    default: 'standard'
+  },
+  maxDuration: {
+    type: Number,
+    default: 60
+  },
+  statusDuration: {
+    type: Number,
+    default: 24
+  },
+  parentStatusId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Status',
+    default: null
+  },
+  addYoursPrompt: {
+    type: String,
+    default: ''
+  },
+  addYoursCount: {
+    type: Number,
+    default: 0
+  },
+  locationSticker: {
+    name: { type: String, default: '' },
+    lat: { type: Number, default: 0 },
+    lng: { type: Number, default: 0 }
+  },
+  linkPreview: {
+    url: { type: String, default: '' },
+    title: { type: String, default: '' },
+    description: { type: String, default: '' },
+    image: { type: String, default: '' },
+    domain: { type: String, default: '' }
+  },
   // Views & engagement
   viewCount: { type: Number, default: 0 },
   viewsCount: { type: Number, default: 0 },

@@ -62,7 +62,13 @@ const StatusProvider = ({ children }) => {
           privacy: textData?.privacy,
           excludedUsers: textData?.excludedUsers,
           includedUsers: textData?.includedUsers,
-          collabUsername: textData?.collabUsername
+          collabUsername: textData?.collabUsername,
+          mentions: textData?.mentions,
+          replySettings: textData?.replySettings,
+          quality: textData?.quality,
+          statusDuration: textData?.statusDuration,
+          maxDuration: textData?.maxDuration,
+          addYoursPrompt: textData?.addYoursPrompt
         })
       });
       const data = await res.json();
@@ -109,7 +115,13 @@ const StatusProvider = ({ children }) => {
           privacy: privacy || undefined,
           excludedUsers: excludedUsers ? JSON.parse(excludedUsers) : undefined,
           includedUsers: includedUsers ? JSON.parse(includedUsers) : undefined,
-          collabUsername: formData.get('collabUsername') || undefined
+          collabUsername: formData.get('collabUsername') || undefined,
+          mentions: formData.get('mentions') ? JSON.parse(formData.get('mentions')) : undefined,
+          replySettings: formData.get('replySettings') || undefined,
+          quality: formData.get('quality') || undefined,
+          statusDuration: formData.get('statusDuration') ? Number(formData.get('statusDuration')) : undefined,
+          maxDuration: formData.get('maxDuration') ? Number(formData.get('maxDuration')) : undefined,
+          addYoursPrompt: formData.get('addYoursPrompt') || undefined
         })
       });
       const data = await res.json();

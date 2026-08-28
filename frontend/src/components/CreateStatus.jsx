@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { useStatusContext } from '../context/StatusContext'
-import { X, Type, Image, Video, Music, Scissors, Send, Volume2, Users, Check, UserX, UserCheck, Lock, Plus, Trash2 } from 'lucide-react'
+import { X, Type, Image, Video, Music, Scissors, Send, Volume2, Users, Check, UserX, UserCheck, Lock, Plus, Trash2, AtSign, Sparkles, Smile, PenTool, Crop, Clock, ShieldAlert, Award, FileText, Music2, Share2, EyeOff, RotateCw } from 'lucide-react'
 import { getAuthToken } from '../utils/tokenStore'
 import { resolveApiBase } from '../utils/resolveApiBase'
 import { FFmpeg } from '@ffmpeg/ffmpeg'
@@ -46,8 +46,22 @@ const CreateStatus = ({ onClose }) => {
 
   const [caption, setCaption] = useState('')
   const [trimStart, setTrimStart] = useState(0)
-  const [trimEnd, setTrimEnd] = useState(30)
+  const [trimEnd, setTrimEnd] = useState(60)
   const [musicFile, setMusicFile] = useState(null)
+
+  // WhatsApp 2026 & TM Features State
+  const [mentions, setMentions] = useState([])
+  const [showMentionModal, setShowMentionModal] = useState(false)
+  const [replySettings, setReplySettings] = useState('everyone')
+  const [quality, setQuality] = useState('standard')
+  const [statusDuration, setStatusDuration] = useState(24)
+  const [maxVideoDuration, setMaxVideoDuration] = useState(60)
+  const [addYoursPrompt, setAddYoursPrompt] = useState('')
+  const [showAddYoursModal, setShowAddYoursModal] = useState(false)
+  const [filterStyle, setFilterStyle] = useState('none')
+  const [isDrawing, setIsDrawing] = useState(false)
+  const [drawingColor, setDrawingColor] = useState('#FF0000')
+  const [brushSize, setBrushSize] = useState(4)
   const [musicStart, setMusicStart] = useState(0)
   const [musicEnd, setMusicEnd] = useState(15)
   const [musicVolume, setMusicVolume] = useState(0.5)
