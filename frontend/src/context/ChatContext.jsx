@@ -102,37 +102,6 @@ const debounce = (func, wait) => {
   };
 };
 
-/**
- * Safely merge remote conversations with local state.
- * Preserves locally-set unread counts to prevent stale server responses from
- * "restoring" badges the user has already cleared on this device.
- *
- * Rules:
- * - If the chat is currently open, unread = 0
- * - Otherwise, keep the HIGHER of server and local counts (never go down)
- * - Local-only (temporary) conversations are always preserved
- */
-const mergeConversationsSafely = (localConversations, remoteConversations, openChatId) => {
-  const localOnly = localConversations.filter(
-    c => c._id && (c._id.startsWith('conv-') || c._id.startsWith('temp-'))
-  );
-  const mergedMap = new Map();
-  localOnly.forEach(c => mergedMap.set(c._id, c));
-  remoteConversations.forEach(c => {
-    const isOpen = openChatId && String(c._id) === String(openChatId);
-    const local = mergedMap.get(c._id);
-    const serverCount = c.unreadCount || 0;
-    const localCount = local?.unreadCount || 0;
-    mergedMap.set(c._id, {
-      ...c,
-      unreadCount: isOpen ? 0 : Math.max(serverCount, localCount)
-    });
-  });
-  return Array.from(mergedMap.values()).sort(
-    (a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
-  );
-};
-
 // ─── GENZ Settings Persistence ─────────────────────────────────────────────
 // FIX: Make settings keys user-specific to ensure data isolation between accounts
 const getGENZSettingsKey = (userId) => {
@@ -400,15 +369,6 @@ export const ChatProvider = ({ children }) => {
   useEffect(() => {
     selectedConversationIdRef.current = selectedConversation?._id || null;
   }, [selectedConversation?._id]);
-
-  // Auto-mark as read when selected conversation changes (WhatsApp behavior).
-  // Ensures the unread badge clears immediately, even on APK where the socket
-  // mark_as_read can be unreliable on network transitions.
-  useEffect(() => {
-    if (selectedConversation?._id && currentUserId) {
-      markAsRead(selectedConversation._id);
-    }
-  }, [selectedConversation?._id, currentUserId]);
 
   const selectedConversationStorageKey = React.useMemo(
     () => currentUserId ? `selectedConversationId:${currentUserId}` : 'selectedConversationId',
@@ -1048,12 +1008,6 @@ export const ChatProvider = ({ children }) => {
         const currentConvId = getStoredSelectedConversationId();
         if (currentConvId) {
           socket.emit('join:conversation', currentConvId);
-          // Re-mark the open chat as read on reconnect so the server-side
-          // unreadCount stays in sync (common source of stuck badges on APK).
-          setTimeout(() => {
-            const skipRead = Boolean(modsRef.current.hideReadReceipts || modsRef.current.ghostMode);
-            socket.emit('mark_as_read', { chatId: currentConvId, skipReadReceipts: skipRead });
-          }, 500);
         }
         
         window.dispatchEvent(new Event('process-offline-queue'));
@@ -1110,16 +1064,26 @@ export const ChatProvider = ({ children }) => {
         try {
           const data = await apiService.getConversations();
           if (data?.success && Array.isArray(data.conversations)) {
-            // Use the ref (real-time) instead of localStorage (stale on APK)
-            const openChatId = selectedConversationIdRef.current || getStoredSelectedConversationId();
+            const openChatId = getStoredSelectedConversationId();
             const remoteIds = new Set(data.conversations.map((c) => String(c._id)));
             setConversations(prev => {
-              const result = mergeConversationsSafely(prev, data.conversations, openChatId);
-              // Also drop conversations the server no longer returns
-              return result.filter(c => {
+              const mergedMap = new Map();
+              prev.forEach(c => {
                 const id = String(c._id || '');
-                return id.startsWith('conv-') || id.startsWith('temp-') || remoteIds.has(id);
+                const isLocalOnly = id.startsWith('conv-') || id.startsWith('temp-');
+                // Drop conversations the server no longer returns (deleted/left
+                // elsewhere) instead of keeping them around forever.
+                if (isLocalOnly || remoteIds.has(id)) {
+                  mergedMap.set(c._id, c);
+                }
               });
+              data.conversations.forEach(c => {
+                const isOpen = openChatId && String(c._id) === String(openChatId);
+                mergedMap.set(c._id, isOpen ? { ...c, unreadCount: 0 } : c);
+              });
+              return Array.from(mergedMap.values()).sort(
+                (a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
+              );
             });
           }
         } catch (e) {
@@ -1293,9 +1257,7 @@ export const ChatProvider = ({ children }) => {
             }
             
             // Only append to active chat view if it's the open chat
-            // FIX: Use the ref (updated in real-time) instead of localStorage
-            // which can be stale on APK (cold start, token-only sessions).
-            const currentSelectedId = selectedConversationIdRef.current || getStoredSelectedConversationId();
+            const currentSelectedId = getStoredSelectedConversationId();
 
             if (String(incoming.conversationId) === String(currentSelectedId)) {
               setConversations(prevConvs => prevConvs.map(c =>
@@ -1332,22 +1294,16 @@ export const ChatProvider = ({ children }) => {
           }
           await DB.saveMessage(incoming);
         } catch (e) { }
-        setConversations(prev => {
-          const updated = prev.map(c => {
-            if (c._id === incoming.conversationId) {
-              const isOpenConv = selectedConversationIdRef.current && String(c._id) === String(selectedConversationIdRef.current);
-              return {
-                ...c,
-                lastMessage: incoming,
-                updatedAt: new Date(),
-                unreadCount: isOpenConv ? 0 : (c.unreadCount || 0) + 1
-              };
-            }
-            return c;
-          });
-          // Re-sort so the most recently active conversation is on top
-          return [...updated].sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
-        });
+        setConversations(prev => prev.map(c => {
+          if (c._id === incoming.conversationId) {
+            return {
+              ...c,
+              lastMessage: incoming,
+              updatedAt: new Date()
+            };
+          }
+          return c;
+        }));
         } catch (err) {
           console.error('[ChatContext] message:received handler error:', err);
         }
@@ -2085,24 +2041,14 @@ export const ChatProvider = ({ children }) => {
       // ── Unread count sync (server is source of truth) ──
       socket.on('conversation:unread-update', ({ conversationId, unreadCount }) => {
         if (!conversationId) return;
-        const openChatId = selectedConversationIdRef.current || getStoredSelectedConversationId();
+        const openChatId = getStoredSelectedConversationId();
         const isOpenChat = openChatId && String(conversationId) === String(openChatId);
-        // FIX: If the chat is currently open, ALWAYS force unread to 0
-        // regardless of what the server says — this prevents stale server
-        // responses from resurrecting the unread badge after markAsRead.
         const effectiveCount = isOpenChat ? 0 : (unreadCount ?? 0);
-        setConversations(prev => prev.map(c => {
-          if (String(c._id) !== String(conversationId)) return c;
-          // FIX: Never increase unread count for a conversation that was
-          // locally marked as read — the server may lag behind the user.
-          const localCount = c.unreadCount || 0;
-          if (isOpenChat) return { ...c, unreadCount: 0 };
-          // Only update if the server count is higher (prevents stale
-          // server responses from removing locally-incremented badges)
-          return effectiveCount > localCount
+        setConversations(prev => prev.map(c =>
+          String(c._id) === String(conversationId)
             ? { ...c, unreadCount: effectiveCount }
-            : c;
-        }));
+            : c
+        ));
       });
 
       socket.on('profile_visitors', (visitors = []) => {
@@ -2351,9 +2297,7 @@ export const ChatProvider = ({ children }) => {
       content: typeof outboundContent === 'string' ? outboundContent : '',
       sender: { _id: currentUserId, username: senderName || authUser?.username },
       messageType: messageType || 'text',
-      // Show as 'sent' immediately (WhatsApp-style instant feel).
-      // The socket ack will upgrade to 'delivered' when server confirms.
-      status: 'sent',
+      status: 'sending',
       createdAt: new Date().toISOString(),
       conversationId: targetConversationId,
       clientMessageId,
@@ -2381,10 +2325,7 @@ export const ChatProvider = ({ children }) => {
       await DB.saveMessage(newMessage);
       if (selectedConversation && String(selectedConversation._id) === String(targetConversationId)) {
         const updatedConv = { ...selectedConversation, lastMessage: newMessage, updatedAt: new Date() };
-        setConversations(prev => {
-          const updated = prev.map(c => c._id === updatedConv._id ? updatedConv : c);
-          return [...updated].sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
-        });
+        setConversations(prev => prev.map(c => c._id === updatedConv._id ? updatedConv : c));
         await DB.saveConversation(updatedConv);
       }
     } catch (dbError) {
@@ -2432,12 +2373,10 @@ export const ChatProvider = ({ children }) => {
         try {
           emitSafe('message:send', payload);
           messageSent = await new Promise((resolve) => {
-            // 800ms timeout — fast enough for perceived instant delivery
-            // while still allowing the server ack to arrive for status updates.
             const timeoutId = setTimeout(() => {
               cleanup();
               resolve(false);
-            }, 800);
+            }, 4000);
             const onDelivered = ({ messageId, serverMessageId }) => {
               if (String(messageId) !== String(clientMessageId)) return;
               cleanup();
@@ -2836,7 +2775,6 @@ export const ChatProvider = ({ children }) => {
   };
 
   const markAsRead = (chatId) => {
-    // 1. Clear local state immediately (WhatsApp-style instant feel)
     setConversations(prev => prev.map(c =>
       c._id === chatId ? { ...c, unreadCount: 0 } : c
     ));
@@ -2847,23 +2785,7 @@ export const ChatProvider = ({ children }) => {
     const skipReadReceipts = Boolean(
       modsRef.current.hideReadReceipts || modsRef.current.ghostMode
     );
-    // 2. Send via socket (real-time)
     emitSafe('mark_as_read', { chatId, userId: currentUserId, skipReadReceipts });
-    // BUGFIX: /chat/messages/:id/read expects a single MESSAGE id and
-    // /chat/mark-read used to not exist at all — both were silent no-ops,
-    // which is why already-read chats kept reappearing as unread on APK
-    // (socket-unreliable) sessions. This now hits the real whole-
-    // conversation reset endpoint, with one fallback path.
-    if (isMongoObjectId(chatId)) {
-      authFetch(`${BACKEND_URL}/chat/mark-read`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chatId, userId: currentUserId, skipReadReceipts })
-      }).catch(() => {
-        authFetch(`${BACKEND_URL}/chat/messages/${chatId}/read-all`, { method: 'PUT' })
-          .catch(() => {});
-      });
-    }
   };
 
   // ── Typing (Ghost Mode aware) ──
@@ -3289,7 +3211,13 @@ export const ChatProvider = ({ children }) => {
         if (conversationsData.status === 'fulfilled' && conversationsData.value?.success) {
           const remoteConversations = conversationsData.value.conversations || [];
           if (remoteConversations.length > 0 || !ENABLE_DEMO_DATA) {
-            setConversations(prev => mergeConversationsSafely(prev, remoteConversations, null));
+            setConversations(prev => {
+              const localOnlyConvs = prev.filter(c => c._id && (c._id.startsWith('conv-') || c._id.startsWith('temp-')));
+              const mergedMap = new Map();
+              localOnlyConvs.forEach(c => mergedMap.set(c._id, c));
+              remoteConversations.forEach(c => mergedMap.set(c._id, c));
+              return Array.from(mergedMap.values()).sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+            });
             try {
               await Promise.all(remoteConversations.map((conversation) => DB.saveConversation(conversation)));
               // FIX: Prune any locally-cached conversation the server no longer returns
@@ -3974,7 +3902,16 @@ export const ChatProvider = ({ children }) => {
         if (conversationsData.status === 'fulfilled' && conversationsData.value?.success) {
           const remoteConversations = conversationsData.value.conversations || [];
           const openChatId = getStoredSelectedConversationId();
-          setConversations(prev => mergeConversationsSafely(prev, remoteConversations, openChatId));
+          setConversations(prev => {
+            const localOnlyConvs = prev.filter(c => c._id && (c._id.startsWith('conv-') || c._id.startsWith('temp-')));
+            const mergedMap = new Map();
+            localOnlyConvs.forEach(c => mergedMap.set(c._id, c));
+            remoteConversations.forEach(c => {
+              const isOpen = openChatId && String(c._id) === String(openChatId);
+              mergedMap.set(c._id, isOpen ? { ...c, unreadCount: 0 } : c);
+            });
+            return Array.from(mergedMap.values()).sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+          });
         }
 
         if (statusesData.status === 'fulfilled' && statusesData.value?.success) {
@@ -5263,13 +5200,19 @@ export const ChatProvider = ({ children }) => {
       if (data?.success && Array.isArray(data.conversations)) {
         const remoteIds = new Set(data.conversations.map((c) => String(c._id)));
         setConversations(prev => {
-          const openChatId = getStoredSelectedConversationId();
-          const result = mergeConversationsSafely(prev, data.conversations, openChatId);
-          // Also drop conversations the server no longer returns
-          return result.filter(c => {
+          // Keep local-only (not-yet-synced) conversations, but drop anything
+          // the server no longer returns (deleted/left elsewhere) instead of
+          // merging forever — otherwise removed chats never disappear.
+          const mergedMap = new Map();
+          prev.forEach(c => {
             const id = String(c._id || '');
-            return id.startsWith('conv-') || id.startsWith('temp-') || remoteIds.has(id);
+            const isLocalOnly = id.startsWith('conv-') || id.startsWith('temp-');
+            if (isLocalOnly || remoteIds.has(id)) {
+              mergedMap.set(c._id, c);
+            }
           });
+          data.conversations.forEach(c => mergedMap.set(c._id, c));
+          return Array.from(mergedMap.values());
         });
         try {
           const cachedConvs = await DB.getConversations();
