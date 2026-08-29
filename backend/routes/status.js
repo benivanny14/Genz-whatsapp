@@ -16,6 +16,10 @@ const { serializeOutgoingMessage } = require('../utils/messageSerializer');
 const { getUnreadCount } = require('../utils/unreadCount');
 const { isEitherUserBlocked } = require('../utils/messageSendHelpers');
 const { getActiveMutedUserIds, getActiveStatusBlockedUserIds } = require('../utils/statusMuteHelpers');
+const {
+  uploadFile: uploadToMediaStorage,
+  isConfigured: isCloudinaryConfigured,
+} = require('../config/cloudinary');
 
 // Multer config for status media uploads
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads', 'status');
@@ -897,12 +901,29 @@ router.post('/upload', protect, upload.single('file'), async (req, res) => {
       return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
 
-    const fileUrl = `/uploads/status/${req.file.filename}`;
+    let fileUrl = `/uploads/status/${req.file.filename}`;
+    let publicId = req.file.filename;
+
+    // Upload to Cloudinary when configured (production)
+    if (isCloudinaryConfigured() && req.file.path) {
+      try {
+        const fileType = (req.file.mimetype || '').split('/')[0] || 'image';
+        const result = await uploadToMediaStorage(req.file.path, fileType, {
+          folder: 'genz-whatsapp/status',
+        });
+        fileUrl = result.url;
+        publicId = result.publicId;
+        // Clean up temp file
+        fs.promises.unlink(req.file.path).catch(() => {});
+      } catch (uploadErr) {
+        console.error('Status Cloudinary upload failed, using local path:', uploadErr.message);
+      }
+    }
 
     res.json({
       success: true,
       fileUrl,
-      filename: req.file.filename,
+      filename: publicId,
       size: req.file.size
     });
   } catch (error) {
