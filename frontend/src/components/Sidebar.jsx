@@ -1467,33 +1467,29 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                         <>
                           {peerStatusUnseen > 0 && (
                             <>
-                              <div className="absolute -inset-0.5 rounded-full ring-2 ring-[#25d366] pointer-events-none" />
-                              <div className="absolute -top-1 -left-1 z-10 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#25d366] px-1 text-[10px] font-black text-[#0b141a] shadow">
+                              <div className="absolute -inset-[3px] rounded-full border-[3px] border-[#25d366] pointer-events-none z-0" />
+                              <div className="absolute -top-[3px] -left-[3px] z-10 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#25d366] px-1 text-[10px] font-black text-[#0b141a] shadow">
                                 {peerStatusUnseen > 99 ? '99+' : peerStatusUnseen}
                               </div>
                             </>
                           )}
-                          {peerWinga && peerWinga.count > 0 && (
+                          {peerWinga && peerWinga.unseen > 0 && (
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); navigate('/winga'); }}
-                              aria-label={`${peerWinga.count} listings on WINGA${peerWinga.unseen > 0 ? ` — ${peerWinga.unseen} new` : ''}`}
-                              title={`${peerWinga.count} listings on WINGA${peerWinga.unseen > 0 ? ` — ${peerWinga.unseen} new` : ''}`}
-                              className={`absolute -bottom-1 -left-1 z-10 h-[20px] w-[20px] overflow-hidden rounded-full shadow ${peerWinga.unseen > 0 ? 'ring-2 ring-amber-400' : 'ring-2 ring-[#008069]'}`}
+                              aria-label={`${peerWinga.unseen} new listings on WINGA`}
+                              title={`${peerWinga.unseen} new listings on WINGA`}
+                              className="absolute -bottom-[1px] -right-[1px] z-10 h-[20px] w-[20px] overflow-hidden rounded-full shadow-md ring-2 ring-amber-400"
                             >
-                              {peerWinga.thumb ? (
-                                <img src={peerWinga.thumb} alt="" className="h-full w-full object-cover" />
-                              ) : (
-                                <span className={`flex h-full w-full items-center justify-center ${peerWinga.unseen > 0 ? 'bg-amber-400 text-[#0b141a]' : 'bg-[#008069] text-white'}`}>
-                                  <Store size={11} strokeWidth={2.6} />
-                                </span>
-                              )}
+                              <span className="flex h-full w-full items-center justify-center rounded-full bg-amber-400 text-[#0b141a]">
+                                <Store size={11} strokeWidth={2.6} />
+                              </span>
                             </button>
                           )}
                         </>
                       );
                     })()}
-                    <div className="w-12 h-12 rounded-full bg-primary-600 flex items-center justify-center overflow-hidden hover:opacity-80 transition-opacity">
+                    <div className="relative z-[1] w-12 h-12 rounded-full bg-primary-600 flex items-center justify-center overflow-hidden hover:opacity-80 transition-opacity">
                         {getConversationAvatar(conv) ? (
                           <img
                             src={getConversationAvatar(conv)}
@@ -1508,7 +1504,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                       </div>
                     {/* GENZ MOD: Online Indicator */}
                     {!conv.isGroup && onlineUsers.includes(conv.participants?.find(p => p._id !== user?.id)?._id)  && (
-                      <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-[2.5px] border-[#111b21] rounded-full z-10 shadow-sm" />
+                      <div className="absolute bottom-[1px] right-[1px] w-3 h-3 bg-green-500 border-[1.5px] border-[#111b21] rounded-full z-10 shadow-sm" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -1540,20 +1536,17 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                             ? conv.participants?.find(p => String(p?._id || p) !== String(user?.id))?._id
                             : null;
                           const peerWinga = peerId ? (wingaByUser[String(peerId)] || null) : null;
-                          if (!peerWinga || peerWinga.count === 0) return null;
+                          if (!peerWinga || peerWinga.unseen === 0) return null;
                           return (
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); navigate('/winga'); }}
-                              className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-black ${peerWinga.unseen > 0 ? 'bg-amber-400/15 text-amber-400' : 'bg-white/10 text-white/60'}`}
-                              aria-label={`${peerWinga.count} listings on WINGA${peerWinga.unseen > 0 ? ` — ${peerWinga.unseen} new` : ''}`}
-                              title={`${peerWinga.count} listings on WINGA${peerWinga.unseen > 0 ? ` — ${peerWinga.unseen} new` : ''}`}
+                              className="flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-black bg-amber-400/15 text-amber-400"
+                              aria-label={`${peerWinga.unseen} new listings on WINGA`}
+                              title={`${peerWinga.unseen} new listings on WINGA`}
                             >
-                              {peerWinga.thumb && (
-                                <img src={peerWinga.thumb} alt="" className="h-4 w-4 rounded-md object-cover" />
-                              )}
                               <Store size={11} strokeWidth={2.6} />
-                              <span>{peerWinga.unseen > 0 ? peerWinga.unseen : peerWinga.count}</span>
+                              <span>{peerWinga.unseen}</span>
                             </button>
                           );
                         })()}

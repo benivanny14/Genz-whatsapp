@@ -524,6 +524,26 @@ const CreateStatus = ({ onClose }) => {
         return
       }
 
+      // Text status submission
+      if (mode === 'text' && text.trim()) {
+        await createTextStatus({
+          text,
+          backgroundColor: selectedColor.bg,
+          fontColor: selectedColor.font,
+          fontStyle: currentFont,
+          collabUsername: taggedContact.trim(),
+          privacy,
+          excludedUsers,
+          includedUsers,
+          replySettings,
+          quality,
+          statusDuration,
+          addYoursPrompt: addYoursPrompt || undefined
+        })
+        onClose()
+        return
+      }
+
       // Voice status submission
       if (mode === 'voice' && audioBlob) {
         await createTextStatus({

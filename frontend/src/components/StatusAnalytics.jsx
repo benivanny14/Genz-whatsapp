@@ -51,7 +51,7 @@ const StatusAnalytics = ({ statusId, onClose }) => {
   const maxBarHeight = analytics ? Math.max(...Object.values(analytics.hourDistribution || {}), 1) : 1
 
   return (
-    <div className="privacy-overlay" style={{ zIndex: 200 }}>
+    <div className="privacy-overlay" style={{ zIndex: 30 }}>
       <div className="privacy-container" style={{ maxWidth: '420px', maxHeight: '85vh' }}>
         <div className="privacy-header">
           <button onClick={onClose}><X size={20} /></button>

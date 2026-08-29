@@ -912,8 +912,11 @@ app.use("/uploads", secureUploads, (req, res) => {
   // or JWT). Never allow arbitrary cross-origin reads — same-origin only.
   res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Range, Content-Type");
-  res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
-  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  // In development, allow cross-origin image loading (frontend:5173 -> backend:5000).
+  // In production (same-origin deployment), keep same-origin for security.
+  const isDev = process.env.NODE_ENV !== 'production';
+  res.setHeader("Cross-Origin-Resource-Policy", isDev ? 'cross-origin' : 'same-origin');
+  res.setHeader("Cross-Origin-Opener-Policy", isDev ? 'cross-origin' : 'same-origin');
   // NOTE: access control for who may read a file is enforced by the
   // secureUploads middleware above (HMAC signature or JWT in production).
 

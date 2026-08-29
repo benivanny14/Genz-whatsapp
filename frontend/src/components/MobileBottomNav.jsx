@@ -55,7 +55,7 @@ const MobileBottomNav = () => {
           columns are now equal-width and each button fills its column, so
           icons/labels line up evenly on every side regardless of label
           length or screen width. */}
-      <div className="grid grid-cols-5 gap-0.5 px-2 pt-1.5 pb-[max(6px,env(safe-area-inset-bottom))]">
+      <div className="grid grid-cols-5 w-full pt-1.5 pb-[max(6px,env(safe-area-inset-bottom))]">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const active = item.match(path);
@@ -66,7 +66,7 @@ const MobileBottomNav = () => {
               type="button"
               data-testid={`nav-${item.path.replace('/', '')}`}
               onClick={() => navigate(item.path)}
-              className={`relative flex w-full min-h-[56px] flex-col items-center justify-center gap-0.5 rounded-xl text-[10.5px] font-semibold transition ${
+              className={`relative flex w-full min-h-[56px] flex-col items-center justify-center gap-0.5 rounded-none text-[10.5px] font-semibold transition ${
                 active ? 'text-[#25d366]' : 'text-white/55 hover:bg-white/5 hover:text-white'
               }`}
               aria-current={active ? 'page' : undefined}

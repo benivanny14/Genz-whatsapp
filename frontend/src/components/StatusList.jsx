@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react'
 import { useStatusContext } from '../context/StatusContext'
-import { Plus, Camera, RefreshCw, Volume2, VolumeX, Clock, Archive, Eye, ChevronRight, Lock, Search, Star, Bookmark } from 'lucide-react'
+import { useChat } from '../context/ChatContext'
+import { Plus, Camera, RefreshCw, Volume2, VolumeX, Clock, Archive, Eye, ChevronRight, Lock, Search, Star, Bookmark, Store } from 'lucide-react'
 import StatusViewer from './StatusViewer'
 import StatusArchive from './StatusArchive'
 import StatusPrivacy from './StatusPrivacy'
@@ -44,6 +45,7 @@ const getStatusRingSegments = (statuses) => {
 
 const StatusList = ({ onViewArchive }) => {
   const { statuses, currentUser, loading, fetchStatuses, createTextStatus, createCustomStatus } = useStatusContext()
+  const { wingaByUser } = useChat()
   const [showCreate, setShowCreate] = useState(false)
   const [showArchive, setShowArchive] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
@@ -243,15 +245,25 @@ const StatusList = ({ onViewArchive }) => {
             const hasUnviewed = unviewed > 0
             const firstStatus = group.statuses[0]
 
+            const peerWinga = wingaByUser?.[String(group.userId)] || null
+            const hasWinga = peerWinga && peerWinga.unseen > 0
+
             return (
               <div
                 key={group.userId}
                 className="status-user-item"
                 onClick={() => handleViewStatus(group)}
               >
-                <div className={`status-ring ${hasUnviewed ? 'unviewed' : 'viewed'}`}
-                  style={{ background: getStatusRingSegments(group.statuses) }}>
-                  <img src={group.profilePicture || '/default-avatar.png'} alt="" className="status-avatar-inner" />
+                <div style={{ position: 'relative', flexShrink: 0, width: 52, height: 52 }}>
+                  <div className={`status-ring ${hasUnviewed ? 'unviewed' : 'viewed'}`}
+                    style={{ background: getStatusRingSegments(group.statuses) }}>
+                    <img src={group.profilePicture || '/default-avatar.png'} alt="" className="status-avatar-inner" />
+                  </div>
+                  {hasWinga && (
+                    <div className="winga-ring-badge">
+                      <Store size={11} strokeWidth={2.6} />
+                    </div>
+                  )}
                 </div>
                 <div className="status-user-info">
                   <h4>{group.username}</h4>
@@ -278,6 +290,8 @@ const StatusList = ({ onViewArchive }) => {
           <h3 className="section-title">Viewed updates</h3>
           {groupedStatuses.viewedUpdates.map((group) => {
             const firstStatus = group.statuses[0]
+            const peerWinga = wingaByUser?.[String(group.userId)] || null
+            const hasWinga = peerWinga && peerWinga.unseen > 0
 
             return (
               <div
@@ -285,9 +299,16 @@ const StatusList = ({ onViewArchive }) => {
                 className="status-user-item viewed"
                 onClick={() => handleViewStatus(group)}
               >
-                <div className="status-ring viewed"
-                  style={{ background: getStatusRingSegments(group.statuses) }}>
-                  <img src={group.profilePicture || '/default-avatar.png'} alt="" className="status-avatar-inner" />
+                <div style={{ position: 'relative', flexShrink: 0, width: 52, height: 52 }}>
+                  <div className="status-ring viewed"
+                    style={{ background: getStatusRingSegments(group.statuses) }}>
+                    <img src={group.profilePicture || '/default-avatar.png'} alt="" className="status-avatar-inner" />
+                  </div>
+                  {hasWinga && (
+                    <div className="winga-ring-badge">
+                      <Store size={11} strokeWidth={2.6} />
+                    </div>
+                  )}
                 </div>
                 <div className="status-user-info">
                   <h4>{group.username}</h4>
@@ -334,16 +355,26 @@ const StatusList = ({ onViewArchive }) => {
             <div style={{ padding: '0 12px', animation: 'slideDown 0.2s ease' }}>
               {[...groupedStatuses.recentUpdates, ...groupedStatuses.viewedUpdates]
                 .filter(g => g.isMuted)
-                .map((group) => (
+                .map((group) => {
+                  const mutedWinga = wingaByUser?.[String(group.userId)] || null
+                  const mutedHasWinga = mutedWinga && mutedWinga.unseen > 0
+                  return (
                   <div
                     key={group.userId}
                     className="status-user-item"
                     onClick={() => handleViewStatus(group)}
                   >
-                    <div className="status-ring viewed"
-                      style={{ background: getStatusRingSegments(group.statuses) }}>
-                      <img src={group.profilePicture || '/default-avatar.png'} alt="" className="status-avatar-inner" loading="lazy" />
-                    </div>
+                    <div style={{ position: 'relative', flexShrink: 0, width: 52, height: 52 }}>
+                        <div className="status-ring viewed"
+                          style={{ background: getStatusRingSegments(group.statuses) }}>
+                          <img src={group.profilePicture || '/default-avatar.png'} alt="" className="status-avatar-inner" loading="lazy" />
+                        </div>
+                        {mutedHasWinga && (
+                          <div className="winga-ring-badge">
+                            <Store size={11} strokeWidth={2.6} />
+                          </div>
+                        )}
+                      </div>
                     <div className="status-user-info">
                       <h4>{group.username}</h4>
                       <p>
@@ -352,7 +383,8 @@ const StatusList = ({ onViewArchive }) => {
                     </div>
                     <VolumeX size={16} color="#8696a0" />
                   </div>
-                ))
+                  )
+                })
               }
             </div>
           )}

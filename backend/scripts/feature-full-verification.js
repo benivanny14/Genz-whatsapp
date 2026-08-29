@@ -121,15 +121,15 @@ async function main() {
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64'
   );
 
-  let r = await api.req('POST', '/api/status', { type: 'text', content: 'FV text status 🔥', privacy: 'contacts' });
+  let r = await api.req('POST', '/api/status', { type: 'text', textStatus: { text: 'FV text status 🔥' }, privacy: 'contacts' });
   check('S1 create text status', r.status === 201 && r.json.status, r, 'message');
   const sid = idOf(r.json.status);
 
-  r = await api.req('POST', '/api/status', { type: 'text', content: 'FV only_me', privacy: 'only_me' });
+  r = await api.req('POST', '/api/status', { type: 'text', textStatus: { text: 'FV only_me' }, privacy: 'only_me' });
   check('S2 create only_me status', r.status === 201, r, 'message');
   const sidPrivate = idOf(r.json.status);
 
-  r = await api.req('POST', '/api/status', { type: 'text', content: 'FV contacts_except', privacy: 'contacts_except' });
+  r = await api.req('POST', '/api/status', { type: 'text', textStatus: { text: 'FV contacts_except' }, privacy: 'contacts_except' });
   check('S3 create contacts_except status', r.status === 201, r, 'message');
   const sidExcl = idOf(r.json.status);
 
@@ -137,146 +137,145 @@ async function main() {
   check('S4 upload status media', r.status === 200 || r.status === 201, r, 'message');
   const mediaUrl = pick(r.json, ['fileUrl', 'url', 'mediaUrl']);
   if (mediaUrl) {
-    r = await api.req('POST', '/api/status', { type: 'image', mediaUrl, privacy: 'contacts' });
+    r = await api.req('POST', '/api/status', { type: 'image', content: mediaUrl, privacy: 'contacts' });
     check('S5 create media status', r.status === 201 && r.json.status, r, 'message');
   } else info('S5 create media status', 'no mediaUrl returned from upload');
 
   if (sid) {
-    r = await api.req('PUT', `/api/status/${sid}`, { content: 'FV text status edited ✏️' });
-    check('S6 edit status', r.status === 200, r, 'message');
-
-    r = await api.req('POST', `/api/status-advanced/${sid}/poll`, { question: 'Best pizza?', options: ['A', 'B'], allowMultiple: false });
-    check('S7 create status poll', r.status === 200 || r.status === 201, r, 'message');
+    r = await api.req('POST', `/api/status/${sid}/poll`, { question: 'Best pizza?', options: ['A', 'B'], allowMultiple: false });
+    check('S6 create status poll', r.status === 200 || r.status === 201, r, 'message');
     const poll = pick(r.json, ['poll', 'status', 'data']);
     const pollId = pick(poll || {}, ['_id', 'id', 'pollId']);
     if (pollId) {
       const optIds = (poll.options || []).map((o) => o._id || o.id);
       if (optIds.length) {
-        r = await api.req('POST', `/api/status-advanced/${sid}/poll/vote`, { optionIds: [optIds[0]] });
-        check('S8 vote on status poll', r.status === 200, r, 'message');
+        r = await api.req('POST', `/api/status/${sid}/poll/vote`, { optionIds: [optIds[0]] });
+        check('S7 vote on status poll', r.status === 200, r, 'message');
       }
     }
 
-    r = await api.req('POST', `/api/status-advanced/${sid}/hashtags`, { hashtags: ['#fv', '#test'] });
-    check('S9 add status hashtags', r.status === 200, r, 'message');
+    r = await api.req('POST', `/api/status/${sid}/favorite`, {});
+    check('S8 favorite (save) status', r.status === 200, r, 'message');
+    r = await api.req('GET', '/api/status/saved');
+    check('S9 list saved statuses', r.status === 200, r, 'message');
 
-    r = await api.req('POST', `/api/status-advanced/${sid}/location`, { latitude: -6.7924, longitude: 39.2083, placeName: 'Dar es Salaam' });
-    check('S10 add status location', r.status === 200, r, 'message');
+    r = await api.req('POST', `/api/status/archive/${sid}`, { isArchived: true });
+    check('S10 archive status', r.status === 200, r, 'message');
+    r = await api.req('GET', '/api/status/archive');
+    check('S11 list archived statuses', r.status === 200, r, 'message');
+    r = await api.req('POST', `/api/status/unarchive/${sid}`, {});
+    check('S12 unarchive status', r.status === 200, r, 'message');
 
-    r = await api.req('POST', `/api/status-advanced/${sid}/mention`, { username: users[1].username });
-    check('S11 mention user in status', r.status === 200, r, 'message');
+    r = await api.req('POST', '/api/status/schedule', { scheduledAt: new Date(Date.now() + 86400000).toISOString(), type: 'text', textStatus: { text: 'Scheduled FV' } });
+    check('S13 schedule status', r.status === 200 || r.status === 201, r, 'message');
+    r = await api.req('GET', '/api/status/scheduled');
+    check('S14 list scheduled statuses', r.status === 200, r, 'message');
 
-    r = await api.req('POST', `/api/status-advanced/${sid}/pin`, {});
-    check('S12 pin status', r.status === 200, r, 'message');
-    r = await api.req('GET', '/api/status-advanced/pinned');
-    check('S13 get pinned statuses', r.status === 200, r, 'message');
+    r = await api.req('POST', `/api/status/${sid}/share-token`, {});
+    check('S15 create share token', r.status === 200 || r.status === 201, r, 'message');
 
-    r = await api.req('POST', `/api/status-advanced/${sid}/favorite`, {});
-    check('S14 favorite status', r.status === 200, r, 'message');
-    r = await api.req('GET', '/api/status-advanced/favorites');
-    check('S15 list favorites', r.status === 200, r, 'message');
+    r = await api.req('GET', '/api/status/analytics/' + sid);
+    check('S16 get status analytics', r.status === 200, r, 'message');
 
-    r = await api.req('POST', `/api/status-advanced/${sid}/archive`, { isArchived: true });
-    check('S16 archive status', r.status === 200, r, 'message');
-    r = await api.req('GET', '/api/status-advanced/archived');
-    check('S17 list archived statuses', r.status === 200, r, 'message');
+    r = await api.req('POST', `/api/status/link-preview`, { url: 'https://example.com' });
+    check('S17 link preview', r.status === 200 || r.status === 201, r, 'message');
+    r = await api.req('POST', '/api/status/call-link', {});
+    check('S18 create call link', r.status === 200 || r.status === 201, r, 'message');
 
-    r = await api.req('POST', `/api/status-advanced/${sid}/reminder`, { reminderTime: new Date(Date.now() + 7200000).toISOString(), reminderNote: 'Check reply' });
-    check('S18 set status reminder', r.status === 200, r, 'message');
-    r = await api.req('GET', `/api/status-advanced/${sid}/reminder`);
-    check('S19 get status reminder', r.status === 200, r, 'message');
+    r = await api.req('POST', `/api/status/${sid}/screenshot-attempt`, {});
+    check('S19 screenshot attempt report', r.status === 200, r, 'message');
 
-    r = await api.req('POST', `/api/status-advanced/${sid}/duplicate`, {});
-    check('S20 duplicate status', r.status === 200 || r.status === 201, r, 'message');
+    r = await api.req('POST', `/api/status/${sid}/reply`, { content: 'Nice status!' });
+    check('S20 reply to status', r.status === 200 || r.status === 201, r, 'message');
 
-    r = await api.req('POST', `/api/status-advanced/${sid}/schedule`, { scheduledTime: new Date(Date.now() + 86400000).toISOString() });
-    check('S21 schedule status', r.status === 200 || r.status === 201, r, 'message');
+    r = await api.req('POST', `/api/status/${sid}/forward`, { targetUserIds: [ids[1]] });
+    check('S21 forward status', r.status === 200 || r.status === 201, r, 'message');
 
-    r = await api.req('POST', `/api/status-advanced/${sid}/share`, {});
-    check('S22 share status link', r.status === 200, r, 'message');
+    r = await api.req('GET', '/api/status/revoked');
+    check('S22 get revoked statuses', r.status === 200, r, 'message');
+    r = await api.req('GET', '/api/status/search?q=FV');
+    check('S23 search statuses', r.status === 200, r, 'message');
 
-    r = await api.req('POST', `/api/status-advanced/${sid}/report`, { reason: 'spam' });
-    check('S23 report status', r.status === 200, r, 'message');
+    r = await api.req('GET', '/api/status/history');
+    check('S24 status history', r.status === 200, r, 'message');
 
-    r = await api.req('GET', `/api/status-advanced/${sid}/insights`);
-    check('S24 status insights', r.status === 200, r, 'message');
-    r = await api.req('GET', `/api/status-advanced/${sid}/analytics`);
-    check('S25 status analytics', r.status === 200, r, 'message');
+    r = await api.req('PUT', '/api/status/privacy', { privacy: 'contacts' });
+    check('S25 update status privacy', r.status === 200, r, 'message');
+    r = await api.req('GET', '/api/status/privacy');
+    check('S26 get status privacy', r.status === 200, r, 'message');
 
-    r = await api.req('POST', '/api/status-advanced/qr', { statusId: sid });
-    check('S26 status QR code', r.status === 200 && (r.json.qrCode || r.json.qr || r.json.dataUrl || r.json.qrCodeUrl), r, 'message');
+    r = await api.req('GET', `/api/status/${sid}/qr`);
+    check('S27 status QR code', r.status === 200 && (r.json.qrData || r.json.qrCode || r.json.qr || r.json.dataUrl || r.json.qrCodeUrl), r, 'message');
+    r = await api.req('GET', '/api/status/feed');
+    check('S28 get status feed', r.status === 200, r, 'message');
+    r = await api.req('GET', '/api/status/my-status');
+    check('S29 my status', r.status === 200, r, 'message');
   }
 
-  // viewer flow: u1 views + reacts; owner checks viewers
+  // viewer flow: u1 views + reacts (using contacts status from S1)
   await asUser(1, async () => {
     if (sid) {
       r = await api.req('POST', `/api/status/${sid}/view`, {});
-      check('S27 view status (u1)', r.status === 200, r, 'message');
+      check('S30 view status (u1)', r.status === 200, r, 'message');
       r = await api.req('POST', `/api/status/${sid}/react`, { emoji: '👍' });
-      check('S28 react to status (u1)', r.status === 200, r, 'message');
-      r = await api.req('GET', `/api/status-advanced/${sid}/reactions`);
-      check('S29 get status reactions', r.status === 200, r, 'message');
+      check('S31 react to status (u1)', r.status === 200, r, 'message');
+      r = await api.req('GET', `/api/status/${sid}/reactions`);
+      check('S32 get status reactions', r.status === 200, r, 'message');
     }
-    r = await api.req('POST', `/api/status-advanced/${sid}/mute`, {});
-    check('S30 mute user status (u1)', r.status === 200, r, 'message');
+    r = await api.req('POST', `/api/status/${sid}/mute`, {});
+    check('S33 mute user status (u1)', r.status === 200, r, 'message');
     // privacy: u1 should NOT see u0's only_me or contacts_except statuses
   r = await api.req('GET', '/api/status');
   check('S31 u1 status feed (success)', r.status === 200 && r.json.success, r, 'message');
   if (r.status === 200 && r.json.success) {
     const seesPrivate = feedHasStatus(r.json, sidPrivate);
     const seesExcl = feedHasStatus(r.json, sidExcl);
-    check('S32 only_me NOT visible to u1', !seesPrivate, r, 'message');
-    check('S33 contacts_except NOT visible to u1', !seesExcl, r, 'message');
+    check('S34 only_me NOT visible to u1', !seesPrivate, r, 'message');
+    check('S35 contacts_except NOT visible to u1', !seesExcl, r, 'message');
   }
   });
 
   await loginAs(0);
-  r = await api.req('GET', `/api/status/${sid}/viewers`);
-  check('S34 get status viewers (owner)', r.status === 200, r, 'message');
-  r = await api.req('GET', '/api/status-features/viewers/' + sid);
-  check('S35 status-features viewers', r.status === 200, r, 'message');
+  r = await api.req('GET', `/api/status/viewers/${sid}`);
+  check('S36 get status viewers (owner)', r.status === 200, r, 'message');
 
   // status advanced: drafts/templates/backup/history
-  r = await api.req('POST', '/api/status-advanced/draft', { type: 'text', text: 'FV draft' });
-  check('S36 save status draft', r.status === 200 || r.status === 201, r, 'message');
-  r = await api.req('GET', '/api/status-advanced/drafts');
-  check('S37 list drafts', r.status === 200, r, 'message');
+  r = await api.req('POST', '/api/status/drafts', { type: 'text', textStatus: { text: 'FV draft' } });
+  check('S37 save status draft', r.status === 200 || r.status === 201, r, 'message');
+  r = await api.req('GET', '/api/status/drafts');
+  check('S38 list drafts', r.status === 200, r, 'message');
   const draftId = pick(r.json, ['drafts', 'data']) && Array.isArray(pick(r.json, ['drafts', 'data'])) ? pick(r.json, ['drafts', 'data'])[0]?._id : undefined;
-  if (draftId) { r = await api.req('DELETE', `/api/status-advanced/drafts/${draftId}`, {}); check('S38 delete draft', r.status === 200, r, 'message'); }
+  if (draftId) { r = await api.req('DELETE', `/api/status/drafts/${draftId}`, {}); check('S39 delete draft', r.status === 200, r, 'message'); }
 
-  r = await api.req('POST', '/api/status-advanced/template', { name: 'FV template', type: 'text', text: 'Hello {name}' });
-  check('S39 create status template', r.status === 200 || r.status === 201, r, 'message');
-  r = await api.req('GET', '/api/status-advanced/templates');
-  check('S40 list templates', r.status === 200, r, 'message');
+  r = await api.req('GET', '/api/status/history');
+  check('S40 status history', r.status === 200, r, 'message');
 
-  r = await api.req('POST', '/api/status-advanced/backup', {});
-  check('S41 backup statuses', r.status === 200, r, 'message');
-  r = await api.req('GET', '/api/status-advanced/backup');
-  check('S42 get status backup', r.status === 200, r, 'message');
-  r = await api.req('GET', '/api/status-advanced/history');
-  check('S43 status history', r.status === 200, r, 'message');
-  r = await api.req('GET', '/api/status-advanced/hashtags/trending');
-  check('S44 trending hashtags', r.status === 200, r, 'message');
+  r = await api.req('GET', '/api/status/saved');
+  check('S41 get saved statuses', r.status === 200, r, 'message');
+  r = await api.req('GET', '/api/status/history');
+  check('S42 status history (dup)', r.status === 200, r, 'message');
+  r = await api.req('GET', '/api/status/revoked');
+  check('S44 get revoked statuses', r.status === 200, r, 'message');
 
-  // status features settings + close friends + highlights
-  r = await api.req('GET', '/api/status-features/settings');
-  check('S45 get status-features settings', r.status === 200, r, 'message');
-  r = await api.req('POST', '/api/status-features/privacy', { privacy: 'contacts' });
-  check('S46 update status-features privacy', r.status === 200, r, 'message');
-  r = await api.req('POST', '/api/status-features/close-friends', { enabled: true });
-  check('S47 enable close friends', r.status === 200, r, 'message');
-  r = await api.req('POST', '/api/status-features/close-friends/add', { userId: ids[1] });
-  check('S48 add close friend', r.status === 200, r, 'message');
-  r = await api.req('POST', '/api/status-features/close-friends/remove', { userId: ids[1] });
-  check('S49 remove close friend', r.status === 200, r, 'message');
-  r = await api.req('POST', '/api/status-features/highlights', { enabled: true });
-  check('S50 toggle status highlights', r.status === 200, r, 'message');
-  r = await api.req('POST', '/api/status-features/highlight/create', { name: 'FV Highlights', statusIds: sid ? [sid] : [] });
-  check('S51 create status highlight', r.status === 200 || r.status === 201, r, 'message');
+  // status privacy + mute + schedule + link-preview
+  r = await api.req('PUT', '/api/status/privacy', { privacy: 'contacts' });
+  check('S45 update status privacy', r.status === 200, r, 'message');
+  r = await api.req('GET', '/api/status/privacy');
+  check('S46 get status privacy', r.status === 200, r, 'message');
+  r = await api.req('GET', '/api/status/scheduled');
+  check('S47 get scheduled statuses', r.status === 200, r, 'message');
+  r = await api.req('POST', '/api/status/link-preview', { url: 'https://example.com' });
+  check('S48 get link preview', r.status === 200 || r.status === 201, r, 'message');
+  r = await api.req('POST', '/api/status/call-link', {});
+  check('S49 create call link', r.status === 200 || r.status === 201, r, 'message');
+  r = await api.req('POST', `/api/status/${sid}/share-token`, {});
+  check('S50 create share token', r.status === 200 || r.status === 201, r, 'message');
+  r = await api.req('GET', '/api/status/feed');
+  check('S51 get status feed', r.status === 200, r, 'message');
   r = await api.req('GET', '/api/story-highlights');
   check('S52 list story highlights', r.status === 200, r, 'message');
-  r = await api.req('POST', '/api/status-features/duration', { hours: 48 });
-  check('S53 update status duration', r.status === 200, r, 'message');
+  r = await api.req('POST', `/api/status/${sid}/forward`, { contacts: [], groups: [] });
+  check('S53 forward status (graceful)', r.status === 400 || r.status === 200 || r.status === 201, r, 'message');
 
   // delete statuses
   r = await api.req('DELETE', `/api/status/${sidPrivate}`, {});

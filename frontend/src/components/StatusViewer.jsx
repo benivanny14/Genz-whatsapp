@@ -62,6 +62,16 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
   const touchStartX = useRef(0)
   const voiceAudioRef = useRef(null)
 
+  // Close all overlay modals to prevent stacking
+  const closeAllModals = useCallback(() => {
+    setShowViewers(false)
+    setShowSharePanel(false)
+    setShowQRCode(false)
+    setShowAnalytics(false)
+    setShowForward(false)
+    setShowReactions(false)
+  }, [])
+
   const statuses = user?.statuses || []
   const currentStatus = statuses[currentIndex]
   const currentUserId = idOf(currentUser)
@@ -160,16 +170,27 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
   // Keyboard Shortcuts (ArrowRight, ArrowLeft, Space, Esc, M)
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (showReply || showViewers) return
+      if (e.key === 'Escape') {
+        // Close sub-modals first, then the viewer itself
+        if (showViewers) { setShowViewers(false); setIsPaused(false); return }
+        if (showSharePanel) { setShowSharePanel(false); return }
+        if (showQRCode) { setShowQRCode(false); return }
+        if (showAnalytics) { setShowAnalytics(false); return }
+        if (showForward) { setShowForward(false); return }
+        if (showReactions) { setShowReactions(false); return }
+        if (showReply) { setShowReply(false); return }
+        onClose()
+        return
+      }
+      if (showReply || showViewers || showSharePanel || showQRCode || showAnalytics || showForward) return
       if (e.key === 'ArrowRight') goNext()
       else if (e.key === 'ArrowLeft') goPrev()
       else if (e.key === ' ') { e.preventDefault(); setIsPaused(prev => !prev); }
-      else if (e.key === 'Escape') onClose()
       else if (e.key === 'm' || e.key === 'M') setIsMuted(prev => !prev)
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [goNext, goPrev, onClose, showReply, showViewers])
+  }, [goNext, goPrev, onClose, showReply, showViewers, showSharePanel, showQRCode, showAnalytics, showForward, showReactions])
 
   // Screenshot Detection Listener
   useEffect(() => {
@@ -313,6 +334,7 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
   // Generate share token/link
   const handleShare = async () => {
     if (!isOwner || !currentStatus?._id) return
+    closeAllModals()
     setShareLoading(true)
     try {
       const token = getAuthToken()
@@ -337,6 +359,7 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
 
   const handleShowQR = async () => {
     if (!currentStatus?._id) return
+    closeAllModals()
     try {
       const token = getAuthToken()
       const res = await fetch(`${resolveApiBase()}/status/${currentStatus._id}/qr`, {
@@ -412,6 +435,7 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
 
   const fetchViewers = async () => {
     if (!isOwner) return
+    closeAllModals()
     try {
       const res = await fetch(`${resolveApiBase()}/status/viewers/${currentStatus._id}`, {
         headers: { Authorization: `Bearer ${getAuthToken()}` }
@@ -649,14 +673,14 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
       {/* Bottom Actions */}
       <div className="viewer-bottom">
         {isOwner && (
-          <div style={{ display: 'flex', gap: '6px' }}>
+          <div style={{ display: 'flex', gap: '3px' }}>
             <button className="view-count-btn" onClick={fetchViewers}>
-              <Eye size={18} />
+              <Eye size={14} />
               <span>{currentStatus.viewCount || 0}</span>
             </button>
             <button
               className="view-count-btn"
-              onClick={() => setShowAnalytics(true)}
+              onClick={() => { closeAllModals(); setShowAnalytics(true); }}
               title="View Analytics"
               style={{ background: 'rgba(0,0,0,0.5)', borderRadius: '20px', border: 'none', color: '#fff', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
             >
@@ -675,7 +699,7 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
             onBlur={() => setIsPaused(false)}
           />
           <button onClick={handleSendReply} disabled={!replyText.trim()}>
-            <Send size={20} />
+            <Send size={16} />
           </button>
         </div>
 
@@ -684,30 +708,30 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
           onClick={handleSave}
           title={isOwner ? 'Save My Status' : 'Save Status'}
         >
-          <Download size={20} />
+          <Download size={16} />
         </button>
 
         {/* Forward button — available to everyone */}
-        <button className="action-btn" onClick={() => setShowForward(true)} title="Forward">
-          <Forward size={20} />
+        <button className="action-btn" onClick={() => { closeAllModals(); setShowForward(true); }} title="Forward">
+          <Forward size={16} />
         </button>
 
         {/* Share link button — owner only */}
         {isOwner && (
           <button className="action-btn" onClick={handleShare} title="Share link" disabled={shareLoading}>
-            <Share2 size={20} />
+            <Share2 size={16} />
           </button>
         )}
 
         {/* QR Code button — owner only */}
         {isOwner && (
           <button className="action-btn" onClick={handleShowQR} title="Show QR Code">
-            <QrCode size={20} />
+            <QrCode size={16} />
           </button>
         )}
 
         <button className="action-btn" onClick={() => handleReaction('❤️')} title="Like Status (1-Tap)" style={{ color: '#00a884' }}>
-          <Heart size={20} fill="#00a884" />
+          <Heart size={16} fill="#00a884" />
         </button>
 
         {isMentioned && typeof onReshare === 'function' && (
@@ -721,8 +745,8 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
           </button>
         )}
 
-        <button className="action-btn" onClick={() => setShowReactions(!showReactions)} title="React">
-          <Smile size={20} />
+        <button className="action-btn" onClick={() => { if (!showReactions) closeAllModals(); setShowReactions(!showReactions); }} title="React">
+          <Smile size={16} />
         </button>
 
         {isOwner && (
@@ -730,7 +754,7 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
             deleteStatus(currentStatus._id)
             onClose()
           }}>
-            <Trash2 size={20} />
+            <Trash2 size={16} />
           </button>
         )}
       </div>

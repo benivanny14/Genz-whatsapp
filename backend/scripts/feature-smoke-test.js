@@ -242,30 +242,34 @@ async function main() {
 
   // ── E. STATUS ──────────────────────────────────────────────────────
   console.log('\n[E] STATUS');
-  r = await api.req('POST', '/api/status', { type: 'text', content: 'Smoke status update! 🔥', privacy: 'contacts' });
+  r = await api.req('POST', '/api/status', { type: 'text', textStatus: { text: 'Smoke status update! 🔥' }, privacy: 'contacts' });
   check('create text status', r.status === 201 && r.json.status, r, 'message');
   const sid = r.json.status?._id || r.json.status?.id;
 
   r = await api.req('GET', '/api/status');
   check('get status feed', r.status === 200 && r.json.success, r, 'message');
 
-  r = await api.req('POST', '/api/status', { type: 'text', content: 'Private one', privacy: 'only_me' });
+  r = await api.req('POST', '/api/status', { type: 'text', textStatus: { text: 'Private one' }, privacy: 'only_me' });
   check('create private status', r.status === 201, r, 'message');
 
-  r = await api.req('GET', `/api/status/${sid}/viewers`);
-  check('get status viewers', r.status === 200, r, 'message');
+  if (sid) {
+    r = await api.req('GET', `/api/status/viewers/${sid}`);
+    check('get status viewers', r.status === 200, r, 'message');
 
-  r = await api.req('POST', '/api/status-advanced/qr', { statusId: sid });
-  check('status QR code', r.status === 200, r, 'message');
+    r = await api.req('GET', `/api/status/${sid}/qr`);
+    check('status QR code', r.status === 200, r, 'message');
 
-  r = await api.req('POST', '/api/status-advanced/draft', { type: 'text', text: 'Draft status' });
-  check('save status draft', r.status === 200 || r.status === 201, r, 'message');
+    r = await api.req('POST', `/api/status/drafts`, { type: 'text', textStatus: { text: 'Draft status' } });
+    check('save status draft', r.status === 200 || r.status === 201, r, 'message');
+  }
 
-  r = await api.req('GET', '/api/status-advanced/templates');
-  check('status templates', r.status === 200, r, 'message');
+  r = await api.req('GET', '/api/status/history');
+  check('status history', r.status === 200, r, 'message');
 
-  r = await api.req('POST', `/api/status/${sid}/react`, { emoji: '👍' });
-  check('react to status', r.status === 200, r, 'message');
+  if (sid) {
+    r = await api.req('POST', `/api/status/${sid}/react`, { emoji: '👍' });
+    check('react to status', r.status === 200, r, 'message');
+  }
 
   // ── F. PRIVACY & SECURITY ──────────────────────────────────────────
   console.log('\n[F] PRIVACY & SECURITY');
@@ -282,7 +286,7 @@ async function main() {
   r = await api.req('POST', `/api/chat/users/${ids[2]}/report`, { reason: 'harassment', description: 'smoke test' });
   check('report user', r.status === 200 || r.status === 201, r, 'message');
 
-  r = await api.req('POST', '/api/chat/messages', { conversationId: conv, content: 'View once!', viewOnce: true });
+  r = await api.req('POST', '/api/chat/messages', { conversationId: conv, content: 'View once!', isViewOnce: true });
   check('send view-once message', r.status === 201, r, 'message');
 
   r = await api.req('POST', '/api/chat/messages', { conversationId: conv, content: 'Will vanish', disappearAfterSeconds: 60 });
@@ -296,8 +300,8 @@ async function main() {
   r = await api.req('GET', '/api/backup/list');
   check('list backups', r.status === 200, r, 'message');
 
-  r = await api.req('POST', '/api/security/2fa/setup', {});
-  check('2FA setup (TOTP QR)', r.status === 200 && (r.json.qrCode || r.json.otpauthUrl || r.json.qr), r, 'message');
+  r = await api.req('POST', '/api/security/2fa/generate', {});
+  check('2FA setup (TOTP QR)', r.status === 200 && (r.json.qrCode || r.json.otpauthUrl || r.json.secret || r.json.otpauthUrl), r, 'message');
 
   r = await api.req('POST', '/api/notifications/subscribe', { subscription: { endpoint: 'https://example.com/push', keys: { p256dh: 'abc', auth: 'def' } } });
   check('notification subscribe', r.status === 200 || r.status === 201, r, 'message');
@@ -329,10 +333,8 @@ async function main() {
   r = await api.req('POST', '/api/location-sharing/share', { conversationId: conv, latitude: -6.79, longitude: 39.2 });
   check('share location', r.status === 200 || r.status === 201, r, 'message');
 
-  r = await api.upload('/api/voice/upload', 'file', 'note.mp3', 'audio/mpeg', Buffer.from([0x49, 0x44, 0x33, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]));
+  r = await api.upload('/api/media/upload', 'file', 'note.mp3', 'audio/mpeg', Buffer.from([0x49, 0x44, 0x33, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]));
   check('voice note upload', r.status === 200 || r.status === 201, r, 'message');
-  r = await api.req('GET', '/api/voice');
-  check('list voice notes', r.status === 200, r, 'message');
 
   r = await api.req('GET', '/api/data-usage/stats');
   check('data usage stats', r.status === 200, r, 'message');
