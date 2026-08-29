@@ -15,6 +15,7 @@ const { createShareToken, verifyShareToken } = require('../utils/statusShareToke
 const { serializeOutgoingMessage } = require('../utils/messageSerializer');
 const { getUnreadCount } = require('../utils/unreadCount');
 const { isEitherUserBlocked } = require('../utils/messageSendHelpers');
+const { escapeRegExp } = require('../utils/escapeRegExp');
 const { getActiveMutedUserIds, getActiveStatusBlockedUserIds } = require('../utils/statusMuteHelpers');
 const {
   uploadFile: uploadToMediaStorage,
@@ -397,7 +398,7 @@ router.post('/', protect, async (req, res) => {
       const uniqueUsernames = Array.from(new Set(mentions.map(m => String(m.username || m).replace(/^@/, '').trim()))).slice(0, 5);
       for (const uname of uniqueUsernames) {
         if (!uname) continue;
-        const uDoc = await User.findOne({ username: new RegExp(`^${uname}$`, 'i') }).select('_id username');
+        const uDoc = await User.findOne({ username: new RegExp(`^${escapeRegExp(uname)}$`, 'i') }).select('_id username');
         if (uDoc) {
           processedMentions.push({ user: uDoc._id, username: uDoc.username, notified: false });
         }
@@ -451,7 +452,13 @@ router.post('/', protect, async (req, res) => {
       addYoursPrompt: addYoursPrompt || '',
       parentStatusId: parentStatusId || null,
       locationSticker: locationSticker || undefined,
-      linkPreview: linkPreview || undefined,
+            linkPreview: linkPreview ? {
+        url: String(linkPreview.url || '').slice(0, 2048),
+        title: String(linkPreview.title || '').replace(/[<>]/g, '').slice(0, 200),
+        description: String(linkPreview.description || '').replace(/[<>]/g, '').slice(0, 500),
+        image: String(linkPreview.image || '').slice(0, 2048),
+        domain: String(linkPreview.domain || '').replace(/[<>]/g, '').slice(0, 200)
+      } : undefined,
       imageFilter: req.body.imageFilter || 'none'
     });
 
@@ -535,6 +542,129 @@ router.get('/', protect, async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to fetch statuses' });
   }
 });
+
+// GET /api/status/revoked - Fetch revoked / soft-deleted statuses for contacts with anti-revoke enabled
+router.get('/revoked', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('contacts privacyModsSettings antiRevokeSettings');
+    const hasAntiRevoke = Boolean(
+      user?.privacyModsSettings?.antiRevokeStatus ||
+      user?.privacyModsSettings?.antiRevoke ||
+      user?.antiRevokeSettings?.antiRevokeEnabled
+    );
+
+    if (!hasAntiRevoke) {
+      return res.json({ success: true, statuses: [] });
+    }
+
+    const contactIds = contactIdsOf(user || {});
+    const revokedStatuses = await Status.find({
+      ...ownerMatchQuery(contactIds),
+      $or: [{ isRevoked: true }, { isDeleted: true }],
+      'views.userId': req.user._id
+    }).populate('user', 'username profilePicture').sort({ deletedAt: -1, createdAt: -1 });
+
+    res.json({ success: true, statuses: revokedStatuses });
+  } catch (error) {
+    console.error('Fetch revoked statuses error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch revoked statuses' });
+  }
+});
+
+// ============ STATUS DRAFTS ============
+router.get('/drafts', protect, async (req, res) => {
+  try {
+    const drafts = await DraftStatus.find({ userId: req.user._id }).sort({ updatedAt: -1 });
+    res.json({ success: true, drafts });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to fetch drafts' });
+  }
+});
+
+router.post('/drafts', protect, async (req, res) => {
+  try {
+    const { type, content, caption, textStatus, music, privacy, excludedUsers, includedUsers } = req.body;
+    const draft = await DraftStatus.create({
+      userId: req.user._id,
+      type: type || 'text',
+      content: content || '',
+      caption: caption || '',
+      textStatus,
+      music,
+      privacy: privacy || 'contacts',
+      excludedUsers: excludedUsers || [],
+      includedUsers: includedUsers || []
+    });
+    res.status(201).json({ success: true, draft });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to save draft' });
+  }
+});
+
+router.delete('/drafts/:id', protect, async (req, res) => {
+  try {
+    await DraftStatus.findOneAndDelete({ _id: req.params.id, userId: req.user._id });
+    res.json({ success: true, message: 'Draft deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to delete draft' });
+  }
+});
+
+// ============ SCREENSHOT ATTEMPT ============
+router.post('/:id/screenshot-attempt', protect, async (req, res) => {
+  try {
+    const status = await Status.findById(req.params.id);
+    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
+
+    await StatusAnalytics.findOneAndUpdate(
+      { statusId: status._id, userId: ownerIdOf(status) },
+      { $inc: { screenshots: 1 } },
+      { upsert: true, new: true }
+    );
+
+    const io = req.app.get('io');
+    const ownerId = ownerIdOf(status);
+    if (io && ownerId && ownerId !== String(req.user._id)) {
+      const viewer = await User.findById(req.user._id).select('username');
+      emitToUsers(io, [ownerId], 'status:screenshot-detected', {
+        statusId: status._id,
+        viewerId: req.user._id,
+        viewerUsername: viewer?.username || 'Someone',
+        timestamp: new Date()
+      });
+    }
+
+    res.json({ success: true, message: 'Screenshot registered' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ============ STATUS SEARCH ============
+router.get('/search', protect, async (req, res) => {
+  try {
+    const query = req.query.q || '';
+    if (!query.trim()) return res.json({ success: true, statuses: [] });
+
+    const user = await User.findById(req.user._id).select('contacts');
+    const contactIds = contactIdsOf(user || {});
+    const regex = new RegExp(escapeRegExp(query.trim()), 'i');
+
+    const statuses = await Status.find({
+      ...ownerMatchQuery([...contactIds, req.user._id]),
+      $or: [{ caption: regex }, { content: regex }, { 'textStatus.text': regex }],
+      archived: { $ne: true },
+      isRevoked: { $ne: true },
+      isDeleted: { $ne: true }
+    }).populate('user', 'username profilePicture').sort({ createdAt: -1 });
+
+    res.json({ success: true, statuses });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+
 
 // ============ VIEW STATUS ============
 router.post('/:id/view', protect, async (req, res) => {
@@ -1286,128 +1416,6 @@ router.get('/share/:token', async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 });
-
-// GET /api/status/revoked - Fetch revoked / soft-deleted statuses for contacts with anti-revoke enabled
-router.get('/revoked', protect, async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id).select('contacts privacyModsSettings antiRevokeSettings');
-    const hasAntiRevoke = Boolean(
-      user?.privacyModsSettings?.antiRevokeStatus ||
-      user?.privacyModsSettings?.antiRevoke ||
-      user?.antiRevokeSettings?.antiRevokeEnabled
-    );
-
-    if (!hasAntiRevoke) {
-      return res.json({ success: true, statuses: [] });
-    }
-
-    const contactIds = contactIdsOf(user || {});
-    const revokedStatuses = await Status.find({
-      ...ownerMatchQuery(contactIds),
-      $or: [{ isRevoked: true }, { isDeleted: true }],
-      'views.userId': req.user._id
-    }).populate('user', 'username profilePicture').sort({ deletedAt: -1, createdAt: -1 });
-
-    res.json({ success: true, statuses: revokedStatuses });
-  } catch (error) {
-    console.error('Fetch revoked statuses error:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch revoked statuses' });
-  }
-});
-
-// ============ STATUS DRAFTS ============
-router.get('/drafts', protect, async (req, res) => {
-  try {
-    const drafts = await DraftStatus.find({ userId: req.user._id }).sort({ updatedAt: -1 });
-    res.json({ success: true, drafts });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch drafts' });
-  }
-});
-
-router.post('/drafts', protect, async (req, res) => {
-  try {
-    const { type, content, caption, textStatus, music, privacy, excludedUsers, includedUsers } = req.body;
-    const draft = await DraftStatus.create({
-      userId: req.user._id,
-      type: type || 'text',
-      content: content || '',
-      caption: caption || '',
-      textStatus,
-      music,
-      privacy: privacy || 'contacts',
-      excludedUsers: excludedUsers || [],
-      includedUsers: includedUsers || []
-    });
-    res.status(201).json({ success: true, draft });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to save draft' });
-  }
-});
-
-router.delete('/drafts/:id', protect, async (req, res) => {
-  try {
-    await DraftStatus.findOneAndDelete({ _id: req.params.id, userId: req.user._id });
-    res.json({ success: true, message: 'Draft deleted' });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to delete draft' });
-  }
-});
-
-// ============ SCREENSHOT ATTEMPT ============
-router.post('/:id/screenshot-attempt', protect, async (req, res) => {
-  try {
-    const status = await Status.findById(req.params.id);
-    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
-
-    await StatusAnalytics.findOneAndUpdate(
-      { statusId: status._id, userId: ownerIdOf(status) },
-      { $inc: { screenshots: 1 } },
-      { upsert: true, new: true }
-    );
-
-    const io = req.app.get('io');
-    const ownerId = ownerIdOf(status);
-    if (io && ownerId && ownerId !== String(req.user._id)) {
-      const viewer = await User.findById(req.user._id).select('username');
-      emitToUsers(io, [ownerId], 'status:screenshot-detected', {
-        statusId: status._id,
-        viewerId: req.user._id,
-        viewerUsername: viewer?.username || 'Someone',
-        timestamp: new Date()
-      });
-    }
-
-    res.json({ success: true, message: 'Screenshot registered' });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-// ============ STATUS SEARCH ============
-router.get('/search', protect, async (req, res) => {
-  try {
-    const query = req.query.q || '';
-    if (!query.trim()) return res.json({ success: true, statuses: [] });
-
-    const user = await User.findById(req.user._id).select('contacts');
-    const contactIds = contactIdsOf(user || {});
-    const regex = new RegExp(query.trim(), 'i');
-
-    const statuses = await Status.find({
-      ...ownerMatchQuery([...contactIds, req.user._id]),
-      $or: [{ caption: regex }, { content: regex }, { 'textStatus.text': regex }],
-      archived: { $ne: true },
-      isRevoked: { $ne: true },
-      isDeleted: { $ne: true }
-    }).populate('user', 'username profilePicture').sort({ createdAt: -1 });
-
-    res.json({ success: true, statuses });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
 // ============ LINK PREVIEW ============
 router.post('/link-preview', protect, async (req, res) => {
   try {
@@ -1432,18 +1440,7 @@ router.post('/link-preview', protect, async (req, res) => {
   }
 });
 
-// ============ CALL LINK ============
-router.post('/call-link', protect, async (req, res) => {
-  try {
-    const { type = 'video' } = req.body;
-    const callId = require('crypto').randomBytes(16).toString('hex');
-    const callLink = `${process.env.FRONTEND_URL || 'https://genz.app'}/call/${callId}`;
-    
-    res.json({ success: true, callLink, callId, type });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to generate call link' });
-  }
-});
+
 
 // ============ DOWNLOAD STATUS ============
 router.get('/:id/download', protect, async (req, res) => {

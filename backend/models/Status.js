@@ -234,7 +234,6 @@ const statusSchema = new mongoose.Schema({
   },
   // Views & engagement
   viewCount: { type: Number, default: 0 },
-  viewsCount: { type: Number, default: 0 },
   views: [viewSchema],
   reactions: [reactionSchema],
   // UNUSED: likes, saves, shares, reshares are schema fields kept for backward-compatibility; main reactions use reactions array.
