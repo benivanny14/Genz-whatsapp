@@ -23,6 +23,8 @@ import { useUser } from './context/UserContext';
 import { useAuth } from './context/AuthContext';
 import { getSocket } from './services/socket';
 import { authenticateWithBiometric } from './services/capacitorBridge';
+import { initBackgroundSync } from './services/backgroundSync';
+import { setStatusBar } from './utils/statusBarHelper';
 
 // Lazy load pages for performance optimization
 const Chat = lazy(() => import('./pages/Chat'));
