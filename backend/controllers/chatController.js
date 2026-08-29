@@ -3600,3 +3600,54 @@ exports.updateJoinApproval = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
+exports.markConversationAsRead = async (req, res) => {
+  try {
+    const localUserId = getCurrentUserId(req);
+    const chatId = req.params.chatId || req.body.chatId;
+
+    if (!chatId || !chatId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ success: false, message: "Invalid chat id" });
+    }
+
+    const conversation = await Conversation.findById(chatId);
+    if (!ensureParticipant(conversation, localUserId, res)) return;
+
+    const skipReadReceipts = Boolean(req.body?.skipReadReceipts);
+
+    if (!skipReadReceipts) {
+      await Message.updateMany(
+        {
+          conversationId: chatId,
+          sender: { $ne: localUserId },
+          status: { $ne: "read" },
+          "readBy.user": { $ne: localUserId },
+        },
+        {
+          $push: { readBy: { user: localUserId, readAt: new Date() } },
+          $set: { status: "read" },
+        }
+      );
+    }
+
+    const unreadKey = `unreadCount.${localUserId}`;
+    await Conversation.findByIdAndUpdate(chatId, {
+      $set: { [unreadKey]: 0 },
+    });
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to(localUserId).emit("conversation:unread-update", {
+        conversationId: chatId,
+        unreadCount: 0,
+      });
+      if (!skipReadReceipts) {
+        io.to(chatId).emit("messages:read", { chatId, userId: localUserId });
+      }
+    }
+
+    res.status(200).json({ success: true, unreadCount: 0 });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
