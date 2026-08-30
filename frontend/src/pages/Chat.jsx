@@ -98,7 +98,13 @@ const Chat = () => {
 
       <div className="w-full h-full md:w-[98%] md:h-[96%] genz-shell shadow-2xl flex relative overflow-hidden genz-card pt-safe pb-safe">
         {/* Sidebar Container: Toggle visible/hidden based on whether conversation is active on mobile screens */}
-        <div className={`${selectedConversation ? 'hidden md:flex' : 'flex'} h-full flex-shrink-0 ${sidebarOpen ? 'w-full md:w-80' : 'w-0 md:w-0 overflow-hidden'}`}>
+        <div
+          className={`h-full flex-shrink-0 transition-all duration-300 ease-in-out ${
+            selectedConversation
+              ? 'hidden md:flex'
+              : 'flex'
+          } ${sidebarOpen ? 'w-full md:w-80' : 'w-0 md:w-0 overflow-hidden'}`}
+        >
           <Sidebar
             isOpen={sidebarOpen}
             onToggle={() => setSidebarOpen(!sidebarOpen)}

@@ -47,7 +47,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
           </div>
         )}
   
-        <div className="bg-dark-surface border-t border-dark-border px-1 py-1 sm:px-2 sm:py-2 lg:p-4 relative z-20 flex-shrink-0" style={{ flex: '0 0 auto', position: 'sticky', bottom: 0, paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)' }}>
+        <div className="bg-dark-surface border-t border-dark-border px-1 py-1 sm:px-2 sm:py-2 lg:p-4 relative z-50 flex-shrink-0" style={{ flex: '0 0 auto', position: 'sticky', bottom: 0, paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)', background: 'var(--chat-bg, #111b21)' }}>
           {showMediaPanel && (
             <div className="absolute bottom-full left-0 right-0 w-full z-50 overflow-hidden shadow-2xl border-t border-dark-border">
               <MediaPickerPanel

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react'
 import { useStatusContext } from '../context/StatusContext'
 import { useChat } from '../context/ChatContext'
-import { Plus, Camera, RefreshCw, Volume2, VolumeX, Clock, Archive, Eye, ChevronRight, Lock, Search, Star, Bookmark, Store } from 'lucide-react'
+import { Plus, Camera, RefreshCw, Volume2, VolumeX, Clock, Archive, Eye, ChevronRight, Lock, Search, Star, Bookmark, Store, StarOff } from 'lucide-react'
 import StatusViewer from './StatusViewer'
 import StatusArchive from './StatusArchive'
 import StatusPrivacy from './StatusPrivacy'
@@ -59,6 +59,21 @@ const StatusList = ({ onViewArchive }) => {
   const [pullStartY, setPullStartY] = useState(0)
   const [pullDistance, setPullDistance] = useState(0)
   const [isPulling, setIsPulling] = useState(false)
+
+  // ── Favorites: persisted in localStorage ──
+  const [favorites, setFavorites] = useState(() => {
+    try {
+      const raw = localStorage.getItem('status_favorites')
+      return raw ? JSON.parse(raw) : []
+    } catch { return [] }
+  })
+  const toggleFavorite = useCallback((userId) => {
+    setFavorites(prev => {
+      const next = prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
+      localStorage.setItem('status_favorites', JSON.stringify(next))
+      return next
+    })
+  }, [])
 
   // Pull-to-refresh handlers
   const handlePullStart = useCallback((e) => {
@@ -200,23 +215,35 @@ const StatusList = ({ onViewArchive }) => {
       onTouchEnd={handlePullEnd}
       style={{ position: 'relative', overflowY: 'auto' }}
     >
-      {/* Pull-to-refresh indicator */}
+      {/* Pull-to-refresh indicator — enhanced visual cue */}
       {pullDistance > 0 && (
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           height: pullDistance,
           transition: isPulling ? 'none' : 'height 0.3s ease',
           overflow: 'hidden'
         }}>
-          <RefreshCw
-            size={22}
-            color="#00a884"
-            style={{
-              transform: `rotate(${pullDistance > 80 ? 360 : (pullDistance / 80) * 360}deg)`,
-              transition: isPulling ? 'none' : 'transform 0.3s'
-            }}
-          />
-          <span style={{ marginLeft: 8, fontSize: 13, color: pullDistance > 80 ? '#00a884' : '#8696a0' }}>
+          <div style={{
+            width: Math.min(pullDistance * 0.4, 36),
+            height: Math.min(pullDistance * 0.4, 36),
+            borderRadius: '50%',
+            border: `2.5px solid ${pullDistance > 80 ? '#00a884' : 'rgba(0,168,132,0.4)'}` ,
+            borderTopColor: pullDistance > 80 ? '#00a884' : 'transparent',
+            transform: `rotate(${pullDistance > 80 ? 360 : (pullDistance / 80) * 360}deg)`,
+            transition: isPulling ? 'none' : 'transform 0.3s, border-color 0.2s',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <RefreshCw
+              size={16}
+              color="#00a884"
+              style={{ opacity: pullDistance > 80 ? 1 : 0.5 }}
+            />
+          </div>
+          <span style={{
+            marginTop: 4, fontSize: 12, fontWeight: 500,
+            color: pullDistance > 80 ? '#00a884' : '#8696a0',
+            transition: 'color 0.2s'
+          }}>
             {pullDistance > 80 ? 'Release to refresh' : 'Pull to refresh'}
           </span>
         </div>
@@ -272,7 +299,7 @@ const StatusList = ({ onViewArchive }) => {
                 )}
               </>
             ) : (
-              <img src={currentUser?.profilePicture || '/default-avatar.png'} alt="" />
+              <img src={currentUser?.profilePicture || '/default-avatar.png'} alt="" loading="lazy" />
             )}
             <div className="add-status-badge" onClick={(e) => { e.stopPropagation(); setShowCreate(true) }}>
               <Plus size={14} />
@@ -294,6 +321,53 @@ const StatusList = ({ onViewArchive }) => {
           )}
         </div>
       </div>
+
+      {/* Favorites Section */}
+      {favorites.length > 0 && (() => {
+        const favGroups = groupedStatuses.recentUpdates
+          .concat(groupedStatuses.viewedUpdates)
+          .filter(g => favorites.includes(g.userId))
+        if (favGroups.length === 0) return null
+        return (
+          <div className="status-section">
+            <h3 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Star size={14} fill="#fbbf24" color="#fbbf24" /> Favorites
+            </h3>
+            {favGroups.map((group) => {
+              const unviewed = getUnviewedCount(group)
+              const hasUnviewed = unviewed > 0
+              const firstStatus = group.statuses[0]
+              return (
+                <div key={group.userId} className="status-user-item" onClick={() => handleViewStatus(group)}>
+                  <div style={{ position: 'relative', flexShrink: 0, width: 52, height: 52 }}>
+                    <div className={`status-ring ${hasUnviewed ? 'unviewed' : 'viewed'}`}
+                      style={{ background: getStatusRingSegments(group.statuses) }}>
+                      <img src={group.profilePicture || '/default-avatar.png'} alt="" className="status-avatar-inner" loading="lazy" />
+                    </div>
+                  </div>
+                  <div className="status-user-info">
+                    <h4 className="flex items-center gap-1 truncate">
+                      <Star size={12} fill="#fbbf24" color="#fbbf24" className="flex-shrink-0" />
+                      <span className="truncate">{group.username}</span>
+                    </h4>
+                    <p className="truncate">
+                      {new Date(firstStatus?.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  {hasUnviewed && <div className="unviewed-badge">{unviewed}</div>}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleFavorite(group.userId) }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    title="Remove from Favorites"
+                  >
+                    <StarOff size={16} color="#8696a0" />
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )
+      })()}
 
       {/* Recent Updates (unviewed) */}
       {groupedStatuses.recentUpdates.length > 0 && (
@@ -325,8 +399,11 @@ const StatusList = ({ onViewArchive }) => {
                   )}
                 </div>
                 <div className="status-user-info">
-                  <h4>{group.username}</h4>
-                  <p>
+                  <h4 className="truncate flex items-center gap-1">
+                    <span className="truncate">{group.username}</span>
+                    {favorites.includes(group.userId) && <Star size={12} fill="#fbbf24" color="#fbbf24" className="flex-shrink-0" />}
+                  </h4>
+                  <p className="truncate">
                     {new Date(firstStatus?.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     {firstStatus?.expiresAt && (
                       <span className="status-remaining-time">
@@ -336,6 +413,13 @@ const StatusList = ({ onViewArchive }) => {
                   </p>
                 </div>
                 {hasUnviewed && <div className="unviewed-badge">{unviewed}</div>}
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggleFavorite(group.userId) }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  title={favorites.includes(group.userId) ? 'Remove from Favorites' : 'Add to Favorites'}
+                >
+                  {favorites.includes(group.userId) ? <StarOff size={16} color="#fbbf24" /> : <Star size={16} color="#8696a0" />}
+                </button>
                 <ChevronRight size={20} color="#8696a0" />
               </div>
             )
@@ -370,8 +454,11 @@ const StatusList = ({ onViewArchive }) => {
                   )}
                 </div>
                 <div className="status-user-info">
-                  <h4>{group.username}</h4>
-                  <p>
+                  <h4 className="truncate flex items-center gap-1">
+                    <span className="truncate">{group.username}</span>
+                    {favorites.includes(group.userId) && <Star size={12} fill="#fbbf24" color="#fbbf24" className="flex-shrink-0" />}
+                  </h4>
+                  <p className="truncate">
                     {new Date(firstStatus?.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     {firstStatus?.expiresAt && (
                       <span className="status-remaining-time">
@@ -380,6 +467,13 @@ const StatusList = ({ onViewArchive }) => {
                     )}
                   </p>
                 </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggleFavorite(group.userId) }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  title={favorites.includes(group.userId) ? 'Remove from Favorites' : 'Add to Favorites'}
+                >
+                  {favorites.includes(group.userId) ? <StarOff size={16} color="#fbbf24" /> : <Star size={16} color="#8696a0" />}
+                </button>
               </div>
             )
           })}

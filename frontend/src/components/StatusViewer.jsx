@@ -3,7 +3,7 @@ import { useStatusContext } from '../context/StatusContext'
 import { getSocket } from '../services/socket'
 import { resolveApiBase } from '../utils/resolveApiBase'
 import { getAuthToken } from '../utils/tokenStore'
-import { X, Volume2, VolumeX, Send, Eye, EyeOff, CheckCheck, Heart, Trash2, ChevronLeft, ChevronRight, Pause, Play, Forward, Download, Smile, Share2, Link2, Copy, Check, Music, Mic, BarChart3, QrCode, Clock } from 'lucide-react'
+import { X, Volume2, VolumeX, Send, Eye, EyeOff, CheckCheck, Heart, Trash2, ChevronLeft, ChevronRight, Pause, Play, Forward, Download, Smile, Share2, Link2, Copy, Check, Music, Mic, BarChart3, QrCode, Clock, RotateCcw } from 'lucide-react'
 import ReactPlayer from 'react-player'
 import ForwardDialog from './ForwardDialog'
 import StatusAnalytics from './StatusAnalytics'
@@ -30,7 +30,7 @@ const idOf = (value) => {
 }
 
 const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
-  const { currentUser, viewStatus, deleteStatus } = useStatusContext()
+  const { currentUser, viewStatus, deleteStatus, cacheStatusMedia, getCachedStatus } = useStatusContext()
   const socket = getSocket()
   const [currentIndex, setCurrentIndex] = useState(initialIndex)
   const [progress, setProgress] = useState(0)
@@ -94,21 +94,33 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
     return () => clearInterval(interval)
   }, [currentStatus?.expiresAt])
 
-  // Mark as viewed (skip if Ghost Mode is active) & Auto-Save
+  // Mark as viewed (skip if Ghost Mode is active) & Auto-Save & Anti-Delete Cache
   useEffect(() => {
     if (currentStatus && !isOwner) {
       if (!currentStatus.isViewed && !ghostMode) {
         viewStatus(currentStatus._id)
       }
-      const autoSave = localStorage.getItem('auto_save_status') === 'true'
+      // Anti-Delete: cache media so it survives server-side deletion
       const isMedia = currentStatus.type === 'image' || currentStatus.type === 'video'
+      if (isMedia && currentStatus.content) {
+        cacheStatusMedia(currentStatus)
+      }
+      const autoSave = localStorage.getItem('auto_save_status') === 'true'
       if (autoSave && isMedia && currentStatus.content) {
         handleSave()
         setCopyToast('Status media saved automatically 📥')
         setTimeout(() => setCopyToast(''), 3000)
       }
     }
-  }, [currentStatus, isOwner, viewStatus, ghostMode])
+  }, [currentStatus, isOwner, viewStatus, ghostMode, cacheStatusMedia])
+
+  // Anti-delete: get cached status if the current one is deleted
+  const cachedDeleted = (currentStatus?.isDeleted || currentStatus?.isRevoked)
+    ? getCachedStatus(currentStatus?._id)
+    : null
+
+  // Effective status: use cached if deleted, otherwise live
+  const effectiveStatus = cachedDeleted || currentStatus
 
   const handleManualMarkSeen = () => {
     if (currentStatus?._id && !isOwner) {
@@ -200,6 +212,13 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
 
 
 
+
+  // Replay: reset to first status of this user
+  const handleReplay = useCallback(() => {
+    setCurrentIndex(0)
+    setProgress(0)
+    setIsPaused(false)
+  }, [])
 
   // One-Click & Batch Download
   const handleDownloadStatus = async (statusToDownload) => {
@@ -619,6 +638,18 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
         onMouseUp={() => setIsPaused(false)}
         onMouseLeave={() => setIsPaused(false)}
       >
+        {/* Anti-Delete overlay */}
+        {cachedDeleted && (
+          <div style={{
+            position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
+            background: 'rgba(0,0,0,0.85)', color: '#ff6b6b', padding: '8px 16px',
+            borderRadius: '20px', fontSize: '12px', fontWeight: 600, zIndex: 20,
+            display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap'
+          }}>
+            🚫 Hii status imefutwa (Anti-Delete)
+          </div>
+        )}
+
         {currentStatus.type === 'text' && (
           <div className="text-status-display" style={{ 
             backgroundColor: currentStatus.textStatus?.backgroundColor || '#128C7E',
@@ -844,6 +875,18 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
             onClose()
           }}>
             <Trash2 size={16} />
+          </button>
+        )}
+
+        {/* Replay button */}
+        {currentIndex === statuses.length - 1 && (
+          <button
+            className="action-btn"
+            onClick={handleReplay}
+            title="Replay from start"
+            style={{ color: '#00a884' }}
+          >
+            <RotateCcw size={16} />
           </button>
         )}
 

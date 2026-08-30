@@ -22,6 +22,54 @@ const authHeaders = () => {
   };
 };
 
+// ── Anti-Delete Cache: stores viewed status media in localStorage ──
+const CACHE_KEY = 'viewed_status_cache';
+const CACHE_MAX = 200; // max entries to prevent bloat
+
+const cacheStatusMedia = (status) => {
+  if (!status?._id || !status?.content) return;
+  const isMedia = status.type === 'image' || status.type === 'video';
+  if (!isMedia) return; // only cache media statuses
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    const cache = raw ? JSON.parse(raw) : {};
+    cache[status._id] = {
+      _id: status._id,
+      type: status.type,
+      content: status.content,
+      caption: status.caption || '',
+      username: status.userId?.username || status.username || '',
+      profilePicture: status.userId?.profilePicture || '',
+      textStatus: status.textStatus,
+      createdAt: status.createdAt,
+      expiresAt: status.expiresAt,
+      cachedAt: Date.now()
+    };
+    // Evict oldest entries if over max
+    const keys = Object.keys(cache);
+    if (keys.length > CACHE_MAX) {
+      const sorted = keys.sort((a, b) => (cache[a].cachedAt || 0) - (cache[b].cachedAt || 0));
+      for (let i = 0; i < keys.length - CACHE_MAX; i++) {
+        delete cache[sorted[i]];
+      }
+    }
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+  } catch (e) {
+    console.warn('Failed to cache status media:', e);
+  }
+};
+
+const getCachedStatus = (statusId) => {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const cache = JSON.parse(raw);
+    return cache[statusId] || null;
+  } catch (e) {
+    return null;
+  }
+};
+
 const StatusProvider = ({ children }) => {
   const { user } = useUser();
   const [statuses, setStatuses] = useState([]);
@@ -346,7 +394,9 @@ const StatusProvider = ({ children }) => {
     muteStatus,
     unmuteStatus,
     reactToStatus,
-    setStatuses
+    setStatuses,
+    cacheStatusMedia,
+    getCachedStatus
   };
 
   return (
