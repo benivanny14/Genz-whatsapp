@@ -36,7 +36,11 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
   const [progress, setProgress] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
-  const [ghostMode, setGhostMode] = useState(false)
+  const [ghostMode, setGhostMode] = useState(() => {
+    try {
+      return localStorage.getItem('ghost_mode') === 'true'
+    } catch { return false }
+  })
   const [markedSeen, setMarkedSeen] = useState(false)
   const [copyToast, setCopyToast] = useState('')
   const [replyText, setReplyText] = useState('')
@@ -586,7 +590,11 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
             <button onClick={handleCopyContent} title="Copy Text / Caption">
               <Copy size={20} />
             </button>
-            <button onClick={() => setGhostMode(!ghostMode)} title={ghostMode ? 'Ghost View Mode Active' : 'Enable Ghost View'}>
+            <button onClick={() => {
+              const next = !ghostMode
+              setGhostMode(next)
+              try { localStorage.setItem('ghost_mode', String(next)) } catch {}
+            }} title={ghostMode ? 'Ghost View Mode Active' : 'Enable Ghost View'}>
               {ghostMode ? <EyeOff size={20} color="#00a884" /> : <Eye size={20} />}
             </button>
             {!isOwner && (

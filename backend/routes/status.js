@@ -149,25 +149,30 @@ const canViewerSeeStatus = async (viewerId, status, viewer = null) => {
   const viewerIdStr = String(viewerId);
   const ownerId = ownerIdOf(status);
   if (!ownerId) return false;
-  if (ownerId === viewerIdStr) return true;
-  if (status.archived) return false;
-  if (status.expiresAt && new Date(status.expiresAt).getTime() <= Date.now()) return false;
 
-  const viewerDoc = viewer || await User.findById(viewerId).select('blockedStatusUsers privacyModsSettings antiRevokeSettings');
-  
+  // Anti-revoke check FIRST — revoked statuses are hidden from everyone
+  // (including the owner) unless the viewer has anti-revoke enabled
+  // and has already viewed the status before it was revoked.
   const isRevoked = Boolean(status.isRevoked || status.isDeleted);
   if (isRevoked) {
-    if (ownerId === viewerIdStr) return false;
+    const viewerDoc = viewer || await User.findById(viewerId).select('blockedStatusUsers privacyModsSettings antiRevokeSettings');
     const hasAntiRevoke = Boolean(
       viewerDoc?.privacyModsSettings?.antiRevokeStatus ||
       viewerDoc?.privacyModsSettings?.antiRevoke ||
       viewerDoc?.antiRevokeSettings?.antiRevokeEnabled
     );
     const alreadyViewed = (status.views || []).some(v => viewerIdOf(v) === viewerIdStr);
+    if (ownerId === viewerIdStr) return false;
     if (!hasAntiRevoke || !alreadyViewed) return false;
-  } else if (ownerId === viewerIdStr) {
+    // If we get here: viewer has anti-revoke ON and already viewed — allow
     return true;
   }
+
+  if (ownerId === viewerIdStr) return true;
+  if (status.archived) return false;
+  if (status.expiresAt && new Date(status.expiresAt).getTime() <= Date.now()) return false;
+
+  const viewerDoc = viewer || await User.findById(viewerId).select('blockedStatusUsers privacyModsSettings antiRevokeSettings');
   const blockedStatusUserIds = getActiveStatusBlockedUserIds(viewerDoc || {});
   if (blockedStatusUserIds.has(ownerId)) return false;
   if (await isEitherUserBlocked(viewerId, ownerId)) return false;
@@ -1453,127 +1458,6 @@ router.get('/share/:token', async (req, res) => {
   }
 });
 
-// GET /api/status/revoked - Fetch revoked / soft-deleted statuses for contacts with anti-revoke enabled
-router.get('/revoked', protect, async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id).select('contacts privacyModsSettings antiRevokeSettings');
-    const hasAntiRevoke = Boolean(
-      user?.privacyModsSettings?.antiRevokeStatus ||
-      user?.privacyModsSettings?.antiRevoke ||
-      user?.antiRevokeSettings?.antiRevokeEnabled
-    );
-
-    if (!hasAntiRevoke) {
-      return res.json({ success: true, statuses: [] });
-    }
-
-    const contactIds = contactIdsOf(user || {});
-    const revokedStatuses = await Status.find({
-      ...ownerMatchQuery(contactIds),
-      $or: [{ isRevoked: true }, { isDeleted: true }],
-      'views.userId': req.user._id
-    }).populate('user', 'username profilePicture').sort({ deletedAt: -1, createdAt: -1 });
-
-    res.json({ success: true, statuses: revokedStatuses });
-  } catch (error) {
-    console.error('Fetch revoked statuses error:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch revoked statuses' });
-  }
-});
-
-// ============ STATUS DRAFTS ============
-router.get('/drafts', protect, async (req, res) => {
-  try {
-    const drafts = await DraftStatus.find({ userId: req.user._id }).sort({ updatedAt: -1 });
-    res.json({ success: true, drafts });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch drafts' });
-  }
-});
-
-router.post('/drafts', protect, async (req, res) => {
-  try {
-    const { type, content, caption, textStatus, music, privacy, excludedUsers, includedUsers } = req.body;
-    const draft = await DraftStatus.create({
-      userId: req.user._id,
-      type: type || 'text',
-      content: content || '',
-      caption: caption || '',
-      textStatus,
-      music,
-      privacy: privacy || 'contacts',
-      excludedUsers: excludedUsers || [],
-      includedUsers: includedUsers || []
-    });
-    res.status(201).json({ success: true, draft });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to save draft' });
-  }
-});
-
-router.delete('/drafts/:id', protect, async (req, res) => {
-  try {
-    await DraftStatus.findOneAndDelete({ _id: req.params.id, userId: req.user._id });
-    res.json({ success: true, message: 'Draft deleted' });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to delete draft' });
-  }
-});
-
-// ============ SCREENSHOT ATTEMPT ============
-router.post('/:id/screenshot-attempt', protect, async (req, res) => {
-  try {
-    const status = await Status.findById(req.params.id);
-    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
-
-    await StatusAnalytics.findOneAndUpdate(
-      { statusId: status._id, userId: ownerIdOf(status) },
-      { $inc: { screenshots: 1 } },
-      { upsert: true, new: true }
-    );
-
-    const io = req.app.get('io');
-    const ownerId = ownerIdOf(status);
-    if (io && ownerId && ownerId !== String(req.user._id)) {
-      const viewer = await User.findById(req.user._id).select('username');
-      emitToUsers(io, [ownerId], 'status:screenshot-detected', {
-        statusId: status._id,
-        viewerId: req.user._id,
-        viewerUsername: viewer?.username || 'Someone',
-        timestamp: new Date()
-      });
-    }
-
-    res.json({ success: true, message: 'Screenshot registered' });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-// ============ STATUS SEARCH ============
-router.get('/search', protect, async (req, res) => {
-  try {
-    const query = req.query.q || '';
-    if (!query.trim()) return res.json({ success: true, statuses: [] });
-
-    const user = await User.findById(req.user._id).select('contacts');
-    const contactIds = contactIdsOf(user || {});
-    const regex = new RegExp(escapeRegExp(query.trim()), 'i');
-
-    const statuses = await Status.find({
-      ...ownerMatchQuery([...contactIds, req.user._id]),
-      $or: [{ caption: regex }, { content: regex }, { 'textStatus.text': regex }],
-      archived: { $ne: true },
-      isRevoked: { $ne: true },
-      isDeleted: { $ne: true }
-    }).populate('user', 'username profilePicture').sort({ createdAt: -1 });
-
-    res.json({ success: true, statuses });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
 // ============ LINK PREVIEW ============
 router.post('/link-preview', protect, async (req, res) => {
   try {
@@ -2111,6 +1995,46 @@ router.post('/history/:id/restore', protect, async (req, res) => {
   } catch (err) {
     console.error('Restore status error:', err);
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ============ SAVE STATUS (alias for favorite) ============
+router.post('/:id/save', protect, async (req, res) => {
+  try {
+    const status = await Status.findById(req.params.id);
+    if (!status) {
+      return res.status(404).json({ success: false, message: 'Status not found' });
+    }
+    if (!status.saves) status.saves = [];
+    const alreadySaved = status.saves.some(s => String(s.user) === String(req.user._id));
+    if (alreadySaved) {
+      return res.json({ success: true, message: 'Status already saved' });
+    }
+    status.saves.push({ user: req.user._id, savedAt: new Date() });
+    status.savesCount = (status.savesCount || 0) + 1;
+    await status.save();
+    res.json({ success: true, message: 'Status saved' });
+  } catch (err) {
+    console.error('Save status error:', err);
+    res.status(500).json({ success: false, message: 'Failed to save status' });
+  }
+});
+
+// ============ STORY HIGHLIGHTS ============
+router.get('/highlights', protect, async (req, res) => {
+  try {
+    const highlights = await Status.find({
+      userId: req.user._id,
+      archived: true,
+      isRevoked: { $ne: true },
+      isDeleted: { $ne: true }
+    })
+      .populate('userId', 'username profilePicture')
+      .sort({ createdAt: -1 });
+    res.json({ success: true, highlights });
+  } catch (err) {
+    console.error('Get highlights error:', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch highlights' });
   }
 });
 
