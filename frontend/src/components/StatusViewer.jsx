@@ -198,22 +198,8 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [goNext, goPrev, onClose, showReply, showViewers, showSharePanel, showQRCode, showAnalytics, showForward, showReactions])
 
-  // Screenshot Detection Listener
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden && currentStatus?._id) {
-        fetch(`${resolveApiBase()}/status/${currentStatus._id}/screenshot-attempt`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(getAuthToken() ? { Authorization: `Bearer ${getAuthToken()}` } : {})
-          }
-        }).catch(() => {})
-      }
-    }
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [currentStatus?._id])
+
+
 
   // One-Click & Batch Download
   const handleDownloadStatus = async (statusToDownload) => {

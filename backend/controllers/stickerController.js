@@ -165,3 +165,52 @@ exports.getMyStickers = async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to load your stickers' });
   }
 };
+
+
+/**
+ * Create a sticker from an uploaded image.
+ * Crops to 512x512 center, converts to WebP (WA sticker format).
+ * POST /api/stickers/create  (multipart: file)
+ */
+const sharp = require('sharp');
+const path = require('path');
+const fs2 = require('fs');
+
+exports.createSticker = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No image uploaded' });
+    }
+
+    const inputPath = req.file.path;
+    const outputFilename = 'sticker-' + Date.now() + '-' + Math.round(Math.random() * 1e9) + '.webp';
+    const outputDir = path.join(__dirname, '..', 'uploads', 'stickers');
+    fs2.mkdirSync(outputDir, { recursive: true });
+    const outputPath = path.join(outputDir, outputFilename);
+
+    // Crop to 512x512 center and convert to WebP (WhatsApp sticker format)
+    await sharp(inputPath)
+      .resize(512, 512, { fit: 'cover', position: 'center' })
+      .webp({ quality: 80 })
+      .toFile(outputPath);
+
+    // Clean up temp file
+    fs2.promises.unlink(inputPath).catch(() => {});
+
+    const stickerUrl = '/uploads/stickers/' + outputFilename;
+
+    res.json({
+      success: true,
+      sticker: {
+        url: stickerUrl,
+        filename: outputFilename,
+        width: 512,
+        height: 512,
+        format: 'webp'
+      }
+    });
+  } catch (error) {
+    console.error('[Stickers] createSticker error:', error);
+    res.status(500).json({ success: false, message: 'Failed to create sticker' });
+  }
+};

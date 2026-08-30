@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
 import {
   ArrowLeft, Shield, EyeOff, Zap, Palette, Lock, Bell, HardDrive,
   CameraOff, Timer, UserCheck, Image as ImageIcon, CheckCheck, Cloud,
@@ -25,7 +24,6 @@ import { compressImage } from '../utils/imageCompression';
 import { getAnonId } from '../utils/updateAnalytics';
 import ErrorBoundary from './ErrorBoundary';
 import FakeChatPanel from './FakeChatPanel';
-import { useConfirm } from './/ConfirmDialog';
 
 
 const API_URL = resolveApiBase() || '/api';
@@ -46,7 +44,6 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
   } = useChat();
   const { updateUserProfile } = useUser();
 
-  const confirm = useConfirm();
   const [showPrivacyAnimation, setShowPrivacyAnimation] = useState(false);
   const [voiceFxPreviewBusy, setVoiceFxPreviewBusy] = useState(false);
   const [applyScope, setApplyScope] = useState('global');
@@ -180,7 +177,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
         if (updateUserProfile) updateUserProfile(currentProfile);
       } catch (e) {
         if (e.name === 'QuotaExceededError') {
-          toast.error('Profile picture is too large. Choose a smaller image.');
+          alert('Profile picture is too large. Please choose a smaller image.');
         }
       }
     }, 800); // Increased debounce time for better performance
@@ -480,7 +477,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
   };
 
   const handleRestoreCloudBackup = async (backupId) => {
-    if (!(await confirm('Are you sure you want to restore this backup? This will replace your current IndexedDB cache.'))) {
+    if (!window.confirm('Are you sure you want to restore this backup? This will replace your current IndexedDB cache.')) {
       return;
     }
     setBackupActionLoading(backupId);
@@ -500,7 +497,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
   };
 
   const handleDeleteCloudBackup = async (backupId) => {
-    if (!(await confirm('Are you sure you want to delete this backup permanently?'))) {
+    if (!window.confirm('Are you sure you want to delete this backup permanently?')) {
       return;
     }
     setBackupActionLoading(backupId);

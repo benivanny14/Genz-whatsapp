@@ -15,7 +15,7 @@ const {
 } = require("../utils/messageSendHelpers");
 const { serializeOutgoingMessage } = require("../utils/messageSerializer");
 const { sendMentionNotification, sendNewMessageNotification } = require("../services/notificationService");
-const { ensureUnreadMap, getUnreadCount, setUnreadCount } = require("../utils/unreadCount");
+const { ensureUnreadMap, getUnreadCount } = require("../utils/unreadCount");
 const { containsProfanity } = require("../utils/contentFilter");
 const { scheduleHardDelete } = require("../utils/hardDelete");
 const { getEffectiveGenzMods } = require('../utils/genzModsAccess');
@@ -861,21 +861,16 @@ exports.sendMessage = async (req, res) => {
 
     if (!ensureParticipant(conversation, localUserId, res)) return;
 
-    // BUGFIX (self-destruct/view-once "don't work at all" on APK): this
-    // used to silently strip isSelfDestruct/isViewOnce for any non-premium
-    // sender — the toggle would appear ON in the UI, the request would go
-    // through with 200 OK, but the server quietly sent a completely normal,
-    // permanent message. No error was ever returned, so the feature looked
-    // broken with zero explanation. WhatsApp offers both features to every
-    // user for free, so per requirements these are no longer premium-gated.
-    // Custom font stays premium-gated (not reported as broken).
+    // PREMIUM GATE: self-destruct, view-once, and custom fonts require an active subscription
     let enforceSelfDestruct = isSelfDestruct;
     let enforceViewOnce = isViewOnce;
     let enforceFont = font;
-    if (font && localUserId) {
+    if ((isSelfDestruct || isViewOnce || font) && localUserId) {
       const sender = await User.findById(localUserId).select('premium subscriptionExpiresAt');
       const hasPremium = sender && sender.premium && sender.subscriptionExpiresAt && new Date() <= new Date(sender.subscriptionExpiresAt);
       if (!hasPremium) {
+        enforceSelfDestruct = false;
+        enforceViewOnce = false;
         enforceFont = null;
       }
     }
@@ -1432,74 +1427,6 @@ exports.markAsRead = async (req, res) => {
     }
 
     res.status(200).json({ success: true, message: "Message marked as read" });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// BUGFIX (unread badge stuck on APK): the frontend's HTTP fallback for
-// marking a chat as read (used when the socket connection is unreliable,
-// which is common on mobile networks) was calling two endpoints that both
-// silently did nothing:
-//   1. PUT /chat/messages/:id/read  -> treats :id as a single MESSAGE id,
-//      but the frontend passes the CONVERSATION id, so Message.findById()
-//      never matches and the request is a no-op.
-//   2. POST /chat/mark-read          -> route did not exist at all (404).
-// Because neither fallback actually reset unreadCount on the server, and
-// the frontend's conversation-list merge logic deliberately keeps the
-// HIGHER of the server/local unread counts (to avoid flicker), the stale
-// server count would resurface and make already-read messages show up as
-// unread again after a refresh/reconnect. This handler is the real,
-// atomic, whole-conversation "mark as read" endpoint that both HTTP
-// fallback calls should hit.
-exports.markConversationAsRead = async (req, res) => {
-  try {
-    const localUserId = getCurrentUserId(req);
-    const chatId = req.params.chatId || req.body.chatId;
-
-    if (!chatId || !chatId.match(/^[0-9a-fA-F]{24}$/)) {
-      return res.status(400).json({ success: false, message: "Invalid chat id" });
-    }
-
-    const conversation = await Conversation.findById(chatId);
-    if (!ensureParticipant(conversation, localUserId, res)) return;
-
-    const skipReadReceipts = Boolean(req.body?.skipReadReceipts);
-
-    if (!skipReadReceipts) {
-      await Message.updateMany(
-        {
-          conversationId: chatId,
-          sender: { $ne: localUserId },
-          status: { $ne: "read" },
-          "readBy.user": { $ne: localUserId },
-        },
-        {
-          $push: { readBy: { user: localUserId, readAt: new Date() } },
-          $set: { status: "read" },
-        }
-      );
-    }
-
-    // Atomic, whole-conversation reset (not a decrement loop) so a chat
-    // with many unread messages reaches exactly 0 in a single write.
-    const unreadKey = `unreadCount.${localUserId}`;
-    await Conversation.findByIdAndUpdate(chatId, {
-      $set: { [unreadKey]: 0 },
-    });
-
-    const io = req.app.get("io");
-    if (io) {
-      io.to(localUserId).emit("conversation:unread-update", {
-        conversationId: chatId,
-        unreadCount: 0,
-      });
-      if (!skipReadReceipts) {
-        io.to(chatId).emit("messages:read", { chatId, userId: localUserId });
-      }
-    }
-
-    res.status(200).json({ success: true, unreadCount: 0 });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -3671,5 +3598,56 @@ exports.updateJoinApproval = async (req, res) => {
     res.json({ success: true, requireJoinApproval: conversation.requireJoinApproval });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.markConversationAsRead = async (req, res) => {
+  try {
+    const localUserId = getCurrentUserId(req);
+    const chatId = req.params.chatId || req.body.chatId;
+
+    if (!chatId || !chatId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ success: false, message: "Invalid chat id" });
+    }
+
+    const conversation = await Conversation.findById(chatId);
+    if (!ensureParticipant(conversation, localUserId, res)) return;
+
+    const skipReadReceipts = Boolean(req.body?.skipReadReceipts);
+
+    if (!skipReadReceipts) {
+      await Message.updateMany(
+        {
+          conversationId: chatId,
+          sender: { $ne: localUserId },
+          status: { $ne: "read" },
+          "readBy.user": { $ne: localUserId },
+        },
+        {
+          $push: { readBy: { user: localUserId, readAt: new Date() } },
+          $set: { status: "read" },
+        }
+      );
+    }
+
+    const unreadKey = `unreadCount.${localUserId}`;
+    await Conversation.findByIdAndUpdate(chatId, {
+      $set: { [unreadKey]: 0 },
+    });
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to(localUserId).emit("conversation:unread-update", {
+        conversationId: chatId,
+        unreadCount: 0,
+      });
+      if (!skipReadReceipts) {
+        io.to(chatId).emit("messages:read", { chatId, userId: localUserId });
+      }
+    }
+
+    res.status(200).json({ success: true, unreadCount: 0 });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };

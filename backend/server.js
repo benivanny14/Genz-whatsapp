@@ -531,7 +531,19 @@ const startExpiredMessageCleanup = (ioInstance) => {
           });
         }
       }
-    } catch (error) {
+    
+      // L-01: Clean up expired live locations (auto-expire: 15min/1hr/8hr)
+      try {
+        const LocationUser = require('./models/User');
+        await LocationUser.updateMany(
+          { 'liveLocations.status': 'active', 'liveLocations.expiresAt': { $lte: now } },
+          { $set: { 'liveLocations.$[elem].status': 'expired' } },
+          { arrayFilters: [{ 'elem.status': 'active', 'elem.expiresAt': { $lte: now } }] }
+        );
+      } catch (locErr) {
+        // Non-critical — liveLocations cleanup
+      }
+} catch (error) {
       logger.error("Error cleaning up expired messages", {
         message: error.message,
       });

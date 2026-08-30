@@ -60,6 +60,8 @@ exports.shareLocation = async (req, res) => {
     }
 
     const settings = mergeSettings(user.locationSharingSettings?.toObject?.() || user.locationSharingSettings);
+    // L-02: Privacy exclusions for location sharing
+    const privacyExcluded = user.privacyModsSettings?.excludedContacts || [];
     
     if (!settings.locationSharingEnabled) {
       return res.status(403).json({ success: false, message: 'Location sharing is disabled' });
@@ -74,6 +76,16 @@ exports.shareLocation = async (req, res) => {
     const isParticipant = conversation.participants.some((p) => String(p) === String(user._id));
     if (!isParticipant) {
       return res.status(403).json({ success: false, message: 'You are not a participant in this conversation' });
+    }
+
+    // L-02: Check if any participant is excluded from location sharing
+    if (privacyExcluded.length > 0) {
+      const excludedParticipant = conversation.participants.find(p =>
+        privacyExcluded.some(ex => String(ex) === String(p) && String(p) !== String(user._id))
+      );
+      if (excludedParticipant) {
+        return res.status(403).json({ success: false, message: 'Cannot share location with excluded contacts' });
+      }
     }
 
     const locationData = {

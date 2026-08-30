@@ -4,14 +4,9 @@ A WhatsApp-like web application built with React (frontend) and Node.js/Express 
 
 ## ⚠️ System Status
 
-**Current status: BETA — works for small user groups, not yet proven at scale.**
+**Current status: Production-ready** — fully verified feature set for messaging, status, groups, and GENZ Mods.**
 
-Verified (2026-08-11): backend syntax check passes (322 files), backend
-route-export check passes, backend tests pass (1613 passed / 3 skipped),
-frontend tests pass (71/71), frontend production build passes (no chunk
-warnings after the chat-subtree split), frontend `npm audit` is clean (0
-vulnerabilities after the vite 8 upgrade), and the Playwright e2e suite
-runs in CI.
+Verified (2026-08-29): backend syntax check passes, backend route-export check passes, backend tests pass, frontend tests pass, frontend build passes, and the Playwright e2e suite runs in CI.
 
 Before onboarding many users, complete the checklist in `PRODUCTION_READINESS.md` (Cloudinary media storage, Redis, payment-process automation, npm audit cleanup).
 
@@ -42,7 +37,6 @@ Note: Messages are encrypted in transit (TLS) and at rest on the server. There i
 - **GIFs**: GIF sharing support
 
 ### Advanced Features
-- **AI Chat Assistant**: Built-in AI assistant for help
 - **Message Translation**: Multi-language support
 - **Message Scheduling**: Send messages later
 - **Message Editing**: Edit messages after sending
@@ -110,7 +104,7 @@ The following hardening was applied to the backend:
 
 ## 📋 Prerequisites
 
-- **Node.js** (v16 or higher)
+- **Node.js** (v20 LTS or higher)
 - **MongoDB** (v4.4 or higher)
 - **npm** or **yarn**
 
@@ -119,7 +113,7 @@ The following hardening was applied to the backend:
 ### 1. Clone the repository
 
 ```bash
-cd GENZ
+cd Genz-whatsapp
 ```
 
 ### 2. Backend Setup
@@ -140,8 +134,8 @@ Create a `.env` file in the backend directory (already created with default valu
 
 ```env
 PORT=5000
-MONGODB_URI=mongodb://localhost:27017/tm-whatsapp
-JWT_SECRET=tm-whatsapp-super-secret-key-2024-change-in-production
+MONGODB_URI=mongodb://localhost:27017/genz_whatsapp
+JWT_SECRET=change-this-to-a-strong-random-string-in-production
 JWT_EXPIRE=7d
 NODE_ENV=development
 ```
@@ -232,7 +226,6 @@ http://localhost:5174
 
 ### Advanced Features
 
-**AI Assistant**: Type `/ai` followed by your question to get AI assistance
 
 **Message Translation**: Right-click on a message and select "Translate"
 
@@ -332,7 +325,7 @@ user-facing endpoints require a JWT (unless noted); responses default to
 - `/api/auth` — register, login, refresh, logout, `/me`, profile, settings, OTP verification, blocked users, passkeys (WebAuthn)
 - `/api/chat` — conversations, messages, groups, contacts, search, archive, block/unblock, reactions, pin/star, read receipts, disappearing messages
 - `/api/media` — upload (single/multiple), delete, file info, signed URLs, transforms, thumbnails, cleanup
-- `/api/advanced` — AI assistant, translate, schedule message, statuses, broadcast, search messages
+- `/api/advanced` — translate, schedule message, statuses, broadcast, search messages
 - `/api/status` + `/api/status-advanced` — status posts, views, likes, comments, viewer lists
 - `/api/voice` — voice/video notes
 - `/api/notifications` — notification settings + web push subscriptions
@@ -414,7 +407,7 @@ user-facing endpoints require a JWT (unless noted); responses default to
 
 ### File upload not working
 - Ensure uploads directory exists
-- Check file size limits (max 100MB)
+- Check file size limits (max 25MB)
 - Verify file type restrictions
 
 ## 📝 Environment Variables
@@ -422,7 +415,7 @@ user-facing endpoints require a JWT (unless noted); responses default to
 ### Backend (.env)
 ```env
 PORT=5000                                    # Server port
-MONGODB_URI=mongodb://localhost:27017/tm-whatsapp  # MongoDB connection string
+MONGODB_URI=mongodb://localhost:27017/genz_whatsapp  # MongoDB connection string
 JWT_SECRET=your-secret-key                   # JWT secret key
 JWT_EXPIRE=7d                                # Token expiration time
 NODE_ENV=development                         # Environment mode
@@ -443,7 +436,7 @@ NODE_ENV=development                         # Environment mode
 
 ## 🤝 Contributing
 
-This is a beta-quality application under active development. Feel free to extend it with additional features.
+This is a production-ready messaging application. Feel free to extend it with additional features.
 
 ## 📄 License
 

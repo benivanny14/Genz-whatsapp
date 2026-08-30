@@ -380,8 +380,6 @@ const userSchema = new mongoose.Schema({
   cacheCleanerSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
   cacheData: { type: mongoose.Schema.Types.Mixed, default: {} },
   lastCompressedAt: { type: Date, default: null },
-  callBlockerSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
-  callFeaturesSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
   chatAnalyzerSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
   messageCount: { type: mongoose.Schema.Types.Mixed, default: {} },
   chatFilterSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
@@ -453,10 +451,6 @@ const userSchema = new mongoose.Schema({
   mutedStatusUsers: { type: mongoose.Schema.Types.Mixed, default: [] },
   savedStatuses: { type: mongoose.Schema.Types.Mixed, default: [] },
   closeFriends: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-  callLinkSettings: {
-    type: mongoose.Schema.Types.Mixed,
-    default: { links: [] },
-  },
 });
 
 // Update last seen before saving
