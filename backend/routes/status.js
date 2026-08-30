@@ -371,7 +371,7 @@ router.post('/', protect, async (req, res) => {
     const {
       type, content, caption, textStatus, music, privacy, excludedUsers, includedUsers, duration,
       mentions, replySettings, quality, statusDuration, maxDuration, addYoursPrompt, parentStatusId,
-      locationSticker, linkPreview
+      locationSticker, linkPreview, textAnimation, isViewOnce
     } = req.body;
 
     if (!type || !['text', 'image', 'video'].includes(type)) {
@@ -464,7 +464,9 @@ router.post('/', protect, async (req, res) => {
         image: String(linkPreview.image || '').slice(0, 2048),
         domain: String(linkPreview.domain || '').replace(/[<>]/g, '').slice(0, 200)
       } : undefined,
-      imageFilter: req.body.imageFilter || 'none'
+      imageFilter: req.body.imageFilter || 'none',
+      textAnimation: textAnimation || 'none',
+      isViewOnce: isViewOnce === true || isViewOnce === 'true'
     });
 
     if (parentStatusId && mongoose.Types.ObjectId.isValid(parentStatusId)) {
