@@ -10,6 +10,7 @@ import StatusAnalytics from './StatusAnalytics'
 import AddYoursChain from './AddYoursChain'
 import CountdownOverlay from './CountdownOverlay'
 import { LocationStickerOverlay } from './LocationSticker'
+import QuizOverlay from './QuizOverlay'
 import './StatusViewer.css'
 
 // Format remaining time as "Xh Ym" or "Ym" or "<1m"
@@ -826,6 +827,25 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
         {/* Location Sticker Overlay */}
         {effectiveStatus?.location && (
           <LocationStickerOverlay location={effectiveStatus.location} />
+        )}
+
+        {/* Quiz / Poll Overlay */}
+        {effectiveStatus?.poll && (
+          <QuizOverlay
+            status={effectiveStatus}
+            onVote={(updatedPoll) => {
+              // Update local poll state
+              if (updatedPoll) {
+                const updated = { ...effectiveStatus, poll: updatedPoll }
+                const idx = statuses.findIndex(s => s._id === effectiveStatus._id)
+                if (idx >= 0) {
+                  const newStatuses = [...statuses]
+                  newStatuses[idx] = updated
+                  // No setter for statuses directly in viewer — just update view
+                }
+              }
+            }}
+          />
         )}
 
         {/* Pause Indicator */}

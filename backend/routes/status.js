@@ -1571,11 +1571,12 @@ router.post('/link-preview', protect, async (req, res) => {
           title: title.substring(0, 200),
           description: description.substring(0, 500),
           image,
-          domain
+          domain,
+          favicon: 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(domain) + '&sz=64'
         }
       });
     } catch (fetchErr) {
-      // Fallback: return basic info
+      // Fallback: return basic info with favicon
       res.json({
         success: true,
         preview: {
@@ -1583,7 +1584,8 @@ router.post('/link-preview', protect, async (req, res) => {
           title: domain,
           description: 'Click to view link',
           image: '',
-          domain
+          domain,
+          favicon: 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(domain) + '&sz=64'
         }
       });
     }

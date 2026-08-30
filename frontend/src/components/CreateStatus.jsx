@@ -10,6 +10,8 @@ import MusicPicker from './MusicPicker'
 import CollageBuilder from './CollageBuilder'
 import LocationSticker from './LocationSticker'
 import TextAnimationPicker, { injectAnimationKeyframes, getAnimationStyle } from './TextAnimationPicker'
+import PhotoStickerTool from './PhotoStickerTool'
+import RichTextEditor from './RichTextEditor'
 
 const TEXT_COLORS = [
   { bg: '#128C7E', font: '#FFFFFF' },
@@ -130,6 +132,10 @@ const CreateStatus = ({ onClose }) => {
 
   // New creative tools state
   const [showMusicPicker, setShowMusicPicker] = useState(false)
+  const [showPhotoStickerTool, setShowPhotoStickerTool] = useState(false)
+  const [showRichTextEditor, setShowRichTextEditor] = useState(false)
+  const [stickers, setStickers] = useState([]) // photo stickers from cutout tool
+  const [linkPreview, setLinkPreview] = useState(null) // auto-detected link preview
   const [selectedMusicData, setSelectedMusicData] = useState(null)
   const [showCollage, setShowCollage] = useState(false)
   const [collageData, setCollageData] = useState(null)
@@ -211,6 +217,31 @@ const CreateStatus = ({ onClose }) => {
       if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current)
     }
   }, [])
+
+  // Auto-detect link preview from caption text
+  useEffect(() => {
+    if (!caption || mode !== 'text') { setLinkPreview(null); return }
+    const urlRegex = /(https?:\/\/[^\s]+)/g
+    const urls = caption.match(urlRegex)
+    if (!urls || urls.length === 0) { setLinkPreview(null); return }
+
+    const debounce = setTimeout(async () => {
+      try {
+        const token = getAuthToken()
+        const res = await fetch(`${resolveApiBase()}/status/link-preview`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({ url: urls[0] })
+        })
+        const data = await res.json()
+        if (data.success && data.preview) setLinkPreview(data.preview)
+      } catch { setLinkPreview(null) }
+    }, 800)
+    return () => clearTimeout(debounce)
+  }, [caption, mode])
 
   // Initialize FFmpeg
   const loadFFmpeg = async () => {
@@ -866,13 +897,39 @@ const CreateStatus = ({ onClose }) => {
             </div>
           </div>
           
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Type a status..."
-            style={{ color: selectedColor.font, fontFamily: FONT_STYLES[fontIndex].family, ...getAnimationStyle(textAnimation) }}
-            maxLength={700}
-          />
+          {showRichTextEditor ? (
+            <div style={{ width: '100%', padding: '0 16px' }}>
+              <RichTextEditor
+                value={text}
+                onChange={setText}
+                backgroundColor={selectedColor.bg}
+                fontColor={selectedColor.font}
+              />
+            </div>
+          ) : (
+            <>
+              <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 5 }}>
+                <button
+                  onClick={() => setShowRichTextEditor(true)}
+                  title="Rich text formatting"
+                  style={{
+                    background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8,
+                    padding: '6px 8px', color: '#e9edef', fontSize: 12, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 4
+                  }}
+                >
+                  <span style={{ fontWeight: 700 }}>B</span><span style={{ fontStyle: 'italic' }}>I</span>
+                </button>
+              </div>
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Type a status..."
+                style={{ color: selectedColor.font, fontFamily: FONT_STYLES[fontIndex].family, ...getAnimationStyle(textAnimation) }}
+                maxLength={700}
+              />
+            </>
+          )}
 
           <div style={{ padding: '0 16px 8px', width: '100%', maxWidth: '500px' }}>
             <input 
@@ -891,6 +948,40 @@ const CreateStatus = ({ onClose }) => {
               }}
             />
           </div>
+
+          {/* Link Preview Card (auto-detected from caption) */}
+          {linkPreview && mode === 'text' && (
+            <div style={{
+              margin: '0 16px 8px', padding: 0,
+              background: 'rgba(255,255,255,0.08)',
+              borderRadius: 12, overflow: 'hidden',
+              border: '1px solid rgba(255,255,255,0.1)',
+              maxWidth: 468, width: '100%', alignSelf: 'center'
+            }}>
+              {linkPreview.image && (
+                <img src={linkPreview.image} alt=""
+                  style={{ width: '100%', height: 120, objectFit: 'cover' }} loading="lazy" />
+              )}
+              <div style={{ padding: '8px 12px' }}>
+                <div style={{ color: '#fff', fontSize: 13, fontWeight: 600, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {linkPreview.title}
+                </div>
+                <div style={{ color: '#8696a0', fontSize: 11, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                  {linkPreview.description}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                  {linkPreview.favicon && (
+                    <img src={linkPreview.favicon} alt="" style={{ width: 14, height: 14, borderRadius: 2 }} loading="lazy" />
+                  )}
+                  <span style={{ color: '#00a884', fontSize: 11 }}>{linkPreview.domain}</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setLinkPreview(null)}
+                style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', width: 24, height: 24, color: '#fff', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >✕</button>
+            </div>
+          )}
 
           {/* Text mode advanced settings row */}
           <div style={{ display: 'flex', gap: '8px', padding: '0 16px 12px', flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -1152,6 +1243,7 @@ const CreateStatus = ({ onClose }) => {
               setTimeout(() => initCanvas(mediaItems[activeIndex]?.drawnPreview || mediaItems[activeIndex]?.preview), 100)
             }
           }} />}
+          {mode === 'image' && <BottomToolBtn icon={<span style={{ fontSize: '18px' }}>✂️</span>} label="Sticker" active={activeBottomSheet === 'sticker'} onClick={() => setActiveBottomSheet(activeBottomSheet === 'sticker' ? null : 'sticker')} />}
           {mode === 'image' && <BottomToolBtn icon={<span style={{ fontSize: '18px' }}>🎨</span>} label="Filter" active={activeBottomSheet === 'filter'} onClick={() => setActiveBottomSheet(activeBottomSheet === 'filter' ? null : 'filter')} />}
           <BottomToolBtn icon={<Users size={20} />} label="Privacy" active={activeBottomSheet === 'privacy'} onClick={() => setActiveBottomSheet(activeBottomSheet === 'privacy' ? null : 'privacy')} />
           {mode === 'image' && <BottomToolBtn icon={<LayoutGrid size={20} />} label="Collage" active={activeBottomSheet === 'collage'} onClick={() => setActiveBottomSheet(activeBottomSheet === 'collage' ? null : 'collage')} />}
@@ -1280,6 +1372,29 @@ const CreateStatus = ({ onClose }) => {
                       </button>
                     ))}
                   </div>
+                </>
+              )}
+
+              {/* Photo Sticker Sheet */}
+              {activeBottomSheet === 'sticker' && mode === 'image' && (
+                <>
+                  <h3 style={{ color: '#e9edef', fontSize: '16px', fontWeight: 600, margin: '0 0 12px' }}>✂️ Photo Sticker</h3>
+                  {mediaItems[activeIndex]?.preview && (
+                    <PhotoStickerTool
+                      imageUrl={mediaItems[activeIndex].preview}
+                      onStickerCreated={(stickerUrl) => {
+                        // Add as overlay sticker
+                        setStickers(prev => [...prev, {
+                          id: Date.now(),
+                          src: stickerUrl,
+                          x: 50, y: 50,
+                          scale: 1, rotation: 0
+                        }])
+                        setActiveBottomSheet(null)
+                      }}
+                      onClose={() => setActiveBottomSheet(null)}
+                    />
+                  )}
                 </>
               )}
 
