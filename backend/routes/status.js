@@ -185,13 +185,15 @@ const canViewerSeeStatus = async (viewerId, status, viewer = null) => {
     return included.includes(viewerIdStr);
   }
 
+  if (privacy === 'contacts_except') {
+    // contacts_except = everyone EXCEPT excluded users (contact check not required)
+    return !excluded.includes(viewerIdStr);
+  }
+
+  // For 'contacts' (default) and 'everyone': require contact status
   const owner = await User.findById(ownerId).select('contacts');
   const ownerContacts = contactIdsOf(owner || {});
   if (!ownerContacts.includes(viewerIdStr)) return false;
-
-  if (privacy === 'contacts_except') {
-    return !excluded.includes(viewerIdStr);
-  }
 
   return true;
 };
