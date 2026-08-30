@@ -15,6 +15,7 @@ const { createShareToken, verifyShareToken } = require('../utils/statusShareToke
 const { serializeOutgoingMessage } = require('../utils/messageSerializer');
 const { getUnreadCount } = require('../utils/unreadCount');
 const { isEitherUserBlocked } = require('../utils/messageSendHelpers');
+const escapeRegExp = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const { getActiveMutedUserIds, getActiveStatusBlockedUserIds } = require('../utils/statusMuteHelpers');
 const {
   uploadFile: uploadToMediaStorage,
@@ -397,7 +398,7 @@ router.post('/', protect, async (req, res) => {
       const uniqueUsernames = Array.from(new Set(mentions.map(m => String(m.username || m).replace(/^@/, '').trim()))).slice(0, 5);
       for (const uname of uniqueUsernames) {
         if (!uname) continue;
-        const uDoc = await User.findOne({ username: new RegExp(`^${uname}$`, 'i') }).select('_id username');
+        const uDoc = await User.findOne({ username: new RegExp(`^${escapeRegExp(uname)}$`, 'i') }).select('_id username');
         if (uDoc) {
           processedMentions.push({ user: uDoc._id, username: uDoc.username, notified: false });
         }
@@ -451,7 +452,13 @@ router.post('/', protect, async (req, res) => {
       addYoursPrompt: addYoursPrompt || '',
       parentStatusId: parentStatusId || null,
       locationSticker: locationSticker || undefined,
-      linkPreview: linkPreview || undefined,
+      linkPreview: linkPreview ? {
+        url: String(linkPreview.url || '').slice(0, 2048),
+        title: String(linkPreview.title || '').replace(/[<>]/g, '').slice(0, 200),
+        description: String(linkPreview.description || '').replace(/[<>]/g, '').slice(0, 500),
+        image: String(linkPreview.image || '').slice(0, 2048),
+        domain: String(linkPreview.domain || '').replace(/[<>]/g, '').slice(0, 200)
+      } : undefined,
       imageFilter: req.body.imageFilter || 'none'
     });
 
@@ -539,12 +546,15 @@ router.get('/', protect, async (req, res) => {
 // ============ VIEW STATUS ============
 router.post('/:id/view', protect, async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(200).json({ success: true, message: 'Invalid status ID format' });
+    }
     const status = await Status.findById(req.params.id);
     if (!status) {
       return res.status(404).json({ success: false, message: 'Status not found' });
     }
 
-    const viewer = await User.findById(req.user._id).select('blockedStatusUsers');
+    const viewer = await User.findById(req.user._id).select('blockedStatusUsers statusFeaturesSettings');
     if (!(await canViewerSeeStatus(req.user._id, status, viewer))) {
       return res.status(403).json({ success: false, message: 'You cannot view this status' });
     }
@@ -554,12 +564,15 @@ router.post('/:id/view', protect, async (req, res) => {
       return res.json({ success: true, viewCount: status.viewCount || status.viewsCount || (status.views || []).length });
     }
 
+    // Check if viewer has ghost mode enabled (persistent per-user setting)
+    const isGhost = viewer?.statusFeaturesSettings?.ghostMode || false;
+
     // Check if already viewed
     const alreadyViewed = status.views?.some(
       v => viewerIdOf(v) === String(req.user._id)
     );
 
-    if (!alreadyViewed) {
+    if (!alreadyViewed && !isGhost) {
       status.views.push({ userId: req.user._id, user: req.user._id, viewedAt: new Date() });
       status.viewCount = status.views.length;
       status.viewsCount = status.views.length;
@@ -600,6 +613,36 @@ router.delete('/:id', protect, async (req, res) => {
 });
 
 // ============ GET VIEWERS ============
+router.get('/:id/viewers', protect, async (req, res) => {
+  try {
+    const status = await Status.findById(req.params.id)
+      .populate('views.userId', 'username profilePicture')
+      .populate('views.user', 'username profilePicture')
+      .populate('reactions.userId', 'username profilePicture')
+      .populate('reactions.user', 'username profilePicture');
+
+    if (!status) {
+      return res.status(404).json({ success: false, message: 'Status not found' });
+    }
+
+    // Only the owner can see viewers
+    if (ownerIdOf(status) !== String(req.user._id)) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    res.json({
+      success: true,
+      viewers: getStatusViewersForClient(status),
+      reactions: getStatusReactionsForClient(status),
+      viewCount: status.viewCount || status.viewsCount || (status.views || []).length
+    });
+  } catch (error) {
+    console.error('Get viewers error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch viewers' });
+  }
+});
+
+// Legacy path alias
 router.get('/viewers/:statusId', protect, async (req, res) => {
   try {
     const status = await Status.findById(req.params.statusId)
@@ -1392,7 +1435,7 @@ router.get('/search', protect, async (req, res) => {
 
     const user = await User.findById(req.user._id).select('contacts');
     const contactIds = contactIdsOf(user || {});
-    const regex = new RegExp(query.trim(), 'i');
+    const regex = new RegExp(escapeRegExp(query.trim()), 'i');
 
     const statuses = await Status.find({
       ...ownerMatchQuery([...contactIds, req.user._id]),
@@ -1873,6 +1916,65 @@ router.get('/history', protect, async (req, res) => {
     });
   } catch (err) {
     console.error('Get status history error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ============ RESHARE STATUS ============
+router.post('/:id/reshare', protect, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const original = await Status.findById(req.params.id);
+    if (!original) return res.status(404).json({ success: false, message: 'Status not found' });
+
+    // Track reshare on original
+    if (!original.reshares) original.reshares = [];
+    original.reshares.push({
+      userId,
+      username: req.user.username || '',
+      originalStatusId: original._id,
+      resharedAt: new Date()
+    });
+    await original.save();
+
+    // Create new status for current user (copy)
+    const newStatus = await Status.create({
+      userId,
+      user: userId,
+      type: original.type,
+      content: original.content,
+      mediaUrl: original.mediaUrl,
+      caption: original.caption || '',
+      textStatus: original.textStatus,
+      music: original.music,
+      privacy: 'contacts',
+      parentStatusId: original._id
+    });
+
+    const populated = await Status.findById(newStatus._id)
+      .populate('userId', 'username profilePicture')
+      .populate('user', 'username profilePicture');
+
+    await emitStatusCreated(req, newStatus);
+
+    res.json({ success: true, status: populated });
+  } catch (err) {
+    console.error('Reshare status error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ============ ADD-YOURS RESPONSES ============
+router.get('/:id/add-yours-responses', protect, async (req, res) => {
+  try {
+    const responses = await Status.find({ parentStatusId: req.params.id })
+      .populate('userId', 'username profilePicture')
+      .populate('user', 'username profilePicture')
+      .sort({ createdAt: -1 })
+      .limit(50);
+    res.json({ success: true, responses });
+  } catch (err) {
+    console.error('Get add-yours responses error:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 });

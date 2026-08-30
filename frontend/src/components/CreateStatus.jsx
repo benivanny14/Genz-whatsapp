@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { useStatusContext } from '../context/StatusContext'
-import { X, Type, Image, Video, Music, Scissors, Send, Volume2, Users, Check, UserX, UserCheck, Lock, Plus, Trash2, AtSign, Smile, Mic, MicOff, Clock, ShieldAlert, Award, ChevronDown, List, BarChart3 } from 'lucide-react'
+import { X, Type, Image, Video, Music, Scissors, Send, Volume2, Users, Check, UserX, UserCheck, Lock, Plus, Trash2, AtSign, Smile, Mic, MicOff, Clock, ShieldAlert, Award, ChevronDown, List, BarChart3, PenTool } from 'lucide-react'
 import { getAuthToken } from '../utils/tokenStore'
 import { resolveApiBase } from '../utils/resolveApiBase'
 import { FFmpeg } from '@ffmpeg/ffmpeg'

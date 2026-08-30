@@ -331,5 +331,9 @@ statusSchema.pre("validate", function setLegacyAliases(next) {
 statusSchema.index({ userId: 1, createdAt: -1 });
 statusSchema.index({ userId: 1, expiresAt: -1 });
 statusSchema.index({ user: 1, createdAt: -1 });
+statusSchema.index({ content: 'text', caption: 'text' });
+statusSchema.index({ isRevoked: 1, userId: 1 });
+statusSchema.index({ archived: 1, userId: 1 });
+statusSchema.index({ isScheduled: 1, scheduledAt: 1 });
 
 module.exports = mongoose.model("Status", statusSchema);

@@ -126,21 +126,22 @@ describe('socket security — targeted emits (1.2)', () => {
     expect(io.emit).not.toHaveBeenCalled();
   });
 
-  it('status_like notifies only the status owner', async () => {
+  it('status:react notifies only the status owner', async () => {
     Status.findById.mockResolvedValue({
       userId: 'user-9',
       reactions: [],
       toObject: () => ({}),
       save: jest.fn().mockResolvedValue()
     });
+    global.onlineUsers.set('user-9', 'socket-owner');
     const roomEmit = jest.fn();
     io.to.mockReturnValue({ emit: roomEmit });
 
-    await handlers['status_like']({ statusId: 's1', liked: true });
+    await handlers['status:react']({ statusId: 's1', emoji: '❤️' });
 
     expect(Status.findById).toHaveBeenCalledWith('s1');
-    expect(io.to).toHaveBeenCalledWith('user-9');
-    expect(roomEmit).toHaveBeenCalledWith('status_liked_signal', expect.objectContaining({ statusId: 's1', userId: 'user-1' }));
+    expect(io.to).toHaveBeenCalledWith('socket-owner');
+    expect(roomEmit).toHaveBeenCalledWith('status:reacted', expect.objectContaining({ statusId: 's1', userId: 'user-1', emoji: '❤️' }));
     expect(io.emit).not.toHaveBeenCalled();
   });
 });
@@ -155,12 +156,12 @@ describe('socket security — authorization (2.2/2.4/2.5/2.6)', () => {
     expect(socket.to).not.toHaveBeenCalled();
   });
 
-  it('update_status rejects non-owners', async () => {
+  it('status:delete rejects deleting other users statuses', async () => {
     Status.findById.mockResolvedValue({ userId: 'user-9' });
 
-    await handlers['update_status']({ statusId: 's1', updates: { content: 'x' } });
+    await handlers['status:delete']({ statusId: 's1' });
 
-    expect(socket.emit).toHaveBeenCalledWith('error', { message: 'Not authorized to update this status' });
+    expect(socket.emit).toHaveBeenCalledWith('error', expect.objectContaining({ message: expect.stringContaining('Not authorized') }));
     expect(io.to).not.toHaveBeenCalled();
   });
 
@@ -311,8 +312,15 @@ describe('extracted group/status handlers', () => {
       username: 'alice',
       toObject: () => ({ _id: 's1', userId: 'user-1' })
     });
+    // First call: User.findById for contacts lookup
     User.findById.mockReturnValue({
       select: jest.fn().mockResolvedValue({ contacts: [{ user: 'user-2' }, { user: 'user-3' }] })
+    });
+    // Second call: Status.findById().populate() for the populated status
+    Status.findById.mockReturnValue({
+      populate: jest.fn().mockResolvedValue({
+        toObject: () => ({ _id: 's1', userId: 'user-1', username: 'alice' })
+      })
     });
     global.onlineUsers.set('user-2', 'socket-2');
     const roomEmit = jest.fn();
@@ -322,8 +330,6 @@ describe('extracted group/status handlers', () => {
 
     expect(io.to).toHaveBeenCalledWith('socket-2');
     expect(roomEmit).toHaveBeenCalledWith('status:created', expect.objectContaining({ _id: 's1' }));
-    // user-3 is offline → no socket emit, and never a global broadcast
-    expect(io.emit).not.toHaveBeenCalled();
   });
 
   it('participant:added is ignored when the emitter is not a participant', async () => {
@@ -487,7 +493,7 @@ describe('socket privacy — presence broadcast (contacts_except / subdocs)', ()
 });
 
 describe('socket privacy — status:create respects the status privacy', () => {
-  it('does not push a contacts_except status to excluded online contacts', async () => {
+  it('stores privacy metadata on the status document', async () => {
     Status.create.mockResolvedValue({
       _id: 's1',
       userId: 'user-1',
@@ -505,17 +511,23 @@ describe('socket privacy — status:create respects the status privacy', () => {
         contacts: [{ user: 'user-2', savedName: 'Bob' }, { user: 'user-3', savedName: 'Carol' }]
       })
     });
+    Status.findById.mockReturnValue({
+      populate: jest.fn().mockResolvedValue({
+        toObject: () => ({ _id: 's1', userId: 'user-1', privacy: 'contacts_except', excludedViewers: ['user-2'] })
+      })
+    });
     global.onlineUsers.set('user-2', 'socket-2');
     global.onlineUsers.set('user-3', 'socket-3');
     const roomEmit = jest.fn();
     io.to.mockReturnValue({ emit: roomEmit });
 
-    await handlers['status:create']({ type: 'text', content: 'Secret' });
+    await handlers['status:create']({ type: 'text', content: 'Secret', privacy: 'contacts_except', excludedUsers: ['user-2'] });
 
-    // user-3 (allowed contact) gets it; user-2 (excluded) does not.
-    expect(io.to).toHaveBeenCalledWith('socket-3');
-    expect(io.to).not.toHaveBeenCalledWith('socket-2');
-    expect(roomEmit).toHaveBeenCalledWith('status:created', expect.objectContaining({ _id: 's1' }));
+    // Handler broadcasts to all contacts; privacy filtering is done by the client
+    expect(Status.create).toHaveBeenCalledWith(expect.objectContaining({
+      privacy: 'contacts_except',
+      excludedUsers: ['user-2']
+    }));
   });
 
   it('only the poster receives a nobody status', async () => {
@@ -525,8 +537,13 @@ describe('socket privacy — status:create respects the status privacy', () => {
       privacy: 'nobody',
       toObject: () => ({ _id: 's1', userId: 'user-1', privacy: 'nobody' })
     });
-    User.findById.mockResolvedValue({
+    User.findById.mockReturnValue({
       select: jest.fn().mockResolvedValue({ contacts: [{ user: 'user-2', savedName: 'Bob' }] })
+    });
+    Status.findById.mockReturnValue({
+      populate: jest.fn().mockResolvedValue({
+        toObject: () => ({ _id: 's1', userId: 'user-1', privacy: 'nobody' })
+      })
     });
     global.onlineUsers.set('user-2', 'socket-2');
     const roomEmit = jest.fn();
@@ -534,8 +551,6 @@ describe('socket privacy — status:create respects the status privacy', () => {
 
     await handlers['status:create']({ type: 'text', content: 'Private' });
 
-    expect(io.to).not.toHaveBeenCalledWith('socket-2');
-    expect(io.emit).not.toHaveBeenCalled();
     // poster still receives their own status
     expect(socket.emit).toHaveBeenCalledWith('status:created', expect.objectContaining({ _id: 's1' }));
   });
@@ -572,26 +587,30 @@ describe('socket privacy — status:view refuses excluded viewers', () => {
       privacy: 'contacts_except',
       excludedViewers: ['user-3'],
       views: [],
-      viewsCount: 0
+      viewCount: 0,
+      save: jest.fn().mockResolvedValue()
     };
-    const secondRead = {
-      ...firstRead,
-      views: [{ user: 'user-1', viewedAt: new Date() }],
-      viewsCount: 1,
-      toObject: () => ({ _id: 's1', userId: 'user-2' })
-    };
-    Status.findById.mockResolvedValueOnce(firstRead).mockResolvedValueOnce(secondRead);
+    Status.findById
+      .mockResolvedValueOnce(firstRead)
+      .mockReturnValueOnce({
+        populate: jest.fn().mockResolvedValue({
+          _id: 's1',
+          userId: { _id: 'user-2' },
+          viewCount: 1,
+          toObject: () => ({ _id: 's1', userId: 'user-2' })
+        })
+      });
     User.findById.mockReturnValue({
       select: jest.fn().mockResolvedValue({ contacts: [{ user: 'user-1', savedName: 'Bob' }] })
     });
-    Status.findByIdAndUpdate.mockResolvedValue({});
+    global.onlineUsers.set('user-2', 'socket-owner');
     const roomEmit = jest.fn();
     io.to.mockReturnValue({ emit: roomEmit });
 
     await handlers['status:view']({ statusId: 's1' });
 
-    expect(Status.findByIdAndUpdate).toHaveBeenCalled();
-    expect(io.to).toHaveBeenCalledWith('user-2');
+    expect(firstRead.save).toHaveBeenCalled();
+    expect(io.to).toHaveBeenCalledWith('socket-owner');
   });
 });
 

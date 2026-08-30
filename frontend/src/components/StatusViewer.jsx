@@ -61,6 +61,12 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
   const containerRef = useRef(null)
   const touchStartX = useRef(0)
   const voiceAudioRef = useRef(null)
+  const touchStartY = useRef(0)
+  const lastTapTime = useRef(0)
+  const [scale, setScale] = useState(1)
+  const [heartAnim, setHeartAnim] = useState(null)
+  const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const [showScreenshotWarning, setShowScreenshotWarning] = useState(false)
 
   // Close all overlay modals to prevent stacking
   const closeAllModals = useCallback(() => {
@@ -244,19 +250,93 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
     setTimeout(() => setCopyToast(''), 2500)
   }
 
-  // Touch handlers for swipe
+  // Screenshot blocking (PrintScreen key)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'PrintScreen') {
+        e.preventDefault()
+        setShowScreenshotWarning(true)
+        fetch(`${resolveApiBase()}/status/${currentStatus?._id}/screenshot-attempt`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(getAuthToken() ? { Authorization: `Bearer ${getAuthToken()}` } : {})
+          }
+        }).catch(() => {})
+        setTimeout(() => setShowScreenshotWarning(false), 2000)
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [currentStatus?._id])
+
+  // Touch handlers for swipe (horizontal) + swipe down to close + double tap
   const handleTouchStart = (e) => {
+    if (e.touches.length === 2) {
+      // Pinch start - record distance
+      const dist = Math.hypot(
+        e.touches[0].pageX - e.touches[1].pageX,
+        e.touches[0].pageY - e.touches[1].pageY
+      )
+      touchStartY.current = dist
+      return
+    }
     touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
     setIsPaused(true)
   }
 
+  const handleTouchMove = (e) => {
+    // Pinch-to-zoom for images
+    if (e.touches.length === 2 && (currentStatus?.type === 'image')) {
+      e.preventDefault()
+      const dist = Math.hypot(
+        e.touches[0].pageX - e.touches[1].pageX,
+        e.touches[0].pageY - e.touches[1].pageY
+      )
+      const newScale = Math.min(Math.max(dist / (touchStartY.current || 200), 1), 3)
+      setScale(newScale)
+    }
+  }
+
   const handleTouchEnd = (e) => {
-    const diff = touchStartX.current - e.changedTouches[0].clientX
+    const endX = e.changedTouches[0].clientX
+    const endY = e.changedTouches[0].clientY
+    const diffX = touchStartX.current - endX
+    const diffY = touchStartY.current - endY
     setIsPaused(false)
-    if (Math.abs(diff) > 50) {
-      if (diff > 0) goNext()
+
+    // Reset pinch zoom
+    if (scale > 1) {
+      setScale(1)
+      return
+    }
+
+    // Swipe down to close (vertical swipe > 100px)
+    if (diffY < -100 && Math.abs(diffY) > Math.abs(diffX)) {
+      onClose()
+      return
+    }
+
+    // Horizontal swipe
+    if (Math.abs(diffX) > 50) {
+      if (diffX > 0) goNext()
       else goPrev()
     }
+  }
+
+  // Double-tap to like with heart animation
+  const handleDoubleTap = (e) => {
+    const now = Date.now()
+    if (now - lastTapTime.current < 300) {
+      handleReaction('❤️')
+      const rect = e.currentTarget.getBoundingClientRect()
+      const x = (e.clientX || e.touches?.[0]?.clientX || rect.width / 2) - rect.left
+      const y = (e.clientY || e.touches?.[0]?.clientY || rect.height / 2) - rect.top
+      setHeartAnim({ x, y, id: Date.now() })
+      setTimeout(() => setHeartAnim(null), 1000)
+    }
+    lastTapTime.current = now
   }
 
   const handleSendReply = async () => {
@@ -431,7 +511,7 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
     }
   }
 
-  const QUICK_REACTIONS = ['❤️', '😂', '😮', '😢', '🙏', '🔥']
+  const QUICK_REACTIONS = ['❤️', '🙏', '😂', '😮', '😢', '👍', '👎', '🔥']
 
   const fetchViewers = async () => {
     if (!isOwner) return
@@ -519,11 +599,36 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
         </div>
       </div>
 
+      {/* Screenshot Warning */}
+      {showScreenshotWarning && (
+        <div style={{
+          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+          background: 'rgba(0,0,0,0.85)', color: '#ff4444', padding: '16px 24px',
+          borderRadius: '16px', fontSize: '14px', fontWeight: 600, zIndex: 100,
+          display: 'flex', alignItems: 'center', gap: '8px'
+        }}>
+          🚫 Screenshot detected!
+        </div>
+      )}
+
+      {/* Double-tap Heart Animation */}
+      {heartAnim && (
+        <div key={heartAnim.id} style={{
+          position: 'absolute', left: heartAnim.x - 24, top: heartAnim.y - 24,
+          zIndex: 99, pointerEvents: 'none',
+          animation: 'heartBurst 1s ease-out forwards'
+        }}>
+          <Heart size={48} color="#ff0000" fill="#ff0000" />
+        </div>
+      )}
+
       {/* Content Area */}
-      <div 
+      <div
         className="viewer-content"
         onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onClick={handleDoubleTap}
         onMouseDown={() => setIsPaused(true)}
         onMouseUp={() => setIsPaused(false)}
         onMouseLeave={() => setIsPaused(false)}
@@ -538,7 +643,12 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
         )}
 
         {currentStatus.type === 'image' && (
-          <img src={currentStatus.content} alt="status" className="status-media" />
+          <img
+            src={currentStatus.content}
+            alt="status"
+            className="status-media"
+            style={{ transform: `scale(${scale})`, transition: scale !== 1 ? 'transform 0.1s' : 'none', touchAction: 'none' }}
+          />
         )}
 
         {currentStatus.type === 'video' && (
@@ -734,18 +844,11 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
           <Heart size={16} fill="#00a884" />
         </button>
 
-        {isMentioned && typeof onReshare === 'function' && (
-          <button 
-            className="action-btn reshare-btn" 
-            onClick={() => onReshare(currentStatus)} 
-            title="Add to My Status"
-            style={{ background: '#00a884', color: '#ffffff', borderRadius: '16px', padding: '4px 10px', fontSize: '12px', fontWeight: 'bold' }}
-          >
-            + Add to My Status
-          </button>
-        )}
-
-        <button className="action-btn" onClick={() => { if (!showReactions) closeAllModals(); setShowReactions(!showReactions); }} title="React">
+        <button
+          className="action-btn"
+          onClick={() => { if (!showMoreMenu) closeAllModals(); setShowMoreMenu(!showMoreMenu); }}
+          title="More"
+        >
           <Smile size={16} />
         </button>
 
@@ -756,6 +859,41 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
           }}>
             <Trash2 size={16} />
           </button>
+        )}
+
+        {/* Expanded More Menu */}
+        {showMoreMenu && (
+          <div className="more-menu" style={{
+            position: 'absolute', bottom: '60px', right: '8px',
+            background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)',
+            borderRadius: '16px', padding: '8px', minWidth: '160px',
+            border: '1px solid rgba(255,255,255,0.15)', zIndex: 50
+          }}>
+            <button onClick={() => { handleSave(); setShowMoreMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 12px', background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '13px', borderRadius: '8px' }}>
+              <Download size={16} /> Save
+            </button>
+            <button onClick={() => { closeAllModals(); setShowForward(true); setShowMoreMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 12px', background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '13px', borderRadius: '8px' }}>
+              <Forward size={16} /> Forward
+            </button>
+            {isOwner && (
+              <button onClick={() => { handleShare(); setShowMoreMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 12px', background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '13px', borderRadius: '8px' }}>
+                <Share2 size={16} /> Share Link
+              </button>
+            )}
+            {isOwner && (
+              <button onClick={() => { handleShowQR(); setShowMoreMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 12px', background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '13px', borderRadius: '8px' }}>
+                <QrCode size={16} /> QR Code
+              </button>
+            )}
+            <button onClick={() => { if (!showReactions) closeAllModals(); setShowReactions(!showReactions); setShowMoreMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 12px', background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '13px', borderRadius: '8px' }}>
+              <Smile size={16} /> React
+            </button>
+            {isMentioned && typeof onReshare === 'function' && (
+              <button onClick={() => { onReshare(currentStatus); setShowMoreMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 12px', background: 'rgba(0,168,132,0.3)', border: 'none', color: '#00a884', cursor: 'pointer', fontSize: '13px', fontWeight: 600, borderRadius: '8px' }}>
+                🔄 Reshare to My Status
+              </button>
+            )}
+          </div>
         )}
       </div>
 

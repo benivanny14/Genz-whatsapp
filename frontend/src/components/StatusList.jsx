@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useMemo, useCallback, useRef } from 'react'
 import { useStatusContext } from '../context/StatusContext'
 import { useChat } from '../context/ChatContext'
 import { Plus, Camera, RefreshCw, Volume2, VolumeX, Clock, Archive, Eye, ChevronRight, Lock, Search, Star, Bookmark, Store } from 'lucide-react'
@@ -55,6 +55,37 @@ const StatusList = ({ onViewArchive }) => {
   const [viewerUser, setViewerUser] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const scrollRef = useRef(null)
+  const [pullStartY, setPullStartY] = useState(0)
+  const [pullDistance, setPullDistance] = useState(0)
+  const [isPulling, setIsPulling] = useState(false)
+
+  // Pull-to-refresh handlers
+  const handlePullStart = useCallback((e) => {
+    const el = scrollRef.current
+    if (el && el.scrollTop === 0) {
+      setPullStartY(e.touches[0].clientY)
+      setIsPulling(true)
+    }
+  }, [])
+
+  const handlePullMove = useCallback((e) => {
+    if (!isPulling) return
+    const dist = e.touches[0].clientY - pullStartY
+    if (dist > 0) {
+      setPullDistance(Math.min(dist, 120))
+      e.preventDefault()
+    }
+  }, [isPulling, pullStartY])
+
+  const handlePullEnd = useCallback(() => {
+    if (pullDistance > 80) {
+      handleRefresh()
+    }
+    setPullDistance(0)
+    setPullStartY(0)
+    setIsPulling(false)
+  }, [pullDistance, handleRefresh])
 
   const handleReshareStatus = useCallback(async (statusToReshare) => {
     if (!statusToReshare) return;
@@ -161,7 +192,35 @@ const StatusList = ({ onViewArchive }) => {
   }
 
   return (
-    <div className="status-list pb-24 md:pb-4">
+    <div
+      ref={scrollRef}
+      className="status-list pb-24 md:pb-4"
+      onTouchStart={handlePullStart}
+      onTouchMove={handlePullMove}
+      onTouchEnd={handlePullEnd}
+      style={{ position: 'relative', overflowY: 'auto' }}
+    >
+      {/* Pull-to-refresh indicator */}
+      {pullDistance > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          height: pullDistance,
+          transition: isPulling ? 'none' : 'height 0.3s ease',
+          overflow: 'hidden'
+        }}>
+          <RefreshCw
+            size={22}
+            color="#00a884"
+            style={{
+              transform: `rotate(${pullDistance > 80 ? 360 : (pullDistance / 80) * 360}deg)`,
+              transition: isPulling ? 'none' : 'transform 0.3s'
+            }}
+          />
+          <span style={{ marginLeft: 8, fontSize: 13, color: pullDistance > 80 ? '#00a884' : '#8696a0' }}>
+            {pullDistance > 80 ? 'Release to refresh' : 'Pull to refresh'}
+          </span>
+        </div>
+      )}
       {/* Header */}
       <div className="status-list-header">
         <h2>Status</h2>

@@ -293,16 +293,35 @@ const StatusProvider = ({ children }) => {
       toast(`${statusOwnerUsername || 'Someone'} tagged you in their status 🏷️`, { duration: 4000 });
     };
 
+    const handleReply = ({ statusId, reply }) => {
+      if (typeof toast === 'function') {
+        toast('New reply on your status 💬', { duration: 3000 });
+      }
+    };
+
+    const handleReacted = ({ statusId, emoji, userId, reactions }) => {
+      setStatuses(prev => prev.map(s => {
+        if (s._id === statusId) {
+          return { ...s, reactions: reactions || s.reactions };
+        }
+        return s;
+      }));
+    };
+
     socket.on('status:created', handleCreated);
     socket.on('status:deleted', handleDeleted);
     socket.on('status:viewed', handleViewed);
     socket.on('status:mentioned', handleMentioned);
+    socket.on('status:reply', handleReply);
+    socket.on('status:reacted', handleReacted);
 
     return () => {
       socket.off('status:created', handleCreated);
       socket.off('status:deleted', handleDeleted);
       socket.off('status:viewed', handleViewed);
       socket.off('status:mentioned', handleMentioned);
+      socket.off('status:reply', handleReply);
+      socket.off('status:reacted', handleReacted);
     };
   }, []);
 

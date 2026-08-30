@@ -860,11 +860,13 @@ describe('advancedController — status viewers / media / delete / reply', () =>
   beforeEach(() => jest.clearAllMocks());
 
   it('getStatusViewers returns 404 for an unknown status', async () => {
-    const chain = { populate: jest.fn() };
-    chain.populate
-      .mockImplementationOnce(() => chain)
-      .mockReturnValue(Promise.resolve(null));
-    Status.findById.mockReturnValue(chain);
+    const makeChain = (result) => {
+      const c = { populate: jest.fn() };
+      c.populate.mockReturnValue(c);
+      c.then = (resolve) => resolve(result);
+      return c;
+    };
+    Status.findById.mockReturnValue(makeChain(null));
     const res = makeRes();
     await advanced.getStatusViewers(makeReq({ params: { id: 's-1' } }), res);
     expect(res.statusCode).toBe(404);
@@ -872,11 +874,13 @@ describe('advancedController — status viewers / media / delete / reply', () =>
 
   it('getStatusViewers blocks viewers on other people\'s statuses (403)', async () => {
     const status = makeStatus({ userId: 'user-2', views: [{ user: { _id: 'u9', username: 'x' } }] });
-    const chain = { populate: jest.fn() };
-    chain.populate
-      .mockImplementationOnce(() => chain)
-      .mockReturnValue(Promise.resolve(status));
-    Status.findById.mockReturnValue(chain);
+    const makeChain = (result) => {
+      const c = { populate: jest.fn() };
+      c.populate.mockReturnValue(c);
+      c.then = (resolve) => resolve(result);
+      return c;
+    };
+    Status.findById.mockReturnValue(makeChain(status));
     const res = makeRes();
     await advanced.getStatusViewers(makeReq({ params: { id: 's-1' } }), res);
     expect(res.statusCode).toBe(403);
@@ -887,11 +891,13 @@ describe('advancedController — status viewers / media / delete / reply', () =>
       views: [{ user: { _id: 'u2', username: 'bob' } }, { user: null }],
       reactions: [{ user: { _id: 'u3', username: 'carol' } }, { user: null }]
     });
-    const chain = { populate: jest.fn() };
-    chain.populate
-      .mockImplementationOnce(() => chain)
-      .mockReturnValue(Promise.resolve(status));
-    Status.findById.mockReturnValue(chain);
+    const makeChain = (result) => {
+      const c = { populate: jest.fn() };
+      c.populate.mockReturnValue(c);
+      c.then = (resolve) => resolve(result);
+      return c;
+    };
+    Status.findById.mockReturnValue(makeChain(status));
     const res = makeRes();
     await advanced.getStatusViewers(makeReq({ params: { id: 's-1' } }), res);
     expect(res.body.viewers).toHaveLength(1);
@@ -951,9 +957,9 @@ describe('advancedController — status viewers / media / delete / reply', () =>
     expect(res.statusCode).toBe(403);
   });
 
-  it('deleteStatus deletes and notifies via socket (happy path)', async () => {
-    Status.findById.mockResolvedValue(makeStatus());
-    Status.findByIdAndDelete.mockResolvedValue({});
+  it('deleteStatus soft-deletes and notifies via socket (happy path)', async () => {
+    const status = makeStatus();
+    Status.findById.mockResolvedValue(status);
     const emit = jest.fn();
     const io = { emit };
     const req = makeReq({ params: { id: 's-1' } });
@@ -961,7 +967,9 @@ describe('advancedController — status viewers / media / delete / reply', () =>
     const res = makeRes();
     await advanced.deleteStatus(req, res);
     expect(res.statusCode).toBe(200);
-    expect(Status.findByIdAndDelete).toHaveBeenCalledWith('s-1');
+    expect(status.isRevoked).toBe(true);
+    expect(status.isDeleted).toBe(true);
+    expect(status.save).toHaveBeenCalled();
     expect(io.emit).toHaveBeenCalledWith('status:deleted', { statusId: 's-1', userId: 'user-1' });
   });
 

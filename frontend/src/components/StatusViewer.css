@@ -459,3 +459,34 @@
   font-size: 12px;
   z-index: 10;
 }
+
+/* Heart burst animation for double-tap to like */
+@keyframes heartBurst {
+  0% { transform: scale(0); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 1; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+/* Slide down animation for muted accordion */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Bottom bar overflow fix - ensure buttons wrap on small screens */
+@media (max-width: 360px) {
+  .viewer-bottom {
+    gap: 2px;
+    padding: 8px 4px;
+  }
+  .reply-input-container {
+    min-width: 80px;
+    max-width: 140px;
+  }
+  .action-btn, .delete-btn {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+  }
+}

@@ -11,19 +11,19 @@ const serverSource = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'u
 
 describe('process error handlers (SECURITY 2.3)', () => {
   it('registers an uncaughtException handler that exits non-zero', () => {
-    const m = serverSource.match(/process\.on\('uncaughtException',\s*\((\w+)\)\s*=>\s*\{([\s\S]*?)\}\);/);
+    const m = serverSource.match(/process\.on\(["']uncaughtException["'],\s*\((\w+)\)\s*=>\s*\{([\s\S]*?)\}\);/);
     expect(m).not.toBeNull();
     expect(m[2]).toMatch(/process\.exit\(1\)/);
   });
 
   it('registers an unhandledRejection handler that exits non-zero', () => {
-    const m = serverSource.match(/process\.on\('unhandledRejection',\s*\(([\s\S]*?)\)\s*=>\s*\{([\s\S]*?)\}\);/);
+    const m = serverSource.match(/process\.on\(["']unhandledRejection["'],\s*\(([\s\S]*?)\)\s*=>\s*\{([\s\S]*?)\}\);/);
     expect(m).not.toBeNull();
     expect(m[2]).toMatch(/process\.exit\(1\)/);
   });
 
   it('does not swallow fatal errors (no bare process.exit(0) in the handlers)', () => {
-    const handlers = serverSource.match(/process\.on\('uncaughtException'[\s\S]*?\}\);\s*process\.on\('unhandledRejection'[\s\S]*?\}\);/);
+    const handlers = serverSource.match(/process\.on\(["']uncaughtException["'][\s\S]*?\}\);\s*process\.on\(["']unhandledRejection["'][\s\S]*?\}\);/);
     expect(handlers).not.toBeNull();
     expect(handlers[0]).not.toMatch(/process\.exit\(0\)/);
   });
