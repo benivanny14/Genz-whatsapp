@@ -75,6 +75,13 @@ const StatusList = ({ onViewArchive }) => {
     })
   }, [])
 
+  // Refresh handler (must be defined before pull-to-refresh handlers)
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true)
+    await fetchStatuses()
+    setRefreshing(false)
+  }, [fetchStatuses])
+
   // Pull-to-refresh handlers
   const handlePullStart = useCallback((e) => {
     const el = scrollRef.current
@@ -186,12 +193,6 @@ const StatusList = ({ onViewArchive }) => {
   const handleViewStatus = useCallback((group) => {
     setViewerUser(group)
   }, [])
-
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true)
-    await fetchStatuses()
-    setRefreshing(false)
-  }, [fetchStatuses])
 
   const getUnviewedCount = useCallback((group) => {
     return group.statuses.filter(s => !s.isViewed).length
