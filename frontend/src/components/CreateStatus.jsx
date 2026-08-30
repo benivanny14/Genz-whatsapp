@@ -1,11 +1,15 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { useStatusContext } from '../context/StatusContext'
-import { X, Type, Image, Video, Music, Scissors, Send, Volume2, Users, Check, UserX, UserCheck, Lock, Plus, Trash2, AtSign, Smile, Mic, MicOff, Clock, ShieldAlert, Award, ChevronDown, List, BarChart3, PenTool } from 'lucide-react'
+import { X, Type, Image, Video, Music, Scissors, Send, Volume2, Users, Check, UserX, UserCheck, Lock, Plus, Trash2, AtSign, Smile, Mic, MicOff, Clock, ShieldAlert, Award, ChevronDown, List, BarChart3, PenTool, MapPin, LayoutGrid, Sparkles } from 'lucide-react'
 import { getAuthToken } from '../utils/tokenStore'
 import { resolveApiBase } from '../utils/resolveApiBase'
 import { FFmpeg } from '@ffmpeg/ffmpeg'
 import { fetchFile } from '@ffmpeg/util'
 import './CreateStatus.css'
+import MusicPicker from './MusicPicker'
+import CollageBuilder from './CollageBuilder'
+import LocationSticker from './LocationSticker'
+import TextAnimationPicker, { injectAnimationKeyframes, getAnimationStyle } from './TextAnimationPicker'
 
 const TEXT_COLORS = [
   { bg: '#128C7E', font: '#FFFFFF' },
@@ -123,6 +127,19 @@ const CreateStatus = ({ onClose }) => {
   const [trimStart, setTrimStart] = useState(0)
   const [trimEnd, setTrimEnd] = useState(60)
   const [musicFile, setMusicFile] = useState(null)
+
+  // New creative tools state
+  const [showMusicPicker, setShowMusicPicker] = useState(false)
+  const [selectedMusicData, setSelectedMusicData] = useState(null)
+  const [showCollage, setShowCollage] = useState(false)
+  const [collageData, setCollageData] = useState(null)
+  const [showLocationPicker, setShowLocationPicker] = useState(false)
+  const [selectedLocation, setSelectedLocation] = useState(null)
+  const [textAnimation, setTextAnimation] = useState('none')
+  const [isViewOnce, setIsViewOnce] = useState(false)
+
+  // Inject animation keyframes on mount
+  useEffect(() => { injectAnimationKeyframes() }, [])
 
   // WhatsApp 2026 & TM Features State
   const [replySettings, setReplySettings] = useState('everyone')
@@ -538,7 +555,9 @@ const CreateStatus = ({ onClose }) => {
           replySettings,
           quality,
           statusDuration,
-          addYoursPrompt: addYoursPrompt || undefined
+          addYoursPrompt: addYoursPrompt || undefined,
+          textAnimation: textAnimation !== 'none' ? textAnimation : undefined,
+          isViewOnce: isViewOnce || undefined
         })
         onClose()
         return
@@ -558,7 +577,9 @@ const CreateStatus = ({ onClose }) => {
           replySettings,
           quality,
           statusDuration,
-          addYoursPrompt: addYoursPrompt || undefined
+          addYoursPrompt: addYoursPrompt || undefined,
+          textAnimation: textAnimation !== 'none' ? textAnimation : undefined,
+          isViewOnce: isViewOnce || undefined
         })
         onClose()
         return
@@ -849,7 +870,7 @@ const CreateStatus = ({ onClose }) => {
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Type a status..."
-            style={{ color: selectedColor.font, fontFamily: FONT_STYLES[fontIndex].family }}
+            style={{ color: selectedColor.font, fontFamily: FONT_STYLES[fontIndex].family, ...getAnimationStyle(textAnimation) }}
             maxLength={700}
           />
 
@@ -1133,6 +1154,8 @@ const CreateStatus = ({ onClose }) => {
           }} />}
           {mode === 'image' && <BottomToolBtn icon={<span style={{ fontSize: '18px' }}>🎨</span>} label="Filter" active={activeBottomSheet === 'filter'} onClick={() => setActiveBottomSheet(activeBottomSheet === 'filter' ? null : 'filter')} />}
           <BottomToolBtn icon={<Users size={20} />} label="Privacy" active={activeBottomSheet === 'privacy'} onClick={() => setActiveBottomSheet(activeBottomSheet === 'privacy' ? null : 'privacy')} />
+          {mode === 'image' && <BottomToolBtn icon={<LayoutGrid size={20} />} label="Collage" active={activeBottomSheet === 'collage'} onClick={() => setActiveBottomSheet(activeBottomSheet === 'collage' ? null : 'collage')} />}
+          {mode === 'image' && <BottomToolBtn icon={<MapPin size={20} />} label="Location" active={activeBottomSheet === 'location'} onClick={() => setActiveBottomSheet(activeBottomSheet === 'location' ? null : 'location')} />}
           <BottomToolBtn icon={<BarChart3 size={20} />} label="More" active={activeBottomSheet === 'more'} onClick={() => setActiveBottomSheet(activeBottomSheet === 'more' ? null : 'more')} />
         </div>
 
@@ -1189,50 +1212,43 @@ const CreateStatus = ({ onClose }) => {
                 </>
               )}
 
-              {/* Music Sheet */}
+              {/* Music Sheet — enhanced with Spotify search, upload, trending tabs */}
               {activeBottomSheet === 'music' && (
                 <>
                   <h3 style={{ color: '#e9edef', fontSize: '16px', fontWeight: 600, margin: '0 0 12px' }}>🎵 Add Music</h3>
-                  {!musicFile ? (
-                    <label style={{
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
-                      padding: '24px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px',
-                      border: '2px dashed rgba(255,255,255,0.2)', cursor: 'pointer'
-                    }}>
-                      <Volume2 size={28} color="#00a884" />
-                      <span style={{ color: '#8696a0', fontSize: '13px' }}>Choose audio from device</span>
-                      <input type="file" accept="audio/*" hidden onChange={(e) => { if (e.target.files[0]) { setMusicFile(e.target.files[0]); setMusicEnd(15) } }} />
-                    </label>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      <div style={{ color: '#00a884', fontSize: '13px', textAlign: 'center' }}>🎶 {musicFile.name}</div>
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#8696a0', fontSize: '12px', marginBottom: '4px' }}>
-                          <span>Start: {musicStart}s</span>
-                        </div>
-                        <input type="range" min={0} max={30} value={musicStart}
-                          onChange={(e) => { const val = Number(e.target.value); setMusicStart(val); if (val >= musicEnd) setMusicEnd(val + 5) }}
-                          style={{ width: '100%' }} />
+                  <MusicPicker
+                    currentMusic={selectedMusicData}
+                    onSelect={(music) => {
+                      setSelectedMusicData(music)
+                      if (music?.file) {
+                        setMusicFile(music.file)
+                        setMusicEnd(15)
+                      } else if (music?.url) {
+                        // For Spotify/online tracks, store reference
+                        setMusicFile(null)
+                      }
+                    }}
+                    onClose={() => setActiveBottomSheet(null)}
+                  />
+                  {/* Music trim controls for uploaded files */}
+                  {musicFile && (
+                    <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#8696a0', fontSize: '12px' }}>
+                        <span>Start: {musicStart}s</span>
+                        <span>End: {musicEnd}s</span>
                       </div>
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#8696a0', fontSize: '12px', marginBottom: '4px' }}>
-                          <span>End: {musicEnd}s</span>
-                        </div>
-                        <input type="range" min={musicStart + 1} max={60} value={musicEnd}
-                          onChange={(e) => setMusicEnd(Number(e.target.value))}
-                          style={{ width: '100%' }} />
+                      <input type="range" min={0} max={30} value={musicStart}
+                        onChange={(e) => { const val = Number(e.target.value); setMusicStart(val); if (val >= musicEnd) setMusicEnd(val + 5) }}
+                        style={{ width: '100%' }} />
+                      <input type="range" min={musicStart + 1} max={60} value={musicEnd}
+                        onChange={(e) => setMusicEnd(Number(e.target.value))}
+                        style={{ width: '100%' }} />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#8696a0', fontSize: '12px' }}>
+                        <span>Volume: {Math.round(musicVolume * 100)}%</span>
                       </div>
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#8696a0', fontSize: '12px', marginBottom: '4px' }}>
-                          <span>Volume: {Math.round(musicVolume * 100)}%</span>
-                        </div>
-                        <input type="range" min={0} max={1} step={0.1} value={musicVolume}
-                          onChange={(e) => setMusicVolume(Number(e.target.value))}
-                          style={{ width: '100%' }} />
-                      </div>
-                      <button onClick={() => setMusicFile(null)} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', padding: '8px', color: '#ef4444', fontSize: '13px', cursor: 'pointer' }}>
-                        Remove Music
-                      </button>
+                      <input type="range" min={0} max={1} step={0.1} value={musicVolume}
+                        onChange={(e) => setMusicVolume(Number(e.target.value))}
+                        style={{ width: '100%' }} />
                     </div>
                   )}
                 </>
@@ -1267,6 +1283,34 @@ const CreateStatus = ({ onClose }) => {
                 </>
               )}
 
+              {/* Collage Sheet */}
+              {activeBottomSheet === 'collage' && mode === 'image' && (
+                <>
+                  <h3 style={{ color: '#e9edef', fontSize: '16px', fontWeight: 600, margin: '0 0 12px' }}>🖼️ Collage</h3>
+                  <CollageBuilder
+                    onComplete={(data) => {
+                      setCollageData(data)
+                      setActiveBottomSheet(null)
+                    }}
+                    onCancel={() => setActiveBottomSheet(null)}
+                  />
+                </>
+              )}
+
+              {/* Location Sheet */}
+              {activeBottomSheet === 'location' && (
+                <>
+                  <h3 style={{ color: '#e9edef', fontSize: '16px', fontWeight: 600, margin: '0 0 12px' }}>📍 Location</h3>
+                  <LocationSticker
+                    onSelect={(loc) => {
+                      setSelectedLocation(loc)
+                      setActiveBottomSheet(null)
+                    }}
+                    onClose={() => setActiveBottomSheet(null)}
+                  />
+                </>
+              )}
+
               {/* Privacy Sheet */}
               {activeBottomSheet === 'privacy' && (
                 <>
@@ -1290,10 +1334,21 @@ const CreateStatus = ({ onClose }) => {
                       </button>
                     ))}
                   </div>
+                  {/* View Once toggle */}
+                  <div style={{ marginTop: 12, padding: '12px', background: isViewOnce ? 'rgba(255,107,107,0.1)' : 'rgba(255,255,255,0.05)', border: isViewOnce ? '1px solid rgba(255,107,107,0.3)' : '1px solid rgba(255,255,255,0.1)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => setIsViewOnce(!isViewOnce)}>
+                    <span style={{ fontSize: 20 }}>🔥</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ color: '#fff', fontSize: 14, fontWeight: 500 }}>View Once</div>
+                      <div style={{ color: '#8696a0', fontSize: 11 }}>Status disappears after being viewed once</div>
+                    </div>
+                    <div style={{ width: 44, height: 24, borderRadius: 12, background: isViewOnce ? '#00a884' : 'rgba(255,255,255,0.2)', padding: 2, cursor: 'pointer', transition: 'background 0.2s' }}>
+                      <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#fff', transform: isViewOnce ? 'translateX(20px)' : 'translateX(0)', transition: 'transform 0.2s' }} />
+                    </div>
+                  </div>
                 </>
               )}
 
-              {/* More Sheet (Schedule, Poll, Reply, Quality, Duration) */}
+              {/* More Sheet (Schedule, Poll, Reply, Quality, Duration, Animation) */}
               {activeBottomSheet === 'more' && (
                 <>
                   <h3 style={{ color: '#e9edef', fontSize: '16px', fontWeight: 600, margin: '0 0 12px' }}>More Options</h3>
@@ -1304,6 +1359,12 @@ const CreateStatus = ({ onClose }) => {
                     <button onClick={() => { setActiveBottomSheet(null); setShowQualityModal(true) }} style={sheetMenuBtnStyle}><span>🎬</span><div><div>Quality</div><div style={{ fontSize: '11px', color: '#667781' }}>{quality.toUpperCase()}</div></div></button>
                     <button onClick={() => { setActiveBottomSheet(null); setShowDurationPicker(true) }} style={sheetMenuBtnStyle}><span>⏱️</span><div><div>Duration</div><div style={{ fontSize: '11px', color: '#667781' }}>{statusDuration}h</div></div></button>
                   </div>
+                  {mode === 'text' && (
+                    <div style={{ marginTop: 12 }}>
+                      <h4 style={{ color: '#e9edef', fontSize: '14px', fontWeight: 500, margin: '0 0 8px' }}>✨ Text Animation</h4>
+                      <TextAnimationPicker selected={textAnimation} onSelect={setTextAnimation} />
+                    </div>
+                  )}
                 </>
               )}
 

@@ -56,6 +56,8 @@ import {
 } from 'lucide-react';
 import ProfileEnlarger from './ProfileEnlarger';
 import AccountSwitcher from './AccountSwitcher';
+import StatusTray from './StatusTray';
+import ChatStatusRings from './ChatStatusRings';
 import { formatConversationTime } from '../utils/formatDate';
 import { getAvatarUrl } from '../utils/avatar';
 import { addConversationTag, removeConversationTag, getAvailableTags, loadConversationTags } from '../utils/conversationTags';
@@ -74,6 +76,12 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   
   // Compute total unread count across all conversations
   const { user: chatUser, conversations, selectConversation, selectedConversation, onlineUsers, togglePinChat, toggleMuteChat, toggleArchiveChat, clearChat, deleteChat, statuses, addStatus, deleteStatus, uploadStatusMedia, profileVisitors, showProfileEditor, setShowProfileEditor, typingByConversation, sendMessage, addContact, removeContact, acceptContact, rejectContact, fetchContacts, unviewedStatusByUser, wingaByUser } = useChat();
+
+  // StatusTray handlers
+  const handleTrayCreateStatus = () => navigate('/status?create=true')
+  const handleTrayViewStatus = (statusGroup) => {
+    navigate('/status', { state: { viewUserId: statusGroup._trayUser?._id || statusGroup.userId } })
+  }
   const currentUserId = String(user?._id || user?.id || 'anonymous');
   // Use the authenticated chat user id (falls back to the local user) when
   // matching conversation participants — fixes self-chat being shown as a
@@ -1403,6 +1411,16 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
           </div>
         )}
 
+        {/* StatusTray — horizontal scrollable status bar */}
+        {isOpen && activeTab === 'chats' && (
+          <StatusTray
+            statuses={statuses || []}
+            currentUser={user}
+            onCreateStatus={handleTrayCreateStatus}
+            onViewStatus={handleTrayViewStatus}
+          />
+        )}
+
         {isOpen && activeTab === 'chats' && archivedCount > 0 && (
           <button
             onClick={() => setShowArchivedOnly(!showArchivedOnly)}
@@ -1490,17 +1508,20 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                       );
                     })()}
                     <div className="relative z-[1] w-12 h-12 rounded-full bg-primary-600 flex items-center justify-center overflow-hidden hover:opacity-80 transition-opacity">
-                        {getConversationAvatar(conv) ? (
-                          <img
-                            src={getConversationAvatar(conv)}
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-white font-semibold">
-                            {getConversationName(conv)?.charAt(0)?.toUpperCase() || '?'}
-                          </span>
-                        )}
+                        <ChatStatusRings userId={!conv.isGroup ? conv.participants?.find(p => String(p?._id || p) !== String(user?.id))?._id : null}>
+                          {getConversationAvatar(conv) ? (
+                            <img
+                              src={getConversationAvatar(conv)}
+                              alt=""
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <span className="text-white font-semibold">
+                              {getConversationName(conv)?.charAt(0)?.toUpperCase() || '?'}
+                            </span>
+                          )}
+                        </ChatStatusRings>
                       </div>
                     {/* GENZ MOD: Online Indicator */}
                     {!conv.isGroup && onlineUsers.includes(conv.participants?.find(p => p._id !== user?.id)?._id)  && (

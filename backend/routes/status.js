@@ -692,6 +692,16 @@ router.post('/:id/view', protect, async (req, res) => {
       return res.json({ success: true, viewCount: status.viewCount || status.viewsCount || (status.views || []).length });
     }
 
+    // View Once: if status is viewOnce and already viewed, block re-viewing
+    if (status.isViewOnce) {
+      const alreadyViewed = status.views?.some(
+        v => viewerIdOf(v) === String(req.user._id)
+      );
+      if (alreadyViewed) {
+        return res.status(410).json({ success: false, message: 'Status already viewed (View Once)' });
+      }
+    }
+
     // Check if viewer has ghost mode enabled (persistent per-user setting)
     const isGhost = viewer?.statusFeaturesSettings?.ghostMode || false;
 
@@ -1021,6 +1031,33 @@ router.post('/:id/reply', protect, async (req, res) => {
 
     await status.save();
     const outgoingMessage = await createStatusReplyMessage(req, status, replyContent, conversationId);
+
+    // Auto-Reply: if the status owner has auto-reply enabled, send an automatic reply
+    try {
+      const owner = await User.findById(ownerIdOf(status)).select('autoReplyEnabled autoReplyMessage statusAutoReply');
+      const autoReply = owner?.autoReplyEnabled
+        ? owner.autoReplyMessage
+        : owner?.statusAutoReply?.enabled
+          ? owner.statusAutoReply.message
+          : null;
+      if (autoReply && outgoingMessage) {
+        const convId = outgoingMessage.conversationId || conversationId;
+        if (convId) {
+          // Send auto-reply via the messaging system
+          const Message = require('../models/Message');
+          await Message.create({
+            conversationId: convId,
+            senderId: ownerIdOf(status),
+            content: autoReply,
+            type: 'text',
+            status: 'sent'
+          });
+        }
+      }
+    } catch (autoReplyErr) {
+      // Non-critical: don't fail the reply if auto-reply fails
+      console.error('Auto-reply error (non-critical):', autoReplyErr.message);
+    }
 
     res.status(outgoingMessage ? 201 : 200).json({
       success: true,
@@ -1458,7 +1495,7 @@ router.get('/share/:token', async (req, res) => {
   }
 });
 
-// ============ LINK PREVIEW ============
+// ============ LINK PREVIEW (Open Graph scraping) ============
 router.post('/link-preview', protect, async (req, res) => {
   try {
     const { url } = req.body;
@@ -1466,17 +1503,88 @@ router.post('/link-preview', protect, async (req, res) => {
       return res.status(400).json({ success: false, message: 'URL is required' });
     }
 
-    // Simple link preview (in production, use open-graph-scraper or link-preview-js)
-    const domain = new URL(url).hostname;
-    const preview = {
-      url,
-      title: 'Link Preview',
-      description: 'Click to view link',
-      image: '',
-      domain
-    };
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      return res.status(400).json({ success: false, message: 'Invalid URL' });
+    }
 
-    res.json({ success: true, preview });
+    const domain = parsedUrl.hostname;
+
+    // Fetch the page HTML and extract OG tags
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; GenzMessenger/1.0; +https://genz.app)',
+          'Accept': 'text/html'
+        },
+        signal: controller.signal,
+        redirect: 'follow'
+      });
+      clearTimeout(timeout);
+
+      const html = await response.text();
+      // Extract OG meta tags using string search (avoids regex template literal parse issues)
+      const getMeta = (prop) => {
+        const ogProp = 'og:' + prop;
+        const twProp = 'twitter:' + prop;
+        // Try og: property first, then name, then twitter
+        for (const p of [ogProp, prop, twProp]) {
+          const idx = html.indexOf('property="' + p + '"');
+          if (idx >= 0) {
+            const before = html.lastIndexOf('<meta', idx);
+            const after = html.indexOf('/>', idx);
+            if (before >= 0 && after > idx) {
+              const tag = html.substring(before, after + 2);
+              const contentMatch = tag.match(/content="([^"]*?)"/);
+              if (contentMatch && contentMatch[1]) return contentMatch[1].trim();
+            }
+          }
+          const nameIdx = html.indexOf('name="' + p + '"');
+          if (nameIdx >= 0) {
+            const before = html.lastIndexOf('<meta', nameIdx);
+            const after = html.indexOf('/>', nameIdx);
+            if (before >= 0 && after > nameIdx) {
+              const tag = html.substring(before, after + 2);
+              const contentMatch = tag.match(/content="([^"]*?)"/);
+              if (contentMatch && contentMatch[1]) return contentMatch[1].trim();
+            }
+          }
+        }
+        return '';
+      };
+
+      const titleTag = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+      const title = getMeta('title') || (titleTag && titleTag[1] ? titleTag[1].trim() : '');
+      const description = getMeta('description') || '';
+      const image = getMeta('image') || '';
+
+      res.json({
+        success: true,
+        preview: {
+          url: getMeta('url') || url,
+          title: title.substring(0, 200),
+          description: description.substring(0, 500),
+          image,
+          domain
+        }
+      });
+    } catch (fetchErr) {
+      // Fallback: return basic info
+      res.json({
+        success: true,
+        preview: {
+          url,
+          title: domain,
+          description: 'Click to view link',
+          image: '',
+          domain
+        }
+      });
+    }
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to fetch link preview' });
   }

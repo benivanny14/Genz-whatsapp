@@ -122,7 +122,9 @@ const StatusProvider = ({ children }) => {
           quality: textData?.quality || 'standard',
           statusDuration: textData?.statusDuration || 24,
           maxDuration: textData?.maxDuration,
-          addYoursPrompt: textData?.addYoursPrompt || ''
+          addYoursPrompt: textData?.addYoursPrompt || '',
+          textAnimation: textData?.textAnimation || 'none',
+          isViewOnce: textData?.isViewOnce || false
         })
       });
       const data = await res.json();
@@ -175,7 +177,8 @@ const StatusProvider = ({ children }) => {
           quality: formData.get('quality') || 'standard',
           statusDuration: formData.get('statusDuration') ? Number(formData.get('statusDuration')) : 24,
           maxDuration: formData.get('maxDuration') ? Number(formData.get('maxDuration')) : undefined,
-          addYoursPrompt: formData.get('addYoursPrompt') || undefined
+          addYoursPrompt: formData.get('addYoursPrompt') || undefined,
+          isViewOnce: formData.get('isViewOnce') === 'true'
         })
       });
       const data = await res.json();

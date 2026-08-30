@@ -7,6 +7,9 @@ import { X, Volume2, VolumeX, Send, Eye, EyeOff, CheckCheck, Heart, Trash2, Chev
 import ReactPlayer from 'react-player'
 import ForwardDialog from './ForwardDialog'
 import StatusAnalytics from './StatusAnalytics'
+import AddYoursChain from './AddYoursChain'
+import CountdownOverlay from './CountdownOverlay'
+import { LocationStickerOverlay } from './LocationSticker'
 import './StatusViewer.css'
 
 // Format remaining time as "Xh Ym" or "Ym" or "<1m"
@@ -612,17 +615,23 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
         </div>
       </div>
 
-      {/* Screenshot Warning */}
+      {/* Screenshot Warning — full-screen overlay that appears on screenshot attempt */}
       {showScreenshotWarning && (
         <div style={{
-          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-          background: 'rgba(0,0,0,0.85)', color: '#ff4444', padding: '16px 24px',
-          borderRadius: '16px', fontSize: '14px', fontWeight: 600, zIndex: 100,
-          display: 'flex', alignItems: 'center', gap: '8px'
+          position: 'absolute', inset: 0, background: '#000', zIndex: 9999,
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          justifyContent: 'center', gap: 12, animation: 'screenshotFlash 2s ease forwards'
         }}>
-          🚫 Screenshot detected!
+          <div style={{ fontSize: 48 }}>🚫</div>
+          <div style={{ color: '#ff4444', fontSize: 18, fontWeight: 700, textAlign: 'center' }}>
+            Screenshots are blocked
+          </div>
+          <div style={{ color: '#8696a0', fontSize: 13, textAlign: 'center', maxWidth: 260 }}>
+            This status owner has disabled screenshots for privacy protection.
+          </div>
         </div>
       )}
+      <style>{`@keyframes screenshotFlash { 0% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; } }`}</style>
 
       {/* Double-tap Heart Animation */}
       {heartAnim && (
@@ -791,6 +800,32 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
               {currentStatus.poll.allowMultiple && ' • Multiple selections allowed'}
             </div>
           </div>
+        )}
+
+        {/* Add Yours Chain Overlay */}
+        {effectiveStatus?.addYoursPrompt && (
+          <AddYoursChain
+            status={effectiveStatus}
+            onAddYours={(s) => {
+              // Navigate to create status with Add Yours prompt
+              setCopyToast('Create your own status with this prompt!')
+              setTimeout(() => setCopyToast(''), 2000)
+            }}
+          />
+        )}
+
+        {/* Countdown Overlay */}
+        {effectiveStatus?.countdownDate && (
+          <CountdownOverlay
+            targetDate={effectiveStatus.countdownDate}
+            targetTime={effectiveStatus.countdownTime}
+            label={effectiveStatus.countdownLabel || 'Event starts in'}
+          />
+        )}
+
+        {/* Location Sticker Overlay */}
+        {effectiveStatus?.location && (
+          <LocationStickerOverlay location={effectiveStatus.location} />
         )}
 
         {/* Pause Indicator */}

@@ -220,6 +220,15 @@ const statusSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  textAnimation: {
+    type: String,
+    enum: ["none", "fadeIn", "slideUp", "typewriter", "bounce", "zoomIn", "glitch", "wave"],
+    default: "none",
+  },
+  isViewOnce: {
+    type: Boolean,
+    default: false,
+  },
   locationSticker: {
     name: { type: String, default: "" },
     lat: { type: Number, default: 0 },
