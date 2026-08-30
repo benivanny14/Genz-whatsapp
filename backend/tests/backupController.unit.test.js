@@ -1,3 +1,10 @@
+// Ensure secrets module does not throw during module load
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-key-for-unit-tests';
+process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'test-refresh-key-for-unit-tests';
+process.env.ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || 'test-admin-key-for-unit-tests';
+process.env.MESSAGE_ENCRYPTION_SECRET = process.env.MESSAGE_ENCRYPTION_SECRET || 'test-encryption-key-for-unit-tests';
+process.env.BACKUP_ENCRYPTION_KEY = process.env.BACKUP_ENCRYPTION_KEY || 'test-backup-key-for-unit-tests';
+
 jest.mock('fs/promises', () => ({
   mkdir: jest.fn().mockResolvedValue(undefined),
   writeFile: jest.fn().mockResolvedValue(undefined),

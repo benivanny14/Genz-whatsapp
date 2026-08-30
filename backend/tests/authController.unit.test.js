@@ -202,7 +202,7 @@ describe('authController — register', () => {
     expect(res.statusCode).toBe(409);
   });
 
-  it('registers a user and echoes the OTP in dev/test (happy path + regression guard)', async () => {
+  it('registers a user and never leaks OTP in response (happy path + security guard)', async () => {
     const user = makeUser();
     User.mockImplementation((props = {}) => Object.assign(user, props));
     User.findOne.mockResolvedValue(null);
@@ -214,12 +214,13 @@ describe('authController — register', () => {
     expect(res.body.refreshToken).toBe('signed-token');
     expect(res.body.phoneVerified).toBe(false);
     expect(res.body.requiresPhoneVerification).toBe(true);
-    // The echoed OTP must be the one stored on the user (regression guard)
-    expect(user.phoneVerificationOTP).toBe(res.body.phoneVerificationOTP);
+    // SECURITY: OTP must NEVER be returned in the response body
+    expect(res.body.phoneVerificationOTP).toBeUndefined();
+    expect(user.phoneVerificationOTP).toBeTruthy(); // stored on user for delivery
     expect(user.phoneNumber).toBe('255700000001');
     expect(user.setPassword).toHaveBeenCalledWith('Password123!');
     expect(user.save).toHaveBeenCalled();
-    expect(deliverOtp).toHaveBeenCalledWith('255700000001', res.body.phoneVerificationOTP, 'phone-verification');
+    expect(deliverOtp).toHaveBeenCalledWith('255700000001', expect.any(String), 'phone-verification');
     expect(res.cookie).toHaveBeenCalled();
   });
 

@@ -23,7 +23,8 @@ const {
   downloadPack,
   removePack,
   toggleFavorite,
-  getMyStickers
+  getMyStickers,
+  createSticker
 } = require('../controllers/stickerController');
 
 router.use(protect);

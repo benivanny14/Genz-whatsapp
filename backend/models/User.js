@@ -497,6 +497,18 @@ userSchema.methods.toSafeJSON = function () {
   delete user.lastFailedLoginAt;
   delete user.activeSessions;
   delete user.passkeys;
+  // SECURITY: strip sensitive OTP/verification fields that must never leak to clients
+  delete user.phoneVerificationOTP;
+  delete user.phoneVerificationOTPExpiry;
+  delete user.changeNumberOTP;
+  delete user.changeNumberOTPExpiry;
+  delete user.changeNumberNewPhone;
+  delete user.resetOTP;
+  delete user.resetOTPExpiry;
+  delete user.passkeyRegisterChallenge;
+  delete user.passkeyRegisterChallengeExpiry;
+  delete user.passkeyLoginChallenge;
+  delete user.passkeyLoginChallengeExpiry;
   return user;
 };
 

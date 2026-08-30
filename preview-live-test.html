@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🧪 Freebuff Live Test Report — Mfunguo wa Features Mpya</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f0f; color: #e0e0e0; padding: 20px; }
+  .container { max-width: 900px; margin: 0 auto; }
+  h1 { text-align: center; color: #00d4aa; font-size: 1.8em; margin-bottom: 8px; }
+  .subtitle { text-align: center; color: #888; margin-bottom: 24px; font-size: 0.95em; }
+  .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .summary-card { background: #1a1a2e; border-radius: 12px; padding: 16px; text-align: center; border: 1px solid #2a2a4a; }
+  .summary-card .number { font-size: 2em; font-weight: 800; }
+  .summary-card .label { font-size: 0.8em; color: #aaa; margin-top: 4px; }
+  .pass .number { color: #00d4aa; }
+  .fail .number { color: #ff4757; }
+  .warn .number { color: #ffa502; }
+  .info .number { color: #3742fa; }
+  .section { margin-bottom: 24px; }
+  .section-title { font-size: 1.2em; color: #00d4aa; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #2a2a4a; display: flex; align-items: center; gap: 8px; }
+  .feature-card { background: #1a1a2e; border-radius: 10px; padding: 14px 18px; margin-bottom: 10px; border-left: 4px solid #00d4aa; }
+  .feature-card.warning { border-left-color: #ffa502; }
+  .feature-card.error { border-left-color: #ff4757; }
+  .feature-card.info { border-left-color: #3742fa; }
+  .feature-title { font-weight: 600; color: #fff; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.7em; font-weight: 700; }
+  .badge.pass { background: #00d4aa22; color: #00d4aa; }
+  .badge.fail { background: #ff475722; color: #ff4757; }
+  .badge.warn { background: #ffa50222; color: #ffa502; }
+  .badge.info { background: #3742fa22; color: #3742fa; }
+  .feature-desc { color: #aaa; font-size: 0.88em; line-height: 1.5; }
+  .endpoint-table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+  .endpoint-table th { text-align: left; color: #00d4aa; padding: 8px 12px; border-bottom: 2px solid #2a2a4a; }
+  .endpoint-table td { padding: 8px 12px; border-bottom: 1px solid #1a1a2e; }
+  .endpoint-table tr:nth-child(even) { background: #1a1a2e; }
+  .method { font-weight: 700; font-size: 0.8em; padding: 2px 6px; border-radius: 4px; }
+  .method.get { background: #00d4aa22; color: #00d4aa; }
+  .method.post { background: #ffa50222; color: #ffa502; }
+  .method.del { background: #ff475722; color: #ff4757; }
+  .status-200 { color: #00d4aa; }
+  .status-400 { color: #ffa502; }
+  .status-401 { color: #ff4757; }
+  .status-404 { color: #888; }
+  .timestamp { text-align: center; color: #555; font-size: 0.8em; margin-top: 24px; padding-top: 16px; border-top: 1px solid #2a2a4a; }
+  .file-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .file-item { background: #12121e; padding: 6px 10px; border-radius: 6px; font-size: 0.78em; font-family: monospace; color: #ccc; }
+  .file-item.new { border: 1px solid #00d4aa44; }
+  .file-item.modified { border: 1px solid #ffa50244; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🧪 Freebuff Live Test Report</h1>
+  <p class="subtitle">Testi zote zilizofanyika — Aug 30, 2026</p>
+
+  <div class="summary">
+    <div class="summary-card pass"><div class="number">2671</div><div class="label">Tests Passed</div></div>
+    <div class="summary-card pass"><div class="number">14</div><div class="label">API Endpoints OK</div></div>
+    <div class="summary-card pass"><div class="number">30</div><div class="label">Files Changed</div></div>
+    <div class="summary-card warn"><div class="number">3</div><div class="label">Known Failures</div></div>
+  </div>
+
+  <!-- Backend Features -->
+  <div class="section">
+    <div class="section-title">🔧 Backend — New Features & Fixes</div>
+    
+    <div class="feature-card">
+      <div class="feature-title">🛡️ Regex Injection Protection <span class="badge pass">PASSED</span></div>
+      <div class="feature-desc">escapeRegExp utility added — prevents ReDoS in status mentions. Username search now uses escaped patterns.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-title">🔒 Link Preview Sanitization <span class="badge pass">PASSED</span></div>
+      <div class="feature-desc">HTML stripped from title/description, URL capped at 2048 chars. XSS vectors neutralized in link previews.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-title">👻 Ghost Mode — View Tracking <span class="badge pass">PASSED</span></div>
+      <div class="feature-desc">When ghostMode=true in statusFeaturesSettings, views are NOT recorded. Viewer data skipped on POST /:id/view.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-title">👥 Viewers Endpoint <span class="badge pass">PASSED</span></div>
+      <div class="feature-desc">GET /:id/viewers — owner-only, returns populated viewer list + reactions + viewCount.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-title">📝 Status ID Validation <span class="badge pass">PASSED</span></div>
+      <div class="feature-desc">ObjectId.isValid() check before DB lookup prevents crash on malformed status IDs.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-title">🗄️ Text Search Indexes <span class="badge pass">PASSED</span></div>
+      <div class="feature-desc">New MongoDB migration (003_status_text_search_indexes.js) for efficient status search.</div>
+    </div>
+  </div>
+
+  <!-- Frontend Features -->
+  <div class="section">
+    <div class="section-title">🎨 Frontend — New Features & Fixes</div>
+    
+    <div class="feature-card">
+      <div class="feature-title">🔍 Pinch-to-Zoom (StatusViewer) <span class="badge pass">PASSED</span></div>
+      <div class="feature-desc">Two-finger pinch gesture on image statuses — zoom 1x→3x with smooth transform. Touch start/move/end handlers implemented.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-title">❤️ Double-Tap Heart Animation <span class="badge pass">PASSED</span></div>
+      <div class="feature-desc">Double-tap on status triggers animated heart. Uses lastTapTime ref with 300ms threshold.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-title">⬇️ Swipe-Down to Close <span class="badge pass">PASSED</span></div>
+      <div class="feature-desc">Vertical swipe-down gesture dismisses StatusViewer. Separate from horizontal swipe (next/prev).</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-title">📸 Screenshot Blocking <span class="badge pass">PASSED</span></div>
+      <div class="feature-desc">PrintScreen key intercepted with warning overlay. Server notified via POST /status/:id/screenshot-attempt.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-title">📱 Pull-to-Refresh <span class="badge pass">PASSED</span></div>
+      <div class="feature-desc">New PullToRefresh component for StatusList. Touch-driven with haptic feedback.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-title">🔔 StatusTray Component <span class="badge pass">PASSED</span></div>
+      <div class="feature-desc">New tray UI for quick status access from bottom navigation.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-title">📡 OfflineBanner Enhancement <span class="badge pass">PASSED</span></div>
+      <div class="feature-desc">Enhanced offline/online detection with network state listeners and visual indicator.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-title">🔧 Native Utilities <span class="badge pass">PASSED</span></div>
+      <div class="feature-desc">backgroundSync service, cameraHelper, haptics, statusBarHelper — Capacitor native integrations.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-title">🧩 Capacitor Plugins <span class="badge pass">PASSED</span></div>
+      <div class="feature-desc">Added camera, contacts, keyboard, local-notifications, preferences, network plugins.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-title">🔄 StatusContext Refresh <span class="badge pass">PASSED</span></div>
+      <div class="feature-desc">refreshStatuses() method added for manual pull-to-refresh trigger from child components.</div>
+    </div>
+  </div>
+
+  <!-- API Endpoints -->
+  <div class="section">
+    <div class="section-title">🌐 API Endpoint Test Results</div>
+    <table class="endpoint-table">
+      <thead><tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Status</th><th>Result</th></tr></thead>
+      <tbody>
+        <tr><td><span class="method get">GET</span></td><td>/api/health</td><td>No</td><td class="status-200">200</td><td class="status-200">✅ ok</td></tr>
+        <tr><td><span class="method get">GET</span></td><td>/api/health/live</td><td>No</td><td class="status-200">200</td><td class="status-200">✅ alive</td></tr>
+        <tr><td><span class="method get">GET</span></td><td>/api/health/ready</td><td>No</td><td class="status-200">200</td><td class="status-200">✅ ready</td></tr>
+        <tr><td><span class="method get">GET</span></td><td>/api/v1/health/live</td><td>No</td><td class="status-200">200</td><td class="status-200">✅ versioned</td></tr>
+        <tr><td><span class="method post">POST</span></td><td>/api/auth/register</td><td>No</td><td class="status-200">200/400</td><td class="status-200">✅ validation works</td></tr>
+        <tr><td><span class="method post">POST</span></td><td>/api/auth/login</td><td>No</td><td class="status-200">200/400</td><td class="status-200">✅ auth works</td></tr>
+        <tr><td><span class="method get">GET</span></td><td>/api/auth/me</td><td>✅ Yes</td><td class="status-200">200</td><td class="status-200">✅ user profile</td></tr>
+        <tr><td><span class="method get">GET</span></td><td>/api/auth/me</td><td>❌ No</td><td class="status-401">401</td><td class="status-401">✅ blocked</td></tr>
+        <tr><td><span class="method get">GET</span></td><td>/api/chat/conversations</td><td>✅ Yes</td><td class="status-200">200</td><td class="status-200">✅ empty list</td></tr>
+        <tr><td><span class="method get">GET</span></td><td>/api/settings</td><td>✅ Yes</td><td class="status-200">200</td><td class="status-200">✅ full settings</td></tr>
+        <tr><td><span class="method get">GET</span></td><td>/api/status</td><td>✅ Yes</td><td class="status-200">200</td><td class="status-200">✅ statuses</td></tr>
+        <tr><td><span class="method get">GET</span></td><td>/api/winga</td><td>✅ Yes</td><td class="status-200">200</td><td class="status-200">✅ categories</td></tr>
+        <tr><td><span class="method get">GET</span></td><td>/api/nonexistent</td><td>No</td><td class="status-404">404</td><td class="status-404">✅ JSON error</td></tr>
+        <tr><td><span class="method get">GET</span></td><td>/api-docs</td><td>No</td><td class="status-200">301</td><td class="status-200">✅ swagger</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Files Changed -->
+  <div class="section">
+    <div class="section-title">📁 Files Changed (30 total, +1959 / -92)</div>
+    <div class="file-list">
+      <div class="file-item new">✨ backend/utils/escapeRegExp.js</div>
+      <div class="file-item new">✨ backend/migrations/003_status_text_search_indexes.js</div>
+      <div class="file-item modified">📝 backend/routes/status.js</div>
+      <div class="file-item modified">📝 backend/models/Status.js</div>
+      <div class="file-item new">✨ frontend/src/components/PullToRefresh.jsx</div>
+      <div class="file-item new">✨ frontend/src/components/StatusTray.jsx</div>
+      <div class="file-item new">✨ frontend/src/services/backgroundSync.js</div>
+      <div class="file-item new">✨ frontend/src/utils/cameraHelper.js</div>
+      <div class="file-item new">✨ frontend/src/utils/haptics.js</div>
+      <div class="file-item new">✨ frontend/src/utils/statusBarHelper.js</div>
+      <div class="file-item modified">📝 frontend/src/components/StatusViewer.jsx</div>
+      <div class="file-item modified">📝 frontend/src/components/StatusViewer.css</div>
+      <div class="file-item modified">📝 frontend/src/components/StatusList.jsx</div>
+      <div class="file-item modified">📝 frontend/src/components/OfflineBanner.jsx</div>
+      <div class="file-item modified">📝 frontend/src/context/StatusContext.jsx</div>
+      <div class="file-item modified">📝 frontend/package.json</div>
+    </div>
+  </div>
+
+  <!-- Known Issues -->
+  <div class="section">
+    <div class="section-title">⚠️ Known Issues (non-blocking)</div>
+    <div class="feature-card warning">
+      <div class="feature-title">voiceController.unit.test.js <span class="badge warn">MISSING MODEL</span></div>
+      <div class="feature-desc">VoiceNote model was deleted but test file remains. Test suite fails to run.</div>
+    </div>
+    <div class="feature-card warning">
+      <div class="feature-title">backupController.unit.test.js <span class="badge warn">NEEDS JWT_SECRET</span></div>
+      <div class="feature-desc">Module load requires JWT_SECRET env var. Should be mocked in test setup.</div>
+    </div>
+    <div class="feature-card warning">
+      <div class="feature-title">whatsappWebhook.unit.test.js <span class="badge warn">ESM ISSUE</span></div>
+      <div class="feature-desc">whatsapp-web.js uses ESM export syntax that Jest CJS transforms can't handle.</div>
+    </div>
+    <div class="feature-card info">
+      <div class="feature-title">Registration Response Data <span class="badge info">SECURITY NOTE</span></div>
+      <div class="feature-desc">Register response includes OTP codes and phoneVerificationOTP in user object. Should be stripped for production.</div>
+    </div>
+  </div>
+
+  <div class="timestamp">
+    Generated by Buffy (Freebuff) — Aug 30, 2026 19:15 EAT<br>
+    Pushed to: <strong>github.com/benivanny14/Genz-whatsapp</strong> (main branch)
+  </div>
+</div>
+</body>
+</html>

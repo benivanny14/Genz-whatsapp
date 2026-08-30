@@ -176,8 +176,9 @@ exports.register = async (req, res) => {
       user: safeUser(user),
       phoneVerified: user.phoneVerified,
       requiresPhoneVerification: isPhoneVerificationRequired(),
-      otpDelivery: { delivered: delivery.delivered, error: delivery.error ? delivery.error.message : null },
-      ...(process.env.NODE_ENV !== 'production' ? { phoneVerificationOTP: otp } : {})
+      otpDelivery: { delivered: delivery.delivered, error: delivery.error ? delivery.error.message : null }
+      // SECURITY: never leak OTP codes in the response — even in development.
+      // The OTP is delivered via WhatsApp/SMS; developers can read logs if needed.
     });
   } catch (error) {
     console.error('[Auth] Registration error:', error.message);
