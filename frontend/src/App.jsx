@@ -58,6 +58,7 @@ const Communities = lazy(() => import('./pages/Communities'));
 const JoinGroup = lazy(() => import('./pages/JoinGroup'));
 const SubscriptionPayment = lazy(() => import('./components/PaidFeatures/SubscriptionPayment'));
 const GenzAfterWork = lazy(() => import('./components/PaidFeatures/GenzAfterWork'));
+const Notifications = lazy(() => import('./pages/Notifications'));
 const AdminPaymentManagement = lazy(() => import('./pages/AdminPaymentManagement'));
 const Winga = lazy(() => import('./pages/Winga'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
@@ -510,6 +511,7 @@ function App() {
             {import.meta.env.DEV && <Route path="/admin/manual-payments" element={<AdminProtectedRoute><AdminPaymentManagement /></AdminProtectedRoute>} />}
             <Route path="/payment" element={<ProtectedRoute><SubscriptionPayment /></ProtectedRoute>} />
             <Route path="/genz-after-work" element={<ProtectedRoute><GenzAfterWork /></ProtectedRoute>} />
+            <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             {/* Hidden admin routes - only in development */}
             {import.meta.env.DEV && <Route path="/admin-setup" element={<AdminProtectedRoute><AdminSetup /></AdminProtectedRoute>} />}
             {import.meta.env.DEV && <Route path="/system-control-x7k9" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />}

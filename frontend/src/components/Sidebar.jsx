@@ -52,7 +52,8 @@ import {
   Download,
   Clock,
   CircleDot,
-  Store
+  Store,
+  Bell
 } from 'lucide-react';
 import ProfileEnlarger from './ProfileEnlarger';
 import AccountSwitcher from './AccountSwitcher';
@@ -100,6 +101,26 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   const [activeTab, setActiveTab] = useState('chats'); // 'chats' or 'calls'
   const [activeFolder, setActiveFolder] = useState('All');
   const [showBroadcastModal, setShowBroadcastModal] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+  // Fetch unread notification count on mount and periodically
+  useEffect(() => {
+    let cancelled = false;
+    const fetchUnread = async () => {
+      try {
+        const { authFetch } = await import('../utils/authFetch');
+        const { API_URL } = await import('../utils/authSession');
+        const res = await authFetch(`${API_URL}/notifications/history?unread=true&limit=1`);
+        const data = await res.json();
+        if (!cancelled && data.success) {
+          setUnreadNotifications(data.unreadCount || 0);
+        }
+      } catch (_) { /* ignore */ }
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 60000); // refresh every 60s
+    return () => { cancelled = true; clearInterval(interval); };
+  }, []);
   const [showMassSenderModal, setShowMassSenderModal] = useState(false);
   const [showArchiveChats, setShowArchiveChats] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
@@ -994,6 +1015,19 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
               aria-label="Communities"
             >
               <Users className="w-5 h-5 text-dark-text" />
+            </button>
+            <button
+              onClick={() => navigate('/notifications')}
+              className="p-2 hover:bg-dark-hover rounded-lg transition-colors relative"
+              title="Notifications"
+              aria-label="Notifications"
+            >
+              <Bell className="w-5 h-5 text-dark-text" />
+              {unreadNotifications > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                  {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                </span>
+              )}
             </button>
             <div className="relative" ref={menuRef}>
               <button

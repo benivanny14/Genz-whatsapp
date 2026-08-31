@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { setSocketInstance, clearSocketInstance } from '../services/socket';
 import { DB } from '../services/db';
 import { registerServiceWorker, notifyNewMessage, showLocalNotification } from '../services/notifications';
+import { showGroupedMessageToast } from '../utils/toastGrouping.jsx';
 import { isOffline } from '../services/api';
 import apiService from '../services/apiService';
 import backupService from '../services/backupService';
@@ -1240,9 +1241,22 @@ export const ChatProvider = ({ children }) => {
               // "🔗 Link" label instead, same as an image/video message.
               else if (/^https?:\/\/\S+$/i.test(preview.trim())) preview = '🔗 Link';
                notifyNewMessage(senderName, preview, incoming.conversationId);
-               // BUG FIX: InAppNotification toast (App.jsx) was never fed data.
-               // Dispatch a foreground in-app notification so the toast shows
-               // while the user has the app open (push already covers bg).
+               // TOAST GROUPING: Instead of firing a new toast for every single
+               // message in a group chat, use the aggregation utility. This
+               // prevents toast spam — '3 new messages in Genz Squad' instead
+               // of 3 separate toasts within 3 seconds.
+               try {
+                 const isGroupChat = Boolean(targetConv?.isGroup);
+                 const convName = targetConv?.groupName || targetConv?.name || senderName;
+                 showGroupedMessageToast({
+                   senderName,
+                   conversationId: incoming.conversationId,
+                   conversationName: convName,
+                   isGroup: isGroupChat,
+                   preview: preview?.substring(0, 80)
+                 });
+               } catch (_) { /* ignore */ }
+               // Also dispatch legacy event for App.jsx InAppNotification component
                try {
                  window.dispatchEvent(new CustomEvent('genz-in-app-notification', {
                    detail: {

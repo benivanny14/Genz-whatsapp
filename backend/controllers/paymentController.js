@@ -178,6 +178,22 @@ exports.payRequest = async (req, res) => {
       message: 'Payment confirmed! Premium features unlocked.'
     });
 
+    // IN-APP NOTIFICATION CENTER: persist a notification record
+    try {
+      const Notification = require('../models/Notification');
+      await Notification.create({
+        userId: request.requesterId,
+        type: 'payment_approved',
+        data: {
+          title: 'Payment Confirmed! 💳',
+          body: `Your payment of ${request.amount} ${request.currency} has been confirmed. Premium is now active!`,
+          paymentId: String(request._id),
+          amount: request.amount,
+          currency: request.currency
+        }
+      });
+    } catch (notifErr) { /* non-critical */ }
+
     // Notify admins about completed P2P payment
     notifyAdmins(req, 'new_pending_payment', {
       paymentId: request._id,

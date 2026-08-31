@@ -5,7 +5,10 @@ const {
   subscribe,
   unsubscribe,
   listSubscriptions,
-  sendTestNotification
+  sendTestNotification,
+  getNotificationHistory,
+  markAsRead,
+  markAllAsRead
 } = require('../controllers/notificationController');
 const {
   registerToken,
@@ -33,5 +36,10 @@ router.post('/subscribe', subscribe);
 router.post('/unsubscribe', unsubscribe);
 router.get('/subscriptions', listSubscriptions);
 router.post('/test', sendTestNotification);
+
+// In-App Notification Center
+router.get('/history', protect, getNotificationHistory);
+router.post('/:id/read', protect, markAsRead);
+router.post('/read-all', protect, markAllAsRead);
 
 module.exports = router;

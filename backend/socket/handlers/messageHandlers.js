@@ -307,18 +307,53 @@ module.exports = function registerMessageHandlers(ctx) {
           notificationTasks.push((async () => {
             // FIX: same as chatController.sendMessage — skip push when the
             // recipient muted this chat or already has it open on screen.
+            let skipPush = false;
             try {
               const mutedUntil = updatedConversation?.mutedUntil?.get?.(userId);
               const isMuted = mutedUntil && new Date(mutedUntil) > new Date();
-              if (isMuted) return { success: false, skipped: 'muted' };
+              if (isMuted) { skipPush = true; }
 
               const recipientSocketId = onlineUsers.get(userId);
               const roomMembers = io.sockets.adapter.rooms.get(String(conversationId));
               const isActivelyViewing = Boolean(
                 recipientSocketId && roomMembers && roomMembers.has(recipientSocketId)
               );
-              if (isActivelyViewing) return { success: false, skipped: 'active_viewer' };
+              if (isActivelyViewing) { skipPush = true; }
             } catch (_) { /* if the check fails, fall through and still notify */ }
+
+            // IN-APP NOTIFICATION CENTER: create a persistent notification record
+            // so the user can see it in the bell-icon Notification Center page.
+            try {
+              const NotifModel = require('../../models/Notification');
+              const convName = conversation.isGroup
+                ? (conversation.groupName || 'Group')
+                : (populatedMessage.sender?.username || 'Someone');
+              await NotifModel.create({
+                userId: participantId,
+                type: 'message',
+                data: {
+                  title: `${populatedMessage.sender?.username || 'Someone'}${conversation.isGroup ? ` in ${convName}` : ''}`,
+                  body: notificationText.substring(0, 200),
+                  conversationId: String(conversationId),
+                  senderId: String(socket.userId),
+                  avatar: populatedMessage.sender?.profilePicture || ''
+                }
+              });
+              // Emit real-time notification to the recipient's bell icon
+              io.to(userId).emit('notification:new', {
+                type: 'message',
+                data: {
+                  title: `${populatedMessage.sender?.username || 'Someone'}`,
+                  body: notificationText.substring(0, 200),
+                  conversationId: String(conversationId)
+                },
+                createdAt: new Date()
+              });
+            } catch (notifErr) {
+              // Non-critical — don't block message delivery
+            }
+
+            if (skipPush) return { success: false, skipped: 'muted_or_active' };
 
             return sendNewMessageNotification(userId, {
               senderName: populatedMessage.sender?.username || 'GENZ',
