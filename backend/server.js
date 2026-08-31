@@ -1016,6 +1016,7 @@ const authRoutes = require("./routes/authRoutes");
 const adminAuthRoutes = require("./routes/adminAuthRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
+const updateRoutes = require("./routes/updateRoutes");
 const mediaRoutes = require("./routes/media");
 const productRoutes = require("./routes/productRoutes");
 const scheduledMessageRoutes = require("./routes/scheduledMessageRoutes");
@@ -1102,6 +1103,7 @@ const API_ROUTE_MOUNTS = [
   ["/backup", backupRoutes],
   ["/stickers", stickerRoutes],
   ["/notifications", notificationRoutes],
+  ["/updates", updateRoutes],
   ["/products", productRoutes],
   ["/scheduled-messages", scheduledMessageRoutes],
   ["/status", statusRoutes],

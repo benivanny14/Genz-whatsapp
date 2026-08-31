@@ -255,17 +255,10 @@ test.describe('mobile layout — install guide + version display', () => {
         await expect(page.getByText(/Download Android App/i).first()).toBeVisible();
         await expectNoOverflow(page, `${deviceName} install guide`);
 
-        // login — version from /version.json + install link + checksum toggle
+        // login — clean form without download button (APK download moved to Sidebar)
         await page.goto('/login');
         await page.waitForTimeout(1200);
-        await expect(
-          page.getByText(/Genz Messenger Android v\d+\.\d+\.\d+/)
-        ).toBeVisible({ timeout: 10_000 });
-        await expect(
-          page.getByRole('link', { name: /How to install/ })
-        ).toBeVisible();
-        await expect(page.getByRole('button', { name: /Verify checksum/ })).toBeVisible();
-        await expectNoOverflow(page, `${deviceName} login with version info`);
+        await expectNoOverflow(page, `${deviceName} login form`);
 
         expect(pageErrors, 'page errors on install/login mobile').toHaveLength(0);
       });

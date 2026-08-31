@@ -15,6 +15,7 @@ import FakeChatCoverPanel from './FakeChatCoverPanel';
 import { AnimatePresence } from 'framer-motion';
 import { decryptMessage } from '../utils/formatDate';
 import { importChatFile } from '../utils/chatImporter';
+
 import {
   MessageCircle,
   Users,
@@ -1153,6 +1154,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     <Shield className="w-4 h-4" />
                     <span>Security</span>
                   </button>
+
                   {/* GENZ Mods button removed - features moved to GENZ Settings */}
                   <button
                     onClick={(e) => {

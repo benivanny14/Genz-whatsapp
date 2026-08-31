@@ -11,6 +11,7 @@ import UpdateBanner from './components/UpdateBanner';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 import MobileBottomNav from './components/MobileBottomNav';
+import DownloadApkFab from './components/DownloadApkFab';
 import { AdminAuthProvider } from './context/AdminAuthContext';
 import notificationService from './services/notificationService';
 import { cleanupLocalBlobUrls, sanitizeBlobUrls } from './utils/sanitizeStorage';
@@ -25,6 +26,8 @@ import { getSocket } from './services/socket';
 import { authenticateWithBiometric } from './services/capacitorBridge';
 import { initBackgroundSync } from './services/backgroundSync';
 import { setStatusBar } from './utils/statusBarHelper';
+import { PushNotifications } from '@capacitor/push-notifications';
+import { trackUpdateEvent } from './utils/updateAnalytics';
 
 // Lazy load pages for performance optimization
 const Chat = lazy(() => import('./pages/Chat'));
@@ -181,6 +184,53 @@ function App() {
   // orientationchange listeners doing the exact same DOM writes on every
   // viewport event — wasted work that showed up as jank/instability on
   // mobile, especially with the keyboard opening/closing repeatedly.
+
+  // --- Push Notifications Registration (APK only) ---
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const registerPush = async () => {
+      try {
+        const permission = await PushNotifications.requestPermissions();
+        if (permission.receive === 'granted') {
+          await PushNotifications.register();
+        }
+      } catch (err) {
+        console.warn('[Push] Registration failed:', err);
+      }
+    };
+    registerPush();
+
+    // Listen for registration token
+    const tokenListener = PushNotifications.addListener('registration', (token) => {
+      console.info('[Push] Token:', token.value);
+      // TODO: Send token to backend for push notification delivery
+    });
+
+    // Listen for incoming notifications
+    const notifListener = PushNotifications.addListener('pushNotificationReceived', (notification) => {
+      console.info('[Push] Received:', notification.title);
+    });
+
+    // Listen for notification taps
+    const actionListener = PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+      console.info('[Push] Action:', action.actionId);
+    });
+
+    return () => {
+      tokenListener?.then(l => l.remove());
+      notifListener?.then(l => l.remove());
+      actionListener?.then(l => l.remove());
+    };
+  }, []);
+
+  // --- App lifecycle analytics ---
+  useEffect(() => {
+    trackUpdateEvent('app_open');
+    const stateListener = CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      trackUpdateEvent(isActive ? 'app_resume' : 'app_background');
+    });
+    return () => { stateListener?.then(l => l.remove()); };
+  }, []);
 
   // --- Deep links (APK): open shared status URLs from scanned QR codes ---
   useEffect(() => {
@@ -537,6 +587,7 @@ function App() {
           </Routes>
         </Suspense>
       </AdminAuthProvider>
+      <DownloadApkFab />
       <MobileBottomNav />
       </PromptDialogProvider>
       </ConfirmDialogProvider>
