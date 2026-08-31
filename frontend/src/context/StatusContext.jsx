@@ -129,7 +129,18 @@ const StatusProvider = ({ children }) => {
       });
       const data = await res.json();
       if (data.success) {
-        await fetchStatuses();
+        // OPTIMISTIC UI: immediately prepend the new status so the user
+        // sees it in "My Status" without waiting for a full re-fetch.
+        const newStatus = data.status || data.data?.status;
+        if (newStatus) {
+          setStatuses(prev => {
+            // Deduplicate by _id in case a socket event already arrived
+            if (prev.some(s => String(s._id) === String(newStatus._id))) return prev;
+            return [newStatus, ...prev];
+          });
+        }
+        // Background refresh to get fully-populated data from server
+        fetchStatuses();
         return data;
       }
       throw new Error(data.message || 'Failed to create status');
@@ -183,7 +194,16 @@ const StatusProvider = ({ children }) => {
       });
       const data = await res.json();
       if (data.success) {
-        await fetchStatuses();
+        // OPTIMISTIC UI: immediately prepend the new status
+        const newStatus = data.status || data.data?.status;
+        if (newStatus) {
+          setStatuses(prev => {
+            if (prev.some(s => String(s._id) === String(newStatus._id))) return prev;
+            return [newStatus, ...prev];
+          });
+        }
+        // Background refresh to get fully-populated data from server
+        fetchStatuses();
         return data;
       }
       throw new Error(data.message || 'Failed to create media status');
@@ -203,7 +223,15 @@ const StatusProvider = ({ children }) => {
       });
       const data = await res.json();
       if (data.success) {
-        await fetchStatuses();
+        // OPTIMISTIC UI: immediately prepend the new status
+        const newStatus = data.status || data.data?.status;
+        if (newStatus) {
+          setStatuses(prev => {
+            if (prev.some(s => String(s._id) === String(newStatus._id))) return prev;
+            return [newStatus, ...prev];
+          });
+        }
+        fetchStatuses();
         return data;
       }
       throw new Error(data.message || 'Failed to create status');

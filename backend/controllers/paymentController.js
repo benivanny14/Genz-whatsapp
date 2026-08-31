@@ -10,6 +10,18 @@ const notifyUser = (req, userId, event, payload) => {
   if (io) io.to(String(userId)).emit(event, payload);
 };
 
+/**
+ * Notify all connected admins about a payment event.
+ * Both 'role:admin' and 'admin-room' rooms are joined by admin sockets
+ * in socket/index.js — emit to both for compatibility.
+ */
+const notifyAdmins = (req, event, payload) => {
+  const io = getIO(req);
+  if (!io) return;
+  io.to('role:admin').emit(event, payload);
+  io.to('admin-room').emit(event, payload);
+};
+
 exports.createPaymentRequest = async (req, res) => {
   try {
     const { recipientId, amount, currency = 'TZS', note = '', conversationId, paymentMethod = 'mobile_money' } = req.body;
@@ -52,6 +64,18 @@ exports.createPaymentRequest = async (req, res) => {
       currency,
       note,
       createdAt: paymentRequest.createdAt
+    });
+
+    // Notify admins in real-time about new pending payment
+    notifyAdmins(req, 'new_pending_payment', {
+      paymentId: paymentRequest._id,
+      requesterId: userId,
+      requesterName: username,
+      recipientId,
+      recipientName: recipient.username,
+      amount,
+      currency,
+      method: paymentMethod
     });
 
     res.status(201).json({ success: true, paymentRequest });
@@ -138,11 +162,30 @@ exports.payRequest = async (req, res) => {
     request.paidAt = new Date();
     await request.save();
 
+    // Notify the requester that payment was completed
     notifyUser(req, String(request.requesterId), 'payment_paid', {
       _id: request._id,
       amount: request.amount,
       currency: request.currency,
       paidAt: request.paidAt
+    });
+
+    // Also emit payment_approved for premium-gating (same event the
+    // frontend listens to for instant feature unlock)
+    notifyUser(req, String(request.requesterId), 'payment_approved', {
+      plan: 'premium',
+      paymentId: request._id,
+      message: 'Payment confirmed! Premium features unlocked.'
+    });
+
+    // Notify admins about completed P2P payment
+    notifyAdmins(req, 'new_pending_payment', {
+      paymentId: request._id,
+      requesterId: userId,
+      recipientId: request.recipientId,
+      amount: request.amount,
+      currency: request.currency,
+      status: 'paid'
     });
 
     res.json({ success: true, message: 'Payment completed successfully', request });

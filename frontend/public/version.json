@@ -1,22 +1,24 @@
 {
-  "version": "1.1.19",
-  "versionCode": 22,
+  "version": "1.1.20",
+  "versionCode": 23,
   "apkUrl": "/genz-whatsapp.apk",
   "sha256": "bf10fbd93766fd915051dab5f1e3f2951cc8b05ec1305e2986a7a675fe7b3348",
   "size": 12568790,
   "releasedAt": "2026-08-23T04:33:39.466Z",
   "changes": [
-    "Mobile layout fixes",
-    "Settings save button fix",
-    "Status toolbar scroll",
-    "Contact sharing like WhatsApp",
-    "Bottom nav hidden on landing",
-    "APK Content-Type fix",
-    "MongoDB connection fix",
-    "APK voice recording fix",
-    "APK notifications fix",
-    "APK unread count fix",
-    "Message send instant",
-    "Bottom nav icons fix"
+    "Biometric unlock utility",
+    "Real-time payment sync for admin",
+    "Optimistic status creation",
+    "44px touch targets (WCAG)",
+    "Sticky chat input on mobile",
+    "Truncate overflow usernames",
+    "Live location via Socket.io",
+    "Status replay button",
+    "Favorites section",
+    "Quiz/Poll overlay",
+    "Rich text editor",
+    "Photo sticker cut-out tool",
+    "Privacy bug fix",
+    "Text animation options"
   ]
 }

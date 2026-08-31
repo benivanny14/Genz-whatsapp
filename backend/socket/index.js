@@ -150,6 +150,19 @@ const setupSocket = (io) => {
       socket.userId = userKey;
       socket.join(userKey);
 
+      // ── Admin room: join the admin notification room so payment updates,
+      // abuse reports, and other admin events reach all connected admins.
+      // manualPaymentController emits to 'role:admin'; chatController
+      // emits to 'admin-room'.  Both rooms are joined here so admin
+      // sockets receive real-time events from either emitter.
+      try {
+        const adminUser = await User.findById(userId).select('role isAdmin').lean();
+        if (adminUser?.role === 'admin' || adminUser?.isAdmin) {
+          socket.join('role:admin');
+          socket.join('admin-room');
+        }
+      } catch (_) { /* non-critical */ }
+
       // Share online state with other instances (no-op without Redis).
       presenceStore.setLocalPresence(userKey, { online: true, away: false });
 

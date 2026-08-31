@@ -505,11 +505,11 @@
     min-width: 80px;
     max-width: 140px;
   }
-  /* Touch targets stay 44px even on small screens */
+  /* Touch targets stay 44px (WCAG 2.1 AA) even on small screens */
   .action-btn, .delete-btn {
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
-    min-height: 40px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
   }
 }
