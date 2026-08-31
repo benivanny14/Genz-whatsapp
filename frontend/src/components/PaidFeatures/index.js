@@ -4,8 +4,6 @@
 export { default as GenzAfterWork } from './GenzAfterWork';
 export { default as SubscriptionPayment } from './SubscriptionPayment';
 export { default as PaymentRequestModal, PaymentRequestsPanel } from './PaymentRequestModal';
-export { default as ThemeStore } from './ThemeStore';
-
 // Feature Categories
 export const PAID_FEATURE_CATEGORIES = {
   GENZ_AFTER_WORK: 'Genz After Work',
