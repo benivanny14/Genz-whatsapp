@@ -580,5 +580,10 @@ userSchema.index(
   { isOnline: 1 },
   { partialFilterExpression: { isOnline: true } },
 );
+// BUG FIX 7: Compound indexes for frequently queried user patterns
+userSchema.index({ role: 1, isAdmin: 1 }); // Admin role lookups
+userSchema.index({ premium: 1, subscriptionExpiresAt: 1 }); // Premium status checks
+userSchema.index({ blockedUsers: 1 }, { sparse: true }); // Block-check queries
+userSchema.index({ fcmTokens: 1 }, { sparse: true }); // Push notification delivery
 
 module.exports = mongoose.model("User", userSchema);

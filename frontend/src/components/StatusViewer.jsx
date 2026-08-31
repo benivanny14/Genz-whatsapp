@@ -550,7 +550,20 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
     )
   )
 
-  if (!currentStatus) return null
+  // BUG FIX 4: Show a user-friendly empty state instead of rendering nothing
+  // when there are no statuses to display (e.g. all expired, empty array,
+  // or invalid index). Previously returned null which left a blank screen
+  // with no way to close the viewer.
+  if (!currentStatus) {
+    return (
+      <div className="status-viewer">
+        <div className="text-center p-8">
+          <p className="text-white">No status available</p>
+          <button onClick={onClose}>Close</button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="status-viewer" ref={containerRef}>

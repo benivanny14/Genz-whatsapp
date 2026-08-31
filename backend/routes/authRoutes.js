@@ -38,7 +38,8 @@ const {
   loginValidators,
   checkAvailabilityValidators
 } = require('../middleware/validators');
-const { authSensitiveLimiter, discoveryLimiter } = require('../middleware/rateLimiters');
+// BUG FIX 3: Import strict limiter for sensitive auth endpoints (max: 5/15min)
+const { authSensitiveLimiter, authStrictLimiter, discoveryLimiter } = require('../middleware/rateLimiters');
 const {
   sendOtp,
   verifyOtp,
@@ -51,8 +52,9 @@ const {
 // Sensitive credential routes get their own strict limiter so a burst of
 // authenticated calls (background polling) can never exhaust the budget for
 // login/registration, and vice-versa.
-router.post('/register', authSensitiveLimiter, registerValidators, register);
-router.post('/login', authSensitiveLimiter, loginValidators, login);
+// BUG FIX 3: Use strict limiter (max: 5/15min) for brute-force-sensitive endpoints
+router.post('/register', authStrictLimiter, registerValidators, register);
+router.post('/login', authStrictLimiter, loginValidators, login);
 // Refresh uses body.refreshToken only (no Authorization required)
 router.post('/refresh', authSensitiveLimiter, refreshToken);
 router.get('/me', protect, privacyMiddleware, getMe);
@@ -88,7 +90,8 @@ router.get('/users/:id/online-history', protect, getUserOnlineHistory);
 // they 404 instead of silently failing.
 
 // Password reset (forgot password) — rate-limited, no auth required.
-router.post('/forgot-password', authSensitiveLimiter, forgotPassword);
+// BUG FIX 3: Use strict limiter for password reset to prevent enumeration attacks
+router.post('/forgot-password', authStrictLimiter, forgotPassword);
 router.post('/reset-password', authSensitiveLimiter, resetPassword);
 
 // Phone verification — rate-limited, session required.

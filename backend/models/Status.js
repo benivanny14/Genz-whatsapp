@@ -343,5 +343,10 @@ statusSchema.index({ content: 'text', caption: 'text' });
 statusSchema.index({ isRevoked: 1, userId: 1 });
 statusSchema.index({ archived: 1, userId: 1 });
 statusSchema.index({ isScheduled: 1, scheduledAt: 1 });
+// BUG FIX 7: Compound indexes for frequently queried status patterns
+statusSchema.index({ userId: 1, type: 1, createdAt: -1 }); // Filter by user + type
+statusSchema.index({ userId: 1, isDeleted: 1, createdAt: -1 }); // Filter active vs deleted
+// NOTE: expiresAt already has an inline TTL index via schema definition
+// (index: { expireAfterSeconds: 0 }), so no separate index needed here.
 
 module.exports = mongoose.model("Status", statusSchema);

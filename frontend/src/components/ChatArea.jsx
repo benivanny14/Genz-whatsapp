@@ -776,6 +776,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     setShowMediaPanel(false);
     setSelectedMedia(null);
     setReplyingTo(null);
+    // BUG FIX 6: Re-focus the input after sending so the user can immediately
+    // type the next message without tapping the input field again.
+    inputRef.current?.focus();
   };
 
   const handleTyping = (value, cursor = value.length) => {

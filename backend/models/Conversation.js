@@ -299,5 +299,9 @@ conversationSchema.index({ isGroup: 1, updatedAt: -1 }, { partialFilterExpressio
 conversationSchema.index({ 'bannedMembers.user': 1 }, { sparse: true });
 conversationSchema.index({ owner: 1 }, { sparse: true });
 conversationSchema.index({ requireJoinApproval: 1 }, { sparse: true });
+// BUG FIX 7: Compound indexes for frequently queried conversation patterns
+conversationSchema.index({ lastMessage: 1 }, { sparse: true }); // Populate lastMessage efficiently
+conversationSchema.index({ participants: 1, isGroup: 1, updatedAt: -1 }); // Chat list queries
+conversationSchema.index({ 'adminOnlyMessaging': 1, isGroup: 1 }, { partialFilterExpression: { isGroup: true } }); // Group permission checks
 
 module.exports = mongoose.model('Conversation', conversationSchema);

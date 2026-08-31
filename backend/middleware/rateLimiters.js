@@ -118,4 +118,18 @@ const viewOnceRevealLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-module.exports = { authSensitiveLimiter, accountLoginLimiter, pairingLimiter, discoveryLimiter, messageSenderLimiter, uploadLimiter, viewOnceRevealLimiter };
+// BUG FIX 3: Strict auth limiter for login/register/forgot-password.
+// Only 5 attempts per 15 minutes per IP — prevents brute-force attacks
+// while real users sharing a NAT/campus IP still have enough headroom.
+const authStrictLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: process.env.NODE_ENV === 'test' ? 100000 : 5,
+  message: {
+    success: false,
+    error: 'Too many attempts. Try again in 15 minutes.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+module.exports = { authSensitiveLimiter, authStrictLimiter, accountLoginLimiter, pairingLimiter, discoveryLimiter, messageSenderLimiter, uploadLimiter, viewOnceRevealLimiter };

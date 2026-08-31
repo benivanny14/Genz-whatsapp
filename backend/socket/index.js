@@ -13,10 +13,9 @@
  * previous single-file implementation.
  */
 const { createContext, SOCKET_SETUP_FLAG } = require('./context');
-const registerMessageHandlers = require('./handlers/messageHandlers');
-const registerGroupHandlers = require('./handlers/groupHandlers');
-const registerStatusHandlers = require('./handlers/statusHandlers');
-const registerConversationHandlers = require('./handlers/conversationHandlers');
+// BUG FIX 1: All handlers are now registered through chatHandlers.js
+// which wraps every handler in try-catch to prevent server crashes.
+const { registerAllHandlers } = require('./chatHandlers');
 const { logInfo, logError, logWarning, logDebug } = require('../config/winston');
 const {
   getContactId,
@@ -249,11 +248,10 @@ const setupSocket = (io) => {
     });
 
     // ── Feature handlers (split into modules, see header comment) ─────────
+    // BUG FIX 1: All handlers registered through chatHandlers.js which
+    // wraps every handler in try-catch to prevent server crashes.
     const ctx = createContext(io, socket);
-    registerMessageHandlers(ctx);
-    registerGroupHandlers(ctx);
-    registerStatusHandlers(ctx);
-    registerConversationHandlers(ctx);
+    registerAllHandlers(ctx);
 
     const {
       Conversation,
