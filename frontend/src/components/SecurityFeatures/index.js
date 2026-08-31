@@ -28,9 +28,6 @@ export { default as LockScreen } from '../LockScreen';
 // Two-Factor Authentication
 export { default as TwoFactorAuth } from '../TwoFactorAuth';
 
-// Passkeys
-export { default as PasskeysSettings } from '../PasskeysSettings';
-
 // Profile Security
 export { default as ProfileSecurity } from '../ProfileSecurity';
 
