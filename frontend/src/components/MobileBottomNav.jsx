@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { MessageCircle, Sparkles, UsersRound, CircleDot, Store } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useChat } from '../context/ChatContext';
@@ -30,7 +31,7 @@ const HIDDEN_EXACT = ['/'];
 const MobileBottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { selectedConversation, statusUnseenCount, wingaData } = useChat();
+  const { selectedConversation, statusUnseenCount, wingaData, conversations } = useChat();
   const path = location.pathname;
 
   const isHiddenRoute = HIDDEN_EXACT.includes(path) || HIDDEN_PREFIXES.some((prefix) => path.startsWith(prefix));
@@ -39,6 +40,21 @@ const MobileBottomNav = () => {
   if (isHiddenRoute || isInsideOpenMobileChat) return null;
 
   const wingaUnseen = wingaData?.totalUnseen || 0;
+
+  // Compute unread badges from conversations
+  const chatUnread = useMemo(() => {
+    if (!conversations) return 0;
+    return conversations
+      .filter(c => !c.isGroup && !c.isArchived)
+      .reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+  }, [conversations]);
+
+  const groupUnread = useMemo(() => {
+    if (!conversations) return 0;
+    return conversations
+      .filter(c => c.isGroup && !c.isArchived)
+      .reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+  }, [conversations]);
 
   return (
     <nav
@@ -55,11 +71,15 @@ const MobileBottomNav = () => {
             columns are now equal-width and each button fills its column, so
             icons/labels line up evenly on every side regardless of label
             length or screen width. */}
-        <div className="grid grid-cols-5 w-full pt-1.5 pb-[max(6px,env(safe-area-inset-bottom))]">
+        <div className="grid grid-cols-5 w-full pt-2 pb-[max(8px,env(safe-area-inset-bottom))]">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const active = item.match(path);
-            const badge = item.path === '/status' ? (statusUnseenCount || 0) : item.path === '/winga' ? wingaUnseen : 0;
+            const badge = item.path === '/status' ? (statusUnseenCount || 0)
+              : item.path === '/winga' ? wingaUnseen
+              : item.path === '/chat' ? chatUnread
+              : item.path === '/communities' ? groupUnread
+              : 0;
             return (
               <button
                 key={item.path}
@@ -71,18 +91,18 @@ const MobileBottomNav = () => {
                 }`}
                 aria-current={active ? 'page' : undefined}
               >
-                <span className="relative">
+                <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Icon size={20} strokeWidth={active ? 2.6 : 2} />
                   {badge > 0 && (
                     <span
                       data-testid={`nav-badge-${item.path.replace('/', '')}`}
-                      className="absolute -top-2 -right-2.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#25d366] px-1 text-[10px] font-black text-[#0b141a] shadow"
+                      style={{ position: 'absolute', top: -5, right: -10, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 18, height: 18, borderRadius: 9, backgroundColor: '#25d366', color: '#0b141a', fontSize: 10, fontWeight: 900, paddingLeft: 4, paddingRight: 4, lineHeight: 1, zIndex: 99999, boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }}
                     >
                       {badge > 99 ? '99+' : badge}
                     </span>
                   )}
                 </span>
-                <span className="leading-tight whitespace-nowrap">{item.label}</span>
+                <span style={{ lineHeight: '1.2', whiteSpace: 'nowrap' }}>{item.label}</span>
               </button>
             );
           })}
