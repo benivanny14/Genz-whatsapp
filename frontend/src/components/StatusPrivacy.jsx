@@ -188,7 +188,7 @@ const StatusPrivacy = ({ onClose }) => {
                   onClick={() => toggleUser(contact.user || contact._id)}
                   style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 16px', cursor: 'pointer', minHeight: '48px' }}
                 >
-                  <img src={contact.profilePicture || '/default-avatar.png'} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%' }} loading="lazy" />
+                  <img src={contact.profilePicture || '/default-avatar.svg'} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%' }} loading="lazy" />
                   <span style={{ flex: 1, color: '#e9edef' }}>{contact.savedName || contact.username}</span>
                   {selectedUsers.includes(contact.user || contact._id) && <Check size={18} color="#00a884" />}
                 </div>

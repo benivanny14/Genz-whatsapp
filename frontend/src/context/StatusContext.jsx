@@ -76,7 +76,7 @@ const StatusProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // ── Fetch all statuses ──
+  // ── Fetch all statuses (with loading state) ──
   const fetchStatuses = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -95,6 +95,21 @@ const StatusProvider = ({ children }) => {
       setError('Failed to fetch statuses');
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  // ── Silent refresh — updates statuses WITHOUT showing loading spinner ──
+  const silentRefreshStatuses = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE()}/status`, {
+        headers: authHeaders()
+      });
+      const data = await res.json();
+      if (data.success) {
+        setStatuses(data.statuses || []);
+      }
+    } catch (err) {
+      // Silent — don't disrupt the UI
     }
   }, []);
 
@@ -139,8 +154,8 @@ const StatusProvider = ({ children }) => {
             return [newStatus, ...prev];
           });
         }
-        // Background refresh to get fully-populated data from server
-        fetchStatuses();
+        // Background refresh to get fully-populated data from server (no loading spinner)
+        silentRefreshStatuses();
         return data;
       }
       throw new Error(data.message || 'Failed to create status');
@@ -202,8 +217,8 @@ const StatusProvider = ({ children }) => {
             return [newStatus, ...prev];
           });
         }
-        // Background refresh to get fully-populated data from server
-        fetchStatuses();
+        // Background refresh to get fully-populated data from server (no loading spinner)
+        silentRefreshStatuses();
         return data;
       }
       throw new Error(data.message || 'Failed to create media status');
@@ -231,7 +246,7 @@ const StatusProvider = ({ children }) => {
             return [newStatus, ...prev];
           });
         }
-        fetchStatuses();
+        silentRefreshStatuses();
         return data;
       }
       throw new Error(data.message || 'Failed to create status');
@@ -417,6 +432,7 @@ const StatusProvider = ({ children }) => {
     loading,
     error,
     fetchStatuses,
+    silentRefreshStatuses,
     createTextStatus,
     createMediaStatus,
     createCustomStatus,

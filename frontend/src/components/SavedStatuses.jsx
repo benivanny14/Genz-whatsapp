@@ -115,7 +115,7 @@ const SavedStatuses = ({ onClose, onViewStatus }) => {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <img
-                        src={owner.profilePicture || '/default-avatar.png'}
+                        src={owner.profilePicture || '/default-avatar.svg'}
                         alt=""
                         style={{ width: '20px', height: '20px', borderRadius: '50%' }}
                       />

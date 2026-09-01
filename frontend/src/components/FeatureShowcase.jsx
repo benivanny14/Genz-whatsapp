@@ -142,38 +142,49 @@ const PhoneFrame = ({ children, slideColor }) => (
    MOCK SCREENS — Each feature's visual representation
    ═══════════════════════════════════════════════════════ */
 const ChatMock = () => (
-  <div className="p-2 space-y-2">
-    {[
-      { name: 'Mary K.', msg: 'Habari! Umeangalia status yangu? 👻', time: '10:30', sent: false, unread: 2 },
-      { name: 'John D.', msg: 'Nimependa drawing tools! 🎨', time: '09:15', sent: true, read: true },
-      { name: 'Group ya Genz', msg: 'James: Kumbe status ya 72h...', time: 'Yesterday', sent: false, unread: 5 },
-    ].map((chat, i) => (
-      <div key={i} className="flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 transition-colors">
-        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#00a884] to-[#00c795] flex items-center justify-center text-white text-[10px] font-bold shrink-0">
-          {chat.name[0]}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-center">
-            <span className="text-white font-medium text-[10px] truncate">{chat.name}</span>
-            <span className="text-[8px]" style={{ color: chat.sent ? '#00a884' : '#6b7280' }}>{chat.time}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-white/50 text-[9px] truncate">{chat.msg}</span>
-            {chat.unread && (
-              <span className="bg-[#00a884] text-white text-[7px] font-bold rounded-full px-1.5 min-w-[14px] text-center">
-                {chat.unread}
-              </span>
-            )}
-            {chat.read && <CheckCheck size={10} className="text-blue-400 shrink-0" />}
-          </div>
-        </div>
+  <div className="p-2">
+    {/* Chat header */}
+    <div className="flex items-center gap-2 px-2 py-1.5 bg-[#1f2c34] rounded-t-lg">
+      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-[9px] font-bold">A</div>
+      <div className="flex-1">
+        <div className="text-white text-[10px] font-semibold">Amara</div>
+        <div className="text-white/40 text-[7px]">online</div>
       </div>
-    ))}
-    <div className="flex items-center gap-1.5 p-1.5 bg-[#1f2c34] rounded-full mt-2">
-      <Smile size={14} className="text-white/40 ml-2" />
-      <div className="flex-1 text-[9px] text-white/30">Message...</div>
-      <div className="w-7 h-7 rounded-full bg-[#00a884] flex items-center justify-center">
-        <Send size={10} className="text-white" />
+      <Lock size={10} className="text-white/30" />
+    </div>
+    {/* Messages between 5+ users */}
+    <div className="space-y-1.5 py-2 px-1">
+      {[
+        { text: 'Habari za leo? 😊', sent: true, time: '09:15', status: '✓✓' },
+        { text: 'Nzuri sana! Wewe?', sent: false, time: '09:16', color: '#a855f7' },
+        { text: 'Sawa tu. Umeshajaribu ghost mode?', sent: true, time: '09:17', status: '✓✓' },
+        { text: 'Ndiyo! Ni ya ajabu 👻', sent: false, time: '09:18', color: '#ec4899' },
+        { text: 'Tumeongea kwa group. John pia ameipenda', sent: false, time: '09:20', color: '#3b82f6' },
+        { text: 'Anti-delete feature ni nzuri sana 🛡️', sent: true, time: '09:22', status: '✓✓' },
+        { text: 'Kweli! Status 72h pia ni game changer ⏰', sent: false, time: '09:23', color: '#10b981' },
+      ].map((m, i) => (
+        <div key={i} className={`flex ${m.sent ? 'justify-end' : 'justify-start'}`}>
+          <div className={`max-w-[75%] px-2 py-1 rounded-lg text-[8px] ${
+            m.sent
+              ? 'bg-[#005e54] rounded-tr-sm text-white'
+              : 'bg-[#1f2c34] rounded-tl-sm text-white/90'
+          }`}
+            style={!m.sent ? { borderLeft: `2px solid ${m.color}` } : {}}>
+            <p>{m.text}</p>
+            <div className={`flex items-center gap-0.5 mt-0.5 ${m.sent ? 'justify-end' : ''}`}>
+              <span className="text-[6px] text-white/30">{m.time}</span>
+              {m.status && <span className="text-[6px] text-blue-400">{m.status}</span>}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+    {/* Input */}
+    <div className="flex items-center gap-1.5 p-1.5 bg-[#1f2c34] rounded-b-lg">
+      <Smile size={12} className="text-white/40 ml-1" />
+      <div className="flex-1 text-[8px] text-white/30 bg-white/5 rounded-full px-2 py-1">Type a message...</div>
+      <div className="w-6 h-6 rounded-full bg-[#00a884] flex items-center justify-center">
+        <Send size={9} className="text-white" />
       </div>
     </div>
   </div>

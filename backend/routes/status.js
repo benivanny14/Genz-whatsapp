@@ -2152,4 +2152,38 @@ router.get('/highlights', protect, async (req, res) => {
   }
 });
 
+// ── Music Search (iTunes API — free, no API key needed) ──
+router.get('/music-search', async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || q.length < 2) return res.json({ tracks: [] });
+
+    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&limit=15&entity=song`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    const tracks = (data.results || []).map((t) => ({
+      id: String(t.trackId),
+      name: t.trackName || t.collectionName || 'Unknown',
+      artist: t.artistName || 'Unknown',
+      album: {
+        name: t.collectionName || '',
+        images: t.artworkUrl100
+          ? [{ url: t.artworkUrl100 }, { url: t.artworkUrl60 }]
+          : [],
+      },
+      preview_url: t.previewUrl || null,
+      duration_ms: t.trackTimeMillis || 0,
+      release_date: t.releaseDate || '',
+      genre: t.primaryGenreName || '',
+      source: 'itunes',
+    }));
+
+    res.json({ tracks });
+  } catch (err) {
+    console.error('Music search error:', err);
+    res.status(500).json({ success: false, message: 'Music search failed' });
+  }
+});
+
 module.exports = router;

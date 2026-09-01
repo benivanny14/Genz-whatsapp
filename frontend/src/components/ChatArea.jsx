@@ -2375,8 +2375,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       handleRetryMessage, handleReaction, setReplyingTo, setForwardingMessage,
       setShowForwardModal, unpinMessage, pinMessage, toggleStarMessage,
       toggleFavoriteSticker, setReportTarget, handleEditClick, setMessageInfoId,
-      setShowMessageInfoModal, deleteMessage, handleDeleteForEveryone
-}), [filteredMessages, visibleCount, safeMods, user, selectedConversation, messages, favoriteStickers, activeMessageMenu, messageMenuRef, isOwnMessage, handleDoubleClick, setMessageContextMenu, setActiveMessageMenu, openViewOnceModal, setViewerMedia, mediaSourceOf, isVideoSticker, plaintextOf, votePoll, markViewOnceViewed, toggleMessageLock, handleRetryMessage, handleReaction, setReplyingTo, setForwardingMessage, setShowForwardModal, unpinMessage, pinMessage, toggleStarMessage, toggleFavoriteSticker, setReportTarget, handleEditClick, setMessageInfoId, setShowMessageInfoModal, deleteMessage, handleDeleteForEveryone]);
+      setShowMessageInfoModal, deleteMessage, handleDeleteForEveryone,
+      handleMsgTouchStart, handleMsgTouchMove, handleMsgTouchEnd, swipeReplyAnim
+}), [filteredMessages, visibleCount, safeMods, user, selectedConversation, messages, favoriteStickers, activeMessageMenu, messageMenuRef, isOwnMessage, handleDoubleClick, setMessageContextMenu, setActiveMessageMenu, openViewOnceModal, setViewerMedia, mediaSourceOf, isVideoSticker, plaintextOf, votePoll, markViewOnceViewed, toggleMessageLock, handleRetryMessage, handleReaction, setReplyingTo, setForwardingMessage, setShowForwardModal, unpinMessage, pinMessage, toggleStarMessage, toggleFavoriteSticker, setReportTarget, handleEditClick, setMessageInfoId, setShowMessageInfoModal, deleteMessage, handleDeleteForEveryone, handleMsgTouchStart, handleMsgTouchMove, handleMsgTouchEnd, swipeReplyAnim]);
 
   const composerCtx = useMemo(() => ({
   replyingTo, setReplyingTo, showMediaPanel, setShowMediaPanel,

@@ -24,7 +24,12 @@ exports.uploadUpdate = async (req, res) => {
     const { version, versionCode, changelog, mandatory, downloadUrl: customUrl } = req.body;
     
     // Allow either a file upload or a custom downloadUrl
-    const apkUrl = customUrl || (req.file && req.file.path);
+    let apkUrl = customUrl;
+    if (req.file) {
+      // Convert local file path to a serveable URL
+      const filename = require('path').basename(req.file.path);
+      apkUrl = `/api/uploads/updates/${filename}`;
+    }
     if (!apkUrl) {
       return res.status(400).json({ success: false, message: 'APK URL or file required' });
     }

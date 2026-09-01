@@ -31,7 +31,8 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
     handleRetryMessage, handleReaction, setReplyingTo, setForwardingMessage,
     setShowForwardModal, unpinMessage, pinMessage, toggleStarMessage,
     toggleFavoriteSticker, setReportTarget, handleEditClick, setMessageInfoId,
-    setShowMessageInfoModal, deleteMessage, handleDeleteForEveryone
+    setShowMessageInfoModal, deleteMessage, handleDeleteForEveryone,
+    handleMsgTouchStart, handleMsgTouchMove, handleMsgTouchEnd, swipeReplyAnim
   } = ctx;
 
   return (filteredMessages || []).slice(-visibleCount).map((message, index) => (
@@ -46,6 +47,10 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                   id={`msg-${message.id || message._id}`}
                   key={message.id || message._id}
                   className={`flex w-full ${isOwnMessage(message) ? 'justify-end' : 'justify-start'}`}
+                  onTouchStart={(e) => handleMsgTouchStart?.(e, message)}
+                  onTouchMove={(e) => handleMsgTouchMove?.(e, message)}
+                  onTouchEnd={(e) => handleMsgTouchEnd?.(e, message)}
+                  style={swipeReplyAnim?.[message._id || message.id] ? { transform: `translateX(${swipeReplyAnim[message._id || message.id]}px)`, transition: 'transform 150ms cubic-bezier(0.25, 0.46, 0.45, 0.94)' } : undefined}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     setMessageContextMenu({

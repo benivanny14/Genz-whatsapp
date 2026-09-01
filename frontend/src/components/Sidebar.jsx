@@ -669,10 +669,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     }
   });
 
-  const handleViewChannels = () => {
-    navigate('/channels');
-  };
-
   const handleViewCommunities = () => {
     navigate('/communities');
   };
@@ -1000,14 +996,6 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
               title="New Chat" aria-label="New Chat"
             >
               <Plus className="w-5 h-5 text-dark-text" />
-            </button>
-            <button
-              onClick={handleViewChannels}
-              className="p-2 hover:bg-dark-hover rounded-lg transition-colors"
-              title="Channels"
-              aria-label="Channels"
-            >
-              <Megaphone className="w-5 h-5 text-dark-text" />
             </button>
             <button
               onClick={handleViewCommunities}

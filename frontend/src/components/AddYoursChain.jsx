@@ -70,7 +70,7 @@ const AddYoursChain = ({ status, onAddYours }) => {
           {responses.slice(0, 6).map((r, i) => (
             <img
               key={r._id || i}
-              src={r.userId?.profilePicture || '/default-avatar.png'}
+              src={r.userId?.profilePicture || '/default-avatar.svg'}
               alt=""
               style={{
                 width: 26,

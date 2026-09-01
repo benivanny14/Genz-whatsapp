@@ -59,10 +59,15 @@ const TESTIMONIALS = [
 ];
 
 const SCREENSHOTS = [
-  { src: '/screenshots/after-login.png', alt: 'Chat List', caption: 'Chat List — Mazungumzo Yako Yote', desc: 'Ona mazungumzo yako yote kwa urahisi. Search, filter, na organize.' },
-  { src: '/screenshots/login.png', alt: 'Login Screen', caption: 'Login — Anza Haraka', desc: 'Ingia kwa nambari ya simu. Hakuna nyaraka za ziada.' },
-  { src: '/screenshots/login-filled.png', alt: 'Status Page', caption: 'Status — Shiriki Maisha Yako', desc: 'Post status za picha, video, na muziki. Zinadumu siku 3!' },
-  { src: '/screenshots/prod-login.png', alt: 'Settings Panel', caption: 'Settings — Customizable Kabisa', desc: 'Badilisha mandhari, faragha, na options nyingi.' },
+  { src: '/screenshots/chat-list.png', alt: 'Chat List', caption: 'Chat List — Mazungumzo Yako Yote', desc: 'Ona mazungumzo yako yote kwa urahisi. Search, filter, na organize.' },
+  { src: '/screenshots/chat-conversation.png', alt: 'Chat Conversation', caption: 'Chat — Mazungumzo ya Moja kwa Moja', desc: 'Tuma ujumbe, picha, stickers, na emojis kwa marafiki zako.' },
+  { src: '/screenshots/status-page.png', alt: 'Status Page', caption: 'Status — Shiriki Maisha Yako', desc: 'Post status za picha, video, na muziki. Zinadumu siku 3!' },
+  { src: '/screenshots/groups-page.png', alt: 'Groups', caption: 'Groups — Jumuiya Zako', desc: 'Unda na jiunge na vikundi vya watu wenye maslahi sawa.' },
+  { src: '/screenshots/winga-marketplace.png', alt: 'Winga Marketplace', caption: 'Winga — Soko la Bidhaa', desc: 'Nunua na uuze bidhaa ndani ya app. Simu, laptop, mavazi, na zaidi.' },
+  { src: '/screenshots/settings-page.png', alt: 'Settings', caption: 'Settings — Customizable Kabisa', desc: 'Badilisha mandhari, faragha, na options nyingi.' },
+  { src: '/screenshots/notifications-page.png', alt: 'Notifications', caption: 'Arifa — Usipitwe na Kitu', desc: 'Pata taarifa za ujumbe, status, malipo, na update mpya.' },
+  { src: '/screenshots/login.png', alt: 'Login', caption: 'Login — Anza Haraka', desc: 'Ingia kwa nambari ya simu. Usajili rahisi na salama.' },
+  { src: '/screenshots/register-page.png', alt: 'Register', caption: 'Register — Jiunge Leo', desc: 'Unda akaunti mpya kwa sekunde chache tu.' },
 ];
 
 /* ═══════════════════════════════════════════════════════
@@ -987,21 +992,21 @@ const LandingPage = () => {
               icon: Download,
               title: t.step1Title,
               desc: t.step1Desc,
-              img: '/screenshots/login.png',
+              img: '/screenshots/landing-hero.png',
             },
             {
               num: '2',
               icon: ShieldAlert,
               title: t.step2Title,
               desc: t.step2Desc,
-              img: '/screenshots/login-filled.png',
+              img: '/screenshots/register-page.png',
             },
             {
               num: '3',
               icon: CheckCircle,
               title: t.step3Title,
               desc: t.step3Desc,
-              img: '/screenshots/after-login.png',
+              img: '/screenshots/chat-list.png',
             },
           ].map(({ num, icon: Icon, title, desc, img }, i) => (
             <AnimatedSection key={num} delay={i * 150}>

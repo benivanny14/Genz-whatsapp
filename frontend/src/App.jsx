@@ -6,7 +6,6 @@ import { useNativeBackButton } from './hooks/useNativeBackButton';
 import ErrorBoundary from './components/ErrorBoundary';
 import InAppNotification from './components/InAppNotification';
 import OfflineBanner from './components/OfflineBanner';
-import InstallAppPrompt from './components/InstallAppPrompt';
 import UpdateBanner from './components/UpdateBanner';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
@@ -55,8 +54,6 @@ const LinkedDevices = lazy(() => import('./pages/LinkedDevices'));
 const PairDevice = lazy(() => import('./pages/PairDevice'));
 const Broadcasts = lazy(() => import('./pages/Broadcasts'));
 const SecuritySettings = lazy(() => import('./pages/SecuritySettings'));
-const Channels = lazy(() => import('./pages/Channels'));
-const ChannelView = lazy(() => import('./pages/ChannelView'));
 const Communities = lazy(() => import('./pages/Communities'));
 const JoinGroup = lazy(() => import('./pages/JoinGroup'));
 const SubscriptionPayment = lazy(() => import('./components/PaidFeatures/SubscriptionPayment'));
@@ -534,7 +531,6 @@ function App() {
         }}
       />
       <OfflineBanner />
-      <InstallAppPrompt />
       <UpdateBanner />
       <InAppNotification
         notification={notification}
@@ -571,8 +567,6 @@ function App() {
             {/* GENZ Mods route removed - features merged into GENZ Settings */}
             <Route path="/winga" element={<ProtectedRoute><Winga /></ProtectedRoute>} />
             {import.meta.env.DEV && <Route path="/features" element={<ProtectedRoute><FeatureLibrary /></ProtectedRoute>} />}
-            <Route path="/channels" element={<ProtectedRoute><Channels /></ProtectedRoute>} />
-            <Route path="/channels/:channelId" element={<ProtectedRoute><ChannelView /></ProtectedRoute>} />
             <Route path="/communities" element={<ProtectedRoute><Communities /></ProtectedRoute>} />
             <Route path="/join/:groupId/:code" element={<ProtectedRoute><JoinGroup /></ProtectedRoute>} />
             <Route path="/login" element={<Login />} />
@@ -587,7 +581,7 @@ function App() {
           </Routes>
         </Suspense>
       </AdminAuthProvider>
-      <DownloadApkFab />
+      {!user && <DownloadApkFab />}
       <MobileBottomNav />
       </PromptDialogProvider>
       </ConfirmDialogProvider>

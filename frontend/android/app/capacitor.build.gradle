@@ -27,6 +27,7 @@ dependencies {
     implementation project(':capacitor-toast')
     implementation project(':capawesome-capacitor-file-picker')
     implementation project(':capgo-capacitor-native-biometric')
+    implementation project(':capgo-capacitor-updater')
 
 }
 

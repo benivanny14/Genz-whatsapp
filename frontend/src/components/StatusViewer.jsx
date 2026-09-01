@@ -91,6 +91,8 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
   const currentUserId = idOf(currentUser)
   const statusOwnerId = idOf(currentStatus?.userId || currentStatus?.user)
   const statusOwner = (currentStatus?.userId && typeof currentStatus.userId === 'object') ? currentStatus.userId : currentStatus?.user
+  // Fallback: username/profilePicture may be top-level fields on the status document
+  const effectiveOwner = statusOwner || { _id: statusOwnerId, username: currentStatus?.username || 'Unknown', profilePicture: currentStatus?.profilePicture || '' }
   const isOwner = Boolean(currentUserId && statusOwnerId && currentUserId === statusOwnerId)
 
   // Update remaining time every 30 seconds
@@ -585,10 +587,10 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
         
         <div className="viewer-header">
           <div className="viewer-user-info">
-            <img src={statusOwner?.profilePicture || '/default-avatar.png'} alt="" />
+            <img src={effectiveOwner?.profilePicture || currentStatus?.profilePicture || '/default-avatar.svg'} alt="" />
             <div>
               <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
-                {statusOwner?.username || currentStatus.username || 'Status'}
+                {effectiveOwner?.username || currentStatus.username || 'Status'}
                 {currentStatus.collabUsername && (
                   <span style={{ background: 'rgba(255,255,255,0.2)', fontSize: '11px', padding: '1px 6px', borderRadius: '4px' }}>
                     @{currentStatus.collabUsername}
@@ -1031,7 +1033,7 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
               .filter(v => (v.userId?.username || '').toLowerCase().includes(viewerSearchQuery.toLowerCase()))
               .map((v, i) => (
                 <div key={i} className="viewer-item">
-                  <img src={v.userId?.profilePicture || '/default-avatar.png'} alt="" />
+                  <img src={v.userId?.profilePicture || '/default-avatar.svg'} alt="" />
                   <span>{v.userId?.username}</span>
                   <small>{new Date(v.viewedAt).toLocaleTimeString()}</small>
                 </div>

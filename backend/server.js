@@ -1008,7 +1008,6 @@ const {
   adminRoutes: manualPaymentAdminRoutes,
 } = require("./routes/manualPaymentRoutes");
 const deviceRoutes = require("./routes/deviceRoutes");
-const channelRoutes = require("./routes/channelRoutes");
 const securityRoutes = require("./routes/securityRoutes");
 const genzModsRoutes = require("./routes/genzModsRoutes");
 const backupRoutes = require("./routes/backupRoutes");
@@ -1112,7 +1111,6 @@ const API_ROUTE_MOUNTS = [
   ["/story-highlights", storyHighlightRoutes],
 
   ["/payment-features", paymentFeaturesRoutes],
-  ["/channels", channelRoutes],
   // Newly-wired feature routes (previously orphaned controllers)
   ["/bulk-sender", bulkSenderRoutes],
   ["/business-account", businessAccountRoutes],
@@ -1147,10 +1145,29 @@ const mountApiRoutes = (prefix) => {
   for (const [routePath, ...middleware] of API_ROUTE_MOUNTS) {
     app.use(`${prefix}${routePath}`, ...middleware);
   }
-};
+};mountApiRoutes("/api");
 
-mountApiRoutes("/api");
 mountApiRoutes("/api/v1");
+
+// Public APK download endpoint (no auth required)
+const updatesDir = path.join(__dirname, 'uploads', 'updates');
+if (fs.existsSync(updatesDir)) {
+  app.use('/api/uploads/updates', express.static(updatesDir, {
+    setHeaders: (res) => {
+      res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+      res.setHeader('Content-Disposition', 'attachment');
+    }
+  }));
+}
+
+// Public avatar images (no auth required — profile pictures are public)
+const avatarsDir = path.join(__dirname, 'uploads', 'avatars');
+if (fs.existsSync(avatarsDir)) {
+  app.use('/api/uploads/avatars', express.static(avatarsDir, {
+    maxAge: '7d',
+    immutable: true
+  }));
+}
 
 // WhatsApp Cloud API webhook — Meta calls this exact URL during webhook
 // verification and for every event (messages, status updates). Mounted

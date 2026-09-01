@@ -20,10 +20,16 @@ const StatusTray = ({ statuses = [], currentUser, onCreateStatus, onViewStatus }
     if (seen.has(uid)) continue
     seen.add(uid)
 
-    const user = (s.userId && typeof s.userId === 'object') ? s.userId : (s.user && typeof s.user === 'object') ? s.user : null
+    const userObj = (s.userId && typeof s.userId === 'object') ? s.userId : (s.user && typeof s.user === 'object') ? s.user : null
+    // Use username/profilePicture from status directly (API returns them as top-level fields)
+    const trayUser = userObj || {
+      _id: uid,
+      username: s.username || userObj?.username || 'Unknown',
+      profilePicture: s.profilePicture || userObj?.profilePicture || ''
+    }
     usersWithStatus.push({
       ...s,
-      _trayUser: user || { _id: uid, username: 'Unknown', profilePicture: '' },
+      _trayUser: trayUser,
       hasUnviewed: !s.isViewed
     })
   }
@@ -53,7 +59,7 @@ const StatusTray = ({ statuses = [], currentUser, onCreateStatus, onViewStatus }
       >
         <div style={{ position: 'relative', width: 64, height: 64, margin: '0 auto' }}>
           <img
-            src={currentUser.profilePicture || '/default-avatar.png'}
+            src={currentUser.profilePicture || '/default-avatar.svg'}
             alt=""
             style={{
               width: 56,
@@ -116,7 +122,7 @@ const StatusTray = ({ statuses = [], currentUser, onCreateStatus, onViewStatus }
                 : '2px solid #2a3942'
             }}>
               <img
-                src={user.profilePicture || '/default-avatar.png'}
+                src={user.profilePicture || '/default-avatar.svg'}
                 alt=""
                 style={{
                   width: 56,

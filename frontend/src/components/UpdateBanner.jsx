@@ -3,6 +3,8 @@ import { Download, RefreshCw, X } from 'lucide-react';
 import { getAppInfo, isNative, downloadUrl } from '../services/capacitorBridge.js';
 import { trackUpdateEvent } from '../utils/updateAnalytics.js';
 import { fetchVersionManifest, apkDownloadUrl } from '../utils/versionManifest.js';
+import { resolveApiBase } from '../utils/resolveApiBase';
+import { getAuthToken } from '../utils/tokenStore';
 
 const DISMISS_KEY = 'genz-update-dismissed-version';
 
@@ -47,6 +49,33 @@ const UpdateBanner = () => {
     const fetchManifest = () => fetchVersionManifest();
 
     (async () => {
+      // Strategy 1: Check database-based updates via API
+      try {
+        const currentCode = BUNDLE_VERSION_CODE || 0;
+        const token = getAuthToken();
+        const res = await fetch(
+          `${resolveApiBase()}/updates/check?currentVersionCode=${currentCode}`,
+          { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+        );
+        const data = await res.json();
+        if (data.success && data.update && !isDismissed(data.update.versionCode)) {
+          setUpdate({
+            version: data.update.version,
+            versionCode: data.update.versionCode,
+            isWeb: false,
+            changes: data.update.changelog ? [data.update.changelog] : [],
+            apkUrl: data.update.downloadUrl,
+          });
+          trackUpdateEvent('update_shown', {
+            version: data.update.version,
+            versionCode: data.update.versionCode,
+            platform: isNative() ? 'apk' : 'web',
+          });
+          return; // API update takes priority
+        }
+      } catch { /* API check failed, fall through to version.json */ }
+
+      // Strategy 2: Fallback to version.json (file-based)
       const manifest = await fetchManifest();
       if (cancelled || !manifest) return;
       const latestCode = Number(manifest.versionCode || 0);

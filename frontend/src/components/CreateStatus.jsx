@@ -108,6 +108,177 @@ const sheetMenuBtnStyle = {
   color: '#e9edef', textAlign: 'left', fontSize: '14px'
 }
 
+/**
+ * Instagram/WhatsApp-style trim bar with draggable handles.
+ * Shows a visual timeline with green handles that can be dragged.
+ */
+const InstagramTrimBar = ({ duration = 60, startTime = 0, endTime = 30, onChange, color = '#00a884' }) => {
+  const barRef = React.useRef(null)
+  const [dragging, setDragging] = useState(null) // 'start' | 'end' | 'range'
+  const [dragStartX, setDragStartX] = useState(0)
+  const [dragInitialStart, setDragInitialStart] = useState(0)
+  const [dragInitialEnd, setDragInitialEnd] = useState(0)
+
+  const getPositionFromX = (clientX) => {
+    if (!barRef.current) return 0
+    const rect = barRef.current.getBoundingClientRect()
+    const x = clientX - rect.left
+    const ratio = Math.max(0, Math.min(1, x / rect.width))
+    return ratio * duration
+  }
+
+  const handlePointerDown = (e, type) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragging(type)
+    setDragStartX(e.clientX || e.touches?.[0]?.clientX || 0)
+    setDragInitialStart(startTime)
+    setDragInitialEnd(endTime)
+  }
+
+  const handlePointerMove = React.useCallback((e) => {
+    if (!dragging) return
+    const clientX = e.clientX || e.touches?.[0]?.clientX || 0
+    const time = getPositionFromX(clientX)
+
+    if (dragging === 'start') {
+      const newStart = Math.min(time, endTime - 1)
+      onChange(Math.max(0, Math.round(newStart * 10) / 10), endTime)
+    } else if (dragging === 'end') {
+      const newEnd = Math.max(time, startTime + 1)
+      onChange(startTime, Math.min(duration, Math.round(newEnd * 10) / 10))
+    } else if (dragging === 'range') {
+      const dx = clientX - dragStartX
+      if (!barRef.current) return
+      const dt = (dx / barRef.current.getBoundingClientRect().width) * duration
+      const rangeLen = dragInitialEnd - dragInitialStart
+      let newStart = dragInitialStart + dt
+      let newEnd = dragInitialEnd + dt
+      if (newStart < 0) { newStart = 0; newEnd = rangeLen }
+      if (newEnd > duration) { newEnd = duration; newStart = duration - rangeLen }
+      onChange(Math.round(newStart * 10) / 10, Math.round(newEnd * 10) / 10)
+    }
+  }, [dragging, startTime, endTime, duration, dragStartX, dragInitialStart, dragInitialEnd, onChange])
+
+  const handlePointerUp = React.useCallback(() => { setDragging(null) }, [])
+
+  React.useEffect(() => {
+    if (dragging) {
+      document.addEventListener('mousemove', handlePointerMove)
+      document.addEventListener('mouseup', handlePointerUp)
+      document.addEventListener('touchmove', handlePointerMove)
+      document.addEventListener('touchend', handlePointerUp)
+      return () => {
+        document.removeEventListener('mousemove', handlePointerMove)
+        document.removeEventListener('mouseup', handlePointerUp)
+        document.removeEventListener('touchmove', handlePointerMove)
+        document.removeEventListener('touchend', handlePointerUp)
+      }
+    }
+  }, [dragging, handlePointerMove, handlePointerUp])
+
+  const startPct = (startTime / duration) * 100
+  const endPct = (endTime / duration) * 100
+  const selWidth = endPct - startPct
+
+  // Generate fake waveform bars
+  const waveformBars = React.useMemo(() => {
+    const bars = []
+    for (let i = 0; i < 80; i++) {
+      const h = 20 + Math.sin(i * 0.3) * 15 + Math.random() * 10
+      bars.push(h)
+    }
+    return bars
+  }, [])
+
+  return (
+    <div style={{ padding: '8px 0' }}>
+      <div style={{ position: 'relative', width: '100%', height: 56, userSelect: 'none', touchAction: 'none' }} ref={barRef}>
+        {/* Waveform background */}
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', gap: 1, padding: '0 2px', borderRadius: 8, overflow: 'hidden', background: 'rgba(255,255,255,0.05)' }}>
+          {waveformBars.map((h, i) => {
+            const barPct = (i / waveformBars.length) * 100
+            const inSelection = barPct >= startPct && barPct <= endPct
+            return (
+              <div key={i} style={{
+                flex: 1, height: `${h}%`, minHeight: 4,
+                borderRadius: 2,
+                background: inSelection ? color : 'rgba(255,255,255,0.15)',
+                transition: 'background 0.15s'
+              }} />
+            )
+          })}
+        </div>
+
+        {/* Dimmed areas outside selection */}
+        <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: `${startPct}%`, background: 'rgba(0,0,0,0.6)', borderRadius: '8px 0 0 8px', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${endPct}%`, right: 0, background: 'rgba(0,0,0,0.6)', borderRadius: '0 8px 8px 0', pointerEvents: 'none' }} />
+
+        {/* Selected area border */}
+        <div style={{
+          position: 'absolute', top: 0, bottom: 0,
+          left: `${startPct}%`, width: `${selWidth}%`,
+          border: `2px solid ${color}`, borderRadius: 4,
+          pointerEvents: 'none'
+        }} />
+
+        {/* Start handle */}
+        <div
+          onMouseDown={(e) => handlePointerDown(e, 'start')}
+          onTouchStart={(e) => handlePointerDown(e, 'start')}
+          style={{
+            position: 'absolute', top: 0, bottom: 0,
+            left: `${startPct}%`, transform: 'translateX(-50%)',
+            width: 20, cursor: 'ew-resize',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 5
+          }}
+        >
+          <div style={{ width: 4, height: 32, borderRadius: 2, background: color, boxShadow: '0 0 4px rgba(0,0,0,0.5)' }} />
+          <div style={{ position: 'absolute', top: -16, color: color, fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap' }}>
+            {startTime.toFixed(1)}s
+          </div>
+        </div>
+
+        {/* End handle */}
+        <div
+          onMouseDown={(e) => handlePointerDown(e, 'end')}
+          onTouchStart={(e) => handlePointerDown(e, 'end')}
+          style={{
+            position: 'absolute', top: 0, bottom: 0,
+            left: `${endPct}%`, transform: 'translateX(-50%)',
+            width: 20, cursor: 'ew-resize',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 5
+          }}
+        >
+          <div style={{ width: 4, height: 32, borderRadius: 2, background: color, boxShadow: '0 0 4px rgba(0,0,0,0.5)' }} />
+          <div style={{ position: 'absolute', top: -16, color: color, fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap' }}>
+            {endTime.toFixed(1)}s
+          </div>
+        </div>
+
+        {/* Range drag handle (center) */}
+        <div
+          onMouseDown={(e) => handlePointerDown(e, 'range')}
+          onTouchStart={(e) => handlePointerDown(e, 'range')}
+          style={{
+            position: 'absolute', top: '50%',
+            left: `${startPct + selWidth / 2}%`, transform: 'translate(-50%, -50%)',
+            cursor: 'grab', zIndex: 4,
+            display: 'flex', gap: 3, padding: '4px 6px',
+            background: 'rgba(0,0,0,0.4)', borderRadius: 8
+          }}
+        >
+          {[...Array(3)].map((_, i) => (
+            <div key={i} style={{ width: 2, height: 10, borderRadius: 1, background: '#fff' }} />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const CreateStatus = ({ onClose }) => {
   const { createTextStatus, createMediaStatus, createCustomStatus } = useStatusContext()
   const [mode, setMode] = useState('select') // select | text | image | video | voice | preview
@@ -1280,26 +1451,14 @@ const CreateStatus = ({ onClose }) => {
               {activeBottomSheet === 'trim' && mode === 'video' && (
                 <>
                   <h3 style={{ color: '#e9edef', fontSize: '16px', fontWeight: 600, margin: '0 0 12px' }}>✂️ Trim Video</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#8696a0', fontSize: '12px', marginBottom: '4px' }}>
-                        <span>Start: {trimStart}s</span>
-                      </div>
-                      <input type="range" min={0} max={Math.max(0, (videoRef.current?.duration || 60) - 5)} value={trimStart}
-                        onChange={(e) => { const val = Number(e.target.value); setTrimStart(val); if (val >= trimEnd) setTrimEnd(val + 5) }}
-                        style={{ width: '100%' }} />
-                    </div>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#8696a0', fontSize: '12px', marginBottom: '4px' }}>
-                        <span>End: {trimEnd}s</span>
-                      </div>
-                      <input type="range" min={trimStart + 1} max={videoRef.current?.duration || 60} value={trimEnd}
-                        onChange={(e) => setTrimEnd(Number(e.target.value))}
-                        style={{ width: '100%' }} />
-                    </div>
-                    <div style={{ color: '#00a884', fontSize: '13px', textAlign: 'center' }}>
-                      Duration: {trimEnd - trimStart}s
-                    </div>
+                  <InstagramTrimBar
+                    duration={videoRef.current?.duration || 60}
+                    startTime={trimStart}
+                    endTime={trimEnd}
+                    onChange={(start, end) => { setTrimStart(start); setTrimEnd(end); }}
+                  />
+                  <div style={{ color: '#00a884', fontSize: '13px', textAlign: 'center', marginTop: 8 }}>
+                    {trimStart.toFixed(1)}s — {trimEnd.toFixed(1)}s ({(trimEnd - trimStart).toFixed(1)}s)
                   </div>
                 </>
               )}
@@ -1325,22 +1484,23 @@ const CreateStatus = ({ onClose }) => {
                   {/* Music trim controls for uploaded files */}
                   {musicFile && (
                     <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#8696a0', fontSize: '12px' }}>
-                        <span>Start: {musicStart}s</span>
-                        <span>End: {musicEnd}s</span>
+                      <InstagramTrimBar
+                        duration={60}
+                        startTime={musicStart}
+                        endTime={musicEnd}
+                        onChange={(start, end) => { setMusicStart(start); setMusicEnd(end); }}
+                        color="#1DB954"
+                      />
+                      <div style={{ color: '#8696a0', fontSize: '12px', textAlign: 'center' }}>
+                        {musicStart.toFixed(1)}s — {musicEnd.toFixed(1)}s ({(musicEnd - musicStart).toFixed(1)}s)
                       </div>
-                      <input type="range" min={0} max={30} value={musicStart}
-                        onChange={(e) => { const val = Number(e.target.value); setMusicStart(val); if (val >= musicEnd) setMusicEnd(val + 5) }}
-                        style={{ width: '100%' }} />
-                      <input type="range" min={musicStart + 1} max={60} value={musicEnd}
-                        onChange={(e) => setMusicEnd(Number(e.target.value))}
-                        style={{ width: '100%' }} />
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#8696a0', fontSize: '12px' }}>
-                        <span>Volume: {Math.round(musicVolume * 100)}%</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Volume2 size={14} color="#8696a0" />
+                        <input type="range" min={0} max={1} step={0.1} value={musicVolume}
+                          onChange={(e) => setMusicVolume(Number(e.target.value))}
+                          style={{ flex: 1 }} />
+                        <span style={{ color: '#8696a0', fontSize: '11px', minWidth: 32, textAlign: 'right' }}>{Math.round(musicVolume * 100)}%</span>
                       </div>
-                      <input type="range" min={0} max={1} step={0.1} value={musicVolume}
-                        onChange={(e) => setMusicVolume(Number(e.target.value))}
-                        style={{ width: '100%' }} />
                     </div>
                   )}
                 </>
@@ -1526,7 +1686,7 @@ const CreateStatus = ({ onClose }) => {
                   const cId = String(c.user?._id || c.user || c._id || '')
                   return (
                     <div key={cId} className="contact-item" onClick={() => toggleUser(cId)}>
-                      <img src={c.profilePicture || '/default-avatar.png'} alt="" />
+                      <img src={c.profilePicture || '/default-avatar.svg'} alt="" />
                       <span>{c.savedName || c.username}</span>
                       {selectedUsers.includes(cId) && <Check size={18} color="#00a884" />}
                     </div>

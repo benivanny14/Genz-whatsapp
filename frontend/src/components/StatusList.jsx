@@ -145,7 +145,7 @@ const StatusList = ({ onViewArchive }) => {
         groups.set(userId, {
           userId,
           username: statusUser?.username || status.username || 'Unknown',
-          profilePicture: statusUser?.profilePicture || '',
+          profilePicture: statusUser?.profilePicture || status.profilePicture || '',
           isMuted: status.isMuted || false,
           statuses: [],
           totalViews: 0
@@ -300,7 +300,7 @@ const StatusList = ({ onViewArchive }) => {
                 )}
               </>
             ) : (
-              <img src={currentUser?.profilePicture || '/default-avatar.png'} alt="" loading="lazy" />
+              <img src={currentUser?.profilePicture || '/default-avatar.svg'} alt="" loading="lazy" />
             )}
             <div className="add-status-badge" onClick={(e) => { e.stopPropagation(); setShowCreate(true) }}>
               <Plus size={14} />
@@ -343,7 +343,7 @@ const StatusList = ({ onViewArchive }) => {
                   <div style={{ position: 'relative', flexShrink: 0, width: 52, height: 52 }}>
                     <div className={`status-ring ${hasUnviewed ? 'unviewed' : 'viewed'}`}
                       style={{ background: getStatusRingSegments(group.statuses) }}>
-                      <img src={group.profilePicture || '/default-avatar.png'} alt="" className="status-avatar-inner" loading="lazy" />
+                      <img src={group.profilePicture || '/default-avatar.svg'} alt="" className="status-avatar-inner" loading="lazy" />
                     </div>
                   </div>
                   <div className="status-user-info">
@@ -391,7 +391,7 @@ const StatusList = ({ onViewArchive }) => {
                 <div style={{ position: 'relative', flexShrink: 0, width: 52, height: 52 }}>
                   <div className={`status-ring ${hasUnviewed ? 'unviewed' : 'viewed'}`}
                     style={{ background: getStatusRingSegments(group.statuses) }}>
-                    <img src={group.profilePicture || '/default-avatar.png'} alt="" className="status-avatar-inner" />
+                    <img src={group.profilePicture || '/default-avatar.svg'} alt="" className="status-avatar-inner" />
                   </div>
                   {hasWinga && (
                     <div className="winga-ring-badge">
@@ -446,7 +446,7 @@ const StatusList = ({ onViewArchive }) => {
                 <div style={{ position: 'relative', flexShrink: 0, width: 52, height: 52 }}>
                   <div className="status-ring viewed"
                     style={{ background: getStatusRingSegments(group.statuses) }}>
-                    <img src={group.profilePicture || '/default-avatar.png'} alt="" className="status-avatar-inner" />
+                    <img src={group.profilePicture || '/default-avatar.svg'} alt="" className="status-avatar-inner" />
                   </div>
                   {hasWinga && (
                     <div className="winga-ring-badge">
@@ -521,7 +521,7 @@ const StatusList = ({ onViewArchive }) => {
                     <div style={{ position: 'relative', flexShrink: 0, width: 52, height: 52 }}>
                         <div className="status-ring viewed"
                           style={{ background: getStatusRingSegments(group.statuses) }}>
-                          <img src={group.profilePicture || '/default-avatar.png'} alt="" className="status-avatar-inner" loading="lazy" />
+                          <img src={group.profilePicture || '/default-avatar.svg'} alt="" className="status-avatar-inner" loading="lazy" />
                         </div>
                         {mutedHasWinga && (
                           <div className="winga-ring-badge">
