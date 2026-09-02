@@ -107,3 +107,32 @@ jobs:
           name: genz-whatsapp-${{ github.ref_name }}
           path: frontend/public/genz-whatsapp.apk
           if-no-files-found: error
+
+      - name: Publish APK to GitHub Release
+        if: github.ref == 'refs/heads/main'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd frontend
+          VERSION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('public/version.json','utf8')).version)")
+          APK_SHA=$(node -e "console.log(JSON.parse(require('fs').readFileSync('public/version.json','utf8')).sha256)")
+          APK_SIZE=$(stat -c%s public/genz-whatsapp.apk)
+          TAG="v${VERSION}"
+          echo "Publishing APK v${VERSION} (sha256: ${APK_SHA:0:12}..., size: ${APK_SIZE} bytes)"
+          # Create or update release (idempotent)
+          RELEASE_ID=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${TAG}" | node -e "process.stdin.on('data',d=>{try{console.log(JSON.parse(d).id||'')}catch{console.log('')}})")
+          if [ -z "$RELEASE_ID" ]; then
+            echo "Creating new release ${TAG}..."
+            RELEASE_ID=$(curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"tag_name\":\"${TAG}\",\"name\":\"${TAG}\",\"body\":\"APK build — sha256: ${APK_SHA}\"}" \
+              "https://api.github.com/repos/${{ github.repository }}/releases" | node -e "process.stdin.on('data',d=>{try{console.log(JSON.parse(d).id||'')}catch{console.log('')}})")
+          fi
+          echo "Release ID: $RELEASE_ID"
+          # Upload APK asset
+          curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Content-Type: application/vnd.android.package-archive" \
+            --data-binary @public/genz-whatsapp.apk \
+            "https://uploads.github.com/repos/${{ github.repository }}/releases/${RELEASE_ID}/assets?name=genz-whatsapp.apk"
+          echo "✅ APK published to release ${TAG}"
