@@ -21,6 +21,11 @@ backend/scripts/fix-issues.js
 frontend/test-results/
 frontend/android/app/google-services.json
 frontend/ios/App/App/GoogleService-Info.plist
+# Android signing credentials — never commit
+frontend/android/*.keystore
+frontend/android/*.jks
+frontend/android/keystore.properties
+frontend/android/local.properties
 push_to_github.ps1
 backend/backups/
 backend/.wwebjs_auth/
