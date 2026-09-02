@@ -18,8 +18,10 @@ export const fetchVersionManifest = (path = '/version.json') =>
         .catch(() => null)
     );
 
-// Absolute APK download URL: relative on the web (same-origin), absolute in the
-// bundled APK where /genz-whatsapp.apk would point at capacitor://localhost.
+const GITHUB_REPO = 'benivanny14/Genz-whatsapp';
+
+// APK download URL: GitHub Releases CDN (fast, always available).
+// Falls back to same-origin for bundled APKs.
 export const apkDownloadUrl = (relative = '/genz-whatsapp.apk') => {
   try {
     if (window.Capacitor?.isNativePlatform?.()) {
@@ -28,5 +30,5 @@ export const apkDownloadUrl = (relative = '/genz-whatsapp.apk') => {
   } catch {
     /* not in a browser */
   }
-  return relative;
+  return `https://github.com/${GITHUB_REPO}/releases/latest/download/genz-whatsapp.apk`;
 };

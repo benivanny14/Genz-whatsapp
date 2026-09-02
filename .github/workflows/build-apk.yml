@@ -108,4 +108,36 @@ jobs:
           path: frontend/public/genz-whatsapp.apk
           if-no-files-found: error
 
+      - name: Publish APK to GitHub Releases
+        if: github.ref == 'refs/heads/main'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd frontend
+          VERSION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('public/version.json','utf8')).version)")
+          TAG="v${VERSION}"
+          echo "Publishing APK ${TAG}..."
+          # Delete existing release with this tag (if any)
+          RELEASE_ID=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${TAG}" \
+            | node -e "process.stdin.on('data',d=>{try{console.log(JSON.parse(d).id||'')}catch{console.log('')}})")
+          if [ -n "$RELEASE_ID" ]; then
+            echo "Deleting old release $RELEASE_ID..."
+            curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID"
+          fi
+          # Create new release
+          RELEASE_ID=$(curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"tag_name\":\"${TAG}\",\"name\":\"${TAG}\",\"body\":\"Genz Messenger APK\",\"draft\":false,\"prerelease\":false}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases" \
+            | node -e "process.stdin.on('data',d=>{try{console.log(JSON.parse(d).id||'')}catch{console.log('')}})")
+          echo "Release ID: $RELEASE_ID"
+          # Upload APK
+          curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Content-Type: application/vnd.android.package-archive" \
+            --data-binary @public/genz-whatsapp.apk \
+            "https://uploads.github.com/repos/${{ github.repository }}/releases/${RELEASE_ID}/assets?name=genz-whatsapp.apk"
+          echo "✅ APK published to ${TAG}"
+
 
