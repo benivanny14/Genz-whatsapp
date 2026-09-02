@@ -30,7 +30,10 @@ jobs:
 
       - name: Install SDK packages
         run: |
-          sdkmanager --install "platform-tools" "platforms;android-36" "build-tools;36.0.0" || true
+          sdkmanager --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          JAVA_HOME: ${{ env.JAVA_HOME }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -69,10 +72,18 @@ jobs:
           INPUT_BUMP: ${{ inputs.bump }}
 
       - name: Build release APK
-        run: cd frontend && npm run apk:build
+        run: |
+          cd frontend
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "JAVA_HOME=$JAVA_HOME"
+          sdkmanager --list_installed 2>/dev/null | head -5 || echo "sdkmanager list not available"
+          npm run apk:build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
           VITE_SOCKET_URL: ${{ secrets.VITE_SOCKET_URL }}
+          CI: 'true'
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          JAVA_HOME: ${{ env.JAVA_HOME }}
 
       - name: Verify checksum consistency
         run: |
