@@ -18,21 +18,15 @@ export const fetchVersionManifest = (path = '/version.json') =>
         .catch(() => null)
     );
 
-// GitHub Releases APK URL — fast CDN, no server cold-start delay.
-const GITHUB_REPO = 'benivanny14/Genz-whatsapp';
-
-// Absolute APK download URL: GitHub Releases (fast, always available).
-// Falls back to same-origin for bundled APKs or offline builds.
+// Absolute APK download URL: relative on the web (same-origin), absolute in the
+// bundled APK where /genz-whatsapp.apk would point at capacitor://localhost.
 export const apkDownloadUrl = (relative = '/genz-whatsapp.apk') => {
-  // On the web, always prefer GitHub Releases (fast CDN, no cold start)
   try {
     if (window.Capacitor?.isNativePlatform?.()) {
-      // In bundled APK, use the production UI host
       return `${VERSION_MANIFEST_ORIGIN}${relative}`;
     }
   } catch {
     /* not in a browser */
   }
-  // On web: try GitHub Releases first, fall back to same-origin
-  return `https://github.com/${GITHUB_REPO}/releases/latest/download/genz-whatsapp.apk`;
+  return relative;
 };
