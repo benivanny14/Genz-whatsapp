@@ -7,7 +7,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import InAppNotification from './components/InAppNotification';
 import OfflineBanner from './components/OfflineBanner';
 import UpdateBanner from './components/UpdateBanner';
-import ServerHealthBanner from './components/ServerHealthBanner';
+// ServerHealthBanner removed — health status visible on admin dashboard only
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 import MobileBottomNav from './components/MobileBottomNav';
@@ -533,7 +533,7 @@ function App() {
       />
       <OfflineBanner />
       <UpdateBanner />
-      <ServerHealthBanner />
+
       <InAppNotification
         notification={notification}
         onClose={() => setNotification(null)}
