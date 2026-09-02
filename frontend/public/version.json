@@ -2,9 +2,9 @@
   "version": "1.1.20",
   "versionCode": 23,
   "apkUrl": "/genz-whatsapp.apk",
-  "sha256": "bf10fbd93766fd915051dab5f1e3f2951cc8b05ec1305e2986a7a675fe7b3348",
-  "size": 12568790,
-  "releasedAt": "2026-08-23T04:33:39.466Z",
+  "sha256": "295fc5ab0324b131205e03bd0e093ddc1976e0c22a7b69decf208697e304b7a7",
+  "size": 17577932,
+  "releasedAt": "2026-09-02T20:21:09.536Z",
   "changes": [
     "Biometric unlock utility",
     "Real-time payment sync for admin",
