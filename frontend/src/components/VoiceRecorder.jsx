@@ -9,13 +9,13 @@ import { isNative } from '../services/capacitorBridge';
 const WA_GREEN = '#25D366';
 
 const LiveWaveform = ({ analyser, isActive, isPaused }) => {
-  const [bars, setBars] = useState(() => Array(28).fill(4));
+  const [bars, setBars] = useState(() => Array(32).fill(4));
   const rafRef = useRef(null);
 
   useEffect(() => {
     if (!isActive || !analyser || isPaused) {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      if (!isActive || isPaused) setBars(Array(28).fill(4));
+      if (!isActive || isPaused) setBars(Array(32).fill(4));
       return;
     }
 
@@ -23,14 +23,14 @@ const LiveWaveform = ({ analyser, isActive, isPaused }) => {
 
     const tick = () => {
       analyser.getByteFrequencyData(data);
-      const bins = 28;
+      const bins = 32;
       const step = Math.max(1, Math.floor(data.length / bins));
       const next = [];
       for (let i = 0; i < bins; i++) {
         let sum = 0;
         for (let j = 0; j < step; j++) sum += data[i * step + j] || 0;
-        const h = (sum / step / 255) * 34 + 4;
-        next.push(Math.min(38, Math.max(4, h)));
+        const h = (sum / step / 255) * 36 + 4;
+        next.push(Math.min(40, Math.max(4, h)));
       }
       setBars(next);
       rafRef.current = requestAnimationFrame(tick);
@@ -43,19 +43,26 @@ const LiveWaveform = ({ analyser, isActive, isPaused }) => {
   }, [analyser, isActive, isPaused]);
 
   return (
-    <div className="flex items-center gap-[2px] h-9 flex-1 min-w-0">
-      {bars.map((h, i) => (
-        <div
-          key={i}
-          className="rounded-full transition-all duration-75"
-          style={{
-            width: 2.5,
-            height: h,
-            backgroundColor: isPaused ? '#889096' : WA_GREEN,
-            opacity: isActive ? 0.92 : 0.35
-          }}
-        />
-      ))}
+    <div className="flex items-center gap-[2px] h-10 flex-1 min-w-0">
+      {bars.map((h, i) => {
+        const intensity = h / 40;
+        return (
+          <div
+            key={i}
+            className="rounded-full"
+            style={{
+              width: 3,
+              height: h,
+              backgroundColor: isPaused ? '#889096' : WA_GREEN,
+              opacity: isActive ? 0.5 + intensity * 0.5 : 0.3,
+              transition: 'height 80ms ease-out, opacity 100ms ease-out',
+              boxShadow: isActive && !isPaused && intensity > 0.6
+                ? `0 0 ${Math.round(intensity * 6)}px rgba(37,211,102,${intensity * 0.5})`
+                : 'none',
+            }}
+          />
+        );
+      })}
     </div>
   );
 };

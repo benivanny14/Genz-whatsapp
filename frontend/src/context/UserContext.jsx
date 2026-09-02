@@ -70,7 +70,7 @@ export const UserProvider = ({ children }) => {
           bio: updated.bio
         };
         localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(profileData));
-        console.log('Profile saved to localStorage:', { ...profileData, profilePicture: profileData.profilePicture?.length + ' chars' });
+        if (import.meta.env.DEV) console.log('Profile saved to localStorage:', { ...profileData, profilePicture: profileData.profilePicture?.length + ' chars' });
       } catch (e) {
         console.error('Failed to save profile to localStorage:', e);
       }
@@ -95,9 +95,9 @@ export const UserProvider = ({ children }) => {
         if (sanitizedProfile.changed) {
           localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userProfile));
         }
-        console.log('Profile loaded from localStorage:', { ...userProfile, profilePicture: userProfile?.profilePicture?.length + ' chars' });
+        if (import.meta.env.DEV) console.log('Profile loaded from localStorage:', { ...userProfile, profilePicture: userProfile?.profilePicture?.length + ' chars' });
       } catch (e) {
-        console.error('Failed to parse stored profile:', e);
+        if (import.meta.env.DEV) console.error('Failed to parse stored profile:', e);
       }
     }
 

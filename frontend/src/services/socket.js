@@ -78,25 +78,25 @@ export const connectSocket = (userId) => {
     socket = io(SOCKET_ORIGIN, socketConfig);
 
     socket.on('connect', () => {
-      console.log('[Socket] Connected to:', SOCKET_ORIGIN);
+      if (import.meta.env.DEV) console.log('[Socket] Connected to:', SOCKET_ORIGIN);
       reconnectAttempts = 0;
       socket.emit('user:join', resolvedUserId);
     });
 
     socket.on('connect_error', (error) => {
-      console.error('[Socket] Connection error:', error?.message || error);
+      if (import.meta.env.DEV) console.error('[Socket] Connection error:', error?.message || error);
       reconnectAttempts++;
     });
 
     socket.on('disconnect', (reason) => {
-      console.log('[Socket] Disconnected:', reason);
+      if (import.meta.env.DEV) console.log('[Socket] Disconnected:', reason);
       if (reason === 'io server disconnect') {
         setTimeout(() => socket?.connect?.(), 1000);
       }
     });
 
     socket.on('error', (error) => {
-      console.error('[Socket] Error event:', error);
+      if (import.meta.env.DEV) console.error('[Socket] Error event:', error);
     });
 
     socket.on('reconnect', () => {
@@ -106,7 +106,7 @@ export const connectSocket = (userId) => {
 
     return socket;
   } catch (error) {
-    console.error('[Socket] Error creating connection:', error);
+    if (import.meta.env.DEV) console.error('[Socket] Error creating connection:', error);
     return null;
   }
 };

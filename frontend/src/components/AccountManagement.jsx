@@ -575,7 +575,7 @@ export const AccountManagementSettings = ({ settings, onUpdate }) => {
         {showDeleteModal && (
           <AccountDelete
             onDeleteAccount={(data) => {
-              console.log('Account deleted:', data);
+              if (import.meta.env.DEV) console.log('Account deleted:', data);
               setShowDeleteModal(false);
             }}
             onClose={() => setShowDeleteModal(false)}
@@ -603,7 +603,7 @@ export const AccountManagementSettings = ({ settings, onUpdate }) => {
           <AccountSync
             syncSettings={settings.syncSettings || { autoSync: false, wifiOnly: true, syncContacts: true, syncChats: true }}
             onSyncSettingsChange={(newSettings) => onUpdate({ ...settings, syncSettings: newSettings })}
-            onSyncNow={() => console.log('Sync triggered')}
+            onSyncNow={() => { if (import.meta.env.DEV) console.log('Sync triggered'); }}
             onClose={() => setShowSyncModal(false)}
           />
         )}

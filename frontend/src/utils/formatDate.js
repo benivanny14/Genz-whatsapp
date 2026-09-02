@@ -33,7 +33,11 @@ export const decryptMessage = (encryptedData) => {
         ? [{ secret: configuredSecret, iterations: configuredIterations }]
         : [];
 
-      // Legacy fallback keeps old locally-encrypted messages readable.
+      // SECURITY NOTE: This hardcoded legacy fallback is only for backward
+      // compatibility with old locally-encrypted messages that used this key.
+      // New messages MUST use VITE_MESSAGE_ENCRYPTION_SECRET (set in .env).
+      // This key is intentionally weak (1 iteration) and should be retired
+      // once all old messages are migrated to the configured secret.
       candidates.push({ secret: "GENZ_WHATSAPP_SECRET_KEY", iterations: 1 });
 
       for (const candidate of candidates) {

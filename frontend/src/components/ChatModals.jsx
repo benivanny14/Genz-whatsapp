@@ -350,7 +350,7 @@ const ChatModals = React.memo(function ChatModals({ ctx }) {
                     <button type="button" onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      console.log('[Schedule button] Clicked');
+                      if (import.meta.env.DEV) console.log('[Schedule button] Clicked');
                       confirmSchedule();
                     }}
                       className="flex-1 py-2 rounded-xl bg-primary-600 text-white hover:bg-primary-700 transition-colors text-sm font-bold">
@@ -434,23 +434,35 @@ const ChatModals = React.memo(function ChatModals({ ctx }) {
                 </span>
                 <button onClick={() => setShowFontPicker(false)} className="text-white/60 hover:text-white p-1" aria-label="Close"><X size={20} /></button>
               </div>
+              {/* Live preview bar */}
+              <div className="px-4 py-2 bg-[#0b141a] border-b border-white/5">
+                <p className="text-white/80 text-xs text-center transition-all duration-300" style={{
+                  fontFamily: FONT_OPTIONS.find(f => f.value === selectedFont)?.fontFamily || 'sans-serif',
+                }}>
+                  Preview: Hello! How are you? 😊
+                </p>
+              </div>
               <div className="p-4 grid grid-cols-2 gap-2 max-h-80 overflow-y-auto">
                 {FONT_OPTIONS.map((font) => (
                   <button
                     key={font.value}
                     onClick={() => {
                       setSelectedFont(font.value);
-                      setShowFontPicker(false);
                       inputRef.current?.focus();
                     }}
                     style={{ fontFamily: font.fontFamily }}
-                    className={`p-3 rounded-lg border transition-colors ${
+                    className={`group relative p-3 rounded-lg border transition-all duration-200 overflow-hidden ${
                       selectedFont === font.value
-                        ? 'bg-primary-600 border-primary-500 text-white'
-                        : 'bg-dark-bg border-dark-border text-dark-text hover:bg-dark-hover'
+                        ? 'bg-primary-600 border-primary-500 text-white shadow-lg shadow-primary-500/20 scale-105'
+                        : 'bg-dark-bg border-dark-border text-dark-text hover:bg-dark-hover hover:border-white/20 hover:scale-[1.02]'
                     }`}
                   >
-                    <span className="text-sm">{font.label}</span>
+                    {/* Shimmer effect on hover */}
+                    <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500" />
+                    <span className="relative z-10 text-sm block transition-transform duration-200 group-hover:scale-105">{font.label}</span>
+                    {selectedFont === font.value && (
+                      <span className="absolute top-1 right-1 w-2 h-2 bg-white rounded-full animate-pulse z-10" />
+                    )}
                   </button>
                 ))}
               </div>

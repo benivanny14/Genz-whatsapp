@@ -22,7 +22,9 @@ class ErrorBoundary extends Component {
   componentDidCatch(error, errorInfo) {
     this.setState({ errorInfo });
     // Log to console in dev; replace with Sentry in production
-    console.error('[GENZ ErrorBoundary]', error, errorInfo);
+    if (import.meta.env.DEV) {
+      console.error('[GENZ ErrorBoundary]', error, errorInfo);
+    }
 
     // Lightweight crash analytics: keep a per-route counter in localStorage so
     // regressions (missing imports, null-unsafe renders) are visible in
@@ -34,7 +36,9 @@ class ErrorBoundary extends Component {
       const route = window.location.pathname || '/';
       counts[route] = (counts[route] || 0) + 1;
       localStorage.setItem(key, JSON.stringify(counts));
-      console.info('[GENZ ErrorBoundary] crash recorded', { route, total: counts[route] });
+      if (import.meta.env.DEV) {
+        console.info('[GENZ ErrorBoundary] crash recorded', { route, total: counts[route] });
+      }
       // Server-side telemetry (opt-in + deduped per route/message — see util).
       reportCrashToServer(route, error?.message, { token: getAuthToken() });
     } catch {
@@ -102,7 +106,7 @@ class ErrorBoundary extends Component {
           </div>
           <h3 className="text-white font-bold text-lg mb-2">Kitu kimekosea</h3>
           <p className="text-white/50 text-sm mb-6 max-w-xs">
-            {this.state.error?.message || 'An unexpected error occurred. Please try again.'}
+            An unexpected error occurred. Please try again.
           </p>
           <div className="flex gap-3">
             <button

@@ -67,7 +67,7 @@ import MessageComposer from './MessageComposer';
 import ConversationHeader from './ConversationHeader';
 import MessageListArea from './MessageListArea';
 import ChatModals from './ChatModals';
-import { usePrompt } from './/PromptDialog';
+import { usePrompt } from './PromptDialog';
 
 
 const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => { // Added mods and onOpenGENZSettings
@@ -95,6 +95,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const prompt = usePrompt();
   const [messageInput, setMessageInput] = useState('');
   const [selectedFont, setSelectedFont] = useState(mods?.defaultMessageFont || 'default');
+  const [selectedColor, setSelectedColor] = useState(''); // empty = default white
+  const [showColorPicker, setShowColorPicker] = useState(false);
   const [showFontPicker, setShowFontPicker] = useState(false);
   const [mentionState, setMentionState] = useState({
     open: false,
@@ -266,9 +268,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const [isMobile, setIsMobile] = useState(false);
 
 
-  // Debug showScheduleModal state
+  // Debug showScheduleModal state (dev only)
   useEffect(() => {
-    console.log('[ChatArea] showScheduleModal changed:', showScheduleModal);
+    if (import.meta.env.DEV) console.log('[ChatArea] showScheduleModal changed:', showScheduleModal);
   }, [showScheduleModal]);
   const [cameraMode, setCameraMode] = useState('photo'); // 'photo' or 'video'
   const [isRecordingVideo, setIsRecordingVideo] = useState(false);
@@ -610,7 +612,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
       const playPromise = audioRef.current.play();
       if (playPromise !== undefined) {
-        playPromise.catch(() => console.log("User interaction required for music"));
+        playPromise.catch(() => { if (import.meta.env.DEV) console.log("User interaction required for music"); });
       }
     } else {
       if (audioRef.current) audioRef.current.pause();
@@ -750,12 +752,13 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       } else if (selectedMedia) {
         finalOptions.messageType = 'structured';
         finalOptions.structuredContent = [
-          { type: 'text', value: sanitizedMessage, font: selectedFont !== 'default' ? selectedFont : undefined },
+          { type: 'text', value: sanitizedMessage, font: selectedFont !== 'default' ? selectedFont : undefined, color: selectedColor || undefined },
           { type: selectedMedia.type, value: selectedMedia.url, meta: selectedMedia.meta }
         ];
         sendMessage(sanitizedMessage, user?.username || 'Me', finalOptions);
       } else {
         finalOptions.font = selectedFont !== 'default' ? selectedFont : undefined;
+        if (selectedColor) finalOptions.color = selectedColor;
         sendMessage(sanitizedMessage, user?.username || 'Me', finalOptions);
       }
       // GENZ Exclusive: "Chat Bubble Animations" — confetti/hearts burst.
@@ -945,7 +948,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           try {
             audioBlob = await applyVoiceEffect(rawBlob, safeMods.voiceEffect);
           } catch (e) {
-            console.warn('Voice effect failed, using original audio:', e);
+            if (import.meta.env.DEV) console.warn('Voice effect failed, using original audio:', e);
             audioBlob = rawBlob;
           }
         }
@@ -985,7 +988,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
             toast.error(`Upload failed: ${data.error || data.message || 'Unknown error'}`);
           }
         } catch (error) {
-          console.error('Voice note upload failed:', error);
+          if (import.meta.env.DEV) console.error('Voice note upload failed:', error);
           toast.error('Failed to upload voice note. Please check your connection and try again.');
         }
 
@@ -1005,7 +1008,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         navigator.vibrate(50);
       }
     } catch (err) {
-      console.error('Error accessing microphone:', err);
+      if (import.meta.env.DEV) console.error('Error accessing microphone:', err);
       toast.error('Could not access microphone. Please check permissions.');
     }
   };
@@ -1186,7 +1189,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         toast.error(`Voice note upload failed: ${data.error || data.message || 'Upload failed'}`);
       }
     } catch (error) {
-      console.error('Voice note upload error:', error);
+      if (import.meta.env.DEV) console.error('Voice note upload error:', error);
       toast.error('Voice note upload failed. Please check your connection and try again.');
     }
   };
@@ -1215,7 +1218,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         toast.error('Failed to delete message for everyone');
       }
     } catch (error) {
-      console.error('Delete for everyone error:', error);
+      if (import.meta.env.DEV) console.error('Delete for everyone error:', error);
       toast.error('Failed to delete message');
     }
   };
@@ -1227,7 +1230,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
     const nextMessage = messages.slice(currentIndex + 1).find(m => m.messageType === 'audio');
     if (nextMessage) {
-      console.log('Auto-playing next voice message:', nextMessage.id || nextMessage._id);
+      if (import.meta.env.DEV) console.log('Auto-playing next voice message:', nextMessage.id || nextMessage._id);
       // The AudioPlayer component will handle the auto-play
     }
   };
@@ -1253,7 +1256,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           },
           (error) => {
             toast.dismiss(toastId);
-            console.warn('Geolocation error code:', error.code, error.message);
+            if (import.meta.env.DEV) console.warn('Geolocation error code:', error.code, error.message);
             if (error.code === 1) {
               // PERMISSION_DENIED — send user to system settings
               toast.error(
@@ -1274,7 +1277,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         );
       } catch (err) {
         toast.dismiss(toastId);
-        console.error('Geolocation exception:', err);
+        if (import.meta.env.DEV) console.error('Geolocation exception:', err);
         toast.error('Location sharing is not available on this device.', { duration: 5000 });
       }
     } else if (type === 'live') {
@@ -1352,7 +1355,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               updateLiveLocation(liveLocationMessageIdRef.current, newLat, newLng);
             }
           },
-          (err) => console.warn('Live location error:', err),
+          (err) => { if (import.meta.env.DEV) console.warn('Live location error:', err); },
           { maximumAge: 30000, timeout: 15000, enableHighAccuracy: true }
         );
 
@@ -1432,7 +1435,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           outgoingFile = new File([new Blob([ab], { type: mime })], file.name, { type: 'image/jpeg' });
         }
       } catch (e) {
-        console.warn('[ChatArea] Image compression failed, sending original:', e?.message || e);
+        if (import.meta.env.DEV) console.warn('[ChatArea] Image compression failed, sending original:', e?.message || e);
       }
     }
 
@@ -1481,7 +1484,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         toast.error(`Genz Messenger: ${data.error || data.message || 'Upload failed'}`);
       }
     } catch (error) {
-      console.error('Upload failed:', error);
+      if (import.meta.env.DEV) console.error('Upload failed:', error);
         toast.error("Genz Messenger: Failed to upload file. Please try again.");
     }
     setIsViewOnceEnabled(false);
@@ -1572,7 +1575,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       if (!viewOnceModalOpenRef.current) return;
       setViewOnceMessageData({ ...message, ...revealed });
     } catch (err) {
-      console.error('Failed to reveal view-once message:', err);
+      if (import.meta.env.DEV) console.error('Failed to reveal view-once message:', err);
       if (viewOnceModalOpenRef.current) {
         toast.error(err?.message || 'This view-once message has already been opened');
         setViewOnceModalOpen(false);
@@ -1594,7 +1597,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         try {
           await markViewOnceViewed(messageId);
         } catch (err) {
-          console.error('Failed to mark view-once as viewed:', err);
+          if (import.meta.env.DEV) console.error('Failed to mark view-once as viewed:', err);
         }
       }
     }
@@ -1615,7 +1618,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       setShowCameraModal(true);
       setShowAttachmentMenu(false);
     } catch (err) {
-      console.error('Camera error:', err);
+      if (import.meta.env.DEV) console.error('Camera error:', err);
       cameraInputRef.current?.click();
     }
   };
@@ -1765,7 +1768,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         }
       }, 100);
     } catch (err) {
-      console.error('[ChatArea] Video note camera error:', err);
+      if (import.meta.env.DEV) console.error('[ChatArea] Video note camera error:', err);
       toast.error('Could not access camera for video note');
     }
   };
@@ -1849,7 +1852,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         toast.error('Failed to upload video note');
       }
     } catch (err) {
-      console.error('[ChatArea] Failed to send video note:', err);
+      if (import.meta.env.DEV) console.error('[ChatArea] Failed to send video note:', err);
       toast.error('Failed to send video note');
     } finally {
       videoNoteSendingRef.current = false;
@@ -2041,7 +2044,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       inputRef.current?.focus();
       setActiveMessageMenu(null);
     } catch (err) {
-      console.error('Edit error:', err);
+      if (import.meta.env.DEV) console.error('Edit error:', err);
       toast.error('Could not edit message');
     }
    };
@@ -2064,14 +2067,14 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
       if (conversationId) {
         // Open the DM conversation and set reply context
-        setActiveConversation(conversationId);
+        selectConversation(conversationId);
         setReplyingTo({
           ...message,
           conversationId: conversationId
         });
       }
     } catch (err) {
-      console.error('Reply privately error:', err);
+      if (import.meta.env.DEV) console.error('Reply privately error:', err);
     }
     setMessageContextMenu(null);
   };
@@ -2094,7 +2097,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       if (result?.success === false) throw new Error(result.message || 'Failed to update disappearing messages');
       toast.success(duration === 'Off' ? 'Disappearing messages off' : `Disappearing messages set to ${duration}`);
     } catch (err) {
-      console.error('Disappearing messages update failed:', err);
+      if (import.meta.env.DEV) console.error('Disappearing messages update failed:', err);
       toast.error(err.message || 'Could not update disappearing messages');
     }
   };
@@ -2107,18 +2110,18 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   };
 
   const handleSchedule = () => {
-    console.log('[handleSchedule] Called, messageInput:', messageInput);
+    if (import.meta.env.DEV) console.log('[handleSchedule] Called, messageInput:', messageInput);
     if (!messageInput.trim()) {
       toast.error('Type a message first, then click Schedule.');
       return;
     }
-    console.log('[handleSchedule] Setting showScheduleModal to true');
+    if (import.meta.env.DEV) console.log('[handleSchedule] Setting showScheduleModal to true');
     setShowScheduleModal(true);
-    console.log('[handleSchedule] showScheduleModal state should be true now');
+    if (import.meta.env.DEV) console.log('[handleSchedule] showScheduleModal state should be true now');
   };
 
   const confirmSchedule = async () => {
-    console.log('[confirmSchedule] Called');
+    if (import.meta.env.DEV) console.log('[confirmSchedule] Called');
     if (!scheduleDateTime) { toast.error('Please select a date and time.'); return; }
     const sendAt = new Date(scheduleDateTime);
     if (sendAt <= new Date()) { toast.error('Please select a future time.'); return; }
@@ -2131,23 +2134,23 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
     // Check if conversation ID is a valid MongoDB ObjectId (24 hex characters)
     const conversationId = selectedConversation._id;
-    console.log('[confirmSchedule] conversationId:', conversationId);
+    if (import.meta.env.DEV) console.log('[confirmSchedule] conversationId:', conversationId);
     const isValidObjectId = /^[0-9a-fA-F]{24}$/.test(conversationId);
-    console.log('[confirmSchedule] isValidObjectId:', isValidObjectId);
+    if (import.meta.env.DEV) console.log('[confirmSchedule] isValidObjectId:', isValidObjectId);
     if (!isValidObjectId) {
       toast.error('Invalid conversation ID. Please select a valid conversation.');
       return;
     }
 
     try {
-      console.log('[confirmSchedule] Calling scheduleMessage');
+      if (import.meta.env.DEV) console.log('[confirmSchedule] Calling scheduleMessage');
       await scheduleMessage(messageInput, conversationId, sendAt.toISOString());
       setMessageInput('');
       setScheduleDateTime('');
       setShowScheduleModal(false);
       toast.success(`✅ Message scheduled for ${sendAt.toLocaleString()}`);
     } catch (error) {
-      console.error('[confirmSchedule] Error:', error);
+      if (import.meta.env.DEV) console.error('[confirmSchedule] Error:', error);
       toast.error(error.message || 'Failed to schedule message');
     }
   };
@@ -2366,6 +2369,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
   // Filter messages for search
 
+  // NOTE: ALL useMemo hooks below MUST stay before any early returns to
+  // comply with the Rules of Hooks (hooks cannot be called conditionally).
+
   const bubbleCtx = useMemo(() => ({
   filteredMessages, visibleCount, safeMods, user, selectedConversation, messages,
       favoriteStickers, activeMessageMenu, messageMenuRef,
@@ -2398,8 +2404,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       handleMentionKeyDown, closeMentionPicker, selectedFont,
       setShowFontPicker, showFontPicker, handleVoiceNoteSend, safeMods,
       sendRecordingStatus, sendButtonRef, showStickerPacks, setShowStickerPacks,
-      floatingStickerMode, handleSendStickerWithCaption, AttachmentIcon
-}), [replyingTo, setReplyingTo, showMediaPanel, setShowMediaPanel, activeMediaTab, setActiveMediaTab, handleEmojiClick, setSelectedMedia, selectedMedia, editingMessage, setEditingMessage, setMessageInput, messageInput, inputRef, voiceRecorderActive, setVoiceRecorderActive, handleFormatText, handleSendMessage, showAttachmentMenu, setShowAttachmentMenu, isViewOnceEnabled, setIsViewOnceEnabled, allowScreenshotEnabled, setAllowScreenshotEnabled, handleSchedule, attachmentMenuRef, docInputRef, canSendMedia, currentUserIsAdmin, openCamera, fileInputRef, openAudioAttachment, openVideoNoteRecorder, handleShareLocation, setShowContactPicker, canCreatePolls, setShowPollModal, handleSetDisappearingMessages, selectedConversation, setFloatingStickerMode, setShowPaymentModal, mentionState, mentionSuggestions, selectMention, handleFileUpload, audioInputRef, cameraInputRef, adminOnlyMessagingEnabled, handleTyping, handleMentionKeyDown, closeMentionPicker, selectedFont, setShowFontPicker, showFontPicker, handleVoiceNoteSend, safeMods, sendRecordingStatus, sendButtonRef, showStickerPacks, setShowStickerPacks, floatingStickerMode, handleSendStickerWithCaption, AttachmentIcon]);
+      floatingStickerMode, handleSendStickerWithCaption, AttachmentIcon,
+      selectedColor, setSelectedColor, showColorPicker, setShowColorPicker
+}), [replyingTo, setReplyingTo, showMediaPanel, setShowMediaPanel, activeMediaTab, setActiveMediaTab, handleEmojiClick, setSelectedMedia, selectedMedia, editingMessage, setEditingMessage, setMessageInput, messageInput, inputRef, voiceRecorderActive, setVoiceRecorderActive, handleFormatText, handleSendMessage, showAttachmentMenu, setShowAttachmentMenu, isViewOnceEnabled, setIsViewOnceEnabled, allowScreenshotEnabled, setAllowScreenshotEnabled, handleSchedule, attachmentMenuRef, docInputRef, canSendMedia, currentUserIsAdmin, openCamera, fileInputRef, openAudioAttachment, openVideoNoteRecorder, handleShareLocation, setShowContactPicker, canCreatePolls, setShowPollModal, handleSetDisappearingMessages, selectedConversation, setFloatingStickerMode, setShowPaymentModal, mentionState, mentionSuggestions, selectMention, handleFileUpload, audioInputRef, cameraInputRef, adminOnlyMessagingEnabled, handleTyping, handleMentionKeyDown, closeMentionPicker, selectedFont, setShowFontPicker, showFontPicker, handleVoiceNoteSend, safeMods, sendRecordingStatus, sendButtonRef, showStickerPacks, setShowStickerPacks, floatingStickerMode, handleSendStickerWithCaption, AttachmentIcon, selectedColor, setSelectedColor, showColorPicker, setShowColorPicker]);
 
   const headerCtx = useMemo(() => ({
   safeMods, selectConversation, sidebarOpen, onOpenSidebar,
@@ -2470,7 +2477,15 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       handleExportChat, updateDisappearingMessages, toggleChatLock, safeMods,
       setMods, blockedUsers, showDisappearingPicker, setShowDisappearingPicker,
       applyDisappearingMessages, user, selectedConversation
-}), [showForwardModal, forwardingMessage, setShowForwardModal, setForwardingMessage, showSearchMessages, setShowSearchMessages, showMediaGallery, setShowMediaGallery, messageContextMenu, handleContextMenuDelete, handleEditClick, setMessageContextMenu, setReplyingTo, handleContextMenuStar, unpinMessage, pinMessage, addReaction, plaintextOf, handleReplyPrivately, textSelectionMenu, textSelectionMenuRef, handleCopySelection, handleSelectAllSelection, handleFormatSelection, setTextSelectionMenu, reportTarget, setReportTarget, showProductCatalogue, setShowProductCatalogue, sendMessage, replyingTo, showContactPicker, setShowContactPicker, handleContactSelect, handleShareContact, viewerMedia, setViewerMedia, viewProfile, handleStartChatWithMember, showMessageInfoModal, messageInfoId, setShowMessageInfoModal, setMessageInfoId, showPollModal, setShowPollModal, handlePollSubmit, showGroupInfo, setShowGroupInfo, showFilePreview, previewFile, setShowFilePreview, showScheduleModal, setShowScheduleModal, messageInput, scheduleDateTime, setScheduleDateTime, confirmSchedule, isDNDMode, isSearching, chatSearchQuery, filteredMessages, showDrawingEditor, drawingImageUrl, setShowDrawingEditor, setDrawingImageUrl, setPendingImageFile, handleDrawingSave, showCropEditor, cropImageUrl, setShowCropEditor, setCropImageUrl, handleCropSave, showPaymentModal, setShowPaymentModal, showFontPicker, setShowFontPicker, setSelectedFont, inputRef, selectedFont, showChunkedUploader, setShowChunkedUploader, showCameraModal, closeCamera, setCameraMode, cameraMode, recordedVideoUrl, videoRef, canvasRef, setRecordedVideoUrl, sendRecordedVideo, capturePhoto, isRecordingVideo, videoDuration, stopVideoRecording, startVideoRecording, showVideoNoteModal, closeVideoNoteRecorder, recordedVideoNoteUrl, videoNotePreviewRef, setRecordedVideoNoteUrl, videoNoteChunksRef, sendVideoNote, isRecordingVideoNote, videoNoteDuration, stopVideoNoteRecording, startVideoNoteRecording, showAudioModal, closeAudioAttachment, recordedAudioUrl, setRecordedAudioUrl, sendRecordedAudioAttachment, audioDuration, isRecordingAudio, stopAudioAttachmentRecording, startAudioAttachmentRecording, showLiveLocationModal, setShowLiveLocationModal, setLiveLocationDuration, liveLocationDuration, liveLocationComment, setLiveLocationComment, confirmShareLiveLocation, showCurrentLocationModal, setShowCurrentLocationModal, currentLocationCoords, currentLocationComment, setCurrentLocationComment, confirmShareCurrentLocation, viewOnceModalOpen, viewOnceMessageData, closeViewOnceModal, mediaSourceOf, showContactInfo, otherUser, setShowContactInfo, setIsSearching, toggleMuteChat, blockUser, unblockUser, handleClearCurrentChat, handleDeleteCurrentChat, handleExportChat, updateDisappearingMessages, toggleChatLock, safeMods, setMods, blockedUsers, showDisappearingPicker, setShowDisappearingPicker, applyDisappearingMessages, user, selectedConversation]);
+}), [showForwardModal, forwardingMessage, setShowForwardModal, setForwardingMessage, showSearchMessages, setShowSearchMessages, showMediaGallery, setShowMediaGallery, messageContextMenu, handleContextMenuDelete, handleEditClick, setMessageContextMenu, setReplyingTo, handleContextMenuStar, unpinMessage, pinMessage, addReaction, plaintextOf, handleReplyPrivately, textSelectionMenu, textSelectionMenuRef, handleCopySelection, handleSelectAllSelection, handleFormatSelection, setTextSelectionMenu, reportTarget, setReportTarget, showProductCatalogue, setShowProductCatalogue, sendMessage, replyingTo, showContactPicker, setShowContactPicker, handleContactSelect, handleShareContact, viewerMedia, setViewerMedia, viewProfile, handleStartChatWithMember, showMessageInfoModal, messageInfoId, setShowMessageInfoModal, setMessageInfoId, showPollModal, setShowPollModal, handlePollSubmit, showGroupInfo, setShowGroupInfo, showFilePreview, previewFile, setShowFilePreview, showScheduleModal, setShowScheduleModal, messageInput, scheduleDateTime, setScheduleDateTime, confirmSchedule, isDNDMode, isSearching, chatSearchQuery, filteredMessages, showDrawingEditor, drawingImageUrl, setShowDrawingEditor, setDrawingImageUrl, setPendingImageFile, handleDrawingSave, showCropEditor, cropImageUrl, setShowCropEditor, setCropImageUrl, handleCropSave,      showPaymentModal, setShowPaymentModal, showFontPicker, setShowFontPicker, setSelectedFont, inputRef, selectedFont, showChunkedUploader, setShowChunkedUploader, showCameraModal, closeCamera, setCameraMode, cameraMode, recordedVideoUrl, videoRef, canvasRef, setRecordedVideoUrl, sendRecordedVideo, capturePhoto, isRecordingVideo, videoDuration, stopVideoRecording, startVideoRecording, showVideoNoteModal, closeVideoNoteRecorder, recordedVideoNoteUrl, videoNotePreviewRef, setRecordedVideoNoteUrl, videoNoteChunksRef, sendVideoNote, isRecordingVideoNote, videoNoteDuration, stopVideoNoteRecording, startVideoNoteRecording, showAudioModal, closeAudioAttachment, recordedAudioUrl, setRecordedAudioUrl, sendRecordedAudioAttachment, audioDuration, isRecordingAudio, stopAudioAttachmentRecording, startAudioAttachmentRecording, showLiveLocationModal, setShowLiveLocationModal, setLiveLocationDuration, liveLocationDuration, liveLocationComment, setLiveLocationComment, confirmShareLiveLocation, showCurrentLocationModal, setShowCurrentLocationModal, currentLocationCoords, currentLocationComment, setCurrentLocationComment, confirmShareCurrentLocation, viewOnceModalOpen, viewOnceMessageData, closeViewOnceModal, mediaSourceOf, showContactInfo, otherUser, setShowContactInfo, setIsSearching, toggleMuteChat, blockUser, unblockUser, handleClearCurrentChat, handleDeleteCurrentChat, handleExportChat, updateDisappearingMessages, toggleChatLock, safeMods, setMods, blockedUsers, showDisappearingPicker, setShowDisappearingPicker, applyDisappearingMessages, user, selectedConversation]);
+
+  // All hooks and memos above — NEVER add early returns below this line.
+  // The early returns for !selectedConversation and isLocked were moved to
+  // conditional rendering in the JSX to avoid "Rendered fewer hooks than
+  // expected" errors.
+
+  // CHAT LOCK CHECK
+  const isLocked = selectedConversation?.isLocked && unlockedSessionChats && !unlockedSessionChats.has(String(selectedConversation._id));
 
   if (!selectedConversation) {
     return (
@@ -2487,9 +2502,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       </div>
     );
   }
-
-  // CHAT LOCK CHECK
-  const isLocked = selectedConversation?.isLocked && unlockedSessionChats && !unlockedSessionChats.has(String(selectedConversation._id));
 
   if (isLocked) {
     return (

@@ -54,7 +54,7 @@ const BiometricAuth = ({ onSuccess, onCancel }) => {
         onSuccess?.();
       }, 1000);
     } catch (err) {
-      console.error('Biometric authentication error:', err);
+      if (import.meta.env.DEV) console.error('Biometric authentication error:', err);
       setError('Authentication failed. Please try again or use your password.');
     } finally {
       setIsAuthenticating(false);
@@ -80,7 +80,7 @@ const BiometricAuth = ({ onSuccess, onCancel }) => {
         onSuccess?.();
       }, 1000);
     } catch (err) {
-      console.error('Biometric registration error:', err);
+      if (import.meta.env.DEV) console.error('Biometric registration error:', err);
       setError('Registration failed. Please try again.');
     } finally {
       setIsAuthenticating(false);

@@ -58,7 +58,7 @@ const GenzAfterWorkManagement = () => {
       const { data } = await adminApi.get('/payment-features?status=all');
       setFeatures(data.data || []);
     } catch (error) {
-      console.error('Error loading features:', error);
+      if (import.meta.env.DEV) console.error('Error loading features:', error);
     } finally {
       setLoading(false);
     }
@@ -154,7 +154,7 @@ const GenzAfterWorkManagement = () => {
         alert('Failed to create feature');
       }
     } catch (error) {
-      console.error('Error creating feature:', error);
+      if (import.meta.env.DEV) console.error('Error creating feature:', error);
       alert('Error creating feature');
     }
   };
@@ -171,7 +171,7 @@ const GenzAfterWorkManagement = () => {
         alert('Failed to delete feature');
       }
     } catch (error) {
-      console.error('Error deleting feature:', error);
+      if (import.meta.env.DEV) console.error('Error deleting feature:', error);
       alert('Error deleting feature');
     }
   };

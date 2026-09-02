@@ -1219,16 +1219,16 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
         </div>
 
         {isOpen && (
-          <div className="flex flex-col gap-2 mb-4">
+          <div className="flex gap-1 mb-1">
             <button
               onClick={() => setActiveTab('chats')}
-              className={`w-full py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'chats' ? 'bg-primary-600 text-white shadow-lg' : 'text-dark-textSecondary hover:text-dark-text'}`}
+              className={`flex-1 py-1 text-xs font-medium rounded-md transition-all ${activeTab === 'chats' ? 'bg-primary-600 text-white shadow-lg' : 'text-dark-textSecondary hover:text-dark-text'}`}
             >
               Chats
             </button>
             <button
               onClick={() => setActiveTab('visitors')}
-              className={`w-full py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'visitors' ? 'bg-primary-600 text-white shadow-lg' : 'text-dark-textSecondary hover:text-dark-text'}`}
+              className={`flex-1 py-1 text-xs font-medium rounded-md transition-all ${activeTab === 'visitors' ? 'bg-primary-600 text-white shadow-lg' : 'text-dark-textSecondary hover:text-dark-text'}`}
             >
               Visitors
             </button>
@@ -1236,7 +1236,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
         )}
 
         {isOpen && activeTab === 'chats' && (
-          <div className="flex gap-1.5 mb-3 overflow-x-auto scrollbar-none py-1">
+          <div className="flex gap-1 mb-1 overflow-x-auto scrollbar-none py-0.5">
             {chatTabs.map(folder => {
               const tabIcons = { 'All': '💬', 'Personal': '👤', 'Work': '💼', 'Groups': '👥' };
               const icon = tabIcons[folder] || '📁';
@@ -1245,7 +1245,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                 <div key={folder} className="relative flex items-center flex-shrink-0">
                   <button
                     onClick={() => setActiveFolder(folder)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs font-semibold border transition-all whitespace-nowrap
+                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold border transition-all whitespace-nowrap
                       ${isActive ? 'bg-[#00a884] border-[#00a884] text-white shadow-sm' : 'border-dark-border text-dark-textSecondary hover:bg-dark-hover hover:text-dark-text'}`}
                   >
                     <span className="text-xs">{icon}</span>
@@ -1340,7 +1340,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
               onChange={(e) => handleSearchChange(e.target.value)}
               onFocus={() => setShowRecentSearches(recentSearches.length > 0)}
               onBlur={() => setTimeout(() => setShowRecentSearches(false), 200)}
-              className="w-full pl-10 pr-12 py-2 bg-dark-bg border border-dark-border rounded-lg text-dark-text placeholder-dark-textSecondary focus:outline-none focus:border-primary-500 text-base md:text-sm"
+              className="w-full pl-10 pr-12 py-1.5 bg-dark-bg border border-dark-border rounded-lg text-dark-text placeholder-dark-textSecondary focus:outline-none focus:border-primary-500 text-sm"
             />
             {showRecentSearches && recentSearches.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-dark-surface border border-dark-border rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto">

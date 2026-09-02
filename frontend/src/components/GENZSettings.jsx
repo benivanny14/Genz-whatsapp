@@ -1068,45 +1068,237 @@ const AppearanceTab = ({ ctx }) => {
           </div>
         </section>
 
-        {/* Font Customization */}
+        {/* ══════ TM WhatsApp-style Font Changer ══════ */}
         <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10 mt-3">
-          <div className="p-4 bg-blue-900/30 border-b border-white/10 flex items-center gap-2 text-pink-400 font-bold">
-            <Edit3 size={18} /> Font & Typography
+          <div className="p-4 bg-gradient-to-r from-pink-900/40 to-purple-900/40 border-b border-white/10 flex items-center justify-between">
+            <span className="text-pink-400 font-bold flex items-center gap-2">
+              <Edit3 size={18} /> 🅰️ Font Changer (TM Style)
+            </span>
+            {/* Reset button */}
+            <button
+              onClick={() => setMods(prev => ({
+                ...prev,
+                fontFamily: 'Inter',
+                defaultMessageFont: 'default',
+                fontSize: 'medium',
+                customFontSize: 15,
+                themePack: 'default',
+              }))}
+              className="text-[10px] text-gray-400 hover:text-white px-2 py-1 rounded-lg border border-white/10 hover:border-white/30 transition-all flex items-center gap-1"
+              title="Reset all font settings to defaults"
+            >
+              🔄 Reset
+            </button>
           </div>
-          <div className="p-4 space-y-4">
+          <div className="p-4 space-y-5">
+            {/* Global Font — affects ALL app text */}
             <div>
-              <label className="text-xs text-blue-300 mb-2 block font-bold">Font Style</label>
-              <div className="grid grid-cols-2 gap-2">
-                {['Inter', 'Roboto', 'Poppins', 'Comic Neue', 'JetBrains Mono', 'Space Grotesk'].map((font) => (
+              <label className="text-xs text-pink-300 mb-1 block font-bold uppercase tracking-wider">🌐 Global App Font</label>
+              <p className="text-[10px] text-gray-400 mb-3">Changes text everywhere — chat list, settings, status, all screens.</p>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { name: 'Inter', family: 'Inter' },
+                  { name: 'Roboto', family: 'Roboto' },
+                  { name: 'Poppins', family: 'Poppins' },
+                  { name: 'Comic Neue', family: 'Comic Neue' },
+                  { name: 'JetBrains Mono', family: 'JetBrains Mono' },
+                  { name: 'Space Grotesk', family: 'Space Grotesk' },
+                  { name: 'Lobster', family: 'Lobster' },
+                  { name: 'Pacifico', family: 'Pacifico' },
+                  { name: 'Dancing Script', family: 'Dancing Script' },
+                  { name: 'Great Vibes', family: 'Great Vibes' },
+                  { name: 'Indie Flower', family: 'Indie Flower' },
+                  { name: 'Permanent Marker', family: 'Permanent Marker' },
+                ].map((font) => (
                   <button
-                    key={font}
-                    onClick={() => setMods(prev => ({ ...prev, fontFamily: font, themePack: 'custom' }))}
-                    style={{ fontFamily: font }}
-                    className={`py-2 px-3 text-xs rounded-lg border transition-all ${
-                      mods.fontFamily === font ? 'border-pink-500 bg-pink-500/20 text-white' : 'border-white/10 text-gray-300 hover:bg-white/5'
+                    key={font.name}
+                    onClick={() => setMods(prev => ({ ...prev, fontFamily: font.family, themePack: 'custom' }))}
+                    style={{ fontFamily: font.family }}
+                    className={`group relative py-2 px-2 text-[11px] rounded-lg border transition-all duration-300 text-center overflow-hidden ${
+                      mods.fontFamily === font.family
+                        ? 'border-pink-500 bg-pink-500/20 text-white shadow-lg shadow-pink-500/20 scale-105'
+                        : 'border-white/10 text-gray-300 hover:bg-white/10 hover:border-pink-400/40 hover:scale-105 hover:shadow-md hover:shadow-pink-500/10'
                     }`}
                   >
-                    {font}
+                    {/* Animated shimmer on hover */}
+                    <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
+                    <span className="relative z-10 block transition-all duration-200 group-hover:text-white">{font.name}</span>
+                    {mods.fontFamily === font.family && (
+                      <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-pink-400 rounded-full animate-pulse" />
+                    )}
                   </button>
                 ))}
               </div>
             </div>
-            <div>
-              <label className="text-xs text-blue-300 mb-2 block font-bold">Default Message Text Font</label>
-              <p className="text-[10px] text-gray-400 mb-2">Every message you send will use this font (receiver sees it too). You can still change it per message in the chat composer.</p>
+
+            {/* Font Pack Presets */}
+            <div className="border-t border-white/10 pt-4">
+              <label className="text-xs text-yellow-300 mb-1 block font-bold uppercase tracking-wider">📦 Font Packs</label>
+              <p className="text-[10px] text-gray-400 mb-3">Save & switch between font combos instantly.</p>
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+                {[
+                  { id: 'classic', name: 'Classic', icon: '📝', font: 'Inter', msgFont: 'default', size: 15 },
+                  { id: 'elegant', name: 'Elegant', icon: '✨', font: 'Poppins', msgFont: 'georgia', size: 16 },
+                  { id: 'playful', name: 'Playful', icon: '🎨', font: 'Comic Neue', msgFont: 'comic', size: 15 },
+                  { id: 'tech', name: 'Tech', icon: '💻', font: 'JetBrains Mono', msgFont: 'courier', size: 14 },
+                  { id: 'artistic', name: 'Artistic', icon: '🎭', font: 'Lobster', msgFont: 'lobster', size: 16 },
+                  { id: 'romantic', name: 'Romantic', icon: '💕', font: 'Dancing Script', msgFont: 'pacifico', size: 16 },
+                ].map((pack) => {
+                  const isActive = mods.fontFamily === pack.font && (mods.defaultMessageFont || 'default') === pack.msgFont;
+                  return (
+                    <button
+                      key={pack.id}
+                      onClick={() => setMods(prev => ({
+                        ...prev,
+                        fontFamily: pack.font,
+                        defaultMessageFont: pack.msgFont,
+                        fontSize: pack.size <= 14 ? 'small' : pack.size >= 18 ? 'large' : 'medium',
+                        customFontSize: pack.size,
+                        themePack: 'custom',
+                      }))}
+                      className={`flex-shrink-0 flex flex-col items-center gap-1 px-3 py-2 rounded-xl border transition-all duration-200 ${
+                        isActive ? 'border-yellow-500 bg-yellow-500/15 shadow-lg shadow-yellow-500/10 scale-105' : 'border-white/10 hover:border-white/20 hover:bg-white/5'
+                      }`}
+                    >
+                      <span className="text-lg">{pack.icon}</span>
+                      <span className="text-[10px] text-gray-300 whitespace-nowrap">{pack.name}</span>
+                      {isActive && <span className="w-1 h-1 bg-yellow-400 rounded-full" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Message Text Font — what you send */}
+            <div className="border-t border-white/10 pt-4">
+              <label className="text-xs text-purple-300 mb-1 block font-bold uppercase tracking-wider">💬 Message Text Font</label>
+              <p className="text-[10px] text-gray-400 mb-3">Font for messages you send. Receiver sees it too. Override per message in chat.</p>
               <div className="grid grid-cols-2 gap-2">
-                {[{ value: 'default', label: 'Default' }, { value: 'arial', label: 'Arial' }, { value: 'times', label: 'Times New Roman' }, { value: 'georgia', label: 'Georgia' }, { value: 'verdana', label: 'Verdana' }, { value: 'courier', label: 'Courier New' }, { value: 'comic', label: 'Comic Sans' }, { value: 'impact', label: 'Impact' }].map((font) => (
+                {[
+                  { value: 'default', label: 'Default', css: 'sans-serif' },
+                  { value: 'arial', label: 'Arial', css: 'Arial, sans-serif' },
+                  { value: 'times', label: 'Times New Roman', css: '"Times New Roman", serif' },
+                  { value: 'georgia', label: 'Georgia', css: 'Georgia, serif' },
+                  { value: 'verdana', label: 'Verdana', css: 'Verdana, sans-serif' },
+                  { value: 'courier', label: 'Courier New', css: '"Courier New", monospace' },
+                  { value: 'comic', label: 'Comic Sans', css: '"Comic Sans MS", cursive' },
+                  { value: 'impact', label: 'Impact', css: 'Impact, sans-serif' },
+                  { value: 'roboto', label: 'Roboto', css: 'Roboto, sans-serif' },
+                  { value: 'poppins', label: 'Poppins', css: 'Poppins, sans-serif' },
+                  { value: 'lobster', label: 'Lobster', css: 'Lobster, cursive' },
+                  { value: 'pacifico', label: 'Pacifico', css: 'Pacifico, cursive' },
+                ].map((font) => (
                   <button
                     key={font.value}
                     onClick={() => setMods(prev => ({ ...prev, defaultMessageFont: font.value }))}
-                    style={{ fontFamily: { arial: 'Arial, sans-serif', times: '"Times New Roman", serif', georgia: 'Georgia, serif', verdana: 'Verdana, sans-serif', courier: '"Courier New", monospace', comic: '"Comic Sans MS", cursive', impact: 'Impact, sans-serif' }[font.value] || 'sans-serif' }}
-                    className={`py-2 px-3 text-xs rounded-lg border transition-all ${
-                      (mods.defaultMessageFont || 'default') === font.value ? 'border-pink-500 bg-pink-500/20 text-white' : 'border-white/10 text-gray-300 hover:bg-white/5'
+                    style={{ fontFamily: font.css }}
+                    className={`group relative py-2 px-3 text-xs rounded-lg border transition-all duration-300 overflow-hidden ${
+                      (mods.defaultMessageFont || 'default') === font.value
+                        ? 'border-purple-500 bg-purple-500/20 text-white shadow-lg shadow-purple-500/20 scale-105'
+                        : 'border-white/10 text-gray-300 hover:bg-white/10 hover:border-purple-400/40 hover:scale-105'
                     }`}
                   >
-                    {font.label}
+                    <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
+                    <span className="relative z-10 transition-all duration-200 group-hover:text-white">{font.label}</span>
+                    {(mods.defaultMessageFont || 'default') === font.value && (
+                      <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse" />
+                    )}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Font Size Slider */}
+            <div className="border-t border-white/10 pt-4">
+              <label className="text-xs text-cyan-300 mb-1 block font-bold uppercase tracking-wider">📐 Font Size</label>
+              <p className="text-[10px] text-gray-400 mb-3">Drag to fine-tune text size across the app.</p>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-gray-500 w-6 text-center">A</span>
+                  <input
+                    type="range"
+                    min="10"
+                    max="26"
+                    step="1"
+                    value={(() => {
+                      const sizeMap = { small: 13, medium: 15, large: 18, extra_large: 20 };
+                      return mods.customFontSize || sizeMap[mods.fontSize] || 15;
+                    })()}
+                    onChange={(e) => {
+                      const px = Number(e.target.value);
+                      let sizeLabel = 'medium';
+                      if (px <= 13) sizeLabel = 'small';
+                      else if (px >= 20) sizeLabel = 'extra_large';
+                      else if (px >= 17) sizeLabel = 'large';
+                      setMods(prev => ({ ...prev, fontSize: sizeLabel, customFontSize: px }));
+                    }}
+                    className="flex-1 h-2 rounded-full appearance-none bg-gradient-to-r from-cyan-900 via-cyan-600 to-cyan-400 cursor-pointer accent-cyan-400 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-cyan-400 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:shadow-cyan-400/40 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:hover:scale-125"
+                  />
+                  <span className="text-[10px] text-gray-500 w-10 text-center">A</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-cyan-400 text-xs font-bold">
+                    {(() => {
+                      const px = mods.customFontSize || { small: 13, medium: 15, large: 18, extra_large: 20 }[mods.fontSize] || 15;
+                      return `${px}px`;
+                    })()}
+                  </span>
+                  <div className="flex gap-1">
+                    {[
+                      { label: 'S', px: 13 },
+                      { label: 'M', px: 15 },
+                      { label: 'L', px: 18 },
+                      { label: 'XL', px: 20 },
+                    ].map((preset) => (
+                      <button
+                        key={preset.label}
+                        onClick={() => {
+                          const sizeLabel = { 13: 'small', 15: 'medium', 18: 'large', 20: 'extra_large' }[preset.px] || 'medium';
+                          setMods(prev => ({ ...prev, fontSize: sizeLabel, customFontSize: preset.px }));
+                        }}
+                        className={`px-2 py-0.5 text-[10px] rounded-md border transition-all ${
+                          (mods.customFontSize || { small: 13, medium: 15, large: 18, extra_large: 20 }[mods.fontSize]) === preset.px
+                            ? 'border-cyan-500 bg-cyan-500/20 text-cyan-300'
+                            : 'border-white/10 text-gray-500 hover:text-gray-300'
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Live Preview */}
+            <div className="border-t border-white/10 pt-4">
+              <label className="text-xs text-green-300 mb-2 block font-bold uppercase tracking-wider">👁️ Live Preview</label>
+              <div className="bg-[#0b141a] rounded-xl p-4 border border-white/10 transition-all duration-300">
+                <div className="flex justify-end mb-2">
+                  <div className="bg-[#005c4b] rounded-xl rounded-tr-sm px-3 py-2 max-w-[80%] transition-all duration-300">
+                    <p className="text-white transition-all duration-300" style={{
+                      fontFamily: (() => {
+                        const fontMap = { arial: 'Arial, sans-serif', times: '"Times New Roman", serif', georgia: 'Georgia, serif', verdana: 'Verdana, sans-serif', courier: '"Courier New", monospace', comic: '"Comic Sans MS", cursive', impact: 'Impact, sans-serif', roboto: 'Roboto, sans-serif', poppins: 'Poppins, sans-serif', lobster: 'Lobster, cursive', pacifico: 'Pacifico, cursive' };
+                        return fontMap[mods.defaultMessageFont] || 'sans-serif';
+                      })(),
+                      fontSize: `${mods.customFontSize || { small: 13, medium: 15, large: 18, extra_large: 20 }[mods.fontSize] || 15}px`,
+                    }}>
+                      Hey! Check out my new font 🎨
+                    </p>
+                    <p className="text-green-300/60 text-[10px] text-right mt-1">12:34 PM ✓✓</p>
+                  </div>
+                </div>
+                <div className="flex justify-start">
+                  <div className="bg-[#202c33] rounded-xl rounded-tl-sm px-3 py-2 max-w-[80%] transition-all duration-300">
+                    <p className="text-white transition-all duration-300" style={{
+                      fontFamily: 'inherit',
+                      fontSize: `${mods.customFontSize || { small: 13, medium: 15, large: 18, extra_large: 20 }[mods.fontSize] || 15}px`,
+                    }}>
+                      Wow that looks amazing! 😍
+                    </p>
+                    <p className="text-gray-400/60 text-[10px] text-right mt-1">12:35 PM</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

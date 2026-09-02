@@ -47,7 +47,7 @@ const BulkSender = ({ onClose, conversations, user }) => {
         setSettings(data.settings);
       }
     } catch (error) {
-      console.error('Error fetching settings:', error);
+      if (import.meta.env.DEV) console.error('Error fetching settings:', error);
     }
   };
 

@@ -138,6 +138,7 @@ const DEFAULT_GENZ_SETTINGS = {
     themePack: 'default',
     fontFamily: 'Inter',
     defaultMessageFont: 'default',
+    textStyle: 'normal',
     bubbleStyle: 'default',
     tickStyle: 'default',
     bubbleSentColor: '',
@@ -540,18 +541,42 @@ export const ChatProvider = ({ children }) => {
     const root = document.documentElement;
     const body = document.body;
 
-    // Font family
+    // Global app font — affects ALL text across the entire app
     if (mods.fontFamily) {
       root.style.setProperty('--chat-font', `'${mods.fontFamily}', sans-serif`);
+      body.style.fontFamily = `'${mods.fontFamily}', sans-serif`;
     } else {
       root.style.setProperty('--chat-font', "'Inter', sans-serif");
+      body.style.fontFamily = "'Inter', sans-serif";
     }
+
+    // Default message font — CSS variable for message text elements
+    const msgFontMap = {
+      arial: 'Arial, sans-serif',
+      times: '"Times New Roman", serif',
+      georgia: 'Georgia, serif',
+      verdana: 'Verdana, sans-serif',
+      courier: '"Courier New", monospace',
+      comic: '"Comic Sans MS", cursive',
+      impact: 'Impact, sans-serif',
+      roboto: 'Roboto, sans-serif',
+      poppins: 'Poppins, sans-serif',
+      lobster: 'Lobster, cursive',
+      pacifico: 'Pacifico, cursive',
+      dancing: '"Dancing Script", cursive',
+      vibes: '"Great Vibes", cursive',
+      indie: '"Indie Flower", cursive',
+      marker: '"Permanent Marker", cursive',
+    };
+    const resolvedMsgFont = msgFontMap[mods.defaultMessageFont] || 'inherit';
+    root.style.setProperty('--message-font', resolvedMsgFont);
 
     // Font size
     if (mods.fontSize) {
       let size = '15px'; // medium
       if (mods.fontSize === 'small') size = '13px';
       if (mods.fontSize === 'large') size = '18px';
+      if (mods.fontSize === 'extra_large') size = '20px';
       root.style.setProperty('--chat-font-size', size);
     } else {
       root.style.setProperty('--chat-font-size', '15px');
@@ -611,7 +636,7 @@ export const ChatProvider = ({ children }) => {
     
     window.dispatchEvent(new CustomEvent('genz-mods-updated', { detail: mods }));
 
-  }, [mods.fontFamily, mods.fontSize, mods.bubbleSentColor, mods.bubbleReceivedColor, mods.bubbleStyle, mods.tickStyle, mods.bubbleAnimations, mods.reelMode, mods.glassMode, mods.antiScreenshot]);
+  }, [mods.fontFamily, mods.fontSize, mods.defaultMessageFont, mods.bubbleSentColor, mods.bubbleReceivedColor, mods.bubbleStyle, mods.tickStyle, mods.bubbleAnimations, mods.reelMode, mods.glassMode, mods.antiScreenshot]);
 
   // ── Load GENZ settings from localStorage on mount ──
   useEffect(() => {
@@ -747,7 +772,7 @@ export const ChatProvider = ({ children }) => {
     (async () => {
       try {
         await notificationService.initialize();
-        console.log('[ChatContext] Notification service initialized');
+        if (import.meta.env.DEV) console.log('[ChatContext] Notification service initialized');
       } catch (e) {
         console.warn('[ChatContext] Notification init failed:', e?.message || e);
       }
@@ -902,7 +927,7 @@ export const ChatProvider = ({ children }) => {
           }
         } else if (ENABLE_DEMO_DATA) {
           // Seed demo data for testing
-          console.log('[GENZ] Seeding demo conversations for testing...');
+          if (import.meta.env.DEV) console.log('[GENZ] Seeding demo conversations for testing...');
           setConversations(DEMO_CONVERSATIONS);
           // Store in IndexedDB for persistence
           try { for (const c of DEMO_CONVERSATIONS) { await DB.saveConversation(c); } } catch (e) { /* silent */ }
@@ -911,7 +936,7 @@ export const ChatProvider = ({ children }) => {
           setConversations([]);
         }
       } catch (err) {
-        console.error('Failed to load offline data:', err);
+        if (import.meta.env.DEV) console.error('Failed to load offline data:', err);
         setConversations(ENABLE_DEMO_DATA ? DEMO_CONVERSATIONS : []);
       }
     };
@@ -937,8 +962,7 @@ export const ChatProvider = ({ children }) => {
       return;
     }
 
-    if (socketRef.current?.connected || isOffline()) {
-      console.log('Socket already connected or offline mode, skipping connection');
+    if (socketRef.current?.connected || isOffline()) {          if (import.meta.env.DEV) console.log('Socket already connected or offline mode, skipping connection');
       return;
     }
 
@@ -1002,7 +1026,7 @@ export const ChatProvider = ({ children }) => {
       }, 500);
 
       socket.on('connect', () => {
-        console.log('Socket connected successfully');
+        if (import.meta.env.DEV) console.log('Socket connected successfully');
         setIsSocketConnected(true);
         socket.emit('user:join', userId);
         
@@ -1016,7 +1040,7 @@ export const ChatProvider = ({ children }) => {
       });
 
       socket.on('disconnect', (reason) => {
-        console.log('Socket disconnected:', reason);
+        if (import.meta.env.DEV) console.log('Socket disconnected:', reason);
         setIsSocketConnected(false);
         // Reconnect automatically unless it's an intentional disconnect or offline mode
         if (reason === 'io server disconnect' && !isOffline()) {

@@ -46,7 +46,7 @@ const DeviceCard = ({ device, onDeviceUpdate, onDeviceRemove }) => {
       await deviceService.setDeviceActive(device.id, !device.active);
       onDeviceUpdate && onDeviceUpdate();
     } catch (error) {
-      console.error('Error toggling device:', error);
+      if (import.meta.env.DEV) console.error('Error toggling device:', error);
     } finally {
       setLoading(false);
     }
@@ -63,7 +63,7 @@ const DeviceCard = ({ device, onDeviceUpdate, onDeviceRemove }) => {
       await deviceService.unlinkDevice(device.id);
       onDeviceRemove && onDeviceRemove();
     } catch (error) {
-      console.error('Error unlinking device:', error);
+      if (import.meta.env.DEV) console.error('Error unlinking device:', error);
     } finally {
       setLoading(false);
     }

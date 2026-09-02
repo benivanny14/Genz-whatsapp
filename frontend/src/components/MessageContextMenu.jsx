@@ -21,6 +21,13 @@ import MessageShareToStatus from './MessageShareToStatus';
 import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
 
+const EMOJI_GRID = [
+  ['😊', '😂', '❤️', '🔥', '👍', '👏', '😍', '😭'],
+  ['😮', '😢', '😡', '🤔', '💀', '🙏', '✨', '🎉'],
+  ['🤮', '😈', '🤡', '👀', '💯', '⭐', '🥳', '🫡'],
+  ['🫶', '💪', '🤝', '🙈', '😱', '🤯', '💜', '🤍'],
+];
+
 const MessageContextMenu = ({
   message,
   position,
@@ -278,17 +285,24 @@ const MessageContextMenu = ({
         />
       )}
 
-      {/* Reaction Picker */}
+      {/* ═══ WhatsApp-style Reaction Picker ═══ */}
       {showReactionPicker && (
         <>
+          {/* Quick reactions row */}
           <div
-            className="fixed bg-[#1a2332] border border-gray-600 rounded-lg shadow-xl z-50 py-2 px-3"
+            className="fixed z-[9999] animate-in fade-in zoom-in-95 duration-150"
             style={{
-              top: Math.min(position?.y || 0, window.innerHeight - 200) + 'px',
-              left: Math.min(position?.x || 0, window.innerWidth - 300) + 'px',
+              bottom: Math.min((window.innerHeight - (position?.y || 0)), window.innerHeight - 60) > 80
+                ? undefined
+                : (position?.y || 0) + 'px',
+              top: Math.min((position?.y || 0), window.innerHeight - 350) < 80
+                ? (position?.y || 0) + 'px'
+                : undefined,
+              left: Math.min(Math.max(8, (position?.x || 0) - 140), window.innerWidth - 300) + 'px',
             }}
           >
-            <div className="flex gap-2">
+            {/* Quick reaction bar */}
+            <div className="bg-[#1f2c34] border border-white/10 rounded-2xl shadow-2xl px-2 py-1.5 flex items-center gap-0.5">
               {quickReactions.map((emoji) => (
                 <button
                   key={emoji}
@@ -297,16 +311,45 @@ const MessageContextMenu = ({
                     setShowReactionPicker(false);
                     onClose?.();
                   }}
-                  className="text-2xl hover:scale-125 transition-transform p-1"
+                  className="text-2xl hover:scale-125 active:scale-90 transition-all duration-150 p-1.5 rounded-full hover:bg-white/10"
                   title={emoji}
                 >
                   {emoji}
                 </button>
               ))}
+              <button
+                onClick={() => setShowReactionPicker('full')}
+                className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors ml-0.5"
+                title="More emojis"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+              </button>
             </div>
+            {/* Full emoji grid (expandable) */}
+            {showReactionPicker === 'full' && (
+              <div className="bg-[#1f2c34] border border-white/10 rounded-2xl shadow-2xl p-3 mt-1">
+                {EMOJI_GRID.map((row, ri) => (
+                  <div key={ri} className="flex justify-center gap-1 mb-1">
+                    {row.map((emoji) => (
+                      <button
+                        key={emoji}
+                        onClick={() => {
+                          onReaction?.(message._id || message.id, emoji);
+                          setShowReactionPicker(false);
+                          onClose?.();
+                        }}
+                        className="text-xl w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/10 hover:scale-110 active:scale-90 transition-all duration-100"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div
-            className="fixed inset-0 z-40"
+            className="fixed inset-0 z-[9998]"
             onClick={() => {
               setShowReactionPicker(false);
               onClose?.();

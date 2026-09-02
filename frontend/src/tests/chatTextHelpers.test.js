@@ -71,6 +71,6 @@ test('getEmojiStickerSuggestions returns [] for unknown/empty text', () => {
 test('constants keep their shapes (used by the chat settings UI)', () => {
   assert.equal(DISAPPEARING_OPTIONS.length, 4);
   assert.equal(DISAPPEARING_OPTIONS[0].value, 'Off');
-  assert.equal(FONT_OPTIONS.length, 8);
+  assert.equal(FONT_OPTIONS.length, 16);
   assert.equal(FONT_OPTIONS[0].value, 'default');
 });

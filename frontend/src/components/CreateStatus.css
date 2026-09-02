@@ -331,3 +331,7 @@
   font-weight: 600;
   margin: 0 0 12px;
 }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

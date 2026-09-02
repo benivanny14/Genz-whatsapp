@@ -42,7 +42,7 @@ const CameraControls = ({ onClose, onCapture, onSettingsChange }) => {
         videoRef.current.srcObject = mediaStream;
       }
     } catch (err) {
-      console.error('Camera access error:', err);
+      if (import.meta.env.DEV) console.error('Camera access error:', err);
       alert('Failed to access camera');
     }
   };

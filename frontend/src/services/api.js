@@ -13,7 +13,10 @@ export const api = axios.create({
   baseURL: API_URL,
   headers: { 'Content-Type': 'application/json', ...getDeviceHeaders() },
   withCredentials: true,
-  timeout: 15000,
+  // FIX: Increased from 15s to 60s to survive Render free-tier cold starts
+  // (30-90s). The previous 15s timeout caused premature failures on
+  // endpoints like /chat/conversations, /settings, /status during startup.
+  timeout: 60000,
 });
 
 // ── Request interceptor: attach Bearer token on every request ─────────
@@ -34,6 +37,8 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    const originalRequest = error.config;
+
     // If 401 Unauthorized, clear auth and redirect to login. Uses the guarded
     // clearSessionAndRedirect (does NOT hard-reload when already on /login or
     // /register) so that a 401 from a background request during login/register
@@ -53,6 +58,33 @@ api.interceptors.response.use(
         data: { success: false, message: 'You are offline. Please check your connection.', isOffline: true },
         status: 0,
       });
+    }
+
+    // Network errors (ERR_CONNECTION_RESET, ERR_TIMED_OUT) — retry once
+    // with exponential backoff so a transient Render cold-start hiccup
+    // doesn't fail the entire user flow.
+    const isNetworkError = !error.response && (
+      error.code === 'ERR_CONNECTION_RESET' ||
+      error.code === 'ERR_TIMED_OUT' ||
+      error.code === 'ECONNABORTED' ||
+      error.code === 'ERR_NETWORK' ||
+      error.message?.includes('Network Error')
+    );
+
+    if (isNetworkError && originalRequest && !originalRequest._networkRetry) {
+      originalRequest._networkRetry = true;
+      if (import.meta.env.DEV) console.warn(`[API] Network error on ${originalRequest?.url}; retrying in 3s...`);
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      try {
+        const retryResponse = await api(originalRequest);
+        return retryResponse;
+      } catch (retryErr) {
+        // If retry also fails, fall through to the generic handler below
+        return Promise.resolve({
+          data: { success: false, message: 'Server unreachable. Please try again.' },
+          status: retryErr.response?.status || 0,
+        });
+      }
     }
 
     return Promise.resolve({

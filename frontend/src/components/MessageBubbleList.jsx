@@ -488,7 +488,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                         {message.structuredContent.map((item, idx) => {
                           if (item.type === 'text' && item.value?.trim()) {
                             return (
-                              <p key={idx} className="break-words whitespace-pre-wrap text-sm" style={{ fontFamily: item.font ? FONT_OPTIONS.find(f => f.value === item.font)?.fontFamily : undefined }}>
+                              <p key={idx} className="break-words whitespace-pre-wrap text-sm" style={{ fontFamily: item.font ? FONT_OPTIONS.find(f => f.value === item.font)?.fontFamily : 'var(--message-font, inherit)', color: item.color || undefined }}>
                                 {renderTextWithMentions(item.value, message.mentions || [], user?.id || user?._id)}
                               </p>
                             );
@@ -558,7 +558,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                       ) && !message.isConsumed && (
                         <p
                           className="break-words whitespace-pre-wrap"
-                          style={{ fontFamily: message.font ? FONT_OPTIONS.find(f => f.value === message.font)?.fontFamily : undefined }}
+                          style={{ fontFamily: message.font ? FONT_OPTIONS.find(f => f.value === message.font)?.fontFamily : 'var(--message-font, inherit)', color: message.color || undefined }}
                         >
                           <FormattedText
                             text={plaintextOf(message) || ''}
@@ -591,29 +591,42 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                       <span className="text-xs opacity-70">{formatMessageTime(message.createdAt)}</span>
                       {isOwnMessage(message) && (
                         <span
-                          className={`text-[10px] font-black ${message.status === 'failed' ? 'text-red-400' : message.status === 'read' && !safeMods?.hideBlueTickColor && (!safeMods?.tickStyle || safeMods?.tickStyle === 'default' || safeMods?.tickStyle === 'ios')
-                            ? 'text-blue-400'
-                            : message.status === 'delivered'
-                              ? 'text-white/70'
-                              : 'text-white/40'
-                            }`}
+                          className={`inline-flex items-center ${message.status === 'failed' ? 'text-red-400' : ''}`}
                           title={typeof message.status === 'string' ? message.status : 'Status'}
                         >
                           {(() => {
                             const style = safeMods?.tickStyle || 'default';
                             const status = message.status;
-                            if (status === 'failed') return '⚠️';
-                            if (status === 'pending' || status === 'sending') return '◐';
+                            const isBlue = status === 'read' && !safeMods?.hideBlueTickColor && (style === 'default' || style === 'ios');
+                            const isDelivered = status === 'delivered';
                             const isSent = status === 'sent';
-                            switch (style) {
-                              case 'batman': return isSent ? '🦇' : '🦇🦇';
-                              case 'minions': return isSent ? '🍌' : '🍌🍌';
-                              case 'hacker': return isSent ? '/' : '//';
-                              case 'hearts': return isSent ? '💖' : '💖💖';
-                              case 'ios':
-                              case 'default':
-                              default: return isSent ? '✓' : '✓✓';
+                            const tickColor = isBlue ? '#53bdeb' : isDelivered ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.4)';
+
+                            if (status === 'failed') return <span className="text-[10px]">⚠️</span>;
+                            if (status === 'pending' || status === 'sending') return <span className="text-[10px]">◐</span>;
+
+                            // Custom tick styles
+                            if (style === 'batman') return <span className="text-[10px]">{isSent ? '🦇' : '🦇🦇'}</span>;
+                            if (style === 'minions') return <span className="text-[10px]">{isSent ? '🍌' : '🍌🍌'}</span>;
+                            if (style === 'hacker') return <span className="text-[10px] font-mono">{isSent ? '/' : '//'}</span>;
+                            if (style === 'hearts') return <span className="text-[10px]">{isSent ? '💖' : '💖💖'}</span>;
+
+                            // WhatsApp-style SVG double ticks
+                            if (isSent) {
+                              // Single tick
+                              return (
+                                <svg width="16" height="11" viewBox="0 0 16 11" fill="none">
+                                  <path d="M11.071.653a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178l-6.19 7.636-2.011-2.095a.463.463 0 0 0-.659-.003.461.461 0 0 0-.003.66l2.37 2.47c.093.097.213.146.334.146a.448.448 0 0 0 .347-.17l6.545-8.07a.448.448 0 0 0-.048-.65z" fill={tickColor} />
+                                </svg>
+                              );
                             }
+                            // Double tick (delivered/read)
+                            return (
+                              <svg width="18" height="11" viewBox="0 0 18 11" fill="none">
+                                <path d="M11.071.653a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178l-6.19 7.636-2.011-2.095a.463.463 0 0 0-.659-.003.461.461 0 0 0-.003.66l2.37 2.47c.093.097.213.146.334.146a.448.448 0 0 0 .347-.17l6.545-8.07a.448.448 0 0 0-.048-.65z" fill={tickColor} />
+                                <path d="M16.071.653a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178l-6.19 7.636-1.2-1.252a.463.463 0 0 0-.659-.003.461.461 0 0 0-.003.66l1.56 1.627c.093.097.213.146.334.146a.448.448 0 0 0 .347-.17l6.545-8.07a.448.448 0 0 0-.048-.65z" fill={tickColor} />
+                              </svg>
+                            );
                           })()}
                         </span>
                         )}{' '}

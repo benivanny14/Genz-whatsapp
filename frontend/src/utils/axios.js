@@ -33,7 +33,7 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error('[Axios Request Error]:', error);
+    if (import.meta.env.DEV) console.error('[Axios Request Error]:', error);
     return Promise.reject(error);
   }
 );
@@ -49,7 +49,7 @@ api.interceptors.response.use(
                           originalRequest?.url?.includes('/auth/register');
     
     if (status !== 401 && !(status === 409 && isAuthEndpoint)) {
-      console.error('[Axios Response Error]:', {
+      if (import.meta.env.DEV) console.error('[Axios Response Error]:', {
         url: originalRequest?.url,
         method: originalRequest?.method,
         status,
@@ -112,6 +112,23 @@ api.interceptors.response.use(
       const delayMs = Math.min(Math.max(retryAfter, 1), 30) * 1000;
       console.warn(`[API] Rate limited; single retry after ${delayMs}ms`);
       await new Promise((resolve) => setTimeout(resolve, delayMs));
+      return api(originalRequest);
+    }
+
+    // Network errors (ERR_CONNECTION_RESET, ERR_TIMED_OUT) — retry once
+    // with 3s backoff to survive transient Render cold-start hiccups.
+    const isNetworkError = !error.response && (
+      error.code === 'ERR_CONNECTION_RESET' ||
+      error.code === 'ERR_TIMED_OUT' ||
+      error.code === 'ECONNABORTED' ||
+      error.code === 'ERR_NETWORK' ||
+      error.message?.includes('Network Error')
+    );
+
+    if (isNetworkError && !originalRequest?._networkRetry) {
+      originalRequest._networkRetry = true;
+      console.warn(`[API] Network error on ${originalRequest?.url}; retrying in 3s...`);
+      await new Promise((resolve) => setTimeout(resolve, 3000));
       return api(originalRequest);
     }
 

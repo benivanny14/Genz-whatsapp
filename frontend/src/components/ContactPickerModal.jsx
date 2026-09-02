@@ -45,7 +45,7 @@ const ContactPickerModal = ({ onClose, onSelect, title = 'Share Contact' }) => {
       const contacts = await getPhoneContacts();
       setPhoneContacts(contacts);
     } catch (error) {
-      console.error('Failed to load phone contacts:', error);
+      if (import.meta.env.DEV) console.error('Failed to load phone contacts:', error);
       toast.error('Failed to load phone contacts');
     } finally {
       setPhoneContactsLoading(false);

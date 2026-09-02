@@ -40,8 +40,8 @@ const StatusTray = ({ statuses = [], currentUser, onCreateStatus, onViewStatus }
   return (
     <div style={{
       display: 'flex',
-      gap: '12px',
-      padding: '12px 16px',
+      gap: '8px',
+      padding: '6px 12px',
       overflowX: 'auto',
       borderBottom: '1px solid #2a3942',
       background: '#111b21',
@@ -57,13 +57,13 @@ const StatusTray = ({ statuses = [], currentUser, onCreateStatus, onViewStatus }
           cursor: 'pointer'
         }}
       >
-        <div style={{ position: 'relative', width: 64, height: 64, margin: '0 auto' }}>
+        <div style={{ position: 'relative', width: 52, height: 52, margin: '0 auto' }}>
           <img
             src={currentUser.profilePicture || '/default-avatar.svg'}
             alt=""
             style={{
-              width: 56,
-              height: 56,
+              width: 46,
+              height: 46,
               borderRadius: '50%',
               objectFit: 'cover',
               border: '2px solid #2a3942'
@@ -75,22 +75,22 @@ const StatusTray = ({ statuses = [], currentUser, onCreateStatus, onViewStatus }
             right: 0,
             background: '#00a884',
             borderRadius: '50%',
-            width: 22,
-            height: 22,
+            width: 18,
+            height: 18,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             border: '2px solid #111b21'
           }}>
-            <Plus size={14} color="#fff" />
+            <Plus size={12} color="#fff" />
           </div>
         </div>
         <span style={{
-          fontSize: 11,
+          fontSize: 10,
           color: '#8696a0',
           display: 'block',
-          marginTop: 4,
-          maxWidth: 64,
+          marginTop: 2,
+          maxWidth: 52,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap'
@@ -113,10 +113,10 @@ const StatusTray = ({ statuses = [], currentUser, onCreateStatus, onViewStatus }
             }}
           >
             <div style={{
-              width: 64,
-              height: 64,
+              width: 52,
+              height: 52,
               borderRadius: '50%',
-              padding: 3,
+              padding: 2,
               background: status.hasUnviewed
                 ? 'conic-gradient(#00a884 0deg, #00a884 360deg)'
                 : '2px solid #2a3942'
@@ -125,20 +125,20 @@ const StatusTray = ({ statuses = [], currentUser, onCreateStatus, onViewStatus }
                 src={user.profilePicture || '/default-avatar.svg'}
                 alt=""
                 style={{
-                  width: 56,
-                  height: 56,
+                  width: 46,
+                  height: 46,
                   borderRadius: '50%',
                   objectFit: 'cover',
-                  border: '2.5px solid #111b21'
+                  border: '2px solid #111b21'
                 }}
               />
             </div>
             <span style={{
-              fontSize: 11,
+              fontSize: 10,
               color: status.hasUnviewed ? '#e9edef' : '#8696a0',
               display: 'block',
-              marginTop: 4,
-              maxWidth: 64,
+              marginTop: 2,
+              maxWidth: 52,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap'

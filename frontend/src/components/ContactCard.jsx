@@ -38,7 +38,7 @@ const ContactCard = ({ contact, onSave, onDownload, isOwn = false }) => {
         alert('Failed to save contact');
       }
     } catch (error) {
-      console.error('Error saving contact:', error);
+      if (import.meta.env.DEV) console.error('Error saving contact:', error);
       alert('Failed to save contact');
     } finally {
       setSaving(false);

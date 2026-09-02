@@ -37,11 +37,9 @@ const MobileBottomNav = () => {
   const isHiddenRoute = HIDDEN_EXACT.includes(path) || HIDDEN_PREFIXES.some((prefix) => path.startsWith(prefix));
   const isInsideOpenMobileChat = path.startsWith('/chat') && selectedConversation;
 
-  if (isHiddenRoute || isInsideOpenMobileChat) return null;
-
   const wingaUnseen = wingaData?.totalUnseen || 0;
 
-  // Compute unread badges from conversations
+  // Compute unread badges from conversations — hooks MUST be above any early return
   const chatUnread = useMemo(() => {
     if (!conversations) return 0;
     return conversations
@@ -55,6 +53,8 @@ const MobileBottomNav = () => {
       .filter(c => c.isGroup && !c.isArchived)
       .reduce((sum, c) => sum + (c.unreadCount || 0), 0);
   }, [conversations]);
+
+  if (isHiddenRoute || isInsideOpenMobileChat) return null;
 
   return (
     <nav

@@ -70,7 +70,7 @@ export const AuthProvider = ({ children }) => {
                 const retryMeData = await authService.getMe();
                 if (retryMeData.success && retryMeData.user) {
                   setUser(retryMeData.user);
-                  console.log('[AuthContext] Session restored after refresh');
+                  if (import.meta.env.DEV) console.log('[AuthContext] Session restored after refresh');
                 } else {
                   clearSession();
                 }

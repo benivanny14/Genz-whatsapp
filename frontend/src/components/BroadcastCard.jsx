@@ -48,7 +48,7 @@ const BroadcastCard = ({ broadcast, onBroadcastUpdate, onBroadcastDelete, onSend
       setShowMessageModal(false);
       onSendMessage && onSendMessage();
     } catch (error) {
-      console.error('Error sending broadcast message:', error);
+      if (import.meta.env.DEV) console.error('Error sending broadcast message:', error);
       toast.error(error?.message || 'Failed to send broadcast message');
     } finally {
       setSending(false);
@@ -74,7 +74,7 @@ const BroadcastCard = ({ broadcast, onBroadcastUpdate, onBroadcastDelete, onSend
       setShowEditModal(false);
       onBroadcastUpdate && onBroadcastUpdate();
     } catch (error) {
-      console.error('Error updating broadcast:', error);
+      if (import.meta.env.DEV) console.error('Error updating broadcast:', error);
       toast.error(error?.message || 'Failed to update broadcast');
     } finally {
       setSaving(false);
@@ -92,7 +92,7 @@ const BroadcastCard = ({ broadcast, onBroadcastUpdate, onBroadcastDelete, onSend
       toast.success('Broadcast deleted');
       onBroadcastDelete && onBroadcastDelete();
     } catch (error) {
-      console.error('Error deleting broadcast:', error);
+      if (import.meta.env.DEV) console.error('Error deleting broadcast:', error);
       toast.error(error?.message || 'Failed to delete broadcast');
     } finally {
       setLoading(false);

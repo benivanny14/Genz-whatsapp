@@ -71,8 +71,8 @@ const AudioPlayer = ({
       // Remove query parameters but keep the full URL path
       const urlWithoutParams = url.split('?')[0];
       
-      console.log('[AudioPlayer] Original URL:', urlWithoutParams);
-      console.log('[AudioPlayer] URL length:', urlWithoutParams.length);
+      if (import.meta.env.DEV) console.log('[AudioPlayer] Original URL:', urlWithoutParams);
+      if (import.meta.env.DEV) console.log('[AudioPlayer] URL length:', urlWithoutParams.length);
       
       return urlWithoutParams;
     } catch (e) {
@@ -93,7 +93,7 @@ const AudioPlayer = ({
           const fixedUrl = fixCloudinaryAudioUrl(signedUrl);
           const resolved = resolveMediaPlaybackUrl(fixedUrl);
           setPlaybackUrl(resolved);
-          console.log('[AudioPlayer] Using signed URL (full):', resolved);
+          if (import.meta.env.DEV) console.log('[AudioPlayer] Using signed URL (full):', resolved);
           return;
         }
       } catch (e) {
@@ -106,7 +106,7 @@ const AudioPlayer = ({
           const fixedUrl = fixCloudinaryAudioUrl(audioUrl);
           const resolved = resolveMediaPlaybackUrl(fixedUrl);
           setPlaybackUrl(resolved);
-          console.log('[AudioPlayer] Using direct URL (full):', resolved);
+          if (import.meta.env.DEV) console.log('[AudioPlayer] Using direct URL (full):', resolved);
         } catch (resolveError) {
           console.error('[AudioPlayer] Failed to resolve URL:', resolveError);
           if (active) {
@@ -133,7 +133,7 @@ const AudioPlayer = ({
       return;
     }
     
-    console.log('[AudioPlayer] Creating audio element with src:', playbackUrl);
+    if (import.meta.env.DEV) console.log('[AudioPlayer] Creating audio element with src:', playbackUrl);
     
     let isCleanedUp = false;
     
@@ -145,8 +145,8 @@ const AudioPlayer = ({
     audio.src = playbackUrl;
     audioRef.current = audio;
 
-    console.log('[AudioPlayer] Audio src set immediately to:', audio.src);
-    console.log('[AudioPlayer] Audio element created, readyState:', audio.readyState);
+    if (import.meta.env.DEV) console.log('[AudioPlayer] Audio src set immediately to:', audio.src);
+    if (import.meta.env.DEV) console.log('[AudioPlayer] Audio element created, readyState:', audio.readyState);
 
     audio.onloadedmetadata = () => {
       if (isCleanedUp) return;
@@ -154,7 +154,7 @@ const AudioPlayer = ({
       setDuration(dur);
       setLoaded(true);
       setError(false);
-      console.log('[AudioPlayer] Audio loaded, duration:', dur);
+      if (import.meta.env.DEV) console.log('[AudioPlayer] Audio loaded, duration:', dur);
 
       if (autoPlay) {
         audio.play().then(() => setIsPlaying(true)).catch(e => console.warn('Autoplay blocked:', e));
@@ -174,23 +174,22 @@ const AudioPlayer = ({
       }
     };
     audio.onerror = (e) => {
-      if (isCleanedUp) return;
-      console.error('[AudioPlayer] Audio playback error:', e);
-      console.error('[AudioPlayer] Current src:', audio.src);
-      console.error('[AudioPlayer] Network state:', audio.networkState);
-      console.error('[AudioPlayer] Ready state:', audio.readyState);
-      console.error('[AudioPlayer] Playback URL state:', playbackUrl);
+      if (isCleanedUp) return;        if (import.meta.env.DEV) console.error('[AudioPlayer] Audio playback error:', e);
+      if (import.meta.env.DEV) console.error('[AudioPlayer] Current src:', audio.src);
+      if (import.meta.env.DEV) console.error('[AudioPlayer] Network state:', audio.networkState);
+      if (import.meta.env.DEV) console.error('[AudioPlayer] Ready state:', audio.readyState);
+      if (import.meta.env.DEV) console.error('[AudioPlayer] Playback URL state:', playbackUrl);
       // Log more details about the error
       if (audio.error) {
-        console.error('[AudioPlayer] Error code:', audio.error.code, 'Message:', audio.error.message);
+        if (import.meta.env.DEV) console.error('[AudioPlayer] Error code:', audio.error.code, 'Message:', audio.error.message);
       }
       // Limit retries to prevent infinite loops
       if (retryCount < 2) {
         setRetryCount(prev => prev + 1);
-        console.log(`[AudioPlayer] Retry ${retryCount + 1}/2`);
+        if (import.meta.env.DEV) console.log(`[AudioPlayer] Retry ${retryCount + 1}/2`);
       } else {
         setError(true);
-        console.log('[AudioPlayer] Max retries reached, showing error');
+        if (import.meta.env.DEV) console.log('[AudioPlayer] Max retries reached, showing error');
       }
     };
 

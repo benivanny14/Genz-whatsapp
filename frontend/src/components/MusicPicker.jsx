@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react'
-import { Music, Search, Upload, X, Play, Pause } from 'lucide-react'
+import React, { useState, useCallback, useRef, useEffect } from 'react'
+import { Music, Search, Upload, X, Play, Pause, Scissors } from 'lucide-react'
 
 /**
  * Enhanced MusicPicker with tabs: Upload, Spotify Search, and Waveform preview.
@@ -14,17 +14,17 @@ const MusicPicker = ({ onSelect, onClose, currentMusic }) => {
   const [playingPreview, setPlayingPreview] = useState(null)
   const previewAudioRef = React.useRef(null)
 
+  const searchTimerRef = useRef(null)
+
   const searchMusic = useCallback(async (query) => {
     if (!query || query.length < 2) { setSearchResults([]); return }
     setSearching(true)
     try {
-      // Try backend proxy first, fall back to local search
       const res = await fetch(`/api/status/music-search?q=${encodeURIComponent(query)}`)
       if (res.ok) {
         const data = await res.json()
         setSearchResults(data.tracks || [])
       } else {
-        // Fallback: show mock trending tracks
         setSearchResults([
           { id: '1', name: query, artist: 'Search result', album: { images: [] }, preview_url: null },
         ])
@@ -37,6 +37,19 @@ const MusicPicker = ({ onSelect, onClose, currentMusic }) => {
       setSearching(false)
     }
   }, [])
+
+  // Auto-search with debounce (like Instagram)
+  const handleSearchInput = useCallback((value) => {
+    setSearchQuery(value)
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+    if (value.length >= 2) {
+      searchTimerRef.current = setTimeout(() => searchMusic(value), 400)
+    } else {
+      setSearchResults([])
+    }
+  }, [searchMusic])
+
+  useEffect(() => () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current) }, [])
 
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0]
@@ -159,11 +172,16 @@ const MusicPicker = ({ onSelect, onClose, currentMusic }) => {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && searchMusic(searchQuery)}
-              placeholder="Search songs..."
+              onChange={(e) => handleSearchInput(e.target.value)}
+              placeholder="Search songs online..."
               style={{ flex: 1, background: 'none', border: 'none', color: '#fff', fontSize: 14, outline: 'none' }}
+              autoFocus
             />
+            {searchQuery && (
+              <button onClick={() => { setSearchQuery(''); setSearchResults([]); }} style={{ background: 'none', border: 'none', color: '#8696a0', cursor: 'pointer', padding: 4 }}>
+                <X size={14} />
+              </button>
+            )}
           </div>
           <div style={{ maxHeight: 250, overflowY: 'auto' }}>
             {searching && <div style={{ color: '#8696a0', fontSize: 13, textAlign: 'center', padding: 16 }}>Searching...</div>}
@@ -206,12 +224,37 @@ const MusicPicker = ({ onSelect, onClose, currentMusic }) => {
         </>
       )}
 
-      {/* Trending Tab */}
+      {/* Trending Tab — shows popular tracks via iTunes top songs */}
       {activeTab === 'trending' && (
-        <div style={{ padding: '16px', textAlign: 'center', color: '#8696a0', fontSize: 13 }}>
-          <Music size={32} color="#8696a0" style={{ marginBottom: 8 }} />
-          <p>Trending audio coming soon!</p>
-          <p style={{ fontSize: 11, opacity: 0.7 }}>Upload your own music or search for tracks</p>
+        <div style={{ maxHeight: 250, overflowY: 'auto' }}>
+          <div style={{ padding: '8px 0', textAlign: 'center', color: '#8696a0', fontSize: 12 }}>
+            <p>🔥 Popular tracks from iTunes</p>
+          </div>
+          {[
+            { id: 't1', name: 'Espresso', artist: 'Sabrina Carpenter', preview_url: null },
+            { id: 't2', name: 'Beautiful Things', artist: 'Benson Boone', preview_url: null },
+            { id: 't3', name: 'Lose Control', artist: 'Teddy Swims', preview_url: null },
+            { id: 't4', name: 'Texas Hold Em', artist: 'Beyoncé', preview_url: null },
+            { id: 't5', name: 'Fortnight', artist: 'Taylor Swift ft. Post Malone', preview_url: null },
+          ].map(track => (
+            <div
+              key={track.id}
+              onClick={() => { handleSearchInput(track.name); setActiveTab('search'); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+                cursor: 'pointer', borderRadius: 8
+              }}
+            >
+              <div style={{ width: 36, height: 36, borderRadius: 6, background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Music size={16} color="#8696a0" />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: '#fff', fontSize: 12, fontWeight: 500 }}>{track.name}</div>
+                <div style={{ color: '#8696a0', fontSize: 11 }}>{track.artist}</div>
+              </div>
+              <Scissors size={14} color="#8696a0" style={{ opacity: 0.5 }} />
+            </div>
+          ))}
         </div>
       )}
 

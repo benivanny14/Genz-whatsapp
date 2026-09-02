@@ -94,7 +94,7 @@ const AudioPanel = ({ onClose, onSave }) => {
         setIsRecording(false);
         setRecordTime(0);
       } catch (e) {
-        console.error('Failed to stop recording:', e);
+        if (import.meta.env.DEV) console.error('Failed to stop recording:', e);
       }
       return;
     }
@@ -122,7 +122,7 @@ const AudioPanel = ({ onClose, onSave }) => {
       setRecordTime(0);
       recordTimerRef.current = setInterval(() => setRecordTime((t) => t + 1), 1000);
     } catch (e) {
-      console.error('Failed to start recording:', e);
+      if (import.meta.env.DEV) console.error('Failed to start recording:', e);
       alert('Microphone access is required to record. Please check your permissions.');
     }
   };

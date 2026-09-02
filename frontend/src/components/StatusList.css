@@ -302,11 +302,11 @@
   color: #00a884;
 }
 
-/* FAB */
+/* FAB — positioned above MobileBottomNav (~68px) + safe area */
 .fab-create-status {
   position: fixed;
-  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
-  right: 24px;
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  right: 20px;
   width: 56px;
   height: 56px;
   min-width: 56px;

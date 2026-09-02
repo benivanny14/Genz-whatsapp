@@ -83,6 +83,11 @@ const IMAGE_FILTERS = [
   { id: 'fade', name: 'Fade', css: 'contrast(0.85) brightness(1.1) saturate(0.8)' },
 ]
 
+// Pre-computed fallback waveform (stable, no Math.random in render)
+const FALLBACK_WAVEFORM = Array.from({ length: 120 }, (_, i) =>
+  0.3 + Math.sin(i * 0.25) * 0.25 + Math.cos(i * 0.6) * 0.2 + (Math.sin(i * 1.7) * 0.5 + 0.5) * 0.15
+)
+
 // ── Bottom Toolbar Icon Button ──
 const BottomToolBtn = ({ icon, label, active, onClick }) => (
   <button
@@ -303,6 +308,7 @@ const CreateStatus = ({ onClose }) => {
 
   // New creative tools state
   const [showMusicPicker, setShowMusicPicker] = useState(false)
+  const [musicLoading, setMusicLoading] = useState(false)
   const [showPhotoStickerTool, setShowPhotoStickerTool] = useState(false)
   const [showRichTextEditor, setShowRichTextEditor] = useState(false)
   const [stickers, setStickers] = useState([]) // photo stickers from cutout tool
@@ -336,9 +342,20 @@ const CreateStatus = ({ onClose }) => {
   const [musicStart, setMusicStart] = useState(0)
   const [musicEnd, setMusicEnd] = useState(15)
   const [musicVolume, setMusicVolume] = useState(0.5)
+  const musicPreviewRef = useRef(null)
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false)
+  const [musicCurrentTime, setMusicCurrentTime] = useState(0)
+  const [audioDuration, setAudioDuration] = useState(0)
   const [isProcessing, setIsProcessing] = useState(false)
   const videoRef = useRef(null)
   const ffmpegRef = useRef(null)
+  const musicStartRef = useRef(0)
+  const musicEndRef = useRef(15)
+  const [waveformData, setWaveformData] = useState([])
+  const [musicLoop, setMusicLoop] = useState(true)
+  const [trimZoom, setTrimZoom] = useState(1)
+  const [trimScrollPct, setTrimScrollPct] = useState(0.5)
+  const waveformCanvasRef = useRef(null)
 
   // Voice recording state
   const [isRecording, setIsRecording] = useState(false)
@@ -363,6 +380,153 @@ const CreateStatus = ({ onClose }) => {
   const isDrawingRef = useRef(false)
   const lastPosRef = useRef({ x: 0, y: 0 })
 
+  // Keep refs in sync with state for use in audio callbacks (avoids stale closures)
+  useEffect(() => { musicStartRef.current = musicStart }, [musicStart])
+  useEffect(() => { musicEndRef.current = musicEnd }, [musicEnd])
+
+  // ═══ Music preview audio (plays from trim position like Instagram) ═══
+  useEffect(() => {
+    const url = selectedMusicData?.url
+    if (!url) { setIsMusicPlaying(false); setAudioDuration(0); setWaveformData([]); return }
+    const audio = new Audio()
+    audio.crossOrigin = 'anonymous'
+    audio.src = url
+    audio.volume = musicVolume
+    musicPreviewRef.current = audio
+
+    // Decode audio for real waveform visualization
+    let audioCtx = null
+    let aborted = false
+    const decodeWaveform = async () => {
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+        const resp = await fetch(url)
+        const arrayBuf = await resp.arrayBuffer()
+        if (aborted) return
+        const decoded = await audioCtx.decodeAudioData(arrayBuf)
+        if (aborted) return
+        const rawData = decoded.getChannelData(0)
+        const samples = 120
+        const blockSize = Math.floor(rawData.length / samples)
+        const bars = []
+        for (let i = 0; i < samples; i++) {
+          let sum = 0
+          for (let j = 0; j < blockSize; j++) {
+            sum += Math.abs(rawData[i * blockSize + j])
+        }
+          bars.push(sum / blockSize)
+        }
+        // Normalize to 0-1
+        const max = Math.max(...bars, 0.01)
+        setWaveformData(bars.map(b => b / max))
+      } catch (e) {
+        // CORS or decode error — generate procedural fallback
+        if (import.meta.env.DEV) console.warn('[Music] Waveform decode failed:', e)
+        const fallback = FALLBACK_WAVEFORM.slice()
+        setWaveformData(fallback)
+      }
+    }
+
+    const onLoaded = () => {
+      const dur = audio.duration || 0
+      setAudioDuration(dur)
+      const initialEnd = Math.min(15, dur)
+      setMusicEnd(initialEnd)
+      setMusicStart(0)
+      musicStartRef.current = 0
+      musicEndRef.current = initialEnd
+      setTrimZoom(1)
+      setTrimScrollPct(0.5)
+      decodeWaveform()
+    }
+    audio.addEventListener('loadedmetadata', onLoaded)
+    audio.addEventListener('timeupdate', () => {
+      setMusicCurrentTime(audio.currentTime)
+      const curEnd = musicEndRef.current
+      const curStart = musicStartRef.current
+      if (audio.currentTime >= curEnd) {
+        // Loop: restart from trim start
+        audio.currentTime = curStart
+        audio.play().catch(() => {})
+      }
+    })
+    audio.addEventListener('ended', () => setIsMusicPlaying(false))
+    return () => {
+      aborted = true
+      audio.removeEventListener('loadedmetadata', onLoaded)
+      audio.pause()
+      musicPreviewRef.current = null
+      setIsMusicPlaying(false)
+      try { audioCtx?.close() } catch {}
+    }
+  }, [selectedMusicData?.url])
+
+  // Update volume in real-time
+  useEffect(() => {
+    if (musicPreviewRef.current) musicPreviewRef.current.volume = musicVolume
+  }, [musicVolume])
+
+  const toggleMusicPreview = useCallback(() => {
+    const audio = musicPreviewRef.current
+    if (!audio) return
+    if (isMusicPlaying) {
+      audio.pause()
+      setIsMusicPlaying(false)
+    } else {
+      audio.currentTime = musicStart
+      audio.play().catch(() => {})
+      setIsMusicPlaying(true)
+    }
+  }, [isMusicPlaying, musicStart])
+
+  // When trim handles change, seek to new start position (like Instagram)
+  const handleMusicTrimChange = useCallback((start, end) => {
+    setMusicStart(start)
+    setMusicEnd(end)
+    const audio = musicPreviewRef.current
+    if (audio && isMusicPlaying) {
+      audio.currentTime = start
+      audio.play().catch(() => {})
+    } else if (audio) {
+      audio.currentTime = start
+    }
+  }, [isMusicPlaying])
+
+  // Scrub position within the selected trim range (Instagram-style)
+  const handleMusicScrub = useCallback((time) => {
+    setMusicCurrentTime(time)
+    const audio = musicPreviewRef.current
+    if (audio) {
+      audio.currentTime = time
+      if (!isMusicPlaying) {
+        audio.play().catch(() => {})
+        setIsMusicPlaying(true)
+      }
+    }
+  }, [isMusicPlaying])
+
+  // Format seconds as m:ss or mm:ss
+  const formatMusicTime = useCallback((seconds) => {
+    if (!seconds || isNaN(seconds) || seconds < 0) return '0:00'
+    const m = Math.floor(seconds / 60)
+    const s = Math.floor(seconds % 60)
+    return `${m}:${s.toString().padStart(2, '0')}`
+  }, [])
+
+  // Auto-stop video at trim end position
+  useEffect(() => {
+    const vid = videoRef.current
+    if (!vid) return
+    const onTimeUpdate = () => {
+      if (vid.currentTime >= trimEnd && trimEnd > 0) {
+        vid.pause()
+        vid.currentTime = trimStart
+      }
+    }
+    vid.addEventListener('timeupdate', onTimeUpdate)
+    return () => vid.removeEventListener('timeupdate', onTimeUpdate)
+  }, [trimStart, trimEnd])
+
   useEffect(() => {
     const fetchContacts = async () => {
       try {
@@ -376,7 +540,7 @@ const CreateStatus = ({ onClose }) => {
         const data = await res.json()
         setContacts(data.user?.contacts || [])
       } catch (err) {
-        console.error('Fetch contacts error:', err)
+        if (import.meta.env.DEV) console.error('Fetch contacts error:', err)
       }
     }
     fetchContacts()
@@ -476,7 +640,7 @@ const CreateStatus = ({ onClose }) => {
         setRecordingTime(prev => prev + 1)
       }, 1000)
     } catch (err) {
-      console.error('Microphone access denied:', err)
+      if (import.meta.env.DEV) console.error('Microphone access denied:', err)
     }
   }
 
@@ -526,7 +690,7 @@ const CreateStatus = ({ onClose }) => {
       const trimmedBlob = new Blob([data.buffer], { type: 'video/mp4' })
       return new File([trimmedBlob], `trimmed-${item.file.name}`, { type: 'video/mp4' })
     } catch (err) {
-      console.error('Trim video item error:', err)
+      if (import.meta.env.DEV) console.error('Trim video item error:', err)
       return item.file
     }
   }
@@ -558,7 +722,7 @@ const CreateStatus = ({ onClose }) => {
       setIsProcessing(false)
       return new File([mixedBlob], 'status-with-music.mp4', { type: 'video/mp4' })
     } catch (err) {
-      console.error('Mix error:', err)
+      if (import.meta.env.DEV) console.error('Mix error:', err)
       setIsProcessing(false)
       return videoFile
     }
@@ -765,28 +929,6 @@ const CreateStatus = ({ onClose }) => {
         return
       }
 
-      // Voice status submission
-      if (mode === 'voice' && audioBlob) {
-        await createTextStatus({
-          text,
-          backgroundColor: selectedColor.bg,
-          fontColor: selectedColor.font,
-          fontStyle: currentFont,
-          collabUsername: taggedContact.trim(),
-          privacy,
-          excludedUsers,
-          includedUsers,
-          replySettings,
-          quality,
-          statusDuration,
-          addYoursPrompt: addYoursPrompt || undefined,
-          textAnimation: textAnimation !== 'none' ? textAnimation : undefined,
-          isViewOnce: isViewOnce || undefined
-        })
-        onClose()
-        return
-      }
-
       // Media status submission
       const itemsToUpload = mediaItems.length > 0 ? mediaItems : []
       if (itemsToUpload.length === 0) return
@@ -832,7 +974,8 @@ const CreateStatus = ({ onClose }) => {
             title: musicFile.name,
             startTime: musicStart,
             endTime: musicEnd,
-            volume: musicVolume
+            volume: musicVolume,
+            loop: musicLoop
           }))
         }
 
@@ -843,7 +986,7 @@ const CreateStatus = ({ onClose }) => {
       }
       onClose()
     } catch (err) {
-      console.error('Submit status error:', err)
+      if (import.meta.env.DEV) console.error('Submit status error:', err)
     } finally {
       setIsProcessing(false)
     }
@@ -1455,7 +1598,12 @@ const CreateStatus = ({ onClose }) => {
                     duration={videoRef.current?.duration || 60}
                     startTime={trimStart}
                     endTime={trimEnd}
-                    onChange={(start, end) => { setTrimStart(start); setTrimEnd(end); }}
+                    onChange={(start, end) => {
+                      setTrimStart(start); setTrimEnd(end)
+                      // Seek video to new start position (like Instagram)
+                      const vid = videoRef.current
+                      if (vid) { vid.currentTime = start; vid.play().catch(() => {}) }
+                    }}
                   />
                   <div style={{ color: '#00a884', fontSize: '13px', textAlign: 'center', marginTop: 8 }}>
                     {trimStart.toFixed(1)}s — {trimEnd.toFixed(1)}s ({(trimEnd - trimStart).toFixed(1)}s)
@@ -1463,47 +1611,297 @@ const CreateStatus = ({ onClose }) => {
                 </>
               )}
 
-              {/* Music Sheet — enhanced with Spotify search, upload, trending tabs */}
-              {activeBottomSheet === 'music' && (
+              {/* Music Sheet — browse/search mode (hidden when track selected) */}
+              {activeBottomSheet === 'music' && !selectedMusicData && (
                 <>
                   <h3 style={{ color: '#e9edef', fontSize: '16px', fontWeight: 600, margin: '0 0 12px' }}>🎵 Add Music</h3>
                   <MusicPicker
                     currentMusic={selectedMusicData}
-                    onSelect={(music) => {
+                    onSelect={async (music) => {
                       setSelectedMusicData(music)
                       if (music?.file) {
                         setMusicFile(music.file)
                         setMusicEnd(15)
                       } else if (music?.url) {
-                        // For Spotify/online tracks, store reference
-                        setMusicFile(null)
+                        // Online track (Spotify/iTunes preview) — fetch and convert to File for FFmpeg
+                        setMusicLoading(true)
+                        try {
+                          const res = await fetch(music.url)
+                          const blob = await res.blob()
+                          const ext = (blob.type || '').includes('mpeg') ? 'mp3' : 'm4a'
+                          const file = new File([blob], `${music.title || 'track'}.${ext}`, { type: blob.type || 'audio/mpeg' })
+                          setMusicFile(file)
+                          setMusicEnd(15)
+                          setMusicStart(0)
+                        } catch (e) {
+                          if (import.meta.env.DEV) console.error('[Music] Failed to fetch preview:', e)
+                          setMusicFile(null)
+                        } finally {
+                          setMusicLoading(false)
+                        }
                       }
                     }}
                     onClose={() => setActiveBottomSheet(null)}
                   />
-                  {/* Music trim controls for uploaded files */}
-                  {musicFile && (
-                    <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                </>
+              )}
+
+              {/* ═══════ Instagram-style Music Trim View ═══════ */}
+              {activeBottomSheet === 'music' && selectedMusicData && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '0 0 8px' }}>
+                  {/* Track info header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {selectedMusicData.cover ? (
+                      <img src={selectedMusicData.cover} alt="" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ width: 48, height: 48, borderRadius: 8, background: 'linear-gradient(135deg, #1DB954, #1ed760)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Music size={24} color="#fff" />
+                      </div>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ color: '#fff', fontSize: 15, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedMusicData.title}</div>
+                      <div style={{ color: '#8696a0', fontSize: 12 }}>{selectedMusicData.artist}</div>
+                    </div>
+                    <button onClick={() => { setSelectedMusicData(null); setMusicFile(null); setAudioDuration(0); }} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 20, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#8696a0' }}>
+                      <X size={14} />
+                    </button>
+                  </div>
+
+                  {/* Loading state */}
+                  {musicLoading && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '20px 0', color: '#8696a0', fontSize: 13 }}>
+                      <div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.2)', borderTopColor: '#1DB954', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                      Downloading track preview...
+                    </div>
+                  )}
+
+                  {/* Trim section */}
+                  {!musicLoading && (
+                    <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: '16px 12px 12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <span style={{ color: '#8696a0', fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.5 }}>Trim Music</span>
+                        <span style={{ color: '#1DB954', fontSize: 13, fontWeight: 600 }}>{(musicEnd - musicStart).toFixed(1)}s</span>
+                      </div>
+
+                      {/* Time labels above waveform */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, padding: '0 2px' }}>
+                        <span style={{ color: '#1DB954', fontSize: 10, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{formatMusicTime(musicStart)}</span>
+                        <span style={{ color: '#8696a0', fontSize: 10, fontVariantNumeric: 'tabular-nums' }}>{formatMusicTime(audioDuration)}</span>
+                        <span style={{ color: '#1DB954', fontSize: 10, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{formatMusicTime(musicEnd)}</span>
+                      </div>
+
+                      {/* Zoom controls */}
+                      {audioDuration > 20 && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 6 }}>
+                          <button onClick={() => setTrimZoom(z => Math.max(1, z - 0.5))} style={{ width: 24, height: 24, borderRadius: 6, background: 'rgba(255,255,255,0.1)', border: 'none', color: '#8696a0', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
+                          <span style={{ color: '#8696a0', fontSize: 10, minWidth: 30, textAlign: 'center' }}>{trimZoom.toFixed(1)}×</span>
+                          <button onClick={() => setTrimZoom(z => Math.min(4, z + 0.5))} style={{ width: 24, height: 24, borderRadius: 6, background: 'rgba(255,255,255,0.1)', border: 'none', color: '#8696a0', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                          {trimZoom > 1 && <button onClick={() => { setTrimZoom(1); setTrimScrollPct(0.5) }} style={{ width: 24, height: 24, borderRadius: 6, background: 'rgba(255,165,0,0.2)', border: 'none', color: '#ffa500', fontSize: 9, cursor: 'pointer', fontWeight: 700 }}>FIT</button>}
+                        </div>
+                      )}
+
+                      {/* Full waveform visualization with selection overlay and playback cursor */}
+                      <div
+                        style={{ position: 'relative', height: 52, marginBottom: 4, overflow: 'hidden', borderRadius: 6 }}
+                        onWheel={(e) => {
+                          if (audioDuration > 20) {
+                            e.preventDefault()
+                            const delta = e.deltaY > 0 ? -0.3 : 0.3
+                            setTrimZoom(z => Math.max(1, Math.min(4, z + delta)))
+                          }
+                        }}
+                      >
+                        {/* Zoomed waveform container — scrolls when zoomed */}
+                        <div style={{
+                          position: 'absolute', top: 0, bottom: 0,
+                          left: trimZoom > 1 ? `${-(trimScrollPct * (trimZoom - 1) * 100)}%` : 0,
+                          width: `${trimZoom * 100}%`,
+                          display: 'flex', alignItems: 'center', gap: trimZoom > 2 ? 0.5 : 1,
+                          padding: '0 2px', transition: 'left 0.15s ease'
+                        }}>
+                          {(() => {
+                            const bars = waveformData.length > 0 ? waveformData : FALLBACK_WAVEFORM
+                            return bars.map((amp, i, arr) => {
+                            const pct = i / arr.length
+                            const timePos = pct * (audioDuration || 1)
+                            const inSelection = timePos >= musicStart && timePos <= musicEnd
+                            const isPast = musicCurrentTime > 0 && timePos <= musicCurrentTime && inSelection
+                            return (
+                              <div key={i} style={{
+                                flex: 1, minWidth: trimZoom > 2 ? 1.5 : 2,
+                                height: `${Math.max(8, amp * 100)}%`,
+                                background: isPast ? '#fff' : inSelection ? '#1DB954' : 'rgba(255,255,255,0.15)',
+                                borderRadius: 1, transition: 'background 0.1s'
+                              }} />
+                            )
+                          })
+                          })()}
+                        </div>
+                        {/* Dimmed areas outside selection — offset-aware for zoom */}
+                        {(() => {
+                          const baseLeft = (musicStart / (audioDuration || 1)) * 100
+                          const baseRightStart = (musicEnd / (audioDuration || 1)) * 100
+                          const zoomOffset = trimZoom > 1 ? -(trimScrollPct * (trimZoom - 1) * 100) : 0
+                          const dimLeftW = Math.max(0, baseLeft + zoomOffset)
+                          const dimRightStart = baseRightStart + zoomOffset
+                          const dimRightW = Math.max(0, 100 - dimRightStart)
+                          return (
+                            <>
+                              <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: `${dimLeftW}%`, background: 'rgba(0,0,0,0.55)', borderRadius: '6px 0 0 6px', pointerEvents: 'none', zIndex: 2 }} />
+                              <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${dimRightStart}%`, width: `${dimRightW}%`, background: 'rgba(0,0,0,0.55)', borderRadius: '0 6px 6px 0', pointerEvents: 'none', zIndex: 2 }} />
+                            </>
+                          )
+                        })()}
+                        {/* Playback cursor */}
+                        {isMusicPlaying && (
+                          <div style={{ position: 'absolute', top: 0, bottom: 0, width: 2, background: '#fff', borderRadius: 1, boxShadow: '0 0 6px rgba(255,255,255,0.5)', left: `${((musicCurrentTime / (audioDuration || 1)) * 100) + (trimZoom > 1 ? -(trimScrollPct * (trimZoom - 1) * 100) : 0)}%`, transition: 'left 0.08s linear', pointerEvents: 'none', zIndex: 3 }} />
+                        )}
+                      </div>
+
+                      {/* Scrub slider — slide to position anywhere in the song */}
+                      <div style={{ position: 'relative', width: '100%', height: 28, marginTop: 2 }}>
+                        <input
+                          type="range"
+                          min={0}
+                          max={audioDuration || 1}
+                          step={0.05}
+                          value={musicCurrentTime}
+                          onChange={(e) => handleMusicScrub(Number(e.target.value))}
+                          className="music-scrub-slider"
+                          style={{
+                            width: '100%', height: '100%',
+                            appearance: 'none', WebkitAppearance: 'none',
+                            background: 'transparent', cursor: 'pointer',
+                            outline: 'none'
+                          }}
+                        />
+                        <style>{`
+                          .music-scrub-slider::-webkit-slider-thumb {
+                            -webkit-appearance: none; appearance: none;
+                            width: 16px; height: 16px; border-radius: 50%;
+                            background: #1DB954; border: 2px solid #fff;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+                            cursor: pointer; margin-top: -6px;
+                          }
+                          .music-scrub-slider::-moz-range-thumb {
+                            width: 16px; height: 16px; border-radius: 50%;
+                            background: #1DB954; border: 2px solid #fff;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+                            cursor: pointer;
+                          }
+                          .music-scrub-slider::-webkit-slider-runnable-track {
+                            height: 4px; border-radius: 2px;
+                            background: rgba(255,255,255,0.15);
+                          }
+                          .music-scrub-slider::-moz-range-track {
+                            height: 4px; border-radius: 2px;
+                            background: rgba(255,255,255,0.15);
+                          }
+                        `}</style>
+                      </div>
+
+                      {/* InstagramTrimBar — draggable trim handles on the full duration */}
                       <InstagramTrimBar
-                        duration={60}
+                        duration={audioDuration || 30}
                         startTime={musicStart}
                         endTime={musicEnd}
-                        onChange={(start, end) => { setMusicStart(start); setMusicEnd(end); }}
+                        onChange={handleMusicTrimChange}
                         color="#1DB954"
                       />
-                      <div style={{ color: '#8696a0', fontSize: '12px', textAlign: 'center' }}>
-                        {musicStart.toFixed(1)}s — {musicEnd.toFixed(1)}s ({(musicEnd - musicStart).toFixed(1)}s)
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Volume2 size={14} color="#8696a0" />
-                        <input type="range" min={0} max={1} step={0.1} value={musicVolume}
-                          onChange={(e) => setMusicVolume(Number(e.target.value))}
-                          style={{ flex: 1 }} />
-                        <span style={{ color: '#8696a0', fontSize: '11px', minWidth: 32, textAlign: 'right' }}>{Math.round(musicVolume * 100)}%</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                        <span style={{ color: '#1DB954', fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>{formatMusicTime(musicStart)}</span>
+                        <span style={{ color: '#8696a0', fontSize: 11 }}>{formatMusicTime(audioDuration)}</span>
+                        <span style={{ color: '#1DB954', fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>{formatMusicTime(musicEnd)}</span>
                       </div>
                     </div>
                   )}
-                </>
+
+                  {/* Play / Pause + Loop controls */}
+                  {!musicLoading && (
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16 }}>
+                      <button onClick={() => setMusicLoop(l => !l)}
+                        title={musicLoop ? 'Loop enabled — tap to disable' : 'Loop disabled — tap to enable'}
+                        style={{
+                          width: 40, height: 40, borderRadius: '50%',
+                          background: musicLoop ? 'rgba(29,185,84,0.2)' : 'rgba(255,255,255,0.1)',
+                          border: musicLoop ? '2px solid #1DB954' : '1px solid rgba(255,255,255,0.2)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          cursor: 'pointer', transition: 'all 0.2s'
+                        }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={musicLoop ? '#1DB954' : '#8696a0'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                          <polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                        </svg>
+                      </button>
+                      <button onClick={toggleMusicPreview}
+                        style={{ width: 56, height: 56, borderRadius: '50%', background: '#1DB954', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 16px rgba(29,185,84,0.4)' }}>
+                        {isMusicPlaying ? (
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+                        ) : (
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="6,4 20,12 6,20"/></svg>
+                        )}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Zoom scroll position slider (only visible when zoomed) */}
+                  {!musicLoading && trimZoom > 1 && (
+                    <div style={{ padding: '0 4px' }}>
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        value={trimScrollPct}
+                        onChange={(e) => setTrimScrollPct(Number(e.target.value))}
+                        style={{ width: '100%', height: 20, accentColor: '#1DB954' }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Duration picker — adapts to actual song length */}
+                  {!musicLoading && (
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+                      {[15, 30, 60].filter(dur => dur <= Math.max(audioDuration, 15)).map(dur => (
+                        <button key={dur} onClick={() => {
+                          const newEnd = Math.min(dur, audioDuration || 30)
+                          setMusicStart(0); setMusicEnd(newEnd)
+                          const audio = musicPreviewRef.current
+                          if (audio) { audio.currentTime = 0 }
+                        }}
+                          style={{ padding: '6px 16px', borderRadius: 20, fontSize: 13, fontWeight: 600, border: Math.abs((musicEnd - musicStart) - dur) < 0.1 ? '2px solid #1DB954' : '1px solid rgba(255,255,255,0.2)', background: Math.abs((musicEnd - musicStart) - dur) < 0.1 ? 'rgba(29,185,84,0.15)' : 'rgba(255,255,255,0.06)', color: Math.abs((musicEnd - musicStart) - dur) < 0.1 ? '#1DB954' : '#8696a0', cursor: 'pointer' }}
+                        >{dur}s</button>
+                      ))}
+                      {audioDuration > 15 && (
+                        <button onClick={() => {
+                          setMusicStart(0); setMusicEnd(audioDuration)
+                          const audio = musicPreviewRef.current
+                          if (audio) { audio.currentTime = 0 }
+                        }}
+                          style={{ padding: '6px 16px', borderRadius: 20, fontSize: 13, fontWeight: 600, border: Math.abs(musicEnd - musicStart - audioDuration) < 0.1 ? '2px solid #1DB954' : '1px solid rgba(255,255,255,0.2)', background: Math.abs(musicEnd - musicStart - audioDuration) < 0.1 ? 'rgba(29,185,84,0.15)' : 'rgba(255,255,255,0.06)', color: Math.abs(musicEnd - musicStart - audioDuration) < 0.1 ? '#1DB954' : '#8696a0', cursor: 'pointer' }}
+                        >Full</button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Volume control */}
+                  {!musicLoading && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 4px' }}>
+                      <Volume2 size={16} color="#8696a0" />
+                      <input type="range" min={0} max={1} step={0.05} value={musicVolume}
+                        onChange={(e) => setMusicVolume(Number(e.target.value))}
+                        style={{ flex: 1, accentColor: '#1DB954' }} />
+                      <span style={{ color: '#8696a0', fontSize: 12, minWidth: 36, textAlign: 'right' }}>{Math.round(musicVolume * 100)}%</span>
+                    </div>
+                  )}
+
+                  {/* Done button */}
+                  {!musicLoading && (
+                    <button onClick={() => setActiveBottomSheet(null)}
+                      style={{ width: '100%', padding: '12px', borderRadius: 12, border: 'none', background: '#1DB954', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+                    >Done</button>
+                  )}
+                </div>
               )}
 
               {/* Filter Sheet */}

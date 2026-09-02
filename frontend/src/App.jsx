@@ -7,6 +7,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import InAppNotification from './components/InAppNotification';
 import OfflineBanner from './components/OfflineBanner';
 import UpdateBanner from './components/UpdateBanner';
+import ServerHealthBanner from './components/ServerHealthBanner';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 import MobileBottomNav from './components/MobileBottomNav';
@@ -192,25 +193,25 @@ function App() {
           await PushNotifications.register();
         }
       } catch (err) {
-        console.warn('[Push] Registration failed:', err);
+        if (import.meta.env.DEV) console.warn('[Push] Registration failed:', err);
       }
     };
     registerPush();
 
     // Listen for registration token
     const tokenListener = PushNotifications.addListener('registration', (token) => {
-      console.info('[Push] Token:', token.value);
+      if (import.meta.env.DEV) console.info('[Push] Token:', token.value);
       // TODO: Send token to backend for push notification delivery
     });
 
     // Listen for incoming notifications
     const notifListener = PushNotifications.addListener('pushNotificationReceived', (notification) => {
-      console.info('[Push] Received:', notification.title);
+      if (import.meta.env.DEV) console.info('[Push] Received:', notification.title);
     });
 
     // Listen for notification taps
     const actionListener = PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-      console.info('[Push] Action:', action.actionId);
+      if (import.meta.env.DEV) console.info('[Push] Action:', action.actionId);
     });
 
     return () => {
@@ -476,7 +477,7 @@ function App() {
           CapacitorApp.minimizeApp();
         }
       } catch (err) {
-        console.error('App lock error:', err);
+        if (import.meta.env.DEV) console.error('App lock error:', err);
       } finally {
         isLocked = false;
       }
@@ -532,6 +533,7 @@ function App() {
       />
       <OfflineBanner />
       <UpdateBanner />
+      <ServerHealthBanner />
       <InAppNotification
         notification={notification}
         onClose={() => setNotification(null)}

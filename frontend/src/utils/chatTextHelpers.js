@@ -17,6 +17,26 @@ export const FONT_OPTIONS = [
   { label: 'Courier New', value: 'courier', fontFamily: '"Courier New", monospace' },
   { label: 'Comic Sans', value: 'comic', fontFamily: '"Comic Sans MS", cursive' },
   { label: 'Impact', value: 'impact', fontFamily: 'Impact, sans-serif' },
+  { label: 'Roboto', value: 'roboto', fontFamily: 'Roboto, sans-serif' },
+  { label: 'Poppins', value: 'poppins', fontFamily: 'Poppins, sans-serif' },
+  { label: 'Lobster', value: 'lobster', fontFamily: 'Lobster, cursive' },
+  { label: 'Pacifico', value: 'pacifico', fontFamily: 'Pacifico, cursive' },
+  { label: 'Dancing Script', value: 'dancing', fontFamily: '"Dancing Script", cursive' },
+  { label: 'Great Vibes', value: 'vibes', fontFamily: '"Great Vibes", cursive' },
+  { label: 'Indie Flower', value: 'indie', fontFamily: '"Indie Flower", cursive' },
+  { label: 'Permanent Marker', value: 'marker', fontFamily: '"Permanent Marker", cursive' },
+];
+
+// TM WhatsApp text decoration styles — applied as CSS to message text
+export const TEXT_STYLE_OPTIONS = [
+  { label: 'Normal', value: 'normal', css: {} },
+  { label: 'Bold', value: 'bold', css: { fontWeight: 'bold' } },
+  { label: 'Italic', value: 'italic', css: { fontStyle: 'italic' } },
+  { label: 'Underline', value: 'underline', css: { textDecoration: 'underline' } },
+  { label: 'Strikethrough', value: 'strike', css: { textDecoration: 'line-through' } },
+  { label: 'Bold + Italic', value: 'bold-italic', css: { fontWeight: 'bold', fontStyle: 'italic' } },
+  { label: 'Serif', value: 'serif', css: { fontFamily: 'Georgia, "Times New Roman", serif' } },
+  { label: 'Monospace', value: 'mono', css: { fontFamily: '"Courier New", monospace' } },
 ];
 
 // Header class for modals - consistent styling

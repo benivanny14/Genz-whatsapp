@@ -1,5 +1,5 @@
 import React from 'react';
-import { AtSign, BarChart2, CalendarClock, Camera, Clock, Contact, DollarSign, Edit, Eye, FileText, Grid3x3, Headphones, ImageIcon, Languages, MapPin, Paperclip, Radio, Send, ShieldCheck, ShieldOff, Smile, Square, VideoIcon, X } from 'lucide-react';
+import { AtSign, BarChart2, Bold, CalendarClock, Camera, Clock, Contact, DollarSign, Edit, Eye, FileText, Grid3x3, Headphones, ImageIcon, Italic, Languages, MapPin, Paperclip, Radio, Send, ShieldCheck, ShieldOff, Smile, Square, Strikethrough, Underline, VideoIcon, X } from 'lucide-react';
 import MediaPickerPanel from './MediaPickerPanel';
 import ReplyMessage from './ReplyMessage';
 import StickerPicker from './StickerPicker';
@@ -32,8 +32,22 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
     handleMentionKeyDown, closeMentionPicker, selectedFont,
     setShowFontPicker, showFontPicker, handleVoiceNoteSend, safeMods,
     sendRecordingStatus, sendButtonRef, showStickerPacks, setShowStickerPacks,
-    floatingStickerMode, handleSendStickerWithCaption, AttachmentIcon
+    floatingStickerMode, handleSendStickerWithCaption, AttachmentIcon,
+    selectedColor, setSelectedColor, showColorPicker, setShowColorPicker
   } = ctx;
+
+  const TEXT_COLORS = [
+    { value: '', label: 'White', color: '#e9edef' },
+    { value: '#FF6B6B', label: 'Red', color: '#FF6B6B' },
+    { value: '#4ECDC4', label: 'Teal', color: '#4ECDC4' },
+    { value: '#45B7D1', label: 'Blue', color: '#45B7D1' },
+    { value: '#FFA500', label: 'Orange', color: '#FFA500' },
+    { value: '#FFD700', label: 'Gold', color: '#FFD700' },
+    { value: '#96CEB4', label: 'Green', color: '#96CEB4' },
+    { value: '#DDA0DD', label: 'Purple', color: '#DDA0DD' },
+    { value: '#FF69B4', label: 'Pink', color: '#FF69B4' },
+    { value: '#00FF7F', label: 'Neon', color: '#00FF7F' },
+  ];
 
   const composerIconButton = 'w-11 h-11 min-w-[44px] min-h-[44px] flex-shrink-0 rounded-full flex items-center justify-center text-dark-textSecondary hover:text-dark-text hover:bg-dark-hover transition-colors active:scale-95';
   const activeComposerIconButton = 'w-11 h-11 min-w-[44px] min-h-[44px] flex-shrink-0 rounded-full flex items-center justify-center bg-primary-600 text-white transition-colors active:scale-95';
@@ -119,33 +133,33 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
   
           {/* WhatsApp-style text formatting toolbar (shows while typing) */}
           {!voiceRecorderActive && messageInput.trim() && (
-            <div className="flex items-center gap-1 px-3 py-1.5 bg-dark-surface border border-dark-border rounded-t-xl border-b-0 -mb-px self-end z-50" role="toolbar" aria-label="Text formatting">
+            <div className="flex items-center gap-0.5 px-2 py-1 bg-dark-surface border border-dark-border rounded-t-xl border-b-0 -mb-px self-end z-50" role="toolbar" aria-label="Text formatting">
               <span className="text-[10px] uppercase tracking-wide text-dark-textSecondary mr-1 hidden sm:inline">Format</span>
               <button
                 type="button"
                 onClick={() => handleFormatText('*')}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-dark-text font-bold hover:bg-dark-hover transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-dark-text hover:bg-white/10 hover:text-white transition-all active:scale-90"
                 title="Bold (*text*)"
                 aria-label="Bold"
-              >B</button>
+              ><Bold size={15} /></button>
               <button
                 type="button"
                 onClick={() => handleFormatText('_')}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-dark-text italic hover:bg-dark-hover transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-dark-text hover:bg-white/10 hover:text-white transition-all active:scale-90"
                 title="Italic (_text_)"
                 aria-label="Italic"
-              >I</button>
+              ><Italic size={15} /></button>
               <button
                 type="button"
                 onClick={() => handleFormatText('~')}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-dark-text hover:bg-dark-hover transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-dark-text hover:bg-white/10 hover:text-white transition-all active:scale-90"
                 title="Strikethrough (~text~)"
                 aria-label="Strikethrough"
-              ><span className="line-through">S</span></button>
+              ><Strikethrough size={15} /></button>
               <button
                 type="button"
                 onClick={() => handleFormatText('`')}
-                className="w-8 h-8 flex items-center justify-center rounded-lg font-mono text-sm text-dark-text hover:bg-dark-hover transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-lg font-mono text-[11px] text-dark-text hover:bg-white/10 hover:text-white transition-all active:scale-90"
                 title="Monospace (`text`)"
                 aria-label="Monospace"
               >&lt;/&gt;</button>
@@ -314,6 +328,56 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                 >
                   <Eye size={20} />
                 </button>
+                {/* Text formatting buttons — WhatsApp-style *bold* _italic_ ~strike~ */}
+                <div className="hidden lg:flex items-center gap-0.5 border-l border-white/10 pl-1.5 ml-0.5">
+                  <button
+                    type="button"
+                    onClick={() => handleFormatText('*')}
+                    className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 rounded-full flex items-center justify-center text-dark-textSecondary hover:text-white hover:bg-white/10 transition-colors active:scale-90"
+                    title="Bold (*text*)"
+                    aria-label="Bold"
+                  >
+                    <Bold size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleFormatText('_')}
+                    className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 rounded-full flex items-center justify-center text-dark-textSecondary hover:text-white hover:bg-white/10 transition-colors active:scale-90"
+                    title="Italic (_text_)"
+                    aria-label="Italic"
+                  >
+                    <Italic size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleFormatText('~')}
+                    className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 rounded-full flex items-center justify-center text-dark-textSecondary hover:text-white hover:bg-white/10 transition-colors active:scale-90"
+                    title="Strikethrough (~text~)"
+                    aria-label="Strikethrough"
+                  >
+                    <Strikethrough size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleFormatText('`')}
+                    className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 rounded-full flex items-center justify-center text-dark-textSecondary hover:text-white hover:bg-white/10 transition-colors active:scale-90"
+                    title="Monospace (`text`)"
+                    aria-label="Monospace"
+                  >
+                    <span className="text-xs font-mono font-bold">&lt;/&gt;</span>
+                  </button>
+                </div>
+                {/* Color picker button */}
+                <button
+                  type="button"
+                  onClick={() => setShowColorPicker(!showColorPicker)}
+                  className={`${composerIconButton} hidden md:flex relative`}
+                  title="Text color"
+                >
+                  <span className="w-5 h-5 rounded-full border-2 border-current flex items-center justify-center">
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedColor || '#e9edef' }} />
+                  </span>
+                </button>
                 <button
                   type="button"
                   onClick={() => setShowFontPicker(!showFontPicker)}
@@ -322,6 +386,25 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                 >
                   <Languages size={18} />
                 </button>
+                {/* Color picker dropdown */}
+                {showColorPicker && (
+                  <div className="absolute bottom-full right-0 mb-2 bg-[#1f2c34] rounded-xl shadow-2xl border border-white/10 p-2 z-50">
+                    <div className="flex gap-1.5 flex-wrap max-w-[200px]">
+                      {TEXT_COLORS.map((c) => (
+                        <button
+                          key={c.value}
+                          type="button"
+                          onClick={() => { setSelectedColor(c.value); setShowColorPicker(false); }}
+                          className={`w-7 h-7 rounded-full border-2 transition-all hover:scale-110 ${
+                            selectedColor === c.value ? 'border-white scale-110' : 'border-transparent'
+                          }`}
+                          style={{ backgroundColor: c.color }}
+                          title={c.label}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={(e) => {
