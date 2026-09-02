@@ -12,11 +12,12 @@ scripts/render-env-export.txt
 # Temp test/debug scripts that may embed live credentials — never commit
 backend/tmp-*.js
 backend/tmp-*.json
+backend/scripts/gen-token.cjs
+backend/scripts/unlock-and-test.cjs
+backend/scripts/fix-issues.js
 .agents/
 .qodo/
 .sixth/
-.devin/
-.opencode/
 frontend/test-results/
 frontend/android/app/google-services.json
 frontend/ios/App/App/GoogleService-Info.plist
