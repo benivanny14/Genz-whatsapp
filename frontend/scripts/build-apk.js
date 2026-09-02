@@ -57,6 +57,8 @@ console.log('[apk] 4/6 gradlew assembleRelease');
 // On Windows, cmd.exe cannot resolve a bare batch name when the cwd path
 // contains spaces, so always invoke the wrapper by its full quoted path.
 const gradlew = resolve(androidDir, process.platform === 'win32' ? 'gradlew.bat' : 'gradlew');
+// Ensure gradlew is executable (git may not preserve +x on all platforms)
+try { run('chmod +x gradlew', { cwd: androidDir }); } catch { /* Windows ignores chmod */ }
 try {
   run(`"${gradlew}" assembleRelease --no-daemon`, { cwd: androidDir });
 } catch (err) {
