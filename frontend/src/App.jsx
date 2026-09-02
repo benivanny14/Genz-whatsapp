@@ -554,21 +554,21 @@ function App() {
             <Route path="/settings/security" element={<ProtectedRoute><SecuritySettings /></ProtectedRoute>} />
             <Route path="/starred" element={<ProtectedRoute><Starred /></ProtectedRoute>} />
             <Route path="/archived" element={<ProtectedRoute><Archived /></ProtectedRoute>} />
-            {/* Admin routes - only accessible in development or with secret URLs */}
-            {import.meta.env.DEV && <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />}
-            {import.meta.env.DEV && <Route path="/admin/manual-payments" element={<AdminProtectedRoute><AdminPaymentManagement /></AdminProtectedRoute>} />}
+            {/* Admin routes — protected by AdminProtectedRoute (secret URL + TOTP auth) */}
+            <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
+            <Route path="/admin/manual-payments" element={<AdminProtectedRoute><AdminPaymentManagement /></AdminProtectedRoute>} />
             <Route path="/payment" element={<ProtectedRoute><SubscriptionPayment /></ProtectedRoute>} />
             <Route path="/genz-after-work" element={<ProtectedRoute><GenzAfterWork /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-            {/* Hidden admin routes - only in development */}
-            {import.meta.env.DEV && <Route path="/admin-setup" element={<AdminProtectedRoute><AdminSetup /></AdminProtectedRoute>} />}
-            {import.meta.env.DEV && <Route path="/system-control-x7k9" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />}
-            {import.meta.env.DEV && <Route path="/system-control-x7k9/login" element={<AdminLogin />} />}
-            {import.meta.env.DEV && <Route path="/system-gateway-x9k" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />}
-            {import.meta.env.DEV && <Route path="/system-gateway-x9k/login" element={<AdminLogin />} />}
+            {/* Hidden admin routes — secret paths for admin access */}
+            <Route path="/admin-setup" element={<AdminProtectedRoute><AdminSetup /></AdminProtectedRoute>} />
+            <Route path="/system-control-x7k9" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
+            <Route path="/system-control-x7k9/login" element={<AdminLogin />} />
+            <Route path="/system-gateway-x9k" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
+            <Route path="/system-gateway-x9k/login" element={<AdminLogin />} />
             {/* GENZ Mods route removed - features merged into GENZ Settings */}
             <Route path="/winga" element={<ProtectedRoute><Winga /></ProtectedRoute>} />
-            {import.meta.env.DEV && <Route path="/features" element={<ProtectedRoute><FeatureLibrary /></ProtectedRoute>} />}
+            <Route path="/features" element={<ProtectedRoute><FeatureLibrary /></ProtectedRoute>} />
             <Route path="/communities" element={<ProtectedRoute><Communities /></ProtectedRoute>} />
             <Route path="/join/:groupId/:code" element={<ProtectedRoute><JoinGroup /></ProtectedRoute>} />
             <Route path="/login" element={<Login />} />

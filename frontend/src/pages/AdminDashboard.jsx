@@ -403,6 +403,168 @@ const ReleaseAdoptionPanel = () => {
   );
 };
 
+// ---------------------------------------------------------------------
+// Security Monitoring panel — real-time view of security posture
+// ---------------------------------------------------------------------
+const SecurityMonitoringPanel = () => {
+  const [report, setReport] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    try {
+      const { data } = await adminApi.get('/admin/security');
+      setReport(data?.report);
+    } catch {
+      setReport(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+    const timer = setInterval(load, 60_000);
+    return () => clearInterval(timer);
+  }, [load]);
+
+  if (loading) return null;
+  if (!report) return null;
+
+  const env = report.environment || {};
+  const issues = [];
+  if (!env.jwtRefreshSecretDistinct) issues.push('JWT_REFRESH_SECRET same as JWT_SECRET');
+  if (env.anonymousDeviceAuthEnabled) issues.push('Anonymous device auth is ON');
+  if (!env.frontendUsesHttps) issues.push('Frontend not using HTTPS');
+  if (!env.publicApiUsesHttps) issues.push('Public API not using HTTPS');
+
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-gray-800 dark:text-gray-200 font-medium">Security Monitoring</h3>
+        <button onClick={load} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xs flex items-center gap-1">
+          <RefreshCcw size={12} /> Refresh
+        </button>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+        <div className="text-center p-2 rounded-lg bg-red-50 dark:bg-red-900/20">
+          <p className="text-2xl font-bold text-red-600 dark:text-red-400">{report.lockedUsers.length}</p>
+          <p className="text-xs text-gray-500">Locked Users</p>
+        </div>
+        <div className="text-center p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20">
+          <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{report.failedLoginUsers.length}</p>
+          <p className="text-xs text-gray-500">Failed Logins</p>
+        </div>
+        <div className="text-center p-2 rounded-lg bg-orange-50 dark:bg-orange-900/20">
+          <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{report.blockedUsers.length}</p>
+          <p className="text-xs text-gray-500">Blocked Users</p>
+        </div>
+        <div className="text-center p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{report.recentAuditLogs.length}</p>
+          <p className="text-xs text-gray-500">Recent Audit Events</p>
+        </div>
+      </div>
+      {issues.length > 0 && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-800 rounded-lg p-3 text-xs">
+          <p className="font-medium text-amber-700 dark:text-amber-300 mb-1">⚠ Security Warnings</p>
+          {issues.map((issue, i) => (
+            <p key={i} className="text-amber-600 dark:text-amber-400">• {issue}</p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ---------------------------------------------------------------------
+// User Growth panel — registration trends + activity breakdown
+// ---------------------------------------------------------------------
+const UserGrowthPanel = () => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    try {
+      const { data } = await adminApi.get('/admin/overview');
+      setData(data);
+    } catch {
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+    const timer = setInterval(load, 120_000);
+    return () => clearInterval(timer);
+  }, [load]);
+
+  if (loading) return null;
+  if (!data?.overview) return null;
+
+  const ov = data.overview;
+  const total = ov.users.total || 1;
+  const premiumPct = Math.round(((ov.users.premium || 0) / total) * 100);
+  const blockedPct = Math.round(((ov.users.blocked || 0) / total) * 100);
+  const onlinePct = Math.round(((ov.users.online || 0) / total) * 100);
+
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-gray-800 dark:text-gray-200 font-medium">User Growth & Activity</h3>
+        <button onClick={load} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xs flex items-center gap-1">
+          <RefreshCcw size={12} /> Refresh
+        </button>
+      </div>
+      <div className="space-y-3">
+        {/* Progress bars for user breakdown */}
+        <div>
+          <div className="flex justify-between text-xs text-gray-500 mb-1">
+            <span>Online</span>
+            <span>{ov.users.online || 0} ({onlinePct}%)</span>
+          </div>
+          <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${onlinePct}%` }} />
+          </div>
+        </div>
+        <div>
+          <div className="flex justify-between text-xs text-gray-500 mb-1">
+            <span>Premium</span>
+            <span>{ov.users.premium || 0} ({premiumPct}%)</span>
+          </div>
+          <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+            <div className="h-full bg-amber-500 rounded-full" style={{ width: `${premiumPct}%` }} />
+          </div>
+        </div>
+        <div>
+          <div className="flex justify-between text-xs text-gray-500 mb-1">
+            <span>Blocked</span>
+            <span>{ov.users.blocked || 0} ({blockedPct}%)</span>
+          </div>
+          <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+            <div className="h-full bg-red-500 rounded-full" style={{ width: `${blockedPct}%` }} />
+          </div>
+        </div>
+        {/* Quick stats row */}
+        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+          <div className="text-center">
+            <p className="text-lg font-semibold text-violet-600 dark:text-violet-400">{ov.messaging.messagesToday || 0}</p>
+            <p className="text-[10px] text-gray-400">Messages Today</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-semibold text-blue-600 dark:text-blue-400">{ov.devices.active || 0}</p>
+            <p className="text-[10px] text-gray-400">Active Devices</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">{fmtMoney(ov.payments.totalRevenue)}</p>
+            <p className="text-[10px] text-gray-400">Total Revenue</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Section: Overview
 // ---------------------------------------------------------------------
 const OverviewSection = () => {
@@ -440,6 +602,11 @@ const OverviewSection = () => {
         <StatCard label="Active Devices" value={overview.devices.active} tone="blue" />
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <SecurityMonitoringPanel />
+        <UserGrowthPanel />
+      </div>
+
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
         <h3 className="text-gray-800 dark:text-gray-200 font-medium mb-3">New Users</h3>
         <div className="space-y-2">
@@ -462,23 +629,70 @@ const OverviewSection = () => {
 };
 
 // ---------------------------------------------------------------------
-// Section: Dashboard (system health)
+// Section: Dashboard (system health) — auto-refreshes every 30s
 // ---------------------------------------------------------------------
 const DashboardSection = () => {
   const [health, setHealth] = useState(null);
-  useEffect(() => {
-    adminApi.get('/admin/health').then(({ data }) => setHealth(data)).catch(() => toast.error('Failed to load health'));
+  const [lastRefresh, setLastRefresh] = useState(null);
+
+  const load = useCallback(async () => {
+    try {
+      const { data } = await adminApi.get('/admin/health');
+      setHealth(data);
+      setLastRefresh(new Date());
+    } catch {
+      toast.error('Failed to load health');
+    }
   }, []);
+
+  useEffect(() => {
+    load();
+    const timer = setInterval(load, 30_000);
+    return () => clearInterval(timer);
+  }, [load]);
+
   if (!health) return <LoadingBlock />;
-  // Nested health fields (services, runtime) are objects — render them as
-  // readable JSON instead of the default "[object Object]" string.
-  const displayValue = (v) =>
-    v !== null && typeof v === 'object' ? JSON.stringify(v) : String(v);
+
+  const svc = health.services || {};
+  const rt = health.runtime || {};
+  const mem = rt.memoryMb || {};
+  const uptimeH = health.uptimeSeconds ? Math.round(health.uptimeSeconds / 3600) : 0;
+  const uptimeM = health.uptimeSeconds ? Math.round((health.uptimeSeconds % 3600) / 60) : 0;
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-      {Object.entries(health).map(([k, v]) => (
-        <StatCard key={k} label={k} value={displayValue(v)} />
-      ))}
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-gray-800 dark:text-gray-200 font-medium">System Health</h3>
+        <div className="flex items-center gap-3">
+          {lastRefresh && (
+            <span className="text-xs text-gray-400">Updated {lastRefresh.toLocaleTimeString()}</span>
+          )}
+          <button onClick={load} className="text-xs flex items-center gap-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+            <RefreshCcw size={14} /> Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Status badge */}
+      <div className="flex items-center gap-2">
+        <span className={`h-3 w-3 rounded-full ${health.status === 'online' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`} />
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          {health.status === 'online' ? 'All systems operational' : 'Degraded'}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard label="Uptime" value={`${uptimeH}h ${uptimeM}m`} tone="emerald" />
+        <StatCard label="MongoDB" value={svc.mongo === 'connected' ? 'Connected' : 'Down'} tone={svc.mongo === 'connected' ? 'emerald' : 'red'} />
+        <StatCard label="Redis" value={svc.redis === 'connected' ? 'Connected' : svc.redis === 'disabled' ? 'Disabled' : 'Down'} tone={svc.redis === 'connected' ? 'emerald' : 'amber'} />
+        <StatCard label="Memory (RSS)" value={`${mem.rss || 0} MB`} sub={`Heap: ${mem.heapUsed || 0}/${mem.heapTotal || 0} MB`} tone="blue" />
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <StatCard label="Node.js" value={rt.node || '—'} />
+        <StatCard label="Environment" value={rt.environment || '—'} />
+        <StatCard label="Heap Usage" value={mem.heapTotal ? `${Math.round((mem.heapUsed / mem.heapTotal) * 100)}%` : '—'} tone={mem.heapTotal && (mem.heapUsed / mem.heapTotal) > 0.85 ? 'red' : 'emerald'} />
+      </div>
     </div>
   );
 };

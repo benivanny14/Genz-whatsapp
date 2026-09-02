@@ -79,11 +79,18 @@ adminOwnerSchema.methods.isLocked = function () {
 
 adminOwnerSchema.methods.registerFailedAttempt = async function () {
   this.failedLoginAttempts += 1;
-  // Progressive lockout: 5 fails -> 15 min, 10 fails -> 1 hour
-  if (this.failedLoginAttempts >= 10) {
-    this.lockUntil = new Date(Date.now() + 60 * 60 * 1000);
+  // Progressive lockout with escalation for repeat offenders:
+  //   5 fails  → 15 min (or 30 min if previously locked)
+  //   10 fails → 1 hour (or 4 hours if previously locked)
+  //   15 fails → 4 hours (or 24 hours if previously locked)
+  const wasLocked = !!(this.lockUntil && this.lockUntil > new Date());
+  const cycleMultiplier = wasLocked ? 2 : 1;
+  if (this.failedLoginAttempts >= 15) {
+    this.lockUntil = new Date(Date.now() + 4 * 60 * 60 * 1000 * cycleMultiplier);
+  } else if (this.failedLoginAttempts >= 10) {
+    this.lockUntil = new Date(Date.now() + 60 * 60 * 1000 * cycleMultiplier);
   } else if (this.failedLoginAttempts >= 5) {
-    this.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
+    this.lockUntil = new Date(Date.now() + 15 * 60 * 1000 * cycleMultiplier);
   }
   await this.save();
 };

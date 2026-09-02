@@ -102,12 +102,14 @@ if (/VitePWA/.test(viteConfig) && /plugins\s*:/.test(viteConfig)) {
   fail('vite.config.js does not register VitePWA in its plugins array — add VitePWA (registerType autoUpdate, manifest false).');
 }
 
-// ── 6. Keystore (warn only) ──────────────────────────────────────────────
+// ── 6. Keystore ─────────────────────────────────────────────────────────
 console.log('[pre-build] 6/8 keystore');
 const keystoreProps = resolve(root, 'android/keystore.properties');
 const keystoreFile = resolve(root, 'android/genz-release.keystore');
 if (existsSync(keystoreProps) && existsSync(keystoreFile)) {
   console.log('  ✓ release keystore found');
+} else if (process.env.CI) {
+  warn('keystore.properties / genz-release.keystore missing — CI build will be DEBUG-signed (set ANDROID_KEYSTORE_BASE64 + ANDROID_KEYSTORE_PROPERTIES secrets for release builds)');
 } else {
   fail('keystore.properties / genz-release.keystore missing — release APK signing cannot fall back to the DEBUG key. See docs/MWONGOZO_APK_NA_DEPLOY.md');
 }

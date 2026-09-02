@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const speakeasy = require('speakeasy');
 const AdminOwner = require('../models/AdminOwner');
 const { logAdminAction } = require('../utils/auditLogger');
+const { recordIpLockout } = require('../middleware/adminLoginLimiter');
 const {
   signAccessToken,
   signPre2FAToken,
@@ -48,6 +49,7 @@ const loginStep1 = async (req, res) => {
     }
 
     if (admin.isLocked()) {
+      recordIpLockout(req);
       await logAdminAction(admin._id.toString(), 'admin_login_locked', { username }, null, null, req);
       return res.status(423).json({ success: false, error: 'Account temporarily locked due to failed attempts. Try again later.' });
     }
@@ -60,6 +62,8 @@ const loginStep1 = async (req, res) => {
 
     if (!usernameMatch || !passwordMatch) {
       await admin.registerFailedAttempt();
+      // If this attempt pushed the account into lockout, escalate the per-IP block
+      if (admin.failedLoginAttempts >= 5) recordIpLockout(req);
       await logAdminAction(admin._id.toString(), 'admin_login_failed', { username, ip: clientIp(req) }, null, null, req);
       return res.status(401).json({ success: false, error: 'Invalid credentials' });
     }
@@ -117,6 +121,7 @@ const loginStep2 = async (req, res) => {
     const admin = await AdminOwner.findById(payload.sub);
     if (!admin) return res.status(401).json({ success: false, error: 'Admin not found' });
     if (admin.isLocked()) {
+      recordIpLockout(req);
       return res.status(423).json({ success: false, error: 'Account temporarily locked. Try again later.' });
     }
 
@@ -129,6 +134,7 @@ const loginStep2 = async (req, res) => {
 
     if (!verified) {
       await admin.registerFailedAttempt();
+      if (admin.failedLoginAttempts >= 5) recordIpLockout(req);
       await logAdminAction(admin._id.toString(), 'admin_2fa_failed', {}, null, null, req);
       return res.status(401).json({ success: false, error: 'Invalid authentication code' });
     }

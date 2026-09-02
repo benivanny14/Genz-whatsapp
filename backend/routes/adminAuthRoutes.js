@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { adminLoginLimiter } = require('../middleware/adminLoginLimiter');
+const { adminLoginLimiter, perIpBruteForceBlock } = require('../middleware/adminLoginLimiter');
 const { loginStep1, loginStep2, refreshSession, logout } = require('../controllers/adminAuthController');
 
 // NOTE: this router is mounted at an obscure, configurable base path
@@ -11,8 +11,8 @@ const { loginStep1, loginStep2, refreshSession, logout } = require('../controlle
 // reads req.user._id). An unauthenticated /auth/bootstrap here could never
 // succeed (req.user is undefined → it 500s) and only widened the admin
 // attack surface — removed.
-router.post('/login', adminLoginLimiter, loginStep1);
-router.post('/verify-2fa', adminLoginLimiter, loginStep2);
+router.post('/login', perIpBruteForceBlock, adminLoginLimiter, loginStep1);
+router.post('/verify-2fa', perIpBruteForceBlock, adminLoginLimiter, loginStep2);
 router.post('/refresh', adminLoginLimiter, refreshSession);
 router.post('/logout', logout);
 
