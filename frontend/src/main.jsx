@@ -14,11 +14,19 @@ import { StatusProvider } from './context/StatusContext'
 import { LanguageProvider } from './context/LanguageContext'
 import { cleanupLocalBlobUrls } from './utils/sanitizeStorage'
 import { initViewportHeightFix } from './utils/useViewportHeight'
+import { initAudio } from './utils/soundEffects'
 
 cleanupLocalBlobUrls();
 
 // Initialize viewport height fix for keyboard layout
 initViewportHeightFix();
+
+// Initialize audio context on first user interaction
+try {
+  ['click', 'touchstart', 'keydown'].forEach((evt) => {
+    window.addEventListener(evt, () => initAudio(), { once: true, passive: true });
+  });
+} catch (_) {}
 
 const ENABLE_DEV_SERVICE_WORKER = import.meta.env.VITE_ENABLE_DEV_SERVICE_WORKER === 'true';
 const shouldRegisterServiceWorker = import.meta.env.PROD || ENABLE_DEV_SERVICE_WORKER;

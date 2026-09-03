@@ -435,11 +435,17 @@ const ChatModals = React.memo(function ChatModals({ ctx }) {
                 <button onClick={() => setShowFontPicker(false)} className="text-white/60 hover:text-white p-1" aria-label="Close"><X size={20} /></button>
               </div>
               {/* Live preview bar */}
-              <div className="px-4 py-2 bg-[#0b141a] border-b border-white/5">
-                <p className="text-white/80 text-xs text-center transition-all duration-300" style={{
+              <div className="px-4 py-3 bg-[#0b141a] border-b border-white/5">
+                <p className="text-white/50 text-[10px] text-center uppercase tracking-wider mb-1">Preview</p>
+                <p className="text-white text-center text-base transition-all duration-300" style={{
                   fontFamily: FONT_OPTIONS.find(f => f.value === selectedFont)?.fontFamily || 'sans-serif',
                 }}>
-                  Preview: Hello! How are you? 😊
+                  Habari za leo? 🎉
+                </p>
+                <p className="text-white/60 text-center text-xs mt-1 transition-all duration-300" style={{
+                  fontFamily: FONT_OPTIONS.find(f => f.value === selectedFont)?.fontFamily || 'sans-serif',
+                }}>
+                  The quick brown fox jumps over the lazy dog
                 </p>
               </div>
               <div className="p-4 grid grid-cols-2 gap-2 max-h-80 overflow-y-auto">
@@ -459,7 +465,8 @@ const ChatModals = React.memo(function ChatModals({ ctx }) {
                   >
                     {/* Shimmer effect on hover */}
                     <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500" />
-                    <span className="relative z-10 text-sm block transition-transform duration-200 group-hover:scale-105">{font.label}</span>
+                    <span className="relative z-10 text-xs font-bold block mb-1 transition-transform duration-200 group-hover:scale-105">{font.label}</span>
+                    <span className="relative z-10 text-[11px] opacity-70 block leading-tight">The quick brown fox</span>
                     {selectedFont === font.value && (
                       <span className="absolute top-1 right-1 w-2 h-2 bg-white rounded-full animate-pulse z-10" />
                     )}
