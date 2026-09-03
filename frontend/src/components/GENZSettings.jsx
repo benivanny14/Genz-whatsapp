@@ -1852,7 +1852,7 @@ const UpdateHistory = () => {
       setEvents([]);
       return undefined;
     }
-    fetch(`/api/telemetry/events/mine?anonId=${encodeURIComponent(anonId)}&limit=5`)
+    fetch(`${API_URL}/telemetry/events/mine?anonId=${encodeURIComponent(anonId)}&limit=5`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => { if (!cancelled) setEvents(data?.events || []); })
       .catch(() => { if (!cancelled) setEvents([]); });

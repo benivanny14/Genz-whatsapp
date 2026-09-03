@@ -1387,6 +1387,9 @@ const server = http.createServer(app);
 
 // Socket.IO configuration with Redis adapter support for distributed architecture
 const socketCorsOrigins = [
+  // Capacitor native webview origins (always allowed — APK traffic)
+  "https://localhost",
+  "capacitor://localhost",
   // Development origins — only in non-production
   ...(!isProduction ? [
     "http://localhost:3000",

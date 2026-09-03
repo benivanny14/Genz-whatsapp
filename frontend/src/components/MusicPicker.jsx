@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react'
 import { Music, Search, Upload, X, Play, Pause, Scissors } from 'lucide-react'
+import { resolveApiBase } from '../utils/resolveApiBase'
 
 /**
  * Enhanced MusicPicker with tabs: Upload, Spotify Search, and Waveform preview.
@@ -20,7 +21,7 @@ const MusicPicker = ({ onSelect, onClose, currentMusic }) => {
     if (!query || query.length < 2) { setSearchResults([]); return }
     setSearching(true)
     try {
-      const res = await fetch(`/api/status/music-search?q=${encodeURIComponent(query)}`)
+      const res = await fetch(`${resolveApiBase()}/status/music-search?q=${encodeURIComponent(query)}`)
       if (res.ok) {
         const data = await res.json()
         setSearchResults(data.tracks || [])

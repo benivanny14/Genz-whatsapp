@@ -94,7 +94,7 @@ const LocationTaggingPanel = ({ onClose, status, onLocationAdd }) => {
 
     try {
       const token = getAuthToken();
-      await fetch(`${resolveApiBase()}/status-advanced/${status?._id || status?.id}/location`, {
+      await fetch(`${resolveApiBase()}/status/${status?._id || status?.id}/location`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

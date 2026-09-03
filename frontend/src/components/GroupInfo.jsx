@@ -13,6 +13,8 @@ import { formatConversationTime } from '../utils/formatDate';
 import ContactPickerModal from './ContactPickerModal';
 import MediaGallery from './MediaGallery';
 import { mediaAPI } from '../services/api';
+import { resolveApiBase } from '../utils/resolveApiBase';
+import { authFetch } from '../utils/authFetch';
 import { useConfirm } from './/ConfirmDialog';
 import { usePrompt } from './/PromptDialog';
 
@@ -226,7 +228,7 @@ const GroupInfo = ({ group, onClose, currentUserId, onViewProfile, onStartChat }
     const reason = (await prompt(`Report ${member?.username || 'this user'} for:`));
     if (!reason) return;
     try {
-      const res = await fetch(`/api/users/${member._id}/report`, {
+      const res = await authFetch(`${resolveApiBase()}/users/${member._id}/report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -250,7 +252,7 @@ const GroupInfo = ({ group, onClose, currentUserId, onViewProfile, onStartChat }
     setMemberContextMenu(null);
     if (!(await confirm(`Block ${member?.username || 'this user'}?`))) return;
     try {
-      const res = await fetch(`/api/users/${member._id}/block`, {
+      const res = await authFetch(`${resolveApiBase()}/users/${member._id}/block`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
