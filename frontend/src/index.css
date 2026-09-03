@@ -1,5 +1,7 @@
 /* WhatsApp Web Dark Theme - Complete CSS */
-/* Google Fonts replaced with self-hosted woff2 for offline APK support */
+/* Google Fonts for fancy message fonts (Dancing Script, Pacifico, Lobster, etc.) */
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Pacifico&family=Lobster&family=Great+Vibes&family=Indie+Flower&family=Permanent+Marker&display=swap');
+/* Self-hosted woff2 for offline APK support (UI fonts) */
 @font-face {
   font-family: 'Inter';
   src: url('/fonts/inter-300.woff2') format('woff2');
