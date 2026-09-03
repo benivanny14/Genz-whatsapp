@@ -1,7 +1,12 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-const connectDB = async () => {
+const MAX_RETRIES = 5;
+const RETRY_DELAY_MS = 5000;
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const connectDB = async (attempt = 1) => {
   try {
     const mongoUri = process.env.MONGODB_URI || (
       process.env.NODE_ENV === 'production' ? '' : 'mongodb://localhost:27017/tm-whatsapp'
@@ -26,9 +31,17 @@ const connectDB = async () => {
     console.log(`MongoDB Connected: ${conn.connection.host}`);
     return conn;
   } catch (error) {
-    console.error(`MongoDB connection failed: ${error.message}`);
+    console.error(`MongoDB connection attempt ${attempt}/${MAX_RETRIES} failed: ${error.message}`);
+
+    if (attempt < MAX_RETRIES) {
+      console.log(`Retrying in ${RETRY_DELAY_MS}ms...`);
+      await sleep(RETRY_DELAY_MS);
+      return connectDB(attempt + 1);
+    }
+
     if (process.env.NODE_ENV === 'production') {
-      throw error;
+      console.error('MongoDB connection failed after all retries. Exiting.');
+      process.exit(1);
     }
     console.warn('Continuing without MongoDB in non-production. DB-backed features will use existing fallbacks where available.');
     return null;
