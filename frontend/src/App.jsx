@@ -231,21 +231,45 @@ function App() {
   }, []);
 
   // --- Deep links (APK): open shared status URLs from scanned QR codes ---
+  // Uses React Router navigate() instead of window.location.href to avoid
+  // full page reloads that break app state and cause flash of white screen.
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return undefined;
-    const openSharedStatus = (url) => {
+
+    const openDeepLink = (url) => {
       try {
-        const match = String(url || '').match(/\/status\/([A-Za-z0-9]+)/);
-        if (match?.[1]) {
-          window.location.href = `/status/${match[1]}`;
+        const str = String(url || '');
+        // Status deep link: /status/shared/<id> or /status/<id>
+        const statusMatch = str.match(/\/status\/shared\/([A-Za-z0-9]+)/);
+        if (statusMatch?.[1]) {
+          window.dispatchEvent(new CustomEvent('deep-link', {
+            detail: { path: `/status/shared/${statusMatch[1]}` }
+          }));
+          return;
+        }
+        const statusDirect = str.match(/\/status\/([A-Za-z0-9]+)/);
+        if (statusDirect?.[1]) {
+          window.dispatchEvent(new CustomEvent('deep-link', {
+            detail: { path: `/status/${statusDirect[1]}` }
+          }));
+          return;
+        }
+        // Chat deep link: /chat/<id>
+        const chatMatch = str.match(/\/chat\/([A-Za-z0-9]+)/);
+        if (chatMatch?.[1]) {
+          window.dispatchEvent(new CustomEvent('deep-link', {
+            detail: { path: `/chat/${chatMatch[1]}` }
+          }));
+          return;
         }
       } catch (_) { /* ignore malformed deep links */ }
     };
+
     const listener = CapacitorApp.addListener('appUrlOpen', (data) => {
-      openSharedStatus(data?.url);
+      openDeepLink(data?.url);
     });
-    // Handle a URL that launched the app cold (available via getLaunchUrl).
-    CapacitorApp.getLaunchUrl?.().then((res) => openSharedStatus(res?.url)).catch(() => {});
+    // Handle a URL that launched the app cold.
+    CapacitorApp.getLaunchUrl?.().then((res) => openDeepLink(res?.url)).catch(() => {});
     return () => {
       listener?.then((l) => l.remove());
     };

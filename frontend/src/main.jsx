@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
 import { BrowserRouter } from 'react-router-dom'
+import { Capacitor } from '@capacitor/core'
+import { SplashScreen } from '@capacitor/splash-screen'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { UserProvider } from './context/UserContext'
 import { ChatProvider } from './context/ChatContext'
@@ -119,3 +121,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </BrowserRouter>
   </ErrorBoundary>
 )
+
+// Hide native splash screen after React has mounted.
+// SplashScreen.hide() must be called AFTER the app tree renders, otherwise
+// the user sees a flash of unstyled content. capacitor.config.json has
+// launchShowDuration: 2000 — this call hides it immediately when ready.
+if (Capacitor.isNativePlatform()) {
+  SplashScreen.hide({ fadeOutDuration: 300 }).catch(() => {})
+}
