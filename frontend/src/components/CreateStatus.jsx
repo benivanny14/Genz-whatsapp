@@ -593,6 +593,18 @@ const CreateStatus = ({ onClose }) => {
     const files = Array.from(e.target.files || [])
     if (files.length === 0) return
 
+    // File size validation — 25MB max
+    const MAX_SIZE = 25 * 1024 * 1024; // 25MB
+    const oversized = files.filter(f => f.size > MAX_SIZE);
+    if (oversized.length > 0) {
+      const names = oversized.map(f => f.name).join(', ');
+      alert(`File too large (max 25MB): ${names}`);
+      const validFiles = files.filter(f => f.size <= MAX_SIZE);
+      if (validFiles.length === 0) return;
+      // Continue with only valid files
+      files.splice(0, files.length, ...validFiles);
+    }
+
     const newItems = files.map(file => {
       const isVideo = file.type.startsWith('video/') || fallbackType === 'video'
       return {

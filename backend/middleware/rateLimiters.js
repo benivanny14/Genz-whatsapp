@@ -87,11 +87,11 @@ const messageSenderLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Uploads are heavier (bandwidth + storage). 30/minute per user stops abuse
+// Uploads are heavier (bandwidth + storage). 10/minute per user stops abuse
 // without blocking legitimate media sharing.
 const uploadLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: process.env.NODE_ENV === 'test' ? 100000 : 30,
+  max: process.env.NODE_ENV === 'test' ? 100000 : 10,
   keyGenerator: userKeyGenerator,
   message: {
     success: false,

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
+const { uploadLimiter } = require('../middleware/rateLimiters');
 const multer = require('multer');
 const upload = multer({
   dest: "uploads/",
@@ -57,7 +58,7 @@ router.get('/dashboard/online-ranking', getOnlineRanking);
 const { validateFileContent, validateFileOnDisk } = require('../middleware/fileValidation');
 const { buildSignedUploadPath } = require('../utils/mediaAccess');
 router.post('/status', createStatus);
-router.post('/status/upload', upload.single('file'), validateFileContent, uploadStatusMedia);
+router.post('/status/upload', protect, uploadLimiter, upload.single('file'), validateFileContent, uploadStatusMedia);
 router.get('/status/reel', getStatusReel);
 router.get('/status/stats', getStatusStats);
 router.post('/status/cleanup', cleanupExpiredStatuses);
