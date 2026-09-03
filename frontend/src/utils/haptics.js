@@ -42,20 +42,4 @@ export const haptic = async (type = 'light') => {
   }
 };
 
-/**
- * Button wrapper that triggers haptic on press.
- * @param {Object} props
- * @param {'light'|'medium'|'heavy'} [props.hapticType='light']
- */
-export const HapticButton = ({ children, hapticType = 'light', onClick, ...props }) => {
-  const handleClick = async (e) => {
-    await haptic(hapticType);
-    onClick?.(e);
-  };
 
-  return (
-    <button onClick={handleClick} {...props}>
-      {children}
-    </button>
-  );
-};

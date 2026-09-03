@@ -1,5 +1,6 @@
 import React from 'react';
 import { AtSign, BarChart2, Bold, CalendarClock, Camera, Clock, Contact, DollarSign, Edit, Eye, FileText, Grid3x3, Headphones, ImageIcon, Italic, Languages, MapPin, Paperclip, Radio, Send, ShieldCheck, ShieldOff, Smile, Square, Strikethrough, Underline, VideoIcon, X } from 'lucide-react';
+import { haptic } from '../utils/haptics';
 import MediaPickerPanel from './MediaPickerPanel';
 import ReplyMessage from './ReplyMessage';
 import StickerPicker from './StickerPicker';
@@ -455,6 +456,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                 type="submit"
                 disabled={adminOnlyMessagingEnabled && !currentUserIsAdmin}
                 aria-label="Send message"
+                onClick={() => haptic('light')}
                 className="w-10 h-10 md:w-11 md:h-11 flex-shrink-0 flex items-center justify-center bg-primary-600 hover:bg-primary-500 rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-90 shadow-md shadow-primary-600/30 min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px]"
               >
                 <Send className="w-5 h-5 text-white" />

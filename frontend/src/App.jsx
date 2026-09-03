@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useEffect, useState, useCallback } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
 import { useNativeBackButton } from './hooks/useNativeBackButton';
@@ -28,6 +28,7 @@ import { initBackgroundSync } from './services/backgroundSync';
 import { setStatusBar } from './utils/statusBarHelper';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { trackUpdateEvent } from './utils/updateAnalytics';
+import { initKeyboardShortcuts } from './utils/keyboardShortcuts';
 
 // Lazy load pages for performance optimization
 const Chat = lazy(() => import('./pages/Chat'));
@@ -274,6 +275,18 @@ function App() {
       listener?.then((l) => l.remove());
     };
   }, []);
+
+  // --- Keyboard shortcuts (desktop/web only) ---
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) return undefined;
+    return initKeyboardShortcuts({
+      onSearch: () => navigate('/chat'),
+      onNewChat: () => navigate('/new-chat'),
+      onSettings: () => navigate('/settings'),
+      onCloseModal: () => window.dispatchEvent(new CustomEvent('close-all-modals')),
+    });
+  }, [navigate]);
 
   // --- Glass Mode & Video Background Sync ---
   useEffect(() => {

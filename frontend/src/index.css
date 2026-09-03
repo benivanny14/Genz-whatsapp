@@ -2839,6 +2839,23 @@ html {
   animation: msg-fade-in 250ms ease-out;
 }
 
+/* ═══ Page Transitions ═══ */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.page-enter { animation: slideInRight 0.3s ease-out; }
+.page-exit { animation: slideInLeft 0.3s ease-out reverse; }
+.message-enter { animation: slideUp 0.2s ease-out; }
+
 /* ═══ Scrollbar Styling ═══ */
 .scrollbar-none::-webkit-scrollbar { display: none; }
 .scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
