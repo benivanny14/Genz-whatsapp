@@ -3,16 +3,27 @@
 // Guarded for non-Vite runtimes (e.g. node --test) where import.meta.env is
 // undefined — the auth modules are now imported statically by the Capacitor
 // bridge, which node tests load too.
+// Default backend URL for APK builds (no VITE_API_URL baked in)
+const APK_API_DEFAULT = 'https://genz-whatsapp.onrender.com/api';
+
 export const resolveApiBase = () => {
   const env = import.meta.env || {};
   const url = (env.VITE_API_URL || '').replace(/\/$/, '');
-  if (!url) return '/api';
+  if (!url) {
+    // In bundled APK, /api doesn't exist — use the production backend
+    try {
+      if (window.Capacitor?.isNativePlatform?.()) return APK_API_DEFAULT;
+    } catch { /* ignore */ }
+    return '/api';
+  }
   // Ensure the URL ends with /api
   return url.endsWith('/api') ? url : `${url}/api`;
 };
 
 // resolveSocketOrigin - returns the base origin for socket.io connections
 // Falls back to '' (empty = current page origin) for single-service deployments
+const APK_SOCKET_DEFAULT = 'https://genz-whatsapp.onrender.com';
+
 export const resolveSocketOrigin = () => {
   const env = import.meta.env || {};
   const socketUrl = (env.VITE_SOCKET_URL || '').replace(/\/$/, '');
@@ -20,6 +31,10 @@ export const resolveSocketOrigin = () => {
   // Try to derive from VITE_API_URL by stripping /api suffix
   const apiUrl = (env.VITE_API_URL || '').replace(/\/$/, '');
   if (apiUrl) return apiUrl.replace(/\/api$/, '');
+  // In bundled APK, connect to production backend
+  try {
+    if (window.Capacitor?.isNativePlatform?.()) return APK_SOCKET_DEFAULT;
+  } catch { /* ignore */ }
   // Empty string = socket.io connects to current page origin (same-service deployment)
   return '';
 };
