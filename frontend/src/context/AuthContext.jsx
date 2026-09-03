@@ -252,12 +252,21 @@ export const AuthProvider = ({ children }) => {
       devLog('[AuthContext] Logging out...');
       await authService.logout();
       clearSession();
+      // Clear user-specific IndexedDB to prevent stale unread counts on next login
+      try {
+        const { DB } = await import('../services/db');
+        await DB.deleteDatabase();
+      } catch (_) { /* best-effort */ }
       setError(null);
       devLog('[AuthContext] Logout successful');
     } catch (error) {
       secureError('[AuthContext] Logout error', error);
       // Clear session even if logout API call fails
       clearSession();
+      try {
+        const { DB } = await import('../services/db');
+        await DB.deleteDatabase();
+      } catch (_) { /* best-effort */ }
     }
   };
 

@@ -1089,7 +1089,7 @@ export const ChatProvider = ({ children }) => {
         try {
           const data = await apiService.getConversations();
           if (data?.success && Array.isArray(data.conversations)) {
-            const openChatId = getStoredSelectedConversationId();
+            const openChatId = selectedConversationIdRef.current || getStoredSelectedConversationId();
             const remoteIds = new Set(data.conversations.map((c) => String(c._id)));
             setConversations(prev => {
               const mergedMap = new Map();
@@ -1295,9 +1295,9 @@ export const ChatProvider = ({ children }) => {
             }
             
             // Only append to active chat view if it's the open chat
-            const currentSelectedId = getStoredSelectedConversationId();
+            const currentSelectedId = selectedConversationIdRef.current;
 
-            if (String(incoming.conversationId) === String(currentSelectedId)) {
+            if (currentSelectedId && String(incoming.conversationId) === String(currentSelectedId)) {
               setConversations(prevConvs => prevConvs.map(c =>
                 String(c._id) === String(incoming.conversationId) ? { ...c, unreadCount: 0 } : c
               ));
@@ -1389,8 +1389,8 @@ export const ChatProvider = ({ children }) => {
           const existingIndex = prev.findIndex(m => String(m._id) === serverId);
 
           if (existingIndex === -1) {
-            const currentSelectedId = getStoredSelectedConversationId();
-            if (String(incoming.conversationId) === String(currentSelectedId)) {
+            const currentSelectedId = selectedConversationIdRef.current;
+            if (currentSelectedId && String(incoming.conversationId) === String(currentSelectedId)) {
               return [...prev, incoming];
             }
             return prev;
@@ -2061,8 +2061,8 @@ export const ChatProvider = ({ children }) => {
         if (!pollMessage?._id) return;
         setMessages(prev => {
           if (prev.some(m => String(m._id) === String(pollMessage._id))) return prev;
-          const currentSelectedId = getStoredSelectedConversationId();
-          if (String(pollMessage.conversationId) !== String(currentSelectedId)) return prev;
+          const currentSelectedId = selectedConversationIdRef.current;
+          if (!currentSelectedId || String(pollMessage.conversationId) !== String(currentSelectedId)) return prev;
           return [...prev, pollMessage].slice(-150);
         });
         setConversations(prev => prev.map(c =>
@@ -2079,7 +2079,8 @@ export const ChatProvider = ({ children }) => {
       // ── Unread count sync (server is source of truth) ──
       socket.on('conversation:unread-update', ({ conversationId, unreadCount }) => {
         if (!conversationId) return;
-        const openChatId = getStoredSelectedConversationId();
+        // Use ref for accurate check (localStorage can be stale on APK)
+        const openChatId = selectedConversationIdRef.current || getStoredSelectedConversationId();
         const isOpenChat = openChatId && String(conversationId) === String(openChatId);
         const effectiveCount = isOpenChat ? 0 : (unreadCount ?? 0);
         setConversations(prev => prev.map(c =>
@@ -2087,6 +2088,14 @@ export const ChatProvider = ({ children }) => {
             ? { ...c, unreadCount: effectiveCount }
             : c
         ));
+        // Also update selectedConversation if it's the open chat
+        if (isOpenChat) {
+          setSelectedConversation(prev =>
+            prev && String(prev._id) === String(conversationId)
+              ? { ...prev, unreadCount: 0 }
+              : prev
+          );
+        }
       });
 
       socket.on('profile_visitors', (visitors = []) => {
@@ -2595,10 +2604,15 @@ export const ChatProvider = ({ children }) => {
     }
 
     console.log('[ChatContext] Setting selected conversation:', conv._id);
-    setSelectedConversation(conv);
+    setSelectedConversation({ ...conv, unreadCount: 0 });
     historyPageRef.current = 1;
     setHasOlderMessages(true);
     loadingOlderRef.current = false;
+    
+    // Clear unread count immediately in the conversations list
+    setConversations(prev => prev.map(c =>
+      String(c._id) === String(conv._id) ? { ...c, unreadCount: 0 } : c
+    ));
     
     if (conv._id) {
       setStoredSelectedConversationId(conv._id);
@@ -3939,7 +3953,7 @@ export const ChatProvider = ({ children }) => {
 
         if (conversationsData.status === 'fulfilled' && conversationsData.value?.success) {
           const remoteConversations = conversationsData.value.conversations || [];
-          const openChatId = getStoredSelectedConversationId();
+          const openChatId = selectedConversationIdRef.current || getStoredSelectedConversationId();
           setConversations(prev => {
             const localOnlyConvs = prev.filter(c => c._id && (c._id.startsWith('conv-') || c._id.startsWith('temp-')));
             const mergedMap = new Map();
@@ -5332,6 +5346,11 @@ export const ChatProvider = ({ children }) => {
     [unviewedStatusByUser]
   );
 
+  // Authoritative total unread — always derived from conversations state
+  const totalUnread = React.useMemo(() => {
+    return (conversations || []).reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+  }, [conversations]);
+
   const wingaByUser = React.useMemo(() => {
     const map = {};
     (wingaData?.categories || []).forEach((c) => {
@@ -5407,6 +5426,7 @@ export const ChatProvider = ({ children }) => {
     uploadWingaMedia, deleteWingaListing, toggleWingaSold, rateWingaListing,
     wingaOrders, fetchWingaOrders, placeWingaOrder, updateWingaOrder,
     statusUnseenCount, unviewedStatusByUser, wingaByUser,
+    totalUnread,
     // Scheduled messages functions
     cancelScheduledMessage, getScheduledMessages,
     mods, updateMods, setMods,
@@ -5431,6 +5451,7 @@ export const ChatProvider = ({ children }) => {
     uploadWingaMedia, deleteWingaListing, toggleWingaSold, rateWingaListing,
     wingaOrders, fetchWingaOrders, placeWingaOrder, updateWingaOrder,
     statusUnseenCount, unviewedStatusByUser, wingaByUser,
+    totalUnread,
     listCloudBackups, restoreCloudBackup, deleteCloudBackup,
     loadOlderMessages, hasOlderMessages
   ]);

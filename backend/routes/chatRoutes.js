@@ -62,6 +62,7 @@ const {
   rsvpGroupEvent,
   getGroupEvents,
   updateJoinApproval,
+  getTotalUnread,
 } = require("../controllers/chatController");
 const { validateMessage } = require("../middleware/validator");
 const { protect, requirePhoneVerified } = require("../middleware/auth");
@@ -73,6 +74,7 @@ router.use(protect);
 // Conversation routes
 router.get("/conversations/archived", getArchivedConversations);
 router.get("/conversations", getConversations);
+router.get("/unread-total", getTotalUnread);
 router.get("/conversations/:id", getConversation);
 router.post("/conversation", requirePhoneVerified, getOrCreateConversation);
 

@@ -3651,3 +3651,32 @@ exports.markConversationAsRead = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+/**
+ * GET /chat/unread-total
+ * Returns the authoritative total unread count for the authenticated user.
+ * Used by the frontend as the single source of truth for the badge, especially
+ * in the APK where localStorage/IndexedDB caches can become stale.
+ */
+exports.getTotalUnread = async (req, res) => {
+  try {
+    const userId = getCurrentUserId(req);
+    const conversations = await Conversation.find({ participants: userId })
+      .select('unreadCount')
+      .lean();
+
+    let totalUnread = 0;
+    for (const conv of conversations) {
+      const count = conv.unreadCount?.[userId] || 0;
+      totalUnread += count;
+    }
+
+    res.status(200).json({
+      success: true,
+      totalUnread,
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
