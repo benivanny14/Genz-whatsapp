@@ -356,7 +356,9 @@ const StatusProvider = ({ children }) => {
           const rawUser = localStorage.getItem('user');
           const currentUser = rawUser ? JSON.parse(rawUser) : null;
           const blockedUsers = new Set((currentUser?.blockedUsers || []).map(u => String(u._id || u)));
-          if (blockedUsers.has(String(creatorId))) return;
+          const blockedStatusUsers = new Set((currentUser?.blockedStatusUsers || []).map(u => String(u._id || u)));
+          const creatorStr = String(creatorId);
+          if (blockedUsers.has(creatorStr) || blockedStatusUsers.has(creatorStr)) return;
         } catch (e) {
           // ignore parsing errors
         }

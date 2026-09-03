@@ -101,7 +101,6 @@ import MultiAccountsPanel from '../components/MultiAccountsPanel';
 import BlockUserModal from '../components/BlockUserModal';
 import ReportUser from '../components/ReportUser';
 import SecretChat from '../components/SecretChat';
-import LiveLocationSharing from '../components/LiveLocationSharing';
 import LocationPicker from '../components/LocationPicker';
 
 // ── Content ──
@@ -120,9 +119,7 @@ import ProfileDelete from '../components/ProfileDelete';
 import ProfileLinks from '../components/ProfileLinks';
 import ProfileSecurity from '../components/ProfileSecurity';
 import WebLogin from '../components/WebLogin';
-import BiometricAuth from '../components/BiometricAuth';
 import BiometricLock from '../components/BiometricLock';
-import FingerprintSimulation from '../components/FingerprintSimulation';
 import SecureBackup from '../components/SecureBackup';
 
 // ── Mods panels (self-contained; talk to their own /api/*-mods endpoints) ──
@@ -235,7 +232,6 @@ const FeatureLibrary = () => {
   const [events, setEvents] = usePersistent('genz_events', []);
   const [customEmojis, setCustomEmojis] = usePersistent('genz_custom_emojis', []);
   const [hashtags, setHashtags] = usePersistent('genz_hashtags', []);
-  const [activeShares, setActiveShares] = usePersistent('genz_active_location_shares', []);
   const [profileSecurity, setProfileSecurity] = usePersistent('genz_profile_security', { twoFactor: false, loginAlerts: true });
   const [backupStatus, setBackupStatus] = usePersistent('genz_backup_status', { lastBackup: null, enabled: false });
   const [messageEditing, setMessageEditing] = usePersistent('genz_message_editing', { messageEditingEnabled: false, showEditIndicator: true });
@@ -504,8 +500,6 @@ const FeatureLibrary = () => {
           props: { user: demoContact, onReport: () => {} } },
         { id: 'secret-chat', name: 'Secret Chat', desc: 'Start an encrypted chat', C: SecretChat,
           props: { contact: demoContact, onCreateSecretChat: () => {}, onSendMessage: () => {} } },
-        { id: 'live-loc', name: 'Live Location', desc: 'Share live location', C: LiveLocationSharing,
-          props: { activeShares, onStartSharing: () => {}, onStopSharing: (id) => setActiveShares(activeShares.filter(s => s.id !== id)) } },
         { id: 'loc-picker', name: 'Location Picker', desc: 'Pick & send a location', C: LocationPicker,
           props: { currentUser: user, selectedChat, onLocationSelect: () => {} } },
       ]
@@ -540,12 +534,8 @@ const FeatureLibrary = () => {
     {
       title: 'Security', icon: Shield,
       items: [
-        { id: 'bio-auth', name: 'Biometric Auth', desc: 'Test biometric sign-in', C: BiometricAuth,
-          props: { onSuccess: () => {}, onCancel: close } },
         { id: 'bio-lock', name: 'Biometric Lock', desc: 'Lock with biometrics', C: BiometricLock,
           props: { isEnabled: false, onToggle: () => {}, onClose: close } },
-        { id: 'fingerprint', name: 'Fingerprint Sim', desc: 'Simulate a fingerprint scan', C: FingerprintSimulation,
-          props: { onComplete: () => {} } },
         { id: 'secure-backup', name: 'Secure Backup', desc: 'Backup & restore your data', C: SecureBackup,
           props: { backupStatus, onCreateBackup: () => setBackupStatus({ ...backupStatus, lastBackup: new Date().toISOString() }), onRestoreBackup: () => {}, onVerifyBackup: () => {} } },
       ]

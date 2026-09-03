@@ -1036,6 +1036,11 @@ const CreateStatus = ({ onClose }) => {
               <Mic size={28} color="#00a884" />
               <span>Voice</span>
             </button>
+
+            <button onClick={() => setMode('location')} className="create-option">
+              <MapPin size={28} color="#00a884" />
+              <span>Location</span>
+            </button>
           </div>
         </div>
       </div>
@@ -1169,6 +1174,115 @@ const CreateStatus = ({ onClose }) => {
         </div>
       </div>
     )
+  }
+
+  // ────────── LOCATION MODE ──────────
+  if (mode === 'location') {
+    return (
+      <div className="create-status-overlay" style={{ background: '#1a1a2e' }}>
+        <div style={{ width: '100%', maxWidth: '500px', margin: '0 auto', padding: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <button onClick={() => setMode('select')}><X color="#fff" size={24} /></button>
+            <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 600, margin: 0 }}>📍 Share Location</h3>
+            <div style={{ width: 24 }} />
+          </div>
+
+          {/* Get current location button */}
+          <button
+            onClick={() => {
+              if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                  (pos) => {
+                    setSelectedLocation({
+                      latitude: pos.coords.latitude,
+                      longitude: pos.coords.longitude,
+                      name: 'Current Location',
+                      address: `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`
+                    });
+                  },
+                  () => alert('Location access denied'),
+                  { enableHighAccuracy: true, timeout: 10000 }
+                );
+              }
+            }}
+            style={{
+              width: '100%', padding: '14px', background: '#00a884', color: '#fff',
+              border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: 600,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              marginBottom: '12px', cursor: 'pointer'
+            }}
+          >
+            <Navigation size={18} /> Share Current Location
+          </button>
+
+          {/* Location input */}
+          <input
+            type="text"
+            placeholder="Search for a place..."
+            value={selectedLocation?.name === 'Current Location' ? '' : (selectedLocation?.name || '')}
+            onChange={(e) => setSelectedLocation({
+              latitude: 0, longitude: 0,
+              name: e.target.value, address: ''
+            })}
+            style={{
+              width: '100%', padding: '12px 16px', background: '#0b141a', color: '#fff',
+              border: '1px solid rgba(255,255,255,0.2)', borderRadius: '10px',
+              fontSize: '14px', boxSizing: 'border-box', marginBottom: '12px'
+            }}
+          />
+
+          {/* Selected location preview */}
+          {selectedLocation && (
+            <div style={{
+              padding: '12px 16px', background: '#0b141a', borderRadius: '10px',
+              border: '1px solid #00a884', marginBottom: '12px'
+            }}>
+              <p style={{ color: '#00a884', fontSize: '13px', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <MapPin size={14} /> {selectedLocation.name}
+              </p>
+              {selectedLocation.address && <p style={{ color: '#8696a0', fontSize: '12px', margin: '4px 0 0' }}>{selectedLocation.address}</p>}
+            </div>
+          )}
+
+          {/* Send button */}
+          <button
+            onClick={async () => {
+              if (!selectedLocation) return;
+              setIsSharing(true);
+              try {
+                const token = getAuthToken();
+                const res = await fetch(`${resolveApiBase()}/status`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                  body: JSON.stringify({
+                    type: 'location',
+                    content: selectedLocation.name,
+                    locationData: selectedLocation,
+                    privacy,
+                    excludedUsers: privacy === 'contacts_except' ? selectedUsers : [],
+                    includedUsers: privacy === 'only_share_with' ? selectedUsers : []
+                  })
+                });
+                if (res.ok) onClose?.();
+              } catch (err) {
+                console.error('Location status error:', err);
+              } finally {
+                setIsSharing(false);
+              }
+            }}
+            disabled={!selectedLocation || isSharing}
+            style={{
+              width: '100%', padding: '14px', background: selectedLocation ? '#00a884' : '#2a3942',
+              color: '#fff', border: 'none', borderRadius: '12px', fontSize: '15px',
+              fontWeight: 600, cursor: selectedLocation ? 'pointer' : 'not-allowed',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+            }}
+          >
+            {isSharing ? 'Sharing...' : 'Share Location Status'}
+          </button>
+        </div>
+      </div>
+    );
   }
 
   // ────────── TEXT MODE ──────────

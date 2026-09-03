@@ -284,13 +284,13 @@ export const ShareToStatusSettings = ({ settings, onUpdate }) => {
               <p className="text-gray-400 text-xs">Who sees your status</p>
             </div>
             <select
-              value={settings.defaultStatusAudience || 'all'}
+              value={settings.defaultStatusAudience || 'contacts'}
               onChange={(e) => onUpdate({ ...settings, defaultStatusAudience: e.target.value })}
               className="bg-[#0b141a] text-white px-3 py-1 rounded-lg border border-[#00a884]/30 focus:border-[#00a884] focus:outline-none text-sm"
             >
-              <option value="all">All contacts</option>
-              <option value="contacts">Selected contacts</option>
-              <option value="except">My contacts except...</option>
+              <option value="contacts">All contacts</option>
+              <option value="only_share_with">Selected contacts only</option>
+              <option value="contacts_except">My contacts except...</option>
             </select>
           </div>
         </div>

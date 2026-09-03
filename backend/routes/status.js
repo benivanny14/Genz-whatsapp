@@ -68,8 +68,10 @@ const reactionUserIdOf = (reaction = {}) => idOf(reaction.userId || reaction.use
 
 const normalizePrivacy = (privacy) => {
   if (!privacy) return null;
-  if (privacy === 'everyone') return 'contacts';
+  if (privacy === 'everyone' || privacy === 'all') return 'contacts';
   if (privacy === 'only_me') return 'nobody';
+  // Map legacy 'except' to valid 'contacts_except'
+  if (privacy === 'except') return 'contacts_except';
   if (VALID_PRIVACY.has(privacy)) return privacy;
   return 'INVALID';
 };
@@ -376,7 +378,7 @@ router.post('/', protect, async (req, res) => {
       locationSticker, linkPreview, textAnimation, isViewOnce
     } = req.body;
 
-    if (!type || !['text', 'image', 'video'].includes(type)) {
+    if (!type || !['text', 'image', 'video', 'location'].includes(type)) {
       return res.status(400).json({ success: false, message: 'Invalid status type' });
     }
 
@@ -386,6 +388,10 @@ router.post('/', protect, async (req, res) => {
 
     if ((type === 'image' || type === 'video') && !content) {
       return res.status(400).json({ success: false, message: 'Media status requires content URL' });
+    }
+
+    if (type === 'location' && !req.body.locationData) {
+      return res.status(400).json({ success: false, message: 'Location status requires locationData' });
     }
 
     if (privacy && normalizePrivacy(privacy) === 'INVALID') {
@@ -459,6 +465,12 @@ router.post('/', protect, async (req, res) => {
       addYoursPrompt: addYoursPrompt || '',
       parentStatusId: parentStatusId || null,
       locationSticker: locationSticker || undefined,
+      locationData: type === 'location' && req.body.locationData ? {
+        latitude: Number(req.body.locationData.latitude) || 0,
+        longitude: Number(req.body.locationData.longitude) || 0,
+        name: String(req.body.locationData.name || '').slice(0, 200),
+        address: String(req.body.locationData.address || '').slice(0, 500)
+      } : undefined,
       linkPreview: linkPreview ? {
         url: String(linkPreview.url || '').slice(0, 2048),
         title: String(linkPreview.title || '').replace(/[<>]/g, '').slice(0, 200),

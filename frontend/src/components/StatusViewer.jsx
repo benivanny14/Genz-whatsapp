@@ -840,8 +840,8 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
         )}
 
         {/* Location Sticker Overlay */}
-        {effectiveStatus?.location && (
-          <LocationStickerOverlay location={effectiveStatus.location} />
+        {(effectiveStatus?.location || effectiveStatus?.locationData) && (
+          <LocationStickerOverlay location={effectiveStatus.location || effectiveStatus.locationData} />
         )}
 
         {/* Quiz / Poll Overlay */}

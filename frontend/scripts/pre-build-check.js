@@ -15,10 +15,11 @@
  *   [REQUIRED]  vite.config.js registers VitePWA in its plugins array
  *   [REQUIRED]  keystore.properties / genz-release.keystore present (release
  *               builds must never fall back to the debug signature)
- *   [WARN]      google-services.json missing (FCM push disabled)
+ *   [REQUIRED]  google-services.json for release builds (FCM push)
+ *   [WARN]      google-services.json missing in dev builds (FCM disabled)
  *   [REQUIRED]  public/version.json exists and versionCode >= Android's
  *               build.gradle versionCode (bump via `npm run bump:apk`)
- *   [WARN]      VITE_API_URL, if set, is HTTPS (production URL)
+ *   [REQUIRED]  VITE_API_URL is set and HTTPS (production APK URL)
  */
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -114,10 +115,13 @@ if (existsSync(keystoreProps) && existsSync(keystoreFile)) {
   fail('keystore.properties / genz-release.keystore missing — release APK signing cannot fall back to the DEBUG key. See docs/MWONGOZO_APK_NA_DEPLOY.md');
 }
 
-// ── 7. google-services.json (warn only — FCM optional) ───────────────────
+// ── 7. google-services.json (FCM push notifications) ─────────────────────
 console.log('[pre-build] 7/8 google-services.json (FCM)');
 if (existsSync(resolve(root, 'android/app/google-services.json'))) {
   console.log('  ✓ FCM configured (push notifications enabled)');
+} else if (process.env.CI || process.env.ANDROID_KEYSTORE_BASE64) {
+  // Release builds in CI MUST have FCM — users won't know push is broken
+  fail('google-services.json missing — release APK will have NO push notifications. Add FIREBASE_GOOGLE_SERVICES_JSON_B64 secret. See docs/FCM_SETUP_GUIDE.md');
 } else {
   warn('google-services.json missing — FCM push disabled (app works fine, no crash). See docs/FCM_SETUP_GUIDE.md');
 }
@@ -142,10 +146,22 @@ try {
   fail(`version.json unreadable: ${err.message}`);
 }
 
-// ── 6. VITE_API_URL (warn only) ──────────────────────────────────────────
+// ── 9. VITE_API_URL (required for APK builds) ────────────────────────────
+console.log('[pre-build] 9/9 VITE_API_URL');
 const apiUrl = process.env.VITE_API_URL;
-if (apiUrl && !/^https:\/\//.test(apiUrl)) {
-  warn(`VITE_API_URL (${apiUrl}) is not HTTPS — production APK builds should point at the HTTPS API (default is https://genz-whatsapp.onrender.com/api)`);
+if (!apiUrl) {
+  // When run directly (not via build-apk.js which sets the env var), this
+  // is a hard failure — a build without VITE_API_URL produces an APK that
+  // falls back to /api (localhost), which silently breaks on real devices.
+  if (process.env.CI) {
+    warn('VITE_API_URL not set — build-apk.js should set this. APK will use Capacitor fallback (https://genz-whatsapp.onrender.com/api).');
+  } else {
+    fail('VITE_API_URL not set — APK would fall back to /api (localhost) and break on real devices. Set VITE_API_URL or use `npm run apk:build` which sets it automatically.');
+  }
+} else if (!/^https:\/\//.test(apiUrl)) {
+  fail(`VITE_API_URL (${apiUrl}) is not HTTPS — production APK builds MUST use HTTPS.`);
+} else {
+  console.log(`  ✓ VITE_API_URL: ${apiUrl}`);
 }
 
 console.log(failed ? '\n[pre-build] ❌ FAILED — fix the errors above, then rebuild.' : '\n[pre-build] ✅ All required checks passed.');
