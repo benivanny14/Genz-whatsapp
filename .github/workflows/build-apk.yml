@@ -109,7 +109,6 @@ jobs:
           if-no-files-found: error
 
       - name: Publish APK to GitHub Releases
-        if: github.ref == 'refs/heads/main'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
