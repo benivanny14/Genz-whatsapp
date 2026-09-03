@@ -1597,7 +1597,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                         })()}
                         {/* Unread count badge */}
                         {conv.unreadCount > 0 ? (
-                          <span className="unread-badge">
+                          <span key={`badge-${conv._id}-${conv.unreadCount}`} className="unread-badge" style={{ animation: 'badgePopIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
                             {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
                           </span>
                         ) : (

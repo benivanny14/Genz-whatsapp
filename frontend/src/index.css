@@ -278,6 +278,17 @@ a:focus:not(:focus-visible) {
   }
 }
 
+/* Badge animations — smooth pop-in / pop-out */
+@keyframes badgePopIn {
+  from { opacity: 0; transform: scale(0); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes badgePulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
 /* Unread message badge styling - match WhatsApp design */
 .unread-badge {
   background-color: #25D366 !important;
@@ -296,6 +307,7 @@ a:focus:not(:focus-visible) {
   letter-spacing: 0.5px !important;
   -webkit-font-smoothing: antialiased !important;
   -moz-osx-font-smoothing: grayscale !important;
+  animation: badgePopIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 :root {

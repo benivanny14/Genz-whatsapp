@@ -95,8 +95,10 @@ const MobileBottomNav = () => {
                   <Icon size={20} strokeWidth={active ? 2.6 : 2} />
                   {badge > 0 && (
                     <span
+                      key={`badge-${item.path}-${badge}`}
                       data-testid={`nav-badge-${item.path.replace('/', '')}`}
-                      style={{ position: 'absolute', top: -5, right: -10, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 18, height: 18, borderRadius: 9, backgroundColor: '#25d366', color: '#0b141a', fontSize: 10, fontWeight: 900, paddingLeft: 4, paddingRight: 4, lineHeight: 1, zIndex: 99999, boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }}
+                      className="nav-badge-animate"
+                      style={{ position: 'absolute', top: -5, right: -10, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 18, height: 18, borderRadius: 9, backgroundColor: '#25d366', color: '#0b141a', fontSize: 10, fontWeight: 900, paddingLeft: 4, paddingRight: 4, lineHeight: 1, zIndex: 99999, boxShadow: '0 1px 4px rgba(0,0,0,0.3)', animation: 'badgePopIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
                     >
                       {badge > 99 ? '99+' : badge}
                     </span>
