@@ -138,36 +138,39 @@ const frontendOrigin = process.env.FRONTEND_URL?.replace(/\/$/, "");
 
 // Shared allowlist of application origins, used by both CORS and the CSRF
 // Origin guard so the two policies can never drift apart.
+const isProduction = process.env.NODE_ENV === 'production';
+
 const appOrigins = [
   process.env.FRONTEND_URL,
   process.env.PUBLIC_API_URL,
   // Allow only the specific Render URL
   "https://genz-whatsapp-1.onrender.com",
-  // Development origins
-  "http://localhost:3000",
-  "http://localhost:5173",
-  "http://localhost:5174",
-  "http://localhost:5175",
-  "http://127.0.0.1:3000",
-  "http://127.0.0.1:5173",
-  "http://127.0.0.1:5174",
-  "http://127.0.0.1:5175",
-  // Capacitor native webview origins (Android uses https://localhost,
-  // older builds used capacitor://localhost)
+  // Development origins — only in non-production
+  ...(!isProduction ? [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:5175",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+    "http://127.0.0.1:5175",
+  ] : []),
+  // Capacitor native webview origins (always allowed — APK traffic)
   "https://localhost",
   "capacitor://localhost",
 ].filter(Boolean);
 
 const isAllowedAppOrigin = (origin) => {
   if (!origin) return true;
-  if (
-    origin.startsWith("http://localhost:") ||
-    origin.startsWith("http://127.0.0.1:")
-  )
-    return true;
   // Capacitor webviews report the scheme origin (https://localhost) without a port
   if (origin === "https://localhost" || origin === "capacitor://localhost")
     return true;
+  // Development origins — only in non-production
+  if (!isProduction) {
+    if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:"))
+      return true;
+  }
   return appOrigins.includes(origin);
 };
 
@@ -175,7 +178,7 @@ const cspConnectSources = [
   "'self'",
   "https:",
   publicApiOrigin,
-  "http://localhost:5000",
+  ...(!isProduction ? ["http://localhost:5000"] : []),
   ...(frontendOrigin ? [frontendOrigin] : []),
 ];
 
@@ -691,12 +694,12 @@ app.use(
           "data:",
           "https:",
           publicApiOrigin,
-          "http://localhost:5000",
+          ...(!isProduction ? ["http://localhost:5000"] : []),
         ],
         connectSrc: cspConnectSources,
         fontSrc: ["'self'"],
         objectSrc: ["'none'"],
-        mediaSrc: ["'self'", publicApiOrigin, "http://localhost:5000"],
+        mediaSrc: ["'self'", publicApiOrigin, ...(!isProduction ? ["http://localhost:5000"] : [])],
         frameSrc: ["'none'"],
       },
     },
@@ -1384,18 +1387,20 @@ const server = http.createServer(app);
 
 // Socket.IO configuration with Redis adapter support for distributed architecture
 const socketCorsOrigins = [
-  "http://localhost:3000",
-  "http://localhost:5173",
-  "http://localhost:5174",
-  "http://localhost:5175",
-  "http://127.0.0.1:3000",
-  "http://127.0.0.1:5173",
-  "http://127.0.0.1:5174",
-  "http://127.0.0.1:5175",
-  // Same-origin deployments (backend serves the built frontend) — the page
-  // origin is the backend itself, so its own ports must be handshake-allowed.
-  "http://localhost:5000",
-  "http://127.0.0.1:5000",
+  // Development origins — only in non-production
+  ...(!isProduction ? [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:5175",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+    "http://127.0.0.1:5175",
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+  ] : []),
+  // Production origins
   ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
   ...(process.env.PUBLIC_API_URL ? [process.env.PUBLIC_API_URL] : []),
   "https://genz-whatsapp-1.onrender.com",
