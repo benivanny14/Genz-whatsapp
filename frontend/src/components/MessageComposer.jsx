@@ -19,7 +19,7 @@ import { FONT_OPTIONS } from '../utils/chatTextHelpers';
  */
 function MoreOptionsMenu({ handleFormatText, showColorPicker, setShowColorPicker,
   selectedColor, setSelectedColor, showFontPicker, setShowFontPicker,
-  handleSchedule, TEXT_COLORS, composerIconButton }) {
+  handleSchedule, TEXT_COLORS, composerIconButton, activeComposerIconButton }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -46,7 +46,7 @@ function MoreOptionsMenu({ handleFormatText, showColorPicker, setShowColorPicker
       </button>
 
       {open && (
-        <div className="absolute bottom-full right-0 mb-2 w-[280px] bg-[#1f2c34] border border-dark-border rounded-xl shadow-2xl p-2 z-[60] animate-in fade-in slide-in-from-bottom-1 duration-150">
+        <div className="absolute bottom-full right-0 mb-2 w-[280px] bg-[#1f2c34] border border-dark-border rounded-xl shadow-2xl p-2 z-[60]" style={{ animation: 'fadeIn 0.15s ease-out' }}>
           {/* Formatting */}
           <p className="text-[10px] uppercase tracking-wide text-dark-textSecondary px-2 pb-1">Format</p>
           <div className="flex items-center gap-1 px-1 pb-2">
@@ -409,6 +409,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                   handleSchedule={handleSchedule}
                   TEXT_COLORS={TEXT_COLORS}
                   composerIconButton={composerIconButton}
+                  activeComposerIconButton={activeComposerIconButton}
                 />
                 {/* Text formatting buttons — inline on desktop only */}
                 <div className="hidden lg:flex items-center gap-0.5 border-l border-white/10 pl-1.5 ml-0.5">
