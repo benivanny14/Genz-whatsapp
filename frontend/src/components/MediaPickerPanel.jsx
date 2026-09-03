@@ -11,12 +11,12 @@ const MediaPickerPanel = ({
     theme = 'dark'
   }) => {
   return (
-    <div className="flex flex-col h-[45vh] max-h-[380px] min-h-[280px] w-full bg-[#1a2332] border-t border-gray-700 shadow-2xl z-40 transition-transform duration-300 ease-out origin-bottom transform translate-y-0">
+    <div className="flex flex-col w-full h-full bg-[#1a2332]">
       
       {/* Content Area */}
       <div className="flex-1 overflow-hidden relative">
         {activeTab === 'emoji' && (
-          <div className="absolute inset-0 w-full h-full animate-fadeIn">
+          <div className="w-full h-full animate-fadeIn">
             <EmojiPicker
               onEmojiClick={(emojiData) => {
                 onEmojiSelect(emojiData);
@@ -40,7 +40,7 @@ const MediaPickerPanel = ({
         )}
 
         {activeTab === 'sticker' && (
-          <div className="absolute inset-0 w-full h-full overflow-y-auto animate-fadeIn">
+          <div className="w-full h-full overflow-y-auto animate-fadeIn">
             {/* Full WhatsApp-style sticker picker: Favorites, Recents, Store,
                 downloadable packs, and custom sticker creator — same
                 component used from the Attachments menu, now also reachable

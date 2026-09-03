@@ -130,41 +130,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
           </div>
         )}
   
-        <div className="bg-dark-surface border-t border-dark-border px-1 py-1 sm:px-2 sm:py-2 lg:p-4 relative z-50 flex-shrink-0" style={{ flex: '0 0 auto', position: 'sticky', bottom: 0, paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)', background: 'var(--chat-bg, #111b21)' }}>
-          {showMediaPanel && (
-            <div className="absolute bottom-full left-0 right-0 w-full z-50 overflow-hidden shadow-2xl border-t border-dark-border">
-              <MediaPickerPanel
-                activeTab={activeMediaTab}
-                onTabChange={setActiveMediaTab}
-                onEmojiSelect={handleEmojiClick}
-                onStickerSelect={(stickerUrl, options = {}) => {
-                  // TikTok-style: sticker previews in the input so the user can
-                  // keep typing; Send delivers sticker + text as ONE message.
-                  setSelectedMedia({ type: 'sticker', url: stickerUrl, options });
-                  setShowMediaPanel(false);
-                }}
-              />
-            </div>
-          )}
-  
-          {showStickerPacks && (
-            <div className="absolute bottom-full left-0 right-0 w-full z-50 overflow-hidden shadow-2xl border-t border-dark-border">
-              <StickerPicker
-                onStickerSelect={(stickerUrl, options) => {
-                  if (floatingStickerMode) {
-                    // Floating mode keeps the instant fly-across-screen behavior
-                    handleSendStickerWithCaption(stickerUrl, { ...options, isFloating: true });
-                  } else {
-                    // TikTok-style: stage the sticker in the input preview; Send
-                    // delivers sticker + typed text together as one bubble.
-                    setSelectedMedia({ type: 'sticker', url: stickerUrl, options });
-                  }
-                  setShowStickerPacks(false);
-                }}
-                onClose={() => setShowStickerPacks(false)}
-              />
-            </div>
-          )}
+        <div className="bg-dark-surface border-t border-dark-border px-1 py-1 sm:px-2 sm:py-2 lg:p-4 relative z-50 flex-shrink-0" style={{ flex: '0 0 auto', position: 'sticky', bottom: 0, paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)', background: 'var(--chat-bg, #111b21)' }}>          {/* Inline pickers are rendered AFTER the form below */}
   
           {selectedMedia && (
             <div className={`mb-2 relative inline-block p-2 rounded-xl border border-dark-border max-w-[200px] ${selectedMedia.type === 'sticker' ? 'bg-transparent' : 'bg-dark-bg'}`}>
@@ -477,9 +443,43 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
               >
                 <Send className="w-5 h-5 text-white" />
               </button>
-            )}
-          </form>
-  
+            )}          </form>
+
+          {/* ══════ INLINE EMOJI PICKER (WhatsApp-style: below input, replaces keyboard) ══════ */}
+          {showMediaPanel && (
+            <div className="inline-keyboard-container animate-slideUp">
+              <MediaPickerPanel
+                activeTab={activeMediaTab}
+                onTabChange={setActiveMediaTab}
+                onEmojiSelect={handleEmojiClick}
+                onStickerSelect={(stickerUrl, options = {}) => {
+                  setSelectedMedia({ type: 'sticker', url: stickerUrl, options });
+                  setShowMediaPanel(false);
+                }}
+              />
+            </div>
+          )}
+
+          {/* ══════ INLINE STICKER PICKER (WhatsApp-style: below input, replaces keyboard) ══════ */}
+          {showStickerPacks && (
+            <div className="inline-keyboard-container animate-slideUp">
+              <StickerPicker
+                onStickerSelect={(stickerUrl, options) => {
+                  if (floatingStickerMode) {
+                    handleSendStickerWithCaption(stickerUrl, { ...options, isFloating: true });
+                  } else {
+                    setSelectedMedia({ type: 'sticker', url: stickerUrl, options });
+                  }
+                  setShowStickerPacks(false);
+                }}
+                onClose={() => {
+                  setShowStickerPacks(false);
+                  setTimeout(() => inputRef.current?.focus(), 100);
+                }}
+              />
+            </div>
+          )}
+
         </div>
     </>
   );
