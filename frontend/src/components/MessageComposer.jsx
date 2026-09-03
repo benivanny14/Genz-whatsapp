@@ -1,5 +1,5 @@
-import React from 'react';
-import { AtSign, BarChart2, Bold, CalendarClock, Camera, Clock, Contact, DollarSign, Edit, Eye, FileText, Grid3x3, Headphones, ImageIcon, Italic, Languages, MapPin, Paperclip, Radio, Send, ShieldCheck, ShieldOff, Smile, Square, Strikethrough, Underline, VideoIcon, X } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { AtSign, BarChart2, Bold, CalendarClock, Camera, Clock, Contact, DollarSign, Edit, Eye, FileText, Grid3x3, Headphones, ImageIcon, Italic, Languages, MapPin, Paperclip, Radio, Send, ShieldCheck, ShieldOff, Smile, Square, Strikethrough, Underline, VideoIcon, X, MoreVertical } from 'lucide-react';
 import { haptic } from '../utils/haptics';
 import MediaPickerPanel from './MediaPickerPanel';
 import ReplyMessage from './ReplyMessage';
@@ -13,6 +13,74 @@ import { FONT_OPTIONS } from '../utils/chatTextHelpers';
  * Extracted verbatim from ChatArea.jsx (lines 2885-3183). Receives a single
  * ctx bundle so the JSX content is untouched; behavior is identical.
  */
+/**
+ * MoreOptionsMenu — dropdown for formatting/color/font/schedule on mobile.
+ * Hidden on lg+ screens (those features are inline on desktop).
+ */
+function MoreOptionsMenu({ handleFormatText, showColorPicker, setShowColorPicker,
+  selectedColor, setSelectedColor, showFontPicker, setShowFontPicker,
+  handleSchedule, TEXT_COLORS, composerIconButton }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const handleClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick, true);
+    return () => document.removeEventListener('mousedown', handleClick, true);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative lg:hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={`${open ? activeComposerIconButton : composerIconButton}`}
+        title="More options"
+        aria-label="More formatting options"
+        aria-expanded={open}
+      >
+        <MoreVertical className="w-5 h-5" />
+      </button>
+
+      {open && (
+        <div className="absolute bottom-full right-0 mb-2 w-[280px] bg-[#1f2c34] border border-dark-border rounded-xl shadow-2xl p-2 z-[60] animate-in fade-in slide-in-from-bottom-1 duration-150">
+          {/* Formatting */}
+          <p className="text-[10px] uppercase tracking-wide text-dark-textSecondary px-2 pb-1">Format</p>
+          <div className="flex items-center gap-1 px-1 pb-2">
+            <button type="button" onClick={() => { handleFormatText('*'); }} className="w-9 h-9 flex items-center justify-center rounded-lg text-dark-text hover:bg-white/10 active:scale-90" title="Bold"><Bold size={16} /></button>
+            <button type="button" onClick={() => { handleFormatText('_'); }} className="w-9 h-9 flex items-center justify-center rounded-lg text-dark-text hover:bg-white/10 active:scale-90" title="Italic"><Italic size={16} /></button>
+            <button type="button" onClick={() => { handleFormatText('~'); }} className="w-9 h-9 flex items-center justify-center rounded-lg text-dark-text hover:bg-white/10 active:scale-90" title="Strikethrough"><Strikethrough size={16} /></button>
+            <button type="button" onClick={() => { handleFormatText('`'); }} className="w-9 h-9 flex items-center justify-center rounded-lg text-dark-text hover:bg-white/10 active:scale-90" title="Monospace"><span className="text-xs font-mono font-bold">&lt;/&gt;</span></button>
+          </div>
+
+          {/* Text color */}
+          <p className="text-[10px] uppercase tracking-wide text-dark-textSecondary px-2 pb-1">Color</p>
+          <div className="flex gap-1.5 flex-wrap px-2 pb-2">
+            {TEXT_COLORS.map((c) => (
+              <button key={c.value} type="button" onClick={() => { setSelectedColor(c.value); setOpen(false); }} className={`w-6 h-6 rounded-full border-2 transition-all hover:scale-110 ${selectedColor === c.value ? 'border-white scale-110' : 'border-transparent'}`} style={{ backgroundColor: c.color }} title={c.label} />
+            ))}
+          </div>
+
+          {/* Font */}
+          <p className="text-[10px] uppercase tracking-wide text-dark-textSecondary px-2 pb-1">Font</p>
+          <button type="button" onClick={() => { setShowFontPicker(!showFontPicker); setOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-dark-text hover:bg-white/10 text-sm">
+            <Languages size={16} /> Change font
+          </button>
+
+          {/* Schedule */}
+          <p className="text-[10px] uppercase tracking-wide text-dark-textSecondary px-2 pt-1 pb-1">More</p>
+          <button type="button" onClick={() => { handleSchedule(); setOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-dark-text hover:bg-white/10 text-sm">
+            <CalendarClock size={16} /> Schedule message
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const MessageComposer = React.memo(function MessageComposer({ ctx }) {
   const {
     replyingTo, setReplyingTo, showMediaPanel, setShowMediaPanel,
@@ -312,7 +380,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                     setShowStickerPacks(opening);
                     if (opening) inputRef.current?.blur();
                   }}
-                  className={`${showStickerPacks ? activeComposerIconButton : composerIconButton} hidden sm:flex`}
+                  className={`${showStickerPacks ? activeComposerIconButton : composerIconButton}`}
                   title="Stickers (send with text)"
                   aria-label="Open sticker picker"
                   aria-expanded={showStickerPacks}
@@ -322,102 +390,49 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                 <button
                   type="button"
                   onClick={() => setIsViewOnceEnabled(!isViewOnceEnabled)}
-                  className={`${isViewOnceEnabled ? activeComposerIconButton : composerIconButton} hidden sm:flex`}
+                  className={`${isViewOnceEnabled ? activeComposerIconButton : composerIconButton}`}
                   title="Send as View Once"
                   aria-label="Toggle view-once mode"
                   aria-pressed={isViewOnceEnabled}
                 >
                   <Eye size={20} />
                 </button>
-                {/* Text formatting buttons — WhatsApp-style *bold* _italic_ ~strike~ */}
+                {/* ── More options (⋮) — shows formatting, color, font, schedule on mobile ── */}
+                <MoreOptionsMenu
+                  handleFormatText={handleFormatText}
+                  showColorPicker={showColorPicker}
+                  setShowColorPicker={setShowColorPicker}
+                  selectedColor={selectedColor}
+                  setSelectedColor={setSelectedColor}
+                  showFontPicker={showFontPicker}
+                  setShowFontPicker={setShowFontPicker}
+                  handleSchedule={handleSchedule}
+                  TEXT_COLORS={TEXT_COLORS}
+                  composerIconButton={composerIconButton}
+                />
+                {/* Text formatting buttons — inline on desktop only */}
                 <div className="hidden lg:flex items-center gap-0.5 border-l border-white/10 pl-1.5 ml-0.5">
-                  <button
-                    type="button"
-                    onClick={() => handleFormatText('*')}
-                    className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 rounded-full flex items-center justify-center text-dark-textSecondary hover:text-white hover:bg-white/10 transition-colors active:scale-90"
-                    title="Bold (*text*)"
-                    aria-label="Bold"
-                  >
-                    <Bold size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleFormatText('_')}
-                    className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 rounded-full flex items-center justify-center text-dark-textSecondary hover:text-white hover:bg-white/10 transition-colors active:scale-90"
-                    title="Italic (_text_)"
-                    aria-label="Italic"
-                  >
-                    <Italic size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleFormatText('~')}
-                    className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 rounded-full flex items-center justify-center text-dark-textSecondary hover:text-white hover:bg-white/10 transition-colors active:scale-90"
-                    title="Strikethrough (~text~)"
-                    aria-label="Strikethrough"
-                  >
-                    <Strikethrough size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleFormatText('`')}
-                    className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 rounded-full flex items-center justify-center text-dark-textSecondary hover:text-white hover:bg-white/10 transition-colors active:scale-90"
-                    title="Monospace (`text`)"
-                    aria-label="Monospace"
-                  >
-                    <span className="text-xs font-mono font-bold">&lt;/&gt;</span>
-                  </button>
+                  <button type="button" onClick={() => handleFormatText('*')} className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 rounded-full flex items-center justify-center text-dark-textSecondary hover:text-white hover:bg-white/10 transition-colors active:scale-90" title="Bold (*text*)" aria-label="Bold"><Bold size={16} /></button>
+                  <button type="button" onClick={() => handleFormatText('_')} className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 rounded-full flex items-center justify-center text-dark-textSecondary hover:text-white hover:bg-white/10 transition-colors active:scale-90" title="Italic (_text_)" aria-label="Italic"><Italic size={16} /></button>
+                  <button type="button" onClick={() => handleFormatText('~')} className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 rounded-full flex items-center justify-center text-dark-textSecondary hover:text-white hover:bg-white/10 transition-colors active:scale-90" title="Strikethrough (~text~)" aria-label="Strikethrough"><Strikethrough size={16} /></button>
+                  <button type="button" onClick={() => handleFormatText('`')} className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 rounded-full flex items-center justify-center text-dark-textSecondary hover:text-white hover:bg-white/10 transition-colors active:scale-90" title="Monospace (`text`)" aria-label="Monospace"><span className="text-xs font-mono font-bold">&lt;/&gt;</span></button>
                 </div>
-                {/* Color picker button */}
-                <button
-                  type="button"
-                  onClick={() => setShowColorPicker(!showColorPicker)}
-                  className={`${composerIconButton} hidden md:flex relative`}
-                  title="Text color"
-                >
-                  <span className="w-5 h-5 rounded-full border-2 border-current flex items-center justify-center">
-                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedColor || '#e9edef' }} />
-                  </span>
+                {/* Color picker button — desktop only */}
+                <button type="button" onClick={() => setShowColorPicker(!showColorPicker)} className={`${composerIconButton} hidden md:flex relative`} title="Text color">
+                  <span className="w-5 h-5 rounded-full border-2 border-current flex items-center justify-center"><span className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedColor || '#e9edef' }} /></span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setShowFontPicker(!showFontPicker)}
-                  className={`${composerIconButton} hidden md:flex`}
-                  title="Change font"
-                >
-                  <Languages size={18} />
-                </button>
+                <button type="button" onClick={() => setShowFontPicker(!showFontPicker)} className={`${composerIconButton} hidden md:flex`} title="Change font"><Languages size={18} /></button>
                 {/* Color picker dropdown */}
                 {showColorPicker && (
                   <div className="absolute bottom-full right-0 mb-2 bg-[#1f2c34] rounded-xl shadow-2xl border border-white/10 p-2 z-50">
                     <div className="flex gap-1.5 flex-wrap max-w-[200px]">
                       {TEXT_COLORS.map((c) => (
-                        <button
-                          key={c.value}
-                          type="button"
-                          onClick={() => { setSelectedColor(c.value); setShowColorPicker(false); }}
-                          className={`w-7 h-7 rounded-full border-2 transition-all hover:scale-110 ${
-                            selectedColor === c.value ? 'border-white scale-110' : 'border-transparent'
-                          }`}
-                          style={{ backgroundColor: c.color }}
-                          title={c.label}
-                        />
+                        <button key={c.value} type="button" onClick={() => { setSelectedColor(c.value); setShowColorPicker(false); }} className={`w-7 h-7 rounded-full border-2 transition-all hover:scale-110 ${selectedColor === c.value ? 'border-white scale-110' : 'border-transparent'}`} style={{ backgroundColor: c.color }} title={c.label} />
                       ))}
                     </div>
                   </div>
                 )}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleSchedule();
-                  }}
-                  className={`${composerIconButton} hidden lg:flex`}
-                  title="Schedule Message" aria-label="Schedule Message"
-                >
-                  <CalendarClock className="w-5 h-5" />
-                </button>
+                <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSchedule(); }} className={`${composerIconButton} hidden lg:flex`} title="Schedule Message" aria-label="Schedule Message"><CalendarClock className="w-5 h-5" /></button>
                 <button
                   type="button"
                   onClick={() => { setShowMediaPanel(false); setShowStickerPacks(false); setShowAttachmentMenu(!showAttachmentMenu); }}
