@@ -84,7 +84,7 @@ const InstallAppPrompt = () => {
   if (!visible) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-sm z-50 bg-dark-surface/95 backdrop-blur-lg text-white rounded-xl shadow-xl border border-white/10 animate-in slide-in-from-bottom-2">
+    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-sm z-50 bg-dark-surface/95 backdrop-blur-lg text-white rounded-xl shadow-xl border border-white/10 animate-slideUp">
       {!showIosInstructions ? (
         <div className="flex items-center gap-3 p-4">
           <div className="w-10 h-10 rounded-lg bg-[#128C7E] flex items-center justify-center flex-shrink-0">

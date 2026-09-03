@@ -2857,6 +2857,8 @@ html {
 .page-enter { animation: slideInRight 0.3s ease-out; }
 .page-exit { animation: slideInLeft 0.3s ease-out reverse; }
 .message-enter { animation: slideUp 0.2s ease-out; }
+.animate-slideUp { animation: slideUp 0.3s ease-out; }
+.animate-fadeIn { animation: fadeIn 0.15s ease-out; }
 
 /* ═══ Scrollbar Styling ═══ */
 .scrollbar-none::-webkit-scrollbar { display: none; }

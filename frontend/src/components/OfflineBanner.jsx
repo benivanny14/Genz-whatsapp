@@ -83,7 +83,7 @@ const OfflineBanner = () => {
   if (!isOffline || !visible) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 z-50 bg-dark-surface/95 backdrop-blur-lg text-white px-4 py-3 flex items-center gap-3 rounded-xl shadow-xl border border-white/10 max-w-xs animate-in slide-in-from-bottom-2">
+    <div className="fixed bottom-4 left-4 z-50 bg-dark-surface/95 backdrop-blur-lg text-white px-4 py-3 flex items-center gap-3 rounded-xl shadow-xl border border-white/10 max-w-xs animate-slideUp">
       <WifiOff size={16} className="text-orange-400 animate-pulse flex-shrink-0" />
       <p className="text-xs text-white/80">Hakuna mtandao</p>
       <button

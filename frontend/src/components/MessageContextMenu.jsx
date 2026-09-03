@@ -290,7 +290,7 @@ const MessageContextMenu = ({
         <>
           {/* Quick reactions row */}
           <div
-            className="fixed z-[9999] animate-in fade-in zoom-in-95 duration-150"
+            className="fixed z-[9999] animate-fadeIn"
             style={{
               bottom: Math.min((window.innerHeight - (position?.y || 0)), window.innerHeight - 60) > 80
                 ? undefined
