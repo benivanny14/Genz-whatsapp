@@ -141,7 +141,7 @@ const UpdateBanner = () => {
   };
 
   return (
-    <div className="fixed bottom-20 inset-x-0 z-[9990] flex justify-center px-4 pointer-events-none">
+    <div className="fixed inset-x-0 z-[9990] flex justify-center px-4 pointer-events-none" style={{ bottom: 'max(env(safe-area-inset-bottom, 0px), 100px)' }}>
       <div
         role="status"
         className="pointer-events-auto flex items-center gap-3 w-full max-w-md rounded-2xl border border-white/10 bg-[#0b141a]/95 backdrop-blur px-4 py-3 shadow-[0_8px_28px_rgba(0,0,0,0.55)]"
