@@ -1,24 +1,18 @@
 {
-  "version": "1.1.20",
-  "versionCode": 23,
+  "version": "1.1.21",
+  "versionCode": 24,
   "apkUrl": "/genz-whatsapp.apk",
-  "sha256": "295fc5ab0324b131205e03bd0e093ddc1976e0c22a7b69decf208697e304b7a7",
-  "size": 17577932,
-  "releasedAt": "2026-09-02T20:21:09.536Z",
+  "sha256": "",
+  "size": 0,
+  "releasedAt": "2026-09-04T23:00:00.000Z",
   "changes": [
-    "Biometric unlock utility",
-    "Real-time payment sync for admin",
-    "Optimistic status creation",
-    "44px touch targets (WCAG)",
-    "Sticky chat input on mobile",
-    "Truncate overflow usernames",
-    "Live location via Socket.io",
-    "Status replay button",
-    "Favorites section",
-    "Quiz/Poll overlay",
-    "Rich text editor",
-    "Photo sticker cut-out tool",
-    "Privacy bug fix",
-    "Text animation options"
+    "Formatting menu inline panel fix — haifit kwenye simu",
+    "Chat header more options menu mobile fit",
+    "Color picker improvements",
+    "Font picker improvements", 
+    "Schedule message fix",
+    "Voice effects improvements",
+    "Status posting improvements",
+    "Winga marketplace updates"
   ]
 }
