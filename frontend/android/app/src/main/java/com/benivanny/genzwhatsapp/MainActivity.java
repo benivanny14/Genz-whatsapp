@@ -14,6 +14,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 
 import com.getcapacitor.BridgeActivity;
+import com.google.firebase.FirebaseApp;
 
 /**
  * MainActivity — extends Capacitor's BridgeActivity.
@@ -39,6 +40,15 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // Initialize Firebase safely — crashes app if not done before plugins load
+        try {
+            if (FirebaseApp.getApps(this).isEmpty()) {
+                FirebaseApp.initializeApp(this);
+            }
+        } catch (Exception e) {
+            // google-services.json missing — Push Notifications won't work but app must not crash
+            android.util.Log.w("MainActivity", "Firebase init skipped: " + e.getMessage());
+        }
         super.onCreate(savedInstanceState);
 
         // DEBUG builds only: allow mixed content (https://localhost webview →
