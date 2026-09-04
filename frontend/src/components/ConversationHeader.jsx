@@ -168,9 +168,9 @@ const ConversationHeader = React.memo(function ConversationHeader({ ctx }) {
                 {showHeaderMenu && (
                   <>
                     <div className="fixed inset-0 bg-black/20 z-[80]" onClick={() => setShowHeaderMenu(false)} />
-                    <div className="fixed top-0 right-0 h-full w-[85vw] max-w-[320px] bg-dark-surface/95 backdrop-blur-md border-l border-dark-border shadow-2xl z-[90] overflow-y-auto">
+                    <div className="fixed top-0 right-0 h-full bg-dark-surface/95 backdrop-blur-md border-l border-dark-border shadow-2xl z-[90] overflow-y-auto" style={{ width: 'min(85vw, 320px)', maxWidth: '320px' }}>
                     <div className="p-3 border-b border-dark-border flex items-center justify-between">
-                      <h2 className="text-sm font-semibold text-white">Menu</h2>
+                      <h2 className="text-sm font-semibold text-white truncate">Menu</h2>
                       <button
                         onClick={() => setShowHeaderMenu(false)}
                         className="p-1.5 hover:bg-dark-hover rounded-lg transition-colors"
@@ -185,12 +185,12 @@ const ConversationHeader = React.memo(function ConversationHeader({ ctx }) {
                         toggleDNDMode();
                         setShowHeaderMenu(false);
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white min-w-0"
                     >
                       <span className="text-sm font-bold w-4 text-center text-orange-500">
                         {isDNDMode ? '🌙' : '🔔'}
                       </span>
-                      <span>{isDNDMode ? 'Disable DND' : 'Do Not Disturb'}</span>
+                      <span className="truncate">{isDNDMode ? 'Disable DND' : 'Do Not Disturb'}</span>
                     </button>
   
                     {/* Search messages */}
@@ -199,10 +199,10 @@ const ConversationHeader = React.memo(function ConversationHeader({ ctx }) {
                         setShowSearchMessages(true);
                         setShowHeaderMenu(false);
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white min-w-0"
                     >
                       <Search size={16} className="text-white/60" />
-                      <span>Search Messages</span>
+                      <span className="truncate">Search Messages</span>
                     </button>
   
                     <button
@@ -210,26 +210,26 @@ const ConversationHeader = React.memo(function ConversationHeader({ ctx }) {
                         setShowMediaGallery(true);
                         setShowHeaderMenu(false);
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white min-w-0"
                     >
                       <ImageIcon size={16} className="text-white/60" />
-                      <span>Media Gallery</span>
+                      <span className="truncate">Media Gallery</span>
                     </button>
   
                     <button
                       onClick={handleClearCurrentChat}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white border-t border-white/5 mt-1 pt-3"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white border-t border-white/5 mt-1 pt-3 min-w-0"
                     >
                       <Trash2 size={16} className="text-white/60" />
-                      <span>Clear Chat</span>
+                      <span className="truncate">Clear Chat</span>
                     </button>
   
                     <button
                       onClick={handleDeleteCurrentChat}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-red-400"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-red-400 min-w-0"
                     >
                       <Trash2 size={16} />
-                      <span>Delete Chat</span>
+                      <span className="truncate">Delete Chat</span>
                     </button>
   
                     {/* Export chat */}
@@ -238,20 +238,20 @@ const ConversationHeader = React.memo(function ConversationHeader({ ctx }) {
                         handleExportChat('txt');
                         setShowHeaderMenu(false);
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white min-w-0"
                     >
                       <Download size={16} className="text-white/60" />
-                      <span>Export Chat (.txt)</span>
+                      <span className="truncate">Export Chat (.txt)</span>
                     </button>
                     <button
                       onClick={() => {
                         handleExportChat('whatsapp');
                         setShowHeaderMenu(false);
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white min-w-0"
                     >
                       <Download size={16} className="text-white/60" />
-                      <span>Export Chat (WhatsApp .txt)</span>
+                      <span className="truncate">Export Chat (WhatsApp)</span>
                     </button>
   
                     {/* Edit Wallpaper */}
@@ -267,10 +267,10 @@ const ConversationHeader = React.memo(function ConversationHeader({ ctx }) {
                         };
                         input.click();
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white min-w-0"
                     >
                       <ImageIcon size={16} className="text-white/60" />
-                      <span>Edit Wallpaper</span>
+                      <span className="truncate">Edit Wallpaper</span>
                     </button>
   
                     {/* Mobile Group Info */}
@@ -280,10 +280,10 @@ const ConversationHeader = React.memo(function ConversationHeader({ ctx }) {
                           setShowGroupInfo(true);
                           setShowHeaderMenu(false);
                         }}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white border-t border-white/5"
+                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-dark-hover text-left text-sm text-white border-t border-white/5 min-w-0"
                       >
                         <Users size={16} className="text-white/60" />
-                        <span>Group Info</span>
+                        <span className="truncate">Group Info</span>
                       </button>
                     )}
                     </div>

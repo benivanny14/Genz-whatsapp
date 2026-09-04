@@ -309,13 +309,18 @@ const VoiceRecorder = ({
         return;
       }
 
-      // Try multiple MIME types in order of preference for Android WebView compatibility
+      // Try multiple MIME types in order of preference for Android WebView
+      // compatibility. On some APK WebViews only 'audio/mp4' or plain
+      // 'audio/webm' is supported — the empty string lets the browser choose
+      // its default.
       const preferredMimeTypes = [
         'audio/webm;codecs=opus',
         'audio/webm',
         'audio/mp4',
+        'audio/mp4;codecs=mp4a.40.2',
         'audio/ogg;codecs=opus',
         'audio/ogg',
+        'audio/aac',
         ''
       ];
       let stream;

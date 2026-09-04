@@ -62,11 +62,17 @@ export const requestNotificationPermission = async () => {
 // ── Show local notification ───────────────────────────────────────────────
 export const showLocalNotification = async (title, body, options = {}) => {
   // Native APK: show through the platform notification center.
+  // Always show native notification on APK (even when app is in foreground)
+  // so the user sees it in the Android notification shade.
   if (isNative()) {
-    await showNativeNotification(title, body, {
-      ...options,
-      extra: { conversationId: options.conversationId }
-    });
+    try {
+      await showNativeNotification(title, body, {
+        ...options,
+        extra: { conversationId: options.conversationId }
+      });
+    } catch (e) {
+      console.warn('[Notifications] Native notification failed:', e);
+    }
     return;
   }
 
@@ -105,9 +111,12 @@ export const showLocalNotification = async (title, body, options = {}) => {
 
 // ── Auto-show notification for incoming messages ─────────────────────────
 export const notifyNewMessage = (senderName, messagePreview, conversationId) => {
-  // Only notify if tab is not focused
-  if (document.visibilityState === 'visible') return;
   const preview = typeof messagePreview === 'string' ? messagePreview : 'New message';
+  // Native APK: always show local notification (works even when app is
+  // in the foreground — the OS notification shade is useful on mobile).
+  // Web: only notify if the tab is not focused (browser already shows
+  // the tab title change / desktop notification).
+  if (!isNative() && document.visibilityState === 'visible') return;
   showLocalNotification(
     `💬 ${senderName}`,
     preview.substring(0, 100),

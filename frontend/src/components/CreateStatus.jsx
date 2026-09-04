@@ -630,7 +630,19 @@ const CreateStatus = ({ onClose }) => {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mediaRecorder = new MediaRecorder(stream)
+      // Try multiple MIME types for Android WebView compatibility
+      const mimeTypes = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4',
+        'audio/mp4;codecs=mp4a.40.2',
+        'audio/ogg;codecs=opus',
+        ''
+      ]
+      const mimeType = mimeTypes.find(mt => mt && MediaRecorder.isTypeSupported(mt)) || ''
+      const mediaRecorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream)
       mediaRecorderRef.current = mediaRecorder
       audioChunksRef.current = []
 

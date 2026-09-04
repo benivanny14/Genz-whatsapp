@@ -185,41 +185,13 @@ function App() {
   // mobile, especially with the keyboard opening/closing repeatedly.
 
   // --- Push Notifications Registration (APK only) ---
+  // Uses the capacitorBridge's initNativePush which properly checks
+  // FCM_ENABLED before calling PushNotifications.register(). Without
+  // google-services.json (Firebase), register() crashes the APK.
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
-    const registerPush = async () => {
-      try {
-        const permission = await PushNotifications.requestPermissions();
-        if (permission.receive === 'granted') {
-          await PushNotifications.register();
-        }
-      } catch (err) {
-        if (import.meta.env.DEV) console.warn('[Push] Registration failed:', err);
-      }
-    };
-    registerPush();
-
-    // Listen for registration token
-    const tokenListener = PushNotifications.addListener('registration', (token) => {
-      if (import.meta.env.DEV) console.info('[Push] Token:', token.value);
-      // TODO: Send token to backend for push notification delivery
-    });
-
-    // Listen for incoming notifications
-    const notifListener = PushNotifications.addListener('pushNotificationReceived', (notification) => {
-      if (import.meta.env.DEV) console.info('[Push] Received:', notification.title);
-    });
-
-    // Listen for notification taps
-    const actionListener = PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-      if (import.meta.env.DEV) console.info('[Push] Action:', action.actionId);
-    });
-
-    return () => {
-      tokenListener?.then(l => l.remove());
-      notifListener?.then(l => l.remove());
-      actionListener?.then(l => l.remove());
-    };
+    const { initNativePush } = require('./services/capacitorBridge');
+    initNativePush().catch(() => {});
   }, []);
 
   // --- App lifecycle analytics ---

@@ -1214,19 +1214,20 @@ export const ChatProvider = ({ children }) => {
 
       // ── Incoming message ──
       socket.on('message:received', async (msg) => {
-        // Play notification sound for incoming messages (if not muted)
-        try {
-          const muteList = JSON.parse(localStorage.getItem('genz_muted_chats') || '[]');
-          const isMuted = muteList.includes(String(msg.conversationId));
-          const isDND = JSON.parse(localStorage.getItem('genz_settings_comprehensive') || '{}').isDNDMode;
-          if (!isMuted && !isDND) playMessageSound();
-        } catch (_) {}
         try {
         const incoming = msg;
         const senderId = String(incoming.sender?._id || incoming.sender || '');
         if (senderId === String(currentUserId)) {
           return;
         }
+        // Play notification sound ONLY for messages from other users
+        // (moved after the sender check so the sender never hears their own message)
+        try {
+          const muteList = JSON.parse(localStorage.getItem('genz_muted_chats') || '[]');
+          const isMuted = muteList.includes(String(msg.conversationId));
+          const isDND = JSON.parse(localStorage.getItem('genz_settings_comprehensive') || '{}').isDNDMode;
+          if (!isMuted && !isDND) playMessageSound();
+        } catch (_) {}
         if (blockedUsersRef.current.some((id) => String(id) === senderId)) {
           return;
         }

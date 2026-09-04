@@ -14,6 +14,7 @@ import { BlockedUsersList } from '../components/BlockUnblock';
 import AntiBanPanel from '../components/AntiBanPanel';
 import StatusPrivacy from '../components/StatusPrivacy';
 import StorageManagement from '../components/StorageManagement';
+import AppLock, { AppLockSettings } from '../components/AppLock';
 import AccountSwitcher from '../components/AccountSwitcher';
 import PrivacyPermissionSelector from '../components/PrivacyPermissionSelector';
 import ContactSelectorScreen from '../components/ContactSelectorScreen';
@@ -1001,6 +1002,17 @@ const Settings = () => {
         <SettingRow icon={ShieldCheck} title="Account security" description="Anti-ban protection, rate limiting, device spoofing and security score." onClick={() => setShowAntiBanPanel(true)} />
       </SettingSection>
 
+      <SettingSection title="App Lock" description="Lock your app with a PIN, pattern, or fingerprint to protect your messages.">
+        <div className="px-4 py-4">
+          <AppLockSettings
+            settings={settingsData.privacy.appLock || { enabled: false, lockAfter: 'immediately' }}
+            onUpdate={(newSettings) => {
+              updateSetting('privacy.appLock', newSettings);
+            }}
+          />
+        </div>
+      </SettingSection>
+
       <ActionButton onClick={() => saveSettings()} disabled={saving}><Save size={16} /> Save privacy settings</ActionButton>
     </div>
   );
@@ -1126,6 +1138,7 @@ const Settings = () => {
 
   const [showAntiBanPanel, setShowAntiBanPanel] = useState(false);
   const [showStatusPrivacyPanel, setShowStatusPrivacyPanel] = useState(false);
+  const [showAppLockModal, setShowAppLockModal] = useState(false);
 
   const renderActiveTab = () => {
     if (activeTab === 'profile') return renderProfile();
@@ -1227,6 +1240,21 @@ const Settings = () => {
       {showAntiBanPanel && <AntiBanPanel onClose={() => setShowAntiBanPanel(false)} />}
       {showStatusPrivacyPanel && <StatusPrivacy onClose={() => setShowStatusPrivacyPanel(false)} />}
       {showStorage && <StorageManagement onClose={() => setShowStorage(false)} />}
+      {showAppLockModal && (
+        <AppLock
+          isEnabled={settingsData.privacy?.appLock?.enabled || false}
+          onToggle={(config) => {
+            if (config === null) {
+              updateSetting('privacy.appLock', { enabled: false });
+            } else {
+              updateSetting('privacy.appLock', { enabled: true, lockType: config.type, lockAfter: config.timeout });
+            }
+            setShowAppLockModal(false);
+          }}
+          onUnlock={() => setShowAppLockModal(false)}
+          onClose={() => setShowAppLockModal(false)}
+        />
+      )}
 
       {showLocationSharing && <LocationSharingPanel onClose={() => setShowLocationSharing(false)} />}
       {showContactSelector && contactSelectorConfig && (

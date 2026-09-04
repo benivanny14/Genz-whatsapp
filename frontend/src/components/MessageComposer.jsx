@@ -17,69 +17,7 @@ import { FONT_OPTIONS } from '../utils/chatTextHelpers';
  * MoreOptionsMenu — dropdown for formatting/color/font/schedule on mobile.
  * Hidden on lg+ screens (those features are inline on desktop).
  */
-function MoreOptionsMenu({ handleFormatText, showColorPicker, setShowColorPicker,
-  selectedColor, setSelectedColor, showFontPicker, setShowFontPicker,
-  handleSchedule, TEXT_COLORS, composerIconButton, activeComposerIconButton }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
 
-  useEffect(() => {
-    if (!open) return undefined;
-    const handleClick = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handleClick, true);
-    return () => document.removeEventListener('mousedown', handleClick, true);
-  }, [open]);
-
-  return (
-    <div ref={ref} className="relative lg:hidden">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className={`${open ? activeComposerIconButton : composerIconButton}`}
-        title="More options"
-        aria-label="More formatting options"
-        aria-expanded={open}
-      >
-        <MoreVertical className="w-5 h-5" />
-      </button>
-
-      {open && (
-        <div className="absolute bottom-full right-0 mb-2 w-[280px] bg-[#1f2c34] border border-dark-border rounded-xl shadow-2xl p-2 z-[60]" style={{ animation: 'fadeIn 0.15s ease-out' }}>
-          {/* Formatting */}
-          <p className="text-[10px] uppercase tracking-wide text-dark-textSecondary px-2 pb-1">Format</p>
-          <div className="flex items-center gap-1 px-1 pb-2">
-            <button type="button" onClick={() => { handleFormatText('*'); }} className="w-9 h-9 flex items-center justify-center rounded-lg text-dark-text hover:bg-white/10 active:scale-90" title="Bold"><Bold size={16} /></button>
-            <button type="button" onClick={() => { handleFormatText('_'); }} className="w-9 h-9 flex items-center justify-center rounded-lg text-dark-text hover:bg-white/10 active:scale-90" title="Italic"><Italic size={16} /></button>
-            <button type="button" onClick={() => { handleFormatText('~'); }} className="w-9 h-9 flex items-center justify-center rounded-lg text-dark-text hover:bg-white/10 active:scale-90" title="Strikethrough"><Strikethrough size={16} /></button>
-            <button type="button" onClick={() => { handleFormatText('`'); }} className="w-9 h-9 flex items-center justify-center rounded-lg text-dark-text hover:bg-white/10 active:scale-90" title="Monospace"><span className="text-xs font-mono font-bold">&lt;/&gt;</span></button>
-          </div>
-
-          {/* Text color */}
-          <p className="text-[10px] uppercase tracking-wide text-dark-textSecondary px-2 pb-1">Color</p>
-          <div className="flex gap-1.5 flex-wrap px-2 pb-2">
-            {TEXT_COLORS.map((c) => (
-              <button key={c.value} type="button" onClick={() => { setSelectedColor(c.value); setOpen(false); }} className={`w-6 h-6 rounded-full border-2 transition-all hover:scale-110 ${selectedColor === c.value ? 'border-white scale-110' : 'border-transparent'}`} style={{ backgroundColor: c.color }} title={c.label} />
-            ))}
-          </div>
-
-          {/* Font */}
-          <p className="text-[10px] uppercase tracking-wide text-dark-textSecondary px-2 pb-1">Font</p>
-          <button type="button" onClick={() => { setShowFontPicker(!showFontPicker); setOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-dark-text hover:bg-white/10 text-sm">
-            <Languages size={16} /> Change font
-          </button>
-
-          {/* Schedule */}
-          <p className="text-[10px] uppercase tracking-wide text-dark-textSecondary px-2 pt-1 pb-1">More</p>
-          <button type="button" onClick={() => { handleSchedule(); setOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-dark-text hover:bg-white/10 text-sm">
-            <CalendarClock size={16} /> Schedule message
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 const MessageComposer = React.memo(function MessageComposer({ ctx }) {
   const {
@@ -117,6 +55,8 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
     { value: '#FF69B4', label: 'Pink', color: '#FF69B4' },
     { value: '#00FF7F', label: 'Neon', color: '#00FF7F' },
   ];
+
+  const [showFormattingMenu, setShowFormattingMenu] = useState(false);
 
   const composerIconButton = 'w-11 h-11 min-w-[44px] min-h-[44px] flex-shrink-0 rounded-full flex items-center justify-center text-dark-textSecondary hover:text-dark-text hover:bg-dark-hover transition-colors active:scale-95';
   const activeComposerIconButton = 'w-11 h-11 min-w-[44px] min-h-[44px] flex-shrink-0 rounded-full flex items-center justify-center bg-primary-600 text-white transition-colors active:scale-95';
@@ -223,7 +163,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
 
           <form onSubmit={handleSendMessage} className="flex w-full items-end gap-2 flex-shrink-0 z-50" role="form" aria-label="Send message">
             {showAttachmentMenu && (
-              <div ref={attachmentMenuRef} className="absolute bottom-[calc(100%+8px)] left-2 right-2 md:left-2 md:right-auto md:w-[min(36rem,calc(100vw-1rem))] bg-dark-surface border border-dark-border rounded-2xl shadow-2xl p-2 md:p-3 grid grid-cols-4 sm:grid-cols-4 md:grid-cols-5 gap-1.5 md:gap-2 z-50 max-h-[min(58vh,420px)] overflow-y-auto animate-slideUp">
+              <div ref={attachmentMenuRef} className="absolute bottom-[calc(100%+8px)] left-2 right-2 md:left-2 md:right-auto md:w-[min(36rem,calc(100vw-1rem))] bg-[#1f2c34] border border-dark-border rounded-2xl shadow-2xl p-2 md:p-3 grid grid-cols-4 sm:grid-cols-4 md:grid-cols-5 gap-1.5 md:gap-2 z-[90] max-h-[min(58vh,420px)] overflow-y-auto animate-slideUp">
                 <AttachmentIcon icon={<CalendarClock className="text-[#00a884]" />} label="Schedule" onClick={handleSchedule} disabled={!selectedConversation} title="Schedule Message" />
                 <AttachmentIcon icon={<Eye className={isViewOnceEnabled ? 'text-white' : 'text-purple-500'} />} label="View Once" onClick={() => setIsViewOnceEnabled(!isViewOnceEnabled)} active={isViewOnceEnabled} title="Send as View Once" />
                 {isViewOnceEnabled && (
@@ -364,19 +304,16 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                   <Eye size={20} />
                 </button>
                 {/* ── More options (⋮) — shows formatting, color, font, schedule on mobile ── */}
-                <MoreOptionsMenu
-                  handleFormatText={handleFormatText}
-                  showColorPicker={showColorPicker}
-                  setShowColorPicker={setShowColorPicker}
-                  selectedColor={selectedColor}
-                  setSelectedColor={setSelectedColor}
-                  showFontPicker={showFontPicker}
-                  setShowFontPicker={setShowFontPicker}
-                  handleSchedule={handleSchedule}
-                  TEXT_COLORS={TEXT_COLORS}
-                  composerIconButton={composerIconButton}
-                  activeComposerIconButton={activeComposerIconButton}
-                />
+                <button
+                  type="button"
+                  onClick={() => setShowFormattingMenu((v) => !v)}
+                  className={`${showFormattingMenu ? activeComposerIconButton : composerIconButton}`}
+                  title="More options"
+                  aria-label="More formatting options"
+                  aria-expanded={showFormattingMenu}
+                >
+                  <MoreVertical className="w-5 h-5" />
+                </button>
                 {/* Text formatting buttons — inline on desktop only */}
                 <div className="hidden lg:flex items-center gap-0.5 border-l border-white/10 pl-1.5 ml-0.5">
                   <button type="button" onClick={() => handleFormatText('*')} className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 rounded-full flex items-center justify-center text-dark-textSecondary hover:text-white hover:bg-white/10 transition-colors active:scale-90" title="Bold (*text*)" aria-label="Bold"><Bold size={16} /></button>
@@ -477,6 +414,35 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                   setTimeout(() => inputRef.current?.focus(), 100);
                 }}
               />
+            </div>
+          )}
+
+          {/* ══════ INLINE FORMATTING MENU (WhatsApp-style: above input) ══════ */}
+          {showFormattingMenu && (
+            <div className="inline-keyboard-container animate-slideUp" style={{ maxHeight: '220px', minHeight: 'auto' }}>
+              <div className="p-3">
+                <p className="text-[10px] uppercase tracking-wide text-dark-textSecondary px-2 pb-1">Format</p>
+                <div className="flex items-center gap-1 px-1 pb-2">
+                  <button type="button" onClick={() => handleFormatText('*')} className="w-9 h-9 flex items-center justify-center rounded-lg text-dark-text hover:bg-white/10 active:scale-90" title="Bold"><Bold size={16} /></button>
+                  <button type="button" onClick={() => handleFormatText('_')} className="w-9 h-9 flex items-center justify-center rounded-lg text-dark-text hover:bg-white/10 active:scale-90" title="Italic"><Italic size={16} /></button>
+                  <button type="button" onClick={() => handleFormatText('~')} className="w-9 h-9 flex items-center justify-center rounded-lg text-dark-text hover:bg-white/10 active:scale-90" title="Strikethrough"><Strikethrough size={16} /></button>
+                  <button type="button" onClick={() => handleFormatText('`')} className="w-9 h-9 flex items-center justify-center rounded-lg text-dark-text hover:bg-white/10 active:scale-90" title="Monospace"><span className="text-xs font-mono font-bold">&lt;/&gt;</span></button>
+                </div>
+                <p className="text-[10px] uppercase tracking-wide text-dark-textSecondary px-2 pb-1">Color</p>
+                <div className="flex gap-1.5 flex-wrap px-2 pb-2">
+                  {TEXT_COLORS.map((c) => (
+                    <button key={c.value} type="button" onClick={() => { setSelectedColor(c.value); setShowFormattingMenu(false); }} className={`w-6 h-6 rounded-full border-2 transition-all hover:scale-110 ${selectedColor === c.value ? 'border-white scale-110' : 'border-transparent'}`} style={{ backgroundColor: c.color }} title={c.label} />
+                  ))}
+                </div>
+                <p className="text-[10px] uppercase tracking-wide text-dark-textSecondary px-2 pb-1">Font</p>
+                <button type="button" onClick={() => { setShowFontPicker(!showFontPicker); setShowFormattingMenu(false); }} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-dark-text hover:bg-white/10 text-sm min-w-0">
+                  <Languages size={16} /> Change font
+                </button>
+                <p className="text-[10px] uppercase tracking-wide text-dark-textSecondary px-2 pt-1 pb-1">More</p>
+                <button type="button" onClick={() => { handleSchedule(); setShowFormattingMenu(false); }} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-dark-text hover:bg-white/10 text-sm min-w-0">
+                  <CalendarClock size={16} /> Schedule message
+                </button>
+              </div>
             </div>
           )}
 
