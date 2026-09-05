@@ -89,7 +89,7 @@ const setupSocket = (io) => {
             event
           });
           socket.emit('error', { message: 'Too many requests. Try again shortly.', event });
-          socket.disconnect(true);
+          if (typeof socket.disconnect === 'function') socket.disconnect(true);
           return;
         }
         try {
@@ -120,7 +120,7 @@ const setupSocket = (io) => {
     const staleCheckInterval = setInterval(() => {
       if (Date.now() - socket.lastHeartbeat > 60000) {
         logInfo('Stale connection, disconnecting', { userId: socket.userId, socketId: socket.id });
-        socket.disconnect(true);
+        if (typeof socket.disconnect === 'function') socket.disconnect(true);
       }
     }, 60000);
     socket.on('disconnect', () => {
