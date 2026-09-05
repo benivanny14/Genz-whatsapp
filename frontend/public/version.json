@@ -1,18 +1,12 @@
 {
-  "version": "1.1.21",
-  "versionCode": 24,
+  "version": "1.1.22",
+  "versionCode": 25,
   "apkUrl": "/genz-whatsapp.apk",
-  "sha256": "",
-  "size": 0,
-  "releasedAt": "2026-09-04T23:00:00.000Z",
   "changes": [
-    "Formatting menu inline panel fix — haifit kwenye simu",
-    "Chat header more options menu mobile fit",
-    "Color picker improvements",
-    "Font picker improvements", 
-    "Schedule message fix",
-    "Voice effects improvements",
-    "Status posting improvements",
-    "Winga marketplace updates"
+    "Update banner position fix — now above nav bar",
+    "Formatting menu inline panel for mobile",
+    "Chat header menu mobile fit improvements",
+    "Color picker and font picker improvements",
+    "Schedule message fix"
   ]
 }
