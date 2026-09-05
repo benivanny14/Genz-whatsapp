@@ -9,14 +9,27 @@ export const VERSION_MANIFEST_ORIGIN = 'https://genz-whatsapp-1.onrender.com';
 
 // Fetch version.json (relative first — the web/deployed app; absolute fallback
 // for the bundled APK). Never throws: callers treat null as "no data".
-export const fetchVersionManifest = (path = '/version.json') =>
-  fetch(path)
-    .then((res) => (res.ok ? res.json() : null))
-    .catch(() =>
-      fetch(`${VERSION_MANIFEST_ORIGIN}${path}`)
-        .then((res) => (res.ok ? res.json() : null))
-        .catch(() => null)
-    );
+export const fetchVersionManifest = (path = '/version.json') => {
+  let native = false;
+  try {
+    native = Boolean(window.Capacitor?.isNativePlatform?.());
+  } catch {
+    native = false;
+  }
+
+  // A native APK contains the manifest from the build that installed it.
+  // Reading that local copy first makes a newer server release look current.
+  const urls = native
+    ? [`${VERSION_MANIFEST_ORIGIN}${path}`, path]
+    : [path, `${VERSION_MANIFEST_ORIGIN}${path}`];
+
+  return urls.reduce(
+    (promise, url) => promise.then((value) => value || fetch(url)
+      .then((res) => (res.ok ? res.json() : null))
+      .catch(() => null)),
+    Promise.resolve(null)
+  );
+};
 
 const GITHUB_REPO = 'benivanny14/Genz-whatsapp';
 
@@ -31,4 +44,9 @@ export const apkDownloadUrl = (relative = '/genz-whatsapp.apk') => {
     /* not in a browser */
   }
   return `https://github.com/${GITHUB_REPO}/releases/latest/download/genz-whatsapp.apk`;
+};
+
+export const absoluteApkDownloadUrl = (url = '/genz-whatsapp.apk') => {
+  if (/^https?:\/\//i.test(url)) return url;
+  return `${VERSION_MANIFEST_ORIGIN}${url.startsWith('/') ? url : `/${url}`}`;
 };

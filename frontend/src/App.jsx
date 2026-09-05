@@ -555,6 +555,7 @@ function App() {
             <Route path="/new-chat" element={<ProtectedRoute><NewChat /></ProtectedRoute>} />
             <Route path="/new-group" element={<ProtectedRoute><NewGroup /></ProtectedRoute>} />
             <Route path="/status/shared/:id" element={<SharedStatus />} />
+            <Route path="/status/:id" element={<SharedStatus />} />
             <Route path="/status" element={<ProtectedRoute><Status /></ProtectedRoute>} />
             <Route path="/broadcast" element={<ProtectedRoute><Broadcasts /></ProtectedRoute>} />
             <Route path="/broadcast/simple" element={<ProtectedRoute><Broadcast /></ProtectedRoute>} />

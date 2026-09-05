@@ -14,7 +14,8 @@ const registerUser = async (username, phone) => {
       password: 'Password123!'
     });
   expect(res.statusCode).toBe(201);
-  return { token: res.body.token, user: res.body.user, otp: res.body.phoneVerificationOTP, phoneNumber: res.body.user.phoneNumber };
+  const storedUser = await User.findById(res.body.user._id);
+  return { token: res.body.token, user: res.body.user, otp: storedUser.phoneVerificationOTP, phoneNumber: res.body.user.phoneNumber };
 };
 
 const verifyPhone = async ({ token, otp, phoneNumber }) => {

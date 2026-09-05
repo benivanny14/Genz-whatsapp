@@ -9,7 +9,7 @@ import {
   DollarSign, Star, Search, Plus, Camera, Video, Upload as UploadIcon, Mail, Crown, LayoutGrid, Store
 } from 'lucide-react';
 import ContactManager from '../components/ContactManager';
-import { fetchVersionManifest } from '../utils/versionManifest';
+import { fetchVersionManifest, absoluteApkDownloadUrl } from '../utils/versionManifest';
 import { BlockedUsersList } from '../components/BlockUnblock';
 import AntiBanPanel from '../components/AntiBanPanel';
 import StatusPrivacy from '../components/StatusPrivacy';
@@ -1376,7 +1376,7 @@ const Settings = () => {
                 </button>
               ) : (
                 <a
-                  href={updateInfo.apkUrl}
+                  href={absoluteApkDownloadUrl(updateInfo.apkUrl)}
                   className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-[#00a884] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#00c795]"
                 >
                   <Download size={16} /> Install sasa

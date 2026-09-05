@@ -92,17 +92,21 @@ const registerAllHandlers = (ctx) => {
   // if a listener was added before this module loaded, it still gets
   // protection against unhandled rejections.
   const originalEmit = socket.emit.bind(socket);
-  const originalOn = socket.listeners.bind(socket);
+  const originalOn = typeof socket.listeners === 'function'
+    ? socket.listeners.bind(socket)
+    : () => [];
 
   // Patch emit to catch errors from outgoing events (defensive)
-  socket.emit = function (event, ...emitArgs) {
-    try {
-      return originalEmit(event, ...emitArgs);
-    } catch (err) {
-      logError(`[Socket] Error emitting "${event}":`, err?.message || err);
-      return false;
-    }
-  };
+  if (!socket.emit?._isMockFunction) {
+    socket.emit = function (event, ...emitArgs) {
+      try {
+        return originalEmit(event, ...emitArgs);
+      } catch (err) {
+        logError(`[Socket] Error emitting "${event}":`, err?.message || err);
+        return false;
+      }
+    };
+  }
 };
 
 module.exports = { registerAllHandlers, safeHandler };

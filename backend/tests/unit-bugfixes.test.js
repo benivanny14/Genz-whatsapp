@@ -219,20 +219,10 @@ async function testRegisterAllHandlers() {
   assert('registerAllHandlers does not throw with mock context', !threw);
 }
 
-// ════════════════════════════════════════
-// Run all
-// ════════════════════════════════════════
-async function main() {
+test('bugfix smoke tests: safeHandler, authStrictLimiter, and socket registration', async () => {
   await testSafeHandler();
   await testAuthStrictLimiter();
   await testRegisterAllHandlers();
 
-  console.log('\n═══════════════════════════════════════');
-  console.log('  TOTAL: ' + (passed + failed) + ' | ✅ PASSED: ' + passed + ' | ❌ FAILED: ' + failed);
-  console.log('═══════════════════════════════════════');
-  results.forEach(r => console.log(r));
-  console.log('═══════════════════════════════════════');
-  process.exit(failed > 0 ? 1 : 0);
-}
-
-main().catch(err => { console.error(err); process.exit(1); });
+  if (failed > 0) throw new Error(results.join('\n'));
+});

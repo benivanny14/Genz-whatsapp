@@ -42,7 +42,9 @@ const socketUrl = process.env.VITE_SOCKET_URL || 'https://genz-whatsapp.onrender
 
 console.log('[apk] 0/6 Pre-build checks (icons, manifest, keystore, version.json)');
 // Fail fast before the expensive web build + gradle run. See pre-build-check.js.
-run('node scripts/pre-build-check.js');
+run('node scripts/pre-build-check.js', {
+  env: { ...process.env, VITE_API_URL: apiUrl, VITE_SOCKET_URL: socketUrl }
+});
 
 console.log(`[apk] 1/6 Building web app (API: ${apiUrl})`);
 run('npm run build', { env: { ...process.env, VITE_API_URL: apiUrl, VITE_SOCKET_URL: socketUrl } });

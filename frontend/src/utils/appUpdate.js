@@ -17,7 +17,7 @@
 //
 // checkForUpdate returns one of: 'updated' | 'up-to-date' | 'unsupported' | 'error'
 
-import { fetchVersionManifest, apkDownloadUrl } from './versionManifest';
+import { fetchVersionManifest, absoluteApkDownloadUrl } from './versionManifest';
 import { getAppInfo, isNative } from '../services/capacitorBridge';
 
 /**
@@ -56,7 +56,7 @@ export const getAppUpdateInfo = async () => {
     installed: { version: installedVersion, code: installedCode },
     hasUpdate: latestCode > installedCode,
     changes: Array.isArray(manifest.changes) ? manifest.changes : [],
-    apkUrl: manifest.apkUrl || apkDownloadUrl(),
+    apkUrl: absoluteApkDownloadUrl(manifest.apkUrl || '/genz-whatsapp.apk'),
     isWeb: web
   };
 };
