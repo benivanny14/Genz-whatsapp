@@ -12,18 +12,21 @@
  * and passed to every handler module, so behavior is identical to the
  * previous single-file implementation.
  */
-const { createContext, SOCKET_SETUP_FLAG } = require('./context');
+const { createContext, SOCKET_SETUP_FLAG } = require("./context");
 // BUG FIX 1: All handlers are now registered through chatHandlers.js
 // which wraps every handler in try-catch to prevent server crashes.
-const { registerAllHandlers } = require('./chatHandlers');
-const { logInfo, logError, logWarning, logDebug } = require('../config/winston');
+const { registerAllHandlers } = require("./chatHandlers");
+const {
+  logInfo,
+  logError,
+  logWarning,
+  logDebug,
+} = require("../config/winston");
 const {
   getContactId,
   isExcluded,
-  resolveOnlineSetting
-} = require('../services/privacyEngineService');
-
-
+  resolveOnlineSetting,
+} = require("../services/privacyEngineService");
 
 const setupSocket = (io) => {
   if (io[SOCKET_SETUP_FLAG]) {
@@ -31,8 +34,8 @@ const setupSocket = (io) => {
   }
   io[SOCKET_SETUP_FLAG] = true;
 
-  io.on('connection', (socket) => {
-        logDebug('User connected', { socketId: socket.id });
+  io.on("connection", (socket) => {
+    logDebug("User connected", { socketId: socket.id });
 
     // ── Per-socket rate limiting (P1-5) ───────────────────────────────────
     // Sliding-window limiter applied to every inbound event. Prevents a
@@ -46,14 +49,15 @@ const setupSocket = (io) => {
     const RATE_LIMIT_WINDOW_MS = 10000; // 10 seconds
     const RATE_LIMIT_MAX_EVENTS = 120; // 120 events per window
     const eventTimestamps = []; // in-memory fallback (no Redis)
-    const getRateLimitRedis = () => (typeof global !== 'undefined' ? global.redisClient : null) || null;
+    const getRateLimitRedis = () =>
+      (typeof global !== "undefined" ? global.redisClient : null) || null;
     const isRateLimited = async (eventName) => {
       const now = Date.now();
       const rc = getRateLimitRedis();
       if (rc && rc.isOpen) {
         // Redis-backed: per (user, event) budget that survives reconnects.
         try {
-          const key = `ratelimit:${socket.userId || socket.id}:${eventName || 'all'}`;
+          const key = `ratelimit:${socket.userId || socket.id}:${eventName || "all"}`;
           const current = await rc.get(key);
           let events = current ? JSON.parse(current) : [];
           // Filter events from the last 10 seconds
@@ -65,11 +69,17 @@ const setupSocket = (io) => {
           await rc.setEx(key, 10, JSON.stringify(events));
           return false;
         } catch (err) {
-          logWarning('Socket rate limit (Redis) check failed, allowing through:', err?.message || err);
+          logWarning(
+            "Socket rate limit (Redis) check failed, allowing through:",
+            err?.message || err,
+          );
         }
       }
       // In-memory fallback (single-instance mode / Redis error).
-      while (eventTimestamps.length && now - eventTimestamps[0] > RATE_LIMIT_WINDOW_MS) {
+      while (
+        eventTimestamps.length &&
+        now - eventTimestamps[0] > RATE_LIMIT_WINDOW_MS
+      ) {
         eventTimestamps.shift();
       }
       eventTimestamps.push(now);
@@ -79,68 +89,84 @@ const setupSocket = (io) => {
     // ── Global socket error protection ────────────────────────────────────
     // Override socket.on to automatically wrap handlers with try-catch
     const _originalOn = socket.on.bind(socket);
-    socket.on = function(event, handler) {
-      if (typeof handler !== 'function') return _originalOn(event, handler);
+    socket.on = function (event, handler) {
+      if (typeof handler !== "function") return _originalOn(event, handler);
       const safeHandler = async (...args) => {
         if (await isRateLimited(event)) {
-                    logWarning('Socket rate limit exceeded, disconnecting', {
+          logWarning("Socket rate limit exceeded, disconnecting", {
             socketId: socket.id,
             userId: socket.userId,
-            event
+            event,
           });
-          socket.emit('error', { message: 'Too many requests. Try again shortly.', event });
-          if (typeof socket.disconnect === 'function') socket.disconnect(true);
+          socket.emit("error", {
+            message: "Too many requests. Try again shortly.",
+            event,
+          });
+          socket.disconnect(true);
           return;
         }
         try {
           await handler(...args);
         } catch (err) {
-          logError(`[Socket] Unhandled error in "${event}" handler:`, err?.message || err);
-          socket.emit('error', { message: 'Server error processing your request', event });
+          logError(
+            `[Socket] Unhandled error in "${event}" handler:`,
+            err?.message || err,
+          );
+          socket.emit("error", {
+            message: "Server error processing your request",
+            event,
+          });
         }
       };
       return _originalOn(event, safeHandler);
     };
 
     // Handle reconnection
-    socket.on('reconnect_attempt', () => {
-            logDebug('Reconnection attempt', { socketId: socket.id });
-    });    socket.on('error', (error) => {
-            logError('Socket error', { message: error.message, socketId: socket.id });
+    socket.on("reconnect_attempt", () => {
+      logDebug("Reconnection attempt", { socketId: socket.id });
+    });
+    socket.on("error", (error) => {
+      logError("Socket error", { message: error.message, socketId: socket.id });
     });
 
     // ── Heartbeat / stale-connection detection ──────────────────────────
     // Server sends heartbeat every 25s; client must ack within 60s or be
     // disconnected. Prevents zombie connections from consuming resources.
     socket.lastHeartbeat = Date.now();
-    socket.on('heartbeat_ack', () => { socket.lastHeartbeat = Date.now(); });
+    socket.on("heartbeat_ack", () => {
+      socket.lastHeartbeat = Date.now();
+    });
     const heartbeatInterval = setInterval(() => {
-      try { socket.emit('heartbeat', { timestamp: Date.now() }); } catch {}
+      try {
+        socket.emit("heartbeat", { timestamp: Date.now() });
+      } catch {}
     }, 25000);
     const staleCheckInterval = setInterval(() => {
       if (Date.now() - socket.lastHeartbeat > 60000) {
-        logInfo('Stale connection, disconnecting', { userId: socket.userId, socketId: socket.id });
-        if (typeof socket.disconnect === 'function') socket.disconnect(true);
+        logInfo("Stale connection, disconnecting", {
+          userId: socket.userId,
+          socketId: socket.id,
+        });
+        socket.disconnect(true);
       }
     }, 60000);
-    socket.on('disconnect', () => {
+    socket.on("disconnect", () => {
       clearInterval(heartbeatInterval);
       clearInterval(staleCheckInterval);
     });
 
-
-    socket.on('user:join', async (userId) => {
-            if (!userId) {
-        logError('No userId provided for user:join');
+    socket.on("user:join", async (userId) => {
+      if (!userId) {
+        logError("No userId provided for user:join");
         return;
       }
 
       if (socket.userId && userId.toString() !== socket.userId.toString()) {
-        logError('Blocked user:join impersonation attempt', {
+        logError("Blocked user:join impersonation attempt", {
           requested: userId,
-          authenticated: socket.userId
+          authenticated: socket.userId,
         });
-        return socket.emit('error', { message: 'Cannot join as another user' });
+        return socket.emit("error", { message: "Cannot join as another user" });
       }
 
       const userKey = String(userId);
@@ -155,25 +181,36 @@ const setupSocket = (io) => {
       // emits to 'admin-room'.  Both rooms are joined here so admin
       // sockets receive real-time events from either emitter.
       try {
-        const adminUser = await User.findById(userId).select('role isAdmin').lean();
-        if (adminUser?.role === 'admin' || adminUser?.isAdmin) {
-          socket.join('role:admin');
-          socket.join('admin-room');
+        const adminUser = await User.findById(userId)
+          .select("role isAdmin")
+          .lean();
+        if (adminUser?.role === "admin" || adminUser?.isAdmin) {
+          socket.join("role:admin");
+          socket.join("admin-room");
         }
-      } catch (_) { /* non-critical */ }
+      } catch (_) {
+        /* non-critical */
+      }
 
       // Share online state with other instances (no-op without Redis).
       presenceStore.setLocalPresence(userKey, { online: true, away: false });
 
       try {
-        const user = await User.findByIdAndUpdate(userId, { isOnline: true, lastSeen: new Date() }, { new: true }).select('settings contacts');
+        const user = await User.findByIdAndUpdate(
+          userId,
+          { isOnline: true, lastSeen: new Date() },
+          { new: true },
+        ).select("settings contacts");
 
         const privacySettings = user?.settings?.privacy || {};
         const onlineSetting = resolveOnlineSetting(privacySettings);
 
-        if (onlineSetting === 'nobody') {
+        if (onlineSetting === "nobody") {
           // Do not broadcast
-        } else if (onlineSetting === 'contacts' || onlineSetting === 'contacts_except') {
+        } else if (
+          onlineSetting === "contacts" ||
+          onlineSetting === "contacts_except"
+        ) {
           // SECURITY: contacts are { user, savedName } subdocs — extract the
           // nested id (String(subdoc) would be "[object Object]"), and for
           // contacts_except skip anyone on the owner's exclusion list
@@ -183,66 +220,91 @@ const setupSocket = (io) => {
             const contactId = getContactId(contact);
             if (!contactId) continue;
             const contactIdStr = String(contactId);
-            if (onlineSetting === 'contacts_except' && await isExcluded(user._id, 'last_seen', contactIdStr)) {
+            if (
+              onlineSetting === "contacts_except" &&
+              (await isExcluded(user._id, "last_seen", contactIdStr))
+            ) {
               continue;
             }
             const recipientSocketId = onlineUsers.get(contactIdStr);
             if (recipientSocketId) {
-              io.to(recipientSocketId).emit('user:online', { userId });
+              io.to(recipientSocketId).emit("user:online", { userId });
             }
           }
         } else {
-          socket.broadcast.emit('user:online', { userId });
+          socket.broadcast.emit("user:online", { userId });
         }
       } catch (error) {
-        logError('Error updating user online status:', error);
+        logError("Error updating user online status:", error);
       }
     });
 
-    socket.on('join:conversation', async (conversationId) => {
+    socket.on("join:conversation", async (conversationId) => {
       if (!conversationId || !socket.userId) return;
 
       try {
         const conversation = await Conversation.findById(conversationId);
-        if (!conversation || !includesId(conversation.participants, socket.userId)) {
-          return socket.emit('error', { message: 'Not authorized for this conversation' });
+        if (
+          !conversation ||
+          !includesId(conversation.participants, socket.userId)
+        ) {
+          return socket.emit("error", {
+            message: "Not authorized for this conversation",
+          });
         }
 
         socket.join(conversationId);
-                logDebug('User joined conversation', { userId: socket.userId, conversationId });
+        logDebug("User joined conversation", {
+          userId: socket.userId,
+          conversationId,
+        });
       } catch (error) {
-                logError('Error joining conversation room', { message: error.message, userId: socket.userId, conversationId });
-        socket.emit('error', { message: 'Failed to join conversation' });
+        logError("Error joining conversation room", {
+          message: error.message,
+          userId: socket.userId,
+          conversationId,
+        });
+        socket.emit("error", { message: "Failed to join conversation" });
       }
     });
 
-    socket.on('leave:conversation', (conversationId) => {
+    socket.on("leave:conversation", (conversationId) => {
       socket.leave(conversationId);
-            logDebug('User left conversation', { userId: socket.userId, conversationId });
+      logDebug("User left conversation", {
+        userId: socket.userId,
+        conversationId,
+      });
     });
 
     // FIX (feature add): the new channel feed endpoints emit to
     // `channel:${channelId}` for live post delivery, but nothing ever put a
     // socket into that room — so no one actually received live updates
     // until they refreshed. Mirrors join:conversation/leave:conversation.
-    socket.on('join:channel', async (channelId) => {
+    socket.on("join:channel", async (channelId) => {
       if (!channelId || !socket.userId) return;
       try {
-        const Channel = require('../models/Channel');
-        const channel = await Channel.findById(channelId).select('isPublic followers owner');
-        if (!channel) return socket.emit('error', { message: 'Channel not found' });
-        const isFollower = channel.followers.some((f) => String(f) === String(socket.userId));
+        const Channel = require("../models/Channel");
+        const channel = await Channel.findById(channelId).select(
+          "isPublic followers owner",
+        );
+        if (!channel)
+          return socket.emit("error", { message: "Channel not found" });
+        const isFollower = channel.followers.some(
+          (f) => String(f) === String(socket.userId),
+        );
         const isOwner = String(channel.owner) === String(socket.userId);
         if (!channel.isPublic && !isFollower && !isOwner) {
-          return socket.emit('error', { message: 'Not authorized for this channel' });
+          return socket.emit("error", {
+            message: "Not authorized for this channel",
+          });
         }
         socket.join(`channel:${channelId}`);
       } catch (error) {
-        logError('Error joining channel room:', error.message);
+        logError("Error joining channel room:", error.message);
       }
     });
 
-    socket.on('leave:channel', (channelId) => {
+    socket.on("leave:channel", (channelId) => {
       if (!channelId) return;
       socket.leave(`channel:${channelId}`);
     });
@@ -261,11 +323,11 @@ const setupSocket = (io) => {
       socketToUser,
       isUserStillOnline,
       presenceStore,
-      includesId
+      includesId,
     } = ctx;
 
-    socket.on('disconnect', async () => {
-      logInfo('User disconnected:', socket.id);
+    socket.on("disconnect", async () => {
+      logInfo("User disconnected:", socket.id);
 
       // IMPORTANT: Clear listeners to prevent memory leaks
       socket.removeAllListeners();
@@ -278,16 +340,17 @@ const setupSocket = (io) => {
       // screen would show "typing..." indefinitely since stop_typing only
       // ever fired on an explicit client event, never on disconnect.
       try {
-        const typingConversationId = socket.data && socket.data.typingConversationId;
+        const typingConversationId =
+          socket.data && socket.data.typingConversationId;
         if (typingConversationId) {
-          socket.to(typingConversationId).emit('user:typing', {
+          socket.to(typingConversationId).emit("user:typing", {
             userId: disconnectedUserId,
             conversationId: typingConversationId,
-            isTyping: false
+            isTyping: false,
           });
         }
       } catch (err) {
-        logError('Error clearing typing state on disconnect:', err);
+        logError("Error clearing typing state on disconnect:", err);
       }
 
       // Clean up presence/away tracking for this user.
@@ -309,18 +372,26 @@ const setupSocket = (io) => {
         try {
           await User.findByIdAndUpdate(disconnectedUserId, {
             isOnline: false,
-            lastSeen: new Date()
+            lastSeen: new Date(),
           });
 
           // SECURITY (1.2): mirror the online broadcast — respect the user's
           // privacy setting for who may see their presence.
-          const offlineUser = await User.findById(disconnectedUserId).select('settings contacts').lean();
+          const offlineUser = await User.findById(disconnectedUserId)
+            .select("settings contacts")
+            .lean();
           const privacySettings = offlineUser?.settings?.privacy || {};
           const onlineSetting = resolveOnlineSetting(privacySettings);
-          const offlinePayload = { userId: disconnectedUserId, lastSeen: new Date().toISOString() };
-          if (onlineSetting === 'nobody') {
+          const offlinePayload = {
+            userId: disconnectedUserId,
+            lastSeen: new Date().toISOString(),
+          };
+          if (onlineSetting === "nobody") {
             // Do not broadcast
-          } else if (onlineSetting === 'contacts' || onlineSetting === 'contacts_except') {
+          } else if (
+            onlineSetting === "contacts" ||
+            onlineSetting === "contacts_except"
+          ) {
             // SECURITY: skip excluded contacts for contacts_except (presence
             // follows the last-seen exclusion list).
             const contacts = offlineUser?.contacts || [];
@@ -328,24 +399,31 @@ const setupSocket = (io) => {
               const contactUserId = getContactId(c);
               if (!contactUserId) continue;
               const contactIdStr = String(contactUserId);
-              if (onlineSetting === 'contacts_except' && await isExcluded(disconnectedUserId, 'last_seen', contactIdStr)) {
+              if (
+                onlineSetting === "contacts_except" &&
+                (await isExcluded(
+                  disconnectedUserId,
+                  "last_seen",
+                  contactIdStr,
+                ))
+              ) {
                 continue;
               }
               const sid = onlineUsers.get(contactIdStr);
-              if (sid) io.to(sid).emit('user:offline', offlinePayload);
+              if (sid) io.to(sid).emit("user:offline", offlinePayload);
             }
           } else {
-            socket.broadcast.emit('user:offline', offlinePayload);
+            socket.broadcast.emit("user:offline", offlinePayload);
           }
         } catch (error) {
-          logError('Error updating user offline status:', error);
+          logError("Error updating user offline status:", error);
         }
       }
     });
 
-    socket.on('disconnecting', (reason) => {
+    socket.on("disconnecting", (reason) => {
       try {
-        logInfo('User disconnecting:', socket.id, 'reason:', reason);
+        logInfo("User disconnecting:", socket.id, "reason:", reason);
         // Leave all rooms before disconnect
         const rooms = socket.rooms;
         for (const room of rooms) {
@@ -353,15 +431,19 @@ const setupSocket = (io) => {
             socket.leave(room);
           }
         }
-      } catch (err) { logError('disconnecting handler error:', err); }
+      } catch (err) {
+        logError("disconnecting handler error:", err);
+      }
     });
 
     // Handle connection errors gracefully
-    socket.on('connect_error', (error) => {
+    socket.on("connect_error", (error) => {
       try {
-        logError('Socket connection error:', error);
-        socket.emit('error', { message: 'Connection error occurred' });
-      } catch (err) { logError('connect_error handler error:', err); }
+        logError("Socket connection error:", error);
+        socket.emit("error", { message: "Connection error occurred" });
+      } catch (err) {
+        logError("connect_error handler error:", err);
+      }
     });
   });
 };

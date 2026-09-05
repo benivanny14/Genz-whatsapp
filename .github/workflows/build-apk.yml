@@ -50,19 +50,24 @@ jobs:
         run: cd frontend && npm ci
 
       - name: Restore release keystore from secrets
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PROP: ${{ secrets.ANDROID_KEYSTORE_PROPERTIES }}
         run: |
-          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
-            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > frontend/android/genz-release.keystore
-            echo "${{ secrets.ANDROID_KEYSTORE_PROPERTIES }}" > frontend/android/keystore.properties
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | tr -d ' \r\n' | base64 -d > frontend/android/genz-release.keystore
+            echo "$KEYSTORE_PROP" > frontend/android/keystore.properties
             echo "::notice::Release keystore restored — APK will be release-signed"
           else
             echo "::warning::ANDROID_KEYSTORE_BASE64 not set — APK will be DEBUG-signed (do NOT ship)"
           fi
 
       - name: Restore google-services.json from secrets (FCM + Analytics)
+        env:
+          GOOGLE_SERVICES_B64: ${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON_B64 }}
         run: |
-          if [ -n "${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON_B64 }}" ]; then
-            echo "${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON_B64 }}" | base64 -d > frontend/android/app/google-services.json
+          if [ -n "$GOOGLE_SERVICES_B64" ]; then
+            echo "$GOOGLE_SERVICES_B64" | tr -d ' \r\n' | base64 -d > frontend/android/app/google-services.json
             echo "::notice::google-services.json restored — APK will have FCM + Analytics enabled"
           else
             echo "::warning::FIREBASE_GOOGLE_SERVICES_JSON_B64 not set — APK built WITHOUT FCM/Analytics (do NOT ship for push)"
