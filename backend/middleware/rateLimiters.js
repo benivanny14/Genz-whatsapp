@@ -121,9 +121,15 @@ const viewOnceRevealLimiter = rateLimit({
 // BUG FIX 3: Strict auth limiter for login/register/forgot-password.
 // Only 5 attempts per 15 minutes per IP — prevents brute-force attacks
 // while real users sharing a NAT/campus IP still have enough headroom.
+// AUTH_RATE_MAX raises the cap on throwaway CI runners only (same pattern as
+// authSensitiveLimiter above) — the e2e suite registers many users in
+// parallel from one runner IP and would otherwise trip this 5/IP budget.
+const authStrictMax = process.env.NODE_ENV === 'test'
+  ? 100000
+  : parseInt(process.env.AUTH_RATE_MAX, 10) || 5;
 const authStrictLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'test' ? 100000 : 5,
+  max: authStrictMax,
   message: {
     success: false,
     error: 'Too many attempts. Try again in 15 minutes.'
