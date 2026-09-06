@@ -55,8 +55,27 @@ jobs:
           KEYSTORE_PROP: ${{ secrets.ANDROID_KEYSTORE_PROPERTIES }}
         run: |
           if [ -n "$KEYSTORE_B64" ]; then
-            echo "$KEYSTORE_B64" | tr -d ' \r\n' | base64 -d > frontend/android/genz-release.keystore
-            echo "$KEYSTORE_PROP" > frontend/android/keystore.properties
+            # Strip whitespace/CRLF/quotes so wrapped or Windows-copied secrets still decode.
+            printf '%s' "$KEYSTORE_B64" | tr -d ' \t\r\n"' | base64 -d > frontend/android/genz-release.keystore \
+              || { echo "::error::ANDROID_KEYSTORE_BASE64 is not valid base64 — re-export with: base64 -w0 genz-release.jks"; exit 1; }
+            printf '%s' "$KEYSTORE_PROP" | tr -d '\r' > frontend/android/keystore.properties
+            # keystore.properties may point at a different storeFile name (e.g. .jks) — keep them consistent.
+            STORE=$(grep -E '^storeFile=' frontend/android/keystore.properties | cut -d= -f2- | tr -d '\r\n')
+            if [ -n "$STORE" ] && [ "$STORE" != "genz-release.keystore" ] && [ ! -f "frontend/android/$STORE" ]; then
+              cp frontend/android/genz-release.keystore "frontend/android/$STORE"
+              echo "::notice::Keystore also placed at $STORE (storeFile from keystore.properties)"
+            fi
+            # Smoke-test the keystore BEFORE burning a full Gradle build on a bad secret.
+            if command -v keytool >/dev/null 2>&1; then
+              STORE_PASS=$(grep -E '^storePassword=' frontend/android/keystore.properties | cut -d= -f2- | tr -d '\r\n')
+              KT_ARGS=(-list -keystore frontend/android/genz-release.keystore)
+              [ -n "$STORE_PASS" ] && KT_ARGS+=(-storepass "$STORE_PASS")
+              if ! keytool "${KT_ARGS[@]}" </dev/null >/dev/null 2>&1; then
+                echo "::error::Restored keystore failed keytool validation — wrong password, truncated or corrupt secret"
+                exit 1
+              fi
+              echo "::notice::Keystore passed keytool validation"
+            fi
             echo "::notice::Release keystore restored — APK will be release-signed"
           else
             echo "::warning::ANDROID_KEYSTORE_BASE64 not set — APK will be DEBUG-signed (do NOT ship)"
@@ -67,7 +86,8 @@ jobs:
           GOOGLE_SERVICES_B64: ${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON_B64 }}
         run: |
           if [ -n "$GOOGLE_SERVICES_B64" ]; then
-            echo "$GOOGLE_SERVICES_B64" | tr -d ' \r\n' | base64 -d > frontend/android/app/google-services.json
+            printf '%s' "$GOOGLE_SERVICES_B64" | tr -d ' \t\r\n"' | base64 -d > frontend/android/app/google-services.json \
+              || { echo "::error::FIREBASE_GOOGLE_SERVICES_JSON_B64 is not valid base64 — re-export with: base64 -w0 google-services.json"; exit 1; }
             echo "::notice::google-services.json restored — APK will have FCM + Analytics enabled"
           else
             echo "::warning::FIREBASE_GOOGLE_SERVICES_JSON_B64 not set — APK built WITHOUT FCM/Analytics (do NOT ship for push)"
