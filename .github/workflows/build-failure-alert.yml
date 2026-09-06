@@ -1,0 +1,116 @@
+name: Build failure alert
+
+# Fires when the Build APK workflow completes. On failure it opens (or comments
+# on, deduped per branch) a GitHub issue and sends a best-effort email via the
+# /api/telemetry/alerts endpoint (needs ALERT_WEBHOOK_TOKEN; skipped if unset).
+on:
+  workflow_run:
+    workflows: ["Build APK"]
+    types: [completed]
+
+permissions:
+  actions: read
+  issues: write
+  contents: read
+
+jobs:
+  alert:
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Collect failure details
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          REPO: ${{ github.repository }}
+        run: |
+          curl -sf -H "Authorization: token $GH_TOKEN" \
+            "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID/jobs?per_page=100" \
+          | FAILED=false node -e '
+            let d="";
+            process.stdin.on("data",c=>d+=c).on("end",()=>{
+              const lines = [];
+              try {
+                for (const j of JSON.parse(d).jobs || []) {
+                  if (j.conclusion !== "failure") continue;
+                  FAILED = true;
+                  const bad = (j.steps || []).filter(s => s.conclusion === "failure").map(s => s.name);
+                  lines.push("- job `" + j.name + "` failed" + (bad.length ? " at: " + bad.join(", ") : ""));
+                }
+              } catch { lines.push("- (could not parse jobs response)"); }
+              require("fs").appendFileSync(process.env.GITHUB_ENV,
+                "FAILED_STEPS<<EOF_DETAILS\n" + (lines.join("\n") || "- (no failed job details returned)") + "\nEOF_DETAILS\n");
+            })'
+
+      - name: Create or update GitHub issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          export TITLE="🚨 Build APK failed on $BRANCH"
+          BODY=$(FAILED_STEPS="$FAILED_STEPS" TITLE="$TITLE" REPO="$REPO" BRANCH="$BRANCH" SHA="$SHA" RUN_URL="$RUN_URL" node -e '
+            const p = process.env;
+            const body = [
+              "## Build APK failure", "",
+              "| | |", "|---|---|",
+              "| **Branch** | `" + p.BRANCH + "` |",
+              "| **Commit** | [`" + p.SHA.slice(0,7) + "`](https://github.com/" + p.REPO + "/commit/" + p.SHA + ") |",
+              "| **Run** | [logs](" + p.RUN_URL + ") |", "",
+              "**Failed steps:**", p.FAILED_STEPS || "- (unknown)",
+            ].join("\n");
+            require("fs").writeFileSync("issue_body.md", body);
+          ')
+          # Dedupe: if an open issue with this exact title exists, comment instead.
+          ISSUE=$(curl -sf -G -H "Authorization: token $GH_TOKEN" \
+            --data-urlencode "q=repo:$REPO is:issue is:open in:title \"$TITLE\"" \
+            "https://api.github.com/search/issues" \
+          | TITLE="$TITLE" node -e '
+            let d="";
+            process.stdin.on("data",c=>d+=c).on("end",()=>{
+              try {
+                const items = JSON.parse(d).items || [];
+                console.log((items.find(i => i.title === process.env.TITLE) || {}).number || "");
+              } catch { console.log(""); }
+            })')
+          if [ -n "$ISSUE" ]; then
+            curl -sf -X POST -H "Authorization: token $GH_TOKEN" -H "Content-Type: application/json" \
+              -d "{\"body\": $(node -e 'console.log(JSON.stringify(require("fs").readFileSync("issue_body.md","utf8")))')}" \
+              "https://api.github.com/repos/$REPO/issues/$ISSUE/comments" >/dev/null \
+              && echo "Commented on existing issue #$ISSUE" \
+              || echo "::warning::Failed to comment on issue #$ISSUE"
+          else
+            PAYLOAD=$(node -e '
+              console.log(JSON.stringify({
+                title: process.env.TITLE,
+                body: require("fs").readFileSync("issue_body.md", "utf8"),
+              }));
+            ')
+            RESP=$(curl -sf -X POST -H "Authorization: token $GH_TOKEN" -H "Content-Type: application/json" \
+              -d "$PAYLOAD" "https://api.github.com/repos/$REPO/issues") \
+              && echo "Created issue: $(printf '%s' "$RESP" | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{console.log(JSON.parse(d).html_url||"?")}catch{console.log("?")}})')" \
+              || echo "::warning::Failed to create issue"
+          fi
+
+      - name: Email alert (best-effort)
+        if: env.ALERT_TOKEN != ''
+        env:
+          ALERT_TOKEN: ${{ secrets.ALERT_WEBHOOK_TOKEN }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          PAYLOAD=$(FAILED_STEPS="$FAILED_STEPS" node -e '
+            const p = process.env;
+            console.log(JSON.stringify({
+              subject: "GENZ alert: Build APK failed on " + p.BRANCH,
+              section: "ci-build-failure",
+              message: "Build APK failed on " + p.BRANCH + " at " + p.SHA.slice(0,7) + ".\n\n" + (p.FAILED_STEPS || "") + "\n\n" + p.RUN_URL,
+            }));
+          ')
+          curl -s -m 20 -X POST https://genz-whatsapp.onrender.com/api/telemetry/alerts \
+            -H "Content-Type: application/json" \
+            -H "x-alert-token: $ALERT_TOKEN" \
+            -d "$PAYLOAD" || echo '::warning::email alert send failed (SMTP/token not configured?)'
