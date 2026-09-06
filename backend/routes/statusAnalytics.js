@@ -6,7 +6,7 @@ const {
   updateAnalytics,
   deleteAnalytics
 } = require('../controllers/statusAnalyticsController');
-const { protect } = require('../middleware/authMiddleware');
+const { protect } = require('../middleware/auth');
 
 router.use(protect);
 

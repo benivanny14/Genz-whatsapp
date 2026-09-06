@@ -9,7 +9,7 @@ const {
   getPublicTemplates,
   duplicateTemplate
 } = require('../controllers/statusTemplateController');
-const { protect } = require('../middleware/authMiddleware');
+const { protect } = require('../middleware/auth');
 
 router.use(protect);
 
