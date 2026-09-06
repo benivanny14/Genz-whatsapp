@@ -1025,6 +1025,9 @@ const scheduledMessageRoutes = require("./routes/scheduledMessageRoutes");
 const stickerRoutes = require("./routes/stickerRoutes");
 const statusRoutes = require("./routes/status");
 const storyHighlightRoutes = require("./routes/storyHighlights");
+const statusHighlightsRoutes = require("./routes/statusHighlights");
+const statusAnalyticsRoutes = require("./routes/statusAnalytics");
+const statusTemplatesRoutes = require("./routes/statusTemplates");
 
 const paymentRoutes = require("./routes/paymentRoutes");
 const paymentFeaturesRoutes = require("./routes/payment-features");
@@ -1112,6 +1115,9 @@ const API_ROUTE_MOUNTS = [
   ["/status-advanced", statusRoutes],
   ["/status-features", statusRoutes],
   ["/story-highlights", storyHighlightRoutes],
+  ["/status-highlights", statusHighlightsRoutes],
+  ["/status-analytics", statusAnalyticsRoutes],
+  ["/status-templates", statusTemplatesRoutes],
 
   ["/payment-features", paymentFeaturesRoutes],
   // Newly-wired feature routes (previously orphaned controllers)

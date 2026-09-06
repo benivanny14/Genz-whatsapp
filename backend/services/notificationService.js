@@ -200,6 +200,83 @@ const sendNewStatusNotification = async (userId, statusData) => {
 };
 
 /**
+ * Send status mention notification
+ * @param {string} userId - Recipient user ID (mentioned user)
+ * @param {Object} mentionData - Mention data
+ * @returns {Promise<Object>} Send result
+ */
+const sendStatusMentionNotification = async (userId, mentionData) => {
+  const notification = {
+    title: `${mentionData.mentionerName || 'Someone'} mentioned you in a status`,
+    body: mentionData.preview || 'Tap to view',
+    type: 'status_mention',
+    clickAction: `/status?statusId=${mentionData.statusId}`,
+    tag: `mention-${mentionData.statusId}`,
+    priority: 'high'
+  };
+
+  const data = {
+    statusId: mentionData.statusId,
+    mentionerId: mentionData.mentionerId,
+    mentionerName: mentionData.mentionerName
+  };
+
+  return sendToUser(userId, notification, data);
+};
+
+/**
+ * Send status reply notification
+ * @param {string} userId - Recipient user ID (status owner)
+ * @param {Object} replyData - Reply data
+ * @returns {Promise<Object>} Send result
+ */
+const sendStatusReplyNotification = async (userId, replyData) => {
+  const notification = {
+    title: `${replyData.replierName || 'Someone'} replied to your status`,
+    body: replyData.message || 'Tap to view',
+    type: 'status_reply',
+    clickAction: `/status?statusId=${replyData.statusId}`,
+    tag: `reply-${replyData.statusId}`,
+    priority: 'high'
+  };
+
+  const data = {
+    statusId: replyData.statusId,
+    replierId: replyData.replierId,
+    replierName: replyData.replierName,
+    message: replyData.message
+  };
+
+  return sendToUser(userId, notification, data);
+};
+
+/**
+ * Send status reaction notification
+ * @param {string} userId - Recipient user ID (status owner)
+ * @param {Object} reactionData - Reaction data
+ * @returns {Promise<Object>} Send result
+ */
+const sendStatusReactionNotification = async (userId, reactionData) => {
+  const notification = {
+    title: `${reactionData.reactorName || 'Someone'} reacted to your status`,
+    body: `${reactionData.emoji}`,
+    type: 'status_reaction',
+    clickAction: `/status?statusId=${reactionData.statusId}`,
+    tag: `reaction-${reactionData.statusId}`,
+    priority: 'normal'
+  };
+
+  const data = {
+    statusId: reactionData.statusId,
+    reactorId: reactionData.reactorId,
+    reactorName: reactionData.reactorName,
+    emoji: reactionData.emoji
+  };
+
+  return sendToUser(userId, notification, data);
+};
+
+/**
  * Send mention notification
  * @param {string} userId - Recipient user ID
  * @param {Object} mentionData - Mention data
@@ -411,6 +488,9 @@ module.exports = {
   sendNewMessageNotification,
   sendMissedCallNotification,
   sendNewStatusNotification,
+  sendStatusMentionNotification,
+  sendStatusReplyNotification,
+  sendStatusReactionNotification,
   sendMentionNotification,
   sendGroupNotification,
   registerToken,

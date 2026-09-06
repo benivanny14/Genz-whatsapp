@@ -21,6 +21,7 @@ const {
   uploadFile: uploadToMediaStorage,
   isConfigured: isCloudinaryConfigured,
 } = require('../config/cloudinary');
+const notificationService = require('../services/notificationService');
 
 // Multer config for status media uploads
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads', 'status');
@@ -494,15 +495,28 @@ router.post('/', protect, async (req, res) => {
 
     await emitStatusCreated(req, status);
 
-    // Notify mentioned users (Socket & DM)
+    // Notify mentioned users (Socket & Push Notification)
     const io = req.app.get('io');
     for (const m of processedMentions) {
+      // Socket notification
       if (io) {
         io.to(String(m.user)).emit('status:mentioned', {
           statusId: String(status._id),
           statusOwnerUsername: creator?.username || req.user.username || 'Contact',
           createdAt: status.createdAt
         });
+      }
+      
+      // Push notification
+      try {
+        await notificationService.sendStatusMentionNotification(String(m.user), {
+          statusId: String(status._id),
+          mentionerId: String(req.user._id),
+          mentionerName: req.user.username || 'Contact',
+          preview: status.caption || status.content || 'New status'
+        });
+      } catch (notifErr) {
+        console.error('Failed to send mention notification:', notifErr);
       }
     }
 
@@ -972,6 +986,18 @@ router.post('/:id/react', protect, async (req, res) => {
       reactions: getStatusReactionsForClient(status)
     });
 
+    // Send push notification to status owner
+    try {
+      await notificationService.sendStatusReactionNotification(ownerIdOf(status), {
+        statusId: String(status._id),
+        reactorId: String(req.user._id),
+        reactorName: req.user.username || 'Someone',
+        emoji
+      });
+    } catch (notifErr) {
+      console.error('Failed to send reaction notification:', notifErr);
+    }
+
     res.json({ success: true, reactions: getStatusReactionsForClient(status) });
   } catch (error) {
     console.error('React error:', error);
@@ -1047,6 +1073,18 @@ router.post('/:id/reply', protect, async (req, res) => {
 
     await status.save();
     const outgoingMessage = await createStatusReplyMessage(req, status, replyContent, conversationId);
+
+    // Send push notification to status owner
+    try {
+      await notificationService.sendStatusReplyNotification(ownerIdOf(status), {
+        statusId: String(status._id),
+        replierId: String(req.user._id),
+        replierName: req.user.username || 'Someone',
+        message: replyContent
+      });
+    } catch (notifErr) {
+      console.error('Failed to send reply notification:', notifErr);
+    }
 
     // Auto-Reply: if the status owner has auto-reply enabled, send an automatic reply
     try {
