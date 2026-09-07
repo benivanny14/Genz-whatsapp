@@ -123,11 +123,12 @@ const StoryHighlights = ({ statuses = [], onSaveHighlight, compact = false }) =>
 
   const normalize = (h, localStatuses = []) => ({
     id: h._id,
-    name: h.title,
+    name: h.name || h.title,
     color: HIGHLIGHT_COLORS[Number(h.category) || 0] || HIGHLIGHT_COLORS[0],
-    coverUrl: h.coverImage || null,
+    coverUrl: h.coverUrl || h.coverImage || null,
     statusIds: h.statusIds || [],
-    statuses: localStatuses
+    statuses: localStatuses,
+    createdAt: h.createdAt
   });
 
   useEffect(() => {
