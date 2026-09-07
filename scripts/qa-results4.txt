@@ -1,0 +1,15 @@
+[INFO] T1 realtime two-user :: directConv=true total=4
+[INFO] T1 realtime two-user open :: {"ok":true,"hasComposer":true}
+[INFO] T1 realtime two-user send :: 201 {"success":true,"message":{"_id":"6a9c6c69bb9f22bd6e2f02a4","conversationId":"6a
+[INFO] T1 realtime two-user seen :: {"seen":true,"ms":788}
+[INFO] T1 realtime two-user list :: {"has":true,"ms":832}
+[PASS] T1 realtime two-user :: live receive + list preview OK
+[INFO] T2 status text create :: {"createBtn":false,"fab":true,"textOpt":true,"area":true,"sendDisabled":false,"shared":true,"bodyN":"🟢 bufftest1 posted a status\nStatus\nQA status text 17886...\nMy Status\n\n2 statuses\n\n0\nChats\nStatus\n2\nGroups\n3\nWinga\nMe","content":"QA status text 1788636279067"}
+[INFO] T2 status text create server :: found=true
+[PASS] T2 status text create :: status shared + persisted server-side
+[INFO] T3 group create :: {"search":true,"hit":true,"next":true,"grpName":"QA-Grp-91662","create":true,"finalBody":"QA-Grp-91662\n\n0 online · 2 members\n\nbufftest1 created the group \"QA-Grp-91662\"","url":"https://localhost/chat"}
+[PASS] T3 group create :: group chat opened with system message
+[INFO] T4 winga post + search :: {"filled":true,"submitted":true,"afterSubmit":"WINGA\n\nMarketplace — list, sell and buy\n\nPost\nToday: 0/15 listings\nYou have 3 new listings you haven't seen\n3\n1\n\nNguo\n\n1 listing\n\nHome Accessories\n\n0 listings\n\n1\n\nSimu\n\n1 listing\n\nSpeakers\n\n0 listings\n\n1\n\nLaptop\n\n1 listing\n\nViwanja\n\n0 listings\n\nDalari\n\n0 listings\n\nViatu\n\n0 listings\n\nSandals\n\n0 listi","afterSearch":"WINGA\n\nMarketplace — list, sell and buy\n\nPost\nToday: 0/15 listings\nYou have 3 new listings you haven't seen\n3\nResults for \"QA T-Shirt 00223\"\n0 listings\n\nNo listings in this category yet\n\nBe the first to publish your listing!\n\nChats\nStatus\n2\nGroups\n3\nWinga\nMe","title":"QA T-Shirt 00223"}
+[FAIL] T4 winga post + search :: {"filled":true,"submitted":true,"afterSubmit":"WINGA\n\nMarketplace — list, sell and buy\n\nPost\nToday: 0/15 listings\nYou have 3 new listings you haven't seen\n3\n1\n\nNguo\n\n1 listing\n\nHome Accessories\n\n0 listings\n\n1\n\nSimu\n\n1 listing\n\nSpeakers\n\n0 listings\n\n1\n\nLaptop\n\n1 listing\n\nViwanja\n\n0 listings\n\nDalari\n\n0 listings\n\nViatu\n\n0 listings\n\nSandals\n\n0 listi","afterSearch":"WINGA\n\nMarketplace — list, sell and buy\n\nPost\nToday: 0/15 listings\nYou have 3 new 
+[FAIL] RUNNER-T5 :: exception eval timeout 30000ms
+[INFO] SESSION ERRORS :: {"errors":[],"failed":[]}

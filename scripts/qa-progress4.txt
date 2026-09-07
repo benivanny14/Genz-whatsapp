@@ -1,0 +1,5 @@
+T1 done in 14s
+T2 done in 11s
+T3 done in 13s
+T4 done in 17s
+T5 done in 33s
