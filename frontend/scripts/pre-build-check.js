@@ -108,7 +108,20 @@ console.log('[pre-build] 6/8 keystore');
 const keystoreProps = resolve(root, 'android/keystore.properties');
 const keystoreFile = resolve(root, 'android/genz-release.keystore');
 if (existsSync(keystoreProps) && existsSync(keystoreFile)) {
-  console.log('  ✓ release keystore found');
+  // Gradle needs ALL four fields (storeFile/storePassword/keyAlias/keyPassword)
+  // and the storeFile it points at must exist — a missing piece only surfaces
+  // as a mid-build Gradle failure, so catch it here instead.
+  const propsText = readFileSync(keystoreProps, 'utf8');
+  const getProp = (k) => propsText.split(/\r?\n/).find((l) => l.startsWith(`${k}=`))?.slice(k.length + 1).trim();
+  const storeFile = getProp('storeFile');
+  const requiredProps = [['storeFile', storeFile], ['storePassword', getProp('storePassword')], ['keyAlias', getProp('keyAlias')], ['keyPassword', getProp('keyPassword')]];
+  for (const [name, value] of requiredProps) {
+    if (!value) fail(`keystore.properties missing "${name}" — Gradle signing would fail mid-build`);
+  }
+  if (storeFile && !existsSync(resolve(root, 'android', storeFile))) {
+    fail(`keystore.properties storeFile "${storeFile}" does not exist in android/`);
+  }
+  if (!failed) console.log('  ✓ release keystore found (all 4 signing properties present)');
 } else if (process.env.CI) {
   warn('keystore.properties / genz-release.keystore missing — CI build will be DEBUG-signed (set ANDROID_KEYSTORE_BASE64 + ANDROID_KEYSTORE_PROPERTIES secrets for release builds)');
 } else {

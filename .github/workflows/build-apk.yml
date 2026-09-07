@@ -50,6 +50,7 @@ jobs:
         run: cd frontend && npm ci
 
       - name: Restore release keystore from secrets
+        id: restore-keystore
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           KEYSTORE_PROP: ${{ secrets.ANDROID_KEYSTORE_PROPERTIES }}
@@ -65,20 +66,48 @@ jobs:
               cp frontend/android/genz-release.keystore "frontend/android/$STORE"
               echo "::notice::Keystore also placed at $STORE (storeFile from keystore.properties)"
             fi
-            # Smoke-test the keystore BEFORE burning a full Gradle build on a bad secret.
+            # Smoke-test the keystore BEFORE burning a full Gradle build on a bad secret:
+            #   1. -list                opens the store (validates storePassword + integrity)
+            #   2. -list -alias <alias> confirms the signing alias exists (validates keyAlias)
+            #   3. -certreq             touches the private key (validates keyPassword) — a wrong
+            #                           key password otherwise surfaces only after the whole build
             if command -v keytool >/dev/null 2>&1; then
+              KT_FILE=frontend/android/genz-release.keystore
               STORE_PASS=$(grep -E '^storePassword=' frontend/android/keystore.properties | cut -d= -f2- | tr -d '\r\n')
-              KT_ARGS=(-list -keystore frontend/android/genz-release.keystore)
-              [ -n "$STORE_PASS" ] && KT_ARGS+=(-storepass "$STORE_PASS")
-              if ! keytool "${KT_ARGS[@]}" </dev/null >/dev/null 2>&1; then
-                echo "::error::Restored keystore failed keytool validation — wrong password, truncated or corrupt secret"
+              KEY_ALIAS=$(grep -E '^keyAlias=' frontend/android/keystore.properties | cut -d= -f2- | tr -d '\r\n')
+              KEY_PASS=$(grep -E '^keyPassword=' frontend/android/keystore.properties | cut -d= -f2- | tr -d '\r\n')
+              KT_LIST=(-list -keystore "$KT_FILE")
+              [ -n "$STORE_PASS" ] && KT_LIST+=(-storepass "$STORE_PASS")
+              if ! keytool "${KT_LIST[@]}" </dev/null >/dev/null 2>&1; then
+                echo "::error::Restored keystore failed keytool validation — wrong storePassword, truncated or corrupt secret"
                 exit 1
               fi
-              echo "::notice::Keystore passed keytool validation"
+              echo "::notice::Keystore store password validated"
+              if [ -n "$KEY_ALIAS" ]; then
+                KT_ALIAS=(-list -alias "$KEY_ALIAS" -keystore "$KT_FILE")
+                [ -n "$STORE_PASS" ] && KT_ALIAS+=(-storepass "$STORE_PASS")
+                if ! keytool "${KT_ALIAS[@]}" </dev/null >/dev/null 2>&1; then
+                  echo "::error::keyAlias '$KEY_ALIAS' not found in restored keystore — check ANDROID_KEYSTORE_PROPERTIES"
+                  exit 1
+                fi
+                echo "::notice::Signing alias '$KEY_ALIAS' present"
+                if [ -n "$KEY_PASS" ]; then
+                  KT_CERT=(-certreq -alias "$KEY_ALIAS" -keystore "$KT_FILE")
+                  [ -n "$STORE_PASS" ] && KT_CERT+=(-storepass "$STORE_PASS")
+                  [ -n "$KEY_PASS" ] && KT_CERT+=(-keypass "$KEY_PASS")
+                  if ! keytool "${KT_CERT[@]}" </dev/null >/dev/null 2>&1; then
+                    echo "::error::keyPassword for alias '$KEY_ALIAS' is wrong — check ANDROID_KEYSTORE_PROPERTIES"
+                    exit 1
+                  fi
+                  echo "::notice::Signing key password validated"
+                fi
+              fi
             fi
+            echo "restored=true" >> "$GITHUB_OUTPUT"
             echo "::notice::Release keystore restored — APK will be release-signed"
           else
-            echo "::warning::ANDROID_KEYSTORE_BASE64 not set — APK will be DEBUG-signed (do NOT ship)"
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::ANDROID_KEYSTORE_BASE64 not set — APK will be DEBUG-signed (build proceeds for QA, but NOT published)"
           fi
 
       - name: Restore google-services.json from secrets (FCM + Analytics)
@@ -136,7 +165,12 @@ jobs:
           path: frontend/public/genz-whatsapp.apk
           if-no-files-found: error
 
+      # Never publish a DEBUG-signed APK as an official release. The keystore
+      # restore step above fails fast on a bad secret and reports restored=false
+      # when ANDROID_KEYSTORE_BASE64 is missing, so this step only runs when the
+      # release keystore was actually restored (build.gradle then signs with it).
       - name: Publish APK to GitHub Releases
+        if: steps.restore-keystore.outputs.restored == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

@@ -7,6 +7,19 @@ by commit.
 
 ---
 
+## [2026-09-07] — Keystore hardening: never ship a debug-signed APK
+
+- CI `build-apk` workflow now **refuses to publish to GitHub Releases** unless the
+  release keystore was actually restored from `ANDROID_KEYSTORE_BASE64` — a missing
+  or bad secret previously produced and published a DEBUG-signed APK as an official
+  release.
+- Keystore smoke test now validates `keyAlias` and `keyPassword` (`keytool -list -alias`
+  + `-certreq`) before the Gradle build, so a wrong alias or key password fails in
+  seconds instead of after a full multi-minute build.
+- `pre-build-check.js` verifies `keystore.properties` has all four signing fields
+  (storeFile/storePassword/keyAlias/keyPassword) and that the referenced `storeFile`
+  actually exists on disk.
+
 ## [2026-08-18] — v1.1.16 Status trust & privacy: mute works end-to-end, block UI, no more public statuses
 
 **Mute status updates now actually work** (it was stored but never enforced)
