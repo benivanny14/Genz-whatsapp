@@ -191,7 +191,7 @@ export const LocationStickerOverlay = ({ location }) => {
   return (
     <div style={{
       position: 'absolute',
-      bottom: 20,
+      bottom: 80,
       left: 20,
       background: 'rgba(0,168,132,0.9)',
       backdropFilter: 'blur(4px)',

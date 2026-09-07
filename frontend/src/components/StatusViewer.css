@@ -13,6 +13,11 @@
   z-index: 1000;
   display: flex;
   flex-direction: column;
+  /* Must stretch children cross-axis (width) — a legacy unscoped rule in
+     index.css used to set align-items: center, collapsing viewer-content to
+     zero width and hiding all status content. */
+  align-items: stretch;
+  justify-content: flex-start;
 }
 
 .viewer-top-bar {
