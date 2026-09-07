@@ -324,6 +324,11 @@ const StatusList = ({ onViewArchive }) => {
         </div>
       </div>
 
+      {/* Story Highlights — fetched from /api/story-highlights, compact WhatsApp-style strip */}
+      <div className="story-highlights-section" style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <StoryHighlights statuses={groupedStatuses.myStatus[0]?.statuses || []} compact />
+      </div>
+
       {/* Favorites Section */}
       {favorites.length > 0 && (() => {
         const favGroups = groupedStatuses.recentUpdates

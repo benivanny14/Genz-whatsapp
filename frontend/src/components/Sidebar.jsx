@@ -9,7 +9,6 @@ import BroadcastModal from './BroadcastModal';
 import MassSenderModal from './MassSenderModal';
 
 import ProfileEditor from './ProfileEditor';
-import StoryHighlights from './StoryHighlights';
 import ArchiveChats from './ArchiveChats';
 import FakeChatCoverPanel from './FakeChatCoverPanel';
 import { AnimatePresence } from 'framer-motion';
