@@ -170,24 +170,31 @@ const CropRotatePanel = ({ onClose, image, onSave }) => {
         <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
           {/* Canvas Area */}
           <div className="flex-1 bg-black/50 flex items-center justify-center p-2 md:p-4 relative min-h-[200px] md:min-h-0">
+            {/*
+              Canvas is rendered UNCONDITIONALLY. It must exist in the DOM
+              before the mount effect runs, because the effect only starts
+              loading the image when canvasRef.current is set — and
+              imageLoaded (which gates the overlay) only becomes true in
+              img.onload. Gating the canvas on imageLoaded created a deadlock:
+              the image never loaded, the canvas never appeared, and the crop
+              editor was stuck on an empty black preview.
+            */}
+            <canvas
+              ref={canvasRef}
+              className="max-w-full max-h-full"
+            />
+            {/* Crop Overlay */}
             {imageLoaded && (
-              <>
-                <canvas
-                  ref={canvasRef}
-                  className="max-w-full max-h-full"
-                />
-                {/* Crop Overlay */}
-                <div
-                  className="absolute border-2 border-[#00a884] pointer-events-none"
-                  style={{
-                    left: cropArea.x,
-                    top: cropArea.y,
-                    width: cropArea.width,
-                    height: cropArea.height,
-                    display: canvasRef.current ? 'block' : 'none'
-                  }}
-                />
-              </>
+              <div
+                className="absolute border-2 border-[#00a884] pointer-events-none"
+                style={{
+                  left: cropArea.x,
+                  top: cropArea.y,
+                  width: cropArea.width,
+                  height: cropArea.height,
+                  display: canvasRef.current ? 'block' : 'none'
+                }}
+              />
             )}
           </div>
 

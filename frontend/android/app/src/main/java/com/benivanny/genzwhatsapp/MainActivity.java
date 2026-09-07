@@ -14,6 +14,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.BridgeWebChromeClient;
 import com.google.firebase.FirebaseApp;
 
 /**
@@ -73,44 +74,27 @@ public class MainActivity extends BridgeActivity {
     }
 
     /**
-     * Enhance Capacitor's BridgeWebChromeClient via reflection to add:
+     * Enhance Capacitor's BridgeWebChromeClient to add:
      * - Geolocation auto-grant (onGeolocationPermissionsShowPrompt)
      * - Camera/Mic/WebRTC permission grant (onPermissionRequest)
      *
-     * This does NOT replace the client — it accesses the existing one through
-     * WebView's internal mProvider.mWebChromeClient field and sets an enhanced
-     * subclass. Capacitor's Bridge still holds its reference and continues to
-     * work for file picker (onShowFileChooser) and other features.
+     * We SUBCLASS Capacitor's BridgeWebChromeClient (instead of replacing it
+     * with a plain WebChromeClient) so all of its handlers keep working:
+     * onShowFileChooser (file picker for <input type="file">), onJsAlert /
+     * onJsConfirm / onJsPrompt dialogs, onConsoleMessage forwarding, and
+     * fullscreen video. Replacing it with a fresh WebChromeClient silently
+     * broke the file picker — gallery/document attachments never opened
+     * on-device.
      *
-     * If reflection fails (e.g., Capacitor changes internal API), we log a
-     * warning and the app works without explicit permission handling — many
-     * permission requests are still handled by Capacitor's plugin system.
+     * Bridge does not keep its own reference to the client (it only calls
+     * webView.setWebChromeClient(new BridgeWebChromeClient(this)) during
+     * setup), so installing our subclass via setWebChromeClient is safe.
      */
     private void enhanceWebChromeClient() {
         runOnUiThread(() -> {
             try {
                 WebView webView = getBridge().getWebView();
-
-                // Access WebView's internal WebChromeClient via reflection
-                // WebView -> mProvider (WebViewClassic) -> mWebChromeClient
-                java.lang.reflect.Field providerField = WebView.class.getDeclaredField("mProvider");
-                providerField.setAccessible(true);
-                Object provider = providerField.get(webView);
-
-                java.lang.reflect.Field chromeClientField = provider.getClass().getDeclaredField("mWebChromeClient");
-                chromeClientField.setAccessible(true);
-                WebChromeClient existingClient = (WebChromeClient) chromeClientField.get(provider);
-
-                if (existingClient == null) {
-                    android.util.Log.w("MainActivity", "No existing WebChromeClient found — creating new one");
-                    createMinimalChromeClient(webView);
-                    return;
-                }
-
-                // Create enhanced client that adds our features on top of
-                // Capacitor's existing BridgeWebChromeClient.
-                final WebChromeClient baseClient = existingClient;
-                WebChromeClient enhancedClient = new WebChromeClient() {
+                WebChromeClient enhancedClient = new BridgeWebChromeClient(getBridge()) {
                     @Override
                     public void onGeolocationPermissionsShowPrompt(
                             String origin, GeolocationPermissions.Callback callback) {
@@ -133,32 +117,14 @@ public class MainActivity extends BridgeActivity {
                             }
                         });
                     }
-
-                    // Delegate everything else to Capacitor's original client.
-                    // We override the methods we care about; everything else
-                    // (onShowFileChooser, onConsoleMessage, etc.) falls through
-                    // to the default WebChromeClient implementation since we're
-                    // creating a NEW client, not extending the existing one.
-                    //
-                    // IMPORTANT: This means onShowFileChooser is NOT delegated.
-                    // If file uploads break, this is why — and the fix is to
-                    // NOT create a new client at all, but find another way to
-                    // add permission handling.
                 };
-
-                // Set the enhanced client on both the internal provider field
-                // AND via the public API so both paths are covered.
-                chromeClientField.set(provider, enhancedClient);
                 webView.setWebChromeClient(enhancedClient);
-
-                android.util.Log.i("MainActivity", "WebChromeClient enhanced with geolocation + permissions");
-
+                android.util.Log.i("MainActivity",
+                        "WebChromeClient enhanced (BridgeWebChromeClient subclass) — file picker preserved");
             } catch (Exception e) {
                 android.util.Log.w("MainActivity",
-                        "Could not enhance WebChromeClient via reflection: " + e.getMessage()
+                        "Could not enhance WebChromeClient: " + e.getMessage()
                         + " — falling back to minimal client");
-                // Reflection failed — create a minimal client that at least
-                // handles permissions. File picker may be lost.
                 try {
                     createMinimalChromeClient(getBridge().getWebView());
                 } catch (Exception ignored) {}
@@ -167,12 +133,12 @@ public class MainActivity extends BridgeActivity {
     }
 
     /**
-     * Fallback: create a minimal WebChromeClient that handles geolocation
-     * and permissions but does NOT have Capacitor's file picker support.
-     * Used only when reflection fails.
+     * Fallback: subclass BridgeWebChromeClient with geolocation auto-grant.
+     * Keeps Capacitor's file picker and dialog handlers intact.
+     * Used only if the primary enhancement path throws.
      */
     private void createMinimalChromeClient(WebView webView) {
-        webView.setWebChromeClient(new WebChromeClient() {
+        webView.setWebChromeClient(new BridgeWebChromeClient(getBridge()) {
             @Override
             public void onGeolocationPermissionsShowPrompt(
                     String origin, GeolocationPermissions.Callback callback) {
