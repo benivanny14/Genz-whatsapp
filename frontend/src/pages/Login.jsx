@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Lock, LogIn, Phone, ShieldCheck, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
+import { fetchVersionManifest } from '../utils/versionManifest';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -26,6 +27,11 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [locked, setLocked] = useState(false);
   const [lockMinutes, setLockMinutes] = useState(0);
+  const [appVersion, setAppVersion] = useState(null);
+
+  useEffect(() => {
+    fetchVersionManifest().then(setAppVersion).catch(() => {});
+  }, []);
 
 
   const handleError = (err, fallback) => {
@@ -226,6 +232,12 @@ const Login = () => {
             <span className="text-white/15">•</span>
             <Link to="/privacy-policy" className="hover:text-[#00a884] transition-colors">Privacy Policy</Link>
           </div>
+
+          {appVersion?.version && (
+            <p className="mt-4 text-center text-[11px] text-slate-600">
+              Genz Messenger Android v{appVersion.version}
+            </p>
+          )}
         </form>
       )}
     </div>
