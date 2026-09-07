@@ -379,7 +379,7 @@ router.post('/', protect, async (req, res) => {
       locationSticker, linkPreview, textAnimation, isViewOnce
     } = req.body;
 
-    if (!type || !['text', 'image', 'video', 'location'].includes(type)) {
+    if (!type || !['text', 'image', 'video', 'voice', 'location'].includes(type)) {
       return res.status(400).json({ success: false, message: 'Invalid status type' });
     }
 
@@ -389,6 +389,10 @@ router.post('/', protect, async (req, res) => {
 
     if ((type === 'image' || type === 'video') && !content) {
       return res.status(400).json({ success: false, message: 'Media status requires content URL' });
+    }
+
+    if (type === 'voice' && !content) {
+      return res.status(400).json({ success: false, message: 'Voice status requires content URL' });
     }
 
     if (type === 'location' && !req.body.locationData) {

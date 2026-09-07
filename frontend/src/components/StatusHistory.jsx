@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { X, Clock, Archive, Trash2, Eye, RotateCcw, ChevronLeft, ChevronRight, History } from 'lucide-react'
 import { getAuthToken } from '../utils/tokenStore'
 import { resolveApiBase } from '../utils/resolveApiBase'
+import StatusMedia from './StatusMedia'
 
 const StatusHistory = ({ onClose, onViewStatus }) => {
   const [statuses, setStatuses] = useState([])
@@ -115,7 +116,7 @@ const StatusHistory = ({ onClose, onViewStatus }) => {
                     display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative'
                   }}>
                     {status.type === 'image' && status.content ? (
-                      <img src={status.content} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }} />
+                      <StatusMedia src={status.content} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }} />
                     ) : status.type === 'text' ? (
                       <div style={{
                         width: '100%', height: '100%',

@@ -1178,6 +1178,17 @@ if (fs.existsSync(avatarsDir)) {
   }));
 }
 
+// Status media is also served under /api/uploads/status — Capacitor APK builds
+// (and emulator test setups) serve the page from https://localhost while only
+// /api/* requests are proxied to the backend, so the plain /uploads/* mount
+// below is unreachable there. Keeps the same secureUploads gate as /uploads.
+const statusUploadsDir = path.join(__dirname, 'uploads', 'status');
+if (fs.existsSync(statusUploadsDir)) {
+  app.use('/api/uploads/status', secureUploads, express.static(statusUploadsDir, {
+    maxAge: '1d'
+  }));
+}
+
 // WhatsApp Cloud API webhook — Meta calls this exact URL during webhook
 // verification and for every event (messages, status updates). Mounted
 // OUTSIDE /api so the strict API rate limiter never throttles Meta's retries.

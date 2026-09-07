@@ -3,6 +3,7 @@ import { useStatusContext } from '../context/StatusContext'
 import { useChat } from '../context/ChatContext'
 import { Plus, Camera, RefreshCw, Volume2, VolumeX, Clock, Archive, Eye, ChevronRight, Lock, Search, Star, Bookmark, Store, StarOff } from 'lucide-react'
 import StatusViewer from './StatusViewer'
+import StatusMedia from './StatusMedia'
 import StatusArchive from './StatusArchive'
 import StatusPrivacy from './StatusPrivacy'
 import CreateStatus from './CreateStatus'
@@ -286,10 +287,10 @@ const StatusList = ({ onViewArchive }) => {
             {groupedStatuses.myStatus.length > 0 && groupedStatuses.myStatus[0].statuses[0] ? (
               <>
                 {groupedStatuses.myStatus[0].statuses[0].type === 'image' && (
-                  <img src={groupedStatuses.myStatus[0].statuses[0].content} alt="My status" className="status-thumbnail" />
+                  <StatusMedia src={groupedStatuses.myStatus[0].statuses[0].content} alt="My status" className="status-thumbnail" />
                 )}
                 {groupedStatuses.myStatus[0].statuses[0].type === 'video' && (
-                  <video src={groupedStatuses.myStatus[0].statuses[0].content} className="status-thumbnail" muted />
+                  <StatusMedia type="video" src={groupedStatuses.myStatus[0].statuses[0].content} className="status-thumbnail" muted />
                 )}
                 {groupedStatuses.myStatus[0].statuses[0].type === 'text' && (
                   <div className="status-thumbnail text-thumbnail" style={{ 

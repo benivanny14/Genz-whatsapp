@@ -3,6 +3,7 @@ import { useChat } from '../context/ChatContext';
 import { X as FiX, Check as FiCheck } from 'lucide-react';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { getAuthToken } from '../utils/tokenStore';
+import StatusMedia from './StatusMedia';
 
 const ForwardDialog = ({ messageId, messageContent, conversationId, onClose, isStatusForward, statusData }) => {
   const [selectedChats, setSelectedChats] = useState(new Set());
@@ -101,10 +102,16 @@ const ForwardDialog = ({ messageId, messageContent, conversationId, onClose, isS
             <p className="text-gray-400 text-xs mb-2">Message to forward:</p>
             <div className="bg-gray-700 rounded p-3">
               {isStatusForward && statusData?.type === 'image' && statusData?.content && (
-                <img src={statusData.content} alt="" className="w-full h-32 object-cover rounded mb-2" />
+                <StatusMedia src={statusData.content} alt="" className="w-full h-32 object-cover rounded mb-2" />
               )}
               {isStatusForward && statusData?.type === 'video' && statusData?.content && (
-                <video src={statusData.content} className="w-full h-32 object-cover rounded mb-2" muted />
+                <StatusMedia type="video" src={statusData.content} className="w-full h-32 object-cover rounded mb-2" muted />
+              )}
+              {(isStatusForward && (statusData?.type === 'voice' || statusData?.type === 'audio') && statusData?.content) && (
+                <div className="rounded p-3 mb-2 flex items-center gap-2 bg-gray-600">
+                  <span>🎤</span>
+                  <StatusMedia type="audio" src={statusData.content} controls style={{ width: '100%', maxWidth: '280px', borderRadius: '24px' }} />
+                </div>
               )}
               {isStatusForward && statusData?.type === 'text' && (
                 <div className="rounded p-3 mb-2" style={{ backgroundColor: statusData.textStatus?.backgroundColor || '#128C7E' }}>

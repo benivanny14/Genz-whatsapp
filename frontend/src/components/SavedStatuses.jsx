@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { X, Bookmark, Eye, Clock, Trash2, ExternalLink } from 'lucide-react'
 import { getAuthToken } from '../utils/tokenStore'
 import { resolveApiBase } from '../utils/resolveApiBase'
+import StatusMedia from './StatusMedia'
 
 const SavedStatuses = ({ onClose, onViewStatus }) => {
   const [statuses, setStatuses] = useState([])
@@ -94,9 +95,9 @@ const SavedStatuses = ({ onClose, onViewStatus }) => {
                     display: 'flex', alignItems: 'center', justifyContent: 'center'
                   }}>
                     {status.type === 'image' && status.content ? (
-                      <img src={status.content} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <StatusMedia src={status.content} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : status.type === 'video' && status.content ? (
-                      <video src={status.content} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <StatusMedia type="video" src={status.content} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : status.type === 'text' ? (
                       <div style={{
                         width: '100%', height: '100%',

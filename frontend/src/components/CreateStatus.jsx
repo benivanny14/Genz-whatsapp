@@ -366,6 +366,9 @@ const CreateStatus = ({ onClose }) => {
   const recordingIntervalRef = useRef(null)
   const audioChunksRef = useRef([])
 
+  // Location sharing state
+  const [isSharing, setIsSharing] = useState(false)
+
   // Poll creation state
   const [showPollModal, setShowPollModal] = useState(false)
   const [pollQuestion, setPollQuestion] = useState('')
@@ -699,11 +702,16 @@ const CreateStatus = ({ onClose }) => {
     if (!item.file || (item.trimEnd || 30) <= (item.trimStart || 0)) return item.file
     try {
       const ffmpeg = await loadFFmpeg()
-      const ext = item.file.name.substring(item.file.name.lastIndexOf('.')) || '.mp4'
-      const inputName = `input-${Date.now()}${ext}`
-      const outputName = `trimmed-${Date.now()}.mp4`
+      const inputName = `input-${Date.now()}-${item.file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+      const inputExt = (inputName.substring(inputName.lastIndexOf('.')) || '.mp4').toLowerCase()
+      // The output container must be able to hold the input's codec. Android
+      // WebView/emulator recordings are VP8/VP9 in WebM — MP4 cannot mux VP8
+      // (ffmpeg: "Could not find tag for codec vp8"), which made the trim fail
+      // silently and upload a 0-byte video. Keep webm→webm, mp4/mov→mp4.
+      const isWebm = inputExt === '.webm'
+      const outputName = `trimmed-${Date.now()}${isWebm ? '.webm' : '.mp4'}`
       await ffmpeg.writeFile(inputName, await fetchFile(item.file))
-      await ffmpeg.exec([
+      const returnCode = await ffmpeg.exec([
         '-i', inputName,
         '-ss', `${item.trimStart || 0}`,
         '-t', `${(item.trimEnd || 30) - (item.trimStart || 0)}`,
@@ -711,8 +719,17 @@ const CreateStatus = ({ onClose }) => {
         outputName
       ])
       const data = await ffmpeg.readFile(outputName)
-      const trimmedBlob = new Blob([data.buffer], { type: 'video/mp4' })
-      return new File([trimmedBlob], `trimmed-${item.file.name}`, { type: 'video/mp4' })
+      const size = data ? (data.byteLength || data.length || 0) : 0
+      // ffmpeg.exec resolves with the exit code (0 = success). If the trim
+      // failed or produced an empty file, post the original video instead of
+      // uploading a broken 0-byte status.
+      if (returnCode !== 0 || !size) {
+        if (import.meta.env.DEV) console.warn(`Trim failed (exit ${returnCode}), posting original video`)
+        return item.file
+      }
+      const trimmedBlob = new Blob([data.buffer], { type: isWebm ? 'video/webm' : 'video/mp4' })
+      const trimmedName = `trimmed-${item.file.name.replace(/\.[^.]+$/, '')}${isWebm ? '.webm' : '.mp4'}`
+      return new File([trimmedBlob], trimmedName, { type: isWebm ? 'video/webm' : 'video/mp4' })
     } catch (err) {
       if (import.meta.env.DEV) console.error('Trim video item error:', err)
       return item.file
@@ -725,11 +742,17 @@ const CreateStatus = ({ onClose }) => {
     setIsProcessing(true)
     try {
       const ffmpeg = await loadFFmpeg()
-      await ffmpeg.writeFile('video.mp4', await fetchFile(videoFile))
-      await ffmpeg.writeFile('audio.mp3', await fetchFile(audioFile))
-      await ffmpeg.exec([
-        '-i', 'video.mp4',
-        '-i', 'audio.mp3',
+      // WebM (VP8/VP9) cannot be muxed into MP4 with -c copy — mix into webm
+      // with an opus track for webm sources, mp4+aac otherwise.
+      const isWebm = String(videoFile.name || '').toLowerCase().endsWith('.webm')
+      const videoName = `video-${Date.now()}${isWebm ? '.webm' : '.mp4'}`
+      const audioName = `audio-${Date.now()}.mp3`
+      const outputName = `mixed-${Date.now()}${isWebm ? '.webm' : '.mp4'}`
+      await ffmpeg.writeFile(videoName, await fetchFile(videoFile))
+      await ffmpeg.writeFile(audioName, await fetchFile(audioFile))
+      const returnCode = await ffmpeg.exec([
+        '-i', videoName,
+        '-i', audioName,
         '-ss', `${musicStart}`,
         '-t', `${musicEnd - musicStart}`,
         '-filter_complex',
@@ -737,14 +760,18 @@ const CreateStatus = ({ onClose }) => {
         '-map', '0:v',
         '-map', '[outa]',
         '-c:v', 'copy',
-        '-c:a', 'aac',
+        '-c:a', isWebm ? 'libopus' : 'aac',
         '-shortest',
-        'mixed.mp4'
+        outputName
       ])
-      const data = await ffmpeg.readFile('mixed.mp4')
-      const mixedBlob = new Blob([data.buffer], { type: 'video/mp4' })
+      const data = await ffmpeg.readFile(outputName)
+      const size = data ? (data.byteLength || data.length || 0) : 0
       setIsProcessing(false)
-      return new File([mixedBlob], 'status-with-music.mp4', { type: 'video/mp4' })
+      // On failure keep the (possibly trimmed) video without music rather than
+      // posting an empty file.
+      if (returnCode !== 0 || !size) return videoFile
+      const mixedBlob = new Blob([data.buffer], { type: isWebm ? 'video/webm' : 'video/mp4' })
+      return new File([mixedBlob], `status-with-music${isWebm ? '.webm' : '.mp4'}`, { type: isWebm ? 'video/webm' : 'video/mp4' })
     } catch (err) {
       if (import.meta.env.DEV) console.error('Mix error:', err)
       setIsProcessing(false)
@@ -1274,20 +1301,15 @@ const CreateStatus = ({ onClose }) => {
               if (!selectedLocation) return;
               setIsSharing(true);
               try {
-                const token = getAuthToken();
-                const res = await fetch(`${resolveApiBase()}/status`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                  body: JSON.stringify({
-                    type: 'location',
-                    content: selectedLocation.name,
-                    locationData: selectedLocation,
-                    privacy,
-                    excludedUsers: privacy === 'contacts_except' ? selectedUsers : [],
-                    includedUsers: privacy === 'only_share_with' ? selectedUsers : []
-                  })
+                await createCustomStatus({
+                  type: 'location',
+                  content: selectedLocation.name,
+                  locationData: selectedLocation,
+                  privacy,
+                  excludedUsers: privacy === 'contacts_except' ? selectedUsers : undefined,
+                  includedUsers: privacy === 'only_share_with' ? selectedUsers : undefined
                 });
-                if (res.ok) onClose?.();
+                onClose?.();
               } catch (err) {
                 console.error('Location status error:', err);
               } finally {

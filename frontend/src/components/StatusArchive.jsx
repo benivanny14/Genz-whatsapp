@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import api from '../utils/axios'
 import { X, Archive, RotateCcw, Trash2, Eye, ArchiveRestore, ChevronDown } from 'lucide-react'
+import StatusMedia from './StatusMedia'
 import './StatusArchive.css'
 
 const StatusArchive = ({ onClose, onViewStatus }) => {
@@ -145,7 +146,7 @@ const StatusArchive = ({ onClose, onViewStatus }) => {
               >
                 {/* Thumbnail */}
                 {status.type === 'image' && (
-                  <img
+                  <StatusMedia
                     src={status.content}
                     alt=""
                     loading="lazy"
@@ -153,7 +154,8 @@ const StatusArchive = ({ onClose, onViewStatus }) => {
                   />
                 )}
                 {status.type === 'video' && (
-                  <video
+                  <StatusMedia
+                    type="video"
                     src={status.content}
                     muted
                     loading="lazy"

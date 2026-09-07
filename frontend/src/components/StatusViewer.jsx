@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { useStatusMediaUrl } from './StatusMedia'
+import { sanitizeMediaUrl } from '../utils/sanitizeMediaUrl'
 import { useStatusContext } from '../context/StatusContext'
 import { getSocket } from '../services/socket'
 import { resolveApiBase } from '../utils/resolveApiBase'
@@ -88,6 +90,8 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
 
   const statuses = user?.statuses || []
   const currentStatus = statuses[currentIndex]
+  // Resolve status media to a renderable URL (blob fallback for http media on https pages)
+  const statusMediaUrl = useStatusMediaUrl(currentStatus?.content)
   const currentUserId = idOf(currentUser)
   const statusOwnerId = idOf(currentStatus?.userId || currentStatus?.user)
   const statusOwner = (currentStatus?.userId && typeof currentStatus.userId === 'object') ? currentStatus.userId : currentStatus?.user
@@ -234,7 +238,7 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
   const handleDownloadStatus = async (statusToDownload) => {
     const s = statusToDownload || currentStatus
     if (!s) return
-    const url = s.content || s.mediaUrl || ''
+    const url = sanitizeMediaUrl(s.content || s.mediaUrl || '')
     if (!url) return
     try {
       const response = await fetch(url)
@@ -694,7 +698,7 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
 
         {currentStatus.type === 'image' && (
           <img
-            src={currentStatus.content}
+            src={statusMediaUrl}
             alt="status"
             className="status-media"
             style={{ transform: `scale(${scale})`, transition: scale !== 1 ? 'transform 0.1s' : 'none', touchAction: 'none' }}
@@ -704,7 +708,7 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
         {currentStatus.type === 'video' && (
           <>
             <ReactPlayer
-              url={currentStatus.content}
+              url={statusMediaUrl}
               playing={!isPaused}
               muted={isMuted}
               loop={false}
@@ -746,7 +750,7 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
             <p style={{ color: '#8696a0', fontSize: '14px', marginBottom: '16px' }}>Voice Status</p>
             <audio
               ref={voiceAudioRef}
-              src={currentStatus.content}
+              src={statusMediaUrl}
               controls
               autoPlay={!isPaused}
               onEnded={goNext}

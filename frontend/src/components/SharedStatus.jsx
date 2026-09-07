@@ -3,7 +3,7 @@ import { useParams, useSearchParams } from 'react-router-dom'
 import { resolveApiBase } from '../utils/resolveApiBase'
 import { getAuthToken } from '../utils/tokenStore'
 import { X, Clock, AlertCircle, Download, QrCode, Share2, Heart } from 'lucide-react'
-import ReactPlayer from 'react-player'
+import StatusMedia from './StatusMedia'
 import './SharedStatus.css'
 
 const SharedStatus = () => {
@@ -148,17 +148,16 @@ const SharedStatus = () => {
         )}
 
         {status.type === 'image' && (
-          <img src={status.content} alt="Shared status" className="shared-media" />
+          <StatusMedia src={status.content} alt="Shared status" className="shared-media" />
         )}
 
         {status.type === 'video' && (
-          <ReactPlayer
-            url={status.content}
-            playing
+          <StatusMedia
+            type="video"
+            src={status.content}
+            autoPlay
             controls
-            width="100%"
-            height="100%"
-            style={{ objectFit: 'cover' }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
         )}
 
@@ -166,7 +165,7 @@ const SharedStatus = () => {
           <div className="shared-voice-status">
             <div className="shared-voice-icon">🎤</div>
             <p className="shared-voice-label">Voice Status</p>
-            <audio src={status.content} controls autoPlay style={{ width: '85%', maxWidth: '340px', borderRadius: '24px' }} />
+            <StatusMedia type="audio" src={status.content} controls autoPlay style={{ width: '85%', maxWidth: '340px', borderRadius: '24px' }} />
           </div>
         )}
 

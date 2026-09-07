@@ -46,6 +46,20 @@ export function sanitizeMediaUrl(url) {
     // relative URL — leave as-is
   }
 
+  // Status media must be served via /api/uploads/status — Capacitor APK and
+  // emulator setups serve the page from https://localhost while only /api/*
+  // requests reach the backend, so plain /uploads/* URLs are unreachable
+  // there. Rewrite legacy status paths against the API origin too.
+  if (pathPart.startsWith('/uploads/status/')) {
+    const origin = getApiOrigin();
+    if (origin) return `${origin}/api${pathPart}${querySuffix}`;
+  }
+
+  if (pathPart.startsWith('/api/uploads/')) {
+    const origin = getApiOrigin();
+    if (origin) return `${origin}${pathPart}${querySuffix}`;
+  }
+
   if (pathPart.startsWith('/uploads/')) {
     const origin = getApiOrigin();
     if (origin) return `${origin}${pathPart}${querySuffix}`;

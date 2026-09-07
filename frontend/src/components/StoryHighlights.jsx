@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, X, Star, Trash2, Edit3 } from 'lucide-react';
 import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
+import StatusMedia from './StatusMedia';
 
 const API_URL = resolveApiBase();
 
@@ -48,7 +49,7 @@ const CreateHighlightModal = ({ statuses, newName, setNewName, selectedColor, se
                   <button key={sid} onClick={() => toggleStatus(s)}
                     className={`aspect-square rounded-xl overflow-hidden border-2 transition-all ${isSelected ? 'border-blue-500 scale-95' : 'border-transparent'}`}>
                     {s.mediaUrl ? (
-                      <img src={s.mediaUrl} alt="status" className="w-full h-full object-cover" />
+                      <StatusMedia src={s.mediaUrl} alt="status" className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-xs text-white/60 p-1"
                         style={{ background: s.backgroundColor || '#008069' }}>
@@ -98,7 +99,7 @@ const ViewHighlightModal = ({ highlight, onClose, onDelete }) => (
           {(highlight.statuses || []).map((s, i) => (
             <div key={i} className="aspect-square rounded-xl overflow-hidden bg-white/5">
               {s.mediaUrl
-                ? <img src={s.mediaUrl} alt="status" className="w-full h-full object-cover" />
+                ? <StatusMedia src={s.mediaUrl} alt="status" className="w-full h-full object-cover" />
                 : <div className="w-full h-full flex items-center justify-center text-xs text-white/60 p-2 text-center"
                     style={{ background: s.backgroundColor || '#008069' }}>{s.content?.slice(0, 30)}</div>}
             </div>

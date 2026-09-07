@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import { useUser } from './UserContext';
 import { getSocket } from '../services/socket';
 import { resolveApiBase } from '../utils/resolveApiBase';
+import { sanitizeMediaUrl } from '../utils/sanitizeMediaUrl';
 import { getAuthToken } from '../utils/tokenStore';
 
 const StatusContext = createContext(null);
@@ -59,6 +60,23 @@ const cacheStatusMedia = (status) => {
   }
 };
 
+// Resolve status media (content/mediaUrl) to absolute URLs that load from any
+// page origin. The backend stores relative /uploads/status/... paths, which
+// break on Capacitor/emulator setups where the page origin (https://localhost)
+// differs from the API origin (e.g. http://10.0.2.2:5000) and only /api/* is
+// proxied to the backend. Normalizing here covers every render point (viewer,
+// list, highlights) with one change.
+const resolveStatusMedia = (status) => {
+  if (!status || typeof status !== 'object') return status;
+  const raw = status.content || status.mediaUrl;
+  if (!raw || typeof raw !== 'string') return status;
+  const resolved = sanitizeMediaUrl(raw);
+  if (resolved === raw) return status;
+  return { ...status, content: resolved, mediaUrl: resolved };
+};
+
+const resolveStatuses = (list) => (Array.isArray(list) ? list.map(resolveStatusMedia) : list);
+
 const getCachedStatus = (statusId) => {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
@@ -86,7 +104,7 @@ const StatusProvider = ({ children }) => {
       });
       const data = await res.json();
       if (data.success) {
-        setStatuses(data.statuses || []);
+        setStatuses(resolveStatuses(data.statuses || []));
       } else {
         setError(data.message || 'Failed to fetch statuses');
       }
@@ -106,7 +124,7 @@ const StatusProvider = ({ children }) => {
       });
       const data = await res.json();
       if (data.success) {
-        setStatuses(data.statuses || []);
+        setStatuses(resolveStatuses(data.statuses || []));
       }
     } catch (err) {
       // Silent — don't disrupt the UI
@@ -151,7 +169,7 @@ const StatusProvider = ({ children }) => {
           setStatuses(prev => {
             // Deduplicate by _id in case a socket event already arrived
             if (prev.some(s => String(s._id) === String(newStatus._id))) return prev;
-            return [newStatus, ...prev];
+            return [resolveStatusMedia(newStatus), ...prev];
           });
         }
         // Background refresh to get fully-populated data from server (no loading spinner)
@@ -214,7 +232,7 @@ const StatusProvider = ({ children }) => {
         if (newStatus) {
           setStatuses(prev => {
             if (prev.some(s => String(s._id) === String(newStatus._id))) return prev;
-            return [newStatus, ...prev];
+            return [resolveStatusMedia(newStatus), ...prev];
           });
         }
         // Background refresh to get fully-populated data from server (no loading spinner)
@@ -243,7 +261,7 @@ const StatusProvider = ({ children }) => {
         if (newStatus) {
           setStatuses(prev => {
             if (prev.some(s => String(s._id) === String(newStatus._id))) return prev;
-            return [newStatus, ...prev];
+            return [resolveStatusMedia(newStatus), ...prev];
           });
         }
         silentRefreshStatuses();
@@ -366,7 +384,7 @@ const StatusProvider = ({ children }) => {
       setStatuses(prev => {
         const exists = prev.some(s => String(s._id) === String(status._id));
         if (exists) return prev;
-        return [status, ...prev];
+        return [resolveStatusMedia(status), ...prev];
       });
     };
 
