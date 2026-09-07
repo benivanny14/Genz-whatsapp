@@ -12,6 +12,7 @@ const StatusAnalytics = require('../models/StatusAnalytics');
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const { createShareToken, verifyShareToken } = require('../utils/statusShareToken');
+const { signLocalUrlIfNeeded } = require('../utils/mediaAccess');
 const { serializeOutgoingMessage } = require('../utils/messageSerializer');
 const { getUnreadCount } = require('../utils/unreadCount');
 const { isEitherUserBlocked } = require('../utils/messageSendHelpers');
@@ -1469,13 +1470,16 @@ router.get('/shared/:id', async (req, res) => {
     if (!hasValidToken) {
       return res.status(403).json({ success: false, message: 'Invalid or expired share link' });
     }
-    // Return minimal status data (no viewer/privacy leaks)
+    // Return minimal status data (no viewer/privacy leaks). Media must be
+    // served through signed URLs so the public share page still works when
+    // REQUIRE_MEDIA_SIGNATURE is enabled (anonymous visitors have no JWT to
+    // sign via /api/media/sign-local).
     res.json({
       success: true,
       status: {
         _id: status._id,
         type: status.type,
-        content: status.content || status.mediaUrl || '',
+        content: signLocalUrlIfNeeded(status.content || status.mediaUrl || ''),
         textStatus: status.textStatus?.text ? status.textStatus : {
           text: status.content || '',
           backgroundColor: status.backgroundColor || '#128C7E',
@@ -1535,7 +1539,7 @@ router.get('/share/:token', async (req, res) => {
       status: {
         _id: status._id,
         type: status.type,
-        content: status.content || status.mediaUrl || '',
+        content: signLocalUrlIfNeeded(status.content || status.mediaUrl || ''),
         textStatus: status.textStatus?.text ? status.textStatus : {
           text: status.content || '',
           backgroundColor: status.backgroundColor || '#128C7E',
