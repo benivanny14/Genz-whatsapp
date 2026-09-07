@@ -708,13 +708,13 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
         {currentStatus.type === 'video' && (
           <>
             <ReactPlayer
-              url={statusMediaUrl}
+              src={statusMediaUrl}
               playing={!isPaused}
               muted={isMuted}
               loop={false}
               width="100%"
               height="100%"
-              onDuration={d => setDuration(d * 1000)}
+              onDurationChange={d => setDuration(d * 1000)}
               onEnded={goNext}
               onError={(e) => { if (e?.type !== 'AbortError') console.warn('Video error:', e) }}
               style={{ objectFit: 'cover' }}

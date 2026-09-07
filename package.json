@@ -1,6 +1,7 @@
 {
   "scripts": {
     "check": "npm --prefix backend run check && npm --prefix frontend run build",
+    "test:all": "npm --prefix backend test -- status && npm --prefix frontend run test && npm --prefix frontend run build",
     "readiness": "node scripts/production-readiness-check.js",
     "start": "npm --prefix backend start",
     "announce": "node scripts/send-announcement.js",
