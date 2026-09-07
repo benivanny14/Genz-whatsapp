@@ -10,7 +10,7 @@ const STALE_MEDIA_HOSTS = [
 ];
 
 const getApiOrigin = () => {
-  const api = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+  const api = ((import.meta.env && import.meta.env.VITE_API_URL) || '').replace(/\/$/, '');
   if (api) return api.replace(/\/api$/, '');
   if (typeof window !== 'undefined' && window.location?.origin) {
     return window.location.origin;
@@ -21,17 +21,22 @@ const getApiOrigin = () => {
 export function sanitizeMediaUrl(url) {
   if (!url || typeof url !== 'string') return url;
 
-  const [pathPart, queryPart] = url.split('?');
+  const [rawPath, queryPart] = url.split('?');
+  let pathPart = rawPath;
   const querySuffix = queryPart ? `?${queryPart}` : '';
 
+  // Stale dev-server hosts (0.0.0.0, localhost:5000) get stripped back to a
+  // relative path, then fall through to the rewrite rules below instead of
+  // early-returning — otherwise status media from an old absolute URL would
+  // stay on the page origin and break on Capacitor/emulator builds.
   const zeroHostMatch = pathPart.match(/^https?:\/\/0\.0\.0\.0(?::\d+)?(\/.*)$/);
   if (zeroHostMatch) {
-    return `${zeroHostMatch[1]}${querySuffix}`;
+    pathPart = zeroHostMatch[1];
   }
 
   const localhostMatch = pathPart.match(/^https?:\/\/(?:localhost|127\.0\.0\.1):5000(\/.*)$/);
   if (localhostMatch) {
-    return `${localhostMatch[1]}${querySuffix}`;
+    pathPart = localhostMatch[1];
   }
 
   try {

@@ -1,15 +1,20 @@
 import React, { useEffect, useState } from 'react'
-import { sanitizeMediaUrl } from '../utils/sanitizeMediaUrl'
+import { sanitizeMediaUrl, ensureSignedMediaUrl } from '../utils/sanitizeMediaUrl'
+import { getAuthToken } from '../utils/tokenStore'
 
 /**
  * Renders status media (image/video/audio) from a URL that may be a relative
  * /uploads/status path or an absolute API URL.
  *
- * On Capacitor/emulator builds the page origin (https://localhost) differs from
- * the API origin (e.g. http://10.0.2.2:5000) and the WebView blocks http://
- * media elements as mixed content — fetch() is allowed but <img>/<video> are
- * not. When that happens the media is fetched and displayed through a blob:
- * URL so statuses actually render instead of showing a broken image.
+ * Two problems are solved here:
+ * 1. Production requires HMAC-signed URLs for /uploads (and /api/uploads/status),
+ *    so protected URLs are signed via /api/media/sign-local before rendering.
+ * 2. On Capacitor/emulator builds the page origin (https://localhost) differs
+ *    from the API origin (e.g. http://10.0.2.2:5000) and the WebView blocks
+ *    http:// media elements as mixed content — fetch() is allowed but
+ *    <img>/<video> are not. When that happens the media is fetched and
+ *    displayed through a blob: URL so statuses actually render instead of
+ *    showing a broken image.
  */
 const mediaNeedsBlob = (url) => {
   if (!url) return false
@@ -24,13 +29,30 @@ const mediaNeedsBlob = (url) => {
 
 export function useStatusMediaUrl(src) {
   const clean = sanitizeMediaUrl(src || '')
-  const [blobUrl, setBlobUrl] = useState(null)
+  const [resolvedUrl, setResolvedUrl] = useState(clean)
 
+  // Sign protected /uploads URLs (production) before rendering
+  useEffect(() => {
+    let cancelled = false
+    setResolvedUrl(clean)
+    if (!clean || !clean.includes('/uploads/') || (clean.includes('sig=') && clean.includes('expires='))) {
+      return undefined
+    }
+    ensureSignedMediaUrl(clean, getAuthToken()).then((signed) => {
+      if (!cancelled && signed) setResolvedUrl(signed)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [clean])
+
+  // Blob fallback for http media on https pages (Capacitor/emulator WebView)
+  const [blobUrl, setBlobUrl] = useState(null)
   useEffect(() => {
     setBlobUrl(null)
-    if (!mediaNeedsBlob(clean)) return undefined
+    if (!mediaNeedsBlob(resolvedUrl)) return undefined
     let cancelled = false
-    fetch(clean)
+    fetch(resolvedUrl)
       .then((res) => (res.ok ? res.blob() : Promise.reject(new Error('media fetch failed'))))
       .then((blob) => {
         if (!cancelled) setBlobUrl(URL.createObjectURL(blob))
@@ -41,9 +63,9 @@ export function useStatusMediaUrl(src) {
     return () => {
       cancelled = true
     }
-  }, [clean])
+  }, [resolvedUrl])
 
-  return blobUrl || clean
+  return blobUrl || resolvedUrl
 }
 
 export default function StatusMedia({

@@ -72,12 +72,21 @@ const signLocalUrlIfNeeded = (url, baseUrl = '') => {
   const relative = normalizeRelativePath(url);
   if (!relative) return url;
 
-  const signedPath = buildSignedUploadPath(relative);
+  const { expires, sig } = signMediaPath(relative);
+  // Status media is also served under /api/uploads/status — Capacitor/emulator
+  // builds serve the page from https://localhost while only /api/* requests are
+  // proxied to the backend, so plain /uploads/status URLs are unreachable
+  // there. Signed status URLs must use that mount (signature payload stays
+  // relative to /uploads, which the /api/uploads/status middleware verifies
+  // from req.originalUrl). Everything else keeps the /uploads mount.
+  const signedPath = relative.startsWith('status/')
+    ? `/api/uploads/status/${relative.slice('status/'.length)}?expires=${expires}&sig=${sig}`
+    : `/uploads/${relative}?expires=${expires}&sig=${sig}`;
   if (url.startsWith('http://') || url.startsWith('https://')) {
     const origin = url.match(/^https?:\/\/[^/]+/i)?.[0] || baseUrl.replace(/\/$/, '');
     return `${origin}${signedPath}`;
   }
-  return baseUrl ? buildSignedUploadUrl(baseUrl, relative) : signedPath;
+  return baseUrl ? `${String(baseUrl).replace(/\/$/, '')}${signedPath}` : signedPath;
 };
 
 module.exports = {

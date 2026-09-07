@@ -46,7 +46,12 @@ const secureUploads = async (req, res, next) => {
     return next();
   }
 
-  let cleanPath = req.path;
+  // Use the FULL request URL (req.originalUrl), not req.path: string-mount
+  // prefixes like /api/uploads/status are stripped from req.path, which would
+  // drop the status/ component and produce a signature payload that never
+  // matches what signLocalUrlIfNeeded computed. normalizeRelativePath keeps
+  // everything after /uploads/, so originalUrl works for every mount.
+  let cleanPath = req.originalUrl || req.url;
   const socketIdMatch = cleanPath.match(/-user-[a-zA-Z0-9]+$/);
   if (socketIdMatch) {
     cleanPath = cleanPath.replace(/-user-[a-zA-Z0-9]+$/, '');
