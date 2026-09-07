@@ -21,6 +21,7 @@
  *               build.gradle versionCode (bump via `npm run bump:apk`)
  *   [REQUIRED]  VITE_API_URL is set and HTTPS (production APK URL)
  */
+import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -120,6 +121,36 @@ if (existsSync(keystoreProps) && existsSync(keystoreFile)) {
   }
   if (storeFile && !existsSync(resolve(root, 'android', storeFile))) {
     fail(`keystore.properties storeFile "${storeFile}" does not exist in android/`);
+  }
+
+  // Smoke-test the keystore with keytool — the same three checks the CI
+  // workflow runs (.github/workflows/build-apk.yml): open the store (-list),
+  // confirm the signing alias exists (-list -alias), then touch the private
+  // key (-certreq) so a wrong storePassword/keyAlias/keyPassword fails HERE,
+  // not after the multi-minute Gradle build. Skipped (with a warning) when
+  // keytool is not on PATH — CI still validates.
+  if (!failed) {
+    let keytoolMissing = false;
+    const kt = (args) => {
+      try {
+        execFileSync('keytool', args, { stdio: ['ignore', 'ignore', 'pipe'], encoding: 'utf8' });
+        return null;
+      } catch (err) {
+        if (err.code === 'ENOENT') { keytoolMissing = true; return null; }
+        return String(err.stderr || err.message).split('\n')[0].trim() || 'keytool failed';
+      }
+    };
+    const storePass = getProp('storePassword');
+    const alias = getProp('keyAlias');
+    const keyPass = getProp('keyPassword');
+    const storePath = resolve(root, 'android', storeFile);
+    const errStore = kt(['-list', '-keystore', storePath, '-storepass', storePass]);
+    if (errStore) fail(`keystore failed keytool validation (store password): ${errStore}`);
+    const errAlias = kt(['-list', '-alias', alias, '-keystore', storePath, '-storepass', storePass]);
+    if (errAlias) fail(`keytool could not find keyAlias "${alias}": ${errAlias}`);
+    const errKey = kt(['-certreq', '-alias', alias, '-keystore', storePath, '-storepass', storePass, '-keypass', keyPass]);
+    if (errKey) fail(`keystore failed keytool validation (key password): ${errKey}`);
+    if (keytoolMissing) warn('keytool not found on PATH — skipped keystore password smoke test (the CI workflow still validates)');
   }
   if (!failed) console.log('  ✓ release keystore found (all 4 signing properties present)');
 } else if (process.env.CI) {

@@ -17,8 +17,15 @@ by commit.
   + `-certreq`) before the Gradle build, so a wrong alias or key password fails in
   seconds instead of after a full multi-minute build.
 - `pre-build-check.js` verifies `keystore.properties` has all four signing fields
-  (storeFile/storePassword/keyAlias/keyPassword) and that the referenced `storeFile`
-  actually exists on disk.
+  (storeFile/storePassword/keyAlias/keyPassword), that the referenced `storeFile`
+  actually exists on disk, and now runs the same keytool smoke test locally
+  (`-list` / `-list -alias` / `-certreq`) so a wrong storePassword, keyAlias or
+  keyPassword fails before the Gradle build on local `apk:build` runs too.
+- New **Keystore Secrets Nightly** workflow validates `ANDROID_KEYSTORE_BASE64` +
+  `ANDROID_KEYSTORE_PROPERTIES` every night (and on demand), filing a 🔑 alert
+  issue when a secret is missing or the keystore fails validation, and closing it
+  again once healthy — so a broken keystore is caught before the next release
+  build, not during it.
 
 ## [2026-08-18] — v1.1.16 Status trust & privacy: mute works end-to-end, block UI, no more public statuses
 
