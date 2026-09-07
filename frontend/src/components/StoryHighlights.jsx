@@ -2,18 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Plus, X, Star, Trash2, Edit3 } from 'lucide-react';
 import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
+import { HIGHLIGHT_COLORS, normalizeStoryHighlight } from '../utils/storyHighlightMapping';
 import StatusMedia from './StatusMedia';
 
 const API_URL = resolveApiBase();
-
-const HIGHLIGHT_COLORS = [
-  'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)',
-  'linear-gradient(45deg,#1cb5e0,#000851)',
-  'linear-gradient(45deg,#00b09b,#96c93d)',
-  'linear-gradient(45deg,#f7971e,#ffd200)',
-  'linear-gradient(45deg,#8e44ad,#3498db)',
-  'linear-gradient(45deg,#e74c3c,#c0392b)',
-];
 
 const CreateHighlightModal = ({ statuses, newName, setNewName, selectedColor, setSelectedColor, selectedStatuses, toggleStatus, onCreate, onClose, colors }) => (
   <div className="fixed inset-0 z-[500] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.85)' }}>
@@ -121,15 +113,7 @@ const StoryHighlights = ({ statuses = [], onSaveHighlight, compact = false }) =>
   const [selectedStatuses, setSelectedStatuses] = useState([]);
   const [viewHighlight, setViewHighlight] = useState(null);
 
-  const normalize = (h, localStatuses = []) => ({
-    id: h._id,
-    name: h.name || h.title,
-    color: HIGHLIGHT_COLORS[Number(h.category) || 0] || HIGHLIGHT_COLORS[0],
-    coverUrl: h.coverUrl || h.coverImage || null,
-    statusIds: h.statusIds || [],
-    statuses: localStatuses,
-    createdAt: h.createdAt
-  });
+  const normalize = (h, localStatuses = []) => normalizeStoryHighlight(h, localStatuses);
 
   useEffect(() => {
     let cancelled = false;
