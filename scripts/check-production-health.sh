@@ -32,6 +32,14 @@ set -uo pipefail
 # The API + MongoDB host (stays warm). The -1 host (genz-whatsapp-1.onrender.com)
 # is the UI/download host — it sleeps on the Render free tier and returns
 # 502/000 while cold, which caused false-positive alerts in the past.
+#
+# KNOWN ENV QUIRK: on the developer laptop, HTTPS to Render's IP range
+# (216.24.57.x — the app + api.render.com) is blocked by the local network,
+# so a run from THAT machine reports 000 even when production is healthy.
+# The scheduled GitHub Actions checks (prod-health-frequent.yml) run from
+# GitHub's network and are authoritative. If a local run shows DOWN, verify
+# from an external proxy (e.g. https://r.jina.ai/https://genz-whatsapp.onrender.com/api/health/live)
+# before treating it as a real outage.
 PROD_URL="${PROD_URL:-https://genz-whatsapp.onrender.com}"
 CHECK_INTERVAL="${CHECK_INTERVAL:-60}"
 RETRIES="${RETRIES:-6}"
