@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { PrivacyScreen } from '@capacitor-community/privacy-screen'
+import { isAntiScreenshotActive } from '../utils/antiScreenshot'
 import { useStatusMediaUrl } from './StatusMedia'
 import { sanitizeMediaUrl } from '../utils/sanitizeMediaUrl'
 import { useStatusContext } from '../context/StatusContext'
@@ -71,6 +73,7 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
   const containerRef = useRef(null)
   const touchStartX = useRef(0)
   const voiceAudioRef = useRef(null)
+  const musicAudioRef = useRef(null)
   const touchStartY = useRef(0)
   const lastTapTime = useRef(0)
   const [scale, setScale] = useState(1)
@@ -99,6 +102,21 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
   const effectiveOwner = statusOwner || { _id: statusOwnerId, username: currentStatus?.username || 'Unknown', profilePicture: currentStatus?.profilePicture || '' }
   const isOwner = Boolean(currentUserId && statusOwnerId && currentUserId === statusOwnerId)
 
+  // PrivacyScreen: block screenshots/screen-record while status is viewed (APK FLAG_SECURE) - matches ViewOnceMedia
+  useEffect(() => {
+    let cancelled = false
+    const enable = async () => {
+      try { await PrivacyScreen.enable() } catch (e) { /* web/no plugin */ }
+    }
+    enable()
+    return () => {
+      const disable = async () => {
+        try { if (!isAntiScreenshotActive()) await PrivacyScreen.disable() } catch (e) { /* ignore */ }
+      }
+      disable()
+    }
+  }, [])
+
   // Update remaining time every 30 seconds
   useEffect(() => {
     if (!currentStatus?.expiresAt) return
@@ -107,6 +125,16 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
     const interval = setInterval(update, 30000)
     return () => clearInterval(interval)
   }, [currentStatus?.expiresAt])
+
+  // Sync music trim playback with pause/mute (WhatsApp parity: trim respected)
+  useEffect(() => {
+    const a = musicAudioRef.current
+    if (!a || !currentStatus?.music?.file) return
+    a.muted = isMuted
+    try { a.volume = Math.max(0, Math.min(1, Number(currentStatus.music.volume ?? 0.5))) } catch {}
+    if (isPaused) { try { a.pause() } catch {} }
+    else { a.play().catch(() => {}) }
+  }, [isPaused, isMuted, currentStatus?.music?.file])
 
   // Mark as viewed (skip if Ghost Mode is active) & Auto-Save & Anti-Delete Cache
   useEffect(() => {
@@ -719,13 +747,26 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
               onError={(e) => { if (e?.type !== 'AbortError') console.warn('Video error:', e) }}
               style={{ objectFit: 'cover' }}
             />
-            {/* Background music player */}
+            {/* Background music player - respects trim startTime/endTime/volume like WhatsApp */}
             {currentStatus.music?.file && (
               <audio
+                ref={musicAudioRef}
                 src={currentStatus.music.file}
                 autoPlay={!isPaused}
                 loop={false}
                 muted={isMuted}
+                onLoadedMetadata={(e) => {
+                  const start = Number(currentStatus.music.startTime) || 0
+                  const vol = currentStatus.music.volume != null ? Number(currentStatus.music.volume) : 0.5
+                  try { e.target.currentTime = start; e.target.volume = Math.max(0, Math.min(1, vol)) } catch {}
+                }}
+                onTimeUpdate={(e) => {
+                  const end = Number(currentStatus.music.endTime)
+                  if (end > 0 && e.target.currentTime >= end) {
+                    e.target.pause()
+                    if (!isPaused) goNext()
+                  }
+                }}
                 onEnded={goNext}
                 onError={(e) => { if (e?.type !== 'AbortError') console.warn('Music error:', e) }}
               />
