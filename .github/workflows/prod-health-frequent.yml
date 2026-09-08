@@ -1,0 +1,33 @@
+name: Production Health (frequent)
+
+on:
+  schedule:
+    # Every 15 minutes — cheap HTTP-only probe of /api/health/live + /ready via
+    # scripts/check-production-health.sh. Catches outages fast without needing
+    # the RENDER_API_KEY secret (that deep check runs nightly). Failed runs
+    # surface through GitHub's standard notification/email on this workflow.
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  health:
+    name: HTTP probe
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run production health probe
+        run: |
+          bash scripts/check-production-health.sh || {
+            echo "::error::Production unreachable: https://genz-whatsapp-1.onrender.com"
+            exit 1
+          }
+
+      - name: Report status
+        run: |
+          echo "Production is reachable (live + ready):"
+          curl -sS -m 20 https://genz-whatsapp-1.onrender.com/api/health/ready | head -c 300
