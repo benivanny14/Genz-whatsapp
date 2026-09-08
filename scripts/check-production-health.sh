@@ -13,7 +13,7 @@
 #   ./scripts/check-production-health.sh --watch    # loop forever, interval env
 #
 # Env vars (all optional):
-#   PROD_URL           Base URL to probe  (default https://genz-whatsapp-1.onrender.com)
+#   PROD_URL           Base URL to probe  (default https://genz-whatsapp.onrender.com)
 #   CHECK_INTERVAL     Seconds between checks in --watch mode (default 60)
 #   RETRIES            Cold-start retries before declaring down (default 6)
 #   RETRY_DELAY        Seconds between retries (default 10)
@@ -29,7 +29,10 @@
 # =============================================================================
 set -uo pipefail
 
-PROD_URL="${PROD_URL:-https://genz-whatsapp-1.onrender.com}"
+# The API + MongoDB host (stays warm). The -1 host (genz-whatsapp-1.onrender.com)
+# is the UI/download host — it sleeps on the Render free tier and returns
+# 502/000 while cold, which caused false-positive alerts in the past.
+PROD_URL="${PROD_URL:-https://genz-whatsapp.onrender.com}"
 CHECK_INTERVAL="${CHECK_INTERVAL:-60}"
 RETRIES="${RETRIES:-6}"
 RETRY_DELAY="${RETRY_DELAY:-10}"
