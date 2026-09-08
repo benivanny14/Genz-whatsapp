@@ -52,3 +52,4 @@ frontend/android/.gradle/
 # dist/, which is built from the git checkout — so the APK must be committed
 # with every release (see docs/APK_RELEASE_CHECKLIST.md). Ignoring it made the
 # production download serve the SPA fallback (index.html) instead of the APK.
+my_app/
