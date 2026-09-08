@@ -38,7 +38,10 @@ const Chat = () => {
     if (mods?.enableAppLock && lockType !== 'none') setIsLocked(true);
   }, [mods?.enableAppLock, lockType]);
 
-  const unlockApp = () => setIsLocked(false);
+  // Stable identity: LockScreen's biometric effect depends on onUnlock — a new
+  // function per render would cancel the in-flight fingerprint prompt and
+  // re-trigger it on every Chat re-render, so a successful scan never unlocks.
+  const unlockApp = useCallback(() => setIsLocked(false), []);
 
   // Inactivity auto-lock (Phase 4)
   useInactivityLock(mods?.enableAppLock && lockType !== 'none', lockApp);

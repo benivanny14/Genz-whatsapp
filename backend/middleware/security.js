@@ -228,7 +228,11 @@ const securityHeaders = (req, res, next) => {
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   
   // Restrict browser features
-  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(self), camera=(self), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), fullscreen=(self), picture-in-picture=(self)');
+  // geolocation must be (self): location statuses, "Share Current Location"
+  // and live-location sharing all call navigator.geolocation — blocking it
+  // entirely made those features fail on the web app ("Location access
+  // denied"). Same-origin only keeps the policy tight.
+  res.setHeader('Permissions-Policy', 'geolocation=(self), microphone=(self), camera=(self), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), fullscreen=(self), picture-in-picture=(self)');
   
   // Prevent DNS prefetching
   res.setHeader('X-DNS-Prefetch-Control', 'off');

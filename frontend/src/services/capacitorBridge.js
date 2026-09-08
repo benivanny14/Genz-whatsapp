@@ -71,7 +71,7 @@ export const authenticateWithBiometric = async (options = {}) => {
   if (!isNative()) return { used: false, verified: false };
 
   try {
-    const res = await NativeBiometric.verifyIdentity({
+    await NativeBiometric.verifyIdentity({
       reason: options.reason || 'Scan your fingerprint to continue',
       title: options.title || 'Genz Messenger',
       subtitle: options.subtitle || 'Biometric authentication',
@@ -80,7 +80,11 @@ export const authenticateWithBiometric = async (options = {}) => {
       maxAttempts: options.maxAttempts || 3,
       useFallback: false
     });
-    return { used: true, verified: res?.verified === true };
+    // NOTE: verifyIdentity() resolves with no payload on success and REJECTS on
+    // failure/cancel (the plugin's Android verifyResult calls call.resolve() with
+    // nothing when the fingerprint matches). Checking res?.verified would always
+    // be false and a successful scan would fall back to the PIN screen.
+    return { used: true, verified: true };
   } catch (e) {
     console.warn('[CapacitorBridge] Biometric verification failed:', e?.message || e);
     return { used: true, verified: false, error: e?.message || 'Biometric authentication failed' };

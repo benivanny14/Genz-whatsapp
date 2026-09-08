@@ -269,6 +269,84 @@ ALLOW_REAL_PAYMENT_PROVIDERS=true       # ukishasema unataka malipo ya kweli
 
 ---
 
+## Sehemu ya 9: Kutoa Release Mpya (v1.1.25) kwa Users Waliopo
+
+> **Nini kipya kwenye v1.1.25 (kutoka kikao cha 2026-09-08):**
+>
+> - **App Lock / Fingerprint imerekebishwa** — fingerprint ilikuwa inafanya kazi
+>   kwenye kiwango cha OS lakini app haikufunguka (bug 2: `verified` iliangaliwa
+>   vibaya kwenye `capacitorBridge.js` na `unlockApp` haikuwa stable kwenye
+>   `Chat.jsx`). Sasa: kuanzisha app → `BiometricPrompt` ya Android → fingerprint
+>   ya lock screen → app inafunguka (kama TM WhatsApp).
+> - Font za message na view-once **hazijafungwa tena kwa premium pekee** —
+>   kila mtumiaji anatuma font yake na inafika kwa mpokeaji (WhatsApp parity).
+> - Ulinzi wa Anti-Screenshot (FLAG_SECURE) umethibitishwa kwenye emulator.
+> - Status (video/picha/voice/location), Winga (photo+video), voice notes,
+>   emoji/sticker panels — zote zimethibitishwa end-to-end.
+
+### Hatua kwa hatua (hatua hizi zinajenga APK iliyotiwa sahihi na kusasisha `version.json`):
+
+```bash
+# 1. Bump version (versionCode +1 → 28, versionName → 1.1.25, version.json inasasishwa)
+cd frontend
+npm run bump:apk patch --notes "App Lock fingerprint fix | Fonts free for all | Anti-screenshot verified"
+
+# 2. Jenga APK ya release iliyotiwa sahihi (inajenga web app na production API,
+#    ina-sign release, inaandika public/version.json yenye sha256 + size mpya)
+npm run apk:build
+
+# 3. Thibitisha matokeo
+git diff frontend/public/version.json      # version=1.1.25, versionCode=28, sha256 mpya
+ls -la frontend/public/genz-whatsapp.apk   # APK mpya iko (inapakuliwa na users)
+
+# 4. Tuma kwenye git — Render ina-deploy APK + version.json moja kwa moja
+git add frontend/public/genz-whatsapp.apk frontend/public/version.json \
+        frontend/android/app/build.gradle frontend/ios/App/App.xcodeproj/project.pbxproj
+git commit -m "feat(apk): release v1.1.25 (fingerprint lock fix, free fonts)"
+git push
+
+# (Njia mbadala ya CI: weka tag ya git — workflow build-apk.yml itajenga yenyewe)
+git tag v1.1.25 && git push origin v1.1.25
+```
+
+### Kwa nini users waliopo watapata update (jinsi banner inavyofanya kazi):
+
+1. APK iliyowekwa tayari inalinganisha **versionCode iliyosakinishwa** (27 kwa
+   v1.1.24) na **versionCode inayotumiwa na server** kupitia `/version.json`.
+2. `version.json` inatumiwa bila caching (server ina `no-cache`) — hivyo
+   users wanaona banner ya **"Update available"** mara tu release mpya
+   inapokuwa live, bila kuhitaji kufungua Play Store.
+3. Banner ina link ya download — APK inapakuliwa kutoka kwenye site yenyewe
+   (`/api/uploads/updates/...`), si GitHub.
+
+### Ukaguzi baada ya deploy:
+
+```bash
+# version.json mpya inaonekana kwenye production
+curl https://genz-whatsapp-1.onrender.com/version.json
+# → version: "1.1.25", versionCode: 28, sha256: <mpya>
+
+# Login page inaonyesha v1.1.25
+# APK ya zamani (v1.1.24) kwenye simu/emulator → banner "Update available v1.1.25"
+# Download + install inafanya kazi (versionCode imeongezeka → reinstall-over inapita)
+```
+
+### ⚠️ Ikiwa production iko DOWN (kama ilivyo 2026-09-08):
+
+1. Angalia Render dashboard: `dashboard.render.com` → service → **Logs** —
+   tafuta crash loop, `out of memory`, au `sleeping` (free tier inalala baada ya
+   kutokuwa na traffic ~15 min na inachukua ~60s kuamka).
+2. Jaribu kuamsha kwa kutuma request: `curl https://genz-whatsapp-1.onrender.com/api/health`
+   (mara kadhaa, subiri sekunde 30–60 kati ya majaribio).
+3. Ikiwa bado down → Render dashboard → **Manual Deploy → Deploy latest commit**,
+   au Rebuild. Ikiwa imeharibika kabisa → **New Deployment** kutoka commit ya
+   mwisho iliyokuwa inafanya kazi.
+4. Endesha script ya health check kuona inaporejea:
+   `bash scripts/check-production-health.sh` (ina-retry cold starts na
+   ina-alert pale state inapobadilika).
+
+---
+
 ## Muhtasari wa Amri
 
 ```bash

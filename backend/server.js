@@ -692,6 +692,7 @@ app.use(
         imgSrc: [
           "'self'",
           "data:",
+          "blob:",
           "https:",
           publicApiOrigin,
           ...(!isProduction ? ["http://localhost:5000"] : []),
@@ -699,7 +700,14 @@ app.use(
         connectSrc: cspConnectSources,
         fontSrc: ["'self'"],
         objectSrc: ["'none'"],
-        mediaSrc: ["'self'", publicApiOrigin, ...(!isProduction ? ["http://localhost:5000"] : [])],
+        // media-src must allow https: — Cloudinary-hosted audio/video (voice
+        // notes, audio/video messages, status media, WINGA listing videos) is
+        // served from https://res.cloudinary.com/* and would otherwise be
+        // CSP-blocked → "Audio unavailable" on the web app. img-src already
+        // allows https: for the same reason. blob: is required too — the
+        // crop/doodle editors, media previews, voice-note preview and camera
+        // capture all render URL.createObjectURL() blobs.
+        mediaSrc: ["'self'", "blob:", "https:", publicApiOrigin, ...(!isProduction ? ["http://localhost:5000"] : [])],
         frameSrc: ["'none'"],
       },
     },

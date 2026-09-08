@@ -861,17 +861,19 @@ exports.sendMessage = async (req, res) => {
 
     if (!ensureParticipant(conversation, localUserId, res)) return;
 
-    // PREMIUM GATE: self-destruct, view-once, and custom fonts require an active subscription
+    // PREMIUM GATE: only self-destruct requires an active subscription.
+    // View-once and per-message custom fonts are FREE (WhatsApp/TM-WhatsApp
+    // parity — the composer exposes both without a paywall, and silently
+    // stripping them made the receiver see the default font and broke
+    // view-once protection for free users).
     let enforceSelfDestruct = isSelfDestruct;
     let enforceViewOnce = isViewOnce;
     let enforceFont = font;
-    if ((isSelfDestruct || isViewOnce || font) && localUserId) {
+    if (isSelfDestruct && localUserId) {
       const sender = await User.findById(localUserId).select('premium subscriptionExpiresAt');
       const hasPremium = sender && sender.premium && sender.subscriptionExpiresAt && new Date() <= new Date(sender.subscriptionExpiresAt);
       if (!hasPremium) {
         enforceSelfDestruct = false;
-        enforceViewOnce = false;
-        enforceFont = null;
       }
     }
 

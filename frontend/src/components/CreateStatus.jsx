@@ -1603,7 +1603,7 @@ const CreateStatus = ({ onClose }) => {
             </span>
           </button>
 
-          <button onClick={handleSubmit} disabled={isProcessing}>
+          <button onClick={handleSubmit} disabled={isProcessing} aria-label="Post status">
             {isProcessing ? 'Processing...' : <Send size={20} />}
           </button>
         </div>

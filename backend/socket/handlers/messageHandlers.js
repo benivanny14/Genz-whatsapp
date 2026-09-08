@@ -187,15 +187,16 @@ module.exports = function registerMessageHandlers(ctx) {
 
       // BUGFIX (self-destruct/view-once "don't work at all" on APK): same
       // silent-strip issue as the HTTP sendMessage path — see chatController.js
-      // for the full explanation. Only custom font remains premium-gated.
+      // for the full explanation. Only self-destruct remains premium-gated;
+      // view-once and per-message custom fonts are FREE (WhatsApp parity).
       let enforceSelfDestruct = isSelfDestruct;
       let enforceViewOnce = isViewOnce;
       let enforceFont = font;
-      if (font) {
+      if (isSelfDestruct) {
         const senderUser = await User.findById(socket.userId).select('premium subscriptionExpiresAt');
         const hasPremium = senderUser && senderUser.premium && senderUser.subscriptionExpiresAt && new Date() <= new Date(senderUser.subscriptionExpiresAt);
         if (!hasPremium) {
-          enforceFont = null;
+          enforceSelfDestruct = false;
         }
       }
 
