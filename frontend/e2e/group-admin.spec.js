@@ -50,6 +50,15 @@ test.beforeAll(async ({ request }) => {
   };
 });
 
+// GroupInfo confirms destructive actions through the in-app ConfirmDialog
+// (useConfirmDialog), NOT window.confirm — the e2e must click its Confirm
+// button after each action that opens it.
+async function acceptInAppConfirm(page) {
+  const btn = page.getByRole('button', { name: 'Confirm', exact: true });
+  await expect(btn).toBeVisible({ timeout: 10_000 });
+  await btn.click();
+}
+
 async function login(page, phone) {
   await page.goto('/login');
   await page.locator('input[placeholder="+255712345678"]').fill(phone);
@@ -94,6 +103,7 @@ test('group admin UI: create group, promote admin, lock info, join approval, ban
   // ── 3. Promote B to admin ──────────────────────────────────────────────
   const bRow = pageA.locator('div.flex.items-center.gap-3.px-5.py-3', { hasText: creds.b.username }).last();
   await bRow.getByRole('button', { name: 'Make admin' }).click();
+  await acceptInAppConfirm(pageA);
   // B's subtitle flips to Admin
   await expect(bRow.getByText(/^Admin/)).toBeVisible({ timeout: 15_000 });
 
@@ -107,6 +117,10 @@ test('group admin UI: create group, promote admin, lock info, join approval, ban
   await pageA.getByRole('button', { name: 'Members', exact: true }).click();
   const cRow = pageA.locator('div.flex.items-center.gap-3.px-5.py-3', { hasText: creds.c.username }).last();
   await cRow.getByRole('button', { name: 'Ban member' }).click();
+  // Ban opens the custom PromptDialog (autofocused input + OK) — give a reason.
+  await expect(pageA.getByRole('button', { name: 'OK', exact: true })).toBeVisible({ timeout: 10_000 });
+  await pageA.keyboard.type('E2E ban reason');
+  await pageA.getByRole('button', { name: 'OK', exact: true }).click();
   // C is removed from the member list after the ban
   await expect(pageA.getByText(creds.c.username, { exact: true })).toHaveCount(0, { timeout: 15_000 });
 
