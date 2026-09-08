@@ -7,7 +7,7 @@ import { useStatusContext } from '../context/StatusContext'
 import { getSocket } from '../services/socket'
 import { resolveApiBase } from '../utils/resolveApiBase'
 import { getAuthToken } from '../utils/tokenStore'
-import { X, Volume2, VolumeX, Send, Eye, EyeOff, CheckCheck, Heart, Trash2, ChevronLeft, ChevronRight, Pause, Play, Forward, Download, Smile, Share2, Link2, Copy, Check, Music, Mic, BarChart3, QrCode, Clock, RotateCcw } from 'lucide-react'
+import { X, Volume2, VolumeX, Send, Eye, EyeOff, CheckCheck, Heart, Trash2, ChevronLeft, ChevronRight, Pause, Play, Forward, Download, Smile, Share2, Link2, Copy, Check, Music, Mic, BarChart3, QrCode, Clock, RotateCcw, MapPin } from 'lucide-react'
 import ReactPlayer from 'react-player'
 import ForwardDialog from './ForwardDialog'
 import StatusAnalytics from './StatusAnalytics'
@@ -15,6 +15,7 @@ import AddYoursChain from './AddYoursChain'
 import CountdownOverlay from './CountdownOverlay'
 import { LocationStickerOverlay } from './LocationSticker'
 import QuizOverlay from './QuizOverlay'
+import LeafletMap from './LeafletMap'
 import './StatusViewer.css'
 
 // Format remaining time as "Xh Ym" or "Ym" or "<1m"
@@ -196,6 +197,8 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
       ? 10000 // Audio: 10 seconds
       : currentStatus?.type === 'text'
       ? 7000 // Text: 7 seconds
+      : currentStatus?.type === 'location'
+      ? 5000 // Location: 5 seconds
       : 5000 // Image: 5 seconds
 
     const interval = setInterval(() => {
@@ -803,6 +806,52 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
                 {currentStatus.caption}
               </p>
             )}
+          </div>
+        )}
+
+        {/* Location Status */}
+        {currentStatus.type === 'location' && (
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            width: '100%', height: '100%', background: 'linear-gradient(135deg, #0d1f35 0%, #1a1a2e 50%, #16213e 100%)',
+            padding: '32px'
+          }}>
+            <div style={{
+              width: '100%', height: '60%', borderRadius: '16px', overflow: 'hidden',
+              marginBottom: '20px', border: '2px solid rgba(0,168,132,0.3)'
+            }}>
+              {(currentStatus.locationData?.latitude && currentStatus.locationData?.longitude) ? (
+                <LeafletMap
+                  center={{ lat: currentStatus.locationData.latitude, lng: currentStatus.locationData.longitude }}
+                  marker={{ lat: currentStatus.locationData.latitude, lng: currentStatus.locationData.longitude }}
+                  zoom={15}
+                  interactive={false}
+                  height="100%"
+                />
+              ) : (
+                <div style={{
+                  width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'rgba(0,0,0,0.5)', color: '#8696a0'
+                }}>
+                  <MapPin size={48} />
+                </div>
+              )}
+            </div>
+            <div style={{ textAlign: 'center', color: '#fff' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
+                {currentStatus.locationData?.name || currentStatus.content || 'Location'}
+              </h3>
+              {currentStatus.locationData?.address && (
+                <p style={{ fontSize: '14px', color: '#8696a0', marginBottom: '8px' }}>
+                  {currentStatus.locationData.address}
+                </p>
+              )}
+              {currentStatus.caption && (
+                <p style={{ fontSize: '13px', color: '#8696a0', marginTop: '12px', opacity: 0.8 }}>
+                  {currentStatus.caption}
+                </p>
+              )}
+            </div>
           </div>
         )}
 

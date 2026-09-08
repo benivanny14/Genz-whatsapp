@@ -1,9 +1,14 @@
 const OVERLAY_ID = 'genz-anti-screenshot-overlay';
 import toast from 'react-hot-toast';
+import { PrivacyScreen } from '@capacitor-community/privacy-screen';
+import { Capacitor } from '@capacitor/core';
 
 let listenersAttached = false;
 let enabled = false;
 let onScreenshotAttempt = null;
+
+// Reference counting for PrivacyScreen to handle both chat-level mod and ViewOnce
+let privacyScreenRefCount = 0;
 
 const ensureOverlay = () => {
   let el = document.getElementById(OVERLAY_ID);
@@ -53,11 +58,31 @@ export const setScreenshotAttemptCallback = (callback) => {
 // overwriting it, and restore that value (not null) on cleanup.
 export const getScreenshotAttemptCallback = () => onScreenshotAttempt;
 
-export const applyAntiScreenshot = (shouldEnable) => {
+export const applyAntiScreenshot = async (shouldEnable) => {
   enabled = Boolean(shouldEnable);
   const root = document.documentElement;
   const body = document.body;
 
+  // Handle PrivacyScreen for native platforms (Android FLAG_SECURE)
+  if (Capacitor.isNativePlatform()) {
+    try {
+      if (shouldEnable) {
+        privacyScreenRefCount++;
+        if (privacyScreenRefCount === 1) {
+          await PrivacyScreen.enable();
+        }
+      } else {
+        privacyScreenRefCount = Math.max(0, privacyScreenRefCount - 1);
+        if (privacyScreenRefCount === 0) {
+          await PrivacyScreen.disable();
+        }
+      }
+    } catch (e) {
+      console.warn('PrivacyScreen not available:', e);
+    }
+  }
+
+  // Web/desktop CSS overlay protection (second layer)
   if (enabled) {
     root.classList.add('no-screenshot');
     body.classList.add('no-screenshot');
