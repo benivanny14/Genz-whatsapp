@@ -87,6 +87,24 @@ async function main() {
 
   if (!tokenA || !tokenB) { printSummary(); process.exit(1); }
 
+  // Anti-revoke (deleted-messages viewer) is a PREMIUM feature — the payment
+  // flow would have set these flags. Grant both users a valid subscription
+  // directly in Mongo (throwaway users, same pattern as the e2e-live
+  // premium-font test) so the feature gates pass.
+  try {
+    const mongoose = require('mongoose');
+    const dbUri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/genz-whatsapp';
+    await mongoose.connect(dbUri);
+    const User = require('../models/User');
+    const { ObjectId } = mongoose.Types;
+    await User.updateMany(
+      { _id: { $in: [new ObjectId(userAId), new ObjectId(userBId)] } },
+      { $set: { premium: true, subscriptionExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) } }
+    );
+    await mongoose.disconnect();
+    pass('Grant premium to test users');
+  } catch (e) { fail('Grant premium to test users', e); }
+
   try {
     await request('/anti-revoke/settings', {
       method: 'POST',

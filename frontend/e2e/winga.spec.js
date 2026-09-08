@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
+import path from 'node:path';
 
 /**
  * WINGA — the marketplace feature that replaced "Business tools" in Settings:
@@ -30,7 +32,32 @@ const registerUser = async (request, prefix) => {
   return { ...user, userId: data.user._id, token: data.token };
 };
 
+// CI retries re-run this file against the same throwaway DB, so a failed
+// attempt's listings survive into the retry and break the fixed-count
+// assertions (totalUnseen === 2, category badges === '1'). Wipe the WINGA
+// collection first — same pattern as admin-panels.spec.js (mongoose resolves
+// from backend/node_modules via execFileSync with cwd=backend).
+function wipeWingaListings(uri) {
+  const repoRoot = path.resolve(process.cwd(), '..');
+  const script = `
+    const mongoose = require('mongoose');
+    (async () => {
+      await mongoose.connect(process.env.URI);
+      const col = mongoose.connection.collection('businesses');
+      await col.deleteMany({});
+      await mongoose.disconnect();
+    })().catch((e) => { console.error(e); process.exit(1); });
+  `;
+  execFileSync('node', ['-e', script], {
+    cwd: path.resolve(repoRoot, 'backend'),
+    env: { ...process.env, URI: uri },
+    stdio: 'pipe'
+  });
+}
+
 test.beforeAll(async ({ request }) => {
+  const uri = process.env.MONGO_URI || process.env.MONGODB_URI;
+  if (uri) wipeWingaListings(uri);
   seller = await registerUser(request, 'winga_seller');
   buyer = await registerUser(request, 'winga_buyer');
 });
@@ -82,7 +109,7 @@ test('WINGA: buyer sees unseen-count badges and clearing them updates the nav ba
   // (The nav button's accessible name includes the badge, e.g. "2 WINGA".)
   await page.getByTestId('nav-winga').click();
   await page.waitForURL(/\/winga/);
-  await expect(page.getByText(/Una biashara 2 mpya/)).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/You have 2 new listings/)).toBeVisible({ timeout: 30_000 });
   const nguoCat = page.getByTestId('winga-category-nguo');
   await expect(page.getByTestId('winga-cat-unseen-nguo')).toHaveText('1');
   await expect(page.getByTestId('winga-cat-unseen-simu')).toHaveText('1');
@@ -102,13 +129,13 @@ test('WINGA: buyer sees unseen-count badges and clearing them updates the nav ba
   await page.getByRole('button', { name: 'Back to categories' }).click();
   await expect(page.getByTestId('winga-cat-unseen-nguo')).not.toBeVisible();
   await expect(page.getByTestId('winga-cat-unseen-simu')).toHaveText('1');
-  await expect(page.getByText(/Una biashara 1 mpya/)).toBeVisible();
+  await expect(page.getByText(/You have 1 new listings/)).toBeVisible();
 
   // View the second one too — banner disappears and the nav badge clears.
   await page.getByTestId('winga-category-simu').click();
   await page.getByRole('button', { name: /Nokia 3310/ }).click();
   await page.getByRole('button', { name: 'Close' }).click();
-  await expect(page.getByText(/Una biashara .* mpya/)).not.toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText(/You have .* new listings/)).not.toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId('winga-cat-unseen-simu')).not.toBeVisible();
   await expect(page.getByTestId('nav-badge-winga')).not.toBeVisible({ timeout: 20_000 });
 
@@ -135,13 +162,13 @@ test('WINGA: seller posts a business and sees it under My Listings with the dail
 
   // Daily counter is visible (the buyer test already posted 2 as this
   // seller, so the count is dynamic — assert the shape, not the value).
-  const counter = page.getByText(/Leo: \d+\/15 biashara/);
+  const counter = page.getByText(/Today: \d+\/15 listings/);
   await expect(counter).toBeVisible();
   const countBefore = parseInt((await counter.innerText()).match(/(\d+)\/15/)[1], 10);
 
   // Post a listing through the real UI.
-  await page.getByRole('button', { name: 'Chapisha' }).click();
-  await expect(page.getByRole('heading', { name: 'Chapisha Biashara' })).toBeVisible();
+  await page.getByRole('button', { name: 'Post' }).click();
+  await expect(page.getByRole('heading', { name: 'Post Listing' })).toBeVisible();
 
   // Category picker.
   await page.getByTestId('post-category-nguo').click();
@@ -164,13 +191,13 @@ test('WINGA: seller posts a business and sees it under My Listings with the dail
   await expect(page.getByTestId('winga-submit-post')).toBeEnabled();
 
   await page.getByTestId('winga-submit-post').click();
-  await expect(page.getByText('Biashara yako imechapishwa kwenye WINGA!')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('Your listing has been published on WINGA!')).toBeVisible({ timeout: 30_000 });
 
   // The listing should now appear in the category view, and the daily counter
   // increments by exactly one.
   await expect(page.getByText('Mkoba wa ngozi wa kike').first()).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText(/TZS 45,000|TZS 45000/).first()).toBeVisible();
-  await expect(counter).toHaveText(`Leo: ${countBefore + 1}/15 biashara`, { timeout: 20_000 });
+  await expect(counter).toHaveText(`Today: ${countBefore + 1}/15 listings`, { timeout: 20_000 });
 
   // Daily limit: keep posting until the 16th-in-24h is blocked with a 429.
   let blocked = null;
@@ -246,8 +273,8 @@ test('WINGA: buyer orders a listing and the seller confirms it', async ({ page, 
   expect(soldListing.isSold).toBe(true);
 
   // Buyer opens Maagizo → Nimetuma tab → the order shows as confirmed.
-  await page.getByRole('button', { name: 'Maagizo' }).click();
-  await expect(page.getByText('Maagizo').first()).toBeVisible({ timeout: 20_000 });
+  await page.getByRole('button', { name: 'Orders' }).click();
+  await expect(page.getByText('Orders').first()).toBeVisible({ timeout: 20_000 });
   await page.getByRole('button', { name: /Nimetuma/ }).click();
   await expect(page.getByText('Imethibitishwa ✅').first()).toBeVisible({ timeout: 20_000 });
 
@@ -268,7 +295,7 @@ test('WINGA: buyer orders a listing and the seller confirms it', async ({ page, 
 
   // Search across all categories finds the listing by title.
   await page.getByTestId('winga-search').fill('Kanga');
-  await expect(page.getByText(/Matokeo ya "Kanga"/).first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText(/Results for "Kanga"/).first()).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText('Kanga ya maua').first()).toBeVisible();
   await page.getByTestId('winga-search').fill('');
 

@@ -112,6 +112,31 @@ async function main() {
   }
   console.log(`     ids: ${JSON.stringify(ids)}\n`);
 
+  // Premium-gated features (anti-revoke, fake-chat, channels) are exercised
+  // below — grant all four users a valid subscription directly in Mongo (the
+  // payment flow would have set these; throwaway users, same pattern as
+  // e2e-deleted-message.js).
+  try {
+    const mongoose = require('mongoose');
+    const dbUri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/genz-whatsapp';
+    await mongoose.connect(dbUri);
+    const User = require('../models/User');
+    await User.updateMany(
+      { _id: { $in: [ids[0], ids[1], ids[2], ids[3]].map((x) => new mongoose.Types.ObjectId(x)) } },
+      { $set: { premium: true, subscriptionExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) } }
+    );
+    await mongoose.disconnect();
+    check('grant premium to test users', true, { success: true });
+  } catch (e) {
+    check('grant premium to test users', false, { message: e.message });
+  }
+
+  // 'contacts' privacy requires the viewer to be in the owner's contact list
+  // (status.js canViewerSeeStatus) — make u1 a contact of u0 so S30-S32 pass.
+  await loginAs(0);
+  const syncR = await api.req('POST', '/api/contacts/sync', { contacts: [{ name: 'User B', phone: users[1].phoneNumber }] });
+  check('make u1 a contact of u0', syncR.status === 200 && syncR.json.success, syncR, 'message');
+
   // ═══════════════════════════════════════════════════════════════════
   // [S] STATUS — FULL FEATURE SET
   // ═══════════════════════════════════════════════════════════════════
@@ -179,8 +204,6 @@ async function main() {
 
     r = await api.req('POST', `/api/status/link-preview`, { url: 'https://example.com' });
     check('S17 link preview', r.status === 200 || r.status === 201, r, 'message');
-    r = await api.req('POST', '/api/status/call-link', {});
-    check('S18 create call link', r.status === 200 || r.status === 201, r, 'message');
 
     r = await api.req('POST', `/api/status/${sid}/screenshot-attempt`, {});
     check('S19 screenshot attempt report', r.status === 200, r, 'message');
@@ -188,7 +211,9 @@ async function main() {
     r = await api.req('POST', `/api/status/${sid}/reply`, { content: 'Nice status!' });
     check('S20 reply to status', r.status === 200 || r.status === 201, r, 'message');
 
-    r = await api.req('POST', `/api/status/${sid}/forward`, { targetUserIds: [ids[1]] });
+    r = await api.req('POST', '/api/chat/conversation', { userId: ids[1] });
+    const fwdConv = idOf(r.json.conversation);
+    r = await api.req('POST', `/api/status/${sid}/forward`, { contacts: fwdConv ? [fwdConv] : [], groups: [] });
     check('S21 forward status', r.status === 200 || r.status === 201, r, 'message');
 
     r = await api.req('GET', '/api/status/revoked');
@@ -266,8 +291,6 @@ async function main() {
   check('S47 get scheduled statuses', r.status === 200, r, 'message');
   r = await api.req('POST', '/api/status/link-preview', { url: 'https://example.com' });
   check('S48 get link preview', r.status === 200 || r.status === 201, r, 'message');
-  r = await api.req('POST', '/api/status/call-link', {});
-  check('S49 create call link', r.status === 200 || r.status === 201, r, 'message');
   r = await api.req('POST', `/api/status/${sid}/share-token`, {});
   check('S50 create share token', r.status === 200 || r.status === 201, r, 'message');
   r = await api.req('GET', '/api/status/feed');

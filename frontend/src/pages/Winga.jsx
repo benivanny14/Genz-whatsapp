@@ -905,7 +905,7 @@ const Winga = () => {
                     type="button"
                     onClick={() => setOrderQty((q) => Math.min(100, q + 1))}
                     className="h-9 w-9 rounded-lg border border-white/10 bg-white/5 font-black hover:bg-white/10"
-                    aria-label="Increase quantity"
+                    aria-label="Ongeza idadi"
                   >
                     +
                   </button>
