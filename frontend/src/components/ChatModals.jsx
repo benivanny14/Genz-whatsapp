@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarClock, Copy, Languages, Mic, Send, Square, Trash2, X } from 'lucide-react';
+import { CalendarClock, Copy, Languages, Mic, Send, Square, Trash2, X, Store } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import AudioPlayer from './AudioPlayer';
 import ChunkedUploader from './ChunkedUploader';
@@ -17,10 +17,10 @@ import MessageContextMenu from './MessageContextMenu';
 import MessageInfo from './MessageInfo';
 import PaymentRequestModal from './PaidFeatures/PaymentRequestModal';
 import PollModal from './PollModal';
-import ProductCatalogue from './ProductCatalogue';
 import ReportDialog from './ReportDialog';
 import SearchMessages from './SearchMessages';
 import { DISAPPEARING_OPTIONS } from '../utils/chatTextHelpers';
+import { useNavigate } from 'react-router-dom';
 import { FONT_OPTIONS } from '../utils/chatTextHelpers';
 
 /**
@@ -32,6 +32,7 @@ import { FONT_OPTIONS } from '../utils/chatTextHelpers';
  * ctx bundle so the JSX content is untouched; behavior is identical.
  */
 const ChatModals = React.memo(function ChatModals({ ctx }) {
+  const navigate = useNavigate();
   const {
     showForwardModal, forwardingMessage, setShowForwardModal, setForwardingMessage,
     showSearchMessages, setShowSearchMessages,
@@ -43,7 +44,6 @@ const ChatModals = React.memo(function ChatModals({ ctx }) {
     textSelectionMenu, textSelectionMenuRef, handleCopySelection,
     handleSelectAllSelection, handleFormatSelection, setTextSelectionMenu,
     reportTarget, setReportTarget,
-    showProductCatalogue, setShowProductCatalogue, sendMessage,
     replyingTo,
     showContactPicker, setShowContactPicker, handleShareContact, handleContactSelect,
     viewerMedia, setViewerMedia, viewProfile, handleStartChatWithMember,
@@ -246,22 +246,38 @@ const ChatModals = React.memo(function ChatModals({ ctx }) {
           />
         )}
   
-        {/* Media Viewer */}
+        {/* Product Catalogue - Redirect to Winga */}
         {showProductCatalogue && (
-          <ProductCatalogue
-            onClose={() => setShowProductCatalogue(false)}
-            onSendProduct={(product) => {
-              sendMessage(product.name, user?.username, {
-                messageType: 'product',
-                product: { id: product._id, name: product.name, price: product.price, image: product.image, description: product.description },
-                chatId: selectedConversation?._id,
-                isGroup: selectedConversation?.isGroup,
-                replyTo: replyingTo
-              });
-              setShowProductCatalogue(false);
-              setReplyingTo(null);
-            }}
-          />
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-[#111b21] rounded-2xl p-6 max-w-md w-full">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-[#00a884]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Store size={32} className="text-[#00a884]" />
+                </div>
+                <h3 className="text-white text-xl font-semibold mb-2">Winga Marketplace</h3>
+                <p className="text-gray-400 text-sm">
+                  Manage your business products, upload videos, and track orders on Winga.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowProductCatalogue(false)}
+                  className="flex-1 bg-[#0b141a] text-white px-4 py-3 rounded-lg hover:bg-[#1a2e35] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    navigate('/winga');
+                    setShowProductCatalogue(false);
+                  }}
+                  className="flex-1 bg-[#00a884] text-white px-4 py-3 rounded-lg hover:bg-[#008f72] transition-colors"
+                >
+                  Go to Winga
+                </button>
+              </div>
+            </div>
+          </div>
         )}
         {showContactPicker && (
           <ContactPickerModal
