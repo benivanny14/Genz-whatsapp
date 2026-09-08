@@ -11,6 +11,7 @@ const { JWT_SECRET, JWT_REFRESH_SECRET } = require('../config/secrets');
 const { setAuthCookies, clearAuthCookies } = require('../utils/authCookies');
 const { deliverOtp } = require('../services/otpDeliveryService');
 const { containsProfanity } = require('../utils/contentFilter');
+const { generateKeyPair } = require('../utils/e2ee');
 
 // SECURITY (2.1): short-lived access tokens (15m) paired with rotating refresh
 // tokens (7d). Values can still be overridden per-environment if needed.
@@ -144,6 +145,16 @@ exports.register = async (req, res) => {
 
     await user.setPassword(password);
     await user.save();
+
+    // E2EE: generate per-user keypair (non-blocking - registration succeeds even if it fails)
+    try {
+      const { publicKey, privateKey } = await generateKeyPair(user._id.toString());
+      user.publicKey = publicKey;
+      user.privateKey = privateKey;
+      await user.save();
+    } catch (e) {
+      console.warn('[E2EE] key generation failed for', user._id, e.message);
+    }
 
     // Generate phone verification OTP
     const otp = crypto.randomInt(100000, 999999).toString();

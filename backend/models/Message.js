@@ -198,6 +198,11 @@ const messageSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  fontFamily: { type: String, default: null },
+  encrypted: { type: Boolean, default: false },
+  viewOnce: { type: Boolean, default: false },
+  viewedAt: { type: Date, default: null },
+  expiresAt: { type: Date, default: null },
   // GENZ Mods flags
   isEdited: {
     type: Boolean,

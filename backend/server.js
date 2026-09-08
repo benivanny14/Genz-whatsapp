@@ -177,8 +177,10 @@ const isAllowedAppOrigin = (origin) => {
 const cspConnectSources = [
   "'self'",
   "https:",
+  "wss:",
+  "ws:",
   publicApiOrigin,
-  ...(!isProduction ? ["http://localhost:5000"] : []),
+  ...(!isProduction ? ["http://localhost:5000", "ws://localhost:5000", "wss://localhost:5000"] : []),
   ...(frontendOrigin ? [frontendOrigin] : []),
 ];
 
@@ -711,7 +713,10 @@ app.use(
         frameSrc: ["'none'"],
       },
     },
-    crossOriginEmbedderPolicy: false,
+    crossOriginEmbedderPolicy: true,
+    crossOriginOpenerPolicy: { policy: 'same-origin' },
+    crossOriginResourcePolicy: { policy: 'same-origin' },
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
   }),
 );
 
@@ -734,7 +739,7 @@ app.use(
 // Rate limiting for API endpoints
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 2000, // Increased limit to handle recovery from overload
+  max: 200,
   message: {
     success: false,
     error: "Too many requests from this IP, please try again later.",

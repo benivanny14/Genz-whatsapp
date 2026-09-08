@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { isDeviceAllowed } = require('../utils/deviceSession');
 const { clearAuthCookies } = require('../utils/authCookies');
+const { isTokenBlacklisted } = require('./tokenBlacklist');
 const { JWT_SECRET } = require('../config/secrets');
 
 // SECURITY (4.1): the hardcoded DEFAULT_DEVICE_ID / LOCAL_USER_ID fallbacks
@@ -51,6 +52,10 @@ const protect = async (req, res, next) => {
         if (decoded.typ === 'refresh') {
           console.error('[Auth] Access route received refresh token');
           return reject(res, 'Invalid token type', 401, true);
+        }
+
+        if (await isTokenBlacklisted(token)) {
+          return reject(res, 'Token revoked', 401, true);
         }
 
         const user = await User.findById(decoded.id);

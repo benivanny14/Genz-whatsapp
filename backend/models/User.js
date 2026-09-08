@@ -30,6 +30,9 @@ const userSchema = new mongoose.Schema({
     sparse: true,
     trim: true,
   },
+  // E2EE: per-user OpenPGP keypair (public visible, private encrypted with userId passphrase)
+  publicKey: { type: String, default: null },
+  privateKey: { type: String, default: null },
   role: {
     type: String,
     enum: ["user", "admin"],
