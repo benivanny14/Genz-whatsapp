@@ -1317,27 +1317,48 @@ app.post(
   handleUpload,
 );
 
-// Health check endpoint for monitoring
-app.get("/health", (req, res) => {
-  const health = {
-    status: "ok",
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: process.env.NODE_ENV || "development",
-    memory: {
-      rss: Math.round(process.memoryUsage().rss / 1024 / 1024) + "MB",
-      heapTotal:
-        Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + "MB",
-      heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + "MB",
-    },
-    services: {
-      mongodb:
-        mongoose.connection.readyState === 1 ? "connected" : "disconnected",
-      redis: req.app.get("redisClient")?.isOpen ? "connected" : "disconnected",
-      cloudinary: isCloudinaryConfigured() ? "configured" : "not configured",
-    },
-  };
-  res.json(health);
+// Health check for load balancers (spec Part 1)
+app.get("/health", async (req, res) => {
+  try {
+    const dbState = mongoose.connection.readyState;
+    const dbOk = dbState === 1;
+    let redisOk = true;
+    const rc = req.app.get("redisClient");
+    if (rc) {
+      try { await rc.ping(); } catch { redisOk = false; }
+    }
+    const status = dbOk && redisOk ? 'healthy' : 'degraded';
+    const httpCode = status === 'healthy' ? 200 : 503;
+    res.status(httpCode).json({
+      status,
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      version: process.env.npm_package_version || '1.1.25',
+      checks: {
+        database: dbOk ? 'ok' : 'error',
+        redis: redisOk ? 'ok' : 'error',
+        memory: {
+          used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
+          total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + 'MB'
+        }
+      }
+    });
+  } catch (err) {
+    res.status(503).json({ status: 'unhealthy', error: err.message });
+  }
+});
+
+// Simple liveness probe (for Kubernetes / Render)
+app.get("/health/live", (req, res) => {
+  res.status(200).json({ status: 'alive' });
+});
+
+// Readiness probe (for load balancer)
+app.get("/health/ready", async (req, res) => {
+  const dbOk = mongoose.connection.readyState === 1;
+  res.status(dbOk ? 200 : 503).json({ 
+    status: dbOk ? 'ready' : 'not_ready' 
+  });
 });
 
 // ── API documentation (C.4) ────────────────────────────────────────────────
