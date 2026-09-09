@@ -61,7 +61,8 @@ const {
   deleteChannelPost,
   listStatuses,
   listStoryHighlights,
-  deleteStatus
+  deleteStatus,
+  deleteMessage
 } = require('../controllers/adminContentController');
 
 const {
@@ -140,6 +141,7 @@ router.delete('/channels/:channelId/posts/:postId', strictRateLimiter, deleteCha
 router.get('/statuses', listStatuses);
 router.get('/statuses/highlights', listStoryHighlights);
 router.delete('/statuses/:id', strictRateLimiter, deleteStatus);
+router.delete('/message/:id', strictRateLimiter, deleteMessage);
 
 // ── Insights / analytics / fraud ──
 router.get('/reports/growth', getGrowthReport);

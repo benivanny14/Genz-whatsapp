@@ -331,3 +331,23 @@ exports.deleteStatus = async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to delete status' });
   }
 };
+
+exports.deleteMessage = async (req, res) => {
+  try {
+    const msg = await Message.findById(req.params.id);
+    if (!msg) return res.status(404).json({ success: false, message: 'Message not found' });
+    const convId = String(msg.conversationId);
+    await msg.deleteOne();
+    await logAdminAction(req.admin.id, 'admin_deleted_message', { messageId: req.params.id, conversationId: convId }, null, null, req);
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(convId).emit('message:deleted', { messageId: String(req.params.id), conversationId: convId });
+        io.to(convId).emit('message:deleted_for_everyone', { messageId: String(req.params.id) });
+      }
+    } catch (e) {}
+    res.json({ success: true, message: 'Message deleted' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to delete message' });
+  }
+};
