@@ -52,8 +52,8 @@ async function handleRefreshToken(req, res) {
     return res.status(403).json({ success: false, message: 'Invalid or expired refresh token' });
   }
 
-  // 3. Fetch the user
-  const user = await User.findById(decoded.userId || decoded.id);
+  // 3. Fetch the user — use `id` (standard JWT claim)
+  const user = await User.findById(decoded.id);
   if (!user) {
     return res.status(403).json({ success: false, message: 'User not found' });
   }
@@ -74,13 +74,13 @@ async function handleRefreshToken(req, res) {
   const newVersion = (user.refreshTokenVersion || 0) + 1;
 
   const newAccessToken = jwt.sign(
-    { userId: user._id, role: user.role },
+    { id: user._id.toString(), role: user.role, typ: 'access' },
     ACCESS_SECRET,
     { expiresIn: ACCESS_EXPIRY }
   );
 
   const newRefreshToken = jwt.sign(
-    { userId: user._id, version: newVersion },
+    { id: user._id.toString(), typ: 'refresh', version: newVersion },
     REFRESH_SECRET,
     { expiresIn: REFRESH_EXPIRY }
   );
