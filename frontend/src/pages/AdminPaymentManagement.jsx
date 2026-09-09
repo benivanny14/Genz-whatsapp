@@ -10,6 +10,7 @@ import {
   rejectPayment, adminSendMessage, suspendUser, reactivateUser
 } from '../services/manualPaymentService';
 import { getSocket } from '../services/socket';
+import PremiumCountdown from '../components/admin/PremiumCountdown';
 
 const TABS = [
   { id: 'Pending', label: 'Pending' },
@@ -189,16 +190,17 @@ export default function AdminPaymentManagement() {
                 <th className="p-3 cursor-pointer" onClick={() => toggleSort('amount')}>Amount</th>
                 <th className="p-3">Operator</th>
                 <th className="p-3 cursor-pointer" onClick={() => toggleSort('createdAt')}>Submitted</th>
+                <th className="p-3">Remaining</th>
                 <th className="p-3">Status</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 [1, 2, 3].map((i) => (
-                  <tr key={i}><td colSpan={6} className="p-3"><div className="h-6 rounded bg-white/5 animate-pulse" /></td></tr>
+                  <tr key={i}><td colSpan={7} className="p-3"><div className="h-6 rounded bg-white/5 animate-pulse" /></td></tr>
                 ))
               ) : payments.length === 0 ? (
-                <tr><td colSpan={6} className="p-6 text-center text-white/40">No payments in this category.</td></tr>
+                <tr><td colSpan={7} className="p-6 text-center text-white/40">No payments in this category.</td></tr>
               ) : payments.map((p) => (
                 <tr
                   key={p._id}
@@ -210,6 +212,7 @@ export default function AdminPaymentManagement() {
                   <td className="p-3">{fmtMoney(p.amount)}</td>
                   <td className="p-3 text-white/60">{p.parsed?.operator || 'Unknown'}</td>
                   <td className="p-3 text-white/60">{fmtDate(p.submittedAt)}</td>
+                  <td className="p-3">{p.status === 'Approved' && p.expiresAt ? <PremiumCountdown expiresAt={p.expiresAt} compact /> : <span className="text-white/30 text-xs">—</span>}</td>
                   <td className="p-3">
                     <span className={`text-xs font-semibold px-2 py-1 rounded-full border ${STATUS_BADGE[p.status]}`}>{p.status}</span>
                   </td>
@@ -347,7 +350,7 @@ function PaymentDetailModal({ paymentId, onClose, onChanged }) {
                 <p>Registered: {fmtDate(data.user?.createdAt)}</p>
                 <p>Last seen: {fmtDate(data.user?.lastSeen)}</p>
                 <p>Status: {data.user?.isBlocked ? <span className="text-red-300">Suspended</span> : <span className="text-green-300">Active</span>}</p>
-                <p>Premium: {data.user?.premium ? <span className="text-green-300">Yes, until {fmtDate(data.user?.subscriptionExpiresAt)}</span> : 'No'}</p>
+                <p>Premium: {data.user?.premium ? <span className="inline-flex items-center gap-2"><span className="text-green-300">Yes, until {fmtDate(data.user?.subscriptionExpiresAt)}</span><PremiumCountdown expiresAt={data.user?.subscriptionExpiresAt} compact /></span> : 'No'}</p>
               </div>
               <div className="grid grid-cols-4 gap-2 pt-2 text-center text-xs">
                 <div className="rounded bg-white/5 p-1.5"><p className="font-bold">{data.stats.totalPayments}</p><p className="text-white/40">Total</p></div>

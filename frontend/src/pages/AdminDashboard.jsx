@@ -10,6 +10,7 @@ import {
 import toast from 'react-hot-toast';
 import adminApi from '../services/adminApi';
 import { useAdminAuth } from '../context/AdminAuthContext';
+import PremiumCountdown from '../components/admin/PremiumCountdown';
 
 import ChatManagement from '../components/admin/ChatManagement';
 import GroupManagement from '../components/admin/GroupManagement';
@@ -752,6 +753,7 @@ const UsersSection = () => {
                 <th className="text-left p-3">Name</th>
                 <th className="text-left p-3">Phone</th>
                 <th className="text-left p-3">Status</th>
+                <th className="text-left p-3">Premium</th>
                 <th className="text-left p-3">Action</th>
               </tr>
             </thead>
@@ -764,6 +766,9 @@ const UsersSection = () => {
                     {u.isBlocked
                       ? <span className="text-red-500">Blocked</span>
                       : <span className="text-emerald-500">OK</span>}
+                  </td>
+                  <td className="p-3">
+                    {u.premium && u.subscriptionExpiresAt ? <PremiumCountdown expiresAt={u.subscriptionExpiresAt} compact /> : <span className="text-gray-400 text-xs">{u.premium ? 'Premium' : '—'}</span>}
                   </td>
                   <td className="p-3">
                     <button onClick={() => toggleBlock(u)} className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700">

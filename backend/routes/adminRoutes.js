@@ -155,6 +155,14 @@ router.get('/app-events', getAppEventSummary);
 // ── Nightly production-health check status ──
 router.get('/nightly-status', getNightlyStatus);
 
+// ── Winga & Communities (was forgotten) ──
+const { listWingaListings, deleteWingaListing } = require('../controllers/adminWingaController');
+const { listCommunities, deleteCommunity } = require('../controllers/adminCommunityController');
+router.get('/winga', listWingaListings);
+router.delete('/winga/:id', strictRateLimiter, deleteWingaListing);
+router.get('/communities', listCommunities);
+router.delete('/communities/:id', strictRateLimiter, deleteCommunity);
+
 // ── Support tickets / direct chats ──
 router.get('/tickets', listTickets);
 router.get('/tickets/:id', getTicket);
