@@ -29,7 +29,10 @@ const notifyUser = (req, userId, event, payload) => {
 
 const notifyAdmins = (req, event, payload) => {
   const io = getIO(req);
-  if (io) io.to('role:admin').emit(event, payload);
+  if (io) {
+    io.to('role:admin').emit(event, payload);
+    io.to('admin-room').emit(event, payload);
+  }
 };
 
 // ---------------------------------------------------------------------

@@ -190,30 +190,6 @@ const setupSocket = (io) => {
         /* non-critical */
       }
 
-      // Ensure admin sockets also join admin rooms via explicit admin:join
-      // This handles AdminOwner JWTs which are not in User collection
-      socket.on("admin:join", async () => {
-        try {
-          const token = socket.handshake?.auth?.token;
-          if (!token) return;
-          const jwt = require('jsonwebtoken');
-          const { ADMIN_JWT_SECRET } = require('../config/secrets');
-          try {
-            const decoded = jwt.verify(token, ADMIN_JWT_SECRET);
-            if (decoded.typ === 'admin_access' || decoded.role === 'admin') {
-              socket.join("role:admin");
-              socket.join("admin-room");
-            }
-          } catch (_) {
-            const adminUser = await User.findById(userId).select("role isAdmin").lean();
-            if (adminUser?.role === "admin" || adminUser?.isAdmin) {
-              socket.join("role:admin");
-              socket.join("admin-room");
-            }
-          }
-        } catch (_) {}
-      });
-
       // Share online state with other instances (no-op without Redis).
       presenceStore.setLocalPresence(userKey, { online: true, away: false });
 
@@ -258,6 +234,34 @@ const setupSocket = (io) => {
         }
       } catch (error) {
         logError("Error updating user online status:", error);
+      }
+    });
+
+    // AdminOwner explicit join (outside user:join so it works without user:join)
+    socket.on("admin:join", async () => {
+      try {
+        if (socket.isAdmin) {
+          socket.join("role:admin");
+          socket.join("admin-room");
+          return;
+        }
+        const token = socket.handshake?.auth?.token;
+        if (!token) return;
+        const jwt = require('jsonwebtoken');
+        const { ADMIN_JWT_SECRET } = require('../config/secrets');
+        const decoded = jwt.verify(token, ADMIN_JWT_SECRET);
+        if (decoded.type === 'admin_access' || decoded.typ === 'admin_access') {
+          socket.join("role:admin");
+          socket.join("admin-room");
+        }
+      } catch (_) {
+        try {
+          const adminUser = await User.findById(socket.userId).select("role isAdmin").lean();
+          if (adminUser?.role === "admin" || adminUser?.isAdmin) {
+            socket.join("role:admin");
+            socket.join("admin-room");
+          }
+        } catch {}
       }
     });
 

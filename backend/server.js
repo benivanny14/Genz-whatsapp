@@ -1494,8 +1494,25 @@ io.use(async (socket, next) => {
     }
 
     try {
-      const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ["HS256"] });
-      if (decoded.typ === "refresh") {
+      let decoded;
+      let isAdminToken = false;
+      try {
+        decoded = jwt.verify(token, JWT_SECRET, { algorithms: ["HS256"] });
+      } catch (firstErr) {
+        // Try ADMIN_JWT_SECRET for AdminOwner sockets
+        try {
+          const { ADMIN_JWT_SECRET } = require('./config/secrets');
+          decoded = jwt.verify(token, ADMIN_JWT_SECRET, { algorithms: ["HS256"] });
+          if (decoded.type === 'admin_access' || decoded.typ === 'admin_access') {
+            isAdminToken = true;
+          } else {
+            throw firstErr;
+          }
+        } catch {
+          throw firstErr;
+        }
+      }
+      if (!isAdminToken && decoded.typ === "refresh") {
         return next(new Error("Invalid token type for socket"));
       }
 
@@ -1503,6 +1520,17 @@ io.use(async (socket, next) => {
       const { isTokenBlacklisted } = require('./middleware/tokenBlacklist');
       if (await isTokenBlacklisted(token)) {
         return next(new Error("Token has been revoked"));
+      }
+
+      if (isAdminToken) {
+        const AdminOwner = require('./models/AdminOwner');
+        const admin = await AdminOwner.findById(decoded.sub || decoded.id);
+        if (!admin) return next(new Error("Admin not authorized"));
+        socket.userId = admin._id.toString();
+        socket.user = admin;
+        socket.isAdmin = true;
+        socket.adminId = admin._id.toString();
+        return next();
       }
 
       const user = await User.findById(decoded.id).select(

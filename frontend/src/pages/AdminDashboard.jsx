@@ -10,6 +10,7 @@ import {
 import toast from 'react-hot-toast';
 import adminApi from '../services/adminApi';
 import { useAdminAuth } from '../context/AdminAuthContext';
+import { getAdminSocket, connectAdminSocket } from '../services/adminSocket';
 import PremiumCountdown from '../components/admin/PremiumCountdown';
 
 import ChatManagement from '../components/admin/ChatManagement';
@@ -1047,7 +1048,7 @@ class SectionErrorBoundary extends React.Component {
 // Main dashboard shell
 // ---------------------------------------------------------------------
 const AdminDashboard = () => {
-  const { logout, admin } = useAdminAuth();
+  const { logout, admin, isAuthenticated } = useAdminAuth();
   const [active, setActive] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dark, setDark] = useState(() => localStorage.getItem('genz_admin_theme') !== 'light');
@@ -1059,30 +1060,36 @@ const AdminDashboard = () => {
 
   // APK → Admin live feed (was polling only) — uses adminSocket (AdminOwner JWT) not user socket
   useEffect(() => {
-    let cleanup = null;
-    try {
-      const { getAdminSocket, connectAdminSocket } = require('../services/adminSocket');
-      const socket = getAdminSocket() || connectAdminSocket();
-      if (!socket) return;
-      const onLive = (payload) => {
-        const type = payload?.message?.messageType || payload?.type || 'update';
-        toast(`Live: new ${type}`, { icon: '🔔', duration: 3000 });
-      };
-      socket.on('admin:message_received', onLive);
-      socket.on('admin:status_created', onLive);
-      socket.on('admin:winga_created', onLive);
-      socket.on('admin:community_created', onLive);
-      socket.on('admin:channel_post', onLive);
-      cleanup = () => {
-        socket.off('admin:message_received', onLive);
-        socket.off('admin:status_created', onLive);
-        socket.off('admin:winga_created', onLive);
-        socket.off('admin:community_created', onLive);
-        socket.off('admin:channel_post', onLive);
-      };
-    } catch {}
-    return () => { if (cleanup) cleanup(); };
-  }, []);
+    if (!isAuthenticated) return;
+    const socket = getAdminSocket() || connectAdminSocket();
+    if (!socket) return;
+    const onLive = (payload) => {
+      const type = payload?.message?.messageType || payload?.type || 'update';
+      toast(`Live: new ${type}`, { icon: '🔔', duration: 3000 });
+    };
+    const onPayment = () => toast('Live: new payment', { icon: '💰', duration: 3000 });
+    const onTicket = () => toast('Live: new ticket', { icon: '🎫', duration: 3000 });
+    socket.on('admin:message_received', onLive);
+    socket.on('admin:status_created', onLive);
+    socket.on('admin:winga_created', onLive);
+    socket.on('admin:community_created', onLive);
+    socket.on('admin:channel_post', onLive);
+    socket.on('payment:submitted', onPayment);
+    socket.on('payment:duplicate', onPayment);
+    socket.on('ticket:created', onTicket);
+    socket.on('ticket:reply', onTicket);
+    return () => {
+      socket.off('admin:message_received', onLive);
+      socket.off('admin:status_created', onLive);
+      socket.off('admin:winga_created', onLive);
+      socket.off('admin:community_created', onLive);
+      socket.off('admin:channel_post', onLive);
+      socket.off('payment:submitted', onPayment);
+      socket.off('payment:duplicate', onPayment);
+      socket.off('ticket:created', onTicket);
+      socket.off('ticket:reply', onTicket);
+    };
+  }, [isAuthenticated]);
 
   const grouped = useMemo(() => {
     const map = {};
