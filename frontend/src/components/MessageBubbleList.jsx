@@ -15,17 +15,45 @@ import { decodeContactFromMessage } from '../utils/vcard';
 import { decryptMessage as decryptE2EE } from '../utils/e2eeClient';
 import toast from 'react-hot-toast';
 
-const E2EEText = ({ message }) => {
-  const [text, setText] = React.useState(message.content);
+const E2EEText = ({ message, renderMentions = false, userId }) => {
+  const [text, setText] = React.useState(message.encrypted ? '🔒 Encrypted' : (message.content || ''));
   React.useEffect(() => {
     let cancelled = false;
-    if (message.encrypted && message.content?.includes('-----BEGIN PGP MESSAGE-----')) {
-      const priv = localStorage.getItem('e2ee_privateKey') || message._privateKey;
-      const userId = JSON.parse(localStorage.getItem('user') || '{}')?._id || '';
-      decryptE2EE(message.content, priv, userId).then(d => { if (!cancelled) setText(d); }).catch(() => {});
-    } else setText(message.content);
+    const doDecrypt = async () => {
+      if (message.encrypted && message.content?.includes('-----BEGIN PGP MESSAGE-----')) {
+        try {
+          // Try to get privateKey from multiple sources
+          let priv = null;
+          try { priv = JSON.parse(localStorage.getItem('user') || '{}')?.privateKey || localStorage.getItem('e2ee_privateKey'); } catch {}
+          if (!priv) {
+            // Fallback: fetch from /auth/me if needed (user object may have it)
+            try {
+              const { getAuthToken } = await import('../utils/tokenStore');
+              const token = getAuthToken();
+              if (token) {
+                const res = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
+                const data = await res.json();
+                priv = data?.user?.privateKey;
+                if (priv) localStorage.setItem('e2ee_privateKey', priv);
+              }
+            } catch {}
+          }
+          if (priv) {
+            const uid = userId || JSON.parse(localStorage.getItem('user') || '{}')?._id || '';
+            const dec = await decryptE2EE(message.content, priv, uid);
+            if (!cancelled) setText(dec);
+          }
+        } catch {}
+      } else {
+        setText(message.content || '');
+      }
+    };
+    doDecrypt();
     return () => { cancelled = true; };
-  }, [message.content, message.encrypted]);
+  }, [message.content, message.encrypted, userId]);
+  if (renderMentions) {
+    return <FormattedText text={typeof text === 'string' ? text : ''} renderText={(seg) => renderTextWithMentions(seg, message.mentions || [], userId)} />;
+  }
   return <FormattedText text={typeof text === 'string' ? text : ''} />;
 };
 
@@ -568,14 +596,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                           className="break-words whitespace-pre-wrap"
                           style={{ fontFamily: message.font ? FONT_OPTIONS.find(f => f.value === message.font)?.fontFamily : 'var(--message-font, inherit)', color: message.color || undefined }}
                         >
-                          <FormattedText
-                            text={plaintextOf(message) || ''}
-                            renderText={(segment) => renderTextWithMentions(
-                              segment,
-                              message.mentions || [],
-                              user?.id || user?._id
-                            )}
-                          />
+                          <E2EEText message={message} renderMentions={true} userId={user?.id || user?._id} />
                         </p>
                       )}
                     {/* Link Preview - respect mods.linkPreview toggle */}
