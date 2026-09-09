@@ -18,11 +18,12 @@
  * Env: JWT_REFRESH_SECRET, JWT_SECRET, REDIS_URL
  */
 const jwt = require('jsonwebtoken');
-const { blacklistToken, isTokenBlacklistable } = require('./tokenBlacklist');
+const { blacklistToken, isTokenBlacklisted } = require('./tokenBlacklist');
 const User = require('../models/User');
+const { JWT_SECRET, JWT_REFRESH_SECRET } = require('../config/secrets');
 
-const ACCESS_SECRET = process.env.JWT_SECRET;
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET;
+const ACCESS_SECRET = JWT_SECRET;
+const REFRESH_SECRET = JWT_REFRESH_SECRET;
 const ACCESS_EXPIRY = '15m';
 const REFRESH_EXPIRY = '7d';
 const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60;
@@ -52,8 +53,8 @@ async function handleRefreshToken(req, res) {
     return res.status(403).json({ success: false, message: 'Invalid or expired refresh token' });
   }
 
-  // 3. Fetch the user
-  const user = await User.findById(decoded.userId || decoded.id);
+  // 3. Fetch the user — use `id` (standard JWT claim, not userId)
+  const user = await User.findById(decoded.id);
   if (!user) {
     return res.status(403).json({ success: false, message: 'User not found' });
   }
@@ -74,13 +75,13 @@ async function handleRefreshToken(req, res) {
   const newVersion = (user.refreshTokenVersion || 0) + 1;
 
   const newAccessToken = jwt.sign(
-    { userId: user._id, role: user.role },
+    { id: user._id.toString(), role: user.role || (user.isAdmin ? 'admin' : 'user'), typ: 'access' },
     ACCESS_SECRET,
     { expiresIn: ACCESS_EXPIRY }
   );
 
   const newRefreshToken = jwt.sign(
-    { userId: user._id, version: newVersion },
+    { id: user._id.toString(), typ: 'refresh', version: newVersion },
     REFRESH_SECRET,
     { expiresIn: REFRESH_EXPIRY }
   );
@@ -90,7 +91,7 @@ async function handleRefreshToken(req, res) {
 
   res.json({
     success: true,
-    accessToken: newAccessToken,
+    token: newAccessToken,
     refreshToken: newRefreshToken,
   });
 }
