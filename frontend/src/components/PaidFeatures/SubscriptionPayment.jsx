@@ -194,8 +194,8 @@ export default function SubscriptionPayment() {
     }
   };
 
-  const copyReceiver = () => {
-    if (info?.receiverNumber) navigator.clipboard?.writeText(info.receiverNumber);
+  const copyReceiver = async () => {
+    if (info?.receiverNumber) { const { writeClipboard } = await import('../../utils/nativeBridge'); await writeClipboard(info.receiverNumber); }
   };
 
   return (

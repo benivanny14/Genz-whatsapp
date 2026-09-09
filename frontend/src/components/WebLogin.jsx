@@ -23,8 +23,9 @@ const WebLogin = ({ user, onGenerateQR, onVerifyLogin, onClose }) => {
     }
   };
 
-  const handleCopyCode = () => {
-    navigator.clipboard.writeText(loginCode);
+  const handleCopyCode = async () => {
+    const { writeClipboard } = await import('../utils/nativeBridge');
+    await writeClipboard(loginCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

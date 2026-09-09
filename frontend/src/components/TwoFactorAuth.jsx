@@ -100,8 +100,9 @@ const TwoFactorAuth = ({ onClose }) => {
     }
   };
 
-  const handleCopySecret = () => {
-    navigator.clipboard.writeText(secret);
+  const handleCopySecret = async () => {
+    const { writeClipboard } = await import('../utils/nativeBridge');
+    await writeClipboard(secret);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

@@ -171,7 +171,8 @@ const Communities = () => {
     if (!managing) return;
     try {
       const link = `${window.location.origin}/communities?join=${managing.id}`;
-      await navigator.clipboard.writeText(link);
+      const { writeClipboard } = await import('../utils/nativeBridge');
+      await writeClipboard(link);
       setInviteCopied(true);
       showNotice('success', 'Invite link copied.');
     } catch (err) {

@@ -20,6 +20,9 @@ let isInitialized = false;
  */
 export const initBackgroundSync = async () => {
   if (!Capacitor.isNativePlatform() || isInitialized) return;
+  // Guard: don't crash if google-services.json missing (like capacitorBridge)
+  const FCM_ENABLED = typeof __GENZ_FCM_ENABLED__ !== 'undefined' ? __GENZ_FCM_ENABLED__ : true;
+  if (!FCM_ENABLED) return;
 
   try {
     // Request push notification permissions

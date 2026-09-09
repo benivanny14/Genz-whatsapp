@@ -51,7 +51,8 @@ const Starred = () => {
   const handleCopy = async (message) => {
     const text = getMessageText(message);
     if (!text) return;
-    await navigator.clipboard?.writeText(text);
+    const { writeClipboard } = await import('../utils/nativeBridge');
+    await writeClipboard(text);
   };
 
   const handleUnstar = async (message) => {

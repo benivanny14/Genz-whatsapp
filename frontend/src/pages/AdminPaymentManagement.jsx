@@ -301,8 +301,8 @@ function PaymentDetailModal({ paymentId, onClose, onChanged }) {
     if (res?.success) { setMessageDraft(''); load(); }
   };
 
-  const copyTxnId = () => {
-    if (data?.payment?.transactionId) navigator.clipboard?.writeText(data.payment.transactionId);
+  const copyTxnId = async () => {
+    if (data?.payment?.transactionId) { const { writeClipboard } = await import('../utils/nativeBridge'); await writeClipboard(data.payment.transactionId); }
   };
 
   return (

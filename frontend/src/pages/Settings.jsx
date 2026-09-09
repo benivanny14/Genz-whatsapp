@@ -795,13 +795,12 @@ const Settings = () => {
     saveSettings(next);
   };
 
-  const handleInviteFriends = () => {
+  const handleInviteFriends = async () => {
     const inviteText = 'Join me on Genz Messenger — a powerful messaging app!';
-    if (navigator.share) {
-      navigator.share({ title: 'Invite to GENZ', text: inviteText }).catch(() => {});
-    } else {
-      navigator.clipboard.writeText(inviteText).then(() => showStatus('success', 'Invite link copied.')).catch(() => {});
-    }
+    try {
+      const { shareContent, writeClipboard } = await import('../utils/nativeBridge');
+      try { await shareContent({ title: 'Invite to GENZ', text: inviteText }); } catch { await writeClipboard(inviteText); showStatus('success', 'Invite link copied.'); }
+    } catch { const { writeClipboard } = await import('../utils/nativeBridge'); await writeClipboard(inviteText); showStatus('success', 'Invite link copied.'); }
   };
 
 

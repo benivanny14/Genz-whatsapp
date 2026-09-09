@@ -75,8 +75,9 @@ const LinkedDevices = () => {
     fetchDevices();
   };
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
+  const copyToClipboard = async (text) => {
+    const { writeClipboard } = await import('../utils/nativeBridge');
+    await writeClipboard(text);
   };
 
   const handlePairWithCode = async () => {
