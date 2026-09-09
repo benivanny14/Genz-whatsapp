@@ -704,28 +704,34 @@ const DashboardSection = () => {
 const UsersSection = () => {
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async (q = '') => {
+  const load = useCallback(async (q = search, f = filter, p = page) => {
     setLoading(true);
     try {
-      const { data } = await adminApi.get('/admin/users', { params: { search: q, limit: 50 } });
+      const params = { search: q, limit: 50, page: p };
+      if (f !== 'all') params.status = f;
+      const { data } = await adminApi.get('/admin/users', { params });
       setUsers(data.users || []);
+      if (data.pagination) setPagination(data.pagination);
     } catch {
       toast.error('Failed to load users');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [search, filter, page]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(search, filter, page); }, [load, filter, page]);
 
   const toggleBlock = async (u) => {
     const action = u.isBlocked ? 'unblock' : 'block';
     try {
       await adminApi.post(`/admin/users/${u._id}/${action}`);
       toast.success(action === 'block' ? 'User blocked' : 'User unblocked');
-      load(search);
+      load(search, filter, page);
     } catch {
       toast.error('Failed to change user status');
     }
@@ -733,13 +739,19 @@ const UsersSection = () => {
 
   return (
     <div className="space-y-4">
-      <form onSubmit={(e) => { e.preventDefault(); load(search); }} className="flex gap-2">
+      <form onSubmit={(e) => { e.preventDefault(); setPage(1); load(search, filter, 1); }} className="flex gap-2">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search name, phone number..."
           className="flex-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm"
         />
+        <select value={filter} onChange={(e) => { setFilter(e.target.value); setPage(1); }} className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
+          <option value="all">All</option>
+          <option value="blocked">Blocked</option>
+          <option value="premium">Premium</option>
+          <option value="online">Online</option>
+        </select>
         <button className="px-3 py-2 bg-emerald-600 text-white rounded-lg text-sm flex items-center gap-1">
           <Search size={16} /> Search
         </button>
@@ -779,6 +791,13 @@ const UsersSection = () => {
               ))}
             </tbody>
           </table>
+          {pagination.pages > 1 && (
+            <div className="flex items-center justify-center gap-2 p-3 border-t border-gray-100 dark:border-gray-800">
+              <button disabled={page <= 1} onClick={() => setPage(p=>Math.max(1,p-1))} className="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-800 disabled:opacity-40">Prev</button>
+              <span className="text-xs text-gray-500">Page {pagination.page} of {pagination.pages} ({pagination.total})</span>
+              <button disabled={page >= pagination.pages} onClick={() => setPage(p=>p+1)} className="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-800 disabled:opacity-40">Next</button>
+            </div>
+          )}
         </div>
       )}
     </div>
