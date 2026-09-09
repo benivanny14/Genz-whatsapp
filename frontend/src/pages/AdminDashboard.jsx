@@ -16,6 +16,8 @@ import ChatManagement from '../components/admin/ChatManagement';
 import GroupManagement from '../components/admin/GroupManagement';
 import ChannelManagement from '../components/admin/ChannelManagement';
 import StatusStoriesManagement from '../components/admin/StatusStoriesManagement';
+import WingaManagement from '../components/admin/WingaManagement';
+import CommunityManagement from '../components/admin/CommunityManagement';
 import BroadcastSystem from '../components/admin/BroadcastSystem';
 import NotificationCenter from '../components/admin/NotificationCenter';
 import SupportTickets from '../components/admin/SupportTickets';
@@ -49,6 +51,8 @@ const SECTIONS = [
   { key: 'channels', label: 'Channel Management', icon: Radio, group: 'Content', implemented: true },
   { key: 'status', label: 'Status Management', icon: CircleDot, group: 'Content', implemented: true },
   { key: 'stories', label: 'Stories Management', icon: Sparkles, group: 'Content', implemented: true },
+  { key: 'winga', label: 'Winga Management', icon: BadgeDollarSign, group: 'Content', implemented: true },
+  { key: 'communities', label: 'Community Management', icon: UsersRound, group: 'Content', implemented: true },
   { key: 'broadcast', label: 'Broadcast System', icon: Megaphone, group: 'Communication', implemented: true },
   { key: 'notifications', label: 'Notification Center', icon: Bell, group: 'Communication', implemented: true },
   { key: 'tickets', label: 'Support Ticket System', icon: LifeBuoy, group: 'Communication', implemented: true },
@@ -1053,12 +1057,12 @@ const AdminDashboard = () => {
     localStorage.setItem('genz_admin_theme', dark ? 'dark' : 'light');
   }, [dark]);
 
-  // APK → Admin live feed (was polling only)
+  // APK → Admin live feed (was polling only) — uses adminSocket (AdminOwner JWT) not user socket
   useEffect(() => {
     let cleanup = null;
     try {
-      const { getSocket } = require('../services/socket');
-      const socket = getSocket();
+      const { getAdminSocket, connectAdminSocket } = require('../services/adminSocket');
+      const socket = getAdminSocket() || connectAdminSocket();
       if (!socket) return;
       const onLive = (payload) => {
         const type = payload?.message?.messageType || payload?.type || 'update';
@@ -1102,6 +1106,8 @@ const AdminDashboard = () => {
       case 'channels': return <ChannelManagement />;
       case 'status': return <StatusStoriesManagement mode="status" />;
       case 'stories': return <StatusStoriesManagement mode="stories" />;
+      case 'winga': return <WingaManagement />;
+      case 'communities': return <CommunityManagement />;
       case 'broadcast': return <BroadcastSystem />;
       case 'notifications': return <NotificationCenter />;
       case 'tickets': return <SupportTickets />;

@@ -9,7 +9,7 @@ import {
   listPayments, getStatistics, getPaymentDetails, approvePayment,
   rejectPayment, adminSendMessage, suspendUser, reactivateUser
 } from '../services/manualPaymentService';
-import { getSocket } from '../services/socket';
+import { getAdminSocket, connectAdminSocket } from '../services/adminSocket';
 import PremiumCountdown from '../components/admin/PremiumCountdown';
 
 const TABS = [
@@ -40,7 +40,7 @@ const StatCard = ({ icon, label, value, color }) => (
 
 export default function AdminPaymentManagement() {
   const navigate = useNavigate();
-  const socket = getSocket();
+  const socket = getAdminSocket() || connectAdminSocket();
 
   const [tab, setTab] = useState('Pending');
   const [search, setSearch] = useState('');

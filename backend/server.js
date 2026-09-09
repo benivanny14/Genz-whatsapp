@@ -1091,6 +1091,7 @@ const locationSharingRoutes = require("./routes/location-sharing");
 const telemetryRoutes = require("./routes/telemetryRoutes");
 const channelRoutes = require("./routes/channelRoutes");
 const wingaRoutes = require("./routes/winga");
+const supportRoutes = require("./routes/supportRoutes");
 
 // Mount Routes — every public API route is mounted under BOTH /api (legacy,
 // what the current frontend calls) and /api/v1 (the versioned namespace new
@@ -1165,6 +1166,7 @@ const API_ROUTE_MOUNTS = [
   ["/telemetry", telemetryRoutes],
   ["/channels", channelRoutes],
   ["/winga", wingaRoutes],
+  ["/support", supportRoutes],
 ];
 
 const mountApiRoutes = (prefix) => {

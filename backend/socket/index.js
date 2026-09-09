@@ -183,9 +183,7 @@ const setupSocket = (io) => {
 
       // ── Admin room: join the admin notification room so payment updates,
       // abuse reports, and other admin events reach all connected admins.
-      // manualPaymentController emits to 'role:admin'; chatController
-      // emits to 'admin-room'.  Both rooms are joined here so admin
-      // sockets receive real-time events from either emitter.
+      // Supports both legacy User.isAdmin and new AdminOwner via admin:join
       try {
         const adminUser = await User.findById(userId)
           .select("role isAdmin")
@@ -197,6 +195,30 @@ const setupSocket = (io) => {
       } catch (_) {
         /* non-critical */
       }
+
+      // Ensure admin sockets also join admin rooms via explicit admin:join
+      // This handles AdminOwner JWTs which are not in User collection
+      socket.on("admin:join", async () => {
+        try {
+          const token = socket.handshake?.auth?.token;
+          if (!token) return;
+          const jwt = require('jsonwebtoken');
+          const { ADMIN_JWT_SECRET } = require('../config/secrets');
+          try {
+            const decoded = jwt.verify(token, ADMIN_JWT_SECRET);
+            if (decoded.typ === 'admin_access' || decoded.role === 'admin') {
+              socket.join("role:admin");
+              socket.join("admin-room");
+            }
+          } catch (_) {
+            const adminUser = await User.findById(userId).select("role isAdmin").lean();
+            if (adminUser?.role === "admin" || adminUser?.isAdmin) {
+              socket.join("role:admin");
+              socket.join("admin-room");
+            }
+          }
+        } catch (_) {}
+      });
 
       // Share online state with other instances (no-op without Redis).
       presenceStore.setLocalPresence(userKey, { online: true, away: false });

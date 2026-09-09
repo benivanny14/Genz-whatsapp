@@ -1203,6 +1203,115 @@ export const ChatProvider = ({ children }) => {
         fetchWingaOrdersRef.current();
       });
 
+      // ── Admin-originated events (Kundi 3) ──
+      socket.on('session:revoked', async () => {
+        try { localStorage.clear(); } catch {}
+        window.location.href = '/login';
+      });
+      socket.on('session:revoked_all', async () => {
+        try { localStorage.clear(); } catch {}
+        window.location.href = '/login';
+      });
+      socket.on('device:revoked', async (data) => {
+        toast.error(`Device ${data?.deviceId || ''} revoked by admin`);
+      });
+      socket.on('user:deleted', async () => {
+        try { localStorage.clear(); } catch {}
+        window.location.href = '/login';
+      });
+      socket.on('user:blocked', async () => {
+        toast.error('Your account has been blocked by admin');
+        try { localStorage.clear(); } catch {}
+        setTimeout(() => window.location.href = '/login', 1500);
+      });
+      socket.on('conversation:deleted', (data) => {
+        const cid = String(data?.conversationId || data?._id);
+        if (!cid) return;
+        setConversations(prev => prev.filter(c => String(c._id) !== cid));
+        setMessages(prev => prev.filter(m => String(m.conversationId) !== cid));
+        if (String(selectedConversationIdRef.current) === cid) {
+          setSelectedConversation(null);
+          selectedConversationIdRef.current = null;
+        }
+      });
+      socket.on('group:deleted', (data) => {
+        const gid = String(data?.groupId || data?.conversationId);
+        if (!gid) return;
+        setConversations(prev => prev.filter(c => String(c._id) !== gid));
+        if (String(selectedConversationIdRef.current) === gid) {
+          setSelectedConversation(null);
+          selectedConversationIdRef.current = null;
+        }
+      });
+      socket.on('group:you_were_removed', (data) => {
+        const gid = String(data?.groupId);
+        if (!gid) return;
+        setConversations(prev => prev.filter(c => String(c._id) !== gid));
+        if (String(selectedConversationIdRef.current) === gid) {
+          setSelectedConversation(null);
+          selectedConversationIdRef.current = null;
+        }
+      });
+      socket.on('group:participant_removed', (data) => {
+        const gid = String(data?.groupId); const uid = String(data?.userId);
+        const myId = String(currentUserIdRef.current);
+        if (uid === myId) {
+          setConversations(prev => prev.filter(c => String(c._id) !== gid));
+          if (String(selectedConversationIdRef.current) === gid) {
+            setSelectedConversation(null);
+            selectedConversationIdRef.current = null;
+          }
+        }
+      });
+      socket.on('channel:deleted', (data) => {
+        const cid = String(data?.channelId);
+        if (!cid) return;
+        // Channels are not in conversations, but clear selected if open
+        if (String(selectedConversationIdRef.current) === cid) {
+          setSelectedConversation(null);
+          selectedConversationIdRef.current = null;
+        }
+      });
+      socket.on('channel:postDeleted', (data) => {
+        const pid = String(data?.postId);
+        if (!pid) return;
+        // Channel posts are separate, but trigger a refresh
+        window.dispatchEvent(new CustomEvent('channel:postDeleted', { detail: data }));
+      });
+      socket.on('message:deleted_for_everyone', (data) => {
+        const mid = String(data?.messageId);
+        if (!mid) return;
+        setMessages(prev => prev.filter(m => String(m._id) !== mid && String(m.id) !== mid));
+      });
+      socket.on('subscription:updated', (data) => {
+        if (data?.premium !== undefined) {
+          toast.success(data.premium ? 'Premium activated by admin' : 'Premium deactivated');
+          // Trigger a refresh of user data
+          window.dispatchEvent(new CustomEvent('subscription:updated', { detail: data }));
+        }
+      });
+      socket.on('ticket:message', (data) => {
+        toast.success(`Admin: ${data?.message?.slice(0, 50) || 'New reply on your ticket'}`);
+        window.dispatchEvent(new CustomEvent('ticket:updated', { detail: data }));
+      });
+      socket.on('ticket:created', (data) => {
+        window.dispatchEvent(new CustomEvent('ticket:updated', { detail: data }));
+      });
+      socket.on('newMessage', async (msg) => {
+        // Admin broadcast system announcement arrives as 'newMessage' but APK listens to 'message:received'
+        // Forward it to the same handler
+        if (msg?.sender?.username === 'GENZ Support' || msg?.messageType === 'system') {
+          // Treat as regular message
+          const event = new CustomEvent('message:received', { detail: msg });
+          window.dispatchEvent(event);
+          // Also directly handle
+          setMessages(prev => {
+            if (prev.some(m => String(m._id) === String(msg._id))) return prev;
+            return [...prev, msg];
+          });
+        }
+      });
+
       // ── Incoming message ──
       socket.on('message:received', async (msg) => {
         try {

@@ -82,7 +82,10 @@ exports.sendSystemAnnouncement = async (req, res) => {
         conversation.updatedAt = new Date();
         await conversation.save();
 
-        if (io) io.to(String(recipientId)).emit('newMessage', message);
+        if (io) {
+          io.to(String(recipientId)).emit('newMessage', message);
+          io.to(String(recipientId)).emit('message:received', message);
+        }
         sent++;
       } catch (err) {
         console.error(`[AdminBroadcast] failed to message ${recipientId}:`, err.message);
