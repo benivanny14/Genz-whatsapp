@@ -28,7 +28,7 @@ import { applyAntiScreenshot, initAntiScreenshotListeners, setScreenshotAttemptC
 // Native FLAG_SECURE: on the Android APK this truly blocks screenshots AND
 // screen recording (WhatsApp-style black capture) while the Anti-Screenshot
 // mod is on. Safe to import on web — the plugin only acts on native.
-import { PrivacyScreen } from '@capacitor-community/privacy-screen';
+// PrivacyScreen is now handled via ref-counted helpers in utils/antiScreenshot.js
 
 export const ChatContext = createContext();
 
@@ -604,19 +604,10 @@ export const ChatProvider = ({ children }) => {
     initAntiScreenshotListeners();
     applyAntiScreenshot(mods.antiScreenshot);
 
-    // Native Anti-Screenshot (APK only): FLAG_SECURE blocks screenshots and
-    // screen recording at the OS level while the mod is on. The ViewOnce
-    // components toggle this themselves during one-time viewing.
-    const syncNativeAntiScreenshot = async () => {
-      try {
-        if (mods.antiScreenshot) {
-          await PrivacyScreen.enable();
-        } else {
-          await PrivacyScreen.disable();
-        }
-      } catch (_) { /* not on a native platform — web detection covers this */ }
-    };
-    syncNativeAntiScreenshot();
+    // NOTE: PrivacyScreen (FLAG_SECURE) is now handled entirely by
+    // applyAntiScreenshot() inside antiScreenshot.js with reference counting.
+    // Do NOT call PrivacyScreen.enable()/disable() directly here — it would
+    // bypass the ref counter and conflict with ViewOnce's own calls.
 
     // Set up screenshot attempt callback to notify via socket.
     // Registered whenever the mod is ON — NOT gated on socketRef.current being

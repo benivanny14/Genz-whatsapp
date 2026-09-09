@@ -141,3 +141,42 @@ export const initAntiScreenshotListeners = () => {
 };
 
 export const isAntiScreenshotActive = () => enabled;
+
+// ── Ref-counted PrivacyScreen helpers for ViewOnce / one-shot usage ──
+// These allow ViewOnce modals and other one-shot viewers to request
+// FLAG_SECURE without conflicting with the chat-level anti-screenshot mod.
+// Each caller must pair an enable with a disable; the actual native call
+// only fires on the first enable and the last disable.
+
+/**
+ * Request FLAG_SECURE (ref-counted). Safe to call from any component.
+ * Will not disable if the chat-level anti-screenshot mod is also active.
+ */
+export const enablePrivacyScreen = async () => {
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+    privacyScreenRefCount++;
+    if (privacyScreenRefCount === 1) {
+      await PrivacyScreen.enable();
+    }
+  } catch (e) {
+    console.warn('[Anti-Screenshot] PrivacyScreen.enable failed:', e);
+  }
+};
+
+/**
+ * Release one FLAG_SECURE reference. Only disables the native flag when
+ * no callers remain (refCount === 0) AND the chat-level mod is off.
+ */
+export const disablePrivacyScreen = async () => {
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+    privacyScreenRefCount = Math.max(0, privacyScreenRefCount - 1);
+    if (privacyScreenRefCount === 0 && !enabled) {
+      await PrivacyScreen.disable();
+    }
+  } catch (e) {
+    console.warn('[Anti-Screenshot] PrivacyScreen.disable failed:', e);
+  }
+};
+

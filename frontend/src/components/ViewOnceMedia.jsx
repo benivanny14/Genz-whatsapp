@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, X, AlertCircle, Check, Image as ImageIcon, Video, FileText, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PrivacyScreen } from '@capacitor-community/privacy-screen';
-import { Capacitor } from '@capacitor/core';
+import { enablePrivacyScreen, disablePrivacyScreen } from '../utils/antiScreenshot';
 
 const ViewOnceMedia = ({ media, onViewed, onClose }) => {
   const [hasViewed, setHasViewed] = useState(false);
@@ -10,30 +9,9 @@ const ViewOnceMedia = ({ media, onViewed, onClose }) => {
   const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
-    // Enable screenshot prevention using reference counting
-    const enablePrivacy = async () => {
-      if (Capacitor.isNativePlatform()) {
-        try {
-          await PrivacyScreen.enable();
-        } catch (e) {
-          console.warn("PrivacyScreen not available", e);
-        }
-      }
-    };
-    enablePrivacy();
-
-    return () => {
-      const disablePrivacy = async () => {
-        if (Capacitor.isNativePlatform()) {
-          try {
-            await PrivacyScreen.disable();
-          } catch (e) {
-            console.warn("PrivacyScreen not available", e);
-          }
-        }
-      };
-      disablePrivacy();
-    };
+    // Request FLAG_SECURE (ref-counted — won't conflict with chat mod)
+    enablePrivacyScreen();
+    return () => { disablePrivacyScreen(); };
   }, []);
 
   useEffect(() => {

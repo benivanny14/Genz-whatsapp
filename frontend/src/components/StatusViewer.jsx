@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { PrivacyScreen } from '@capacitor-community/privacy-screen'
-import { isAntiScreenshotActive } from '../utils/antiScreenshot'
+import { enablePrivacyScreen, disablePrivacyScreen } from '../utils/antiScreenshot'
 import { useStatusMediaUrl } from './StatusMedia'
 import { sanitizeMediaUrl } from '../utils/sanitizeMediaUrl'
 import { useStatusContext } from '../context/StatusContext'
@@ -103,19 +102,10 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
   const effectiveOwner = statusOwner || { _id: statusOwnerId, username: currentStatus?.username || 'Unknown', profilePicture: currentStatus?.profilePicture || '' }
   const isOwner = Boolean(currentUserId && statusOwnerId && currentUserId === statusOwnerId)
 
-  // PrivacyScreen: block screenshots/screen-record while status is viewed (APK FLAG_SECURE) - matches ViewOnceMedia
+  // PrivacyScreen: block screenshots/screen-record while status is viewed (APK FLAG_SECURE)
   useEffect(() => {
-    let cancelled = false
-    const enable = async () => {
-      try { await PrivacyScreen.enable() } catch (e) { /* web/no plugin */ }
-    }
-    enable()
-    return () => {
-      const disable = async () => {
-        try { if (!isAntiScreenshotActive()) await PrivacyScreen.disable() } catch (e) { /* ignore */ }
-      }
-      disable()
-    }
+    enablePrivacyScreen()
+    return () => { disablePrivacyScreen() }
   }, [])
 
   // Update remaining time every 30 seconds
@@ -820,26 +810,33 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
               width: '100%', height: '60%', borderRadius: '16px', overflow: 'hidden',
               marginBottom: '20px', border: '2px solid rgba(0,168,132,0.3)'
             }}>
-              {(currentStatus.locationData?.latitude && currentStatus.locationData?.longitude) ? (
-                <LeafletMap
-                  center={{ lat: currentStatus.locationData.latitude, lng: currentStatus.locationData.longitude }}
-                  marker={{ lat: currentStatus.locationData.latitude, lng: currentStatus.locationData.longitude }}
-                  zoom={15}
-                  interactive={false}
-                  height="100%"
-                />
-              ) : (
-                <div style={{
-                  width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'rgba(0,0,0,0.5)', color: '#8696a0'
-                }}>
-                  <MapPin size={48} />
-                </div>
-              )}
+              {(() => {
+                const lat = currentStatus.locationData?.lat ?? currentStatus.locationData?.latitude;
+                const lng = currentStatus.locationData?.lng ?? currentStatus.locationData?.longitude;
+                if (lat != null && lng != null) {
+                  return (
+                    <LeafletMap
+                      center={{ lat, lng }}
+                      marker={{ lat, lng }}
+                      zoom={15}
+                      interactive={false}
+                      height="100%"
+                    />
+                  );
+                }
+                return (
+                  <div style={{
+                    width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'rgba(0,0,0,0.5)', color: '#8696a0'
+                  }}>
+                    <MapPin size={48} />
+                  </div>
+                );
+              })()}
             </div>
             <div style={{ textAlign: 'center', color: '#fff' }}>
               <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
-                {currentStatus.locationData?.name || currentStatus.content || 'Location'}
+                {currentStatus.locationData?.placeName || currentStatus.locationData?.name || currentStatus.content || 'Location'}
               </h3>
               {currentStatus.locationData?.address && (
                 <p style={{ fontSize: '14px', color: '#8696a0', marginBottom: '8px' }}>

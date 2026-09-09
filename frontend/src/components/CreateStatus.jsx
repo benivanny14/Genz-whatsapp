@@ -12,6 +12,7 @@ import LocationSticker from './LocationSticker'
 import TextAnimationPicker, { injectAnimationKeyframes, getAnimationStyle } from './TextAnimationPicker'
 import PhotoStickerTool from './PhotoStickerTool'
 import RichTextEditor from './RichTextEditor'
+import toast from 'react-hot-toast'
 
 const TEXT_COLORS = [
   { bg: '#128C7E', font: '#FFFFFF' },
@@ -667,6 +668,7 @@ const CreateStatus = ({ onClose }) => {
         setRecordingTime(prev => prev + 1)
       }, 1000)
     } catch (err) {
+      toast.error('Huwezi kufikia microphone. Angalia ruhusa za app.')
       if (import.meta.env.DEV) console.error('Microphone access denied:', err)
     }
   }
@@ -1037,6 +1039,7 @@ const CreateStatus = ({ onClose }) => {
       }
       onClose()
     } catch (err) {
+      toast.error(err?.message || 'Imeshindwa kutuma status. Jaribu tena.')
       if (import.meta.env.DEV) console.error('Submit status error:', err)
     } finally {
       setIsProcessing(false)
@@ -1311,6 +1314,7 @@ const CreateStatus = ({ onClose }) => {
                 });
                 onClose?.();
               } catch (err) {
+                toast.error(err?.message || 'Imeshindwa kutuma location status.')
                 console.error('Location status error:', err);
               } finally {
                 setIsSharing(false);
@@ -1603,7 +1607,7 @@ const CreateStatus = ({ onClose }) => {
             </span>
           </button>
 
-          <button onClick={handleSubmit} disabled={isProcessing} aria-label="Post status">
+          <button onClick={handleSubmit} disabled={isProcessing}>
             {isProcessing ? 'Processing...' : <Send size={20} />}
           </button>
         </div>
