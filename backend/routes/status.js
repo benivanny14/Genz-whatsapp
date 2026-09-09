@@ -258,6 +258,7 @@ const emitStatusCreated = async (req, status) => {
   const payload = normalizeStatusForClient(populated || status, ownerIdOf(status), new Set());
   const recipients = await audienceIdsForStatus(status);
   emitToUsers(io, [...recipients, ownerIdOf(status)], 'status:created', payload);
+  try { io.to('role:admin').emit('admin:status_created', payload); io.to('admin-room').emit('admin:status_created', payload); } catch {}
 };
 
 const emitStatusDeleted = async (req, status) => {

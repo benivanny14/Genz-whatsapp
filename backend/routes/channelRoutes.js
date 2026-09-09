@@ -163,6 +163,7 @@ router.post('/:id/posts', protect, async (req, res) => {
         channelId: String(channel._id),
         post: populatedPost
       });
+      try { io.to('role:admin').emit('admin:channel_post', { channelId: String(channel._id), post: populatedPost }); io.to('admin-room').emit('admin:channel_post', { channelId: String(channel._id), post: populatedPost }); } catch {}
       // Also notify followers who aren't actively viewing, so their channel
       // list shows an unread badge — mirrors the message push-notification
       // pattern used elsewhere in the app.

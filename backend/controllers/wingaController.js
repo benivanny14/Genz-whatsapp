@@ -122,6 +122,7 @@ exports.createBusiness = async (req, res) => {
     const io = req.app.get('io');
     if (io) {
       io.emit('winga:created', toPublicListing(populated, ''));
+      try { io.to('role:admin').emit('admin:winga_created', toPublicListing(populated, '')); io.to('admin-room').emit('admin:winga_created', toPublicListing(populated, '')); } catch {}
     }
 
     res.status(201).json({ success: true, listing: toPublicListing(populated, userId), postedToday: postedCount + 1, limit: DAILY_LIMIT });

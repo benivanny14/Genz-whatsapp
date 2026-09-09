@@ -43,6 +43,7 @@ exports.createCommunity = async (req, res) => {
       members: [userId]
     });
 
+    try { const io = req.app.get('io'); if (io) { io.to('role:admin').emit('admin:community_created', serializeCommunity(community, userId)); io.to('admin-room').emit('admin:community_created', serializeCommunity(community, userId)); } } catch {}
     res.status(201).json({ success: true, community: serializeCommunity(community, userId), message: 'Community created' });
   } catch (error) {
     console.error('Create community error:', error);

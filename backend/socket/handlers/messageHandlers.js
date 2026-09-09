@@ -370,6 +370,8 @@ module.exports = function registerMessageHandlers(ctx) {
             logWarning('[Socket] Message push notification failed:', notifyErr?.message || notifyErr);
           });
         }
+        // APK → Admin live feed (was polling only)
+        try { io.to('role:admin').emit('admin:message_received', { message: outgoingMessage }); io.to('admin-room').emit('admin:message_received', { message: outgoingMessage }); } catch {}
       }
 
       socket.emit('message:delivered', {

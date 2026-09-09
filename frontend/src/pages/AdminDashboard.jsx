@@ -1053,6 +1053,33 @@ const AdminDashboard = () => {
     localStorage.setItem('genz_admin_theme', dark ? 'dark' : 'light');
   }, [dark]);
 
+  // APK → Admin live feed (was polling only)
+  useEffect(() => {
+    let cleanup = null;
+    try {
+      const { getSocket } = require('../services/socket');
+      const socket = getSocket();
+      if (!socket) return;
+      const onLive = (payload) => {
+        const type = payload?.message?.messageType || payload?.type || 'update';
+        toast(`Live: new ${type}`, { icon: '🔔', duration: 3000 });
+      };
+      socket.on('admin:message_received', onLive);
+      socket.on('admin:status_created', onLive);
+      socket.on('admin:winga_created', onLive);
+      socket.on('admin:community_created', onLive);
+      socket.on('admin:channel_post', onLive);
+      cleanup = () => {
+        socket.off('admin:message_received', onLive);
+        socket.off('admin:status_created', onLive);
+        socket.off('admin:winga_created', onLive);
+        socket.off('admin:community_created', onLive);
+        socket.off('admin:channel_post', onLive);
+      };
+    } catch {}
+    return () => { if (cleanup) cleanup(); };
+  }, []);
+
   const grouped = useMemo(() => {
     const map = {};
     GROUP_ORDER.forEach((g) => { map[g] = SECTIONS.filter((s) => s.group === g); });
