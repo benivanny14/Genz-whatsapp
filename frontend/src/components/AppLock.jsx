@@ -129,8 +129,8 @@ const AppLock = ({ isEnabled, onToggle, onUnlock, onClose }) => {
           <div className="space-y-4">
             <div>
               <p className="text-gray-400 text-sm mb-2">Lock Type</p>
-              <div className="grid grid-cols-3 gap-2">
-                {['pin', 'pattern', 'fingerprint'].map(type => (
+              <div className="grid grid-cols-2 gap-2">
+                {['pin', 'fingerprint'].map(type => (
                   <button
                     key={type}
                     onClick={() => setLockType(type)}
@@ -296,7 +296,6 @@ export const AppLockSettings = ({ settings, onUpdate }) => {
               className="w-full bg-[#0b141a] text-white px-4 py-3 rounded-lg border border-[#00a884]/30 focus:border-[#00a884] focus:outline-none"
             >
               <option value="pin">PIN</option>
-              <option value="pattern">Pattern</option>
               <option value="fingerprint">Fingerprint</option>
             </select>
           </div>

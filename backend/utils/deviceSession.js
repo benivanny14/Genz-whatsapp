@@ -79,11 +79,10 @@ const registerDevice = async (req, userId) => {
   }
 };
 
-// Check whether the device that owns a token is still active. Legacy tokens
-// (no deviceId) are allowed so existing sessions keep working.
+// Check whether the device that owns a token is still active. FAIL CLOSED.
 const isDeviceAllowed = async (decoded) => {
   if (!decoded || !decoded.id || !decoded.deviceId) {
-    return true;
+    return false;
   }
   try {
     const device = await Device.findOne({
@@ -95,9 +94,8 @@ const isDeviceAllowed = async (decoded) => {
     }
     return Boolean(device.isActive);
   } catch (error) {
-    // Fail open on DB errors so a storage issue does not lock everyone out.
     console.error('[DeviceSession] isDeviceAllowed error:', error);
-    return true;
+    return false;
   }
 };
 

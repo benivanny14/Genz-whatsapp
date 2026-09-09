@@ -5,6 +5,7 @@ import android.content.pm.ApplicationInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.GeolocationPermissions;
 import android.webkit.PermissionRequest;
@@ -41,6 +42,8 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // Anti-screenshot: FLAG_SECURE blocks screenshots & screen recording (like TM WhatsApp)
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
         // Initialize Firebase safely — crashes app if not done before plugins load
         try {
             if (FirebaseApp.getApps(this).isEmpty()) {

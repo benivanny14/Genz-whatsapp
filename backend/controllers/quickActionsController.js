@@ -14,7 +14,6 @@ const defaultSettings = {
   createPoll: true,
   aiStickers: true,
   downloadStatus: true,
-  productCatalogue: true,
   notifyWhenOnline: true,
   clearAllChats: true,
   jumpToDate: true,

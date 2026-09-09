@@ -44,10 +44,16 @@ const upload = multer({
   storage,
   limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
   fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif|mp4|webm|mov/;
-    const extname = allowedTypes.test(file.originalname.toLowerCase().split('.').pop());
-    const mimetype = allowedTypes.test(file.mimetype);
-    if (extname && mimetype) return cb(null, true);
+    const allowedExts = new Set(['jpeg','jpg','png','gif','webp','bmp','mp4','webm','mov','quicktime','avi','mkv','3gp']);
+    const ext = file.originalname.toLowerCase().split('.').pop();
+    const isValidExt = allowedExts.has(ext);
+    const isValidMime = file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/');
+    if (isValidExt && isValidMime) return cb(null, true);
+    // Fallback: allow if either ext is valid (covers webp/quicktime edge cases)
+    if (isValidExt || isValidMime) {
+      // still require image/video mime for security
+      if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) return cb(null, true);
+    }
     cb(new Error('Invalid file type'));
   }
 });
@@ -78,7 +84,7 @@ const cloudinaryUpload = async (req, res, next) => {
 
 router.post('/', protect, createBusiness);
 router.get('/', protect, getBusinesses);
-router.post('/upload', protect, upload.single('file'), cloudinaryUpload, validateFileContent, uploadBusinessMedia);
+router.post('/upload', protect, upload.single('file'), validateFileContent, cloudinaryUpload, uploadBusinessMedia);
 
 // Order flow + seller analytics (declared before the /:id routes).
 router.get('/orders', protect, getMyOrders);

@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { PrivacyScreen } from '@capacitor-community/privacy-screen'
+import { isAntiScreenshotActive } from '../utils/antiScreenshot'
 import { useStatusMediaUrl } from './StatusMedia'
 import { sanitizeMediaUrl } from '../utils/sanitizeMediaUrl'
 import { useStatusContext } from '../context/StatusContext'
 import { getSocket } from '../services/socket'
 import { resolveApiBase } from '../utils/resolveApiBase'
 import { getAuthToken } from '../utils/tokenStore'
-import { X, Volume2, VolumeX, Send, Eye, EyeOff, CheckCheck, Heart, Trash2, ChevronLeft, ChevronRight, Pause, Play, Forward, Download, Smile, Share2, Link2, Copy, Check, Music, Mic, BarChart3, QrCode, Clock, RotateCcw } from 'lucide-react'
+import { X, Volume2, VolumeX, Send, Eye, EyeOff, CheckCheck, Heart, Trash2, ChevronLeft, ChevronRight, Pause, Play, Forward, Download, Smile, Share2, Link2, Copy, Check, Music, Mic, BarChart3, QrCode, Clock, RotateCcw, MapPin } from 'lucide-react'
 import ReactPlayer from 'react-player'
 import ForwardDialog from './ForwardDialog'
 import StatusAnalytics from './StatusAnalytics'
@@ -13,6 +15,7 @@ import AddYoursChain from './AddYoursChain'
 import CountdownOverlay from './CountdownOverlay'
 import { LocationStickerOverlay } from './LocationSticker'
 import QuizOverlay from './QuizOverlay'
+import LeafletMap from './LeafletMap'
 import './StatusViewer.css'
 
 // Format remaining time as "Xh Ym" or "Ym" or "<1m"
@@ -71,6 +74,7 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
   const containerRef = useRef(null)
   const touchStartX = useRef(0)
   const voiceAudioRef = useRef(null)
+  const musicAudioRef = useRef(null)
   const touchStartY = useRef(0)
   const lastTapTime = useRef(0)
   const [scale, setScale] = useState(1)
@@ -99,6 +103,21 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
   const effectiveOwner = statusOwner || { _id: statusOwnerId, username: currentStatus?.username || 'Unknown', profilePicture: currentStatus?.profilePicture || '' }
   const isOwner = Boolean(currentUserId && statusOwnerId && currentUserId === statusOwnerId)
 
+  // PrivacyScreen: block screenshots/screen-record while status is viewed (APK FLAG_SECURE) - matches ViewOnceMedia
+  useEffect(() => {
+    let cancelled = false
+    const enable = async () => {
+      try { await PrivacyScreen.enable() } catch (e) { /* web/no plugin */ }
+    }
+    enable()
+    return () => {
+      const disable = async () => {
+        try { if (!isAntiScreenshotActive()) await PrivacyScreen.disable() } catch (e) { /* ignore */ }
+      }
+      disable()
+    }
+  }, [])
+
   // Update remaining time every 30 seconds
   useEffect(() => {
     if (!currentStatus?.expiresAt) return
@@ -107,6 +126,16 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
     const interval = setInterval(update, 30000)
     return () => clearInterval(interval)
   }, [currentStatus?.expiresAt])
+
+  // Sync music trim playback with pause/mute (WhatsApp parity: trim respected)
+  useEffect(() => {
+    const a = musicAudioRef.current
+    if (!a || !currentStatus?.music?.file) return
+    a.muted = isMuted
+    try { a.volume = Math.max(0, Math.min(1, Number(currentStatus.music.volume ?? 0.5))) } catch {}
+    if (isPaused) { try { a.pause() } catch {} }
+    else { a.play().catch(() => {}) }
+  }, [isPaused, isMuted, currentStatus?.music?.file])
 
   // Mark as viewed (skip if Ghost Mode is active) & Auto-Save & Anti-Delete Cache
   useEffect(() => {
@@ -168,6 +197,8 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
       ? 10000 // Audio: 10 seconds
       : currentStatus?.type === 'text'
       ? 7000 // Text: 7 seconds
+      : currentStatus?.type === 'location'
+      ? 5000 // Location: 5 seconds
       : 5000 // Image: 5 seconds
 
     const interval = setInterval(() => {
@@ -719,13 +750,26 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
               onError={(e) => { if (e?.type !== 'AbortError') console.warn('Video error:', e) }}
               style={{ objectFit: 'cover' }}
             />
-            {/* Background music player */}
+            {/* Background music player - respects trim startTime/endTime/volume like WhatsApp */}
             {currentStatus.music?.file && (
               <audio
+                ref={musicAudioRef}
                 src={currentStatus.music.file}
                 autoPlay={!isPaused}
                 loop={false}
                 muted={isMuted}
+                onLoadedMetadata={(e) => {
+                  const start = Number(currentStatus.music.startTime) || 0
+                  const vol = currentStatus.music.volume != null ? Number(currentStatus.music.volume) : 0.5
+                  try { e.target.currentTime = start; e.target.volume = Math.max(0, Math.min(1, vol)) } catch {}
+                }}
+                onTimeUpdate={(e) => {
+                  const end = Number(currentStatus.music.endTime)
+                  if (end > 0 && e.target.currentTime >= end) {
+                    e.target.pause()
+                    if (!isPaused) goNext()
+                  }
+                }}
                 onEnded={goNext}
                 onError={(e) => { if (e?.type !== 'AbortError') console.warn('Music error:', e) }}
               />
@@ -762,6 +806,52 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
                 {currentStatus.caption}
               </p>
             )}
+          </div>
+        )}
+
+        {/* Location Status */}
+        {currentStatus.type === 'location' && (
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            width: '100%', height: '100%', background: 'linear-gradient(135deg, #0d1f35 0%, #1a1a2e 50%, #16213e 100%)',
+            padding: '32px'
+          }}>
+            <div style={{
+              width: '100%', height: '60%', borderRadius: '16px', overflow: 'hidden',
+              marginBottom: '20px', border: '2px solid rgba(0,168,132,0.3)'
+            }}>
+              {(currentStatus.locationData?.latitude && currentStatus.locationData?.longitude) ? (
+                <LeafletMap
+                  center={{ lat: currentStatus.locationData.latitude, lng: currentStatus.locationData.longitude }}
+                  marker={{ lat: currentStatus.locationData.latitude, lng: currentStatus.locationData.longitude }}
+                  zoom={15}
+                  interactive={false}
+                  height="100%"
+                />
+              ) : (
+                <div style={{
+                  width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'rgba(0,0,0,0.5)', color: '#8696a0'
+                }}>
+                  <MapPin size={48} />
+                </div>
+              )}
+            </div>
+            <div style={{ textAlign: 'center', color: '#fff' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
+                {currentStatus.locationData?.name || currentStatus.content || 'Location'}
+              </h3>
+              {currentStatus.locationData?.address && (
+                <p style={{ fontSize: '14px', color: '#8696a0', marginBottom: '8px' }}>
+                  {currentStatus.locationData.address}
+                </p>
+              )}
+              {currentStatus.caption && (
+                <p style={{ fontSize: '13px', color: '#8696a0', marginTop: '12px', opacity: 0.8 }}>
+                  {currentStatus.caption}
+                </p>
+              )}
+            </div>
           </div>
         )}
 
