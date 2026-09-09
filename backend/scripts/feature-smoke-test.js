@@ -84,25 +84,6 @@ async function main() {
   }
   console.log(`     ids: ${JSON.stringify(ids)}`);
 
-  // Premium-gated features (anti-revoke, fake-chat, channels) are exercised
-  // below — grant all three users a valid subscription directly in Mongo (the
-  // payment flow would have set these; throwaway users, same pattern as
-  // e2e-deleted-message.js).
-  try {
-    const mongoose = require('mongoose');
-    const dbUri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/genz-whatsapp';
-    await mongoose.connect(dbUri);
-    const User = require('../models/User');
-    await User.updateMany(
-      { _id: { $in: [ids[0], ids[1], ids[2]].map((x) => new mongoose.Types.ObjectId(x)) } },
-      { $set: { premium: true, subscriptionExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) } }
-    );
-    await mongoose.disconnect();
-    check('grant premium to test users', true, { success: true });
-  } catch (e) {
-    check('grant premium to test users', false, { message: e.message });
-  }
-
   let r = await api.req('POST', '/api/auth/register', users[0]);
   check('duplicate register blocked (409)', r.status === 409, r, 'message');
 
@@ -371,7 +352,7 @@ async function main() {
   check('story highlights', r.status === 200, r, 'message');
 
   r = await api.req('POST', '/api/fake-chat/toggle', { chatEnabled: true });
-  r = await api.req('POST', '/api/fake-chat/create', { templateId: 'couple-love', contactName: 'Fake Friend', messages: [{ text: 'fake msg', from: 'me' }] });
+  r = await api.req('POST', '/api/fake-chat/create', { contactName: 'Fake Friend', messages: [{ text: 'fake msg', from: 'me' }] });
   check('fake chat generator', r.status === 200 || r.status === 201, r, 'message');
 
   r = await api.req('GET', '/api/gif-player/saved');

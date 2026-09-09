@@ -27,7 +27,7 @@ test.beforeAll(async ({ request }) => {
   const reg = await request.post(`${base}/api/auth/register`, { data: user });
   const regData = await reg.json();
   if (!regData.token) throw new Error(`register failed: ${JSON.stringify(regData)}`);
-  poster = { phone: user.phoneNumber, token: regData.token, username: user.username };
+  poster = { phone: user.phoneNumber, token: regData.token };
 
   // A contacts-only status — deliberately NOT 'everyone'.
   const created = await request.post(`${base}/api/advanced/status`, {
@@ -51,11 +51,11 @@ test('API: a valid share token lets an anonymous request view a contacts-only st
   const base = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:5174';
 
   // Without a token: 403 for a non-public status.
-  const denied = await request.get(`${base}/api/status/shared/${statusId}`);
+  const denied = await request.get(`${base}/api/status/share/${statusId}`);
   expect(denied.status()).toBe(403);
 
   // With the owner's token: allowed, no auth.
-  const allowed = await request.get(`${base}/api/status/shared/${statusId}?share=${encodeURIComponent(shareToken)}`);
+  const allowed = await request.get(`${base}/api/status/share/${statusId}?share=${encodeURIComponent(shareToken)}`);
   expect(allowed.status()).toBe(200);
   const data = await allowed.json();
   expect(data.success).toBe(true);
@@ -75,11 +75,11 @@ test('API: a foreign or tampered token is denied', async ({ request }) => {
     headers: { Authorization: `Bearer ${poster.token}` }
   });
   const foreignData = await foreign.json();
-  const foreignRes = await request.get(`${base}/api/status/shared/${statusId}?share=${encodeURIComponent(foreignData.token)}`);
+  const foreignRes = await request.get(`${base}/api/status/share/${statusId}?share=${encodeURIComponent(foreignData.token)}`);
   expect(foreignRes.status()).toBe(403);
 
   // Garbage token.
-  const garbage = await request.get(`${base}/api/status/shared/${statusId}?share=garbage.token`);
+  const garbage = await request.get(`${base}/api/status/share/${statusId}?share=garbage.token`);
   expect(garbage.status()).toBe(403);
 });
 
@@ -91,8 +91,7 @@ test('browser: anonymous visitor sees the status with the token, an error withou
   // With the token: the shared viewer renders the status.
   await page.goto(`/status/${statusId}?share=${encodeURIComponent(shareToken)}`);
   await expect(page.getByText('Secret status for the token test', { exact: true })).toBeVisible({ timeout: 15_000 });
-  // The shared-status viewer identifies the author in an <h3> (no "Status by" label).
-  await expect(page.getByText(poster.username)).toBeVisible();
+  await expect(page.getByText(/Status by/)).toBeVisible();
 
   await context.close();
 
@@ -100,6 +99,6 @@ test('browser: anonymous visitor sees the status with the token, an error withou
   const plain = await browser.newContext();
   const plainPage = await plain.newPage();
   await plainPage.goto(`/status/${statusId}`);
-  await expect(plainPage.getByText('Unable to load status')).toBeVisible({ timeout: 15_000 });
+  await expect(plainPage.getByText(/This status may have been deleted or the link is invalid/)).toBeVisible({ timeout: 15_000 });
   await plain.close();
 });

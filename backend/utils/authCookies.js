@@ -7,7 +7,7 @@ const COOKIE_OPTIONS = {
   path: '/'
 };
 
-const ACCESS_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days
+const ACCESS_MAX_AGE = 16 * 60 * 1000; // 16 minutes (matches JWT access expiry of 15m + 1min buffer)
 const REFRESH_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 const setAuthCookies = (res, { token, refreshToken } = {}) => {

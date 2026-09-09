@@ -410,7 +410,7 @@ const userSchema = new mongoose.Schema({
   multiAccountsSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
   connectedDevices: { type: mongoose.Schema.Types.Mixed, default: [] },
   quickActionsSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
-  closeFriends: { type: mongoose.Schema.Types.Mixed, default: [] },
+  closeFriends: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   statusFeaturesSettings: { 
     ghostMode: { type: Boolean, default: false },
     statusDuration: { type: Number, default: 24 },
@@ -427,7 +427,6 @@ const userSchema = new mongoose.Schema({
   storyHighlightsSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
   textRepeaterSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
   themeEngineSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
-  favoriteStickers: { type: mongoose.Schema.Types.Mixed, default: [] },
   whatsappWebSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
   whatsappWebSessions: { type: mongoose.Schema.Types.Mixed, default: [] },
   suspiciousActivities: { type: mongoose.Schema.Types.Mixed, default: [] },
@@ -447,13 +446,10 @@ const userSchema = new mongoose.Schema({
   locationSharingSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
   liveLocations: { type: mongoose.Schema.Types.Mixed, default: [] },
   lastLocation: { type: mongoose.Schema.Types.Mixed, default: null },
-  awayMessage: { type: mongoose.Schema.Types.Mixed, default: null },
-  businessProfile: { type: mongoose.Schema.Types.Mixed, default: null },
   lastSyncAt: { type: Date, default: null },
   blockedStatusUsers: { type: mongoose.Schema.Types.Mixed, default: [] },
   mutedStatusUsers: { type: mongoose.Schema.Types.Mixed, default: [] },
   savedStatuses: { type: mongoose.Schema.Types.Mixed, default: [] },
-  closeFriends: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 });
 
 // Update last seen before saving

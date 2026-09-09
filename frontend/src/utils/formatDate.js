@@ -28,17 +28,12 @@ export const decryptMessage = (encryptedData) => {
       const iv = CryptoJS.enc.Hex.parse(encryptedData.iv);
       const encrypted = CryptoJS.enc.Hex.parse(encryptedData.content);
       const configuredSecret = import.meta.env.VITE_MESSAGE_ENCRYPTION_SECRET;
+      if (!configuredSecret) {
+        // SECURITY: no encryption secret configured — cannot decrypt
+        return 'Encrypted message';
+      }
       const configuredIterations = Number(import.meta.env.VITE_MESSAGE_ENCRYPTION_ITERATIONS || 100000);
-      const candidates = configuredSecret
-        ? [{ secret: configuredSecret, iterations: configuredIterations }]
-        : [];
-
-      // SECURITY NOTE: This hardcoded legacy fallback is only for backward
-      // compatibility with old locally-encrypted messages that used this key.
-      // New messages MUST use VITE_MESSAGE_ENCRYPTION_SECRET (set in .env).
-      // This key is intentionally weak (1 iteration) and should be retired
-      // once all old messages are migrated to the configured secret.
-      candidates.push({ secret: "GENZ_WHATSAPP_SECRET_KEY", iterations: 1 });
+      const candidates = [{ secret: configuredSecret, iterations: configuredIterations }];
 
       for (const candidate of candidates) {
         try {

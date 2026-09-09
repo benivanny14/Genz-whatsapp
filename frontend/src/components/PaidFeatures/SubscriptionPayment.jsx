@@ -236,14 +236,14 @@ export default function SubscriptionPayment() {
                   <Phone size={14} /> Payment phone number
                 </div>
                 <button onClick={copyReceiver} className="flex items-center gap-1 font-mono font-bold text-white">
-                  {info?.receiverNumber || '0639533428'} <Copy size={13} className="text-white/40" />
+                  {info?.receiverNumber || 'Not configured'} <Copy size={13} className="text-white/40" />
                 </button>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm text-white/70">
                   <UserIcon size={14} /> Receiver name
                 </div>
-                <span className="font-semibold">{info?.receiverName || 'ERASTOR GODFREY PAUL'}</span>
+                <span className="font-semibold">{info?.receiverName || 'Not configured'}</span>
               </div>
             </div>
 
@@ -257,7 +257,7 @@ export default function SubscriptionPayment() {
                 <>
                   <div className="flex gap-2">
                     <span className="text-[#25d366] font-bold">1.</span>
-                    <span>Send payment to {info?.receiverNumber || '0639533428'} ({info?.receiverName || 'ERASTOR GODFREY PAUL'}).</span>
+                    <span>Send payment to {info?.receiverNumber || 'the payment number shown above'}.</span>
                   </div>
                   <div className="flex gap-2">
                     <span className="text-[#25d366] font-bold">2.</span>

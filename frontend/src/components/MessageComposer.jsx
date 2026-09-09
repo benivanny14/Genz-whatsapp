@@ -58,11 +58,8 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
 
   const [showFormattingMenu, setShowFormattingMenu] = useState(false);
 
-  // Slightly smaller touch targets below sm so the input keeps a usable width
-  // on phones (the composer row also stacks onto its own full line below sm,
-  // see the form/pill classes).
-  const composerIconButton = 'w-9 h-9 min-w-[36px] min-h-[36px] sm:w-11 sm:h-11 sm:min-w-[44px] sm:min-h-[44px] flex-shrink-0 rounded-full flex items-center justify-center text-dark-textSecondary hover:text-dark-text hover:bg-dark-hover transition-colors active:scale-95';
-  const activeComposerIconButton = 'w-9 h-9 min-w-[36px] min-h-[36px] sm:w-11 sm:h-11 sm:min-w-[44px] sm:min-h-[44px] flex-shrink-0 rounded-full flex items-center justify-center bg-primary-600 text-white transition-colors active:scale-95';
+  const composerIconButton = 'w-11 h-11 min-w-[44px] min-h-[44px] flex-shrink-0 rounded-full flex items-center justify-center text-dark-textSecondary hover:text-dark-text hover:bg-dark-hover transition-colors active:scale-95';
+  const activeComposerIconButton = 'w-11 h-11 min-w-[44px] min-h-[44px] flex-shrink-0 rounded-full flex items-center justify-center bg-primary-600 text-white transition-colors active:scale-95';
   const mobileStatusButton = 'h-8 px-2 rounded-full flex items-center gap-1.5 text-xs font-medium transition-colors active:scale-95';
 
   return (
@@ -164,7 +161,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
             </div>
           )}
 
-          <form onSubmit={handleSendMessage} className="flex w-full flex-wrap items-end gap-2 flex-shrink-0 z-50" role="form" aria-label="Send message">
+          <form onSubmit={handleSendMessage} className="flex w-full items-end gap-2 flex-shrink-0 z-50" role="form" aria-label="Send message">
             {showAttachmentMenu && (
               <div ref={attachmentMenuRef} className="absolute bottom-[calc(100%+8px)] left-2 right-2 md:left-2 md:right-auto md:w-[min(36rem,calc(100vw-1rem))] bg-[#1f2c34] border border-dark-border rounded-2xl shadow-2xl p-2 md:p-3 grid grid-cols-4 sm:grid-cols-4 md:grid-cols-5 gap-1.5 md:gap-2 z-[90] max-h-[min(58vh,420px)] overflow-y-auto animate-slideUp">
                 <AttachmentIcon icon={<CalendarClock className="text-[#00a884]" />} label="Schedule" onClick={handleSchedule} disabled={!selectedConversation} title="Schedule Message" />
@@ -237,7 +234,7 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
   
             {/* ── Text input — hidden while VoiceRecorder is recording ── */}
             {!voiceRecorderActive && (
-              <div className="w-full sm:w-auto sm:flex-1 min-w-0 flex items-center gap-1 rounded-[24px] bg-dark-bg border border-dark-border px-1.5 py-1 shadow-sm sm:px-2 sm:py-1.5">
+              <div className="flex-1 min-w-0 flex items-center gap-1 rounded-[24px] bg-dark-bg border border-dark-border px-1.5 py-1 shadow-sm sm:px-2 sm:py-1.5">
                 <button
                   type="button"
                   onClick={() => {

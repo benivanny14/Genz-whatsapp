@@ -19,8 +19,8 @@ const connectDB = async (attempt = 1) => {
     mongoose.set('strictQuery', true);
 
     const conn = await mongoose.connect(mongoUri, {
-      maxPoolSize: 100,
-      minPoolSize: 10,
+      maxPoolSize: parseInt(process.env.MONGO_MAX_POOL_SIZE, 10) || 100,
+      minPoolSize: parseInt(process.env.MONGO_MIN_POOL_SIZE, 10) || 10,
       socketTimeoutMS: 45000,
       serverSelectionTimeoutMS: 5000,
       heartbeatFrequencyMS: 10000,

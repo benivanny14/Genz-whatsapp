@@ -85,17 +85,22 @@ test.describe('update uptake footer (login page)', () => {
     await page.route('**/api/telemetry/events/uptake**', (route) =>
       route.fulfill({ json: { success: true, version: real.version, sinceHours: 48, shown: 0, updated: 0, dismissed: 0 } })
     );
-    await page.goto('/install');
+    await page.goto('/login');
     await page.waitForTimeout(1200);
     await expect(page.getByText(/updated · .* shown/)).toHaveCount(0);
 
-    // With data → footer with aggregate counts (the ReleaseUptake component
-    // renders only on the install guide, not the login page).
+    // With data → footer with aggregate counts.
     await page.unroute('**/api/telemetry/events/uptake**');
     await page.route('**/api/telemetry/events/uptake**', (route) =>
       route.fulfill({ json: { success: true, version: real.version, sinceHours: 48, shown: 5, updated: 2, dismissed: 1 } })
     );
     await page.reload();
+    const footer = page.getByText(new RegExp(`v${real.version}: 2 updated · 5 shown`));
+    await expect(footer).toBeVisible();
+
+    // The install guide shares the same footer component.
+    await page.goto('/install');
+    await page.waitForTimeout(1200);
     await expect(page.getByText(new RegExp(`v${real.version}: 2 updated · 5 shown`))).toBeVisible();
   });
 });

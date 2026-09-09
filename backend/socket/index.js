@@ -102,10 +102,7 @@ const setupSocket = (io) => {
             message: "Too many requests. Try again shortly.",
             event,
           });
-          // Mock sockets in tests have no disconnect function — guard it so a
-          // rate-limited mock cannot crash the whole process (regression of
-          // 1da789a by 1eb7950a).
-          if (typeof socket.disconnect === "function") socket.disconnect(true);
+          socket.disconnect(true);
           return;
         }
         try {
@@ -150,10 +147,7 @@ const setupSocket = (io) => {
           userId: socket.userId,
           socketId: socket.id,
         });
-        // Mock sockets in tests have no disconnect function — guard it so a
-        // stale mock cannot crash the whole process (regression of 1da789a by
-        // 1eb7950a).
-        if (typeof socket.disconnect === "function") socket.disconnect(true);
+        socket.disconnect(true);
       }
     }, 60000);
     socket.on("disconnect", () => {

@@ -4,6 +4,7 @@ const { isDeviceAllowed } = require('../utils/deviceSession');
 const { clearAuthCookies } = require('../utils/authCookies');
 const { isTokenBlacklisted } = require('./tokenBlacklist');
 const { JWT_SECRET } = require('../config/secrets');
+const { logger } = require('../config/winston');
 
 // SECURITY (4.1): the hardcoded DEFAULT_DEVICE_ID / LOCAL_USER_ID fallbacks
 // (and the device-user factory that used them) are removed — no phantom user
@@ -50,7 +51,7 @@ const protect = async (req, res, next) => {
         const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
         
         if (decoded.typ === 'refresh') {
-          console.error('[Auth] Access route received refresh token');
+          logger.warn('[Auth] Access route received refresh token');
           return reject(res, 'Invalid token type', 401, true);
         }
 
@@ -60,7 +61,7 @@ const protect = async (req, res, next) => {
 
         const user = await User.findById(decoded.id);
         if (!user) {
-          console.error('[Auth] User not found for token:', decoded.id);
+          logger.warn('[Auth] User not found for token', { userId: decoded.id });
           return reject(res, 'User not authorized', 401, true);
         }
 
@@ -72,7 +73,7 @@ const protect = async (req, res, next) => {
         if (user.passwordChangedAt) {
           const changedAt = new Date(user.passwordChangedAt).getTime();
           if (decoded.iat && decoded.iat * 1000 + 30000 < changedAt) {
-            console.error('[Auth] Token issued before password change; rejecting');
+            logger.warn('[Auth] Token issued before password change; rejecting', { userId: decoded.id });
             return reject(res, 'Session expired. Please log in again.', 401, true);
           }
         }
@@ -80,7 +81,7 @@ const protect = async (req, res, next) => {
         // Check device
         const deviceAllowed = await isDeviceAllowed(decoded);
         if (!deviceAllowed) {
-          console.error('[Auth] Token rejected: device no longer active', { id: decoded.id, deviceId: decoded.deviceId });
+          logger.warn('[Auth] Token rejected: device no longer active', { userId: decoded.id, deviceId: decoded.deviceId });
           return reject(res, 'Session has been logged out on this device', 401, true);
         }
 
@@ -89,7 +90,7 @@ const protect = async (req, res, next) => {
         const isAuthRoute = SKIP_PHONE_VERIFY_PATHS.some(path => req.originalUrl.includes(path));
         
         if (!isAuthRoute && !user.phoneVerified) {
-          console.warn('[Auth] Phone not verified for protected route:', req.path);
+          logger.warn('[Auth] Phone not verified for protected route', { path: req.path, userId: user._id });
           return res.status(403).json({
             success: false,
             message: 'Phone number not verified. Please verify your phone number to continue.',
@@ -102,7 +103,7 @@ const protect = async (req, res, next) => {
         return next();
         
       } catch (jwtError) {
-        console.error('[Auth] JWT verification failed:', {
+        logger.warn('[Auth] JWT verification failed', {
           error: jwtError.message,
           path: req.path
         });
@@ -121,11 +122,11 @@ const protect = async (req, res, next) => {
       }
     }
 
-    console.error('[Auth] No token provided:', { path: req.path });
+    logger.debug('[Auth] No token provided', { path: req.path });
     return reject(res, 'Authentication required', 401, true);
     
   } catch (error) {
-    console.error('[Auth] Middleware error:', {
+    logger.error('[Auth] Middleware error', {
       error: error.message,
       stack: error.stack,
       path: req.path,
@@ -162,7 +163,7 @@ const isAdmin = async (req, res, next) => {
     req.isAdmin = true;
     return next();
   } catch (error) {
-    console.error('Admin middleware error:', error);
+    logger.error('[Auth] Admin middleware error', { error: error.message, path: req.path });
     return res.status(403).json({ success: false, message: 'Admin access required' });
   }
 };

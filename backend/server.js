@@ -200,12 +200,21 @@ let pubClient = null;
 let subClient = null;
 let redisReadyPromise = null;
 
-// Redis client setup for distributed socket architecture
-// Redis is optional - the system works in single-instance mode without it
-if (!isTestEnvironment && process.env.REDIS_URL) {
+/** Resolve the Redis URL from environment (REDIS_URL preferred, legacy REDIS_HOST fallback). */
+const resolveRedisUrl = () => {
+  if (process.env.REDIS_URL) return process.env.REDIS_URL;
+  if (process.env.REDIS_HOST) {
+    return `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT || 6379}`;
+  }
+  return null;
+};
+
+// Redis is optional — the system works in single-instance mode without it.
+const redisUrl = !isTestEnvironment ? resolveRedisUrl() : null;
+if (redisUrl) {
   try {
     redisClient = createClient({
-      url: process.env.REDIS_URL,
+      url: redisUrl,
       password: process.env.REDIS_PASSWORD || undefined,
     });
 
@@ -238,45 +247,6 @@ if (!isTestEnvironment && process.env.REDIS_URL) {
       pubClient = null;
       subClient = null;
       if (app) app.set("redisClient", null);
-      return false;
-    });
-  } catch (err) {
-    logger.warn(
-      "⚠️  Redis setup failed, running in single-instance mode:",
-      err.message,
-    );
-  }
-} else if (!isTestEnvironment && process.env.REDIS_HOST) {
-  // Legacy REDIS_HOST support
-  try {
-    const redisUrl = `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT || 6379}`;
-    redisClient = createClient({
-      url: redisUrl,
-      password: process.env.REDIS_PASSWORD || undefined,
-    });
-
-    pubClient = redisClient.duplicate();
-    subClient = redisClient.duplicate();
-
-    redisClient.on("error", (err) =>
-      logger.warn("Redis Client Error:", err.message),
-    );
-
-    redisReadyPromise = (async () => {
-      await redisClient.connect();
-      await pubClient.connect();
-      await subClient.connect();
-      if (app) app.set("redisClient", redisClient);
-      logger.info("✅ Redis connected for distributed socket architecture");
-      return true;
-    })().catch((err) => {
-      logger.warn(
-        "Redis connection failed, running in single-instance mode:",
-        err.message,
-      );
-      redisClient = null;
-      pubClient = null;
-      subClient = null;
       return false;
     });
   } catch (err) {
@@ -695,7 +665,6 @@ app.use(
         imgSrc: [
           "'self'",
           "data:",
-          "blob:",
           "https:",
           publicApiOrigin,
           ...(!isProduction ? ["http://localhost:5000"] : []),
@@ -703,14 +672,7 @@ app.use(
         connectSrc: cspConnectSources,
         fontSrc: ["'self'"],
         objectSrc: ["'none'"],
-        // media-src must allow https: — Cloudinary-hosted audio/video (voice
-        // notes, audio/video messages, status media, WINGA listing videos) is
-        // served from https://res.cloudinary.com/* and would otherwise be
-        // CSP-blocked → "Audio unavailable" on the web app. img-src already
-        // allows https: for the same reason. blob: is required too — the
-        // crop/doodle editors, media previews, voice-note preview and camera
-        // capture all render URL.createObjectURL() blobs.
-        mediaSrc: ["'self'", "blob:", "https:", publicApiOrigin, ...(!isProduction ? ["http://localhost:5000"] : [])],
+        mediaSrc: ["'self'", publicApiOrigin, ...(!isProduction ? ["http://localhost:5000"] : [])],
         frameSrc: ["'none'"],
       },
     },
@@ -1089,7 +1051,6 @@ const whatsappWebhookRoutes = require("./routes/whatsapp-webhook");
 const antiBanRoutes = require("./routes/anti-ban");
 const locationSharingRoutes = require("./routes/location-sharing");
 const telemetryRoutes = require("./routes/telemetryRoutes");
-const channelRoutes = require("./routes/channelRoutes");
 const wingaRoutes = require("./routes/winga");
 const supportRoutes = require("./routes/supportRoutes");
 
@@ -1164,7 +1125,6 @@ const API_ROUTE_MOUNTS = [
   ["/anti-ban", antiBanRoutes],
   ["/location-sharing", locationSharingRoutes],
   ["/telemetry", telemetryRoutes],
-  ["/channels", channelRoutes],
   ["/winga", wingaRoutes],
   ["/support", supportRoutes],
 ];
@@ -1525,7 +1485,6 @@ io.use(async (socket, next) => {
     const token =
       authToken &&
       authToken !== "null" &&
-      authToken !== "undefined" &&
       authToken !== "undefined"
         ? authToken
         : headerToken;

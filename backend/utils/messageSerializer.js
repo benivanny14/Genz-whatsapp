@@ -63,17 +63,6 @@ const serializeOutgoingMessage = (msgObj = {}, extras = {}) => {
     isSelfDestruct: Boolean(base.isSelfDestruct),
     isConsumed: Boolean(base.isConsumed),
     disappearAt: base.disappearAt || null,
-    // Per-message font/color from the composer picker — must be forwarded or
-    // the receiver renders the default font no matter what the sender chose
-    // (TM-WhatsApp parity for custom message fonts).
-    font: typeof base.font === 'string' && base.font ? base.font : null,
-    color: typeof base.color === 'string' && base.color ? base.color : null,
-    structuredContent: Array.isArray(base.structuredContent) ? base.structuredContent : [],
-    // Anti-screenshot toggle — the sender's allowScreenshot choice must reach
-    // the receiver so the view-once UI can honor screenshot protection.
-    allowScreenshot: typeof base.allowScreenshot === 'boolean' ? base.allowScreenshot : undefined,
-    // Voice-note effect label (voice changer) so the receiver shows it.
-    voiceEffect: typeof base.voiceEffect === 'string' && base.voiceEffect ? base.voiceEffect : null,
     mentions: Array.isArray(base.mentions)
       ? base.mentions.map((m) => ({
           user: typeof m.user === 'object' && m.user

@@ -67,9 +67,9 @@ const manualPaymentSchema = new mongoose.Schema({
     index: true
   },
 
-  // Receiver details (the account users pay into)
-  receiverName: { type: String, default: 'ERASTOR GODFREY PAUL' },
-  receiverNumber: { type: String, default: '0639533428' },
+  // Receiver details (the account users pay into) — configured via MANUAL_PAYMENT_RECEIVER_* env vars
+  receiverName: { type: String, default: '' },
+  receiverNumber: { type: String, default: '' },
 
   submittedAt: { type: Date, default: Date.now },
   approvedAt: { type: Date, default: null },
