@@ -53,15 +53,14 @@ const SharedStatus = () => {
   }
 
   const handleNativeShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `${status.username}'s Status`,
-          text: status.textStatus?.text || 'Check out this status',
-          url: window.location.href
-        })
-      } catch (err) { /* cancelled */ }
-    }
+    try {
+      const { shareContent } = await import('../utils/nativeBridge');
+      await shareContent({
+        title: `${status.username}'s Status`,
+        text: status.textStatus?.text || 'Check out this status',
+        url: window.location.href
+      })
+    } catch (err) { /* cancelled */ }
   }
 
   const getQRCodeUrl = () => {

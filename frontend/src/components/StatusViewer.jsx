@@ -168,7 +168,8 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
     const textToCopy = currentStatus?.caption || currentStatus?.content || currentStatus?.textStatus?.text || ''
     if (!textToCopy) return
     try {
-      await navigator.clipboard.writeText(textToCopy)
+      const { writeClipboard } = await import('../utils/nativeBridge');
+      await writeClipboard(textToCopy)
       setCopyToast('Text copied to clipboard!')
       setTimeout(() => setCopyToast(''), 2000)
     } catch (err) {
@@ -497,33 +498,30 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
 
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(shareLink)
+      const { writeClipboard } = await import('../utils/nativeBridge');
+      await writeClipboard(shareLink)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
-      // Fallback
-      const input = document.createElement('input')
-      input.value = shareLink
-      document.body.appendChild(input)
-      input.select()
-      document.execCommand('copy')
-      document.body.removeChild(input)
+      try {
+        const { writeClipboard } = await import('../utils/nativeBridge');
+        await writeClipboard(shareLink)
+      } catch {}
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     }
   }
 
   const handleNativeShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `${statusOwner?.username || currentStatus.username || 'Someone'}'s Status`,
-          text: currentStatus.textStatus?.text || 'Check out this status',
-          url: shareLink
-        })
-      } catch (err) {
-        // User cancelled
-      }
+    try {
+      const { shareContent } = await import('../utils/nativeBridge');
+      await shareContent({
+        title: `${statusOwner?.username || currentStatus.username || 'Someone'}'s Status`,
+        text: currentStatus.textStatus?.text || 'Check out this status',
+        url: shareLink
+      })
+    } catch (err) {
+      // User cancelled
     }
   }
 
@@ -1146,11 +1144,9 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
               </button>
             </div>
             <div className="share-actions">
-              {navigator.share && (
-                <button className="share-native-btn" onClick={handleNativeShare}>
-                  Share via...
-                </button>
-              )}
+              <button className="share-native-btn" onClick={handleNativeShare}>
+                Share via...
+              </button>
               <button className="share-close-btn" onClick={() => setShowSharePanel(false)}>Done</button>
             </div>
           </div>

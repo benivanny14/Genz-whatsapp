@@ -49,8 +49,9 @@ const ProfileLinks = ({ links, onAddLink, onEditLink, onDeleteLink, onClose }) =
     setShowAddModal(false);
   };
 
-  const handleCopyLink = (url) => {
-    navigator.clipboard.writeText(url);
+  const handleCopyLink = async (url) => {
+    const { writeClipboard } = await import('../utils/nativeBridge');
+    await writeClipboard(url);
   };
 
   return (

@@ -852,10 +852,10 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
   // Copy the selected text from the message bubble, preserving markers so
   // formatting survives when pasted back into the composer.
-  const handleCopySelection = () => {
+  const handleCopySelection = async () => {
     const sel = textSelectionMenu;
     if (!sel) return;
-    navigator.clipboard?.writeText(sel.text).catch(() => {});
+    try { const { writeClipboard } = await import('../utils/nativeBridge'); await writeClipboard(sel.text); } catch {}
     setTextSelectionMenu(null);
   };
 

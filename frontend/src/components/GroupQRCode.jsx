@@ -52,14 +52,13 @@ const GroupQRCode = ({ groupId, groupName, onClose }) => {
   };
 
   const shareQRCode = async () => {
-    if (qrCode && navigator.share) {
+    if (qrCode) {
       try {
-        // Convert QR code to blob for sharing
+        const { shareContent } = await import('../utils/nativeBridge');
         const response = await fetch(qrCode);
         const blob = await response.blob();
         const file = new File([blob], 'group-qrcode.png', { type: 'image/png' });
-        
-        await navigator.share({
+        await shareContent({
           title: `Join ${groupName} on GenZ WhatsApp`,
           files: [file]
         });
@@ -140,15 +139,13 @@ const GroupQRCode = ({ groupId, groupName, onClose }) => {
                   <Download className="w-4 h-4" />
                   Download
                 </button>
-                {navigator.share && (
-                  <button
-                    onClick={shareQRCode}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                  >
-                    <Share2 className="w-4 h-4" />
-                    Share
-                  </button>
-                )}
+                <button
+                  onClick={shareQRCode}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  <Share2 className="w-4 h-4" />
+                  Share
+                </button>
               </div>
 
               {/* Regenerate */}

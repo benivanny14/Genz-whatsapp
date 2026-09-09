@@ -691,31 +691,13 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                             </button>
                             {!(message.isViewOnce && !isOwnMessage(message)) && (
                               <button
-                                onClick={(e) => {
+                                onClick={async (e) => {
                                   e.stopPropagation();
                                   try {
                                     const text = plaintextOf(message);
-                                    // Fallback for mobile devices
-                                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                                      navigator.clipboard.writeText(text || '');
-                                      toast.success("Text Copied!");
-                                    } else {
-                                      // Fallback for older browsers and non-HTTPS contexts
-                                      const textArea = document.createElement('textarea');
-                                      textArea.value = text || '';
-                                      textArea.style.position = 'fixed';
-                                      textArea.style.left = '-999999px';
-                                      document.body.appendChild(textArea);
-                                      textArea.select();
-                                      try {
-                                        document.execCommand('copy');
-                                        toast.success("Text Copied!");
-                                      } catch (err) {
-                                        console.error('Copy fallback error:', err);
-                                        toast.error('Failed to copy text');
-                                      }
-                                      document.body.removeChild(textArea);
-                                    }
+                                    const { writeClipboard } = await import('../utils/nativeBridge');
+                                    await writeClipboard(text || '');
+                                    toast.success("Text Copied!");
                                     setActiveMessageMenu(null);
                                   } catch (err) {
                                     console.error('Copy error:', err);

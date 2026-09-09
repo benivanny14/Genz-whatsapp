@@ -148,18 +148,20 @@ const GroupInviteLink = ({ groupId, onClose }) => {
     }
   };
 
-  const copyToClipboard = () => {
+  const copyToClipboard = async () => {
     if (inviteLink?.url) {
-      navigator.clipboard.writeText(inviteLink.url);
+      const { writeClipboard } = await import('../utils/nativeBridge');
+      await writeClipboard(inviteLink.url);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
   const shareLink = async () => {
-    if (inviteLink?.url && navigator.share) {
+    if (inviteLink?.url) {
       try {
-        await navigator.share({
+        const { shareContent } = await import('../utils/nativeBridge');
+        await shareContent({
           title: 'Join my group on GenZ WhatsApp',
           url: inviteLink.url
         });
@@ -272,15 +274,13 @@ const GroupInviteLink = ({ groupId, onClose }) => {
                   <Copy className="w-4 h-4" />
                   Copy
                 </button>
-                {navigator.share && (
-                  <button
-                    onClick={shareLink}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                  >
-                    <Share2 className="w-4 h-4" />
-                    Share
-                  </button>
-                )}
+                <button
+                  onClick={shareLink}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  <Share2 className="w-4 h-4" />
+                  Share
+                </button>
               </div>
 
               {/* Settings Toggle */}

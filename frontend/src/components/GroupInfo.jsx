@@ -330,17 +330,17 @@ const GroupInfo = ({ group, onClose, currentUserId, onViewProfile, onStartChat }
     const title = `Join ${info?.groupName || 'my group'} on Genz Messenger`;
     const text = `Tap the link to join ${info?.groupName || 'my group'} on Genz Messenger.`;
 
-    if (navigator.share) {
-      try {
-        await navigator.share({ title, text, url: link });
-        return;
-      } catch (err) {
-        // If share was cancelled or failed, fall back to clipboard copy.
-      }
+    try {
+      const { shareContent } = await import('../utils/nativeBridge');
+      await shareContent({ title, text, url: link });
+      return;
+    } catch (err) {
+      // If share was cancelled or failed, fall back to clipboard copy.
     }
 
     try {
-      await navigator.clipboard.writeText(link);
+      const { writeClipboard } = await import('../utils/nativeBridge');
+      await writeClipboard(link);
       setInviteCopied(true);
       setTimeout(() => setInviteCopied(false), 2000);
     } catch (err) {
@@ -966,7 +966,7 @@ const GroupInfo = ({ group, onClose, currentUserId, onViewProfile, onStartChat }
                 <img src={qrData.qrCode} alt="QR Code" className="w-48 h-48 rounded-xl" />
                 <p className="text-[#8696a0] text-xs text-center">Scan to join {info?.groupName}</p>
                 <button
-                  onClick={() => { navigator.clipboard.writeText(qrData.inviteUrl); }}
+                  onClick={async () => { const { writeClipboard } = await import('../utils/nativeBridge'); await writeClipboard(qrData.inviteUrl); }}
                   className="flex items-center gap-2 text-[#00a884] text-sm hover:underline"
                 >
                   <Copy size={14} /> Copy link

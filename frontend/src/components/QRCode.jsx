@@ -29,8 +29,9 @@ const QRCodeGenerator = ({ data, type = 'profile', onClose }) => {
     }
   }, [data, type]);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(qrData);
+  const handleCopy = async () => {
+    const { writeClipboard } = await import('../utils/nativeBridge');
+    await writeClipboard(qrData);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -57,15 +58,14 @@ const QRCodeGenerator = ({ data, type = 'profile', onClose }) => {
   };
 
   const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `My ${type} QR Code`,
-          text: qrData
-        });
-      } catch (err) {
-        console.error('Share failed:', err);
-      }
+    try {
+      const { shareContent } = await import('../utils/nativeBridge');
+      await shareContent({
+        title: `My ${type} QR Code`,
+        text: qrData
+      });
+    } catch (err) {
+      console.error('Share failed:', err);
     }
   };
 

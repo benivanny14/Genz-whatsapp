@@ -78,7 +78,7 @@ const MessageContextMenu = ({
     {
       icon: <FiCopy size={18} />,
       label: 'Copy',
-      onClick: () => {
+      onClick: async () => {
         let textToCopy = message.content || message.messageType;
         if (message.messageType === 'structured' && Array.isArray(message.structuredContent)) {
           const textPart = message.structuredContent.find(c => c.type === 'text');
@@ -86,7 +86,7 @@ const MessageContextMenu = ({
             textToCopy = textPart.value;
           }
         }
-        navigator.clipboard.writeText(textToCopy);
+        const { writeClipboard } = await import('../utils/nativeBridge'); await writeClipboard(textToCopy);
         onClose?.();
       },
       color: 'text-gray-400',
