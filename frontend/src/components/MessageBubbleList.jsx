@@ -162,11 +162,11 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
 
                     {/* 📽️ Video Message 📽️ */}
                     {message.messageType === 'video' && mediaSourceOf(message) && (
-                      (message.isViewOnce || message.isSelfDestruct) && !safeMods.antiViewOnce && message.isConsumed ? (
+                      (message.isViewOnce || message.isSelfDestruct) && message.isConsumed ? (
                         <div className="flex items-center gap-2 text-dark-textSecondary py-2 italic text-sm">
                           <Eye size={16} /> {message.isSelfDestruct ? 'Self-destructed' : 'Opened'}
                         </div>
-                      ) : (message.isViewOnce || message.isSelfDestruct) && !safeMods.antiViewOnce ? (
+                      ) : (message.isViewOnce || message.isSelfDestruct) ? (
                         <div className="relative mb-1">
                           {/* Placeholder for View Once video - don't load actual video until clicked */}
                           <div
@@ -270,11 +270,11 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
 
                     {/* ── Image Message ── */}
                     {message.messageType === 'image' && (
-                      (message.isViewOnce || message.isSelfDestruct) && !safeMods.antiViewOnce && message.isConsumed ? (
+                      (message.isViewOnce || message.isSelfDestruct) && message.isConsumed ? (
                         <div className="flex items-center gap-2 text-dark-textSecondary py-2 italic text-sm">
                           <Eye size={16} /> {message.isSelfDestruct ? 'Self-destructed' : 'Opened'}
                         </div>
-                      ) : (message.isViewOnce || message.isSelfDestruct) && !safeMods.antiViewOnce ? (
+                      ) : (message.isViewOnce || message.isSelfDestruct) ? (
                         <div className="relative">
                           {/* Placeholder for View Once media - don't load actual image until clicked */}
                           <div
@@ -309,11 +309,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                         </div>
                       )
                     )}
-                    {message.isViewOnce && safeMods.antiViewOnce && (
-                      <div className="flex items-center gap-1 text-[9px] text-purple-500 font-bold uppercase mb-1">
-                        <EyeOff size={10} /> View Once (Anti-Delete)
-                      </div>
-                    )}
+                    {/* antiViewOnce badge removed — view-once protection is mandatory */}
                     {message.messageType === 'file' && (
                       <DocumentMessage
                         fileName={message.fileName || 'File'}
@@ -429,7 +425,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                           defaultSpeed={safeMods?.voiceDefaultSpeed || 1}
                           messageId={message.id || message._id}
                           isLocked={message.isLocked || false}
-                          isViewOnce={Boolean(message.isViewOnce) && !safeMods?.antiViewOnce}
+                          isViewOnce={Boolean(message.isViewOnce)}
                           onViewOnceComplete={() => markViewOnceViewed(message.id || message._id)}
                           senderId={message.sender?._id || message.sender}
                           onToggleLock={toggleMessageLock}
@@ -456,7 +452,6 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                     {message.isViewOnce &&
                       !message.isSelfDestruct &&
                       message.messageType === 'text' &&
-                      !safeMods?.antiViewOnce &&
                       !message.isConsumed &&
                       (isOwnMessage(message) ? (
                         // Sender sees a static placeholder too — WhatsApp never
@@ -477,7 +472,6 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                       <p className="text-[9px] text-orange-400/90 font-medium mb-1">Disappears in 10 seconds</p>
                     )}
                     {message.isViewOnce &&
-                      (!isOwnMessage(message) && !safeMods?.antiViewOnce || message.isConsumed) &&
                       message.isConsumed && (
                         <div className="flex items-center gap-2 text-dark-textSecondary py-2 italic text-sm">
                           <Eye size={16} /> Opened
@@ -553,7 +547,6 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                         message.isViewOnce &&
                         !message.isSelfDestruct &&
                         message.messageType === 'text' &&
-                        !safeMods?.antiViewOnce &&
                         !message.isConsumed
                       ) && !message.isConsumed && (
                         <p

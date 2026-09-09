@@ -420,6 +420,9 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
   ];
 
   const toggleMod = (key) => {
+    // SECURITY: antiViewOnce must never be enabled — view-once messages are protected
+    if (key === 'antiViewOnce') return;
+
     // Check if this is a premium feature and user is not premium
     if (PREMIUM_FIELDS.includes(key) && isPrivacyLocked) {
       setShowPaymentModal(true);

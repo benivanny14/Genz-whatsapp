@@ -45,6 +45,7 @@ const ALLOWED_MIME_TYPES = {
     'audio/vnd.wave',
     'audio/x-wav',
     'audio/ogg',
+    'application/ogg',
     'audio/webm',
     'audio/aac',
     'audio/mp4',

@@ -6,8 +6,8 @@ import { useNativeBackButton } from './hooks/useNativeBackButton';
 import ErrorBoundary from './components/ErrorBoundary';
 import InAppNotification from './components/InAppNotification';
 import OfflineBanner from './components/OfflineBanner';
+import ServerHealthPoller from './components/ServerHealthPoller';
 import UpdateBanner from './components/UpdateBanner';
-// ServerHealthBanner removed — health status visible on admin dashboard only
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 import MobileBottomNav from './components/MobileBottomNav';
@@ -541,6 +541,7 @@ function App() {
         }}
       />
       <OfflineBanner />
+      <ServerHealthPoller />
       <UpdateBanner />
 
       <InAppNotification

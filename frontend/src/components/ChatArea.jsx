@@ -415,14 +415,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     if (isStaleBlobMessage(message)) return false;
     if (message.disappearAt && new Date(message.disappearAt).getTime() <= Date.now()) return false;
 
-    // View Once logic
+    // View Once logic — antiViewOnce is disabled for security
     const isSender = message.sender === user?.id || message.sender?._id === user?.id;
     if (message.isViewOnce) {
-      if (safeMods.antiViewOnce) return true;
       if (message.isConsumed) return false;
     }
     if (message.messageType === 'viewOnce') {
-      if (safeMods.antiViewOnce) return true;
       if (message.disappearAt && new Date(message.disappearAt) <= new Date()) return false;
       if (!isSender && message.isConsumed) return false;
     }

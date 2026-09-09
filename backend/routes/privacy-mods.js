@@ -15,7 +15,7 @@ router.post('/settings', stripPremiumSettingsFields(['antiViewOnce', 'whoViewedP
 router.post('/freeze-last-seen', privacyController.toggleFreezeLastSeen);
 router.post('/ghost-mode', privacyController.toggleGhostMode);
 router.post('/hide-online', privacyController.toggleHideOnline);
-router.post('/anti-view-once', checkPremiumAccess, privacyController.toggleAntiViewOnce);
+// SECURITY: anti-view-once toggle removed — view-once must not be bypassable
 router.post('/disable-forwarded-tag', privacyController.toggleDisableForwardedTag);
 router.post('/hide-status-view', privacyController.toggleHideStatusView);
 router.post('/hide-read-receipts', privacyController.toggleHideReadReceipts);

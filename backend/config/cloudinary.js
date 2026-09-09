@@ -73,7 +73,7 @@ const ALLOWED_TYPES = {
 const MIME_PREFIXES = {
   image: ['image/'],
   video: ['video/'],
-  audio: ['audio/'],
+  audio: ['audio/', 'application/ogg'],
   document: [
     'application/pdf',
     'application/msword',

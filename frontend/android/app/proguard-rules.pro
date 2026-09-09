@@ -1,3 +1,6 @@
+# App classes — keep all of our own code from R8 stripping
+-keep class com.benivanny.genzwhatsapp.** { *; }
+
 # Capacitor core — keep the bridge and plugin loader
 -keep class com.getcapacitor.** { *; }
 -keep class com.capacitorjs.** { *; }
