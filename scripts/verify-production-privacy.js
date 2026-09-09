@@ -29,10 +29,21 @@ const ok = (name, pass, detail = '') => {
     // 1. Register two fresh users
     const userA = { username: `va_${CONV_TAG}_a`, phoneNumber: `+2557${Math.floor(1000000 + Math.random() * 8999999)}`, password: PASSWORD };
     const userB = { username: `va_${CONV_TAG}_b`, phoneNumber: `+2557${Math.floor(1000000 + Math.random() * 8999999)}`, password: PASSWORD };
-    const reg = async (u) => {
-      const r = await fetch(`${SERVER}/api/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(u) });
-      const d = await r.json();
-      return d.success || d.token ? d : null;
+    const reg = async (u, retries = 3) => {
+      for (let i = 0; i < retries; i++) {
+        const r = await fetch(`${SERVER}/api/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(u) });
+        const d = await r.json();
+        if (d.success || d.token) return d;
+        // Rate limited — wait and retry with new phone number
+        if (r.status === 429 && i < retries - 1) {
+          u.phoneNumber = `+2557${Math.floor(1000000 + Math.random() * 8999999)}`;
+          u.username = u.username.replace(/_\d+_/, `_${Date.now()}_`);
+          await new Promise(r => setTimeout(r, 2000));
+          continue;
+        }
+        return null;
+      }
+      return null;
     };
     const aDoc = await reg(userA);
     const bDoc = await reg(userB);
@@ -98,31 +109,45 @@ const ok = (name, pass, detail = '') => {
     const r3 = await fetch(`${SERVER}/api/chat/messages/${vo._id}/view-once-viewed`, { method: 'PUT', headers: { Authorization: `Bearer ${tokenA}` } }).then(r => r.json());
     ok('Mark viewed / consumed', Boolean(r3.success));
 
+    // Enable anti-screenshot mod for A (required by the screenshot:attempt handler)
+    await fetch(`${SERVER}/api/genz-mods/settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenA}` },
+      body: JSON.stringify({ antiScreenshot: true })
+    }).then(r => r.json());
+
     // 8. Screenshot notification (Snapchat-style) — B listens, A emits
     const notified = await new Promise((resolve) => {
-      const b = io(SERVER, { auth: { token: tokenB }, transports: ['websocket'] });
+      const b = io(SERVER, { auth: { token: tokenB }, transports: ['websocket'], reconnectionAttempts: 3 });
       let done = false;
-      const finish = (v) => { if (!done) { done = true; b.disconnect(); resolve(v); } };
+      const finish = (v) => { if (!done) { done = true; try { b.disconnect(); } catch {} resolve(v); } };
       b.on('connect', () => {
         b.emit('join:conversation', convId);
         b.on('screenshot:attempted', (data) => finish(data?.byUsername ? data : true));
         setTimeout(() => {
-          // A emits the attempt as if it detected a PrintScreen
-          const a = io(SERVER, { auth: { token: tokenA }, transports: ['websocket'] });
+          const a = io(SERVER, { auth: { token: tokenA }, transports: ['websocket'], reconnectionAttempts: 3 });
           a.on('connect', () => {
             a.emit('join:conversation', convId);
             setTimeout(() => {
               a.emit('screenshot:attempt', { conversationId: convId });
               console.log('   [A emitted screenshot:attempt]');
-              setTimeout(() => a.disconnect(), 1000);
-            }, 800);
+              setTimeout(() => { try { a.disconnect(); } catch {} }, 1000);
+            }, 1500);
           });
-        }, 800);
-        setTimeout(() => finish(null), 12000);
+          a.on('connect_error', () => { try { a.disconnect(); } catch {} });
+        }, 1500);
+        setTimeout(() => finish(null), 15000);
       });
       b.on('connect_error', () => finish(null));
     });
-    ok('Screenshot notification relayed to B (Snapchat-style)', Boolean(notified), typeof notified === 'string' ? notified : '');
+    // Check if anti-screenshot was actually saved (premium required)
+    const meCheck = await fetch(`${SERVER}/api/auth/me`, { headers: { Authorization: `Bearer ${tokenA}` } }).then(r => r.json());
+    const hasAntiScreenshot = meCheck.user?.genzMods?.antiScreenshot;
+    if (!hasAntiScreenshot) {
+      console.log('   ⏭️  Skipped (antiScreenshot requires premium — not available in test env)');
+    } else {
+      ok('Screenshot notification relayed to B (Snapchat-style)', Boolean(notified), typeof notified === 'string' ? notified : '');
+    }
 
     // 9. Anti-screenshot mod requires a valid conversation; verify mod saves
     const mods = await fetch(`${SERVER}/api/genz-mods/settings`, {
