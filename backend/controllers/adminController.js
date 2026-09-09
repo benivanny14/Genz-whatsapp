@@ -333,6 +333,24 @@ exports.updateUser = async (req, res) => {
 
     await logAdminAction(req.user._id, 'user_updated', { updates }, user._id, null, req);
 
+    // Real-time APK notify (was silent DB only)
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        if (typeof updates.isBlocked === 'boolean') {
+          io.to(String(targetUserId)).emit(updates.isBlocked ? 'user:blocked' : 'user:unblocked', { userId: String(targetUserId) });
+          io.to(String(targetUserId)).emit('session:revoked_all', { reason: updates.isBlocked ? 'admin_blocked' : 'admin_unblocked' });
+        }
+        if (typeof updates.premium === 'boolean') {
+          io.to(String(targetUserId)).emit('subscription:updated', { premium: updates.premium, expiresAt: updates.subscriptionExpiresAt });
+          io.to(String(targetUserId)).emit('payment:approved', { premium: updates.premium, type: 'admin_premium_update' });
+        }
+        if (updates.role) {
+          io.to(String(targetUserId)).emit('user:role_updated', { role: updates.role });
+        }
+      }
+    } catch (e) { /* emit best-effort */ }
+
     return res.status(200).json({ success: true, user });
   } catch (error) {
     console.error('Admin update user error:', error);
@@ -388,6 +406,15 @@ exports.deleteUser = async (req, res) => {
     await User.findByIdAndDelete(uid);
 
     await logAdminAction(req.user._id, 'user_deleted', { targetUsername: username }, uid, null, req);
+
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(uidStr).emit('user:deleted', { userId: uidStr });
+        io.to(uidStr).emit('session:revoked_all', { reason: 'admin_deleted' });
+        io.to('role:admin').emit('admin:user_deleted', { userId: uidStr, username });
+      }
+    } catch (e) { /* best-effort */ }
 
     return res.status(200).json({ success: true, message: `User "${username}" deleted successfully` });
   } catch (error) {

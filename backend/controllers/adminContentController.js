@@ -70,6 +70,14 @@ exports.deleteConversation = async (req, res) => {
     await conversation.deleteOne();
 
     await logAdminAction(req.admin.id, 'admin_deleted_conversation', { conversationId: req.params.id }, null, null, req);
+    try {
+      const io = req.app.get('io');
+      if (io && conversation) {
+        const cId = String(conversation._id);
+        io.to(cId).emit('conversation:deleted', { conversationId: cId });
+        (conversation.participants || []).forEach(pid => io.to(String(pid)).emit('conversation:deleted', { conversationId: cId }));
+      }
+    } catch (e) {}
     res.json({ success: true, message: 'Conversation deleted' });
   } catch (error) {
     console.error('[AdminContent] deleteConversation error:', error);
@@ -129,6 +137,15 @@ exports.removeGroupMember = async (req, res) => {
     await group.save();
 
     await logAdminAction(req.admin.id, 'admin_removed_group_member', { groupId: req.params.id, userId: req.params.userId }, req.params.userId, null, req);
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        const gid = String(req.params.id);
+        const uid = String(req.params.userId);
+        io.to(gid).emit('group:participant_removed', { groupId: gid, userId: uid });
+        io.to(uid).emit('group:you_were_removed', { groupId: gid });
+      }
+    } catch (e) {}
     res.json({ success: true, message: 'Member removed' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to remove member' });
@@ -147,6 +164,15 @@ exports.deleteGroup = async (req, res) => {
     await group.deleteOne();
 
     await logAdminAction(req.admin.id, 'admin_deleted_group', { groupId: req.params.id }, null, null, req);
+    try {
+      const io = req.app.get('io');
+      if (io && group) {
+        const gid = String(group._id);
+        io.to(gid).emit('conversation:deleted', { conversationId: gid });
+        io.to(gid).emit('group:deleted', { groupId: gid });
+        (group.participants || []).forEach(pid => io.to(String(pid)).emit('conversation:deleted', { conversationId: gid }));
+      }
+    } catch (e) {}
     res.json({ success: true, message: 'Group deleted' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to delete group' });
@@ -195,6 +221,10 @@ exports.deleteChannel = async (req, res) => {
     await ChannelPost.deleteMany({ channel: channel._id });
     await channel.deleteOne();
     await logAdminAction(req.admin.id, 'admin_deleted_channel', { channelId: req.params.id }, null, null, req);
+    try {
+      const io = req.app.get('io');
+      if (io) io.emit('channel:deleted', { channelId: String(req.params.id) });
+    } catch (e) {}
     res.json({ success: true, message: 'Channel deleted' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to delete channel' });
@@ -220,6 +250,10 @@ exports.deleteChannelPost = async (req, res) => {
     post.deletedAt = new Date();
     await post.save();
     await logAdminAction(req.admin.id, 'admin_deleted_channel_post', { postId: post._id }, null, null, req);
+    try {
+      const io = req.app.get('io');
+      if (io) io.to(`channel:${String(post.channel)}`).emit('channel:postDeleted', { channelId: String(post.channel), postId: String(post._id) });
+    } catch (e) {}
     res.json({ success: true, message: 'Post removed' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to delete post' });
@@ -281,6 +315,17 @@ exports.deleteStatus = async (req, res) => {
     if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
     await status.deleteOne();
     await logAdminAction(req.admin.id, 'admin_deleted_status', { statusId: req.params.id }, null, null, req);
+    try {
+      const io = req.app.get('io');
+      if (io && status) {
+        const sid = String(status._id);
+        const owner = String(status.user || status.userId);
+        // Mirror user delete: soft emit to owner + audience
+        io.to(owner).emit('status:deleted', { statusId: sid, userId: owner });
+        // Also broadcast to admin room for live update
+        io.to('role:admin').emit('status:deleted', { statusId: sid, userId: owner });
+      }
+    } catch (e) {}
     res.json({ success: true, message: 'Status deleted' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to delete status' });
