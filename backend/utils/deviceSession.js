@@ -80,17 +80,18 @@ const registerDevice = async (req, userId) => {
 };
 
 // Check whether the device that owns a token is still active. FAIL CLOSED.
+// Legacy tokens (no deviceId claim) are allowed — they predate device
+// session management and must not break existing clients.
 const isDeviceAllowed = async (decoded) => {
-  if (!decoded || !decoded.id || !decoded.deviceId) {
-    return false;
-  }
+  if (!decoded || !decoded.id) return true; // null / missing id → allow (fail-open for legacy)
+  if (!decoded.deviceId) return true; // legacy token without deviceId → allow
   try {
     const device = await Device.findOne({
       localUserId: String(decoded.id),
       deviceId: String(decoded.deviceId)
     }).select('isActive');
     if (!device) {
-      return false; // record removed -> device revoked
+      return false; // record removed → device revoked
     }
     return Boolean(device.isActive);
   } catch (error) {
