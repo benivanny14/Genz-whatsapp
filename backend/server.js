@@ -113,6 +113,7 @@ const {
   validateOrigin,
 } = require("./middleware/security");
 const mongoSanitize = require("express-mongo-sanitize");
+const requestTimeout = require("./middleware/requestTimeout");
 const setupSocket = require("./socket");
 const secureUploads = require("./middleware/secureUploads");
 const {
@@ -866,6 +867,7 @@ app.use(
 app.use(cookieParser());
 app.use(mongoSanitize({ replaceWith: "_", allowDots: false }));
 app.use(sanitizeInput);
+app.use(requestTimeout(30000));
 
 // SECURITY (4.5): health checks must never throw — wrap the payload builder so
 // a failing dependency reports unhealthy instead of crashing the handler.

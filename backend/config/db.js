@@ -19,16 +19,29 @@ const connectDB = async (attempt = 1) => {
     mongoose.set('strictQuery', true);
 
     const conn = await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 5000,
+      maxPoolSize: 100,
+      minPoolSize: 10,
       socketTimeoutMS: 45000,
-      maxPoolSize: Number(process.env.MONGO_MAX_POOL_SIZE || 20),
-      minPoolSize: Number(process.env.MONGO_MIN_POOL_SIZE || 0),
-      maxIdleTimeMS: 10000,
-      connectTimeoutMS: 10000,
-      bufferCommands: false
+      serverSelectionTimeoutMS: 5000,
+      heartbeatFrequencyMS: 10000,
+      retryWrites: true,
+      retryReads: true
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
+    
+    mongoose.connection.on('error', (err) => {
+      console.error('MongoDB error:', err);
+    });
+    
+    mongoose.connection.on('disconnected', () => {
+      console.warn('MongoDB disconnected');
+    });
+    
+    mongoose.connection.on('reconnected', () => {
+      console.log('MongoDB reconnected');
+    });
+    
     return conn;
   } catch (error) {
     console.error(`MongoDB connection attempt ${attempt}/${MAX_RETRIES} failed: ${error.message}`);
