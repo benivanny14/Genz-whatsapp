@@ -45,6 +45,8 @@ export const getAnonId = () => {
  */
 export const isUpdateAnalyticsEnabled = () => {
   try {
+    if (globalThis.Capacitor?.isNativePlatform?.()) return true;
+    if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) return true;
     return globalThis.localStorage?.getItem(ENABLED_KEY) === '1';
   } catch {
     return false;

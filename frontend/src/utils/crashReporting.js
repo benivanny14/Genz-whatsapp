@@ -21,9 +21,12 @@ const readJson = (storage, key, fallback) => {
   }
 };
 
-/** Is crash reporting enabled for this browser? (opt-in, default off.) */
+/** Is crash reporting enabled for this browser? (opt-in web, auto-on APK) */
 export const isCrashReportingEnabled = () => {
   try {
+    if (globalThis.Capacitor?.isNativePlatform?.()) return true;
+    // Fallback: check window.Capacitor for WebView
+    if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) return true;
     return globalThis.localStorage?.getItem(REPORTING_KEY) === '1';
   } catch {
     return false;
