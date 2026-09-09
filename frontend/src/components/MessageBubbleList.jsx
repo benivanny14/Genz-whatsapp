@@ -12,7 +12,22 @@ import { downloadUrl } from '../services/capacitorBridge';
 import { extractFirstUrl, FONT_OPTIONS } from '../utils/chatTextHelpers';
 import { formatMessageTime } from '../utils/formatDate';
 import { decodeContactFromMessage } from '../utils/vcard';
+import { decryptMessage as decryptE2EE } from '../utils/e2eeClient';
 import toast from 'react-hot-toast';
+
+const E2EEText = ({ message }) => {
+  const [text, setText] = React.useState(message.content);
+  React.useEffect(() => {
+    let cancelled = false;
+    if (message.encrypted && message.content?.includes('-----BEGIN PGP MESSAGE-----')) {
+      const priv = localStorage.getItem('e2ee_privateKey') || message._privateKey;
+      const userId = JSON.parse(localStorage.getItem('user') || '{}')?._id || '';
+      decryptE2EE(message.content, priv, userId).then(d => { if (!cancelled) setText(d); }).catch(() => {});
+    } else setText(message.content);
+    return () => { cancelled = true; };
+  }, [message.content, message.encrypted]);
+  return <FormattedText text={typeof text === 'string' ? text : ''} />;
+};
 
 /**
  * MessageBubbleList — the per-message bubble rendering for ChatArea.
@@ -39,7 +54,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                 message.messageType === 'system' ? (
                   <div key={message.id || message._id} className="flex justify-center my-2">
                     <span className="bg-[#182229] text-[#8696a0] text-xs px-3 py-1.5 rounded-lg shadow-sm text-center max-w-[85%]">
-                      <FormattedText text={typeof message.content === 'string' ? message.content : ''} />
+                      {message.encrypted ? <E2EEText message={message} /> : <FormattedText text={typeof message.content === 'string' ? message.content : ''} />}
                     </span>
                   </div>
                 ) : (

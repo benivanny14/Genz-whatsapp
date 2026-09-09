@@ -724,6 +724,8 @@ const UsersSection = () => {
     }
   }, [search, filter, page]);
 
+  const [selected, setSelected] = useState([]);
+
   useEffect(() => { load(search, filter, page); }, [load, filter, page]);
 
   const toggleBlock = async (u) => {
@@ -735,6 +737,22 @@ const UsersSection = () => {
     } catch {
       toast.error('Failed to change user status');
     }
+  };
+
+  const bulkBlock = async (block) => {
+    if (selected.length === 0) return;
+    try {
+      await Promise.all(selected.map(id => adminApi.post(`/admin/users/${id}/${block ? 'block' : 'unblock'}`)));
+      toast.success(`${selected.length} users ${block ? 'blocked' : 'unblocked'}`);
+      setSelected([]); load(search, filter, page);
+    } catch { toast.error('Bulk failed'); }
+  };
+
+  const exportCSV = () => {
+    const header = 'username,phone,premium,expiresAt,blocked\n';
+    const rows = users.map(u => `${u.username},${u.phoneNumber},${u.premium},${u.subscriptionExpiresAt || ''},${u.isBlocked}`).join('\n');
+    const blob = new Blob([header + rows], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'users.csv'; a.click(); URL.revokeObjectURL(url);
   };
 
   return (
@@ -756,12 +774,18 @@ const UsersSection = () => {
           <Search size={16} /> Search
         </button>
       </form>
+      <div className="flex gap-2">
+        <button onClick={exportCSV} className="text-xs px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700">Export CSV</button>
+        <button disabled={selected.length===0} onClick={() => bulkBlock(true)} className="text-xs px-3 py-1.5 rounded bg-red-600 text-white disabled:opacity-40">Bulk Block ({selected.length})</button>
+        <button disabled={selected.length===0} onClick={() => bulkBlock(false)} className="text-xs px-3 py-1.5 rounded bg-emerald-600 text-white disabled:opacity-40">Bulk Unblock</button>
+      </div>
 
       {loading ? <LoadingBlock /> : (
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500">
               <tr>
+                <th className="p-3"><input type="checkbox" onChange={(e)=> setSelected(e.target.checked ? users.map(u=>u._id) : [])} checked={selected.length===users.length && users.length>0} /></th>
                 <th className="text-left p-3">Name</th>
                 <th className="text-left p-3">Phone</th>
                 <th className="text-left p-3">Status</th>
@@ -772,6 +796,7 @@ const UsersSection = () => {
             <tbody>
               {users.map((u) => (
                 <tr key={u._id} className="border-t border-gray-100 dark:border-gray-800">
+                  <td className="p-3"><input type="checkbox" checked={selected.includes(u._id)} onChange={(e)=> setSelected(e.target.checked ? [...selected, u._id] : selected.filter(id=>id!==u._id))} /></td>
                   <td className="p-3">{u.username}</td>
                   <td className="p-3 text-gray-400">{u.phoneNumber}</td>
                   <td className="p-3">

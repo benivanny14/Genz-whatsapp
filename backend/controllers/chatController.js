@@ -980,10 +980,23 @@ exports.sendMessage = async (req, res) => {
     const messageLongitude = toFiniteNumberOrNull(longitude);
     const messageLiveLocationExpiresAt = toValidDateOrNull(liveLocationExpiresAt);
 
+    let finalContent = String(safeContent);
+    let isEncrypted = false;
+    if (!conversation.isGroup && receiverId && messageType === 'text' && finalContent) {
+      try {
+        const recvUser = await User.findById(receiverId).select('publicKey');
+        if (recvUser?.publicKey) {
+          const { encryptMessage } = require('../utils/e2ee');
+          finalContent = await encryptMessage(finalContent, recvUser.publicKey);
+          isEncrypted = true;
+        }
+      } catch (e) { /* E2EE best-effort, fallback to plaintext */ }
+    }
+
     const message = await Message.create({
       conversationId: finalConversationId,
       sender: localUserId,
-      content: String(safeContent),
+      content: finalContent,
       caption: typeof caption === 'string' ? caption.slice(0, 1000) : '',
       messageType: messageType || "text",
       mediaUrl: mediaUrl || "",
@@ -1006,6 +1019,10 @@ exports.sendMessage = async (req, res) => {
       isLiveLocation: Boolean(isLiveLocation),
       liveLocationExpiresAt: messageLiveLocationExpiresAt,
       font: typeof enforceFont === 'string' && enforceFont ? enforceFont : null,
+      encrypted: isEncrypted,
+      viewOnce: Boolean(enforceViewOnce),
+      viewedAt: null,
+      expiresAt: disappearAt,
     });
 
     let populatedMessage = null;
