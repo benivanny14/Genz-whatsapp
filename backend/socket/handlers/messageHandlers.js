@@ -771,10 +771,6 @@ module.exports = function registerMessageHandlers(ctx) {
         .populate('reactions.user', 'username profilePicture');
 
       io.to(message.conversationId.toString()).emit('reaction:added', updatedMessage);
-      io.to(message.conversationId.toString()).emit('message_reaction_signal', {
-        messageId,
-        reactions: updatedMessage.reactions
-      });
     } catch (error) {
       logError('Error handling legacy message reaction:', error);
     }

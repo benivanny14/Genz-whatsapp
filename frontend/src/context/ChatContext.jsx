@@ -1480,8 +1480,7 @@ export const ChatProvider = ({ children }) => {
         });
       });
 
-      socket.on('notification:new_message', async (data) => {
-        console.log('New message arrived from Socket (notification:new_message):', data);
+      socket.on('notification:new', async (data) => {
         if (!data || !data.message) return;
         const incoming = data.message;
         
@@ -1671,6 +1670,29 @@ export const ChatProvider = ({ children }) => {
           conv._id === groupId ? { ...conv, groupName: updates.groupName || conv.groupName, groupPhoto: updates.groupPhoto || conv.groupPhoto } : conv
         ));
         setSelectedConversation(prev => (prev && prev._id === groupId) ? { ...prev, groupName: updates.groupName || prev.groupName, groupPhoto: updates.groupPhoto || prev.groupPhoto } : prev);
+      });
+
+      // ── Group system message (e.g. "X was added", "Y was removed") ──
+      socket.on('group:system_message', ({ groupId, text, createdAt } = {}) => {
+        if (!groupId || !text) return;
+        const systemMsg = {
+          _id: `sys-${groupId}-${Date.now()}`,
+          conversationId: groupId,
+          content: text,
+          messageType: 'system',
+          isSystem: true,
+          createdAt: createdAt || new Date().toISOString(),
+        };
+        setMessages(prev => {
+          const currentSelectedId = selectedConversationIdRef.current;
+          if (currentSelectedId && String(groupId) === String(currentSelectedId)) {
+            return [...prev, systemMsg];
+          }
+          return prev;
+        });
+        setConversations(prev => prev.map(c =>
+          String(c._id) === String(groupId) ? { ...c, lastMessage: systemMsg, updatedAt: new Date() } : c
+        ));
       });
 
       socket.on('profile:updated', ({ user: updatedUser } = {}) => {
@@ -1895,6 +1917,117 @@ export const ChatProvider = ({ children }) => {
         if (selectedConversation?._id === groupId) {
           setSelectedConversation(prev => prev ? { ...prev, admins: prev.admins?.filter(a => a !== userId) } : prev);
         }
+      });
+
+      // ── Payment expired: subscription ended — force logout ──
+      socket.on('payment:expired', ({ userId, expiresAt } = {}) => {
+        setOnlineNotification('⚠️ Your subscription has expired. Please renew.');
+        setTimeout(() => setOnlineNotification(null), 8000);
+        try {
+          localStorage.removeItem('user');
+          localStorage.removeItem('genz_access_token');
+        } catch (_) { /* ignore */ }
+      });
+
+      // ── Group info updated (name, description, photo changed by admin) ──
+      socket.on('group:info_updated', ({ groupId, updates } = {}) => {
+        if (!groupId) return;
+        setConversations(prev => prev.map(c =>
+          String(c._id) === String(groupId) ? { ...c, ...updates } : c
+        ));
+        setSelectedConversation(prev =>
+          prev && String(prev._id) === String(groupId) ? { ...prev, ...updates } : prev
+        );
+      });
+
+      // ── Group setting updated (e.g. onlyAdminsCanPost, mute) ──
+      socket.on('group_setting:updated', ({ chatId, setting, value } = {}) => {
+        if (!chatId || !setting) return;
+        setConversations(prev => prev.map(c =>
+          String(c._id) === String(chatId) ? { ...c, [setting]: value } : c
+        ));
+        setSelectedConversation(prev =>
+          prev && String(prev._id) === String(chatId) ? { ...prev, [setting]: value } : prev
+        );
+      });
+
+      // ── Privacy settings updated (from another device) ──
+      socket.on('privacy:settings_updated', ({ settings } = {}) => {
+        if (!settings) return;
+        try {
+          const stored = JSON.parse(localStorage.getItem('user') || '{}');
+          localStorage.setItem('user', JSON.stringify({ ...stored, settings: { ...stored.settings, ...settings } }));
+        } catch (_) { /* ignore */ }
+        setOnlineNotification('🔒 Privacy settings updated');
+        setTimeout(() => setOnlineNotification(null), 4000);
+      });
+
+      socket.on('privacy:excluded_updated', ({ excludedUsers } = {}) => {
+        if (!excludedUsers) return;
+        try {
+          const stored = JSON.parse(localStorage.getItem('user') || '{}');
+          localStorage.setItem('user', JSON.stringify({ ...stored, privacyExclusions: excludedUsers }));
+        } catch (_) { /* ignore */ }
+      });
+
+      socket.on('privacy:allowed_updated', ({ allowedUsers } = {}) => {
+        if (!allowedUsers) return;
+        try {
+          const stored = JSON.parse(localStorage.getItem('user') || '{}');
+          localStorage.setItem('user', JSON.stringify({ ...stored, privacyAllowances: allowedUsers }));
+        } catch (_) { /* ignore */ }
+      });
+
+      // ── Message locked by admin — mark message as locked ──
+      socket.on('message:locked', (updatedMsg) => {
+        if (!updatedMsg?._id) return;
+        setMessages(prev => prev.map(m => m._id === updatedMsg._id ? { ...m, isLocked: true, ...updatedMsg } : m));
+        try { DB.saveMessage(updatedMsg); } catch (e) { }
+        setOnlineNotification('🔒 A message has been locked by an admin');
+        setTimeout(() => setOnlineNotification(null), 4000);
+      });
+
+      // ── Message kept by admin — mark message as kept ──
+      socket.on('message:kept', (updatedMsg) => {
+        if (!updatedMsg?._id) return;
+        setMessages(prev => prev.map(m => m._id === updatedMsg._id ? { ...m, isKept: true, ...updatedMsg } : m));
+        try { DB.saveMessage(updatedMsg); } catch (e) { }
+      });
+
+      // ── Custom role created in group ──
+      socket.on('role:created', ({ chatId, roleName, permissions } = {}) => {
+        if (!chatId) return;
+        setConversations(prev => prev.map(c =>
+          String(c._id) === String(chatId)
+            ? { ...c, customRoles: [...(c.customRoles || []), { name: roleName, permissions }] }
+            : c
+        ));
+        setSelectedConversation(prev =>
+          prev && String(prev._id) === String(chatId)
+            ? { ...prev, customRoles: [...(prev.customRoles || []), { name: roleName, permissions }] }
+            : prev
+        );
+      });
+
+      // ── Role assigned to a user in group ──
+      socket.on('role:assigned', ({ chatId, userId, roleId } = {}) => {
+        if (!chatId || !userId) return;
+        setConversations(prev => prev.map(c => {
+          if (String(c._id) !== String(chatId)) return c;
+          const roleAssignments = { ...(c.roleAssignments || {}), [userId]: roleId };
+          return { ...c, roleAssignments };
+        }));
+      });
+
+      // ── User role updated by admin ──
+      socket.on('user:role_updated', ({ role } = {}) => {
+        if (!role) return;
+        try {
+          const stored = JSON.parse(localStorage.getItem('user') || '{}');
+          localStorage.setItem('user', JSON.stringify({ ...stored, role }));
+          setOnlineNotification(`👑 Your role has been updated to ${role}`);
+          setTimeout(() => setOnlineNotification(null), 5000);
+        } catch (_) { /* ignore */ }
       });
 
       // ── View-once message viewed ──
