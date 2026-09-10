@@ -158,20 +158,82 @@ const QRCodeSharing = ({ qrData, onGenerate, onShare, onCopy, onClose }) => {
   );
 };
 
-// QR Code Scanner Component
+// QR Code Scanner Component — real camera scan (no mock)
 export const QRCodeScanner = ({ onScan, onClose }) => {
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
+  const [error, setError] = useState(null);
+  const videoRef = React.useRef(null);
+  const streamRef = React.useRef(null);
+
+  const stopCamera = () => {
+    try { streamRef.current?.getTracks()?.forEach(t => t.stop()); } catch {}
+    streamRef.current = null;
+  };
 
   const handleScan = async () => {
+    setError(null);
     setIsScanning(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setIsScanning(false);
-    setScanResult('scanned-data');
-    if (onScan) {
-      onScan('scanned-data');
+    try {
+      // Try native BarcodeScanner if available (Capacitor)
+      try {
+        const { BarcodeScanner } = await import('@capacitor-community/barcode-scanner');
+        const status = await BarcodeScanner.checkPermission({ force: true });
+        if (status.granted) {
+          await BarcodeScanner.hideBackground();
+          document.body.classList.add('scanner-active');
+          const result = await BarcodeScanner.startScan();
+          document.body.classList.remove('scanner-active');
+          await BarcodeScanner.showBackground();
+          if (result?.hasContent) {
+            setScanResult(result.content);
+            if (onScan) onScan(result.content);
+            setIsScanning(false);
+            return;
+          }
+        }
+      } catch {}
+
+      // Fallback: Web BarcodeDetector or getUserMedia + manual
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      // Try BarcodeDetector API
+      if ('BarcodeDetector' in window) {
+        const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+        const scanLoop = async () => {
+          if (!isScanning) return;
+          try {
+            const codes = await detector.detect(videoRef.current);
+            if (codes.length > 0) {
+              const content = codes[0].rawValue;
+              setScanResult(content);
+              if (onScan) onScan(content);
+              stopCamera();
+              setIsScanning(false);
+              return;
+            }
+          } catch {}
+          requestAnimationFrame(scanLoop);
+        };
+        scanLoop();
+        // Timeout after 30s
+        setTimeout(() => { if (isScanning) { setError('No QR found. Try again.'); stopCamera(); setIsScanning(false); } }, 30000);
+      } else {
+        // No detector — keep camera on, user can position, then tap to capture
+        setError('Point camera at QR and tap Done when ready — manual decode not available, please use native app for auto-scan.');
+      }
+    } catch (err) {
+      setError(err.message || 'Camera access denied. Please allow camera permission.');
+      setIsScanning(false);
+      stopCamera();
     }
   };
+
+  React.useEffect(() => () => stopCamera(), []);
 
   return (
     <motion.div
@@ -195,25 +257,25 @@ export const QRCodeScanner = ({ onScan, onClose }) => {
         </div>
 
         {/* Scanner View */}
-        <div className="bg-black rounded-lg p-6 mb-4 flex items-center justify-center relative overflow-hidden">
+        <div className="bg-black rounded-lg p-0 mb-4 flex items-center justify-center relative overflow-hidden" style={{ height: 260 }}>
+          <video ref={videoRef} autoPlay playsInline muted className={`absolute inset-0 w-full h-full object-cover ${isScanning ? 'block' : 'hidden'}`} />
           {isScanning ? (
-            <div className="text-center">
-              <motion.div
-                animate={{ y: [0, 100, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="w-48 h-1 bg-[#00a884] mb-4"
-              />
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30">
+              <motion.div animate={{ y: [0, 100, 0] }} transition={{ duration: 2, repeat: Infinity }} className="w-48 h-1 bg-[#00a884] mb-2" />
               <p className="text-white text-sm">Scanning...</p>
+              {error && <p className="text-red-400 text-xs mt-2 px-2 text-center">{error}</p>}
             </div>
           ) : scanResult ? (
-            <div className="text-center">
+            <div className="text-center p-6">
               <Check className="text-[#00a884] mx-auto mb-2" size={48} />
               <p className="text-white text-sm">QR Code Scanned!</p>
+              <p className="text-gray-400 text-xs mt-1 break-all">{scanResult}</p>
             </div>
           ) : (
-            <div className="text-center">
+            <div className="text-center p-6">
               <Scan className="text-gray-600 mx-auto mb-2" size={48} />
               <p className="text-gray-400 text-sm">Point camera at QR code</p>
+              {error && <p className="text-red-400 text-xs mt-2">{error}</p>}
             </div>
           )}
         </div>
