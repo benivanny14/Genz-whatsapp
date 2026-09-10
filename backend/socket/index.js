@@ -147,7 +147,7 @@ const setupSocket = (io) => {
           userId: socket.userId,
           socketId: socket.id,
         });
-        socket.disconnect(true);
+        if (typeof socket.disconnect === "function") socket.disconnect(true);
       }
     }, 60000);
     socket.on("disconnect", () => {
