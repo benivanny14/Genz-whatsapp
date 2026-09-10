@@ -175,26 +175,6 @@ export const QRCodeScanner = ({ onScan, onClose }) => {
     setError(null);
     setIsScanning(true);
     try {
-      // Try native BarcodeScanner if available (Capacitor)
-      try {
-        const { BarcodeScanner } = await import('@capacitor-community/barcode-scanner');
-        const status = await BarcodeScanner.checkPermission({ force: true });
-        if (status.granted) {
-          await BarcodeScanner.hideBackground();
-          document.body.classList.add('scanner-active');
-          const result = await BarcodeScanner.startScan();
-          document.body.classList.remove('scanner-active');
-          await BarcodeScanner.showBackground();
-          if (result?.hasContent) {
-            setScanResult(result.content);
-            if (onScan) onScan(result.content);
-            setIsScanning(false);
-            return;
-          }
-        }
-      } catch {}
-
-      // Fallback: Web BarcodeDetector or getUserMedia + manual
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       streamRef.current = stream;
       if (videoRef.current) {
