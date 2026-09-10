@@ -22,14 +22,12 @@ const E2EEText = ({ message, renderMentions = false, userId }) => {
     const doDecrypt = async () => {
       if (message.encrypted && message.content?.includes('-----BEGIN PGP MESSAGE-----')) {
         try {
-          // Try to get privateKey from multiple sources
           let priv = null;
-          try { priv = JSON.parse(localStorage.getItem('user') || '{}')?.privateKey || localStorage.getItem('e2ee_privateKey'); } catch {}
+          try { const u = JSON.parse(localStorage.getItem('user') || '{}'); priv = u?.privateKey || localStorage.getItem('e2ee_privateKey'); } catch {}
           if (!priv) {
-            // Fallback: fetch from /auth/me if needed (user object may have it)
             try {
-              const { getAuthToken } = await import('../utils/tokenStore');
-              const token = getAuthToken();
+              const mod = await import('../utils/tokenStore');
+              const token = mod.getAuthToken();
               if (token) {
                 const res = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
                 const data = await res.json();
@@ -39,7 +37,7 @@ const E2EEText = ({ message, renderMentions = false, userId }) => {
             } catch {}
           }
           if (priv) {
-            const uid = userId || JSON.parse(localStorage.getItem('user') || '{}')?._id || '';
+            const uid = userId || (()=>{ try{ return JSON.parse(localStorage.getItem('user')||'{}')?._id||'' }catch{return ''} })();
             const dec = await decryptE2EE(message.content, priv, uid);
             if (!cancelled) setText(dec);
           }
