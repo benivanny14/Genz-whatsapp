@@ -4,6 +4,7 @@ import { getSocket } from '../services/socket';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { sanitizeMediaUrl } from '../utils/sanitizeMediaUrl';
 import { getAuthToken } from '../utils/tokenStore';
+import { authFetch } from '../utils/authFetch';
 
 const StatusContext = createContext(null);
 
@@ -99,9 +100,7 @@ const StatusProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE()}/status`, {
-        headers: authHeaders()
-      });
+      const res = await authFetch(`${API_BASE()}/status`);
       const data = await res.json();
       if (data.success) {
         setStatuses(resolveStatuses(data.statuses || []));
@@ -119,9 +118,7 @@ const StatusProvider = ({ children }) => {
   // ── Silent refresh — updates statuses WITHOUT showing loading spinner ──
   const silentRefreshStatuses = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE()}/status`, {
-        headers: authHeaders()
-      });
+      const res = await authFetch(`${API_BASE()}/status`);
       const data = await res.json();
       if (data.success) {
         setStatuses(resolveStatuses(data.statuses || []));

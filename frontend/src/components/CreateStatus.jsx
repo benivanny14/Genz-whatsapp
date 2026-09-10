@@ -929,11 +929,26 @@ const CreateStatus = ({ onClose }) => {
 
       // Scheduled status — use the schedule endpoint
       if (scheduledAt && mode !== 'voice') {
+        let scheduledContent = mode === 'text' ? text : '';
+        // For media, upload first and use server URL (not blob: preview)
+        if (mode !== 'text' && mediaItems[activeIndex]?.file) {
+          try {
+            const fd = new FormData();
+            fd.append('file', mediaItems[activeIndex].file);
+            const token2 = getAuthToken();
+            const upRes = await fetch(`${resolveApiBase()}/status/upload`, { method: 'POST', headers: { Authorization: token2 ? `Bearer ${token2}` : '' }, body: fd });
+            const upData = await upRes.json();
+            if (upData?.success && upData.fileUrl) scheduledContent = upData.fileUrl;
+            else scheduledContent = mediaItems[activeIndex]?.preview || '';
+          } catch { scheduledContent = mediaItems[activeIndex]?.preview || ''; }
+        } else if (mode !== 'text') {
+          scheduledContent = mediaItems[activeIndex]?.preview || '';
+        }
         const token = getAuthToken()
         const scheduleBody = {
           scheduledAt,
           type: mode === 'text' ? 'text' : (mediaItems[activeIndex]?.type || mode),
-          content: mode === 'text' ? text : (mediaItems[activeIndex]?.preview || ''),
+          content: scheduledContent,
           caption: caption || '',
           textStatus: mode === 'text' ? {
             text,

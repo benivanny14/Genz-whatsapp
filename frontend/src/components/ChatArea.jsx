@@ -902,7 +902,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         }
       });
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+      const preferredMimeTypes = ['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/mp4;codecs=mp4a.40.2','audio/ogg;codecs=opus',''];
+      const mimeType = preferredMimeTypes.find(mt => !mt || MediaRecorder.isTypeSupported(mt)) || '';
+      const mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -1897,8 +1899,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const startAudioAttachmentRecording = () => {
     if (!attachmentAudioStreamRef.current) return;
     attachmentAudioChunksRef.current = [];
-    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
-    const recorder = new MediaRecorder(attachmentAudioStreamRef.current, { mimeType });
+    const mimeTypes = ['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/mp4;codecs=mp4a.40.2','audio/ogg;codecs=opus',''];
+    const mimeType = mimeTypes.find(mt => !mt || MediaRecorder.isTypeSupported(mt)) || '';
+    const recorder = mimeType ? new MediaRecorder(attachmentAudioStreamRef.current, { mimeType }) : new MediaRecorder(attachmentAudioStreamRef.current);
     attachmentAudioRecorderRef.current = recorder;
 
     recorder.ondataavailable = (e) => {

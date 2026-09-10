@@ -12,6 +12,12 @@ const STALE_MEDIA_HOSTS = [
 const getApiOrigin = () => {
   const api = ((import.meta.env && import.meta.env.VITE_API_URL) || '').replace(/\/$/, '');
   if (api) return api.replace(/\/api$/, '');
+  // Capacitor APK: window.location.origin is https://localhost (unreachable backend)
+  try {
+    if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) {
+      return 'https://genz-whatsapp.onrender.com';
+    }
+  } catch {}
   if (typeof window !== 'undefined' && window.location?.origin) {
     return window.location.origin;
   }

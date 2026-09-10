@@ -274,10 +274,13 @@ const VoiceRecorder = ({
           if (navigator.permissions && navigator.permissions.query) {
             const status = await navigator.permissions.query({ name: 'microphone' });
             if (status.state === 'denied') {
-              // TATIZO 1 FIX: Permission explicitly denied — tell the user,
-              // do NOT silently open a file picker which is confusing.
               toast.error(
-                'Huna ruhusa ya microphone.\nNenda kwenye Settings za simu yako → Apps → GENZ → Permissions → Microphone uiruhusu.',
+                (t) => (
+                  <span>
+                    Huna ruhusa ya microphone.
+                    <button onClick={() => { toast.dismiss(t.id); import('@capacitor/app').then(({ App }) => App.openSettings?.()).catch(() => window.open('app-settings:')); }} className="ml-2 underline text-white font-bold">Fungua Settings</button>
+                  </span>
+                ),
                 { duration: 8000, style: { maxWidth: 400 } }
               );
               return;
