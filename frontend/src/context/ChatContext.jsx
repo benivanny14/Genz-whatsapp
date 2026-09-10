@@ -1169,6 +1169,7 @@ export const ChatProvider = ({ children }) => {
         } catch (_) { /* ignore */ }
         fetchWingaRef.current();
       });
+      socket.on('winga:deleted', () => fetchWingaRef.current());
 
       // ── Someone placed an order on my listing → toast + refresh ──
       socket.on('winga:order', (order) => {
