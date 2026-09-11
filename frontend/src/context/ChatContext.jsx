@@ -3242,12 +3242,12 @@ export const ChatProvider = ({ children }) => {
 
   const uploadCollageImages = async (files) => {
     const formData = new FormData();
-    files.forEach((file, index) => {
-      formData.append(`files`, file);
+    files.forEach((file) => {
+      formData.append('files', file);
     });
 
     try {
-      const response = await authFetch(`${BACKEND_URL}/status/collage-upload`, {
+      const response = await authFetch(`${BACKEND_URL}/media/upload-multiple`, {
         method: 'POST',
         body: formData
       });

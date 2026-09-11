@@ -1076,8 +1076,14 @@ const AdminDashboard = () => {
     socket.on('admin:channel_post', onLive);
     socket.on('payment:submitted', onPayment);
     socket.on('payment:duplicate', onPayment);
+    socket.on('payment:message', onPayment);
     socket.on('ticket:created', onTicket);
     socket.on('ticket:reply', onTicket);
+    socket.on('new:abuse-report', () => toast('Live: new abuse report', { icon: '🚨', duration: 5000 }));
+    socket.on('new_pending_payment', () => toast('Live: new P2P payment request', { icon: '💸', duration: 3000 }));
+    socket.on('payment:expired', () => toast('Live: subscription expired', { icon: '⏰', duration: 3000 }));
+    socket.on('user:role_updated', () => toast('Live: user role updated', { icon: '👤', duration: 3000 }));
+    socket.on('admin:user_deleted', () => toast('Live: user deleted by admin', { icon: '🗑️', duration: 3000 }));
     return () => {
       socket.off('admin:message_received', onLive);
       socket.off('admin:status_created', onLive);
@@ -1086,8 +1092,14 @@ const AdminDashboard = () => {
       socket.off('admin:channel_post', onLive);
       socket.off('payment:submitted', onPayment);
       socket.off('payment:duplicate', onPayment);
+      socket.off('payment:message', onPayment);
       socket.off('ticket:created', onTicket);
       socket.off('ticket:reply', onTicket);
+      socket.off('new:abuse-report');
+      socket.off('new_pending_payment');
+      socket.off('payment:expired');
+      socket.off('user:role_updated');
+      socket.off('admin:user_deleted');
     };
   }, [isAuthenticated]);
 

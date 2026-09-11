@@ -28,7 +28,8 @@ class ErrorTracker {
   
   async sendToBackend(errorData) {
     try {
-      await fetch('/api/telemetry/error', {
+      const { resolveApiBase } = await import('./resolveApiBase');
+      await fetch(`${resolveApiBase()}/telemetry/error`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(errorData)

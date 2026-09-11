@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ServerCrash, RefreshCw } from 'lucide-react';
+import { resolveApiBase } from '../utils/resolveApiBase';
 
 /**
  * ServerHealthPoller — polls /api/health/live every 30s to detect server outages
@@ -28,7 +29,7 @@ const ServerHealthPoller = () => {
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
-        const res = await fetch('/api/health/live', {
+        const res = await fetch(`${resolveApiBase()}/health/live`, {
           signal: controller.signal,
           cache: 'no-store',
         });
@@ -70,7 +71,7 @@ const ServerHealthPoller = () => {
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
-        const res = await fetch('/api/health/live', {
+        const res = await fetch(`${resolveApiBase()}/health/live`, {
           signal: controller.signal,
           cache: 'no-store',
         });

@@ -27,9 +27,10 @@ const E2EEText = ({ message, renderMentions = false, userId }) => {
           if (!priv) {
             try {
               const mod = await import('../utils/tokenStore');
+              const { resolveApiBase } = await import('../utils/resolveApiBase');
               const token = mod.getAuthToken();
               if (token) {
-                const res = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
+                const res = await fetch(`${resolveApiBase()}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
                 const data = await res.json();
                 priv = data?.user?.privateKey;
                 if (priv) localStorage.setItem('e2ee_privateKey', priv);

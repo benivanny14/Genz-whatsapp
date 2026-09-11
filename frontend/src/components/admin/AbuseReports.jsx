@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { AlertTriangle, Eye, CheckCircle, XCircle, Clock, Trash2, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
 import adminApi from '../../services/adminApi';
+import { getAdminSocket } from '../../services/adminSocket';
 import { Table, LoadingBlock, EmptyRow, StatCard, Pager } from './adminUi';
 import { useConfirm } from '../ConfirmDialog';
 
@@ -91,6 +92,18 @@ const AbuseReports = () => {
   }, [statusFilter, categoryFilter, priorityFilter]);
 
   useEffect(() => { load(1); }, [load]);
+
+  // Real-time: refresh when new abuse reports arrive
+  useEffect(() => {
+    const socket = getAdminSocket();
+    if (!socket) return;
+    const onNewReport = () => {
+      toast('New abuse report submitted', { icon: '🚨', duration: 5000 });
+      load(1);
+    };
+    socket.on('new:abuse-report', onNewReport);
+    return () => { socket.off('new:abuse-report', onNewReport); };
+  }, [load]);
 
   const viewReport = async (report) => {
     try {

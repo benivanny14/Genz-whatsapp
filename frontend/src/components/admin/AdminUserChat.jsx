@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Send, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import adminApi from '../../services/adminApi';
+import { getAdminSocket } from '../../services/adminSocket';
 import { LoadingBlock } from './adminUi';
 
 const AdminUserChat = () => {
@@ -25,6 +26,19 @@ const AdminUserChat = () => {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Real-time: refresh chat list when user replies
+  useEffect(() => {
+    const socket = getAdminSocket();
+    if (!socket) return;
+    const onReply = () => load();
+    socket.on('ticket:reply', onReply);
+    socket.on('payment:message', onReply);
+    return () => {
+      socket.off('ticket:reply', onReply);
+      socket.off('payment:message', onReply);
+    };
+  }, [load]);
 
   const send = async (e) => {
     e.preventDefault();

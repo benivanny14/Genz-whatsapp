@@ -2746,7 +2746,7 @@ exports.reportMessage = async (req, res) => {
     // Notify admins (if any admin sockets are joined to the admin room).
     const io = req.app.get('io');
     if (io) {
-      io.to('admin-room').emit('new:abuse-report', report);
+      io.to('admin-room').to('role:admin').emit('new:abuse-report', report);
     }
 
     res.status(201).json({ success: true, message: "Message reported successfully", reportId: report._id });

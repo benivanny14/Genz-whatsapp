@@ -48,6 +48,15 @@ module.exports = function registerStatusHandlers(ctx) {
 
       // Also emit to sender
       socket.emit('status:created', statusObj);
+
+      // Notify admin rooms so the dashboard shows live status creation
+      io.to('role:admin').to('admin-room').emit('admin:status_created', {
+        type: 'status_created',
+        statusId: status._id,
+        username: user.username,
+        statusType: type || 'text',
+        timestamp: new Date().toISOString()
+      });
     } catch (error) {
       logError('Error creating status:', error);
     }

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Send } from 'lucide-react';
 import toast from 'react-hot-toast';
 import adminApi from '../../services/adminApi';
+import { getAdminSocket } from '../../services/adminSocket';
 import { Table, LoadingBlock, EmptyRow } from './adminUi';
 
 const STATUS_COLORS = {
@@ -27,6 +28,20 @@ const SupportTickets = () => {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Real-time updates: refresh ticket list when new tickets/replies arrive
+  useEffect(() => {
+    const socket = getAdminSocket();
+    if (!socket) return;
+    const onCreated = () => load();
+    const onReply = () => load();
+    socket.on('ticket:created', onCreated);
+    socket.on('ticket:reply', onReply);
+    return () => {
+      socket.off('ticket:created', onCreated);
+      socket.off('ticket:reply', onReply);
+    };
+  }, [load]);
 
   const openTicket = async (t) => {
     try {
