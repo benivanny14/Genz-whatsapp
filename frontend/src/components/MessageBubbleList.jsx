@@ -344,7 +344,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                           {message.caption && <p className="text-xs mt-1 opacity-80">{typeof message.caption === 'string' ? message.caption : 'Caption'}</p>}
                           <button onClick={(e) => {
                             e.stopPropagation();
-                            window.open(mediaSourceOf(message), '_blank');
+                            downloadUrl(mediaSourceOf(message), message.fileName || 'download');
                           }} className="mt-2 bg-primary-600 text-white px-3 py-1 rounded-full text-xs hover:bg-primary-700">
                             Download
                           </button>
@@ -405,8 +405,8 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                        const timeRemaining = isLive && message.liveLocationExpiresAt
                          ? (() => { const diff = new Date(message.liveLocationExpiresAt) - new Date(); const h = Math.floor(diff / 3600000); const m = Math.floor((diff % 3600000) / 60000); return h > 0 ? `${h}h ${m}m` : `${m}m`; })()
                          : null;
-                       return (
-                         <div className="mb-1 w-[260px] rounded-lg overflow-hidden bg-[#0b141a] shadow-sm relative group cursor-pointer" onClick={() => { if (mapsUrl) window.open(mapsUrl, '_blank'); }}>
+                        return (
+                          <div className="mb-1 w-[260px] rounded-lg overflow-hidden bg-[#0b141a] shadow-sm relative group cursor-pointer" onClick={() => { if (mapsUrl) window.open(mapsUrl, '_self'); }}>
                        {/* Real Interactive Map Preview (Leaflet + OpenStreetMap tiles) */}
                        <div className="relative h-48 overflow-hidden">
                          <LeafletMap
@@ -416,7 +416,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                            zoom={15}
                            height="100%"
                            showLayerControl
-                           onClick={() => { if (mapsUrl) window.open(mapsUrl, '_blank'); }}
+                            onClick={() => { if (mapsUrl) window.open(mapsUrl, '_self'); }}
                          />
                          {/* Live Timer Badge */}
                          {timeRemaining && (
@@ -439,7 +439,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                              {directionsUrl && (
                                <button
                                  type="button"
-                                 onClick={(e) => { e.stopPropagation(); window.open(directionsUrl, '_blank'); }}
+                                  onClick={(e) => { e.stopPropagation(); window.open(directionsUrl, '_self'); }}
                                  className="mt-1.5 w-full flex items-center justify-center gap-1.5 rounded-lg bg-[#00a884] text-white text-xs font-semibold py-1.5 hover:bg-[#06cf9c] transition-colors"
                                >
                                  <Navigation size={12} /> Directions

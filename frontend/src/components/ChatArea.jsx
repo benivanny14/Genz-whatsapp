@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useChat, applyVoiceEffect } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
+import { useConfirm } from './ConfirmDialog';
 import { ArrowLeft, MoreVertical, Search, Smile, Paperclip, Send, Mic, Image as ImageIcon, MessageCircle, Ghost, Forward, Square, MapPin, ShieldCheck, Globe, BarChart2, CalendarClock, Info, UserMinus, UserCheck, ShieldAlert, Copy, Link, Pin, X, Edit, Briefcase, Plus, Eye, EyeOff, Clock, Lock, Sticker, Download, FileText, Camera, Contact, Trash2, Reply, Share2, Star, Archive, BellOff, Bell, Radio, Users, Languages, Grid3x3, Lock as LockIcon, Unlock, ChevronLeft, AtSign, DollarSign, Video as VideoIcon, Heart, Flag } from 'lucide-react';
 import { formatMessageTime, decryptMessage } from '../utils/formatDate';
 import { exportChatAsTxt, exportChatAsWhatsAppTxt } from '../utils/chatExporter';
@@ -72,6 +73,7 @@ import { usePrompt } from './PromptDialog';
 const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => { // Added mods and onOpenGENZSettings
   mods = mods || {};
   const safeMods = mods;
+  const confirm = useConfirm();
   const { user: localUser } = useUser();
   const {
     user: chatUser,
@@ -1194,7 +1196,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
   const handleDeleteForEveryone = async (messageId) => {
     try {
-      if (!confirm('Delete this message for everyone?')) return;
+      if (!await confirm.confirm('Delete this message for everyone?')) return;
 
       if (String(messageId).startsWith('client-message-')) {
         deleteMessage(messageId, true);
@@ -2215,7 +2217,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     const chatId = selectedConversation?._id;
     if (!chatId) return;
     setShowHeaderMenu(false);
-    if (!confirm('Clear all messages in this chat?')) return;
+    if (!await confirm.confirm('Clear all messages in this chat?')) return;
 
     const result = await clearChat(chatId);
     if (result?.success) {
@@ -2229,7 +2231,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     const chatId = selectedConversation?._id;
     if (!chatId) return;
     setShowHeaderMenu(false);
-    if (!confirm('Delete this chat? This will remove it from your chat list.')) return;
+    if (!await confirm.confirm('Delete this chat? This will remove it from your chat list.')) return;
 
     const result = await deleteChat(chatId);
     if (result?.success) {

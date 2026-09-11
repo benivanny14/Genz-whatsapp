@@ -170,7 +170,9 @@ const Communities = () => {
   const copyInviteLink = async () => {
     if (!managing) return;
     try {
-      const link = `${window.location.origin}/communities?join=${managing.id}`;
+      const { resolveApiBase } = await import('../utils/resolveApiBase');
+      const origin = resolveApiBase().replace(/\/api$/, '');
+      const link = `${origin}/communities?join=${managing.id}`;
       const { writeClipboard } = await import('../utils/nativeBridge');
       await writeClipboard(link);
       setInviteCopied(true);

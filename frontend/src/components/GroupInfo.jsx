@@ -326,7 +326,9 @@ const GroupInfo = ({ group, onClose, currentUserId, onViewProfile, onStartChat }
   };
 
   const handleShareInviteLink = async () => {
-    const link = `${window.location.origin}/join/${group._id}/${info?.groupInviteCode}`;
+    const { resolveApiBase } = await import('../utils/resolveApiBase');
+    const origin = resolveApiBase().replace(/\/api$/, '');
+    const link = `${origin}/join/${group._id}/${info?.groupInviteCode}`;
     const title = `Join ${info?.groupName || 'my group'} on Genz Messenger`;
     const text = `Tap the link to join ${info?.groupName || 'my group'} on Genz Messenger.`;
 
