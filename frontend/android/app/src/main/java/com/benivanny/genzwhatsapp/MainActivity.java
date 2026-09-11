@@ -43,6 +43,11 @@ import com.google.firebase.FirebaseApp;
  */
 public class MainActivity extends BridgeActivity {
 
+    private static final int MIC_PERMISSION_REQUEST_CODE = 1001;
+    private static final int CAMERA_PERMISSION_REQUEST_CODE = 1002;
+    private PermissionRequest pendingPermissionRequest = null;
+    private String[] pendingPermissionResources = null;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         // Anti-screenshot: FLAG_SECURE blocks screenshots & screen recording (like TM WhatsApp)
@@ -77,6 +82,29 @@ public class MainActivity extends BridgeActivity {
 
         // Native download listener
         setupDownloadListener();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (pendingPermissionRequest != null) {
+            boolean allGranted = true;
+            for (int result : grantResults) {
+                if (result != PackageManager.PERMISSION_GRANTED) {
+                    allGranted = false;
+                    break;
+                }
+            }
+            if (allGranted) {
+                pendingPermissionRequest.grant(pendingPermissionResources);
+                android.util.Log.i("MainActivity", "Permission granted, granted WebView request");
+            } else {
+                pendingPermissionRequest.deny();
+                android.util.Log.w("MainActivity", "Permission denied, denied WebView request");
+            }
+            pendingPermissionRequest = null;
+            pendingPermissionResources = null;
+        }
     }
 
     /**
@@ -122,7 +150,6 @@ public class MainActivity extends BridgeActivity {
                         String origin = request.getOrigin() != null ? request.getOrigin().toString() : "";
                         // Only grant for our own origins
                         if (!origin.equals("https://localhost") && !origin.equals("capacitor://localhost") && !origin.contains("genz-whatsapp") && !origin.isEmpty()) {
-                            // For file inputs, origin may be empty - allow but check permissions
                             if (!origin.isEmpty()) {
                                 request.deny();
                                 return;
@@ -130,21 +157,38 @@ public class MainActivity extends BridgeActivity {
                         }
                         runOnUiThread(() -> {
                             try {
-                                // Check Android runtime permissions before granting WebView permissions
                                 String[] resources = request.getResources();
+                                java.util.List<String> neededPermissions = new java.util.ArrayList<>();
                                 java.util.List<String> granted = new java.util.ArrayList<>();
                                 for (String r : resources) {
                                     if (r.equals(PermissionRequest.RESOURCE_VIDEO_CAPTURE)) {
                                         if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
                                             granted.add(r);
+                                        } else {
+                                            neededPermissions.add(Manifest.permission.CAMERA);
                                         }
                                     } else if (r.equals(PermissionRequest.RESOURCE_AUDIO_CAPTURE)) {
                                         if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
                                             granted.add(r);
+                                        } else {
+                                            neededPermissions.add(Manifest.permission.RECORD_AUDIO);
                                         }
                                     } else {
                                         granted.add(r);
                                     }
+                                }
+                                if (!neededPermissions.isEmpty()) {
+                                    // Store pending request and ask for runtime permission
+                                    pendingPermissionRequest = request;
+                                    pendingPermissionResources = resources;
+                                    if (neededPermissions.contains(Manifest.permission.CAMERA) && neededPermissions.contains(Manifest.permission.RECORD_AUDIO)) {
+                                        requestPermissions(new String[]{Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO}, MIC_PERMISSION_REQUEST_CODE);
+                                    } else if (neededPermissions.contains(Manifest.permission.CAMERA)) {
+                                        requestPermissions(new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_REQUEST_CODE);
+                                    } else {
+                                        requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, MIC_PERMISSION_REQUEST_CODE);
+                                    }
+                                    return;
                                 }
                                 if (!granted.isEmpty()) {
                                     request.grant(granted.toArray(new String[0]));
@@ -152,8 +196,8 @@ public class MainActivity extends BridgeActivity {
                                     request.deny();
                                 }
                             } catch (Exception e) {
-                                android.util.Log.w("MainActivity",
-                                        "Failed to grant permissions: " + e.getMessage());
+                                android.util.Log.w("MainActivity", "Failed to grant permissions: " + e.getMessage());
+                                try { request.deny(); } catch (Exception ignored) {}
                             }
                         });
                     }

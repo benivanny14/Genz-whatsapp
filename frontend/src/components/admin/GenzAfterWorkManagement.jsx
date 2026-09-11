@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { adminApi } from '../../services/adminApi';
+import PaymentFeatureMedia from '../PaymentFeatureMedia';
 import {
   DollarSign,
   MapPin,
@@ -25,6 +26,11 @@ const GenzAfterWorkManagement = () => {
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingFeature, setEditingFeature] = useState(null);
+  const [existingImages, setExistingImages] = useState([]);
+  const [existingVideos, setExistingVideos] = useState([]);
+  const [removedImageIds, setRemovedImageIds] = useState([]);
+  const [removedVideoIds, setRemovedVideoIds] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState('');
   
   const [createForm, setCreateForm] = useState({
@@ -70,20 +76,22 @@ const GenzAfterWorkManagement = () => {
 
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
-    if (files.length > 5) {
+    if (existingImages.length + createForm.images.length + files.length > 5) {
       alert('Maximum 5 images allowed');
       return;
     }
     setCreateForm(prev => ({ ...prev, images: [...prev.images, ...files] }));
+    e.target.value = '';
   };
 
   const handleVideoUpload = (e) => {
     const files = Array.from(e.target.files);
-    if (files.length > 3) {
+    if (existingVideos.length + createForm.videos.length + files.length > 3) {
       alert('Maximum 3 videos allowed');
       return;
     }
     setCreateForm(prev => ({ ...prev, videos: [...prev.videos, ...files] }));
+    e.target.value = '';
   };
 
   const removeImage = (index) => {
@@ -102,6 +110,7 @@ const GenzAfterWorkManagement = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
     const formData = new FormData();
     
     formData.append('name', createForm.name);
@@ -116,47 +125,89 @@ const GenzAfterWorkManagement = () => {
     formData.append('expiresAt', createForm.expiresAt);
     formData.append('status', createForm.status);
     
-    createForm.images.forEach((image, index) => {
+    createForm.images.forEach((image) => {
       formData.append('images', image);
     });
     
-    createForm.videos.forEach((video, index) => {
+    createForm.videos.forEach((video) => {
       formData.append('videos', video);
     });
 
+    if (editingFeature) {
+      formData.append('removeImagePublicIds', JSON.stringify(removedImageIds));
+      formData.append('removeVideoPublicIds', JSON.stringify(removedVideoIds));
+    }
+
     try {
-      const { data } = await adminApi.post('/payment-features', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      setSubmitting(true);
+      const { data } = editingFeature
+        ? await adminApi.put(`/payment-features/${editingFeature._id}`, formData)
+        : await adminApi.post('/payment-features', formData);
 
       if (data.success) {
-        alert('Feature created successfully');
-        setShowCreateForm(false);
-        setCreateForm({
-          name: '',
-          description: '',
-          price: '',
-          maxPrice: '',
-          location: '',
-          contactInfo: { phone: '', email: '' },
-          tags: [],
-          specifications: {},
-          images: [],
-          videos: [],
-          isPrivate: false,
-          expiresAt: '',
-          status: 'active'
-        });
+        alert(editingFeature ? 'Feature updated successfully' : 'Feature created successfully');
+        resetForm();
         loadFeatures();
       } else {
-        alert('Failed to create feature');
+        alert(data.message || 'Failed to save feature');
       }
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error creating feature:', error);
-      alert('Error creating feature');
+      alert(error.response?.data?.message || 'Error saving feature');
+    } finally {
+      setSubmitting(false);
     }
+  };
+
+  const resetForm = () => {
+    setShowCreateForm(false);
+    setEditingFeature(null);
+    setExistingImages([]);
+    setExistingVideos([]);
+    setRemovedImageIds([]);
+    setRemovedVideoIds([]);
+    setCreateForm({
+      name: '', description: '', price: '', maxPrice: '', location: '',
+      contactInfo: { phone: '', email: '' }, tags: [], specifications: {},
+      images: [], videos: [], isPrivate: false, expiresAt: '', status: 'active'
+    });
+  };
+
+  const startEdit = (feature) => {
+    setEditingFeature(feature);
+    setExistingImages(Array.isArray(feature.images) ? feature.images : []);
+    setExistingVideos(Array.isArray(feature.videos) ? feature.videos : []);
+    setRemovedImageIds([]);
+    setRemovedVideoIds([]);
+    setCreateForm({
+      name: feature.name || '',
+      description: feature.description || '',
+      price: feature.price ?? '',
+      maxPrice: feature.maxPrice ?? '',
+      location: feature.location || '',
+      contactInfo: feature.contactInfo || { phone: '', email: '' },
+      tags: feature.tags || [],
+      specifications: feature.specifications || {},
+      images: [],
+      videos: [],
+      isPrivate: Boolean(feature.isPrivate),
+      expiresAt: feature.expiresAt ? String(feature.expiresAt).slice(0, 10) : '',
+      status: feature.status || 'active'
+    });
+    setShowCreateForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const removeExistingImage = (index) => {
+    const media = existingImages[index];
+    if (media?.publicId) setRemovedImageIds((ids) => [...ids, media.publicId]);
+    setExistingImages((items) => items.filter((_, i) => i !== index));
+  };
+
+  const removeExistingVideo = (index) => {
+    const media = existingVideos[index];
+    if (media?.publicId) setRemovedVideoIds((ids) => [...ids, media.publicId]);
+    setExistingVideos((items) => items.filter((_, i) => i !== index));
   };
 
   const handleDelete = async (featureId) => {
@@ -189,12 +240,12 @@ const GenzAfterWorkManagement = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800 dark:text-white">GENZ AFTER WORK Management</h2>
-        <button
-          onClick={() => setShowCreateForm(!showCreateForm)}
+              <button
+          onClick={() => (showCreateForm ? resetForm() : setShowCreateForm(true))}
           className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
         >
           <Plus size={20} />
-          Create Feature
+          {showCreateForm ? 'Close' : 'Create Feature'}
         </button>
       </div>
 
@@ -317,10 +368,18 @@ const GenzAfterWorkManagement = () => {
                     <span className="text-sm text-gray-600 dark:text-gray-400">Click to upload images</span>
                   </label>
                 </div>
-                {createForm.images.length > 0 && (
+                {(existingImages.length > 0 || createForm.images.length > 0) && (
                   <div className="grid grid-cols-3 gap-2 mt-4">
+                    {existingImages.map((image, index) => (
+                      <div key={`existing-image-${image.publicId || index}`} className="relative">
+                        <img src={image.url} alt={`Existing image ${index + 1}`} className="w-full h-auto object-contain rounded-lg" />
+                        <button type="button" onClick={() => removeExistingImage(index)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600" aria-label="Remove image">
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
                     {createForm.images.map((image, index) => (
-                      <div key={index} className="relative">
+                      <div key={`new-image-${index}`} className="relative">
                         <img
                           src={URL.createObjectURL(image)}
                           alt={`Preview ${index + 1}`}
@@ -358,10 +417,18 @@ const GenzAfterWorkManagement = () => {
                     <span className="text-sm text-gray-600 dark:text-gray-400">Click to upload videos</span>
                   </label>
                 </div>
-                {createForm.videos.length > 0 && (
+                {(existingVideos.length > 0 || createForm.videos.length > 0) && (
                   <div className="grid grid-cols-2 gap-2 mt-4">
+                    {existingVideos.map((video, index) => (
+                      <div key={`existing-video-${video.publicId || index}`} className="relative">
+                        <video src={video.url} className="w-full h-auto object-contain rounded-lg bg-gray-100 dark:bg-gray-800" controls />
+                        <button type="button" onClick={() => removeExistingVideo(index)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600" aria-label="Remove video">
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
                     {createForm.videos.map((video, index) => (
-                      <div key={index} className="relative">
+                      <div key={`new-video-${index}`} className="relative">
                         <video
                           src={URL.createObjectURL(video)}
                           className="w-full h-auto object-contain rounded-lg bg-gray-100 dark:bg-gray-800"
@@ -386,11 +453,11 @@ const GenzAfterWorkManagement = () => {
                 type="submit"
                 className="px-8 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-semibold"
               >
-                Create Feature
+                {submitting ? 'Saving…' : (editingFeature ? 'Save Changes' : 'Create Feature')}
               </button>
               <button
                 type="button"
-                onClick={() => setShowCreateForm(false)}
+                onClick={resetForm}
                 className="px-8 py-3 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-semibold"
               >
                 Cancel
@@ -433,17 +500,7 @@ const GenzAfterWorkManagement = () => {
               className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-md overflow-hidden"
             >
               <div className="relative">
-                {feature.primaryImage ? (
-                  <img
-                    src={feature.primaryImage}
-                    alt={feature.name}
-                    className="w-full h-auto object-contain"
-                  />
-                ) : (
-                  <div className="w-full h-48 bg-gray-200 dark:bg-gray-800 flex items-center justify-center">
-                    <Upload className="w-12 h-12 text-gray-400" />
-                  </div>
-                )}
+                <PaymentFeatureMedia feature={feature} compact />
                 {feature.featured && (
                   <span className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
                     <Star size={14} fill="currentColor" />
@@ -486,6 +543,13 @@ const GenzAfterWorkManagement = () => {
                 </div>
                 
                 <div className="flex gap-2">
+                  <button
+                    onClick={() => startEdit(feature)}
+                    className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                  >
+                    <Edit3 size={16} className="inline mr-1" />
+                    Edit
+                  </button>
                   <button
                     onClick={() => handleDelete(feature._id)}
                     className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"

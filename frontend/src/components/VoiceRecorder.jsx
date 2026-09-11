@@ -142,6 +142,18 @@ const VoiceRecorder = ({
     setPickerEffect(null);
   }, [voiceEffectMod]);
 
+  useEffect(() => {
+    let listener = null;
+    if (isNative()) {
+      import('@capacitor/app').then(({ App }) => {
+        App.addListener('appStateChange', ({ isActive }) => {
+          if (isActive && error) setError(null);
+        }).then(h => { listener = h; }).catch(() => {});
+      }).catch(() => {});
+    }
+    return () => { try { listener?.remove(); } catch {} };
+  }, [error]);
+
   const [isRecording, setIsRecording] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const isLockedRef = useRef(false);
@@ -266,27 +278,21 @@ const VoiceRecorder = ({
         channelCount: 1
       };
 
-      // On native APK, request microphone permission explicitly.
-      // The web API getUserMedia handles the OS permission dialog on most
-      // devices, but on some Android WebViews we need to check first.
+      // On native APK, don't rely on navigator.permissions.query as source of truth.
+      // Android WebView's permissions.query is unreliable and may return 'denied'
+      // even after user granted in Settings. Instead, directly try getUserMedia
+      // and handle NotAllowedError with a Settings button. Also listen for app
+      // resume to auto-retry after user returns from Settings.
+      let appStateListener = null;
       if (isNative()) {
         try {
-          if (navigator.permissions && navigator.permissions.query) {
-            const status = await navigator.permissions.query({ name: 'microphone' });
-            if (status.state === 'denied') {
-              toast.error(
-                (t) => (
-                  <span>
-                    Huna ruhusa ya microphone.
-                    <button onClick={() => { toast.dismiss(t.id); import('@capacitor/app').then(({ App }) => App.openSettings?.()).catch(() => window.open('app-settings:')); }} className="ml-2 underline text-white font-bold">Fungua Settings</button>
-                  </span>
-                ),
-                { duration: 8000, style: { maxWidth: 400 } }
-              );
-              return;
-            }
-          }
-        } catch (_) { /* permissions API not supported — continue with getUserMedia */ }
+          const { App } = await import('@capacitor/app');
+          // If user returns from Settings, auto-retry will be handled by the
+          // error toast's button, but also listen for foreground to clear error
+          appStateListener = await App.addListener('appStateChange', ({ isActive }) => {
+            if (isActive && error) setError(null);
+          });
+        } catch {}
       }
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {

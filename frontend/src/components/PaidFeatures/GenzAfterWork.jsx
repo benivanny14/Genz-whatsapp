@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { authFetch } from '../../utils/authFetch';
 import { resolveApiBase } from '../../utils/resolveApiBase';
+import PaymentFeatureMedia from '../PaymentFeatureMedia';
 import { 
   DollarSign, 
   MapPin, 
@@ -90,13 +91,12 @@ const GenzAfterWork = ({ user, onFeatureCreated }) => {
   };
   
   const filteredFeatures = features.filter(feature => {
-    if (filters.search && !feature.name.toLowerCase().includes(filters.search.toLowerCase()) &&
-        !feature.description.toLowerCase().includes(filters.search.toLowerCase()) &&
-        !feature.location.toLowerCase().includes(filters.search.toLowerCase())) {
+    const searchable = `${feature.name || ''} ${feature.description || ''} ${feature.location || ''}`.toLowerCase();
+    if (filters.search && !searchable.includes(filters.search.toLowerCase())) {
       return false;
     }
     
-    if (filters.location && !feature.location.toLowerCase().includes(filters.location.toLowerCase())) {
+    if (filters.location && !(feature.location || '').toLowerCase().includes(filters.location.toLowerCase())) {
       return false;
     }
     
@@ -286,17 +286,7 @@ const GenzAfterWork = ({ user, onFeatureCreated }) => {
                     onClick={() => setSelectedFeature(feature)}
                   >
                     <div className="relative">
-                      {feature.primaryImage ? (
-                        <img
-                          src={feature.primaryImage}
-                          alt={feature.name}
-                          className="w-full h-auto object-contain"
-                        />
-                      ) : (
-                        <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
-                          <Upload className="w-12 h-12 text-gray-400" />
-                        </div>
-                      )}
+                      <PaymentFeatureMedia feature={feature} compact />
                       {feature.featured && (
                         <span className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
                           <Star size={14} fill="currentColor" />
@@ -356,13 +346,7 @@ const GenzAfterWork = ({ user, onFeatureCreated }) => {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  {selectedFeature.primaryImage && (
-                    <img
-                      src={selectedFeature.primaryImage}
-                      alt={selectedFeature.name}
-                      className="w-full h-auto object-contain rounded-lg mb-4"
-                    />
-                  )}
+                  <PaymentFeatureMedia feature={selectedFeature} className="rounded-lg mb-4" />
                   
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">

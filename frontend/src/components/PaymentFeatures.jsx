@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
+import PaymentFeatureMedia from './PaymentFeatureMedia';
 const API_URL = resolveApiBase();
 import { DollarSign, MapPin, Star, Eye, Mail, Loader2, AlertCircle, Upload } from 'lucide-react';
 
@@ -285,13 +286,7 @@ const PaymentFeatures = () => {
               <div className="bg-white rounded-lg shadow-md overflow-hidden">
                 <div className="md:flex">
                   <div className="md:w-1/2">
-                    {selectedFeature.primaryImage && (
-                      <img
-                        src={selectedFeature.primaryImage}
-                        alt={selectedFeature.name}
-                        className="w-full h-64 md:h-full object-cover"
-                      />
-                    )}
+                    <PaymentFeatureMedia feature={selectedFeature} className="h-64 md:h-full" />
                   </div>
                   <div className="md:w-1/2 p-6">
                     <h2 className="text-2xl font-bold mb-2">{selectedFeature.name}</h2>
@@ -411,17 +406,7 @@ const PaymentFeatures = () => {
                   onClick={() => handleFeatureClick(feature._id)}
                 >
                   <div className="relative">
-                    {feature.primaryImage ? (
-                      <img
-                        src={feature.primaryImage}
-                        alt={feature.name}
-                        className="w-full h-48 object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
-                        <Upload className="w-12 h-12 text-gray-400" />
-                      </div>
-                    )}
+                    <PaymentFeatureMedia feature={feature} compact className="h-48" />
                     {feature.featured && (
                       <span className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
                         <Star size={14} fill="currentColor" />

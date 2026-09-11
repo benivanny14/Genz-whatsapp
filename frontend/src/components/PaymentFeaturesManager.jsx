@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
+import PaymentFeatureMedia from './PaymentFeatureMedia';
 const API_URL = resolveApiBase();
 import { Upload, X, Camera, Video, MapPin, DollarSign, FileText, Check, XCircle, Clock, Star, Users, Phone, Mail, Edit3, Plus, Filter, Eye } from 'lucide-react';
 
@@ -132,20 +133,17 @@ const PaymentFeaturesManager = () => {
         }
       });
       
-      images.forEach((image, index) => {
-        formDataToSend.append(`images[${index}]`, image);
+      images.forEach((image) => {
+        formDataToSend.append('images', image);
       });
       
-      videos.forEach((video, index) => {
-        formDataToSend.append(`videos[${index}]`, video);
+      videos.forEach((video) => {
+        formDataToSend.append('videos', video);
       });
       
       const response = await authFetch(`${API_URL}/payment-features`, {
         method: 'POST',
         body: formDataToSend,
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
       });
       
       const data = await response.json();
@@ -200,20 +198,17 @@ const PaymentFeaturesManager = () => {
         }
       });
       
-      images.forEach((image, index) => {
-        formDataToSend.append(`images[${index}]`, image);
+      images.forEach((image) => {
+        formDataToSend.append('images', image);
       });
       
-      videos.forEach((video, index) => {
-        formDataToSend.append(`videos[${index}]`, video);
+      videos.forEach((video) => {
+        formDataToSend.append('videos', video);
       });
       
       const response = await authFetch(`${API_URL}/payment-features/${editingFeature._id}`, {
         method: 'PUT',
         body: formDataToSend,
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
       });
       
       const data = await response.json();
@@ -742,17 +737,7 @@ const PaymentFeaturesManager = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
-                          {feature.primaryImage ? (
-                            <img
-                              src={feature.primaryImage}
-                              alt={feature.name}
-                              className="h-10 w-10 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                              <Upload className="h-5 w-5 text-gray-400" />
-                            </div>
-                          )}
+                          <PaymentFeatureMedia feature={feature} compact className="h-10 w-10 rounded-full" />
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">{feature.name}</div>
