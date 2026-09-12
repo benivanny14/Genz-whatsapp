@@ -15,9 +15,9 @@ const StarredMessages = ({ messages, onStar, onUnstar, onShare, onDelete, onClos
 
   const filteredMessages = starredMessages.filter(msg => {
     const matchesSearch = msg.content?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         msg.type?.toLowerCase().includes(searchQuery.toLowerCase());
+                         (msg.messageType || msg.type)?.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesFilter = filterType === 'all' || msg.type === filterType;
+    const matchesFilter = filterType === 'all' || msg.messageType === filterType || msg.type === filterType;
     
     return matchesSearch && matchesFilter;
   });
@@ -188,7 +188,7 @@ const StarredMessages = ({ messages, onStar, onUnstar, onShare, onDelete, onClos
                   {/* Message Content */}
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-white font-medium">{message.sender?.name}</span>
+                      <span className="text-white font-medium">{message.sender?.username || message.sender?.name || 'Unknown'}</span>
                       <span className="text-gray-500 text-xs">{new Date(message.timestamp).toLocaleDateString()}</span>
                     </div>
                     <p className="text-gray-300 text-sm line-clamp-2">{message.content}</p>

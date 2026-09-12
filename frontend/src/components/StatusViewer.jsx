@@ -263,16 +263,9 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
     const url = sanitizeMediaUrl(s.content || s.mediaUrl || '')
     if (!url) return
     try {
-      const response = await fetch(url)
-      const blob = await response.blob()
-      const blobUrl = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = blobUrl
-      link.download = `genz-status-${s._id || Date.now()}.${s.type === 'video' ? 'mp4' : 'jpg'}`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(blobUrl)
+      const { downloadUrl } = await import('../services/capacitorBridge')
+      const ext = s.type === 'video' ? 'mp4' : 'jpg'
+      await downloadUrl(url, `genz-status-${s._id || Date.now()}.${ext}`)
       setCopyToast('Status downloaded!')
       setTimeout(() => setCopyToast(''), 2500)
     } catch (err) {

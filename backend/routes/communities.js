@@ -7,7 +7,10 @@ const {
   joinCommunity,
   leaveCommunity,
   updateCommunity,
-  deleteCommunity
+  deleteCommunity,
+  addGroupToCommunity,
+  removeGroupFromCommunity,
+  createAnnouncementGroup
 } = require('../controllers/communityController');
 
 router.use(protect);
@@ -18,5 +21,8 @@ router.post('/:id/join', joinCommunity);
 router.post('/:id/leave', leaveCommunity);
 router.patch('/:id', updateCommunity);
 router.delete('/:id', deleteCommunity);
+router.post('/:id/groups', addGroupToCommunity);
+router.delete('/:id/groups/:groupId', removeGroupFromCommunity);
+router.post('/:id/announcement', createAnnouncementGroup);
 
 module.exports = router;

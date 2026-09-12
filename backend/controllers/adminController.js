@@ -570,3 +570,48 @@ exports.getFrontendCrashes = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Failed to load frontend crashes' });
   }
 };
+
+exports.bulkUserAction = async (req, res) => {
+  try {
+    const { userIds, action } = req.body;
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'userIds array is required' });
+    }
+    const allowedActions = ['block', 'unblock', 'delete'];
+    if (!allowedActions.includes(action)) {
+      return res.status(400).json({ success: false, message: `Invalid action. Allowed: ${allowedActions.join(', ')}` });
+    }
+
+    const selfId = req.user?._id?.toString();
+    const targets = userIds.filter(id => id !== selfId);
+
+    let result;
+    if (action === 'delete') {
+      result = await User.deleteMany({ _id: { $in: targets } });
+    } else {
+      const update = { isBlocked: action === 'block' };
+      result = await User.updateMany({ _id: { $in: targets } }, { $set: update });
+    }
+
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        targets.forEach(uid => {
+          if (action === 'block' || action === 'unblock') {
+            io.to(uid).emit(action === 'block' ? 'user:blocked' : 'user:unblocked', { userId: uid });
+            io.to(uid).emit('session:revoked_all', { reason: `admin_${action}` });
+          } else if (action === 'delete') {
+            io.to(uid).emit('user:deleted', { userId: uid });
+          }
+        });
+      }
+    } catch (e) { /* emit best-effort */ }
+
+    await logAdminAction(req.user._id, `bulk_${action}`, { userIds: targets, count: targets.length }, null, null, req);
+
+    return res.status(200).json({ success: true, affected: result.modifiedCount || result.deletedCount || 0 });
+  } catch (error) {
+    console.error('Admin bulk user action error:', error);
+    return res.status(500).json({ success: false, message: 'Bulk action failed' });
+  }
+};

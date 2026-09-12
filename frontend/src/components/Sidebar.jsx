@@ -406,7 +406,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   };
 
   // Export Chat to HTML/ZIP
-  const handleExportChat = (chatId) => {
+  const handleExportChat = async (chatId) => {
     const conv = conversations.find(c => c._id === chatId);
     if (!conv) return;
 
@@ -415,6 +415,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
 
     const chatName = getConversationName(conv);
     const messages = conv.messages || [];
+    const { saveBlob } = await import('../services/capacitorBridge');
 
     if (format === 'html') {
       const htmlContent = `
@@ -445,24 +446,14 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
 </html>`;
       
       const blob = new Blob([htmlContent], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `chat_export_${chatName}_${Date.now()}.html`;
-      a.click();
-      URL.revokeObjectURL(url);
+      await saveBlob(blob, `chat_export_${chatName}_${Date.now()}.html`);
     } else if (format === 'txt') {
       const txtContent = messages.map(msg => 
         `[${new Date(msg.createdAt).toLocaleString()}] ${msg.senderName || 'Unknown'}: ${msg.content || ''}`
       ).join('\n');
       
       const blob = new Blob([txtContent], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `chat_export_${chatName}_${Date.now()}.txt`;
-      a.click();
-      URL.revokeObjectURL(url);
+      await saveBlob(blob, `chat_export_${chatName}_${Date.now()}.txt`);
     } else if (format === 'json') {
       const jsonContent = JSON.stringify({
         chatName,
@@ -471,17 +462,11 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
       }, null, 2);
       
       const blob = new Blob([jsonContent], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `chat_export_${chatName}_${Date.now()}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+      await saveBlob(blob, `chat_export_${chatName}_${Date.now()}.json`);
     } else if (format === 'zip') {
-      // For ZIP export, we'll use JSZip if available, otherwise alert
-      alert('ZIP export requires JSZip library. Please use HTML, TXT, or JSON format instead.');
+      toast.error('ZIP export requires JSZip library. Please use HTML, TXT, or JSON format instead.');
     } else {
-      alert('Invalid format. Please use html, txt, json, or zip.');
+      toast.error('Invalid format. Please use html, txt, json, or zip.');
     }
   };
 

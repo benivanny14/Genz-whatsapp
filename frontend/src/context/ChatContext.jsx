@@ -1981,14 +1981,15 @@ export const ChatProvider = ({ children }) => {
       socket.on('message:delivered', async ({ messageId, serverMessageId } = {}) => {
         const clientId = messageId;
         const serverId = serverMessageId || messageId;
+        if (!serverId) return;
         setMessages(prev => prev.map(m =>
           (m._id === clientId || m._id === serverId)
-            ? { ...m, _id: serverId, status: 'delivered' }
+            ? { ...m, ...(serverId !== clientId ? { _id: serverId } : {}), status: 'delivered' }
             : m
         ));
         setConversations(prev => prev.map(c =>
           (c.lastMessage && (c.lastMessage._id === clientId || c.lastMessage._id === serverId))
-            ? { ...c, lastMessage: { ...c.lastMessage, _id: serverId, status: 'delivered' } }
+            ? { ...c, lastMessage: { ...c.lastMessage, ...(serverId !== clientId ? { _id: serverId } : {}), status: 'delivered' } }
             : c
         ));
         try { await DB.saveMessage({ _id: serverId, status: 'delivered' }); } catch (e) { }
@@ -2146,6 +2147,13 @@ export const ChatProvider = ({ children }) => {
           const withoutUser = prev.filter((id) => String(id) !== String(userId));
           return status === 'away' ? [...withoutUser, String(userId)] : withoutUser;
         });
+        // When user comes back online, ensure they're in onlineUsers
+        if (status === 'online') {
+          setOnlineUsers(prev => {
+            if (prev.some(id => String(id) === String(userId))) return prev;
+            return [...prev, String(userId)];
+          });
+        }
       });
 
       // ── Reactions ──
@@ -2950,7 +2958,7 @@ export const ChatProvider = ({ children }) => {
   };
   const sendRecordingStatus = (isRecording) => {
     if (!modsRef.current.ghostMode) {
-      emitSafe('recording', { conversationId: selectedConversation?._id });
+      emitSafe('recording', { conversationId: selectedConversation?._id, isRecording });
     }
     setIsOtherUserRecording(isRecording);
   };

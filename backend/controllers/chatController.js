@@ -758,7 +758,7 @@ exports.getStarredMessages = async (req, res) => {
 
     messages.forEach(stripViewOnceContent);
 
-    res.json(messages);
+    res.json({ success: true, messages });
   } catch (error) {
     console.error("Get starred messages error:", error);
     res.status(500).json({

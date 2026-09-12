@@ -108,14 +108,9 @@ export async function autoSaveMediaFromMessage(message = {}) {
   if (!['image', 'video', 'audio', 'file'].includes(type)) return;
 
   try {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = message.fileName || `genz-${type}-${Date.now()}`;
-    link.rel = 'noopener';
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    const { downloadUrl } = await import('../services/capacitorBridge');
+    const filename = message.fileName || `genz-${type}-${Date.now()}`;
+    await downloadUrl(url, filename);
   } catch {
     /* download may be blocked for cross-origin URLs */
   }

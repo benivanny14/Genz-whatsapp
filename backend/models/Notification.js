@@ -26,7 +26,10 @@ const notificationSchema = new mongoose.Schema(
         'group_invite',
         'group_joined',
         'call_missed',
-        'system'
+        'system',
+        'winga_order',
+        'winga_review',
+        'winga_order_status'
       ],
       required: true,
       index: true

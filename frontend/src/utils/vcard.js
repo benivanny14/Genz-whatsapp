@@ -97,17 +97,22 @@ export function parseVCard(vcardString) {
  * Download vCard as .vcf file
  * @param {Object} contact - Contact object
  */
-export function downloadVCard(contact) {
+export async function downloadVCard(contact) {
   const vcard = generateVCard(contact);
   const blob = new Blob([vcard], { type: 'text/vcard;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${contact.name.replace(/\s+/g, '_')}.vcf`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  try {
+    const { saveBlob } = await import('../services/capacitorBridge');
+    await saveBlob(blob, `${contact.name.replace(/\s+/g, '_')}.vcf`);
+  } catch (err) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${contact.name.replace(/\s+/g, '_')}.vcf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
 }
 
 /**

@@ -9,7 +9,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
-        android:usesCleartextTraffic="true"
+        android:usesCleartextTraffic="false"
         tools:replace="android:usesCleartextTraffic">
 
         <activity
@@ -35,13 +35,7 @@
                 <data android:scheme="https" android:host="genz-whatsapp-1.onrender.com" android:pathPrefix="/status/" />
                 <data android:scheme="https" android:host="genz-whatsapp.onrender.com" android:pathPrefix="/status/" />
             </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="http" android:host="localhost" android:pathPrefix="/status/" />
-                <data android:scheme="https" android:host="localhost" android:pathPrefix="/status/" />
-            </intent-filter>
+            <!-- localhost deep link removed for production security -->
 
 
             <!-- Custom scheme for in-app deep links -->

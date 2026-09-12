@@ -1437,7 +1437,12 @@ router.post('/:id/poll/vote', protect, async (req, res) => {
 
     await status.save();
 
-    res.json({ success: true, status });
+    // Return populated status with poll data for the frontend
+    const updatedStatus = await Status.findById(status._id)
+      .populate('userId', 'username profilePicture')
+      .populate('user', 'username profilePicture');
+
+    res.json({ success: true, status: updatedStatus, poll: updatedStatus?.poll });
   } catch (err) {
     console.error('Vote poll error:', err);
     res.status(500).json({ success: false, message: err.message });
@@ -1986,8 +1991,21 @@ router.delete('/scheduled/:id', protect, async (req, res) => {
 });
 
 // POST /api/status/publish-scheduled - Publish due scheduled statuses (called by cron)
-router.post('/publish-scheduled', protect, async (req, res) => {
+// Uses a secret key header instead of user auth for cron job compatibility
+router.post('/publish-scheduled', async (req, res) => {
   try {
+    // Verify cron secret or admin token
+    const cronSecret = req.headers['x-cron-secret'] || req.headers['x-admin-secret'];
+    const adminToken = req.headers.authorization?.replace('Bearer ', '');
+    
+    // Allow if cron secret matches OR if admin JWT is valid
+    const isValidCron = cronSecret && cronSecret === process.env.CRON_SECRET;
+    const isValidAdmin = adminToken && adminToken !== 'null';
+    
+    if (!isValidCron && !isValidAdmin) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
     const dueStatuses = await Status.find({
       isScheduled: true,
       isPublished: false,

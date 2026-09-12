@@ -10,6 +10,14 @@ import {
 } from '../../services/manualPaymentService';
 import { getSocket } from '../../services/socket';
 
+const CURRENCIES = [
+  { code: 'TZS', symbol: 'TSh', name: 'Tanzanian Shilling' },
+  { code: 'KES', symbol: 'KSh', name: 'Kenyan Shilling' },
+  { code: 'UGX', symbol: 'USh', name: 'Ugandan Shilling' },
+  { code: 'NGN', symbol: '₦', name: 'Nigerian Naira' },
+  { code: 'GHS', symbol: 'GH₵', name: 'Ghanaian Cedi' },
+];
+
 const STATUS_META = {
   Pending: { color: 'text-yellow-300 bg-yellow-500/10 border-yellow-500/30', icon: Clock, label: 'Pending review' },
   Approved: { color: 'text-green-300 bg-green-500/10 border-green-500/30', icon: CheckCircle2, label: 'Approved' },
@@ -32,6 +40,7 @@ export default function SubscriptionPayment() {
   const [sms, setSms] = useState('');
   const [transactionId, setTransactionId] = useState('');
   const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState('TZS');
   const [parsed, setParsed] = useState(null);
   const [parsing, setParsing] = useState(false);
   const [txnManuallyEdited, setTxnManuallyEdited] = useState(false);
@@ -159,7 +168,7 @@ export default function SubscriptionPayment() {
     }
 
     setSubmitting(true);
-    const res = await submitPayment({ sms, transactionId: transactionId.trim(), amount: Number(amount) });
+    const res = await submitPayment({ sms, transactionId: transactionId.trim(), amount: Number(amount), currency });
     setSubmitting(false);
 
     if (!res?.success) {
@@ -226,7 +235,7 @@ export default function SubscriptionPayment() {
               </div>
               <div className="text-right">
                 <p className="text-xs text-white/50">Price</p>
-                <p className="font-bold text-lg text-[#25d366]">{fmtMoney(info?.plan?.amount || 10000, 'TZS')}</p>
+                <p className="font-bold text-lg text-[#25d366]">{fmtMoney(info?.plan?.amount || 10000, currency)}</p>
               </div>
             </div>
 
@@ -280,6 +289,19 @@ export default function SubscriptionPayment() {
         {/* Submission form */}
         <form onSubmit={handleSubmit} className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-4">
           <div>
+            <label className="text-sm font-semibold text-white/80 mb-1 block">Currency</label>
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              className="w-full rounded-lg bg-[#0d1b2a] border border-white/10 p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#25d366]"
+            >
+              {CURRENCIES.map(c => (
+                <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
             <label className="text-sm font-semibold text-white/80 mb-1 block">
               Paste your payment confirmation SMS here
             </label>
@@ -316,7 +338,7 @@ export default function SubscriptionPayment() {
               />
             </div>
             <div>
-              <label className="text-sm font-semibold text-white/80 mb-1 block">Amount Paid (TZS)</label>
+              <label className="text-sm font-semibold text-white/80 mb-1 block">Amount Paid ({currency})</label>
               <input
                 type="number"
                 value={amount}

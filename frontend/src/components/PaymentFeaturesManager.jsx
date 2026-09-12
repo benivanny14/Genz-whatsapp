@@ -313,9 +313,9 @@ const PaymentFeaturesManager = () => {
   };
   
   const formatPrice = (price) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-TZ', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'TZS',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(price);

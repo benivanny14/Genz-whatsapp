@@ -471,11 +471,11 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                           onViewOnceComplete={() => markViewOnceViewed(message.id || message._id)}
                           senderId={message.sender?._id || message.sender}
                           onToggleLock={toggleMessageLock}
-                          onDownload={() => {
-                            const link = document.createElement('a');
-                            link.href = mediaSourceOf(message);
-                            link.download = `voice-note-${message.id || message._id}.webm`;
-                            link.click();
+                          onDownload={async () => {
+                            try {
+                              const { downloadUrl } = await import('../services/capacitorBridge');
+                              await downloadUrl(mediaSourceOf(message), `voice-note-${message.id || message._id}.webm`);
+                            } catch (err) { console.error('Voice download error:', err); }
                           }}
                         />
                       );

@@ -1235,50 +1235,35 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     }
   };
 
-  const handleShareLocation = (type) => {
+  const handleShareLocation = async (type) => {
     setShowAttachmentMenu(false);
-    if (!navigator.geolocation) {
-      toast.error('Your browser does not support location sharing.');
-      return;
-    }
+    const { getCurrentPosition } = await import('../utils/nativeBridge');
 
     if (type === 'current') {
       const toastId = toast.loading('Fetching your current location...');
 
       try {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            toast.dismiss(toastId);
-            const { latitude, longitude, accuracy } = position.coords;
-            setCurrentLocationCoords({ latitude, longitude, accuracy: accuracy || 15 });
-            setCurrentLocationComment('');
-            setShowCurrentLocationModal(true);
-          },
-          (error) => {
-            toast.dismiss(toastId);
-            if (import.meta.env.DEV) console.warn('Geolocation error code:', error.code, error.message);
-            if (error.code === 1) {
-              // PERMISSION_DENIED — send user to system settings
-              toast.error(
-                'Location permission denied. Go to Settings > Apps > GENZ Messenger > Permissions and enable Location.',
-                { duration: 8000 }
-              );
-            } else if (error.code === 2) {
-              // POSITION_UNAVAILABLE
-              toast.error('Unable to determine your location. Please check that GPS is enabled and try again.', { duration: 5000 });
-            } else if (error.code === 3) {
-              // TIMEOUT
-              toast.error('Location request timed out. Please try again.', { duration: 5000 });
-            } else {
-              toast.error('Could not get your location. Please try again.', { duration: 5000 });
-            }
-          },
-          { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
-        );
-      } catch (err) {
+        const position = await getCurrentPosition({ enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
         toast.dismiss(toastId);
-        if (import.meta.env.DEV) console.error('Geolocation exception:', err);
-        toast.error('Location sharing is not available on this device.', { duration: 5000 });
+        const { latitude, longitude, accuracy } = position.coords;
+        setCurrentLocationCoords({ latitude, longitude, accuracy: accuracy || 15 });
+        setCurrentLocationComment('');
+        setShowCurrentLocationModal(true);
+      } catch (error) {
+        toast.dismiss(toastId);
+        if (import.meta.env.DEV) console.warn('Geolocation error:', error);
+        if (error?.message?.includes('denied') || error?.code === 1) {
+          toast.error(
+            'Location permission denied. Go to Settings > Apps > GENZ Messenger > Permissions and enable Location.',
+            { duration: 8000 }
+          );
+        } else if (error?.code === 2) {
+          toast.error('Unable to determine your location. Please check that GPS is enabled and try again.', { duration: 5000 });
+        } else if (error?.code === 3) {
+          toast.error('Location request timed out. Please try again.', { duration: 5000 });
+        } else {
+          toast.error('Could not get your location. Please try again.', { duration: 5000 });
+        }
       }
     } else if (type === 'live') {
       if (isLiveLocationActive) return; // Already sharing
@@ -1309,63 +1294,62 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     setCurrentLocationComment('');
   };
 
-  const confirmShareLiveLocation = () => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      async (startPos) => {
-        const { latitude, longitude } = startPos.coords;
-        const locationUrl = `https://www.google.com/maps?q=${latitude},${longitude}&layer=c`;
-        const msgText = liveLocationComment ? `${liveLocationComment}\n\n📍 Live Location Sharing Started\n${locationUrl}` : `📍 Live Location Sharing Started\n${locationUrl}`;
-        const expiresAt = new Date(Date.now() + liveLocationDuration * 60 * 1000).toISOString();
-        const result = await sendMessage(
-          msgText,
-          user?.username,
-          {
-            messageType: 'location',
-            latitude,
-            longitude,
-            isLiveLocation: true,
-            liveLocationExpiresAt: expiresAt,
-            duration: liveLocationDuration,
-            chatId: selectedConversation?._id,
-            isGroup: selectedConversation?.isGroup,
-            replyTo: replyingTo
+  const confirmShareLiveLocation = async () => {
+    const { getCurrentPosition, watchPosition } = await import('../utils/nativeBridge');
+    try {
+      const startPos = await getCurrentPosition({ enableHighAccuracy: true, timeout: 15000 });
+      const { latitude, longitude } = startPos.coords;
+      const locationUrl = `https://www.google.com/maps?q=${latitude},${longitude}&layer=c`;
+      const msgText = liveLocationComment ? `${liveLocationComment}\n\n📍 Live Location Sharing Started\n${locationUrl}` : `📍 Live Location Sharing Started\n${locationUrl}`;
+      const expiresAt = new Date(Date.now() + liveLocationDuration * 60 * 1000).toISOString();
+      const result = await sendMessage(
+        msgText,
+        user?.username,
+        {
+          messageType: 'location',
+          latitude,
+          longitude,
+          isLiveLocation: true,
+          liveLocationExpiresAt: expiresAt,
+          duration: liveLocationDuration,
+          chatId: selectedConversation?._id,
+          isGroup: selectedConversation?.isGroup,
+          replyTo: replyingTo
+        }
+      );
+      liveLocationMessageIdRef.current = result?.id || null;
+
+      setIsLiveLocationActive(true);
+      setShowLiveLocationModal(false);
+      setLiveLocationComment('');
+      setReplyingTo(null);
+      lastLocationSentRef.current = { latitude, longitude };
+
+      const watchId = await watchPosition(
+        (pos) => {
+          const newLat = pos.coords.latitude;
+          const newLng = pos.coords.longitude;
+          const last = lastLocationSentRef.current;
+          const moved = !last ||
+            Math.abs(newLat - last.latitude) > 0.0001 ||
+            Math.abs(newLng - last.longitude) > 0.0001;
+          if (moved && liveLocationMessageIdRef.current) {
+            lastLocationSentRef.current = { latitude: newLat, longitude: newLng };
+            updateLiveLocation(liveLocationMessageIdRef.current, newLat, newLng);
           }
-        );
-        // Remember the persisted message id so subsequent GPS ticks update
-        // THIS bubble in place instead of creating new chat messages.
-        liveLocationMessageIdRef.current = result?.id || null;
+        },
+        { maximumAge: 30000, timeout: 15000, enableHighAccuracy: true }
+      );
+      liveLocationWatchIdRef.current = watchId;
 
-        setIsLiveLocationActive(true);
-        setShowLiveLocationModal(false);
-        setLiveLocationComment('');
-        setReplyingTo(null);
-        lastLocationSentRef.current = { latitude, longitude };
-
-        liveLocationWatchIdRef.current = navigator.geolocation.watchPosition(
-          (pos) => {
-            const newLat = pos.coords.latitude;
-            const newLng = pos.coords.longitude;
-            const last = lastLocationSentRef.current;
-            const moved = !last ||
-              Math.abs(newLat - last.latitude) > 0.0001 ||
-              Math.abs(newLng - last.longitude) > 0.0001;
-            if (moved && liveLocationMessageIdRef.current) {
-              lastLocationSentRef.current = { latitude: newLat, longitude: newLng };
-              updateLiveLocation(liveLocationMessageIdRef.current, newLat, newLng);
-            }
-          },
-          (err) => { if (import.meta.env.DEV) console.warn('Live location error:', err); },
-          { maximumAge: 30000, timeout: 15000, enableHighAccuracy: true }
-        );
-
-        // Auto-stop after duration
-        setTimeout(() => {
-          handleStopLiveLocation();
-        }, liveLocationDuration * 60 * 1000);
-      },
-      () => toast.error('Failed to get your initial location.')
-    );
+      // Auto-stop after duration
+      setTimeout(() => {
+        handleStopLiveLocation();
+      }, liveLocationDuration * 60 * 1000);
+    } catch (err) {
+      if (import.meta.env.DEV) console.warn('Live location error:', err);
+      toast.error('Failed to get your initial location.');
+    }
   };
 
   const handleStopLiveLocation = () => {
@@ -1609,7 +1593,22 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const openCamera = async () => {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        cameraInputRef.current?.click();
+        try {
+          const { pickImage } = await import('../utils/cameraHelper');
+          const result = await pickImage({ source: 'camera' });
+          if (result && result.blob) {
+            const file = new File([result.blob], result.name, { type: result.type });
+            const formData = new FormData();
+            formData.append('file', file);
+            const caption = prompt('Add a caption (optional):') || '';
+            const response = await authFetch(`${API_URL}/media/upload`, { method: 'POST', body: formData });
+            const data = await response.json();
+            if (data.success) {
+              sendMessage(caption || '', user?.username, { mediaUrl: data.url, messageType: 'image', caption, replyTo: replyingTo });
+              toast.success('Photo sent!');
+            }
+          }
+        } catch { cameraInputRef.current?.click(); }
         return;
       }
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });

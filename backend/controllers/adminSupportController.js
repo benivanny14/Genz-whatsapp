@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const SupportTicket = require('../models/SupportTicket');
 const User = require('../models/User');
 const { logAdminAction } = require('../utils/auditLogger');
@@ -110,6 +111,9 @@ exports.startDirectChat = async (req, res) => {
     if (!userId || !message || !message.trim()) {
       return res.status(400).json({ success: false, message: 'userId and message are required' });
     }
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid userId format' });
+    }
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
@@ -125,10 +129,10 @@ exports.startDirectChat = async (req, res) => {
     await chat.save();
 
     notifyUserSocket(req, userId, 'ticket:message', { ticketId: chat._id, message: message.trim(), from: 'admin' });
-    await logAdminAction(req.admin.id, 'admin_started_direct_chat', { userId }, userId, null, req);
+    await logAdminAction(req.admin.id, 'admin_started_direct_chat', { userId: String(userId) }, null, null, req);
     res.json({ success: true, chat });
   } catch (error) {
-    console.error('[AdminSupport] startDirectChat error:', error);
-    res.status(500).json({ success: false, message: 'Failed to start chat' });
+    console.error('[AdminSupport] startDirectChat error:', error.message, error.stack);
+    res.status(500).json({ success: false, message: 'Failed to start chat', detail: error.message });
   }
 };

@@ -407,6 +407,24 @@ module.exports = function registerMessageHandlers(ctx) {
               .populate('sender', 'username profilePicture')
               .lean();
             const autoOutgoing = serializeOutgoingMessage(autoPopulated);
+
+            // Update conversation lastMessage and unreadCount for auto-reply
+            try {
+              const autoConv = await Conversation.findById(conversationId);
+              if (autoConv) {
+                autoConv.lastMessage = autoMsg._id;
+                autoConv.updatedAt = new Date();
+                const senderStr = String(socket.userId);
+                if (!autoConv.unreadCount) autoConv.unreadCount = {};
+                autoConv.unreadCount[senderStr] = (autoConv.unreadCount[senderStr] || 0) + 1;
+                await autoConv.save();
+                io.to(senderStr).emit('conversation:unread-update', {
+                  conversationId,
+                  unreadCount: autoConv.unreadCount[senderStr]
+                });
+              }
+            } catch (_) { /* best-effort */ }
+
             io.to(String(socket.userId)).emit('message:received', autoOutgoing);
             io.to(String(participantId)).emit('message:received', autoOutgoing);
           } catch (autoErr) {
@@ -586,7 +604,12 @@ module.exports = function registerMessageHandlers(ctx) {
       const { message } = result;
 
       if (message.sender.toString() === socket.userId) {
-        message.content = content;
+        // Sanitize content — strip HTML tags to prevent XSS
+        const sanitized = typeof content === 'string'
+          ? content.replace(/<[^>]*>/g, '').trim()
+          : '';
+        if (!sanitized) return socket.emit('error', { message: 'Message content cannot be empty' });
+        message.content = sanitized;
         message.isEdited = true;
         message.editedAt = new Date();
         await message.save();
@@ -914,6 +937,8 @@ module.exports = function registerMessageHandlers(ctx) {
 
         conversation.lastMessage = newMessage._id;
         conversation.updatedAt = new Date();
+        if (!conversation.unreadCount) conversation.unreadCount = {};
+        conversation.unreadCount[recipientId.toString()] = (conversation.unreadCount[recipientId.toString()] || 0) + 1;
         await conversation.save();
 
         if (isNewConv) {
@@ -936,7 +961,9 @@ module.exports = function registerMessageHandlers(ctx) {
         io.to(conversation._id.toString()).emit('message:received', populatedMessage);
 
         const recipientSocketId = onlineUsers.get(recipientId.toString());
-        if (recipientSocketId) {
+        // Only emit directly if recipient is NOT in the conversation room (avoids duplicate)
+        const roomMembers = io.sockets.adapter.rooms.get(conversation._id.toString());
+        if (recipientSocketId && (!roomMembers || !roomMembers.has(recipientSocketId))) {
           io.to(recipientSocketId).emit('message:received', populatedMessage);
         }
 
@@ -992,10 +1019,12 @@ module.exports = function registerMessageHandlers(ctx) {
       if (message && message.poll) {
         const conversation = await getConversationIfParticipant(message.conversationId, socket);
         if (!conversation) return;
-        const userId = socket.userId;
-        // Remove previous vote if any
+        const userId = String(socket.userId);
+        // Remove previous vote if any (compare as strings to handle ObjectId)
         message.poll.options.forEach(opt => {
-          opt.votes = opt.votes.filter(v => v !== userId);
+          if (Array.isArray(opt.votes)) {
+            opt.votes = opt.votes.filter(v => String(v) !== userId);
+          }
         });
         const idx = Number(optionIndex);
         if (!Number.isInteger(idx) || idx < 0 || idx >= message.poll.options.length) {
@@ -1238,6 +1267,26 @@ module.exports = function registerMessageHandlers(ctx) {
       });
       const populatedMessage = await Message.findById(forwardedMessage._id)
         .populate('sender', 'username profilePicture');
+
+      // Update conversation lastMessage and unreadCount
+      targetConversation.lastMessage = forwardedMessage._id;
+      targetConversation.updatedAt = new Date();
+      if (!targetConversation.unreadCount) targetConversation.unreadCount = {};
+      for (const pid of (targetConversation.participants || [])) {
+        const pidStr = String(pid);
+        if (pidStr !== String(socket.userId)) {
+          targetConversation.unreadCount[pidStr] = (targetConversation.unreadCount[pidStr] || 0) + 1;
+          const recipSid = onlineUsers.get(pidStr);
+          if (recipSid) {
+            io.to(recipSid).emit('conversation:unread-update', {
+              conversationId: toConversationId,
+              unreadCount: targetConversation.unreadCount[pidStr]
+            });
+          }
+        }
+      }
+      await targetConversation.save();
+
       io.to(toConversationId).emit('message:received', populatedMessage);
     } catch (error) {
       logError('Error forwarding message:', error);

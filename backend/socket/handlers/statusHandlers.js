@@ -1,6 +1,7 @@
 const Status = require('../../models/Status');
 const User = require('../../models/User');
 const { logInfo, logError } = require('../../config/winston');
+const mongoose = require('mongoose');
 
 /**
  * Clean status socket handlers.
@@ -14,23 +15,46 @@ module.exports = function registerStatusHandlers(ctx) {
   // ── Status Created ──
   socket.on('status:create', async (data) => {
     try {
-      const { type, content, caption, textStatus, music, privacy, excludedUsers, includedUsers, duration, clientStatusId } = data;
+      const { type, content, caption, textStatus, music, privacy, excludedUsers, includedUsers, duration, clientStatusId, poll } = data;
 
       const user = await User.findById(socket.userId).select('username contacts');
       if (!user) return;
 
-      const status = await Status.create({
+      // Validate privacy
+      const allowedPrivacy = ['contacts', 'everyone', 'contacts_except', 'only_share_with'];
+      const safePrivacy = allowedPrivacy.includes(privacy) ? privacy : 'contacts';
+
+      const statusData = {
         userId: socket.userId,
         type: type || 'text',
         content: content || '',
         caption: caption || '',
         textStatus,
         music,
-        privacy: privacy || 'contacts',
+        privacy: safePrivacy,
         excludedUsers: excludedUsers || [],
         includedUsers: includedUsers || [],
-        duration: duration || 0
-      });
+        duration: duration || 0,
+        isPublished: true
+      };
+
+      // Include poll data if provided
+      if (poll && poll.question && Array.isArray(poll.options) && poll.options.length >= 2) {
+        statusData.poll = {
+          question: poll.question,
+          options: poll.options.map((opt, i) => ({
+            id: `opt_${Date.now()}_${i}`,
+            text: typeof opt === 'string' ? opt : opt.text || '',
+            votes: 0
+          })),
+          allowMultiple: poll.allowMultiple || false,
+          expiresAt: poll.expiresAt || null,
+          totalVotes: 0,
+          voters: []
+        };
+      }
+
+      const status = await Status.create(statusData);
 
       const populated = await Status.findById(status._id)
         .populate('userId', 'username profilePicture');
@@ -68,8 +92,29 @@ module.exports = function registerStatusHandlers(ctx) {
       const { statusId } = data;
       if (!statusId) return;
 
+      if (!mongoose.Types.ObjectId.isValid(statusId)) {
+        return socket.emit('error', { message: 'Invalid status ID' });
+      }
+
       const status = await Status.findById(statusId);
       if (!status) return;
+
+      // Check if deleted
+      if (status.isDeleted || status.isRevoked) return;
+
+      // Check privacy — only contacts can see contact-only statuses
+      if (status.privacy === 'contacts') {
+        const owner = await User.findById(status.userId).select('contacts');
+        const isContact = (owner?.contacts || []).some(c => {
+          const cid = c?.user ? String(c.user) : String(c);
+          return cid === String(socket.userId);
+        });
+        if (!isContact && String(status.userId) !== String(socket.userId)) return;
+      }
+
+      // Check if muted
+      const alreadyMuted = status.mutedBy?.some(id => String(id) === String(socket.userId));
+      if (alreadyMuted) return;
 
       const alreadyViewed = status.views?.some(
         v => String(v.userId) === String(socket.userId)
@@ -106,11 +151,15 @@ module.exports = function registerStatusHandlers(ctx) {
     }
   });
 
-  // ── Status Deleted ──
+  // ── Status Deleted (soft delete) ──
   socket.on('status:delete', async (data) => {
     try {
       const { statusId } = data;
       if (!statusId) return;
+
+      if (!mongoose.Types.ObjectId.isValid(statusId)) {
+        return socket.emit('error', { message: 'Invalid status ID' });
+      }
 
       const status = await Status.findById(statusId);
       if (!status) return;
@@ -119,7 +168,11 @@ module.exports = function registerStatusHandlers(ctx) {
         return socket.emit('error', { message: 'Not authorized to delete this status' });
       }
 
-      await Status.findByIdAndDelete(statusId);
+      // Soft delete — mark as deleted but keep for anti-revoke
+      status.isDeleted = true;
+      status.isRevoked = true;
+      status.deletedAt = new Date();
+      await status.save();
 
       // Notify contacts
       const user = await User.findById(socket.userId).select('contacts');
@@ -142,6 +195,28 @@ module.exports = function registerStatusHandlers(ctx) {
     try {
       const { statusId, ownerId, senderId, message } = data;
       if (!statusId || !message) return;
+
+      if (!mongoose.Types.ObjectId.isValid(statusId)) {
+        return socket.emit('error', { message: 'Invalid status ID' });
+      }
+
+      const status = await Status.findById(statusId);
+      if (!status) return;
+
+      // Check reply settings
+      if (status.replySettings === 'none') {
+        return socket.emit('error', { message: 'Replies are disabled for this status' });
+      }
+      if (status.replySettings === 'contacts') {
+        const owner = await User.findById(status.userId).select('contacts');
+        const isContact = (owner?.contacts || []).some(c => {
+          const cid = c?.user ? String(c.user) : String(c);
+          return cid === String(socket.userId);
+        });
+        if (!isContact && String(status.userId) !== String(socket.userId)) {
+          return socket.emit('error', { message: 'Only contacts can reply to this status' });
+        }
+      }
 
       const sender = await User.findById(socket.userId).select('username profilePicture');
 

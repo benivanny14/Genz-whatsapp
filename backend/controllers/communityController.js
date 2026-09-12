@@ -43,6 +43,20 @@ exports.createCommunity = async (req, res) => {
       members: [userId]
     });
 
+    try {
+      const Conversation = require('../models/Conversation');
+      const announcementGroup = await Conversation.create({
+        name: `${community.name} Announcements`,
+        isGroup: true,
+        groupAdmin: userId,
+        participants: [{ user: userId, role: 'admin' }],
+        createdBy: userId,
+        communityAnnouncement: true
+      });
+      community.announcementGroup = announcementGroup._id;
+      await community.save();
+    } catch (e) { /* best-effort announcement group */ }
+
     try { const io = req.app.get('io'); if (io) { io.to('role:admin').emit('admin:community_created', serializeCommunity(community, userId)); io.to('admin-room').emit('admin:community_created', serializeCommunity(community, userId)); } } catch {}
     res.status(201).json({ success: true, community: serializeCommunity(community, userId), message: 'Community created' });
   } catch (error) {
@@ -174,8 +188,120 @@ function serializeCommunity(community, userId) {
     public: community.public,
     members: community.members.length,
     groups: community.groups ? community.groups.length : 0,
+    groupIds: community.groups ? community.groups.map(String) : [],
+    announcementGroup: community.announcementGroup ? String(community.announcementGroup) : null,
     joined,
     createdBy: String(community.createdBy),
     createdAt: community.createdAt
   };
 }
+
+// @desc    Add a group to a community (owner only)
+// @route   POST /api/communities/:id/groups
+// @access  Private
+exports.addGroupToCommunity = async (req, res) => {
+  try {
+    const userId = req.user?._id;
+    const { id } = req.params;
+    const { groupId } = req.body;
+
+    if (!groupId) {
+      return res.status(400).json({ success: false, message: 'groupId is required' });
+    }
+
+    const community = await Community.findById(id);
+    if (!community) {
+      return res.status(404).json({ success: false, message: 'Community not found' });
+    }
+
+    if (String(community.createdBy) !== String(userId)) {
+      return res.status(403).json({ success: false, message: 'Only the creator can manage community groups' });
+    }
+
+    const gid = String(groupId);
+    if (community.groups.some(g => String(g) === gid)) {
+      return res.status(400).json({ success: false, message: 'Group already in this community' });
+    }
+
+    community.groups.push(groupId);
+    await community.save();
+
+    res.status(200).json({ success: true, community: serializeCommunity(community, userId), message: 'Group added to community' });
+  } catch (error) {
+    console.error('Add group to community error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Remove a group from a community (owner only)
+// @route   DELETE /api/communities/:id/groups/:groupId
+// @access  Private
+exports.removeGroupFromCommunity = async (req, res) => {
+  try {
+    const userId = req.user?._id;
+    const { id, groupId } = req.params;
+
+    const community = await Community.findById(id);
+    if (!community) {
+      return res.status(404).json({ success: false, message: 'Community not found' });
+    }
+
+    if (String(community.createdBy) !== String(userId)) {
+      return res.status(403).json({ success: false, message: 'Only the creator can manage community groups' });
+    }
+
+    const before = community.groups.length;
+    community.groups = community.groups.filter(g => String(g) !== String(groupId));
+
+    if (community.groups.length === before) {
+      return res.status(404).json({ success: false, message: 'Group not found in this community' });
+    }
+
+    await community.save();
+    res.status(200).json({ success: true, community: serializeCommunity(community, userId), message: 'Group removed from community' });
+  } catch (error) {
+    console.error('Remove group from community error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Create announcement group for a community (owner only)
+// @route   POST /api/communities/:id/announcement
+// @access  Private
+exports.createAnnouncementGroup = async (req, res) => {
+  try {
+    const userId = req.user?._id;
+    const { id } = req.params;
+
+    const community = await Community.findById(id);
+    if (!community) {
+      return res.status(404).json({ success: false, message: 'Community not found' });
+    }
+
+    if (String(community.createdBy) !== String(userId)) {
+      return res.status(403).json({ success: false, message: 'Only the creator can create announcement groups' });
+    }
+
+    if (community.announcementGroup) {
+      return res.status(400).json({ success: false, message: 'Announcement group already exists', groupId: String(community.announcementGroup) });
+    }
+
+    const Conversation = require('../models/Conversation');
+    const announcementGroup = await Conversation.create({
+      name: `${community.name} Announcements`,
+      isGroup: true,
+      groupAdmin: userId,
+      participants: community.members.map(m => ({ user: m, role: m.toString() === String(userId) ? 'admin' : 'member' })),
+      createdBy: userId,
+      communityAnnouncement: true
+    });
+
+    community.announcementGroup = announcementGroup._id;
+    await community.save();
+
+    res.status(201).json({ success: true, community: serializeCommunity(community, userId), announcementGroupId: String(announcementGroup._id), message: 'Announcement group created' });
+  } catch (error) {
+    console.error('Create announcement group error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

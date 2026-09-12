@@ -655,7 +655,8 @@ const CreateStatus = ({ onClose }) => {
       }
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        const blobType = mimeType || 'audio/webm'
+        const blob = new Blob(audioChunksRef.current, { type: blobType })
         setAudioBlob(blob)
         setAudioUrl(URL.createObjectURL(blob))
         stream.getTracks().forEach(t => t.stop())
@@ -962,7 +963,14 @@ const CreateStatus = ({ onClose }) => {
           replySettings,
           quality,
           statusDuration,
-          ...(imageFilter !== 'none' ? { imageFilter } : {})
+          ...(imageFilter !== 'none' ? { imageFilter } : {}),
+          ...(pollQuestion.trim() && pollOptions.filter(o => o.trim()).length >= 2 ? {
+            poll: {
+              question: pollQuestion,
+              options: pollOptions.filter(o => o.trim()),
+              allowMultiple: pollAllowMultiple
+            }
+          } : {})
         }
         const res = await fetch(`${resolveApiBase()}/status/schedule`, {
           method: 'POST',
@@ -991,7 +999,14 @@ const CreateStatus = ({ onClose }) => {
           statusDuration,
           addYoursPrompt: addYoursPrompt || undefined,
           textAnimation: textAnimation !== 'none' ? textAnimation : undefined,
-          isViewOnce: isViewOnce || undefined
+          isViewOnce: isViewOnce || undefined,
+          ...(pollQuestion.trim() && pollOptions.filter(o => o.trim()).length >= 2 ? {
+            poll: {
+              question: pollQuestion,
+              options: pollOptions.filter(o => o.trim()),
+              allowMultiple: pollAllowMultiple
+            }
+          } : {})
         })
         onClose()
         return
@@ -1036,6 +1051,15 @@ const CreateStatus = ({ onClose }) => {
         formData.append('statusDuration', String(statusDuration))
         if (addYoursPrompt.trim()) formData.append('addYoursPrompt', addYoursPrompt)
         if (imageFilter !== 'none') formData.append('imageFilter', imageFilter)
+
+        // Include poll data if provided
+        if (pollQuestion.trim() && pollOptions.filter(o => o.trim()).length >= 2) {
+          formData.append('poll', JSON.stringify({
+            question: pollQuestion,
+            options: pollOptions.filter(o => o.trim()),
+            allowMultiple: pollAllowMultiple
+          }))
+        }
 
         if (musicFile && i === activeIndex) {
           formData.append('music', JSON.stringify({
@@ -1258,21 +1282,17 @@ const CreateStatus = ({ onClose }) => {
 
           {/* Get current location button */}
           <button
-            onClick={() => {
-              if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                  (pos) => {
-                    setSelectedLocation({
-                      latitude: pos.coords.latitude,
-                      longitude: pos.coords.longitude,
-                      name: 'Current Location',
-                      address: `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`
-                    });
-                  },
-                  () => alert('Location access denied'),
-                  { enableHighAccuracy: true, timeout: 10000 }
-                );
-              }
+            onClick={async () => {
+              try {
+                const { getCurrentPosition } = await import('../utils/nativeBridge');
+                const pos = await getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 });
+                setSelectedLocation({
+                  latitude: pos.coords.latitude,
+                  longitude: pos.coords.longitude,
+                  name: 'Current Location',
+                  address: `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`
+                });
+              } catch { alert('Location access denied'); }
             }}
             style={{
               width: '100%', padding: '14px', background: '#00a884', color: '#fff',

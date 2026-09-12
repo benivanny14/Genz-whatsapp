@@ -54,9 +54,11 @@ adminApi.interceptors.response.use(
             .finally(() => { refreshingPromise = null; });
         }
         const { data } = await refreshingPromise;
-        adminTokenStore.setAccessToken(data.accessToken);
-        adminTokenStore.setRefreshToken(data.refreshToken);
-        original.headers.Authorization = `Bearer ${data.accessToken}`;
+        const newAccess = data.accessToken || data.token;
+        const newRefresh = data.refreshToken;
+        if (newAccess) adminTokenStore.setAccessToken(newAccess);
+        if (newRefresh) adminTokenStore.setRefreshToken(newRefresh);
+        original.headers.Authorization = `Bearer ${newAccess}`;
         return adminApi(original);
       } catch (refreshError) {
         adminTokenStore.clear();

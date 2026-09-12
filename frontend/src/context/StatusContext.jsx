@@ -5,6 +5,7 @@ import { resolveApiBase } from '../utils/resolveApiBase';
 import { sanitizeMediaUrl } from '../utils/sanitizeMediaUrl';
 import { getAuthToken } from '../utils/tokenStore';
 import { authFetch } from '../utils/authFetch';
+import toast from 'react-hot-toast';
 
 const StatusContext = createContext(null);
 
@@ -131,31 +132,36 @@ const StatusProvider = ({ children }) => {
   // ── Create text status ──
   const createTextStatus = useCallback(async (textData) => {
     try {
+      const body = {
+        type: 'text',
+        content: textData?.text || '',
+        textStatus: {
+          text: textData?.text || '',
+          backgroundColor: textData?.backgroundColor || '#128C7E',
+          fontColor: textData?.fontColor || '#FFFFFF',
+          fontStyle: textData?.fontStyle || 'normal'
+        },
+        privacy: textData?.privacy,
+        excludedUsers: textData?.excludedUsers,
+        includedUsers: textData?.includedUsers,
+        collabUsername: textData?.collabUsername,
+        mentions: textData?.mentions,
+        replySettings: textData?.replySettings || 'everyone',
+        quality: textData?.quality || 'standard',
+        statusDuration: textData?.statusDuration || 24,
+        maxDuration: textData?.maxDuration,
+        addYoursPrompt: textData?.addYoursPrompt || '',
+        textAnimation: textData?.textAnimation || 'none',
+        isViewOnce: textData?.isViewOnce || false
+      };
+      // Include poll data if provided
+      if (textData?.poll) {
+        body.poll = textData.poll;
+      }
       const res = await fetch(`${API_BASE()}/status`, {
         method: 'POST',
         headers: authHeaders(),
-        body: JSON.stringify({
-          type: 'text',
-          content: textData?.text || '',
-          textStatus: {
-            text: textData?.text || '',
-            backgroundColor: textData?.backgroundColor || '#128C7E',
-            fontColor: textData?.fontColor || '#FFFFFF',
-            fontStyle: textData?.fontStyle || 'normal'
-          },
-          privacy: textData?.privacy,
-          excludedUsers: textData?.excludedUsers,
-          includedUsers: textData?.includedUsers,
-          collabUsername: textData?.collabUsername,
-          mentions: textData?.mentions,
-          replySettings: textData?.replySettings || 'everyone',
-          quality: textData?.quality || 'standard',
-          statusDuration: textData?.statusDuration || 24,
-          maxDuration: textData?.maxDuration,
-          addYoursPrompt: textData?.addYoursPrompt || '',
-          textAnimation: textData?.textAnimation || 'none',
-          isViewOnce: textData?.isViewOnce || false
-        })
+        body: JSON.stringify(body)
       });
       const data = await res.json();
       if (data.success) {
@@ -219,7 +225,8 @@ const StatusProvider = ({ children }) => {
           statusDuration: formData.get('statusDuration') ? Number(formData.get('statusDuration')) : 24,
           maxDuration: formData.get('maxDuration') ? Number(formData.get('maxDuration')) : undefined,
           addYoursPrompt: formData.get('addYoursPrompt') || undefined,
-          isViewOnce: formData.get('isViewOnce') === 'true'
+          isViewOnce: formData.get('isViewOnce') === 'true',
+          ...(formData.get('poll') ? { poll: JSON.parse(formData.get('poll')) } : {})
         })
       });
       const data = await res.json();

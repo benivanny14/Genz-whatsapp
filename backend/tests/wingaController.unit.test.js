@@ -18,6 +18,10 @@ jest.mock('../models/Order', () => ({
   aggregate: jest.fn()
 }));
 
+jest.mock('../models/Notification', () => ({
+  create: jest.fn().mockResolvedValue({}),
+}));
+
 jest.mock('../utils/messageSendHelpers', () => ({
   isEitherUserBlocked: jest.fn().mockResolvedValue(false)
 }));

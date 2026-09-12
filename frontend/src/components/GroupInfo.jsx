@@ -707,7 +707,7 @@ const GroupInfo = ({ group, onClose, currentUserId, onViewProfile, onStartChat }
                           });
                         }
                       }}
-                      onClick={() => {
+                      onClick={(e) => {
                         if (!isSelf) {
                           setMemberContextMenu({
                             member,

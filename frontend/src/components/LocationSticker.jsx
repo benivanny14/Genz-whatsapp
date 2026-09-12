@@ -16,18 +16,16 @@ const LocationSticker = ({ onSelect, onClose }) => {
   const [searchDebounce, setSearchDebounce] = useState(null)
 
   // Get user's current location
-  const getMyLocation = useCallback(() => {
-    if (!navigator.geolocation) return
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setMyLocation({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          name: 'My Location'
-        })
-      },
-      () => { /* User denied permission */ }
-    )
+  const getMyLocation = useCallback(async () => {
+    try {
+      const { getCurrentPosition } = await import('../utils/nativeBridge');
+      const pos = await getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 });
+      setMyLocation({
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        name: 'My Location'
+      });
+    } catch { /* User denied permission or error */ }
   }, [])
 
   useEffect(() => {

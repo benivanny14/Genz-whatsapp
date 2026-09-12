@@ -43,7 +43,7 @@ import {
 const GenzAfterWork = ({ user, onFeatureCreated }) => {
   const [selectedFeature, setSelectedFeature] = useState(null);
   const [showInquiryForm, setShowInquiryForm] = useState(false);
-  const [inquiryData, setInquiryData] = useState({ message: '', contactEmail: '' });
+  const [inquiryData, setInquiryData] = useState({ name: '', message: '', contactEmail: '' });
   const [features, setFeatures] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -172,7 +172,7 @@ const GenzAfterWork = ({ user, onFeatureCreated }) => {
       if (data.success) {
         alert('Inquiry submitted successfully!');
         setShowInquiryForm(false);
-        setInquiryData({ message: '', contactEmail: '' });
+        setInquiryData({ name: '', message: '', contactEmail: '' });
       } else {
         alert(`Error: ${data.message}`);
       }
@@ -293,7 +293,7 @@ const GenzAfterWork = ({ user, onFeatureCreated }) => {
                           Featured
                         </span>
                       )}
-                      <span className={`absolute top-2 left-2 px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(feature.status)}`}>n
+                      <span className={`absolute top-2 left-2 px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(feature.status)}`}>
                         {feature.status}
                       </span>
                     </div>
@@ -371,7 +371,7 @@ const GenzAfterWork = ({ user, onFeatureCreated }) => {
                     </div>
                     
                     <div>
-                      <span className={`inline-flex px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(selectedFeature.status)}`}>n
+                      <span className={`inline-flex px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(selectedFeature.status)}`}>
                         {selectedFeature.status}
                       </span>
                       {selectedFeature.featured && (
@@ -422,6 +422,18 @@ const GenzAfterWork = ({ user, onFeatureCreated }) => {
               <h3 className="text-xl font-semibold mb-4 text-white">Submit Inquiry</h3>
               
               <form onSubmit={handleInquirySubmit}>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-white mb-2">Your Name</label>
+                  <input
+                    type="text"
+                    value={inquiryData.name}
+                    onChange={(e) => setInquiryData(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="John Doe"
+                    className="px-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-800 text-white"
+                    required
+                  />
+                </div>
+
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-white mb-2">Message</label>
                   <textarea

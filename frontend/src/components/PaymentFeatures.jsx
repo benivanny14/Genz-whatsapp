@@ -16,7 +16,7 @@ const PaymentFeatures = () => {
   const [sortBy, setSortBy] = useState('price-asc');
   const [selectedFeature, setSelectedFeature] = useState(null);
   const [showInquiryForm, setShowInquiryForm] = useState(false);
-  const [inquiryData, setInquiryData] = useState({ message: '', contactEmail: '' });
+  const [inquiryData, setInquiryData] = useState({ name: '', message: '', contactEmail: '' });
   
   const categories = ['Real Estate', 'Services', 'Business', 'Automotive', 'Jobs', 'Electronics', 'Other'];
   
@@ -57,9 +57,9 @@ const PaymentFeatures = () => {
   };
   
   const formatPrice = (price) => {
-    return new Intl.NumberFormat('en-ZA', {
+    return new Intl.NumberFormat('en-TZ', {
       style: 'currency',
-      currency: 'ZAR',
+      currency: 'TZS',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(price);
@@ -106,7 +106,7 @@ const PaymentFeatures = () => {
       if (data.success) {
         alert('Inquiry submitted successfully!');
         setShowInquiryForm(false);
-        setInquiryData({ message: '', contactEmail: '' });
+        setInquiryData({ name: '', message: '', contactEmail: '' });
         // Update the feature with new inquiry count
         fetchFeatures();
       } else {
@@ -353,6 +353,18 @@ const PaymentFeatures = () => {
                   <div className="bg-white rounded-lg p-6 max-w-md w-full">
                     <h3 className="text-xl font-semibold mb-4">Submit Inquiry</h3>
                     <form onSubmit={handleInquirySubmit}>
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Your Name</label>
+                        <input
+                          type="text"
+                          value={inquiryData.name}
+                          onChange={(e) => setInquiryData(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="John Doe"
+                          className="px-3 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          required
+                        />
+                      </div>
+
                       <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
                         <textarea

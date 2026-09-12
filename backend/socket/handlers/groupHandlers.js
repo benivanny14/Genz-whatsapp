@@ -43,13 +43,21 @@ module.exports = function registerGroupHandlers(ctx) {
 
   socket.on('unpin_message', async (data) => {
     try {
-      const { chatId } = data;
+      const { chatId, messageId } = data;
       const conversation = await getConversationIfParticipant(chatId, socket);
       if (!conversation || !conversation.pinnedMessages) return;
 
-      conversation.pinnedMessages = [];
+      if (messageId) {
+        // Remove specific pinned message
+        conversation.pinnedMessages = conversation.pinnedMessages.filter(
+          id => String(id) !== String(messageId)
+        );
+      } else {
+        // Unpin all (fallback)
+        conversation.pinnedMessages = [];
+      }
       await conversation.save();
-      io.to(chatId).emit('conversation:unpinned', { chatId });
+      io.to(chatId).emit('conversation:unpinned', { chatId, messageId });
     } catch (error) {
       logError('Error unpinning message:', error);
     }
@@ -368,6 +376,19 @@ module.exports = function registerGroupHandlers(ctx) {
     try {
       const { groupId } = data;
       if (!groupId || !socket.userId) return;
+
+      // Actually remove member from DB
+      const conversation = await Conversation.findById(groupId);
+      if (conversation) {
+        conversation.participants = (conversation.participants || []).filter(
+          p => String(p) !== String(socket.userId)
+        );
+        conversation.admins = (conversation.admins || []).filter(
+          a => String(a) !== String(socket.userId)
+        );
+        await conversation.save();
+      }
+
       const leftUser = await User.findById(socket.userId).select('username');
       io.to(String(groupId)).emit('group:member_left', {
         groupId,
@@ -400,7 +421,7 @@ module.exports = function registerGroupHandlers(ctx) {
   });
 
   // ─── Group management socket events ────────────────────────────────────
-  // When admin bans a member, forward to the group room
+  // When admin bans a member, update DB and forward to the group room
   socket.on('group:ban_member', async ({ groupId, userId, reason } = {}) => {
     try {
       if (!groupId || !userId) return;
@@ -408,18 +429,55 @@ module.exports = function registerGroupHandlers(ctx) {
       if (!conversation) return;
       const isAdmin = conversation.admins?.some(a => String(a) === String(socket.userId));
       if (!isAdmin) return;
+
+      // Actually ban the member: remove from participants, add to bannedUsers
+      if (!conversation.bannedUsers) conversation.bannedUsers = [];
+      if (!conversation.bannedUsers.some(id => String(id) === String(userId))) {
+        conversation.bannedUsers.push(userId);
+      }
+      conversation.participants = (conversation.participants || []).filter(
+        p => String(p) !== String(userId)
+      );
+      conversation.admins = (conversation.admins || []).filter(
+        a => String(a) !== String(userId)
+      );
+      await conversation.save();
+
       io.to(String(groupId)).emit('group:member_banned', { groupId, userId, bannedBy: socket.userId, reason });
       io.to(String(userId)).emit('group:you_were_banned', { groupId, groupName: conversation.groupName, reason });
+      io.to(String(groupId)).emit('group:system_message', {
+        groupId,
+        text: `A member was banned${reason ? ': ' + reason : ''}`,
+        createdAt: new Date().toISOString(),
+      });
     } catch (err) { logError('group:ban_member error:', err); }
   });
 
-  // Transfer ownership notification
-  socket.on('group:transfer_ownership', ({ groupId, newOwnerId } = {}) => {
+  // Transfer ownership notification (with auth check)
+  socket.on('group:transfer_ownership', async ({ groupId, newOwnerId } = {}) => {
     try {
       if (!groupId || !newOwnerId) return;
+      const conversation = await Conversation.findById(groupId);
+      if (!conversation) return;
+
+      // Only current owner can transfer
+      if (String(conversation.createdBy) !== String(socket.userId) &&
+          String(conversation.groupOwner) !== String(socket.userId)) {
+        return socket.emit('error', { message: 'Only the group owner can transfer ownership' });
+      }
+
+      // Update ownership in DB
+      conversation.groupOwner = newOwnerId;
+      if (!conversation.admins) conversation.admins = [];
+      if (!conversation.admins.some(a => String(a) === String(newOwnerId))) {
+        conversation.admins.push(newOwnerId);
+      }
+      await conversation.save();
+
       io.to(String(groupId)).emit('group:ownership_transferred', {
         groupId, newOwnerId, previousOwnerId: socket.userId
       });
+      io.to(String(newOwnerId)).emit('group:you_are_admin', { groupId, promotedBy: socket.userId });
     } catch (err) { logError('group:transfer_ownership error:', err); }
   });
 
