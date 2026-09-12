@@ -410,7 +410,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     const conv = conversations.find(c => c._id === chatId);
     if (!conv) return;
 
-    const format = prompt('Export format (html, txt, json, zip):', 'html');
+    const format = prompt('Export format (html, txt, json, pdf):', 'html');
     if (!format) return;
 
     const chatName = getConversationName(conv);
@@ -463,10 +463,55 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
       
       const blob = new Blob([jsonContent], { type: 'application/json' });
       await saveBlob(blob, `chat_export_${chatName}_${Date.now()}.json`);
+    } else if (format === 'pdf') {
+      try {
+        if (!window.jspdf) {
+          await new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js';
+            s.onload = resolve;
+            s.onerror = reject;
+            document.head.appendChild(s);
+          });
+        }
+        if (!window.jspdfAutotable) {
+          await new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.4/jspdf.plugin.autotable.min.js';
+            s.onload = resolve;
+            s.onerror = reject;
+            document.head.appendChild(s);
+          });
+        }
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.setFontSize(16);
+        doc.text(`Chat Export - ${chatName}`, 14, 22);
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Exported on: ${new Date().toLocaleString()}`, 14, 30);
+        const rows = messages.map(msg => [
+          new Date(msg.createdAt).toLocaleString(),
+          msg.senderName || 'Unknown',
+          (msg.content || '').substring(0, 80)
+        ]);
+        doc.autoTable({
+          startY: 36,
+          head: [['Time', 'Sender', 'Message']],
+          body: rows,
+          styles: { fontSize: 8, cellPadding: 3 },
+          headStyles: { fillColor: [34, 197, 94] },
+          margin: { left: 14, right: 14 }
+        });
+        const pdfBlob = doc.output('blob');
+        await saveBlob(pdfBlob, `chat_export_${chatName}_${Date.now()}.pdf`);
+      } catch (err) {
+        toast.error('PDF export failed. Try HTML, TXT, or JSON format.');
+      }
     } else if (format === 'zip') {
       toast.error('ZIP export requires JSZip library. Please use HTML, TXT, or JSON format instead.');
     } else {
-      toast.error('Invalid format. Please use html, txt, json, or zip.');
+      toast.error('Invalid format. Please use html, txt, json, or pdf.');
     }
   };
 
