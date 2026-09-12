@@ -88,6 +88,11 @@ const Login = () => {
     try {
       const data = await login({ identifier: phoneNumber, password, twoFactorToken });
 
+      if (data?.requiresPhoneVerification) {
+        navigate('/verify-phone', { replace: true });
+        return;
+      }
+
       if (data?.success !== false && data?.token) {
         toast.success('Login successful!');
         navigate(redirectTarget, { replace: true });
