@@ -73,7 +73,7 @@ const createRateLimiter = (options = {}) => {
  */
 const authRateLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 5 : 100 // Limit each IP to 5 requests per windowMs (100 in dev)
+  max: process.env.NODE_ENV === 'production' ? 50 : 100 // 50 in prod, 100 in dev
 });
 
 /**
@@ -104,7 +104,7 @@ const apiRateLimiter = createRateLimiter({
 const strictConfiguredMax = parseInt(process.env.ADMIN_STRICT_MAX, 10);
 const strictRateLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: Number.isFinite(strictConfiguredMax) && strictConfiguredMax > 0 ? strictConfiguredMax : 10, // Limit each admin to 10 requests per windowMs
+  max: Number.isFinite(strictConfiguredMax) && strictConfiguredMax > 0 ? strictConfiguredMax : 50, // 50 admin writes per hour
   // Per-admin-account key when authenticated; per-IP otherwise.
   keyGenerator: (req) =>
     req.admin?.id ? `admin:${req.admin.id}` : `ip:${req.ip || req.socket?.remoteAddress || 'unknown'}`
@@ -117,7 +117,7 @@ const strictRateLimiter = createRateLimiter({
  */
 const adminReadRateLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000, // 10 minutes
-  max: 60,
+  max: process.env.NODE_ENV === 'production' ? 200 : 60,
   keyGenerator: (req) =>
     req.admin?.id ? `admin-read:${req.admin.id}` : `ip:${req.ip || req.socket?.remoteAddress || 'unknown'}`
 });

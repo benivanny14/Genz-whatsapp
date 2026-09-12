@@ -702,13 +702,19 @@ app.use(
 // Rate limiting for API endpoints
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200,
+  max: process.env.NODE_ENV === 'production' ? 5000 : 200,
   message: {
     success: false,
     error: "Too many requests from this IP, please try again later.",
   },
   standardHeaders: true,
   legacyHeaders: false,
+  // On Render all traffic shares one IP — skip rate limiting for read-heavy
+  // endpoints that the APK polls continuously (auth/me, status, health).
+  skip: (req) => {
+    const p = req.path;
+    return p.includes('/auth/me') || p.includes('/health') || p.includes('/status') || p.includes('/updates/check');
+  },
 });
 
 // Split auth rate limiting so a burst of authenticated calls (background
@@ -1184,7 +1190,7 @@ const ADMIN_BASE_PATH =
 // localhost whitelisted for operational tooling.
 const adminLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: process.env.NODE_ENV === 'production' ? 200 : 20,
   message: {
     success: false,
     error: "Too many admin requests, please try again later.",
