@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { getAppInfo } from '../services/capacitorBridge';
 import { fetchVersionManifest, apkDownloadUrl, VERSION_MANIFEST_ORIGIN } from '../utils/versionManifest';
 import { resolveApiBase } from '../utils/resolveApiBase';
@@ -9,27 +9,29 @@ import { trackUpdateEvent } from '../utils/updateAnalytics';
 const BUNDLE_VERSION_CODE = Number(__GENZ_VERSION_CODE__ || 0);
 const LAST_DOWNLOAD_KEY = 'genz-bg-update-downloaded';
 
+// Register the native APKInstaller plugin (defined in
+// android/.../APKInstallerPlugin.java). registerPlugin is a no-op on web,
+// so this is safe to call unconditionally.
+const APKInstaller = registerPlugin('APKInstaller');
+
 /**
- * BackgroundUpdateManager — WhatsApp-style silent background update.
+ * BackgroundUpdateManager — WhatsApp-style zero-interaction auto-update.
  *
- * On every app launch (mount):
+ * On every app launch (APK only):
  *  1. Checks /api/updates/check and /version.json for a newer versionCode.
- *  2. If a newer version exists AND the APK hasn't been downloaded yet this
- *     version, it auto-triggers a DownloadManager request (Android handles the
- *     download in the background, shows a progress notification, and shows an
- *     "Open" button when complete).
- *  3. Tracks the downloaded versionCode in localStorage so it doesn't
- *     re-download on every launch.
+ *  2. If a newer version exists AND hasn't been downloaded yet, it calls the
+ *     native APKInstaller plugin which:
+ *       a) Downloads the APK via Android DownloadManager (background)
+ *       b) Automatically opens the Android package installer
+ *       c) User taps "Install" once → data is PRESERVED (same package+key)
+ *  3. Tracks the downloaded versionCode so it doesn't re-download.
  *
- * The actual APK install is handled by Android's package installer — the user
- * taps the DownloadManager "Download complete" notification, Android opens the
- * APK, and since the package name + signing key match, it reinstalls OVER the
- * existing app. All user data (messages, media, settings) is preserved.
+ * For mandatory updates (gap >5 codes or mandatory flag), the ForceUpdateModal
+ * blocks the entire app until the user installs.
  *
- * On the web this component renders nothing and does nothing.
+ * On the web this component renders nothing.
  */
 const BackgroundUpdateManager = () => {
-  const [progress, setProgress] = useState(null); // { version, downloading, done }
   const hasChecked = useRef(false);
 
   useEffect(() => {
@@ -101,12 +103,10 @@ const BackgroundUpdateManager = () => {
         if (isDismissed(latestCode)) return;
         if (alreadyDownloaded(latestCode)) return;
 
-        // Auto-download: resolve URL
+        // Resolve full URL
         const fullUrl = apkUrl.startsWith('http')
           ? apkUrl
           : `${VERSION_MANIFEST_ORIGIN}${apkUrl}`;
-
-        setProgress({ version: latestVersion, downloading: true, done: false });
 
         trackUpdateEvent('bg_update_started', {
           version: latestVersion,
@@ -114,12 +114,20 @@ const BackgroundUpdateManager = () => {
           mandatory,
         });
 
-        // Trigger Android DownloadManager via hidden anchor click.
-        // The native DownloadListener in MainActivity picks this up and
-        // routes it to DownloadManager, which handles:
-        //   - Background download with progress notification
-        //   - "Download complete → tap to install" notification
-        //   - Opening the APK via the package installer
+        // Try native plugin first — downloads APK and opens installer automatically
+        try {
+          await APKInstaller.install({
+            url: fullUrl,
+            filename: `genz-whatsapp-v${latestVersion}.apk`,
+            version: latestVersion,
+          });
+          markDownloaded(latestCode);
+          return;
+        } catch (pluginErr) {
+          console.warn('[BackgroundUpdate] APKInstaller plugin failed, falling back to anchor:', pluginErr?.message);
+        }
+
+        // Fallback: trigger download via anchor click (DownloadManager in MainActivity)
         const a = document.createElement('a');
         a.href = fullUrl;
         a.download = `genz-whatsapp-v${latestVersion}.apk`;
@@ -132,19 +140,12 @@ const BackgroundUpdateManager = () => {
 
         markDownloaded(latestCode);
 
-        setProgress({ version: latestVersion, downloading: false, done: true });
-
-        // Clear progress indicator after 5 seconds
-        setTimeout(() => setProgress(null), 5000);
-
       } catch (err) {
         console.warn('[BackgroundUpdate] Check failed:', err?.message || err);
       }
     })();
   }, []);
 
-  // Render nothing — this is a silent background process.
-  // The progress toast is shown via the UpdateBanner or this component.
   return null;
 };
 

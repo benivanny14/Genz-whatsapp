@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Download, RefreshCw, ShieldAlert } from 'lucide-react';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { getAppInfo, isNative, downloadUrl } from '../services/capacitorBridge';
 import { fetchVersionManifest, apkDownloadUrl, VERSION_MANIFEST_ORIGIN } from '../utils/versionManifest';
 import { resolveApiBase } from '../utils/resolveApiBase';
@@ -7,6 +8,7 @@ import { getAuthToken } from '../utils/tokenStore';
 import { trackUpdateEvent } from '../utils/updateAnalytics';
 
 const BUNDLE_VERSION_CODE = Number(__GENZ_VERSION_CODE__ || 0);
+const APKInstaller = registerPlugin('APKInstaller');
 
 /**
  * Full-screen mandatory update modal — blocks the entire app until the user
@@ -88,6 +90,26 @@ const ForceUpdateModal = () => {
       const url = update.apkUrl.startsWith('http')
         ? update.apkUrl
         : `${VERSION_MANIFEST_ORIGIN}${update.apkUrl}`;
+
+      // Use native APKInstaller plugin on APK — opens installer directly
+      if (Capacitor.isNativePlatform?.()) {
+        try {
+          await APKInstaller.install({
+            url,
+            filename: `genz-whatsapp-v${update.version}.apk`,
+            version: update.version,
+          });
+          trackUpdateEvent('force_update_tapped', {
+            version: update.version,
+            versionCode: update.versionCode,
+          });
+          return;
+        } catch (pluginErr) {
+          console.warn('[ForceUpdate] APKInstaller failed, falling back:', pluginErr?.message);
+        }
+      }
+
+      // Web/fallback: anchor download
       downloadUrl(url, `genz-whatsapp-v${update.version}.apk`);
       trackUpdateEvent('force_update_tapped', {
         version: update.version,

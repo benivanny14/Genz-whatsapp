@@ -63,6 +63,14 @@ public class MainActivity extends BridgeActivity {
         }
         super.onCreate(savedInstanceState);
 
+        // Register the APK installer plugin for auto-updates
+        try {
+            getBridge().registerPlugin(APKInstallerPlugin.class);
+            android.util.Log.i("MainActivity", "APKInstaller plugin registered");
+        } catch (Exception e) {
+            android.util.Log.w("MainActivity", "APKInstaller plugin registration failed: " + e.getMessage());
+        }
+
         // DEBUG builds only: allow mixed content (https://localhost webview →
         // http://10.0.2.2 dev backend). Release builds keep WebView defaults so
         // production traffic stays HTTPS-only.
