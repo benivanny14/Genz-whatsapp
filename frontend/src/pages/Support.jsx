@@ -34,6 +34,13 @@ export default function Support() {
   };
   useEffect(() => { load(); }, []);
 
+  // Live refresh when admin sends a reply (socket dispatches ticket:updated)
+  useEffect(() => {
+    const onTicketUpdated = () => load();
+    window.addEventListener('ticket:updated', onTicketUpdated);
+    return () => window.removeEventListener('ticket:updated', onTicketUpdated);
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!subject.trim() || !message.trim()) return;
