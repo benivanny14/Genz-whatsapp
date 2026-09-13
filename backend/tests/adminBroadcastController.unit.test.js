@@ -124,6 +124,7 @@ describe('adminBroadcastController — system announcements', () => {
   });
 
   it('sends an announcement to all users (happy path)', async () => {
+    jest.useFakeTimers();
     User.find.mockReturnValue(mockUserFindChain([{ _id: 'u1' }, { _id: 'u2' }]));
     getOrCreateSystemUser.mockResolvedValue({ _id: 'sys-1' });
     Conversation.findOne.mockResolvedValue({ _id: 'c1', lastMessage: null, save: jest.fn().mockResolvedValue({}) });
@@ -136,12 +137,17 @@ describe('adminBroadcastController — system announcements', () => {
       res
     );
     expect(User.find).toHaveBeenCalledWith({ deviceId: { $ne: 'system-device-id' } });
-    expect(Message.create).toHaveBeenCalledWith(expect.objectContaining({ messageType: 'system' }));
     expect(res.body.sent).toBe(2);
     expect(logAdminAction).toHaveBeenCalledWith('admin-1', 'admin_sent_system_announcement', expect.anything(), null, null, expect.anything());
+
+    await jest.advanceTimersByTimeAsync(0);
+    await jest.runAllTimersAsync();
+    expect(Message.create).toHaveBeenCalledWith(expect.objectContaining({ messageType: 'system' }));
+    jest.useRealTimers();
   });
 
   it('creates a new conversation when none exists (happy path)', async () => {
+    jest.useFakeTimers();
     User.find.mockReturnValue(mockUserFindChain([{ _id: 'u1' }]));
     getOrCreateSystemUser.mockResolvedValue({ _id: 'sys-1' });
     Conversation.findOne.mockResolvedValue(null);
@@ -150,8 +156,12 @@ describe('adminBroadcastController — system announcements', () => {
 
     const res = makeRes();
     await adminBroadcast.sendSystemAnnouncement(makeReq({ body: { content: 'Hi' } }), res);
-    expect(Conversation.create).toHaveBeenCalledWith({ participants: ['sys-1', 'u1'], isGroup: false });
     expect(res.body.sent).toBe(1);
+
+    await jest.advanceTimersByTimeAsync(0);
+    await jest.runAllTimersAsync();
+    expect(Conversation.create).toHaveBeenCalledWith({ participants: ['sys-1', 'u1'], isGroup: false });
+    jest.useRealTimers();
   });
 
   it('filters recipients by segment (happy path)', async () => {
@@ -165,13 +175,13 @@ describe('adminBroadcastController — system announcements', () => {
     expect(User.find).toHaveBeenCalledWith({ deviceId: { $ne: 'system-device-id' }, premium: true });
   });
 
-  it('keeps counting even when one recipient fails (error path)', async () => {
+  it('queues the announcement even when background delivery fails (error path)', async () => {
     User.find.mockReturnValue(mockUserFindChain([{ _id: 'u1' }, { _id: 'u2' }]));
     getOrCreateSystemUser.mockResolvedValue({ _id: 'sys-1' });
     Conversation.findOne.mockRejectedValue(new Error('db down'));
     const res = makeRes();
     await adminBroadcast.sendSystemAnnouncement(makeReq({ body: { content: 'Hi' } }), res);
-    expect(res.body.sent).toBe(0);
+    expect(res.body.sent).toBe(2);
     expect(res.body.success).toBe(true);
   });
 

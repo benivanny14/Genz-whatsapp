@@ -106,11 +106,7 @@ const sendNotification = async (token, notification, data = {}) => {
       notification: {
         title: notification.title || 'GENZ WhatsApp',
         body: notification.body || '',
-        icon: notification.icon || '/icon-192x192.png',
-        badge: notification.badge || '/badge-72x72.png',
-        sound: notification.sound || 'default',
-        click_action: notification.clickAction || '/',
-        tag: notification.tag || 'default'
+        image: notification.image || undefined
       },
       data: {
         ...data,
@@ -121,7 +117,19 @@ const sendNotification = async (token, notification, data = {}) => {
         notification: {
           channelId: 'genz-whatsapp',
           priority: notification.priority || 'high',
-          sound: notification.sound || 'default'
+          sound: notification.sound || 'default',
+          clickAction: notification.clickAction || '/',
+          tag: notification.tag || 'genz-default'
+        }
+      },
+      webpush: {
+        notification: {
+          title: notification.title || 'GENZ WhatsApp',
+          body: notification.body || '',
+          icon: notification.icon || '/icons/icon-192.png',
+          badge: notification.badge || '/icons/badge-72x72.png',
+          tag: notification.tag || 'genz-default',
+          actions: [{ action: notification.clickAction || '/', title: 'Open' }]
         }
       },
       apns: {
@@ -189,11 +197,7 @@ const sendMulticastNotification = async (tokens, notification, data = {}) => {
       notification: {
         title: notification.title || 'GENZ WhatsApp',
         body: notification.body || '',
-        icon: notification.icon || '/icon-192x192.png',
-        badge: notification.badge || '/badge-72x72.png',
-        sound: notification.sound || 'default',
-        click_action: notification.clickAction || '/',
-        tag: notification.tag || 'default'
+        image: notification.image || undefined
       },
       data: {
         ...data,
@@ -204,7 +208,19 @@ const sendMulticastNotification = async (tokens, notification, data = {}) => {
         notification: {
           channelId: 'genz-whatsapp',
           priority: notification.priority || 'high',
-          sound: notification.sound || 'default'
+          sound: notification.sound || 'default',
+          clickAction: notification.clickAction || '/',
+          tag: notification.tag || 'genz-default'
+        }
+      },
+      webpush: {
+        notification: {
+          title: notification.title || 'GENZ WhatsApp',
+          body: notification.body || '',
+          icon: notification.icon || '/icons/icon-192.png',
+          badge: notification.badge || '/icons/badge-72x72.png',
+          tag: notification.tag || 'genz-default',
+          actions: [{ action: notification.clickAction || '/', title: 'Open' }]
         }
       },
       apns: {
@@ -274,11 +290,7 @@ const sendTopicNotification = async (topic, notification, data = {}) => {
       notification: {
         title: notification.title || 'GENZ WhatsApp',
         body: notification.body || '',
-        icon: notification.icon || '/icon-192x192.png',
-        badge: notification.badge || '/badge-72x72.png',
-        sound: notification.sound || 'default',
-        click_action: notification.clickAction || '/',
-        tag: notification.tag || 'default'
+        image: notification.image || undefined
       },
       data: {
         ...data,
@@ -289,7 +301,19 @@ const sendTopicNotification = async (topic, notification, data = {}) => {
         notification: {
           channelId: 'genz-whatsapp',
           priority: notification.priority || 'high',
-          sound: notification.sound || 'default'
+          sound: notification.sound || 'default',
+          clickAction: notification.clickAction || '/',
+          tag: notification.tag || 'genz-default'
+        }
+      },
+      webpush: {
+        notification: {
+          title: notification.title || 'GENZ WhatsApp',
+          body: notification.body || '',
+          icon: notification.icon || '/icons/icon-192.png',
+          badge: notification.badge || '/icons/badge-72x72.png',
+          tag: notification.tag || 'genz-default',
+          actions: [{ action: notification.clickAction || '/', title: 'Open' }]
         }
       },
       apns: {
