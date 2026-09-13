@@ -142,6 +142,17 @@ const VoiceRecorder = ({
     setPickerEffect(null);
   }, [voiceEffectMod]);
 
+  const [isRecording, setIsRecording] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const isLockedRef = useRef(false);
+  const [isViewOnce, setIsViewOnce] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [swipe, setSwipe] = useState(null);
+  const [error, setError] = useState(null);
+  const [previewAudioUrl, setPreviewAudioUrl] = useState(null);
+
   useEffect(() => {
     let listener = null;
     if (isNative()) {
@@ -153,17 +164,6 @@ const VoiceRecorder = ({
     }
     return () => { try { listener?.remove(); } catch {} };
   }, [error]);
-
-  const [isRecording, setIsRecording] = useState(false);
-  const [isLocked, setIsLocked] = useState(false);
-  const isLockedRef = useRef(false);
-  const [isViewOnce, setIsViewOnce] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [isPreviewMode, setIsPreviewMode] = useState(false);
-  const [duration, setDuration] = useState(0);
-  const [swipe, setSwipe] = useState(null);
-  const [error, setError] = useState(null);
-  const [previewAudioUrl, setPreviewAudioUrl] = useState(null);
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
   const [showEffects, setShowEffects] = useState(false);
   const [applyingEffect, setApplyingEffect] = useState(false);
