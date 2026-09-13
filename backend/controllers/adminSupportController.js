@@ -108,13 +108,16 @@ exports.listDirectChats = async (req, res) => {
 exports.startDirectChat = async (req, res) => {
   try {
     const { userId, message } = req.body || {};
-    if (!userId || !message || !message.trim()) {
+    if (!userId || !String(userId).trim() || !message || !String(message).trim()) {
+      console.warn('[AdminSupport] startDirectChat 400: missing fields', { userId, message: message?.substring(0, 50), bodyKeys: Object.keys(req.body || {}) });
       return res.status(400).json({ success: false, message: 'userId and message are required' });
     }
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
+    const cleanUserId = String(userId).trim();
+    if (!mongoose.Types.ObjectId.isValid(cleanUserId)) {
+      console.warn('[AdminSupport] startDirectChat 400: invalid userId', { userId: cleanUserId });
       return res.status(400).json({ success: false, message: 'Invalid userId format' });
     }
-    const user = await User.findById(userId);
+    const user = await User.findById(cleanUserId);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
     let chat = await SupportTicket.findOne({ userId, category: 'direct_message' });
@@ -124,7 +127,7 @@ exports.startDirectChat = async (req, res) => {
         openedBy: 'admin', status: 'open'
       });
     }
-    chat.conversation.push({ sender: 'admin', senderId: 'owner', message: message.trim(), readByAdmin: true });
+    chat.conversation.push({ sender: 'admin', senderId: 'owner', message: String(message).trim(), readByAdmin: true });
     chat.status = 'open';
     await chat.save();
 
