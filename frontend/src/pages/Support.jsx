@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, ArrowLeft, MessageCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Send, ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../services/api';
@@ -34,9 +34,9 @@ export default function Support() {
   };
   useEffect(() => { load(); }, []);
 
-  // Live refresh when admin sends a reply (socket dispatches ticket:updated)
+  // Live refresh when admin sends a message via socket
   useEffect(() => {
-    const onTicketUpdated = () => load();
+    const onTicketUpdated = () => { load(); };
     window.addEventListener('ticket:updated', onTicketUpdated);
     return () => window.removeEventListener('ticket:updated', onTicketUpdated);
   }, []);
@@ -130,7 +130,7 @@ export default function Support() {
                         <div key={i} className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                           <div className={`max-w-[80%] text-xs p-2 rounded-lg ${m.sender === 'admin' ? 'bg-blue-500/20 text-blue-200' : 'bg-[#00a884]/20 text-green-200'}`}>
                             <p>{m.message}</p>
-                            <p className="text-[10px] opacity-50 mt-1">{new Date(m.timestamp || m.createdAt).toLocaleTimeString()}</p>
+                            <p className="text-[10px] opacity-50 mt-1">{new Date(m.createdAt).toLocaleTimeString()}</p>
                           </div>
                         </div>
                       ))}
