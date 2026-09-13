@@ -8,6 +8,7 @@ import InAppNotification from './components/InAppNotification';
 import OfflineBanner from './components/OfflineBanner';
 import NetworkBanner from './components/NetworkBanner';
 import UpdateBanner from './components/UpdateBanner';
+import ForceUpdateModal from './components/ForceUpdateModal';
 // ServerHealthBanner removed — health status visible on admin dashboard only
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
@@ -545,6 +546,7 @@ function App() {
       <OfflineBanner />
       <NetworkBanner />
       <UpdateBanner />
+      <ForceUpdateModal />
 
       <InAppNotification
         notification={notification}

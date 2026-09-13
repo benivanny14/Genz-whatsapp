@@ -2,9 +2,9 @@
   "version": "1.1.26",
   "versionCode": 31,
   "apkUrl": "/genz-whatsapp.apk",
-  "sha256": "f979a120b6437d6546f96b465b63f36ad1261a913aa4ab2432070606283f058c",
-  "size": 21250655,
-  "releasedAt": "2026-09-10T19:49:15.359Z",
+  "sha256": "ad3a7117ce336f31b02092704833670b5c630e779e9d80e99f6ec1775ecec5a6",
+  "size": 11324299,
+  "releasedAt": "2026-09-13T11:09:56.727Z",
   "changes": [
     "App Lock fingerprint unlock fix (works like TM WhatsApp)",
     "Custom message fonts free for all users",

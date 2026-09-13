@@ -31,6 +31,7 @@ import SessionManagement from '../components/admin/SessionManagement';
 import AbuseReports from '../components/admin/AbuseReports';
 import GenzAfterWorkManagement from '../components/admin/GenzAfterWorkManagement';
 import BackupManagement from '../components/admin/BackupManagement';
+import UpdateManagement from '../components/admin/UpdateManagement';
 import { usePrompt } from '../components/PromptDialog';
 
 // ---------------------------------------------------------------------
@@ -66,6 +67,7 @@ const SECTIONS = [
   { key: 'devices', label: 'Device Management', icon: Smartphone, group: 'Security', implemented: true },
   { key: 'sessions', label: 'Session Management', icon: Timer, group: 'Security', implemented: true },
   { key: 'backups', label: 'Backup Management', icon: Database, group: 'Security', implemented: true },
+  { key: 'updates', label: 'App Updates', icon: Smartphone, group: 'Core', implemented: true },
 ];
 
 const GROUP_ORDER = ['Core', 'Finance', 'Content', 'Communication', 'Reports', 'Security'];
@@ -1139,6 +1141,7 @@ const AdminDashboard = () => {
       case 'devices': return <AdminDeviceManagement />;
       case 'sessions': return <SessionManagement />;
       case 'backups': return <BackupManagement />;
+      case 'updates': return <UpdateManagement />;
       default: {
         const section = SECTIONS.find((s) => s.key === active);
         return <ComingSoonPanel label={section?.label || active} />;
