@@ -654,10 +654,15 @@ app.use(securityHeaders);
 // CSRF defense-in-depth: reject state-changing requests from unlisted origins
 app.use(validateOrigin(appOrigins));
 
-// CSRF (M6): reject state-changing no-origin requests without Authorization
+// CSRF (M6): reject state-changing no-origin requests without Authorization.
+// Skip login/auth endpoints that legitimately have no origin or auth header.
 app.use((req, res, next) => {
   if (!req.headers.origin && req.method !== 'GET' && req.method !== 'HEAD' && req.method !== 'OPTIONS') {
     if (process.env.NODE_ENV === 'production' && !req.headers.authorization) {
+      const p = req.path || '';
+      if (p.includes('/auth/login') || p.includes('/auth/register') || p.includes('/auth/verify-2fa') || p.includes('/auth/refresh') || p.includes('/webhook/')) {
+        return next();
+      }
       return res.status(403).json({ success: false, error: 'CSRF: No origin and no authorization header' });
     }
   }
