@@ -113,9 +113,8 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                       } ${isOwnMessage(message)
                         ? 'bg-primary-600 text-white rounded-tr-none ml-12'
                         : 'bg-dark-surface text-dark-text rounded-tl-none mr-12'}`
-                      }`}
+                      } ${message.isAdmin && !isOwnMessage(message) ? 'ring-1 ring-primary-500/40 bg-gradient-to-br from-dark-surface to-primary-900/20' : ''}`}
                     onClick={(e) => {
-                      // Removed double menu action on regular click, letting users use the 3-dot menu or long press
                       setActiveMessageMenu(null);
                     }}
                     style={
@@ -129,8 +128,16 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                     }
                   >
                     {message.isAdmin && (
-                      <div className="flex items-center gap-1 text-[10px] font-bold text-primary-600 mb-1 bg-white/90 px-2 py-0.5 rounded-full w-fit shadow-sm border border-primary-200">
-                        <ShieldCheck size={10} className="text-primary-600" /> GENZ ADMIN
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold text-primary-400 mb-1.5">
+                        <div className="flex items-center gap-1 bg-primary-500/20 border border-primary-500/30 px-2 py-0.5 rounded-full">
+                          <ShieldCheck size={11} className="text-primary-400" />
+                          <span className="text-primary-300">GENZ ADMIN</span>
+                        </div>
+                        {message.sender?.role === 'superadmin' && (
+                          <div className="flex items-center gap-0.5 bg-yellow-500/20 border border-yellow-500/30 px-1.5 py-0.5 rounded-full">
+                            <span className="text-yellow-400 text-[9px]">SUPER</span>
+                          </div>
+                        )}
                       </div>
                     )}
                     {/* ── Forwarded label (WhatsApp style) ── */}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Download, Ghost, ImageIcon, Lock, MoreVertical, Radio, Search, ShieldAlert, Trash2, Users, X } from 'lucide-react';
+import { ArrowLeft, Download, Ghost, ImageIcon, Lock, MoreVertical, Radio, Search, ShieldAlert, ShieldCheck, Trash2, Users, X } from 'lucide-react';
 import { formatMessageTime } from '../utils/formatDate';
 
 /**
@@ -89,7 +89,12 @@ const ConversationHeader = React.memo(function ConversationHeader({ ctx }) {
                 <div className="flex-1 min-w-0">
                   <h2 className="text-white font-medium truncate leading-tight flex items-center gap-1.5">
                     {getConversationName()}
-                    {selectedConversation?.isGroup ? (
+                    {otherUser?.role === 'admin' || otherUser?.role === 'superadmin' ? (
+                      <div className="flex items-center gap-0.5 bg-primary-500/20 border border-primary-500/30 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                        <ShieldCheck size={11} className="text-primary-400" />
+                        <span className="text-[9px] font-bold text-primary-300">ADMIN</span>
+                      </div>
+                    ) : selectedConversation?.isGroup ? (
                       <ShieldAlert size={13} className="text-amber-400/90 flex-shrink-0" title="Group messages are stored on the server" aria-label="Group messages stored on server" />
                     ) : (
                       <Lock size={12} className="text-white/40 flex-shrink-0" title="Messages encrypted in transit & at rest" aria-label="Messages encrypted in transit and at rest" />

@@ -1135,6 +1135,9 @@ exports.sendMessage = async (req, res) => {
                 conversationId: finalConversationId,
                 unreadCount: getUnreadCount(updatedConversation, recipientId)
               });
+              // Mirror socket path: emit conversation:created so deleted chats
+              // are restored in the recipient's local state
+              io.to(recipientId).emit("conversation:created", updatedConversation);
             }
             notificationTasks.push((async () => {
               // FIX: previously every participant got a push notification for

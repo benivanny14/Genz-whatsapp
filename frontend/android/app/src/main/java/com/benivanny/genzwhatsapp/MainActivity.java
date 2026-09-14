@@ -94,9 +94,11 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        // CRITICAL: Resolve the WebView PermissionRequest BEFORE calling super.
+        // super.onRequestPermissionsResult dispatches to Capacitor plugins (e.g. camera)
+        // which can interfere with the WebView's pending PermissionRequest state.
         if (pendingPermissionRequest != null) {
-            boolean allGranted = true;
+            boolean allGranted = grantResults.length > 0;
             for (int result : grantResults) {
                 if (result != PackageManager.PERMISSION_GRANTED) {
                     allGranted = false;
@@ -113,6 +115,7 @@ public class MainActivity extends BridgeActivity {
             pendingPermissionRequest = null;
             pendingPermissionResources = null;
         }
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
     /**

@@ -7,6 +7,7 @@ import { resolveApiBase } from '../utils/resolveApiBase';
 import { getAuthToken } from '../utils/tokenStore';
 
 const DISMISS_KEY = 'genz-update-dismissed-version';
+const DISMISS_SESSION = 'genz-update-dismissed-session';
 
 // Injected at build time from public/version.json (see vite.config.js) — the
 // versionCode this bundle was BUILT with. On the web there is no native
@@ -40,6 +41,11 @@ const UpdateBanner = () => {
 
     const isDismissed = (versionCode) => {
       try {
+        // APK: only dismiss for current session (reappears on next launch)
+        if (isNative()) {
+          return sessionStorage.getItem(DISMISS_SESSION) === String(versionCode);
+        }
+        // Web: persistent dismissal per version
         return localStorage.getItem(DISMISS_KEY) === String(versionCode);
       } catch {
         return false;
@@ -131,7 +137,12 @@ const UpdateBanner = () => {
   const dismiss = () => {
     setDismissed(true);
     try {
-      localStorage.setItem(DISMISS_KEY, String(update.versionCode || update.version));
+      if (isNative()) {
+        // APK: only dismiss for this session — banner reappears on next launch
+        sessionStorage.setItem(DISMISS_SESSION, String(update.versionCode || update.version));
+      } else {
+        localStorage.setItem(DISMISS_KEY, String(update.versionCode || update.version));
+      }
     } catch { /* ignore */ }
     trackUpdateEvent('update_dismissed', {
       version: update.version,

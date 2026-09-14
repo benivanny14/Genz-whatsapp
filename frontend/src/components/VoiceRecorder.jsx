@@ -287,10 +287,17 @@ const VoiceRecorder = ({
       if (isNative()) {
         try {
           const { App } = await import('@capacitor/app');
-          // If user returns from Settings, auto-retry will be handled by the
-          // error toast's button, but also listen for foreground to clear error
+          // Auto-retry when user returns from Settings after granting permission
           appStateListener = await App.addListener('appStateChange', ({ isActive }) => {
-            if (isActive && error) setError(null);
+            if (isActive && error) {
+              setError(null);
+              // Retry recording after permission was granted in Settings
+              setTimeout(() => {
+                if (!isRecording && !isLocked) {
+                  startRecording();
+                }
+              }, 300);
+            }
           });
         } catch {}
       }

@@ -242,9 +242,16 @@ export { applyVoiceEffect };
 export const getAudioDuration = async (audioBlob) => {
   return new Promise((resolve) => {
     const audio = new Audio();
-    audio.onloadedmetadata = () => resolve(audio.duration);
-    audio.onerror = () => resolve(0);
-    audio.src = URL.createObjectURL(audioBlob);
+    const objectUrl = URL.createObjectURL(audioBlob);
+    const cleanup = () => {
+      audio.onloadedmetadata = null;
+      audio.onerror = null;
+      audio.src = '';
+      URL.revokeObjectURL(objectUrl);
+    };
+    audio.onloadedmetadata = () => { const d = audio.duration; cleanup(); resolve(d); };
+    audio.onerror = () => { cleanup(); resolve(0); };
+    audio.src = objectUrl;
   });
 };
 
@@ -1064,6 +1071,12 @@ export const ChatProvider = ({ children }) => {
           }
           socket.emit('user:join', uid);
 
+          // Re-join the active conversation room so real-time messages resume
+          const rejoinConvId = getStoredSelectedConversationId();
+          if (rejoinConvId) {
+            socket.emit('join:conversation', rejoinConvId);
+          }
+
         // Re-confirm push subscription on reconnect (the real subscribe now
         // happens on app startup in App.jsx — this used to be the *only*
         // place it happened, and only fired on 'reconnect', so a normal
@@ -1434,16 +1447,27 @@ export const ChatProvider = ({ children }) => {
           }
           await DB.saveMessage(incoming);
         } catch (e) { }
-        setConversations(prev => prev.map(c => {
-          if (c._id === incoming.conversationId) {
-            return {
-              ...c,
-              lastMessage: incoming,
-              updatedAt: new Date()
-            };
+        setConversations(prev => {
+          const exists = prev.some(c => c._id === incoming.conversationId);
+          if (exists) {
+            return prev.map(c => {
+              if (c._id === incoming.conversationId) {
+                return { ...c, lastMessage: incoming, updatedAt: new Date() };
+              }
+              return c;
+            });
           }
-          return c;
-        }));
+          // Conversation was deleted from local state — fetch and restore it
+          apiService.getConversation(incoming.conversationId).then(conv => {
+            if (conv?.data) {
+              setConversations(p => {
+                if (p.some(c => String(c._id) === String(conv.data._id))) return p;
+                return [conv.data, ...p];
+              });
+            }
+          }).catch(() => {});
+          return prev;
+        });
         } catch (err) {
           console.error('[ChatContext] message:received handler error:', err);
         }
@@ -2400,35 +2424,48 @@ export const ChatProvider = ({ children }) => {
   // ── Auto-Reply Bot (Item 3) ──
   // ── Auto-Reply removed as requested ──
 
+  // ── Disappearing messages: only create timers for NEW messages ──
+  const disappearingTimersRef2 = useRef({});
+  const prevMessageIdsRef = useRef(new Set());
+
   useEffect(() => {
-    const expiringMessages = (messages || []).filter(m => m.disappearAt);
-    if (!expiringMessages.length) return undefined;
-
+    const currentIds = new Set((messages || []).map(m => String(m._id || m.id)));
     const now = Date.now();
-    const expiredIds = expiringMessages
-      .filter(m => new Date(m.disappearAt).getTime() <= now)
-      .map(m => m._id || m.id)
-      .filter(Boolean);
 
-    if (expiredIds.length) {
-      const expiredSet = new Set(expiredIds.map(String));
-      setMessages(prev => prev.filter(m => !expiredSet.has(String(m._id || m.id))));
-      try { DB.deleteMessages(expiredIds); } catch (_) { /* cache cleanup is best-effort */ }
+    // Clean up timers for messages that no longer exist
+    for (const msgId of Object.keys(disappearingTimersRef2.current)) {
+      if (!currentIds.has(msgId)) {
+        clearTimeout(disappearingTimersRef2.current[msgId]);
+        delete disappearingTimersRef2.current[msgId];
+      }
     }
 
-    const timers = expiringMessages
-      .map((message) => {
-        const messageId = message._id || message.id;
-        const delay = new Date(message.disappearAt).getTime() - now;
-        if (!messageId || delay <= 0) return null;
-        return setTimeout(() => {
-          setMessages(prev => prev.filter(m => String(m._id || m.id) !== String(messageId)));
-          try { DB.deleteMessages([messageId]); } catch (_) { /* cache cleanup is best-effort */ }
-        }, Math.min(delay, 2147483647));
-      })
-      .filter(Boolean);
+    // Only set timers for NEW messages with disappearAt
+    for (const message of (messages || [])) {
+      const messageId = String(message._id || message.id);
+      if (prevMessageIdsRef.current.has(messageId)) continue; // already processed
+      if (!message.disappearAt) continue;
 
-    return () => timers.forEach(clearTimeout);
+      const delay = new Date(message.disappearAt).getTime() - now;
+      if (delay <= 0) {
+        // Already expired — remove immediately
+        setMessages(prev => prev.filter(m => String(m._id || m.id) !== messageId));
+        try { DB.deleteMessages([message._id || message.id]); } catch (_) {}
+        continue;
+      }
+      disappearingTimersRef2.current[messageId] = setTimeout(() => {
+        setMessages(prev => prev.filter(m => String(m._id || m.id) !== messageId));
+        try { DB.deleteMessages([message._id || message.id]); } catch (_) {}
+        delete disappearingTimersRef2.current[messageId];
+      }, Math.min(delay, 2147483647));
+    }
+
+    prevMessageIdsRef.current = currentIds;
+
+    return () => {
+      Object.values(disappearingTimersRef2.current).forEach(clearTimeout);
+      disappearingTimersRef2.current = {};
+    };
   }, [messages]);
 
   // ── Core messaging ──
