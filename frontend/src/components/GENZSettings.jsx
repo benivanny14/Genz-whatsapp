@@ -2060,7 +2060,9 @@ const PrivacyTab = ({ ctx }) => {
                 locked={premiumLocked}
               />
 
+              {user?.role === 'admin' && (
               <FakeChatSection ctx={{ mods, toggleMod, isPrivacyLocked: premiumLocked }} />
+              )}
 
               <div
                 onClick={() => window.location.href = '/genz-after-work'}
@@ -2622,7 +2624,8 @@ const ModsTab = ({ ctx }) => {
           </div>
         </section>
 
-        {/* ─── System Dashboard ─── */}
+        {/* ─── System Dashboard (admin only) ─── */}
+        {user?.role === 'admin' && (
         <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
           <div className="p-4 bg-gradient-to-r from-green-900/40 to-teal-900/40 border-b border-white/10 flex items-center gap-2 text-green-400 font-bold">
             <BarChart size={18} /> System Dashboard
@@ -2637,6 +2640,7 @@ const ModsTab = ({ ctx }) => {
             </button>
           </div>
         </section>
+        )}
 
         {/* ─── TikTok / Instagram Exclusive Features ─── */}
         <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">

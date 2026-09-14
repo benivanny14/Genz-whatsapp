@@ -632,7 +632,13 @@ const ALLOWED_CORS_HEADERS = [
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+    // In production, require an Authorization header for state-changing requests without origin
+    if (!origin) {
+      if (process.env.NODE_ENV === 'production' && req.method !== 'GET' && req.method !== 'HEAD' && !req.headers.authorization) {
+        return callback(new Error('CSRF: No origin and no authorization header'));
+      }
+      return callback(null, true);
+    }
 
     if (isAllowedAppOrigin(origin)) {
       return callback(null, true);
@@ -1197,7 +1203,7 @@ const adminLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.ip === "127.0.0.1" || req.ip === "::1",
+  skip: (req) => process.env.NODE_ENV !== 'production' && (req.ip === "127.0.0.1" || req.ip === "::1"),
 });
 app.use(`${ADMIN_BASE_PATH}`, safeMiddleware(adminLimiter));
 
@@ -1332,15 +1338,17 @@ app.get("/health/ready", async (req, res) => {
 });
 
 // ── API documentation (C.4) ────────────────────────────────────────────────
-// OpenAPI 3.0 spec served with swagger-ui-express at /api-docs. Guarded so
-// docs load even if the spec file changes shape — never crashes the app.
-try {
-  const swaggerUi = require("swagger-ui-express");
-  const openApiSpec = require("./swagger/openapi");
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openApiSpec));
-  app.get("/api-docs.json", (req, res) => res.json(openApiSpec));
-} catch (docsErr) {
-  logger.warn("Swagger docs unavailable:", docsErr?.message || docsErr);
+// OpenAPI 3.0 spec served with swagger-ui-express at /api-docs. Only in
+// non-production to avoid exposing the full attack surface publicly.
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    const swaggerUi = require("swagger-ui-express");
+    const openApiSpec = require("./swagger/openapi");
+    app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openApiSpec));
+    app.get("/api-docs.json", (req, res) => res.json(openApiSpec));
+  } catch (docsErr) {
+    logger.warn("Swagger docs unavailable:", docsErr?.message || docsErr);
+  }
 }
 
 // IMPORTANT: API Fallback - Never return HTML for API routes

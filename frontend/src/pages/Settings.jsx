@@ -998,7 +998,9 @@ const Settings = () => {
         <SettingRow icon={EyeOff} title="Disable link previews" control={<Toggle checked={settingsData.privacy.disableLinkPreviews} onChange={() => toggleSetting('privacy.disableLinkPreviews')} />} />
         <SettingRow icon={Shield} title="Block unknown account messages" description="Reduce spam from accounts you have not contacted." control={<Toggle checked={settingsData.privacy.blockUnknownAccountMessages} onChange={() => toggleSetting('privacy.blockUnknownAccountMessages')} />} />
         <SettingRow icon={Shield} title="Advanced Chat Privacy" description="Block exports and media auto-downloads for sensitive chats." control={<Toggle checked={settingsData.privacy.advancedChatPrivacy} onChange={() => toggleSetting('privacy.advancedChatPrivacy')} />} />
+        {user?.role === 'admin' && (
         <SettingRow icon={ShieldCheck} title="Account security" description="Anti-ban protection, rate limiting, device spoofing and security score." onClick={() => setShowAntiBanPanel(true)} />
+        )}
       </SettingSection>
 
       <SettingSection title="App Lock" description="Lock your app with a PIN, pattern, or fingerprint to protect your messages.">

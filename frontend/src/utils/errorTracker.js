@@ -29,9 +29,13 @@ class ErrorTracker {
   async sendToBackend(errorData) {
     try {
       const { resolveApiBase } = await import('./resolveApiBase');
-      await fetch(`${resolveApiBase()}/telemetry/error`, {
+      const token = localStorage.getItem('token') || '';
+      await fetch(`${resolveApiBase()}/telemetry/crashes`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify(errorData)
       });
     } catch (err) {

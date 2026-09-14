@@ -74,7 +74,8 @@ describe('securityController — 2FA', () => {
     expect(user.twoFactorSecret).toBe('BASE32SECRET');
     expect(user.twoFactorVerified).toBe(false);
     expect(user.save).toHaveBeenCalled();
-    expect(res.body.secret).toBe('BASE32SECRET');
+    expect(res.body.secret).toBeUndefined();
+    expect(res.body.otpauthUrl).toBeUndefined();
     expect(res.body.qrCode).toMatch(/^data:image\/png/);
   });
 
@@ -127,7 +128,7 @@ describe('securityController — 2FA', () => {
     expect(res.body.twoFactorEnabled).toBe(false);
   });
 
-  it('rejects 2FA login without userId/token (validation)', async () => {
+  it('rejects 2FA login without token (validation)', async () => {
     const res = makeRes();
     await security.verifyTwoFactorLogin(makeReq({ body: {} }), res);
     expect(res.statusCode).toBe(400);
@@ -136,7 +137,7 @@ describe('securityController — 2FA', () => {
   it('returns 404 for 2FA login when 2FA is not enabled', async () => {
     User.findById.mockResolvedValue(makeUser());
     const res = makeRes();
-    await security.verifyTwoFactorLogin(makeReq({ body: { userId: 'user-1', token: '123456' } }), res);
+    await security.verifyTwoFactorLogin(makeReq({ body: { token: '123456' } }), res);
     expect(res.statusCode).toBe(404);
     expect(res.body.message).toBe('2FA is not enabled for this user');
   });
@@ -146,7 +147,7 @@ describe('securityController — 2FA', () => {
     User.findById.mockResolvedValue(user);
     speakeasy.totp.verify.mockReturnValue(true);
     const res = makeRes();
-    await security.verifyTwoFactorLogin(makeReq({ body: { userId: 'user-1', token: '123456' } }), res);
+    await security.verifyTwoFactorLogin(makeReq({ body: { token: '123456' } }), res);
     expect(res.body).toEqual({ success: true, verified: true });
   });
 

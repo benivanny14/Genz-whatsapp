@@ -357,6 +357,7 @@ const FeatureLibrary = () => {
         { id: 'dnd', name: 'Do Not Disturb', desc: 'Silence notifications at night', C: DoNotDisturb,
           props: { settings: dnd, onUpdate: setDnd } },
         { id: 'bulksender', name: 'Bulk Sender', desc: 'Send a message to many chats', C: BulkSender,
+          adminOnly: true,
           props: { conversations: allChats, user } },
         { id: 'documents', name: 'Documents', desc: 'Manage shared documents', C: DocumentSharing,
           props: { documents, onUpload: (d) => setDocuments([...documents, d]), onDownload: () => {}, onDelete: (id) => setDocuments(documents.filter(d => d.id !== id)), onShare: () => {} } },
@@ -630,7 +631,7 @@ const FeatureLibrary = () => {
               <h2 className="font-semibold">{cat.title}</h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {cat.items.map(item => (
+              {cat.items.filter(item => !item.adminOnly || user?.role === 'admin').map(item => (
                 <button
                   key={item.id}
                   onClick={() => setActive(item.id)}
