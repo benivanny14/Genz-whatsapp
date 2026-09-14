@@ -747,12 +747,12 @@ const UsersSection = () => {
   };
 
   const bulkBlock = async (block) => {
-    if (selected.length === 0) return;
     try {
-      await Promise.all(selected.map(id => adminApi.post(`/admin/users/${id}/${block ? 'block' : 'unblock'}`)));
-      toast.success(`${selected.length} users ${block ? 'blocked' : 'unblocked'}`);
-      setSelected([]); load(search, filter, page);
-    } catch { toast.error('Bulk failed'); }
+      await adminApi.post('/admin/users/bulk', { action: block ? 'block' : 'unblock', userIds: selected });
+      setSelected([]);
+      load(search, filter, page);
+      toast.success(`Users ${block ? 'blocked' : 'unblocked'}`);
+    } catch { toast.error('Bulk action failed'); }
   };
 
   const exportCSV = () => {

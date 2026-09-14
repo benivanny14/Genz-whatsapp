@@ -430,10 +430,10 @@ module.exports = function registerGroupHandlers(ctx) {
       const isAdmin = conversation.admins?.some(a => String(a) === String(socket.userId));
       if (!isAdmin) return;
 
-      // Actually ban the member: remove from participants, add to bannedUsers
-      if (!conversation.bannedUsers) conversation.bannedUsers = [];
-      if (!conversation.bannedUsers.some(id => String(id) === String(userId))) {
-        conversation.bannedUsers.push(userId);
+      // Actually ban the member: remove from participants, add to bannedMembers
+      if (!conversation.bannedMembers) conversation.bannedMembers = [];
+      if (!conversation.bannedMembers.some(b => String(b.user) === String(userId))) {
+        conversation.bannedMembers.push({ user: userId, bannedBy: socket.userId, reason: reason || '', bannedAt: new Date() });
       }
       conversation.participants = (conversation.participants || []).filter(
         p => String(p) !== String(userId)

@@ -129,7 +129,7 @@ exports.bootstrapAdmin = async (req, res) => {
     }
 
     const user = await User.findByIdAndUpdate(
-      req.user._id,
+      req.admin.id,
       { $set: { role: 'admin', isAdmin: true } },
       { new: true, runValidators: true }
     ).select(safeUserProjection);
@@ -331,7 +331,7 @@ exports.updateUser = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    await logAdminAction(req.user._id, 'user_updated', { updates }, user._id, null, req);
+    await logAdminAction(req.admin.id, 'user_updated', { updates }, user._id, null, req);
 
     // Real-time APK notify (was silent DB only)
     try {
@@ -405,7 +405,7 @@ exports.deleteUser = async (req, res) => {
     const username = user.username;
     await User.findByIdAndDelete(uid);
 
-    await logAdminAction(req.user._id, 'user_deleted', { targetUsername: username }, uid, null, req);
+    await logAdminAction(req.admin.id, 'user_deleted', { targetUsername: username }, uid, null, req);
 
     try {
       const io = req.app.get('io');
@@ -607,7 +607,7 @@ exports.bulkUserAction = async (req, res) => {
       }
     } catch (e) { /* emit best-effort */ }
 
-    await logAdminAction(req.user._id, `bulk_${action}`, { userIds: targets, count: targets.length }, null, null, req);
+    await logAdminAction(req.admin.id, `bulk_${action}`, { userIds: targets, count: targets.length }, null, null, req);
 
     return res.status(200).json({ success: true, affected: result.modifiedCount || result.deletedCount || 0 });
   } catch (error) {

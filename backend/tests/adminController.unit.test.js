@@ -63,6 +63,7 @@ const makeReq = (overrides = {}) => ({
   query: {},
   headers: {},
   user: { _id: 'admin-1', username: 'root', role: 'admin', isAdmin: true },
+  admin: { id: 'admin-1', username: 'root', role: 'admin', isAdmin: true },
   app: { get: jest.fn(() => null) },
   ...overrides
 });

@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import adminApi from '../../services/adminApi';
 import toast from 'react-hot-toast';
+import { useConfirm } from '../ConfirmDialog';
 
 export default function CommunityManagement() {
   const [communities, setCommunities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const confirm = useConfirm();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -19,7 +21,7 @@ export default function CommunityManagement() {
   useEffect(() => { load(); }, [load]);
 
   const handleDelete = async (id) => {
-    if (!confirm('Delete this community?')) return;
+    if (!(await confirm('Delete this community?', { danger: true }))) return;
     try {
       await adminApi.delete(`/admin/communities/${id}`);
       toast.success('Community deleted');

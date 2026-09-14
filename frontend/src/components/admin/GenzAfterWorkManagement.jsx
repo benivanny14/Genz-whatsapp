@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { adminApi } from '../../services/adminApi';
+import toast from 'react-hot-toast';
+import { api } from '../../services/api';
 import PaymentFeatureMedia from '../PaymentFeatureMedia';
 import {
   DollarSign,
@@ -61,7 +62,7 @@ const GenzAfterWorkManagement = () => {
   const loadFeatures = async () => {
     setLoading(true);
     try {
-      const { data } = await adminApi.get('/payment-features?status=all');
+      const { data } = await api.get('/payment-features?status=all');
       setFeatures(data.data || []);
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error loading features:', error);
@@ -77,7 +78,7 @@ const GenzAfterWorkManagement = () => {
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
     if (existingImages.length + createForm.images.length + files.length > 5) {
-      alert('Maximum 5 images allowed');
+      toast.error('Maximum 5 images allowed');
       return;
     }
     setCreateForm(prev => ({ ...prev, images: [...prev.images, ...files] }));
@@ -87,7 +88,7 @@ const GenzAfterWorkManagement = () => {
   const handleVideoUpload = (e) => {
     const files = Array.from(e.target.files);
     if (existingVideos.length + createForm.videos.length + files.length > 3) {
-      alert('Maximum 3 videos allowed');
+      toast.error('Maximum 3 videos allowed');
       return;
     }
     setCreateForm(prev => ({ ...prev, videos: [...prev.videos, ...files] }));
@@ -141,19 +142,19 @@ const GenzAfterWorkManagement = () => {
     try {
       setSubmitting(true);
       const { data } = editingFeature
-        ? await adminApi.put(`/payment-features/${editingFeature._id}`, formData)
-        : await adminApi.post('/payment-features', formData);
+        ? await api.put(`/payment-features/${editingFeature._id}`, formData)
+        : await api.post('/payment-features', formData);
 
       if (data.success) {
-        alert(editingFeature ? 'Feature updated successfully' : 'Feature created successfully');
+        toast.success(editingFeature ? 'Feature updated successfully' : 'Feature created successfully');
         resetForm();
         loadFeatures();
       } else {
-        alert(data.message || 'Failed to save feature');
+        toast.error(data.message || 'Failed to save feature');
       }
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error creating feature:', error);
-      alert(error.response?.data?.message || 'Error saving feature');
+      toast.error(error.response?.data?.message || 'Error saving feature');
     } finally {
       setSubmitting(false);
     }
@@ -214,16 +215,16 @@ const GenzAfterWorkManagement = () => {
     if (!confirm('Are you sure you want to delete this feature?')) return;
 
     try {
-      const { data } = await adminApi.delete(`/payment-features/${featureId}`);
+      const { data } = await api.delete(`/payment-features/${featureId}`);
       if (data.success) {
-        alert('Feature deleted successfully');
+        toast.success('Feature deleted successfully');
         loadFeatures();
       } else {
-        alert('Failed to delete feature');
+        toast.error('Failed to delete feature');
       }
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error deleting feature:', error);
-      alert('Error deleting feature');
+      toast.error('Error deleting feature');
     }
   };
 

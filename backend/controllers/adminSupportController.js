@@ -136,6 +136,6 @@ exports.startDirectChat = async (req, res) => {
     res.json({ success: true, chat });
   } catch (error) {
     console.error('[AdminSupport] startDirectChat error:', error.message, error.stack);
-    res.status(500).json({ success: false, message: 'Failed to start chat', detail: error.message });
+    res.status(500).json({ success: false, message: 'Failed to start chat' });
   }
 };
