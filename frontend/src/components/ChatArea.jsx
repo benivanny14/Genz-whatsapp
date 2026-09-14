@@ -2259,7 +2259,13 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   // GENZ MOD: Logic moved here to ensure selectedConversation is not null
   const currentUserIsAdmin = selectedConversation?.isGroup &&
     (selectedConversation?.participants || []).find((p) => String(p?._id || p?.id || p) === String(user?.id || user?._id))?.role === 'admin';
-  const adminOnlyMessagingEnabled = selectedConversation?.isGroup && selectedConversation.adminOnlyMessaging;
+
+  // Detect admin-only chats: group with adminOnlyMessaging flag, OR 1:1 chat with an admin user
+  const otherParticipant = (selectedConversation?.participants || []).find((p) => String(p?._id || p?.id || p) !== String(user?.id || user?._id));
+  const isAdminUser = otherParticipant?.role === 'admin' || otherParticipant?.username === 'GENZ Support';
+  const adminOnlyMessagingEnabled = selectedConversation?.isGroup
+    ? selectedConversation.adminOnlyMessaging
+    : (!selectedConversation?.isGroup && isAdminUser);
   const canSendMedia = selectedConversation?.isGroup ? (selectedConversation.canSendMedia || currentUserIsAdmin) : true;
   const canCreatePolls = selectedConversation?.isGroup ? (selectedConversation.canCreatePolls || currentUserIsAdmin) : true;
   const canChangeGroupInfo = selectedConversation?.isGroup ? (selectedConversation.canChangeGroupInfo || currentUserIsAdmin) : true;

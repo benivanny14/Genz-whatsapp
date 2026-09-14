@@ -198,7 +198,7 @@ const populateConversation = (query) =>
     // are filtered (missing them would silently leak privacy-restricted fields).
     .populate(
       "participants",
-      "username phoneNumber profilePicture isOnline lastSeen about settings contacts",
+      "username phoneNumber profilePicture isOnline lastSeen about settings contacts role",
     )
     .populate("admins", "username profilePicture")
     .populate("lastMessage");
@@ -905,6 +905,18 @@ exports.sendMessage = async (req, res) => {
       }
       if (conversation.canCreatePolls === false && messageType === 'poll') {
         return res.status(403).json({ success: false, message: 'Polls are disabled in this group' });
+      }
+    } else {
+      // 1:1 chat with admin user: only admin can send messages
+      const receiverId = conversation.participants.find(p => String(p) !== String(localUserId));
+      if (receiverId) {
+        const receiver = await User.findById(receiverId).select('role isAdmin username').lean();
+        const receiverIsAdmin = receiver?.role === 'admin' || receiver?.isAdmin || receiver?.username === 'GENZ Support';
+        const senderUser = await User.findById(localUserId).select('role isAdmin').lean();
+        const senderIsAdmin = senderUser?.role === 'admin' || senderUser?.isAdmin;
+        if (receiverIsAdmin && !senderIsAdmin) {
+          return res.status(403).json({ success: false, message: 'Only admins can send messages to this contact' });
+        }
       }
     }
 
