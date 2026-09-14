@@ -1,14 +1,17 @@
 {
-  "version": "1.1.26",
-  "versionCode": 31,
+  "version": "1.1.27",
+  "versionCode": 32,
   "apkUrl": "/genz-whatsapp.apk",
-  "sha256": "e319cd53c4bdf03e409d1694bb6c25ca4d8b385dc3289c4b14877a434f42b6fb",
-  "size": 11324903,
-  "releasedAt": "2026-09-13T11:52:35.508Z",
+  "sha256": "7e3d98111b932646dc769968514ffd740d5be57cd6ee94d0bcfd377a68770e8d",
+  "size": 11325730,
+  "releasedAt": "2026-09-14T14:20:05.609Z",
   "changes": [
-    "App Lock fingerprint unlock fix (works like TM WhatsApp)",
-    "Custom message fonts free for all users",
-    "Anti-screenshot verified on-device",
-    "Status (video/photo/voice/location), Winga & voice notes QA passed"
+    "Security audit: 18 critical/high/medium vulnerabilities fixed",
+    "2FA bypass patched — userId now derived from auth token",
+    "Hardcoded PII removed from payment controller",
+    "Swagger docs disabled in production",
+    "SSRF protection for link previews",
+    "Admin-only features hidden from regular users",
+    "CSRF and rate limiter security improvements"
   ]
 }
