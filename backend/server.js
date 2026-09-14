@@ -632,13 +632,7 @@ const ALLOWED_CORS_HEADERS = [
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
-    // In production, require an Authorization header for state-changing requests without origin
-    if (!origin) {
-      if (process.env.NODE_ENV === 'production' && req.method !== 'GET' && req.method !== 'HEAD' && !req.headers.authorization) {
-        return callback(new Error('CSRF: No origin and no authorization header'));
-      }
-      return callback(null, true);
-    }
+    if (!origin) return callback(null, true);
 
     if (isAllowedAppOrigin(origin)) {
       return callback(null, true);
@@ -659,6 +653,16 @@ app.options("*", cors(corsOptions));
 app.use(securityHeaders);
 // CSRF defense-in-depth: reject state-changing requests from unlisted origins
 app.use(validateOrigin(appOrigins));
+
+// CSRF (M6): reject state-changing no-origin requests without Authorization
+app.use((req, res, next) => {
+  if (!req.headers.origin && req.method !== 'GET' && req.method !== 'HEAD' && req.method !== 'OPTIONS') {
+    if (process.env.NODE_ENV === 'production' && !req.headers.authorization) {
+      return res.status(403).json({ success: false, error: 'CSRF: No origin and no authorization header' });
+    }
+  }
+  next();
+});
 
 // Security headers for production
 app.use(
