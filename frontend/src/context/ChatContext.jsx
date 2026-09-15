@@ -249,8 +249,9 @@ export const getAudioDuration = async (audioBlob) => {
       audio.src = '';
       URL.revokeObjectURL(objectUrl);
     };
-    audio.onloadedmetadata = () => { const d = audio.duration; cleanup(); resolve(d); };
-    audio.onerror = () => { cleanup(); resolve(0); };
+    const timer = setTimeout(() => { cleanup(); resolve(0); }, 10000);
+    audio.onloadedmetadata = () => { const d = audio.duration; clearTimeout(timer); cleanup(); resolve(d); };
+    audio.onerror = () => { clearTimeout(timer); cleanup(); resolve(0); };
     audio.src = objectUrl;
   });
 };
@@ -262,9 +263,10 @@ export const compressAudio = async (audioBlob, quality = 'medium') => {
 };
 
 export const analyzeAudioForWaveform = async (audioBlob) => {
+  let audioCtx;
   try {
     const arrayBuffer = await audioBlob.arrayBuffer();
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
     const channelData = audioBuffer.getChannelData(0);
 
@@ -281,11 +283,12 @@ export const analyzeAudioForWaveform = async (audioBlob) => {
       waveform[i] = Math.min(255, (sum / blockSize) * 255);
     }
 
-    await audioCtx.close();
     return waveform;
   } catch (e) {
     console.warn('Waveform analysis failed:', e);
     return null;
+  } finally {
+    if (audioCtx) { try { await audioCtx.close(); } catch (_) {} }
   }
 };
 
@@ -1155,7 +1158,7 @@ export const ChatProvider = ({ children }) => {
         window.dispatchEvent(new CustomEvent('contacts:updated'));
       });
 
-      // ── Someone posted a status → live toast + refresh feed ──
+      // ── Someone posted a status → live toast (optimistic insert handled by second handler) ──
       socket.on('status:created', (statusObj) => {
         try {
           const posterId = String(statusObj?.userId || statusObj?.user?._id || statusObj?.user || '');
@@ -1165,9 +1168,6 @@ export const ChatProvider = ({ children }) => {
             showActivityToastRef.current('status', `🟢 ${name} posted a status`);
           }
         } catch (_) { /* ignore */ }
-        apiService.getStatuses().then((data) => {
-          if (data?.success) setStatuses(data.statuses || []);
-        }).catch(() => {});
       });
 
       // ── Someone posted a business on WINGA → live toast + refresh ──
@@ -1233,7 +1233,8 @@ export const ChatProvider = ({ children }) => {
         try { localStorage.clear(); } catch {}
         window.location.href = '/login';
       });
-      socket.on('user:blocked', async () => {
+      socket.on('user:blocked', async (data) => {
+        if (data?.blockerId) return;
         toast.error('Your account has been blocked by admin');
         try { localStorage.clear(); } catch {}
         setTimeout(() => window.location.href = '/login', 1500);
@@ -1257,25 +1258,21 @@ export const ChatProvider = ({ children }) => {
           selectedConversationIdRef.current = null;
         }
       });
-      socket.on('group:you_were_removed', (data) => {
-        const gid = String(data?.groupId);
-        if (!gid) return;
-        setConversations(prev => prev.filter(c => String(c._id) !== gid));
-        if (String(selectedConversationIdRef.current) === gid) {
-          setSelectedConversation(null);
-          selectedConversationIdRef.current = null;
-        }
-      });
-      socket.on('group:participant_removed', (data) => {
-        const gid = String(data?.groupId); const uid = String(data?.userId);
+      socket.on('group:participant_removed', ({ groupId, userId } = {}) => {
+        if (!groupId) return;
         const myId = String(currentUserIdRef.current);
-        if (uid === myId) {
-          setConversations(prev => prev.filter(c => String(c._id) !== gid));
-          if (String(selectedConversationIdRef.current) === gid) {
+        if (userId && String(userId) === myId) {
+          setConversations(prev => prev.filter(c => String(c._id) !== String(groupId)));
+          if (String(selectedConversationIdRef.current) === String(groupId)) {
             setSelectedConversation(null);
             selectedConversationIdRef.current = null;
           }
         }
+        updateGroupParticipants(groupId, (c) => ({
+          ...c,
+          participants: (c.participants || []).filter(p => String(p?._id || p) !== String(userId)),
+          admins: (c.admins || []).filter(a => String(a?._id || a) !== String(userId)),
+        }));
       });
       socket.on('channel:deleted', (data) => {
         const cid = String(data?.channelId);
@@ -1339,7 +1336,7 @@ export const ChatProvider = ({ children }) => {
         try {
           const muteList = JSON.parse(localStorage.getItem('genz_muted_chats') || '[]');
           const isMuted = muteList.includes(String(msg.conversationId));
-          const isDND = JSON.parse(localStorage.getItem('genz_settings_comprehensive') || '{}').isDNDMode;
+          const isDND = JSON.parse(localStorage.getItem('genz_settings_comprehensive:' + currentUserId) || '{}').isDNDMode;
           if (!isMuted && !isDND) playMessageSound();
         } catch (_) {}
         if (blockedUsersRef.current.some((id) => String(id) === senderId)) {
@@ -1585,7 +1582,7 @@ export const ChatProvider = ({ children }) => {
       // ── Message edited ──
       socket.on('message:edited', (updatedMsg) => {
         setMessages(prev => prev.map(m => m._id === updatedMsg._id ? updatedMsg : m));
-        try { DB.saveMessage(updatedMsg); } catch (e) { }
+        DB.saveMessage(updatedMsg).catch(() => {});
       });
 
       // ── Live location: coordinates updated on the original message ──
@@ -1778,15 +1775,6 @@ export const ChatProvider = ({ children }) => {
         });
       });
 
-      socket.on('group:participant_removed', ({ groupId, userId } = {}) => {
-        if (!groupId) return;
-        updateGroupParticipants(groupId, (c) => ({
-          ...c,
-          participants: (c.participants || []).filter(p => String(p?._id || p) !== String(userId)),
-          admins: (c.admins || []).filter(a => String(a?._id || a) !== String(userId)),
-        }));
-      });
-
       socket.on('group:admin_added', ({ groupId, userId } = {}) => {
         if (!groupId) return;
         updateGroupParticipants(groupId, (c) => {
@@ -1895,7 +1883,7 @@ export const ChatProvider = ({ children }) => {
       // Admin status changes for current user
       socket.on('group:you_are_admin', ({ groupId } = {}) => {
         if (!groupId) return;
-        const currentId = socket.userId || authUserRef.current?._id;
+        const currentId = socket.userId || currentUserIdRef.current;
         if (!currentId) return;
         updateGroupParticipants(groupId, (c) => {
           const admins = c.admins || [];
@@ -1906,7 +1894,7 @@ export const ChatProvider = ({ children }) => {
 
       socket.on('group:your_admin_removed', ({ groupId } = {}) => {
         if (!groupId) return;
-        const currentId = socket.userId || authUserRef.current?._id;
+        const currentId = socket.userId || currentUserIdRef.current;
         if (!currentId) return;
         updateGroupParticipants(groupId, (c) => ({
           ...c,
@@ -2068,8 +2056,8 @@ export const ChatProvider = ({ children }) => {
               });
             }, 3000);
           }
+          setTimeout(() => setIsOtherUserRecording(false), 3000);
         }
-        setTimeout(() => setIsOtherUserRecording(false), 3000);
       });
 
       // ── Block / Unblock (live sync) ──
@@ -2499,7 +2487,7 @@ export const ChatProvider = ({ children }) => {
       ...options,
     };
 
-    setMessages(prev => [...prev, optimisticMsg]);
+    setMessages(prev => [...prev, optimisticMsg].slice(-150));
 
     const newMessage = {
       _id: clientMessageId,
@@ -2594,8 +2582,8 @@ export const ChatProvider = ({ children }) => {
               socketRef.current?.off('message:delivered', onDelivered);
               socketRef.current?.off('message:error', onError);
             };
-            socketRef.current.on('message:delivered', onDelivered);
-            socketRef.current.on('message:error', onError);
+            socketRef.current?.on('message:delivered', onDelivered);
+            socketRef.current?.on('message:error', onError);
           });
           if (messageSent) console.log("Message sent via Socket");
         } catch (e) {
@@ -3004,18 +2992,14 @@ export const ChatProvider = ({ children }) => {
   const toggleDNDMode = () => {
     setIsDNDMode(prev => {
       const next = !prev;
-      if (next) {
-        // Disconnect socket — no messages or calls received
-        if (socketRef.current?.connected) {
+      setTimeout(() => {
+        if (next && socketRef.current?.connected) {
           socketRef.current.disconnect();
           setIsSocketConnected(false);
-        }
-      } else {
-        // Reconnect socket
-        if (socketRef.current && !socketRef.current.connected) {
+        } else if (!next && socketRef.current && !socketRef.current.connected) {
           socketRef.current.connect();
         }
-      }
+      }, 0);
       return next;
     });
   };
@@ -3467,7 +3451,6 @@ export const ChatProvider = ({ children }) => {
         // Fetch contacts from backend
         try {
           await loadContacts();
-          console.log('[ChatContext] Contacts loaded successfully:', contacts.length);
         } catch (err) {
           console.error('[ChatContext] Failed to load contacts:', err);
         }

@@ -100,7 +100,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                       position: { x: e.clientX, y: e.clientY }
                     });
                   }}
-                  onDoubleClick={() => handleDoubleClick(message._id || message.id)}
+                  onDoubleClick={() => handleDoubleClick(message.id || message._id)}
                 >
                   <div
                     className={`max-w-[75%] relative group shadow-sm transition-all duration-300 ${(message.messageType === 'audio' || message.messageType === 'voice' || message.messageType === 'sticker')
@@ -200,12 +200,6 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                         ) : (
                           <p className="text-white/60 italic truncate">{typeof message.quotedStatus.preview === 'string' ? message.quotedStatus.preview : '📸 Status'}</p>
                         )}
-                      </div>
-                    )}
-                    {/* ── Forwarded Label ── */}
-                    {message.isForwarded && !safeMods?.noForwardLabel && (
-                      <div className="flex items-center gap-1 text-[10px] opacity-60 italic mb-1">
-                        <Forward size={10} /> Forwarded
                       </div>
                     )}
 
@@ -351,7 +345,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                           {message.caption && <p className="text-xs mt-1 opacity-80">{typeof message.caption === 'string' ? message.caption : 'Caption'}</p>}
                           <button onClick={(e) => {
                             e.stopPropagation();
-                            downloadUrl(mediaSourceOf(message), message.fileName || 'download');
+                            downloadUrl(mediaSourceOf(message), message.fileName || 'download').catch(() => {});
                           }} className="mt-2 bg-primary-600 text-white px-3 py-1 rounded-full text-xs hover:bg-primary-700">
                             Download
                           </button>
@@ -371,8 +365,9 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                       <div className="mb-2 min-w-[250px] bg-dark-bg/20 p-3 rounded-xl border border-dark-border/50">
                         <p className="font-bold text-dark-text mb-3">{typeof message.poll.question === 'string' ? message.poll.question : 'Poll Question'}</p>
                         <div className="space-y-2">
-                          {message.poll.options?.map((option, idx) => {
-                            const totalVotes = message.poll.options.reduce((sum, opt) => sum + (opt.votes?.length || 0), 0);
+                          {(() => {
+                            const totalVotes = message.poll.options?.reduce((sum, opt) => sum + (opt.votes?.length || 0), 0) || 0;
+                            return message.poll.options?.map((option, idx) => {
                             const optionVotes = option.votes?.length || 0;
                             const percentage = totalVotes > 0 ? Math.round((optionVotes / totalVotes) * 100) : 0;
                             const userId = user?._id || user?.id;
@@ -392,7 +387,8 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                                 </div>
                               </button>
                             );
-                          })}
+                          });
+                          })()}
                         </div>
                       </div>
                     )}
@@ -470,7 +466,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                           duration={message.duration}
                           senderAvatar={senderAvatar}
                           senderName={senderName}
-                          autoPlay={safeMods?.voiceAutoPlay && index === messages.length - 1 && !isOwnMessage(message) && !message.isViewOnce}
+                          autoPlay={safeMods?.voiceAutoPlay && index === (filteredMessages || []).slice(-visibleCount).length - 1 && !isOwnMessage(message) && !message.isViewOnce}
                           defaultSpeed={safeMods?.voiceDefaultSpeed || 1}
                           messageId={message.id || message._id}
                           isLocked={message.isLocked || false}
@@ -480,7 +476,6 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                           onToggleLock={toggleMessageLock}
                           onDownload={async () => {
                             try {
-                              const { downloadUrl } = await import('../services/capacitorBridge');
                               await downloadUrl(mediaSourceOf(message), `voice-note-${message.id || message._id}.webm`);
                             } catch (err) { console.error('Voice download error:', err); }
                           }}
@@ -691,7 +686,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                         ).map(([emoji, count]) => (
                           <button
                             key={emoji}
-                            onClick={() => handleReaction(message._id || message.id, emoji)}
+                            onClick={() => handleReaction(message.id || message._id, emoji)}
                             className="flex items-center gap-0.5 text-[10px] md:text-xs bg-dark-bg/60 border border-dark-border rounded-full px-1 py-0.5 hover:bg-dark-hover transition-colors"
                           >
                             <span>{emoji}</span>
@@ -701,7 +696,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                       </div>
                     )}
                     {/* GENZ MOD: Three-dot Menu for Messages */}
-                    <div className="relative" ref={messageMenuRef}>
+                    <div className="relative" data-message-menu={message.id || message._id}>
                       <button
                         data-message-menu-button
                         onClick={(e) => {
@@ -863,7 +858,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 try {
-                                  const id = message._id || message.id;
+                                   const id = message.id || message._id;
                                   setMessageInfoId(id);
                                   setShowMessageInfoModal(true);
                                   setActiveMessageMenu(null);
@@ -918,7 +913,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
 
                     {/* Download button for media types — never for view-once */}
                     {!message.isViewOnce && (message.messageType === 'image' || message.messageType === 'video' || message.messageType === 'audio' || message.messageType === 'file') && mediaSourceOf(message) && (
-                      <button onClick={() => downloadUrl(mediaSourceOf(message), message.fileName || 'download')} className="absolute top-0 left-0 hidden group-hover:flex bg-dark-surface px-2 py-1 rounded text-sm hover:bg-dark-hover -mt-8" title="Download">
+                      <button onClick={() => downloadUrl(mediaSourceOf(message), message.fileName || 'download').catch(() => {})} className="absolute top-0 left-0 hidden group-hover:flex bg-dark-surface px-2 py-1 rounded text-sm hover:bg-dark-hover -mt-8" title="Download">
                         <Download size={14} />
                       </button>
                     )}

@@ -108,16 +108,18 @@ function audioBufferToWav(buffer) {
 async function blobToPlayablePreview(blob) {
   const t = blob?.type || '';
   if (t.includes('wav') || t.includes('mpeg')) return blob;
+  let ctx;
   try {
     const arrayBuffer = await blob.arrayBuffer();
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
     await ctx.resume?.();
     const audioBuf = await ctx.decodeAudioData(arrayBuffer.slice(0));
     const wav = audioBufferToWav(audioBuf);
-    await ctx.close();
     return wav;
   } catch {
     return blob;
+  } finally {
+    if (ctx) { try { await ctx.close(); } catch (_) {} }
   }
 }
 
@@ -488,7 +490,8 @@ const VoiceRecorder = ({
     voiceConstraints,
     onActiveChange,
     stopAnalyser,
-    stopStream
+    stopStream,
+    onFallback
   ]);
 
   const pauseRecording = () => {

@@ -881,17 +881,19 @@ exports.sendMessage = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Your message contains disallowed words. Please change your message.' });
     }
 
-    // Check if the receiver has blocked the sender
-    const receiverId = conversation.participants.find(p => String(p) !== String(localUserId));
-    if (receiverId) {
-      const receiver = await User.findById(receiverId).select('blockedUsers');
-      if (receiver && receiver.blockedUsers && receiver.blockedUsers.some(id => String(id) === String(localUserId))) {
+    // Check if the receiver has blocked the sender (1:1 chats only)
+    if (!conversation.isGroup) {
+      const receiverId = conversation.participants.find(p => String(p) !== String(localUserId));
+      if (receiverId) {
+        const receiver = await User.findById(receiverId).select('blockedUsers');
+        if (receiver && receiver.blockedUsers && receiver.blockedUsers.some(id => String(id) === String(localUserId))) {
+          return res.status(403).json({ success: false, message: "Cannot message this user" });
+        }
+      }
+
+      if (await isConversationBlocked(conversation, localUserId)) {
         return res.status(403).json({ success: false, message: "Cannot message this user" });
       }
-    }
-
-    if (await isConversationBlocked(conversation, localUserId)) {
-      return res.status(403).json({ success: false, message: "Cannot message this user" });
     }
 
     if (conversation.isGroup) {
@@ -932,6 +934,10 @@ exports.sendMessage = async (req, res) => {
         success: false,
         message: "Message content or media is required",
       });
+    }
+
+    if (safeContent.length > 10000) {
+      return res.status(400).json({ success: false, message: "Message too long (max 10,000 characters)" });
     }
 
     let mentionData = { mentions: [], mentionedUserIds: [], mentionedUsers: [] };
@@ -1376,6 +1382,7 @@ exports.deleteMessage = async (req, res) => {
       message.fileName = '';
       message.fileSize = 0;
       message.duration = 0;
+      await message.save();
       scheduleHardDelete(message, localUserId);
     } else if (!includesId(message.deletedFor, localUserId)) {
       message.deletedFor.push(localUserId);
