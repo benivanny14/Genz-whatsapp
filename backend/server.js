@@ -238,11 +238,14 @@ if (redisUrl) {
       if (app) app.set("redisClient", redisClient);
       logger.info("✅ Redis connected for distributed socket architecture");
       return true;
-    })().catch((err) => {
+    })().catch(async (err) => {
       logger.warn(
         "Redis connection failed, running in single-instance mode:",
         err.message,
       );
+      try { await redisClient?.quit?.(); } catch {}
+      try { await pubClient?.quit?.(); } catch {}
+      try { await subClient?.quit?.(); } catch {}
       redisClient = null;
       pubClient = null;
       subClient = null;
@@ -312,15 +315,26 @@ const startScheduledMessageDispatcher = (ioInstance) => {
       if (mongoose.connection.readyState !== 1) return;
 
       const now = new Date();
-      const dueMessages = await ScheduledMessage.find({
-        status: "pending",
-        sendAt: { $lte: now },
-      })
-        .populate("conversationId")
-        .limit(50);
+      // Atomically claim pending messages to prevent duplicates in distributed mode
+      const dueMessages = [];
+      for (let i = 0; i < 50; i++) {
+        const claimed = await ScheduledMessage.findOneAndUpdate(
+          { status: "pending", sendAt: { $lte: now } },
+          { $set: { status: "processing" } },
+          { new: false }
+        ).populate("conversationId");
+        if (!claimed) break;
+        dueMessages.push(claimed);
+      }
 
       for (const scheduledMsg of dueMessages) {
         try {
+          if (!scheduledMsg.conversationId) {
+            scheduledMsg.status = "failed";
+            scheduledMsg.errorMessage = "Conversation not found";
+            await scheduledMsg.save();
+            continue;
+          }
           // Create the actual message
           const message = await Message.create({
             conversationId: scheduledMsg.conversationId._id,
@@ -660,7 +674,7 @@ app.use((req, res, next) => {
   if (!req.headers.origin && req.method !== 'GET' && req.method !== 'HEAD' && req.method !== 'OPTIONS') {
     if (process.env.NODE_ENV === 'production' && !req.headers.authorization) {
       const p = req.path || '';
-      if (p.includes('/auth/login') || p.includes('/auth/register') || p.includes('/auth/verify-2fa') || p.includes('/auth/refresh') || p.includes('/webhook/')) {
+      if (p.startsWith('/auth/login') || p.startsWith('/auth/register') || p.startsWith('/auth/verify-2fa') || p.startsWith('/auth/refresh') || p.startsWith('/webhook/')) {
         return next();
       }
       return res.status(403).json({ success: false, error: 'CSRF: No origin and no authorization header' });

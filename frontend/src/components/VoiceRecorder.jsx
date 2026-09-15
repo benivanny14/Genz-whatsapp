@@ -148,24 +148,30 @@ const VoiceRecorder = ({
   const [isLocked, setIsLocked] = useState(false);
   const isLockedRef = useRef(false);
   const [isViewOnce, setIsViewOnce] = useState(false);
+  const isViewOnceRef = useRef(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [duration, setDuration] = useState(0);
   const [swipe, setSwipe] = useState(null);
   const [error, setError] = useState(null);
+  const errorRef = useRef(null);
   const [previewAudioUrl, setPreviewAudioUrl] = useState(null);
+  const appStateListenerRef = useRef(null);
+
+  useEffect(() => { isViewOnceRef.current = isViewOnce; }, [isViewOnce]);
+  useEffect(() => { errorRef.current = error; }, [error]);
 
   useEffect(() => {
-    let listener = null;
     if (isNative()) {
       import('@capacitor/app').then(({ App }) => {
+        try { appStateListenerRef.current?.remove(); } catch {}
         App.addListener('appStateChange', ({ isActive }) => {
-          if (isActive && error) setError(null);
-        }).then(h => { listener = h; }).catch(() => {});
+          if (isActive && errorRef.current) setError(null);
+        }).then(h => { appStateListenerRef.current = h; }).catch(() => {});
       }).catch(() => {});
     }
-    return () => { try { listener?.remove(); } catch {} };
-  }, [error]);
+    return () => { try { appStateListenerRef.current?.remove(); } catch {}; appStateListenerRef.current = null; };
+  }, []);
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
   const [showEffects, setShowEffects] = useState(false);
   const [applyingEffect, setApplyingEffect] = useState(false);
@@ -245,6 +251,8 @@ const VoiceRecorder = ({
     previewAudioRef.current?.pause();
     setIsPlayingPreview(false);
     setPickerEffect(null);
+    try { appStateListenerRef.current?.remove(); } catch {}
+    appStateListenerRef.current = null;
     if (onActiveChange) onActiveChange(false);
     if (!ghostMode && sendRecordingStatus) sendRecordingStatus(false);
   }, [stopStream, ghostMode, sendRecordingStatus, onActiveChange]);
@@ -432,7 +440,7 @@ const VoiceRecorder = ({
         finalBlobRef.current = processed;
 
         if (!isLockedRef.current) {
-          if (onSend) onSend(processed, durationRef.current, fx, isViewOnce);
+          if (onSend) onSend(processed, durationRef.current, fx, isViewOnceRef.current);
           finalBlobRef.current = null;
           audioChunksRef.current = [];
           setIsRecording(false);
@@ -530,7 +538,7 @@ const VoiceRecorder = ({
       if (!ghostMode && sendRecordingStatus) sendRecordingStatus(false);
       if (onActiveChange) onActiveChange(false);
     } else if (finalBlobRef.current) {
-      if (onSend) onSend(finalBlobRef.current, durationRef.current, effectiveEffectRef.current, isViewOnce);
+      if (onSend) onSend(finalBlobRef.current, durationRef.current, effectiveEffectRef.current, isViewOnceRef.current);
       resetAll();
     }
   };
@@ -611,6 +619,8 @@ const VoiceRecorder = ({
   useEffect(
     () => () => {
       stopStream();
+      try { appStateListenerRef.current?.remove(); } catch {}
+      appStateListenerRef.current = null;
       if (previewObjectUrlRef.current) {
         URL.revokeObjectURL(previewObjectUrlRef.current);
         previewObjectUrlRef.current = null;

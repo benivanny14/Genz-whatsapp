@@ -204,7 +204,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                     )}
 
                     {/* 📽️ Video Message 📽️ */}
-                    {message.messageType === 'video' && mediaSourceOf(message) && (
+                    {message.messageType === 'video' && (
                       (message.isViewOnce || message.isSelfDestruct) && message.isConsumed ? (
                         <div className="flex items-center gap-2 text-dark-textSecondary py-2 italic text-sm">
                           <Eye size={16} /> {message.isSelfDestruct ? 'Self-destructed' : 'Opened'}
@@ -357,7 +357,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                       <DocumentMessage
                         fileName={message.fileName || 'File'}
                         fileSize={message.fileSize}
-                        fileUrl={message.mediaUrl}
+                        fileUrl={mediaSourceOf(message)}
                         messageType={message.messageType}
                       />
                     )}
@@ -592,7 +592,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                         !message.isSelfDestruct &&
                         message.messageType === 'text' &&
                         !message.isConsumed
-                      ) && !message.isConsumed && (
+                      ) && !(message.isConsumed && message.isViewOnce) && (
                         <p
                           className="break-words whitespace-pre-wrap"
                           style={{ fontFamily: message.font ? FONT_OPTIONS.find(f => f.value === message.font)?.fontFamily : 'var(--message-font, inherit)', color: message.color || undefined }}

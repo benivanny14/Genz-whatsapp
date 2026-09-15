@@ -435,7 +435,7 @@ export const ChatProvider = ({ children }) => {
 
   useEffect(() => {
     refreshAllMessagesForStats();
-  }, [conversations.length, messages.length, refreshAllMessagesForStats]);
+  }, [conversations.length, refreshAllMessagesForStats]);
   const [contacts, setContacts] = useState([]);
 
   // Fetch the current user's matched contacts. Used on initial load, on the
@@ -1315,10 +1315,14 @@ export const ChatProvider = ({ children }) => {
           // Treat as regular message
           const event = new CustomEvent('message:received', { detail: msg });
           window.dispatchEvent(event);
-          // Also directly handle
+          // Also directly handle — only add if it belongs to the currently open conversation
           setMessages(prev => {
             if (prev.some(m => String(m._id) === String(msg._id))) return prev;
-            return [...prev, msg];
+            const currentSelectedId = selectedConversationIdRef.current;
+            if (currentSelectedId && String(msg.conversationId) === String(currentSelectedId)) {
+              return [...prev, msg];
+            }
+            return prev;
           });
         }
       });
@@ -1904,10 +1908,12 @@ export const ChatProvider = ({ children }) => {
 
       // ── Admin removed ──
       socket.on('admin:removed', ({ groupId, userId } = {}) => {
-        // Refresh group info
-        if (selectedConversation?._id === groupId) {
-          setSelectedConversation(prev => prev ? { ...prev, admins: prev.admins?.filter(a => a !== userId) } : prev);
+        // Refresh group info — use ref to avoid stale closure
+        if (selectedConversationIdRef.current === groupId) {
+          setSelectedConversation(prev => prev ? { ...prev, admins: prev.admins?.filter(a => String(a?._id || a) !== String(userId)) } : prev);
         }
+        // Also update conversations list
+        setConversations(prev => prev.map(c => String(c._id) === String(groupId) ? { ...c, admins: (c.admins || []).filter(a => String(a?._id || a) !== String(userId)) } : c));
       });
 
       // ── View-once message viewed ──
@@ -2789,7 +2795,12 @@ export const ChatProvider = ({ children }) => {
           if (String(selectedConversationIdRef.current) !== String(convId)) return;
           if (!remoteData?.success) return;
           const decrypted = remoteData.messages || [];
-          setMessages(decrypted);
+          setMessages(prev => {
+            const existingIds = new Set(prev.map(m => String(m._id || m.id)));
+            const fresh = decrypted.filter(m => !existingIds.has(String(m._id || m.id)));
+            if (fresh.length === 0 && decrypted.length < prev.length) return prev;
+            return fresh.length > 0 ? [...prev, ...fresh] : decrypted;
+          });
           try {
             await Promise.all(decrypted.map((message) => DB.saveMessage(message)));
           } catch (_) { /* IndexedDB cache is best-effort */ }
@@ -2985,7 +2996,6 @@ export const ChatProvider = ({ children }) => {
     if (!modsRef.current.ghostMode) {
       emitSafe('recording', { conversationId: selectedConversation?._id, isRecording });
     }
-    setIsOtherUserRecording(isRecording);
   };
 
   // ── DND Mode: Real socket disconnect/reconnect (Item 16) ──

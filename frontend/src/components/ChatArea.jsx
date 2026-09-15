@@ -347,7 +347,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       if (audioTimerRef.current) clearInterval(audioTimerRef.current);
       if (timerRef.current) clearInterval(timerRef.current);
       if (videoTimerRef.current) clearInterval(videoTimerRef.current);
-      if (liveLocationIntervalRef.current) clearInterval(liveLocationIntervalRef.current);
+      if (liveLocationIntervalRef.current) clearTimeout(liveLocationIntervalRef.current);
       if (liveLocationWatchIdRef.current) navigator.geolocation.clearWatch(liveLocationWatchIdRef.current);
       if (cameraStreamRef.current) cameraStreamRef.current.getTracks().forEach(t => t.stop());
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -1118,7 +1118,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       if (navigator.vibrate) navigator.vibrate(50);
     }
     // Swipe up to lock
-    else if (deltaY < -50) {
+    else if (deltaY > 50) {
       setSwipeDirection('up');
       if (navigator.vibrate) navigator.vibrate(50);
     }
@@ -1139,7 +1139,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
     }
     // Swipe up to lock
-    else if (deltaY < -50) {
+    else if (deltaY > 50) {
       handleLockRecording();
       if (navigator.vibrate) navigator.vibrate(100);
     }
@@ -1343,7 +1343,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       liveLocationWatchIdRef.current = watchId;
 
       // Auto-stop after duration
-      setTimeout(() => {
+      liveLocationIntervalRef.current = setTimeout(() => {
         handleStopLiveLocation();
       }, liveLocationDuration * 60 * 1000);
     } catch (err) {
@@ -1624,6 +1624,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
   const closeCamera = () => {
     setShowCameraModal(false);
+    // Stop any in-progress video recording first
+    if (cameraMediaRecorderRef.current && isRecordingVideo) {
+      cameraMediaRecorderRef.current.stop();
+      setIsRecordingVideo(false);
+    }
     if (cameraStreamRef.current) {
       cameraStreamRef.current.getTracks().forEach(track => track.stop());
       cameraStreamRef.current = null;
@@ -1632,7 +1637,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       URL.revokeObjectURL(recordedVideoUrl);
       setRecordedVideoUrl(null);
     }
-    setIsRecordingVideo(false);
     clearInterval(videoTimerRef.current);
   };
 
@@ -2423,8 +2427,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       typingByConversation, isOtherUserRecording, setShowSearchMessages,
       setShowMediaGallery, headerMenuRef, setShowHeaderMenu, showHeaderMenu,
       toggleDNDMode, isDNDMode, handleClearCurrentChat, handleDeleteCurrentChat,
-      handleExportChat, viewProfile, otherUser
-}), [safeMods, selectConversation, sidebarOpen, onOpenSidebar, isSearching, setIsSearching, chatSearchQuery, setChatSearchQuery, selectedConversation, setShowGroupInfo, setShowContactInfo, isLiveLocationActive, getConversationAvatar, getConversationName, peerPresence, isOtherUserTyping, groupOnlineCount, history, typingByConversation, isOtherUserRecording, setShowSearchMessages, setShowMediaGallery, headerMenuRef, setShowHeaderMenu, showHeaderMenu, toggleDNDMode, isDNDMode, handleClearCurrentChat, handleDeleteCurrentChat, handleExportChat, viewProfile, otherUser]);
+      handleExportChat, handleUploadWallpaper, viewProfile, otherUser
+}), [safeMods, selectConversation, sidebarOpen, onOpenSidebar, isSearching, setIsSearching, chatSearchQuery, setChatSearchQuery, selectedConversation, setShowGroupInfo, setShowContactInfo, isLiveLocationActive, getConversationAvatar, getConversationName, peerPresence, isOtherUserTyping, groupOnlineCount, history, typingByConversation, isOtherUserRecording, setShowSearchMessages, setShowMediaGallery, headerMenuRef, setShowHeaderMenu, showHeaderMenu, toggleDNDMode, isDNDMode, handleClearCurrentChat, handleDeleteCurrentChat, handleExportChat, handleUploadWallpaper, viewProfile, otherUser]);
 
   const listCtx = useMemo(() => ({
   messagesContainerRef, handleMessagesScroll, safeMods, activeDoodle,

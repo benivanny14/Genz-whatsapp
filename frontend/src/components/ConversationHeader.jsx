@@ -18,7 +18,7 @@ const ConversationHeader = React.memo(function ConversationHeader({ ctx }) {
     typingByConversation, isOtherUserRecording, setShowSearchMessages,
     setShowMediaGallery, headerMenuRef, setShowHeaderMenu, showHeaderMenu,
     toggleDNDMode, isDNDMode, handleClearCurrentChat, handleDeleteCurrentChat,
-    handleExportChat, viewProfile, otherUser
+    handleExportChat, handleUploadWallpaper, viewProfile, otherUser
   } = ctx;
 
   return (
