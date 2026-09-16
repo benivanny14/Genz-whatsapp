@@ -2,16 +2,17 @@
   "version": "1.1.27",
   "versionCode": 32,
   "apkUrl": "/genz-whatsapp.apk",
-  "sha256": "7e3d98111b932646dc769968514ffd740d5be57cd6ee94d0bcfd377a68770e8d",
-  "size": 11325730,
-  "releasedAt": "2026-09-14T14:20:05.609Z",
+  "sha256": "cb3383b23493ee03fd1f68b1762976667dd6295470af33b8b8a367c898209ecb",
+  "size": 11325710,
+  "releasedAt": "2026-09-16T12:49:00.000Z",
   "changes": [
-    "Security audit: 18 critical/high/medium vulnerabilities fixed",
-    "2FA bypass patched — userId now derived from auth token",
-    "Hardcoded PII removed from payment controller",
-    "Swagger docs disabled in production",
-    "SSRF protection for link previews",
-    "Admin-only features hidden from regular users",
-    "CSRF and rate limiter security improvements"
+    "Complete security + quality audit: 50+ bugs fixed across 5 rounds",
+    "Admin dashboard: 33/33 features fully operational",
+    "Zero console.log leaks in production",
+    "React Router navigation — no more white flash on APK",
+    "E2EE: timingSafeEqual crash + changeNumber OTP fixed",
+    "Communities admin endpoint fixed",
+    "Test suites: 0 failures (was 10 failing suites)",
+    "APK rebuilt from clean — reduced from 31MB to 11MB"
   ]
 }

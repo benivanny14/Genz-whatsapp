@@ -40,9 +40,14 @@ function bundleKeys(src, ctxVar) {
 }
 
 function destructureKeys(componentSrc) {
-  const m = componentSrc.match(/const \{\s*([\s\S]*?)\s*\} = ctx;/);
-  assert.ok(m, 'ctx destructure not found in component');
-  return [...m[1].matchAll(/\b(\w+)\b/g)].map(x => x[1]);
+  const endIdx = componentSrc.indexOf('} = ctx;');
+  assert.ok(endIdx !== -1, 'ctx destructure not found in component');
+  const before = componentSrc.slice(0, endIdx);
+  const lastConstBrace = before.lastIndexOf('const {');
+  assert.ok(lastConstBrace !== -1, 'const { not found before } = ctx;');
+  const open = componentSrc.indexOf('{', lastConstBrace);
+  const body = componentSrc.slice(open + 1, endIdx);
+  return [...body.matchAll(/\b(\w+)\b/g)].map(x => x[1]);
 }
 
 for (const { file, ctxVar } of bundles) {
