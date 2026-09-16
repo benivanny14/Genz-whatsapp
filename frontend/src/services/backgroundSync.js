@@ -11,6 +11,7 @@ import { App } from '@capacitor/app';
 import { getSocket } from './socket';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { getAuthToken } from '../utils/tokenStore';
+import { navigateTo } from '../utils/navigate';
 
 let isInitialized = false;
 
@@ -54,9 +55,9 @@ export const initBackgroundSync = async () => {
     PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
       const data = action.notification.data;
       if (data?.type === 'message' && data?.conversationId) {
-        window.location.href = `/chat/${data.conversationId}`;
+        navigateTo(`/chat/${data.conversationId}`);
       } else if (data?.type === 'status') {
-        window.location.href = '/status';
+        navigateTo('/status');
       }
     });
 
@@ -76,10 +77,10 @@ export const initBackgroundSync = async () => {
         if (url.pathname.startsWith('/status/')) {
           const statusId = url.pathname.split('/')[2];
           const shareToken = url.searchParams.get('share');
-          window.location.href = `/status/${statusId}${shareToken ? `?share=${shareToken}` : ''}`;
+          navigateTo(`/status/${statusId}${shareToken ? `?share=${shareToken}` : ''}`);
         } else if (url.pathname.startsWith('/chat/')) {
           const chatId = url.pathname.split('/')[2];
-          window.location.href = `/chat/${chatId}`;
+          navigateTo(`/chat/${chatId}`);
         }
       } catch {}
     });

@@ -252,8 +252,14 @@ function App() {
     };
   }, []);
 
-  // --- Keyboard shortcuts (desktop/web only) ---
+  // --- Shared navigate for utility files ---
   const navigate = useNavigate();
+  useEffect(() => {
+    const { setNavigate } = require('./utils/navigate');
+    setNavigate(navigate);
+  }, [navigate]);
+
+  // --- Keyboard shortcuts (desktop/web only) ---
   useEffect(() => {
     if (Capacitor.isNativePlatform()) return undefined;
     return initKeyboardShortcuts({

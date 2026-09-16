@@ -930,6 +930,13 @@ exports.sendMessage = async (req, res) => {
 
     const replyToId = normalizeReplyToId(replyTo);
 
+    if (replyToId) {
+      const replyMsg = await Message.findById(replyToId);
+      if (!replyMsg || replyMsg.conversationId.toString() !== finalConversationId) {
+        return res.status(400).json({ success: false, message: 'Invalid replyTo message' });
+      }
+    }
+
     const safeContent =
       content ||
       fileName ||

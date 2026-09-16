@@ -2,6 +2,7 @@ import { Component } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { getAuthToken } from '../utils/tokenStore';
 import { reportCrashToServer } from '../utils/crashReporting';
+import { navigateTo } from '../utils/navigate';
 
 // Opt-in server-side crash reporting: when the user enables it in GENZSettings
 // (Privacy → Crash Reporting), each caught render crash POSTs a small
@@ -137,7 +138,7 @@ class ErrorBoundary extends Component {
               <RefreshCw size={16} /> Try Again
             </button>
             <button
-              onClick={() => window.location.href = '/'}
+              onClick={() => navigateTo('/')}
               className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold text-sm transition-all"
             >
               <Home size={16} /> Home

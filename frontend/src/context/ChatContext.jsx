@@ -16,6 +16,7 @@ import api, { mediaAPI } from '../services/api';
 import { cleanupLocalBlobUrls, sanitizeBlobUrls } from '../utils/sanitizeStorage';
 import notificationService from '../services/notificationService';
 import { resolveApiBase, resolveSocketOrigin } from '../utils/resolveApiBase';
+import { navigateTo } from '../utils/navigate';
 
 import { applyVoiceEffect } from '../utils/voiceEffects';
 import {
@@ -1056,7 +1057,7 @@ export const ChatProvider = ({ children }) => {
       });
 
         socket.on('reconnect', async (attemptNumber) => {
-          console.log('Socket reconnected after', attemptNumber, 'attempts');
+          if (import.meta.env.DEV) console.log('Socket reconnected after', attemptNumber, 'attempts');
           setIsSocketConnected(true);
           let uid = currentUserId;
           try {
@@ -1131,7 +1132,7 @@ export const ChatProvider = ({ children }) => {
       });
 
       socket.on('reconnect_attempt', (attemptNumber) => {
-        console.log('Socket reconnection attempt:', attemptNumber);
+        if (import.meta.env.DEV) console.log('Socket reconnection attempt:', attemptNumber);
       });
 
       socket.on('reconnect_failed', () => {
@@ -1156,18 +1157,6 @@ export const ChatProvider = ({ children }) => {
         // StatusPrivacyPanel, ContactManager) so an open contact list
         // refreshes live.
         window.dispatchEvent(new CustomEvent('contacts:updated'));
-      });
-
-      // ── Someone posted a status → live toast (optimistic insert handled by second handler) ──
-      socket.on('status:created', (statusObj) => {
-        try {
-          const posterId = String(statusObj?.userId || statusObj?.user?._id || statusObj?.user || '');
-          const myId = String(currentUserIdRef.current || '');
-          if (posterId && posterId !== myId && modsRef.current.activityNotifications !== false) {
-            const name = statusObj?.username || statusObj?.user?.username || 'Someone';
-            showActivityToastRef.current('status', `🟢 ${name} posted a status`);
-          }
-        } catch (_) { /* ignore */ }
       });
 
       // ── Someone posted a business on WINGA → live toast + refresh ──
@@ -1220,24 +1209,24 @@ export const ChatProvider = ({ children }) => {
       // ── Admin-originated events (Kundi 3) ──
       socket.on('session:revoked', async () => {
         try { localStorage.clear(); } catch {}
-        window.location.href = '/login';
+        navigateTo('/login');
       });
       socket.on('session:revoked_all', async () => {
         try { localStorage.clear(); } catch {}
-        window.location.href = '/login';
+        navigateTo('/login');
       });
       socket.on('device:revoked', async (data) => {
         toast.error(`Device ${data?.deviceId || ''} revoked by admin`);
       });
       socket.on('user:deleted', async () => {
         try { localStorage.clear(); } catch {}
-        window.location.href = '/login';
+        navigateTo('/login');
       });
       socket.on('user:blocked', async (data) => {
         if (data?.blockerId) return;
         toast.error('Your account has been blocked by admin');
         try { localStorage.clear(); } catch {}
-        setTimeout(() => window.location.href = '/login', 1500);
+        setTimeout(() => navigateTo('/login'), 1500);
       });
       socket.on('conversation:deleted', (data) => {
         const cid = String(data?.conversationId || data?._id);
@@ -1347,7 +1336,7 @@ export const ChatProvider = ({ children }) => {
           return;
         }
         if (modsRef.current.spamFilter && isLikelySpamMessage(incoming)) {
-          console.log('[ChatContext] Spam message filtered');
+          if (import.meta.env.DEV) console.log('[ChatContext] Spam message filtered');
           return;
         }
         if (senderId !== String(currentUserId) && modsRef.current.autoSaveMedia) {
@@ -1507,7 +1496,7 @@ export const ChatProvider = ({ children }) => {
       });
 
       socket.on('notification:new_message', async (data) => {
-        console.log('New message arrived from Socket (notification:new_message):', data);
+        if (import.meta.env.DEV) console.log('New message arrived from Socket (notification:new_message):', data);
         if (!data || !data.message) return;
         const incoming = data.message;
         
@@ -1967,7 +1956,7 @@ export const ChatProvider = ({ children }) => {
         const screenshotUser = username || userId || 'Someone';
         setOnlineNotification(`📸 ${screenshotUser} took a screenshot`);
         setTimeout(() => setOnlineNotification(null), 4000);
-        console.log(`[ChatContext] Screenshot attempt detected: ${screenshotUser} on message ${messageId}`);
+        if (import.meta.env.DEV) console.log(`[ChatContext] Screenshot attempt detected: ${screenshotUser} on message ${messageId}`);
       });
 
       // Read receipts — update state AND IndexedDB ──
@@ -2253,6 +2242,15 @@ export const ChatProvider = ({ children }) => {
       });
 
       socket.on('status:created', (status) => {
+        try {
+          const posterId = String(status?.userId || status?.user?._id || status?.user || '');
+          const myId = String(currentUserIdRef.current || '');
+          if (posterId && posterId !== myId && modsRef.current.activityNotifications !== false) {
+            const name = status?.username || status?.user?.username || 'Someone';
+            showActivityToastRef.current('status', `🟢 ${name} posted a status`);
+          }
+        } catch (_) { /* ignore */ }
+
         setStatuses(prev => {
           const serverId = String(status._id || '');
           const clientId = status.clientStatusId ? String(status.clientStatusId) : '';
@@ -2370,7 +2368,7 @@ export const ChatProvider = ({ children }) => {
       const queue = await DB.getOfflineQueue();
       if (!queue || queue.length === 0) return;
 
-      console.log(`[ChatContext] Processing ${queue.length} offline actions...`);
+      if (import.meta.env.DEV) console.log(`[ChatContext] Processing ${queue.length} offline actions...`);
       for (const action of queue) {
         if (action.type === 'sendMessage') {
           if (socketRef.current?.connected) {
@@ -2549,7 +2547,7 @@ export const ChatProvider = ({ children }) => {
         font: typeof options.font === 'string' && options.font ? options.font : null
       };
 
-      console.log("Saving message to DB for room:", newMessage.conversationId);
+      if (import.meta.env.DEV) console.log("Saving message to DB for room:", newMessage.conversationId);
 
       let messageSent = false;
       let savedMessage = newMessage;
@@ -2557,7 +2555,7 @@ export const ChatProvider = ({ children }) => {
 
       // 1. Priority: Use Socket first (real-time) — wait for delivery ack
       if (socketRef.current?.connected) {
-        console.log("Sending message via Socket...");
+        if (import.meta.env.DEV) console.log("Sending message via Socket...");
         try {
           emitSafe('message:send', payload);
           messageSent = await new Promise((resolve) => {
@@ -2591,7 +2589,7 @@ export const ChatProvider = ({ children }) => {
             socketRef.current?.on('message:delivered', onDelivered);
             socketRef.current?.on('message:error', onError);
           });
-          if (messageSent) console.log("Message sent via Socket");
+          if (messageSent && import.meta.env.DEV) console.log("Message sent via Socket");
         } catch (e) {
           console.error("Socket emit imefeli:", e);
         }
@@ -2599,7 +2597,7 @@ export const ChatProvider = ({ children }) => {
 
       // 2. Fallback: If Socket is not working, use HTTP API
       if (!messageSent && navigator.onLine && isMongoObjectId(newMessage.conversationId)) {
-        console.log("Socket not working, falling back to HTTP API...");
+        if (import.meta.env.DEV) console.log("Socket not working, falling back to HTTP API...");
         try {
           const data = await apiService.sendMessage(
             newMessage.conversationId,
@@ -2617,7 +2615,7 @@ export const ChatProvider = ({ children }) => {
             // Put it on screen (User A will see it)
             setMessages(prev => prev.map(m => m._id === clientMessageId ? savedMessage : m));
             await DB.saveMessage(savedMessage);
-            console.log("Message saved successfully to Database:", savedMessage._id);
+            if (import.meta.env.DEV) console.log("Message saved successfully to Database:", savedMessage._id);
           } else {
             console.error("API response success false:", data);
           }
@@ -2731,7 +2729,7 @@ export const ChatProvider = ({ children }) => {
   }, []);
 
   const selectConversation = async (conv) => {
-    console.log('[ChatContext] selectConversation called with:', conv);
+    if (import.meta.env.DEV) console.log('[ChatContext] selectConversation called with:', conv);
     
     if (!conv) {
       console.warn('[ChatContext] selectConversation called with null/undefined conversation');
@@ -2744,7 +2742,7 @@ export const ChatProvider = ({ children }) => {
       return;
     }
 
-    console.log('[ChatContext] Setting selected conversation:', conv._id);
+    if (import.meta.env.DEV) console.log('[ChatContext] Setting selected conversation:', conv._id);
     setSelectedConversation({ ...conv, unreadCount: 0 });
     historyPageRef.current = 1;
     setHasOlderMessages(true);
@@ -2762,19 +2760,19 @@ export const ChatProvider = ({ children }) => {
     try {
       // Check for demo messages first
       if (ENABLE_DEMO_DATA && DEMO_MESSAGES[conv._id]) {
-        console.log('[ChatContext] Loading demo messages for:', conv._id);
+        if (import.meta.env.DEV) console.log('[ChatContext] Loading demo messages for:', conv._id);
         setMessages(DEMO_MESSAGES[conv._id]);
         return;
       }
 
       const convId = conv._id;
-      console.log('[ChatContext] Loading messages for conversation:', convId);
+      if (import.meta.env.DEV) console.log('[ChatContext] Loading messages for conversation:', convId);
       let showedCache = false;
 
       if (isMongoObjectId(convId)) {
-        console.log('[ChatContext] Conversation is MongoDB ObjectId, loading from IndexedDB');
+        if (import.meta.env.DEV) console.log('[ChatContext] Conversation is MongoDB ObjectId, loading from IndexedDB');
         const offlineMsgs = await DB.getMessages(convId);
-        console.log('[ChatContext] Offline messages found:', offlineMsgs?.length || 0);
+        if (import.meta.env.DEV) console.log('[ChatContext] Offline messages found:', offlineMsgs?.length || 0);
         
         if (offlineMsgs?.length) {
           setMessages(offlineMsgs);
@@ -2784,7 +2782,7 @@ export const ChatProvider = ({ children }) => {
         }
 
         if (socketRef.current) {
-          console.log('[ChatContext] Emitting join:conversation for:', convId);
+          if (import.meta.env.DEV) console.log('[ChatContext] Emitting join:conversation for:', convId);
           socketRef.current.emit('join:conversation', convId);
         } else {
           console.warn('[ChatContext] Socket not available for join:conversation');
@@ -2810,7 +2808,7 @@ export const ChatProvider = ({ children }) => {
         return;
       }
 
-      console.log('[ChatContext] Conversation is not MongoDB ObjectId, loading directly');
+      if (import.meta.env.DEV) console.log('[ChatContext] Conversation is not MongoDB ObjectId, loading directly');
       const offlineMsgs = await DB.getMessages(conv._id);
       if (offlineMsgs?.length) {
         setMessages(offlineMsgs);
@@ -3352,7 +3350,7 @@ export const ChatProvider = ({ children }) => {
   useEffect(() => {
     // Wait for auth restoration to complete before making API calls
     if (!isAuthReady) {
-      console.log('[ChatContext] Waiting for auth restoration to complete...');
+      if (import.meta.env.DEV) console.log('[ChatContext] Waiting for auth restoration to complete...');
       return;
     }
 
@@ -3360,7 +3358,7 @@ export const ChatProvider = ({ children }) => {
       return;
     }
     if (hasLoadedInitialData.current) {
-      console.log('[ChatContext] Initial data already loaded, skipping...');
+      if (import.meta.env.DEV) console.log('[ChatContext] Initial data already loaded, skipping...');
       return;
     }
 
@@ -3368,7 +3366,7 @@ export const ChatProvider = ({ children }) => {
 
     const loadInitialData = async () => {
       try {
-        console.log('[ChatContext] Loading initial data with optimized API service...');
+        if (import.meta.env.DEV) console.log('[ChatContext] Loading initial data with optimized API service...');
 
         // Use Promise.all for parallel loading instead of sequential
         const [devicesData, modsData, broadcastsData, statusesData, conversationsData] = await Promise.allSettled([
@@ -3382,23 +3380,23 @@ export const ChatProvider = ({ children }) => {
         // Process results
         if (devicesData.status === 'fulfilled' && devicesData.value) {
           setConnectedDevices(devicesData.value.devices || []);
-          console.log('[ChatContext] Devices loaded successfully');
+          if (import.meta.env.DEV) console.log('[ChatContext] Devices loaded successfully');
         }
 
         if (modsData.status === 'fulfilled' && modsData.value?.success) {
           // MERGE backend settings with local state — never replace, to preserve local-only data
           setModsState(prev => ({ ...prev, ...(modsData.value.settings || {}) }));
-          console.log('[ChatContext] GENZ settings loaded successfully');
+          if (import.meta.env.DEV) console.log('[ChatContext] GENZ settings loaded successfully');
         }
 
         if (broadcastsData.status === 'fulfilled' && broadcastsData.value?.success) {
           setBroadcasts(broadcastsData.value.broadcasts || []);
-          console.log('[ChatContext] Broadcasts loaded successfully');
+          if (import.meta.env.DEV) console.log('[ChatContext] Broadcasts loaded successfully');
         }
 
         if (statusesData.status === 'fulfilled' && statusesData.value?.success) {
           setStatuses(statusesData.value.statuses || []);
-          console.log('[ChatContext] Statuses loaded successfully');
+          if (import.meta.env.DEV) console.log('[ChatContext] Statuses loaded successfully');
         }
 
         if (conversationsData.status === 'fulfilled' && conversationsData.value?.success) {
@@ -3444,7 +3442,7 @@ export const ChatProvider = ({ children }) => {
               }
             }
           }
-          console.log('[ChatContext] Conversations loaded successfully');
+          if (import.meta.env.DEV) console.log('[ChatContext] Conversations loaded successfully');
         }
 
         // Fetch scheduled messages
@@ -3452,7 +3450,7 @@ export const ChatProvider = ({ children }) => {
           const scheduledData = await apiService.getScheduledMessages();
           if (scheduledData?.success) {
             setScheduledMessages(scheduledData.scheduledMessages || []);
-            console.log('[ChatContext] Scheduled messages loaded successfully');
+            if (import.meta.env.DEV) console.log('[ChatContext] Scheduled messages loaded successfully');
           }
         } catch (err) {
           console.error('[ChatContext] Failed to load scheduled messages:', err);
@@ -3490,14 +3488,14 @@ export const ChatProvider = ({ children }) => {
 
   const generateQRCode = useCallback(async (deviceInfo = {}) => {
     if (isLoadingDevices.current) {
-      console.log('[ChatContext] QR generation already in progress');
+      if (import.meta.env.DEV) console.log('[ChatContext] QR generation already in progress');
       return { success: false, message: 'Request already in progress' };
     }
 
     isLoadingDevices.current = true;
     try {
       const data = await apiService.generateQR(deviceInfo);
-      console.log('[ChatContext] QR code generated successfully');
+      if (import.meta.env.DEV) console.log('[ChatContext] QR code generated successfully');
       return data;
     } catch (err) {
       console.error('[ChatContext] Generate QR error:', err);
@@ -3509,7 +3507,7 @@ export const ChatProvider = ({ children }) => {
 
   const pairDevice = useCallback(async (pairingToken) => {
     if (isLoadingDevices.current) {
-      console.log('[ChatContext] Device pairing already in progress');
+      if (import.meta.env.DEV) console.log('[ChatContext] Device pairing already in progress');
       return { success: false, message: 'Request already in progress' };
     }
 
@@ -3526,7 +3524,7 @@ export const ChatProvider = ({ children }) => {
         const devices = await apiService.getDevices();
         setConnectedDevices(devices?.devices || []);
       }
-      console.log('[ChatContext] Device paired successfully');
+      if (import.meta.env.DEV) console.log('[ChatContext] Device paired successfully');
       return data;
     } catch (err) {
       console.error('[ChatContext] Pair device error:', err);
@@ -3538,7 +3536,7 @@ export const ChatProvider = ({ children }) => {
 
   const getDevices = useCallback(async () => {
     if (isLoadingDevices.current) {
-      console.log('[ChatContext] Get devices already in progress');
+      if (import.meta.env.DEV) console.log('[ChatContext] Get devices already in progress');
       return [];
     }
 
@@ -3546,7 +3544,7 @@ export const ChatProvider = ({ children }) => {
     try {
       const data = await apiService.getDevices();
       setConnectedDevices(data?.devices || []);
-      console.log('[ChatContext] Devices retrieved successfully');
+      if (import.meta.env.DEV) console.log('[ChatContext] Devices retrieved successfully');
       return data?.devices || [];
     } catch (err) {
       console.error('[ChatContext] Get devices error:', err);
@@ -3558,7 +3556,7 @@ export const ChatProvider = ({ children }) => {
 
   const logoutDevice = useCallback(async (deviceId) => {
     if (isLoadingDevices.current) {
-      console.log('[ChatContext] Device logout already in progress');
+      if (import.meta.env.DEV) console.log('[ChatContext] Device logout already in progress');
       return { success: false, message: 'Request already in progress' };
     }
 
@@ -3567,7 +3565,7 @@ export const ChatProvider = ({ children }) => {
       const data = await apiService.logoutDevice(deviceId);
       const devices = await apiService.getDevices();
       setConnectedDevices(devices?.devices || []);
-      console.log('[ChatContext] Device logged out successfully');
+      if (import.meta.env.DEV) console.log('[ChatContext] Device logged out successfully');
       return data;
     } catch (err) {
       console.error('[ChatContext] Logout device error:', err);
@@ -4239,7 +4237,7 @@ export const ChatProvider = ({ children }) => {
         if (resData.success && resData.message) {
           // If the backend returns a string for a local status, skip replacing the local conversation IDs
           if (typeof resData.message === 'string') {
-            console.log('[ChatContext] Local status reply processed:', resData.message);
+            if (import.meta.env.DEV) console.log('[ChatContext] Local status reply processed:', resData.message);
             return { success: true };
           }
 

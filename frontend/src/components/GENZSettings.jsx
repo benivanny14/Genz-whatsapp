@@ -2065,7 +2065,7 @@ const PrivacyTab = ({ ctx }) => {
               )}
 
               <div
-                onClick={() => window.location.href = '/genz-after-work'}
+                onClick={() => navigate('/genz-after-work', { replace: true })}
                 className="flex items-center gap-3 p-3 bg-gradient-to-r from-purple-500/10 to-pink-500/10 hover:from-purple-500/20 hover:to-pink-500/20 border border-purple-500/20 rounded-xl cursor-pointer transition-all"
               >
                 <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">

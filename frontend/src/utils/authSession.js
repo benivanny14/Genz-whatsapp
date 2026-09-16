@@ -5,6 +5,7 @@ import { resolveApiBase } from './resolveApiBase.js';
 import db from './indexedDB.js';
 import { DB } from '../services/db.js';
 import { devLog, devWarn, devError } from './logger.js';
+import { navigateTo } from './navigate.js';
 
 export const API_URL = resolveApiBase() || '/api';
 
@@ -125,7 +126,7 @@ export const clearSessionAndRedirect = async (options = {}) => {
   await clearAllUserData();
   const path = window.location.pathname;
   if (!shouldSkipLoginRedirect(path)) {
-    window.location.href = '/login';
+    navigateTo('/login');
   }
 };
 

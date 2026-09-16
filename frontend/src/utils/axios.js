@@ -6,6 +6,7 @@ import {
   clearSessionAndRedirect,
   tryRefreshAccessToken
 } from './authSession';
+import { navigateTo } from './navigate';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -68,7 +69,7 @@ api.interceptors.response.use(
     if (status === 403 && error.response?.data?.requiresPhoneVerification) {
       // Don't logout - redirect to verification page
       if (window.location.pathname !== '/verify-phone') {
-        window.location.href = '/verify-phone';
+        navigateTo('/verify-phone');
       }
       return Promise.reject(error);
     }

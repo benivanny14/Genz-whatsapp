@@ -63,7 +63,7 @@ const Register = () => {
 
       if (data?.success !== false && data?.token) {
         // Force a page reload to ensure session is properly initialized
-        window.location.href = redirectTarget;
+        navigate(redirectTarget, { replace: true });
       } else {
         setError(data?.message || 'Registration failed');
       }
