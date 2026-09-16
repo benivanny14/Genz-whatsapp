@@ -408,12 +408,12 @@ const StatusProvider = ({ children }) => {
     };
 
     const handleMentioned = ({ statusOwnerUsername }) => {
-      toast(`${statusOwnerUsername || 'Someone'} tagged you in their status 🏷️`, { duration: 4000 });
+      toast(`${statusOwnerUsername || 'Someone'} tagged you in their status`, { icon: '🏷️', duration: 4000 });
     };
 
     const handleReply = ({ statusId, reply }) => {
       if (typeof toast === 'function') {
-        toast('New reply on your status 💬', { duration: 3000 });
+        toast('New reply on your status', { icon: '💬', duration: 3000 });
       }
     };
 

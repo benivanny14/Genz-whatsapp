@@ -3,6 +3,7 @@ import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import PaymentFeatureMedia from './PaymentFeatureMedia';
 const API_URL = resolveApiBase();
+import toast from 'react-hot-toast';
 import { Upload, X, Camera, Video, MapPin, DollarSign, FileText, Check, XCircle, Clock, Star, Users, Phone, Mail, Edit3, Plus, Filter, Eye } from 'lucide-react';
 
 const PaymentFeaturesManager = () => {
@@ -149,15 +150,15 @@ const PaymentFeaturesManager = () => {
       const data = await response.json();
       
       if (data.success) {
-        alert('Feature created successfully!');
+        toast.success('Feature created successfully!');
         resetForm();
         fetchFeatures();
       } else {
-        alert(`Error: ${data.message}`);
+        toast.error(data.message);
       }
     } catch (error) {
       console.error('Error creating feature:', error);
-      alert('Error creating feature');
+      toast.error('Failed to create feature');
     }
   };
   
@@ -214,15 +215,15 @@ const PaymentFeaturesManager = () => {
       const data = await response.json();
       
       if (data.success) {
-        alert('Feature updated successfully!');
+        toast.success('Feature updated successfully!');
         resetForm();
         fetchFeatures();
       } else {
-        alert(`Error: ${data.message}`);
+        toast.error(data.message);
       }
     } catch (error) {
       console.error('Error updating feature:', error);
-      alert('Error updating feature');
+      toast.error('Failed to update feature');
     }
   };
   
@@ -239,14 +240,14 @@ const PaymentFeaturesManager = () => {
       const data = await response.json();
       
       if (data.success) {
-        alert('Feature deleted successfully!');
+        toast.success('Feature deleted successfully!');
         fetchFeatures();
       } else {
-        alert(`Error: ${data.message}`);
+        toast.error(data.message);
       }
     } catch (error) {
       console.error('Error deleting feature:', error);
-      alert('Error deleting feature');
+      toast.error('Failed to delete feature');
     }
   };
   
@@ -259,14 +260,14 @@ const PaymentFeaturesManager = () => {
       const data = await response.json();
       
       if (data.success) {
-        alert(`Feature ${currentStatus === true ? 'unfeatured' : 'featured'} successfully!`);
+        toast.success(`Feature ${currentStatus === true ? 'unfeatured' : 'featured'} successfully!`);
         fetchFeatures();
       } else {
-        alert(`Error: ${data.message}`);
+        toast.error(data.message);
       }
     } catch (error) {
       console.error('Error toggling featured status:', error);
-      alert('Error toggling featured status');
+      toast.error('Failed to toggle featured status');
     }
   };
   
@@ -279,13 +280,13 @@ const PaymentFeaturesManager = () => {
       const data = await response.json();
       
       if (data.success) {
-        alert('Inquiry submitted successfully!');
+        toast.success('Inquiry submitted successfully!');
       } else {
-        alert(`Error: ${data.message}`);
+        toast.error(data.message);
       }
     } catch (error) {
       console.error('Error submitting inquiry:', error);
-      alert('Error submitting inquiry');
+      toast.error('Failed to submit inquiry');
     }
   };
   

@@ -26,7 +26,7 @@ export default function WingaManagement() {
       await adminApi.delete(`/admin/winga/${id}`);
       toast.success('Listing deleted');
       load();
-    } catch { toast.error('Failed to delete'); }
+    } catch { toast.error('Failed to delete listing'); }
   };
 
   return (

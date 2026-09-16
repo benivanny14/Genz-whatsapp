@@ -28,7 +28,7 @@ const BroadcastSystem = () => {
   const remove = async (id) => {
     try {
       await adminApi.delete(`/admin/broadcasts/${id}`);
-      toast.success('Deleted');
+      toast.success('Broadcast deleted');
       load();
     } catch {
       toast.error('Failed to delete broadcasts');
@@ -44,7 +44,7 @@ const BroadcastSystem = () => {
       toast.success(data.message);
       setMessage('');
     } catch {
-      toast.error('Failed to send');
+      toast.error('Failed to send broadcast');
     } finally {
       setSending(false);
     }

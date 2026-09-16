@@ -3,6 +3,7 @@ import {
   Layers, Video, Image as ImageIcon, Sliders, Eye, EyeOff, Upload, X, 
   Play, Pause, RefreshCw, Sparkles, Monitor
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { getAuthToken } from '../utils/tokenStore';
@@ -42,11 +43,11 @@ const GlassThemeManager = ({ mods, setMods, onClose }) => {
   const handleVideoUpload = async (file) => {
     if (!file) return;
     if (!file.type.startsWith('video/')) {
-      alert('Please select a video file (mp4, webm, mov)');
+      toast.error('Please select a video file (mp4, webm, mov)');
       return;
     }
     if (file.size > 100 * 1024 * 1024) {
-      alert('Video must not exceed 100MB');
+      toast.error('Video must not exceed 100MB');
       return;
     }
     setUploading(true);
@@ -64,10 +65,10 @@ const GlassThemeManager = ({ mods, setMods, onClose }) => {
         setVideoPreviewUrl(url);
         setMods(prev => ({ ...prev, videoBg: url }));
       } else {
-        alert('Video upload failed. Please try again before applying it as a background.');
+        toast.error('Video upload failed. Please try again before applying it as a background.');
       }
     } catch {
-      alert('Video upload failed. Please check your connection and try again.');
+      toast.error('Video upload failed. Please check your connection and try again.');
     } finally {
       setUploading(false);
     }
@@ -76,11 +77,11 @@ const GlassThemeManager = ({ mods, setMods, onClose }) => {
   const handleImageUpload = async (file) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file (jpg, png, webp)');
+      toast.error('Please select an image file (jpg, png, webp)');
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      alert('Image must not exceed 10MB');
+      toast.error('Image must not exceed 10MB');
       return;
     }
     setUploading(true);
@@ -98,10 +99,10 @@ const GlassThemeManager = ({ mods, setMods, onClose }) => {
         setImagePreviewUrl(url);
         setMods(prev => ({ ...prev, bgImage: url }));
       } else {
-        alert('Image upload failed. Please try again before applying it as a background.');
+        toast.error('Image upload failed. Please try again before applying it as a background.');
       }
     } catch {
-      alert('Image upload failed. Please check your connection and try again.');
+      toast.error('Image upload failed. Please check your connection and try again.');
     } finally {
       setUploading(false);
     }

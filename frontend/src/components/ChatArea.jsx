@@ -1465,11 +1465,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         });
         setReplyingTo(null);
       } else {
-        toast.error(`Genz Messenger: ${data.error || data.message || 'Upload failed'}`);
+        toast.error(data.error || data.message || 'Upload failed');
       }
     } catch (error) {
       if (import.meta.env.DEV) console.error('Upload failed:', error);
-        toast.error("Genz Messenger: Failed to upload file. Please try again.");
+        toast.error("Failed to upload file. Please try again.");
     }
     setIsViewOnceEnabled(false);
     if (originalEvent?.target) originalEvent.target.value = '';

@@ -35,7 +35,7 @@ const RolesPermissions = () => {
       setFoundUser(data.users?.[0] || null);
       if (!data.users?.length) toast.error('User not found');
     } catch {
-      toast.error('Failed to search');
+      toast.error('Failed to search users');
     }
   };
 
@@ -43,7 +43,7 @@ const RolesPermissions = () => {
     const next = current.includes(key) ? current.filter((p) => p !== key) : [...current, key];
     try {
       await adminApi.patch(`/admin/permissions/users/${userId}`, { permissions: next });
-      toast.success('Updated');
+      toast.success('Permissions updated');
       if (foundUser?._id === userId) setFoundUser({ ...foundUser, appPermissions: next });
       load();
     } catch {

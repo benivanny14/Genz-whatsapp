@@ -30,7 +30,7 @@ const ChannelManagement = () => {
   const toggleVerify = async (c) => {
     try {
       await adminApi.patch(`/admin/channels/${c._id}/verify`);
-      toast.success('Updated');
+      toast.success('Channel verification updated');
       load(pagination.page);
     } catch {
       toast.error('Failed to update channel');
@@ -41,10 +41,10 @@ const ChannelManagement = () => {
     if (!(await confirm('Delete this channel permanently?'))) return;
     try {
       await adminApi.delete(`/admin/channels/${id}`);
-      toast.success('Deleted');
+      toast.success('Channel deleted');
       load(pagination.page);
     } catch {
-      toast.error('Failed to delete');
+      toast.error('Failed to delete channel');
     }
   };
 

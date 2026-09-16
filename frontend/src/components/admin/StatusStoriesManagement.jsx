@@ -22,7 +22,7 @@ const StatusStoriesManagement = ({ mode = 'status' }) => {
         setHighlights(data.highlights || []);
       }
     } catch {
-      toast.error('Failed to load data');
+      toast.error('Failed to load statuses');
     } finally {
       setLoading(false);
     }
@@ -34,7 +34,7 @@ const StatusStoriesManagement = ({ mode = 'status' }) => {
     if (!(await confirm('Delete this status?'))) return;
     try {
       await adminApi.delete(`/admin/statuses/${id}`);
-      toast.success('Deleted');
+      toast.success('Status deleted');
       load();
     } catch {
       toast.error('Failed to delete status');

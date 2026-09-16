@@ -154,7 +154,7 @@ const GenzAfterWorkManagement = () => {
       }
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error creating feature:', error);
-      toast.error(error.response?.data?.message || 'Error saving feature');
+      toast.error(error.response?.data?.message || 'Failed to save feature');
     } finally {
       setSubmitting(false);
     }
@@ -224,7 +224,7 @@ const GenzAfterWorkManagement = () => {
       }
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error deleting feature:', error);
-      toast.error('Error deleting feature');
+      toast.error('Failed to delete feature');
     }
   };
 

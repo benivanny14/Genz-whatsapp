@@ -3,6 +3,7 @@ import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import PaymentFeatureMedia from './PaymentFeatureMedia';
 const API_URL = resolveApiBase();
+import toast from 'react-hot-toast';
 import { DollarSign, MapPin, Star, Eye, Mail, Loader2, AlertCircle, Upload } from 'lucide-react';
 
 const PaymentFeatures = () => {
@@ -88,7 +89,7 @@ const PaymentFeatures = () => {
     e.preventDefault();
     
     if (!inquiryData.message.trim()) {
-      alert('Please enter a message');
+      toast.error('Please enter a message');
       return;
     }
     
@@ -104,17 +105,17 @@ const PaymentFeatures = () => {
       const data = await response.json();
       
       if (data.success) {
-        alert('Inquiry submitted successfully!');
+        toast.success('Inquiry submitted successfully!');
         setShowInquiryForm(false);
         setInquiryData({ name: '', message: '', contactEmail: '' });
         // Update the feature with new inquiry count
         fetchFeatures();
       } else {
-        alert(`Error: ${data.message}`);
+        toast.error(data.message);
       }
     } catch (error) {
       console.error('Error submitting inquiry:', error);
-      alert('Error submitting inquiry');
+      toast.error('Failed to submit inquiry');
     }
   };
   

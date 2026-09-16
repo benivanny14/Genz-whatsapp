@@ -876,7 +876,7 @@ const PaymentsSection = ({ statusFilter = 'All', title = 'Payment Management' })
     }
     try {
       await adminApi.post(`/admin/manual-payments/${id}/${action}`, body);
-      toast.success(action === 'approve' ? 'Approved' : 'Rejected');
+      toast.success(action === 'approve' ? 'Payment approved' : 'Payment rejected');
       load();
     } catch {
       toast.error('Failed to update payment');

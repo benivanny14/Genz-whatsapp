@@ -21,7 +21,7 @@ const SessionManagement = () => {
       const { data: sData } = await adminApi.get(`/admin/sessions/${found._id}`);
       setSessions(sData.sessions || []);
     } catch {
-      toast.error('Failed to search');
+      toast.error('Failed to search users');
     }
   };
 

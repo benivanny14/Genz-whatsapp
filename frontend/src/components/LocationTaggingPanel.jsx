@@ -1,6 +1,7 @@
 import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
+import toast from 'react-hot-toast';
 import { X, MapPin, Navigation, Search, Star, Clock, CheckCircle, Plus } from 'lucide-react';
 
 const LocationTaggingPanel = ({ onClose, status, onLocationAdd }) => {
@@ -105,7 +106,7 @@ const LocationTaggingPanel = ({ onClose, status, onLocationAdd }) => {
       onClose();
     } catch (error) {
       console.error('Error adding location:', error);
-      alert('Failed to add location. Please try again.');
+      toast.error('Failed to add location. Please try again.');
     }
   };
 

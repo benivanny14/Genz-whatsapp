@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { authFetch } from '../../utils/authFetch';
 import { resolveApiBase } from '../../utils/resolveApiBase';
 import PaymentFeatureMedia from '../PaymentFeatureMedia';
+import toast from 'react-hot-toast';
 import { 
   DollarSign, 
   MapPin, 
@@ -154,7 +155,7 @@ const GenzAfterWork = ({ user, onFeatureCreated }) => {
     e.preventDefault();
     
     if (!inquiryData.message.trim()) {
-      alert('Please enter a message');
+      toast.error('Please enter a message');
       return;
     }
     
@@ -170,15 +171,15 @@ const GenzAfterWork = ({ user, onFeatureCreated }) => {
       const data = await response.json();
       
       if (data.success) {
-        alert('Inquiry submitted successfully!');
+        toast.success('Inquiry submitted successfully!');
         setShowInquiryForm(false);
         setInquiryData({ name: '', message: '', contactEmail: '' });
       } else {
-        alert(`Error: ${data.message}`);
+        toast.error(data.message);
       }
     } catch (error) {
       console.error('Error submitting inquiry:', error);
-      alert('Error submitting inquiry');
+      toast.error('Failed to submit inquiry');
     }
   };
   

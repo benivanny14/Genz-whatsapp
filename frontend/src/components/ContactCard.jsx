@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { User, Phone, Mail, Building, Download, UserPlus, ExternalLink } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { downloadVCard } from '../utils/vcard';
 import { saveContactToPhone, isContactsAvailable } from '../utils/contacts';
 
@@ -23,7 +24,7 @@ const ContactCard = ({ contact, onSave, onDownload, isOwn = false }) => {
 
   const handleSaveContact = async () => {
     if (!isContactsAvailable()) {
-      alert('Contact saving is only available on the mobile app');
+      toast.error('Contact saving is only available on the mobile app');
       return;
     }
 
@@ -35,11 +36,11 @@ const ContactCard = ({ contact, onSave, onDownload, isOwn = false }) => {
         if (onSave) onSave(contact);
         setTimeout(() => setSaved(false), 3000);
       } else {
-        alert('Failed to save contact');
+        toast.error('Failed to save contact');
       }
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error saving contact:', error);
-      alert('Failed to save contact');
+      toast.error('Failed to save contact');
     } finally {
       setSaving(false);
     }

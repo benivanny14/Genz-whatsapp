@@ -123,7 +123,7 @@ const AbuseReports = () => {
         adminNotes
       });
       setViewing(data.report);
-      toast.success('Updated');
+      toast.success('Report updated');
       load(pagination.page);
     } catch {
       toast.error('Failed to update report');
@@ -134,11 +134,11 @@ const AbuseReports = () => {
     if (!(await confirm('Delete this report permanently?'))) return;
     try {
       await adminApi.delete(`/admin/abuse-reports/${id}`);
-      toast.success('Deleted');
+      toast.success('Report deleted');
       setViewing(null);
       load(pagination.page);
     } catch {
-      toast.error('Failed to delete');
+      toast.error('Failed to delete report');
     }
   };
 

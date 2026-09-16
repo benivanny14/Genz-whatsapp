@@ -853,7 +853,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     if (!file) return;
 
     if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
-      alert('Please choose an image or video wallpaper');
+      toast.error('Please choose an image or video wallpaper');
       event.target.value = '';
       return;
     }
@@ -868,7 +868,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
       try {
         localStorage.setItem(chatListWallpaperKey, JSON.stringify(nextWallpaper));
       } catch (e) {
-        alert('Wallpaper file is too large for this browser storage');
+        toast.error('Wallpaper file is too large for this browser storage');
         event.target.value = '';
         return;
       }

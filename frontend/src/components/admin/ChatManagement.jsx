@@ -42,11 +42,11 @@ const ChatManagement = () => {
     if (!(await confirm('Are you sure you want to delete this conversation?'))) return;
     try {
       await adminApi.delete(`/admin/chats/${id}`);
-      toast.success('Deleted');
+      toast.success('Conversation deleted');
       load(pagination.page);
       if (viewing?._id === id) setViewing(null);
     } catch {
-      toast.error('Failed to delete');
+      toast.error('Failed to delete conversation');
     }
   };
 

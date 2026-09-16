@@ -602,7 +602,7 @@ const CreateStatus = ({ onClose }) => {
     const oversized = files.filter(f => f.size > MAX_SIZE);
     if (oversized.length > 0) {
       const names = oversized.map(f => f.name).join(', ');
-      alert(`File too large (max 25MB): ${names}`);
+      toast.error(`File too large (max 25MB): ${names}`);
       const validFiles = files.filter(f => f.size <= MAX_SIZE);
       if (validFiles.length === 0) return;
       // Continue with only valid files
@@ -1292,7 +1292,7 @@ const CreateStatus = ({ onClose }) => {
                   name: 'Current Location',
                   address: `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`
                 });
-              } catch { alert('Location access denied'); }
+              } catch { toast.error('Location access denied'); }
             }}
             style={{
               width: '100%', padding: '14px', background: '#00a884', color: '#fff',
