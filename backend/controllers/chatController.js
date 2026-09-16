@@ -187,6 +187,10 @@ const transformConversationForUser = async (conversation, userId) => {
   // Don't leak a view-once message's content into the chat-list preview
   if (conv.lastMessage) {
     stripViewOnceContent(conv.lastMessage);
+    // Don't leak raw PGP ciphertext into the chat-list preview
+    if (conv.lastMessage.encrypted && typeof conv.lastMessage.content === 'string' && conv.lastMessage.content.includes('-----BEGIN PGP MESSAGE-----')) {
+      conv.lastMessage.content = '\uD83D\uDD12 Encrypted message';
+    }
   }
 
   return conv;
