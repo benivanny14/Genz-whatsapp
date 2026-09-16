@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Upload, RefreshCw, CheckCircle2, XCircle, Smartphone, Clock, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../../services/api';
+import adminApi from '../../services/adminApi';
 
 const UpdateManagement = () => {
   const [updates, setUpdates] = useState([]);
@@ -12,7 +12,7 @@ const UpdateManagement = () => {
   const fetchUpdates = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get('/updates/stats');
+      const res = await adminApi.get('/updates/stats');
       setUpdates(res.data?.updates || []);
     } catch (err) {
       console.error('Failed to fetch updates:', err);
@@ -38,7 +38,7 @@ const UpdateManagement = () => {
       formData.append('mandatory', String(form.mandatory));
       if (form.downloadUrl) formData.append('downloadUrl', form.downloadUrl);
 
-      await api.post('/updates/upload', formData, {
+      await adminApi.post('/updates/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       toast.success(`Update v${form.version} uploaded! All users will be notified.`);

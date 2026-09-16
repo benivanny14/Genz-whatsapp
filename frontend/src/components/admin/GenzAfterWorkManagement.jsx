@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { api } from '../../services/api';
+import adminApi from '../../services/adminApi';
 import PaymentFeatureMedia from '../PaymentFeatureMedia';
 import {
   DollarSign,
@@ -62,7 +62,7 @@ const GenzAfterWorkManagement = () => {
   const loadFeatures = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/payment-features?status=all');
+      const { data } = await adminApi.get('/payment-features?status=all');
       setFeatures(data.data || []);
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error loading features:', error);
@@ -142,8 +142,8 @@ const GenzAfterWorkManagement = () => {
     try {
       setSubmitting(true);
       const { data } = editingFeature
-        ? await api.put(`/payment-features/${editingFeature._id}`, formData)
-        : await api.post('/payment-features', formData);
+        ? await adminApi.put(`/payment-features/${editingFeature._id}`, formData)
+        : await adminApi.post('/payment-features', formData);
 
       if (data.success) {
         toast.success(editingFeature ? 'Feature updated successfully' : 'Feature created successfully');
@@ -215,7 +215,7 @@ const GenzAfterWorkManagement = () => {
     if (!confirm('Are you sure you want to delete this feature?')) return;
 
     try {
-      const { data } = await api.delete(`/payment-features/${featureId}`);
+      const { data } = await adminApi.delete(`/payment-features/${featureId}`);
       if (data.success) {
         toast.success('Feature deleted successfully');
         loadFeatures();

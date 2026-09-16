@@ -10,7 +10,7 @@ exports.listCommunities = async (req,res)=>{
     const filter={}; if(search) filter.name=new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i');
     const [total, communities]=await Promise.all([
       Community.countDocuments(filter),
-      Community.find(filter).populate('owner','username phoneNumber').populate('members','username').sort({createdAt:-1}).skip((page-1)*limit).limit(limit).lean()
+      Community.find(filter).populate('createdBy','username phoneNumber').populate('members','username').sort({createdAt:-1}).skip((page-1)*limit).limit(limit).lean()
     ]);
     res.json({success:true, communities, pagination:{page,limit,total,pages:Math.ceil(total/limit)||1}});
   }catch(e){ console.error('[AdminCommunity] list',e); res.status(500).json({success:false,message:'Failed'});}
