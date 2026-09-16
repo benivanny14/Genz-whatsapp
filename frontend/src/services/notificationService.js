@@ -237,12 +237,12 @@ export const showTypingNotification = (userName) => {
  */
 export const registerServiceWorker = async () => {
   if (!canRegisterServiceWorker()) {
-    console.log('[NotificationService] Skipping Service Worker registration in development');
+    if (import.meta.env.DEV) console.log('[NotificationService] Skipping Service Worker registration in development');
     return null;
   }
 
   if (!('serviceWorker' in navigator)) {
-    console.log('[NotificationService] Service Workers not supported');
+    console.warn('[NotificationService] Service Workers not supported');
     return null;
   }
 
@@ -253,7 +253,7 @@ export const registerServiceWorker = async () => {
     const registration = await navigator.serviceWorker.register('/service-worker.js', {
       scope: '/'
     });
-    console.log('[NotificationService] Service Worker registered:', registration.scope);
+    if (import.meta.env.DEV) console.log('[NotificationService] Service Worker registered:', registration.scope);
     return registration;
   } catch (e) {
     console.warn('[NotificationService] Service Worker registration failed:', e);
@@ -324,7 +324,7 @@ export const initialize = async () => {
   if (isNative()) {
     try {
       const perm = await LocalNotifications.requestPermissions();
-      console.log('[NotificationService] Local notification permission:', perm);
+      if (import.meta.env.DEV) console.log('[NotificationService] Local notification permission:', perm);
     } catch (e) {
       console.warn('[NotificationService] LocalNotifications permission request failed:', e?.message || e);
     }

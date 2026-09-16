@@ -13,20 +13,20 @@ const apiCall = async (endpoint, options = {}) => {
   if (cache.has(cacheKey) && (!options.method || options.method === 'GET')) {
     const cached = cache.get(cacheKey);
     if (Date.now() - cached.timestamp < 30000) { // 30 second cache
-      console.log(`[API Cache Hit] ${endpoint}`);
+      if (import.meta.env.DEV) console.log(`[API Cache Hit] ${endpoint}`);
       return cached.data;
     }
   }
 
   // Return existing promise if same request is pending
   if (pendingRequests.has(cacheKey)) {
-    console.log(`[API Dedupe] Reusing pending request: ${endpoint}`);
+    if (import.meta.env.DEV) console.log(`[API Dedupe] Reusing pending request: ${endpoint}`);
     return pendingRequests.get(cacheKey);
   }
 
   const requestPromise = (async () => {
     try {
-      console.log(`[API Request] ${endpoint}`);
+      if (import.meta.env.DEV) console.log(`[API Request] ${endpoint}`);
       
       const response = await api({
         url: endpoint,
@@ -43,7 +43,7 @@ const apiCall = async (endpoint, options = {}) => {
         });
       }
       
-      console.log(`[API Success] ${endpoint}`);
+      if (import.meta.env.DEV) console.log(`[API Success] ${endpoint}`);
       return data;
       
     } catch (error) {
@@ -146,7 +146,7 @@ export const apiService = {
   // Utility functions
   clearCache: () => {
     cache.clear();
-    console.log('[API Cache] Cleared all cache entries');
+    if (import.meta.env.DEV) console.log('[API Cache] Cleared all cache entries');
   },
   
   getCacheInfo: () => ({
@@ -159,7 +159,7 @@ export const apiService = {
   cancelRequest: (endpoint, options = {}) => {
     const cacheKey = `${endpoint}_${JSON.stringify(options)}`;
     if (pendingRequests.has(cacheKey)) {
-      console.log(`[API Cancel] Cancelling request: ${endpoint}`);
+      if (import.meta.env.DEV) console.log(`[API Cancel] Cancelling request: ${endpoint}`);
       return true;
     }
     return false;

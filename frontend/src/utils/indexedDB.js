@@ -238,7 +238,7 @@ export const db = {
           resolve();
         };
       });
-      console.log('[IndexedDB] Deleted user-specific database:', dbName);
+      if (import.meta.env.DEV) console.log('[IndexedDB] Deleted user-specific database:', dbName);
     } catch (err) {
       console.error('[IndexedDB] Failed to delete database:', err);
     }
@@ -259,7 +259,7 @@ export const db = {
           request.onerror = () => reject(request.error);
           request.onblocked = () => resolve();
         });
-        console.log('[IndexedDB] Deleted user database:', dbName);
+        if (import.meta.env.DEV) console.log('[IndexedDB] Deleted user database:', dbName);
       }
     } catch (err) {
       console.error('[IndexedDB] Failed to delete all user databases:', err);

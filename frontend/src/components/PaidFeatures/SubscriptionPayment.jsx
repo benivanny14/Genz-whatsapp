@@ -79,7 +79,7 @@ export default function SubscriptionPayment() {
     if (!socket) return;
 
     const handlePaymentApproved = (data) => {
-      console.log('[SubscriptionPayment] Payment approved by admin:', data);
+      if (import.meta.env.DEV) console.log('[SubscriptionPayment] Payment approved by admin:', data);
       loadHistory();
       // Reload payment info to update premium status
       (async () => {
@@ -95,14 +95,14 @@ export default function SubscriptionPayment() {
     };
 
     const handlePaymentRejected = (data) => {
-      console.log('[SubscriptionPayment] Payment rejected by admin:', data);
+      if (import.meta.env.DEV) console.log('[SubscriptionPayment] Payment rejected by admin:', data);
       loadHistory();
       setFormError('Your payment was rejected. Please check the details and try again.');
       setTimeout(() => setFormError(''), 5000);
     };
 
     const handlePaymentMessage = (data) => {
-      console.log('[SubscriptionPayment] Payment message from admin:', data);
+      if (import.meta.env.DEV) console.log('[SubscriptionPayment] Payment message from admin:', data);
       loadHistory();
       if (data.message) {
         setSuccessMsg(data.message);

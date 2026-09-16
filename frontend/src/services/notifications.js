@@ -13,7 +13,7 @@ export const registerServiceWorker = async () => {
   const canRegister = import.meta.env.PROD || ENABLE_DEV_SERVICE_WORKER;
 
   if (!canRegister) {
-    console.log('[Notifications] Skipping SW registration in development');
+    if (import.meta.env.DEV) console.log('[Notifications] Skipping SW registration in development');
     return null;
   }
   
@@ -26,7 +26,7 @@ export const registerServiceWorker = async () => {
     const existing = await navigator.serviceWorker.getRegistration('/');
     if (existing) return existing;
     const reg = await navigator.serviceWorker.register(SW_URL, { scope: '/' });
-    console.log('[Notifications] Service Worker registered:', reg.scope);
+    if (import.meta.env.DEV) console.log('[Notifications] Service Worker registered:', reg.scope);
     return reg;
   } catch (err) {
     console.error('[Notifications] SW registration failed:', err);

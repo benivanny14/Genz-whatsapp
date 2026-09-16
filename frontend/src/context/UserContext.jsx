@@ -167,13 +167,13 @@ export const UserProvider = ({ children }) => {
     const handleOnline = () => {
       setIsOnline(true);
       // Notify contacts that user is online (would need backend integration)
-      console.log('User is now online');
+      if (import.meta.env.DEV) console.log('User is now online');
     };
 
     const handleOffline = () => {
       setIsOnline(false);
       // Notify contacts that user is offline (would need backend integration)
-      console.log('User is now offline');
+      if (import.meta.env.DEV) console.log('User is now offline');
     };
 
     window.addEventListener('online', handleOnline);

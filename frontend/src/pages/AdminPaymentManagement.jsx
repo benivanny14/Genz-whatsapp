@@ -81,7 +81,7 @@ export default function AdminPaymentManagement() {
     if (!socket) return;
 
     const handlePaymentSubmitted = (data) => {
-      console.log('[AdminPaymentManagement] Payment submitted:', data);
+      if (import.meta.env.DEV) console.log('[AdminPaymentManagement] Payment submitted:', data);
       setNewPaymentBanner(true);
       load();
       loadStats();
@@ -90,7 +90,7 @@ export default function AdminPaymentManagement() {
     };
 
     const handlePaymentDuplicate = (data) => {
-      console.log('[AdminPaymentManagement] Duplicate payment:', data);
+      if (import.meta.env.DEV) console.log('[AdminPaymentManagement] Duplicate payment:', data);
       setNewPaymentBanner(true);
       load();
       loadStats();
@@ -98,7 +98,7 @@ export default function AdminPaymentManagement() {
     };
 
     const handlePaymentMessage = (data) => {
-      console.log('[AdminPaymentManagement] Payment message:', data);
+      if (import.meta.env.DEV) console.log('[AdminPaymentManagement] Payment message:', data);
       load();
       loadStats();
     };

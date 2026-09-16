@@ -54,7 +54,7 @@ const Register = () => {
     try {
       const data = await register({ phoneNumber: form.phoneNumber, username: form.username, password: form.password });
 
-      console.log('[Register] Registration response:', data);
+      if (import.meta.env.DEV) console.log('[Register] Registration response:', data);
 
       if (data?.requiresPhoneVerification) {
         navigate(`/verify-phone?redirect=${encodeURIComponent(redirectTarget)}`, { replace: true });
