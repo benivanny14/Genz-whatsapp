@@ -53,3 +53,12 @@ frontend/android/.gradle/
 # with every release (see docs/APK_RELEASE_CHECKLIST.md). Ignoring it made the
 # production download serve the SPA fallback (index.html) instead of the APK.
 my_app/
+# Temp screenshots, test scripts, debug artifacts — never commit
+*.png
+!frontend/public/*.png
+frontend/*.cjs
+frontend/.admin_token
+frontend/.test_tokens
+gradle-log.txt
+ui-dump.xml
+inject.js

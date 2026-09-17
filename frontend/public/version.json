@@ -2,9 +2,9 @@
   "version": "1.2.1",
   "versionCode": 36,
   "apkUrl": "/genz-whatsapp.apk",
-  "sha256": "5509025fa085ac06c2175a588361cdae71b169790a0f12f10d88169e8dc5f859",
-  "size": 11326514,
-  "releasedAt": "2026-09-17T16:15:09.044Z",
+  "sha256": "e6e7533c65c5725cf8d0b541e9687cc26556e0e621ff2c4d23c93595aa6fcc87",
+  "size": 11326502,
+  "releasedAt": "2026-09-17T22:55:06.730Z",
   "changes": [
     "Glassmorphism toasts: frosted-glass notifications with animated icons and smooth enter/exit"
   ]
