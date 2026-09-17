@@ -19,7 +19,7 @@ import { AdminAuthProvider } from './context/AdminAuthContext';
 import notificationService from './services/notificationService';
 import { cleanupLocalBlobUrls, sanitizeBlobUrls } from './utils/sanitizeStorage';
 import { applyAntiScreenshot, initAntiScreenshotListeners } from './utils/antiScreenshot';
-import toast, { Toaster } from 'react-hot-toast';
+import hotToast, { Toaster } from 'react-hot-toast';
 import { ConfirmDialogProvider } from './components/ConfirmDialog';
 import { PromptDialogProvider } from './components/PromptDialog';
 import { useChat } from './context/ChatContext';
@@ -518,35 +518,24 @@ function App() {
       <ConfirmDialogProvider>
       <PromptDialogProvider>
       <div className="genz-grain" aria-hidden="true" />
-      {/* Global toast host — without <Toaster /> every toast.success()/
-          toast.error() call across the app is a silent no-op. Styled to
-          match native APK toasts: dark WhatsApp surface, rounded, icon-tinted. */}
+      {/* Global toast host — glassmorphism style */}
       <Toaster
         position="top-center"
         gutter={10}
         containerStyle={{ top: 16, zIndex: 99999 }}
         toastOptions={{
           duration: 3500,
-          style: {
-            background: '#202c33',
-            color: '#e9edef',
-            borderRadius: '14px',
-            padding: '12px 18px',
-            fontSize: '14px',
-            fontWeight: 500,
-            border: '1px solid rgba(255,255,255,0.08)',
-            boxShadow: '0 8px 28px rgba(0,0,0,0.55)',
-            maxWidth: 'min(92vw, 380px)',
-          },
           success: {
-            iconTheme: { primary: '#25d366', secondary: '#0b141a' },
+            className: 'glass-toast glass-toast-success',
+            iconTheme: { primary: '#00a884', secondary: 'rgba(0,168,132,0.15)' },
           },
           error: {
-            iconTheme: { primary: '#ff6b6b', secondary: '#0b141a' },
-            duration: 5000,
+            className: 'glass-toast glass-toast-error',
+            iconTheme: { primary: '#ef4444', secondary: 'rgba(239,68,68,0.15)' },
           },
           loading: {
-            iconTheme: { primary: '#00a884', secondary: '#0b141a' },
+            className: 'glass-toast glass-toast-loading',
+            iconTheme: { primary: '#00a884', secondary: 'rgba(0,168,132,0.1)' },
           },
         }}
       />

@@ -1,18 +1,11 @@
 {
-  "version": "1.1.27",
-  "versionCode": 32,
+  "version": "1.2.1",
+  "versionCode": 36,
   "apkUrl": "/genz-whatsapp.apk",
-  "sha256": "cb3383b23493ee03fd1f68b1762976667dd6295470af33b8b8a367c898209ecb",
-  "size": 11325710,
-  "releasedAt": "2026-09-16T12:49:00.000Z",
+  "sha256": "5509025fa085ac06c2175a588361cdae71b169790a0f12f10d88169e8dc5f859",
+  "size": 11326514,
+  "releasedAt": "2026-09-17T16:15:09.044Z",
   "changes": [
-    "Complete security + quality audit: 50+ bugs fixed across 5 rounds",
-    "Admin dashboard: 33/33 features fully operational",
-    "Zero console.log leaks in production",
-    "React Router navigation — no more white flash on APK",
-    "E2EE: timingSafeEqual crash + changeNumber OTP fixed",
-    "Communities admin endpoint fixed",
-    "Test suites: 0 failures (was 10 failing suites)",
-    "APK rebuilt from clean — reduced from 31MB to 11MB"
+    "Glassmorphism toasts: frosted-glass notifications with animated icons and smooth enter/exit"
   ]
 }

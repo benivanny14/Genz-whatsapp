@@ -93,12 +93,7 @@ const flushBucket = (key) => {
       {
         id: `toast-${key}`,
         duration: 4000,
-        style: {
-          background: '#1f2937',
-          color: '#fff',
-          borderRadius: '12px',
-          padding: '12px 16px'
-        }
+        className: 'glass-toast glass-toast-blank',
       }
     );
     return;
@@ -129,12 +124,7 @@ const flushBucket = (key) => {
     {
       id: `toast-${key}`,
       duration: 5000,
-      style: {
-        background: '#1f2937',
-        color: '#fff',
-        borderRadius: '12px',
-        padding: '12px 16px'
-      }
+      className: 'glass-toast glass-toast-blank',
     }
   );
 };
