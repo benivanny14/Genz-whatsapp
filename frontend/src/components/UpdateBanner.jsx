@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Download, RefreshCw, X } from 'lucide-react';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { getAppInfo, isNative, downloadUrl } from '../services/capacitorBridge.js';
 import { trackUpdateEvent } from '../utils/updateAnalytics.js';
-import { fetchVersionManifest, apkDownloadUrl } from '../utils/versionManifest.js';
+import { fetchVersionManifest, apkDownloadUrl, VERSION_MANIFEST_ORIGIN } from '../utils/versionManifest.js';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { getAuthToken } from '../utils/tokenStore';
+
+const APKInstaller = registerPlugin('APKInstaller');
 
 const DISMISS_KEY = 'genz-update-dismissed-version';
 const DISMISS_SESSION = 'genz-update-dismissed-session';
@@ -201,13 +204,29 @@ const UpdateBanner = () => {
           ) : (
             <>
               <button
-                onClick={() => {
+                onClick={async () => {
                   trackUpdateEvent('update_tapped', {
                     version: update.version,
                     versionCode: update.versionCode,
                     platform: 'apk',
                   });
-                  downloadUrl(update.apkUrl, `genz-whatsapp-v${update.version}.apk`);
+                  if (Capacitor.isNativePlatform?.()) {
+                    const fullUrl = update.apkUrl?.startsWith('http')
+                      ? update.apkUrl
+                      : `${VERSION_MANIFEST_ORIGIN}${update.apkUrl}`;
+                    try {
+                      await APKInstaller.install({
+                        url: fullUrl,
+                        filename: `genz-whatsapp-v${update.version}.apk`,
+                        version: update.version,
+                      });
+                    } catch (err) {
+                      console.warn('[UpdateBanner] APKInstaller failed, falling back:', err?.message);
+                      downloadUrl(update.apkUrl, `genz-whatsapp-v${update.version}.apk`);
+                    }
+                  } else {
+                    downloadUrl(update.apkUrl, `genz-whatsapp-v${update.version}.apk`);
+                  }
                 }}
                 className="rounded-lg bg-[#00a884] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#00c795]"
               >
