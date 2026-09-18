@@ -1,11 +1,12 @@
 {
-  "version": "1.2.1",
-  "versionCode": 36,
+  "version": "1.2.2",
+  "versionCode": 37,
   "apkUrl": "/genz-whatsapp.apk",
-  "sha256": "e6e7533c65c5725cf8d0b541e9687cc26556e0e621ff2c4d23c93595aa6fcc87",
-  "size": 11326502,
-  "releasedAt": "2026-09-17T22:55:06.730Z",
+  "sha256": "pending",
+  "size": 0,
+  "releasedAt": "pending",
   "changes": [
+    "Status reply input: auto-expanding textarea for long messages",
     "Glassmorphism toasts: frosted-glass notifications with animated icons and smooth enter/exit"
   ]
 }
