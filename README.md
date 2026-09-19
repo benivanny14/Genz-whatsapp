@@ -340,7 +340,6 @@ user-facing endpoints require a JWT (unless noted); responses default to
 - `/api/admin` — admin panel (obscured base path, see `ADMIN_BASE_PATH`)
 - `/api/backup` — chat backup/restore
 - `/api/stickers` — custom sticker packs
-- `/api/channels` — broadcast channels
 - `/api/telemetry` — opt-in client crash reporting
 - `/api/location-sharing` — live location sharing
 

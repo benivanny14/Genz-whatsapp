@@ -38,7 +38,7 @@ function assert(cond, name, detail = '') {
 // ========== SETUP ==========
 const timestamp = Date.now();
 let token1, token2, userId1, userId2, refreshToken1;
-let groupId, statusId, broadcastId, channelId;
+let groupId, statusId, broadcastId;
 
 async function setup() {
   console.log('\n🔧 === SETUP ===\n');
@@ -293,39 +293,6 @@ async function testStatus() {
   }
 }
 
-// ========== CHANNELS ==========
-async function testChannels() {
-  console.log('\n📺 === CHANNEL TESTS ===\n');
-
-  const create = await req('POST', '/channels', { name: `TestChannel_${timestamp}`, description: 'Test channel' }, token1);
-  assert(create.status === 200 || create.status === 201, 'Create channel');
-  channelId = create.data.channel?._id || create.data.data?._id;
-
-  if (channelId) {
-    const list = await req('GET', '/channels', null, token1);
-    assert(list.status === 200, 'List channels');
-
-    const info = await req('GET', `/channels/${channelId}`, null, token1);
-    assert(info.status === 200, 'Get channel info');
-
-    // Follow channel (user2)
-    const follow = await req('POST', `/channels/${channelId}/follow`, {}, token2);
-    assert(follow.status === 200 || follow.status === 201, 'Follow channel');
-
-    // Post in channel
-    const post = await req('POST', `/channels/${channelId}/posts`, { content: 'Hello channel!' }, token1);
-    assert(post.status === 200 || post.status === 201, 'Post in channel');
-
-    // Get channel posts
-    const posts = await req('GET', `/channels/${channelId}/posts`, null, token1);
-    assert(posts.status === 200, 'Get channel posts');
-
-    // Following
-    const following = await req('GET', '/channels/following', null, token2);
-    assert(following.status === 200, 'Get following channels');
-  }
-}
-
 // ========== COMMUNITIES ==========
 async function testCommunities() {
   console.log('\n🏘️ === COMMUNITY TESTS ===\n');
@@ -468,7 +435,6 @@ async function testWildcardRoutes() {
     '/privacy',
     '/privacy-contacts',
     '/contacts',
-    '/channels',
     '/communities',
     '/genz-mods',
     '/payments',
@@ -526,7 +492,6 @@ async function main() {
     await testChat();
     await testGroups();
     await testStatus();
-    await testChannels();
     await testCommunities();
     await testSecurity();
     await testLinkedDevices();

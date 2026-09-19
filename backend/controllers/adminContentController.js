@@ -1,7 +1,5 @@
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
-const Channel = require('../models/Channel');
-const ChannelPost = require('../models/ChannelPost');
 const Status = require('../models/Status');
 const { logAdminAction } = require('../utils/auditLogger');
 
@@ -176,87 +174,6 @@ exports.deleteGroup = async (req, res) => {
     res.json({ success: true, message: 'Group deleted' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to delete group' });
-  }
-};
-
-// ===========================================================================
-// CHANNEL MANAGEMENT
-// ===========================================================================
-exports.listChannels = async (req, res) => {
-  try {
-    const page = clampInt(req.query.page, 1, 1, 10000);
-    const limit = clampInt(req.query.limit, 30, 1, 100);
-    const [total, channels] = await Promise.all([
-      Channel.countDocuments(),
-      Channel.find()
-        .populate('owner', 'username phoneNumber')
-        .sort({ followersCount: -1 })
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .lean()
-    ]);
-    res.json({ success: true, channels, pagination: { page, limit, total, pages: Math.ceil(total / limit) || 1 } });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to load channels' });
-  }
-};
-
-exports.toggleChannelVerified = async (req, res) => {
-  try {
-    const channel = await Channel.findById(req.params.id);
-    if (!channel) return res.status(404).json({ success: false, message: 'Channel not found' });
-    channel.verified = !channel.verified;
-    await channel.save();
-    await logAdminAction(req.admin.id, 'admin_toggled_channel_verified', { channelId: channel._id, verified: channel.verified }, null, null, req);
-    res.json({ success: true, channel });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to update channel' });
-  }
-};
-
-exports.deleteChannel = async (req, res) => {
-  try {
-    const channel = await Channel.findById(req.params.id);
-    if (!channel) return res.status(404).json({ success: false, message: 'Channel not found' });
-    await ChannelPost.deleteMany({ channel: channel._id });
-    await channel.deleteOne();
-    await logAdminAction(req.admin.id, 'admin_deleted_channel', { channelId: req.params.id }, null, null, req);
-    try {
-      const io = req.app.get('io');
-      if (io) io.emit('channel:deleted', { channelId: String(req.params.id) });
-    } catch (e) {}
-    res.json({ success: true, message: 'Channel deleted' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to delete channel' });
-  }
-};
-
-exports.listChannelPosts = async (req, res) => {
-  try {
-    const posts = await ChannelPost.find({ channel: req.params.id, deletedAt: null })
-      .sort({ createdAt: -1 })
-      .limit(50)
-      .lean();
-    res.json({ success: true, posts });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to load posts' });
-  }
-};
-
-exports.deleteChannelPost = async (req, res) => {
-  try {
-    const post = await ChannelPost.findById(req.params.postId);
-    if (!post) return res.status(404).json({ success: false, message: 'Post not found' });
-    post.deletedAt = new Date();
-    await post.save();
-    await logAdminAction(req.admin.id, 'admin_deleted_channel_post', { postId: post._id }, null, null, req);
-    try {
-      const io = req.app.get('io');
-      if (io) io.to(`channel:${String(post.channel)}`).emit('channel:postDeleted', { channelId: String(post.channel), postId: String(post._id) });
-    } catch (e) {}
-    res.json({ success: true, message: 'Post removed' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to delete post' });
   }
 };
 

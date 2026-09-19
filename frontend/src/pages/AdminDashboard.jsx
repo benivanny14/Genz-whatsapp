@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   LayoutDashboard, Gauge, Users, CreditCard, BadgeDollarSign, MessageSquare,
-  UsersRound, Radio, CircleDot, Sparkles, Megaphone, Bell,
+  UsersRound, CircleDot, Sparkles, Megaphone, Bell,
   LifeBuoy, MessagesSquare, BarChart3, TrendingUp, ShieldAlert, Copy,
   ScrollText, ShieldCheck, KeyRound, Smartphone, Timer, Sun, Moon,
   Menu, X, LogOut, RefreshCcw, Search, CheckCircle2, XCircle, AlertTriangle,
@@ -14,7 +14,6 @@ import PremiumCountdown from '../components/admin/PremiumCountdown';
 
 import ChatManagement from '../components/admin/ChatManagement';
 import GroupManagement from '../components/admin/GroupManagement';
-import ChannelManagement from '../components/admin/ChannelManagement';
 import StatusStoriesManagement from '../components/admin/StatusStoriesManagement';
 import WingaManagement from '../components/admin/WingaManagement';
 import CommunityManagement from '../components/admin/CommunityManagement';
@@ -48,7 +47,6 @@ const SECTIONS = [
   { key: 'genzAfterWork', label: 'GENZ AFTER WORK', icon: DollarSign, group: 'Finance', implemented: true },
   { key: 'chats', label: 'Chat Management', icon: MessageSquare, group: 'Content', implemented: true },
   { key: 'groups', label: 'Group Management', icon: UsersRound, group: 'Content', implemented: true },
-  { key: 'channels', label: 'Channel Management', icon: Radio, group: 'Content', implemented: true },
   { key: 'status', label: 'Status Management', icon: CircleDot, group: 'Content', implemented: true },
   { key: 'stories', label: 'Stories Management', icon: Sparkles, group: 'Content', implemented: true },
   { key: 'winga', label: 'Winga Management', icon: BadgeDollarSign, group: 'Content', implemented: true },
@@ -1072,7 +1070,6 @@ const AdminDashboard = () => {
       socket.on('admin:status_created', onLive);
       socket.on('admin:winga_created', onLive);
       socket.on('admin:community_created', onLive);
-      socket.on('admin:channel_post', onLive);
       socket.on('new:abuse-report', (report) => {
         toast(`🚨 New abuse report from ${report?.username || 'a user'}`, { icon: '⚠️', duration: 5000 });
       });
@@ -1084,7 +1081,6 @@ const AdminDashboard = () => {
         socket.off('admin:status_created', onLive);
         socket.off('admin:winga_created', onLive);
         socket.off('admin:community_created', onLive);
-        socket.off('admin:channel_post', onLive);
         socket.off('new:abuse-report');
         socket.off('admin:user_deleted');
       };
@@ -1111,7 +1107,6 @@ const AdminDashboard = () => {
       case 'genzAfterWork': return <GenzAfterWorkManagement />;
       case 'chats': return <ChatManagement />;
       case 'groups': return <GroupManagement />;
-      case 'channels': return <ChannelManagement />;
       case 'status': return <StatusStoriesManagement mode="status" />;
       case 'stories': return <StatusStoriesManagement mode="stories" />;
       case 'winga': return <WingaManagement />;

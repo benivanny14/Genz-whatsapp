@@ -1263,21 +1263,6 @@ export const ChatProvider = ({ children }) => {
           }
         }
       });
-      socket.on('channel:deleted', (data) => {
-        const cid = String(data?.channelId);
-        if (!cid) return;
-        // Channels are not in conversations, but clear selected if open
-        if (String(selectedConversationIdRef.current) === cid) {
-          setSelectedConversation(null);
-          selectedConversationIdRef.current = null;
-        }
-      });
-      socket.on('channel:postDeleted', (data) => {
-        const pid = String(data?.postId);
-        if (!pid) return;
-        // Channel posts are separate, but trigger a refresh
-        window.dispatchEvent(new CustomEvent('channel:postDeleted', { detail: data }));
-      });
       socket.on('message:deleted_for_everyone', (data) => {
         const mid = String(data?.messageId);
         if (!mid) return;

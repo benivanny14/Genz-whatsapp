@@ -17,7 +17,10 @@ const abuseReportSchema = new mongoose.Schema({
   },
   contentType: {
     type: String,
-    enum: ['message', 'conversation', 'group', 'channel', 'channel_post', 'status', 'user_profile', 'other'],
+    // The Channels feature was removed; migration 005 rewrites reports that
+    // still hold 'channel' / 'channel_post' to 'other' (keeping the original
+    // value in metadata.legacyContentType for audit).
+    enum: ['message', 'conversation', 'group', 'status', 'user_profile', 'other'],
     required: true
   },
   category: {

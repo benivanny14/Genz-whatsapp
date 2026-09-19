@@ -386,27 +386,6 @@ async function main() {
   r = await api.req('GET', '/api/stickers/me');
   check('my stickers', r.status === 200, r, 'message');
 
-  r = await api.req('POST', '/api/channels', { name: 'Smoke Channel', description: 'test channel' });
-  check('create channel', r.status === 201 || r.status === 200, r, 'message');
-  const chid = r.json.channel?._id || r.json.channel?.id || r.json.id;
-  r = await api.req('GET', '/api/channels');
-  check('list channels', r.status === 200, r, 'message');
-  if (chid) {
-    r = await api.req('POST', `/api/channels/${chid}/follow`, {});
-    check('follow channel', r.status === 200, r, 'message');
-    r = await api.req('POST', `/api/channels/${chid}/posts`, { content: 'Channel post!' });
-    check('create channel post', r.status === 201 || r.status === 200, r, 'message');
-    const postId = r.json.post?._id || r.json.post?.id || r.json.id;
-    if (postId) {
-      r = await api.req('POST', `/api/channels/${chid}/posts/${postId}/react`, { emoji: '👍' });
-      check('react to channel post', r.status === 200, r, 'message');
-      r = await api.req('POST', `/api/channels/${chid}/posts/${postId}/view`, {});
-      check('mark channel post viewed', r.status === 200, r, 'message');
-    }
-    r = await api.req('DELETE', `/api/channels/${chid}/follow`, {});
-    check('unfollow channel', r.status === 200, r, 'message');
-  }
-
   r = await api.req('POST', '/api/contacts/sync', { contacts: [{ name: 'Jane Doe', phoneNumber: '+255712345678' }] });
   check('sync contacts', r.status === 200, r, 'message');
   r = await api.req('GET', '/api/contacts/matched');

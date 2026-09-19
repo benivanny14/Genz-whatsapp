@@ -48,8 +48,6 @@ const CONTENT_TYPE_LABELS = {
   message: 'Message',
   conversation: 'Conversation',
   group: 'Group',
-  channel: 'Channel',
-  channel_post: 'Channel Post',
   status: 'Status',
   user_profile: 'User Profile',
   other: 'Other'

@@ -50,7 +50,7 @@ describe('adminAccessController — permissions', () => {
     await adminAccess.listPermissionOptions(makeReq(), res);
     expect(res.body.success).toBe(true);
     expect(res.body.permissions.map((p) => p.key)).toEqual([
-      'moderate_groups', 'moderate_channels', 'view_reports', 'verified_badge'
+      'moderate_groups', 'view_reports', 'verified_badge'
     ]);
   });
 

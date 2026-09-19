@@ -10,7 +10,7 @@ import { test, expect } from '@playwright/test';
  * time to the sliders. This spec sets a high glass opacity + custom blur,
  * opens GENZ Settings and proves the CSS vars and the computed section
  * background/blur match the slider values — then walks the other pages (chat
- * panels, Channels, Status, Linked Devices) and proves their surfaces follow
+ * panels, Status, Linked Devices) and proves their surfaces follow
  * the same slider-driven tint, and finally drags the actual Glass Opacity
  * slider and watches the tint change live.
  *
@@ -175,18 +175,13 @@ test('glass mode: tint follows the sliders on every page surface', async ({ page
   await waitForGlass(page);
   await expectBgAlpha(page, '.glass-panel', 0.85);
 
-  // 3) Channels — full-screen glass-surface root (inline dark background).
-  await page.goto('/channels');
-  await waitForGlass(page);
-  await expectBgAlpha(page, '.glass-surface', 0.85);
-
-  // 4) Status — full-screen glass-surface root with an inline gradient that
+  // 3) Status — full-screen glass-surface root with an inline gradient that
   //    the !important stylesheet rule must beat.
   await page.goto('/status');
   await waitForGlass(page);
   await expectBgAlpha(page, '.glass-surface', 0.85);
 
-  // 5) Linked Devices — legacy light page (bg-gray-50/dark:bg-gray-900)
+  // 4) Linked Devices — legacy light page (bg-gray-50/dark:bg-gray-900)
   //    flipped to the same translucent slider-driven surface.
   await page.goto('/linked-devices');
   await waitForGlass(page);
