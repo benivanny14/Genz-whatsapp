@@ -116,6 +116,14 @@ beforeEach(() => {
   connectionHandler(socket);
 });
 
+// The connection handler starts heartbeat / stale-connection timers on every
+// socket. The test double is never disconnected, so those timers kept firing
+// (and eventually threw on the missing disconnect()) for as long as the Jest
+// process lived — long runs died mid-suite. Clear them after each test.
+afterEach(() => {
+  if (typeof handlers.disconnect === 'function') handlers.disconnect();
+});
+
 let connectionHandler;
 
 describe('socket security — targeted emits (1.2)', () => {

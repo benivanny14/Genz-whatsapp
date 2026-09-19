@@ -1,5 +1,6 @@
 const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
+const { getConversationName } = require('../utils/conversationName');
 const Status = require('../models/Status');
 const Broadcast = require('../models/Broadcast');
 const User = require('../models/User');
@@ -116,7 +117,7 @@ exports.getDashboardStats = async (req, res) => {
         );
         return {
           conversationId: conv._id,
-          name: conv.isGroup ? conv.name : (otherParticipant?.username || 'Unknown'),
+          name: conv.isGroup ? getConversationName(conv, 'Group') : (otherParticipant?.username || 'Unknown'),
           totalMessages: count,
           todayMessages: todayCount,
           isOnline: otherParticipant?.isOnline || false,

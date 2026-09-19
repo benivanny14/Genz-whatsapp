@@ -43,7 +43,7 @@ const Archived = () => {
   }, []);
 
   const filtered = archivedConversations.filter(c =>
-    !search || (c.name || c.groupName || '').toLowerCase().includes(search.toLowerCase())
+    !search || (c.groupName || c.name || '').toLowerCase().includes(search.toLowerCase())
   );
 
   const handleOpen = (conv) => {
@@ -98,10 +98,10 @@ const Archived = () => {
               <div key={conv._id} onClick={() => handleOpen(conv)}
                 className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-4 flex items-center gap-3 cursor-pointer transition-all group">
                 <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0">
-                  {conv.isGroup ? '👥' : (conv.name || 'U')[0].toUpperCase()}
+                  {conv.isGroup ? '👥' : (conv.groupName || conv.name || 'U')[0].toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-white font-semibold truncate">{conv.name || conv.groupName || 'Unknown'}</p>
+                  <p className="text-white font-semibold truncate">{conv.groupName || conv.name || 'Unknown'}</p>
                   <p className="text-white/40 text-sm truncate mt-0.5">{conv.lastMessage?.content || '—'}</p>
                 </div>
                 <div className="flex flex-col items-end gap-1 shrink-0">

@@ -171,7 +171,7 @@ const SystemDashboard = ({ onClose }) => {
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex justify-between items-center mb-1">
-                                <span className="text-white text-xs font-medium truncate">{conv.name}</span>
+                                <span className="text-white text-xs font-medium truncate">{conv.groupName || conv.name}</span>
                                 <div className="flex items-center gap-2">
                                   {conv.isOnline && <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />}
                                   <span className="text-gray-400 text-xs">{conv.todayMessages} today</span>

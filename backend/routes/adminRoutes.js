@@ -55,11 +55,6 @@ const {
   getGroupMembers,
   removeGroupMember,
   deleteGroup,
-  listChannels,
-  toggleChannelVerified,
-  deleteChannel,
-  listChannelPosts,
-  deleteChannelPost,
   listStatuses,
   listStoryHighlights,
   deleteStatus,
@@ -124,7 +119,7 @@ router.post('/broadcasts/announce', strictRateLimiter, sendSystemAnnouncement);
 router.get('/notifications/overview', adminReadRateLimiter, getNotificationOverview);
 router.post('/notifications/send', strictRateLimiter, sendPushNotification);
 
-// ── Content moderation: chats, groups, channels, statuses ──
+// ── Content moderation: chats, groups, statuses ──
 router.get('/chats', adminReadRateLimiter, listConversations);
 router.get('/chats/:id/messages', adminReadRateLimiter, getConversationMessages);
 router.delete('/chats/:id', strictRateLimiter, deleteConversation);
@@ -133,12 +128,6 @@ router.get('/groups', adminReadRateLimiter, listGroups);
 router.get('/groups/:id', adminReadRateLimiter, getGroupMembers);
 router.post('/groups/:id/members/:userId/remove', strictRateLimiter, removeGroupMember);
 router.delete('/groups/:id', strictRateLimiter, deleteGroup);
-
-router.get('/channels', adminReadRateLimiter, listChannels);
-router.patch('/channels/:id/verify', strictRateLimiter, toggleChannelVerified);
-router.delete('/channels/:id', strictRateLimiter, deleteChannel);
-router.get('/channels/:id/posts', adminReadRateLimiter, listChannelPosts);
-router.delete('/channels/:channelId/posts/:postId', strictRateLimiter, deleteChannelPost);
 
 router.get('/statuses', adminReadRateLimiter, listStatuses);
 router.get('/statuses/highlights', adminReadRateLimiter, listStoryHighlights);

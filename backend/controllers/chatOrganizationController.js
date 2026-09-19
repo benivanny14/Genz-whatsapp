@@ -16,6 +16,7 @@
 
 
 const Conversation = require('../models/Conversation');
+const { getConversationName } = require('../utils/conversationName');
 const { getUser, mergeSettings, createSettingsHandlers } = require('../services/userScopedService');
 
 // ── Shared helpers (previously duplicated across both controllers) ──────────
@@ -78,8 +79,8 @@ const applyChatSort = (conversations, sortMethod, isAscending, settings = {}) =>
   switch (sortMethod) {
     case 'alphabetical':
       sorted.sort((a, b) => {
-        const nameA = (a.name || '').toLowerCase();
-        const nameB = (b.name || '').toLowerCase();
+        const nameA = getConversationName(a, '').toLowerCase();
+        const nameB = getConversationName(b, '').toLowerCase();
         return isAscending ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
       });
       break;

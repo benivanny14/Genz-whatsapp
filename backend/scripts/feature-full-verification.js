@@ -714,8 +714,6 @@ async function main() {
   r = await api.req('DELETE', `${ADMIN_BASE}/groups/${gid}`, {});
   check('AD30 admin delete group', r.status === 200 && r.json.success, r, 'message');
 
-  r = await api.req('GET', `${ADMIN_BASE}/channels`);
-  check('AD31 list channels', r.status === 200, r, 'message');
   r = await api.req('GET', `${ADMIN_BASE}/statuses`);
   check('AD32 list statuses', r.status === 200, r, 'message');
   r = await api.req('GET', `${ADMIN_BASE}/statuses/highlights`);

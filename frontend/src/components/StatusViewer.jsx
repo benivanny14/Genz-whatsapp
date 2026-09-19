@@ -854,7 +854,7 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
         )}
 
         {/* Poll Display */}
-        {currentStatus.poll && currentStatus.poll.question && (
+        {currentStatus.poll?.question && (
           <div style={{
             position: 'absolute', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
             background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)',

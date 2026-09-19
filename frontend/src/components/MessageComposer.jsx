@@ -65,7 +65,9 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
   return (
     <>
   {replyingTo && (
-          <div className="bg-dark-surface border-t border-dark-border px-4 py-2 relative z-10">
+          /* Padding only: the rounded pill (`.reply-preview`) provides the
+             surface, so no full-width background/border strip here. */
+          <div className="px-2 pt-2 sm:px-3 sm:pt-3 relative z-10">
             <ReplyMessage replyTo={replyingTo} onCancel={() => setReplyingTo(null)} isReplying />
           </div>
         )}

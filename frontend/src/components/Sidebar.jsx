@@ -1502,7 +1502,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
               >
                 <button
                   onClick={(e) => {
-                    console.log('[Sidebar] Chat button clicked:', conv._id, conv.name);
+                    console.log('[Sidebar] Chat button clicked:', conv._id, conv.groupName || conv.name);
                     console.log('[Sidebar] chatSelectMode:', chatSelectMode);
                     if (chatSelectMode) {
                       console.log('[Sidebar] Toggling chat selection');

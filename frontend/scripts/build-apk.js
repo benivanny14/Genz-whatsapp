@@ -40,22 +40,46 @@ const run = (cmd, opts = {}) => execSync(cmd, { stdio: 'inherit', shell: true, c
 const apiUrl = process.env.VITE_API_URL || 'https://genz-whatsapp.onrender.com/api';
 const socketUrl = process.env.VITE_SOCKET_URL || 'https://genz-whatsapp.onrender.com';
 
-console.log('[apk] 0/6 Pre-build checks (icons, manifest, keystore, version.json)');
+console.log('[apk] 0/8 Pre-build checks (icons, manifest, keystore, version.json)');
 // Fail fast before the expensive web build + gradle run. See pre-build-check.js.
 run('node scripts/pre-build-check.js', {
   env: { ...process.env, VITE_API_URL: apiUrl, VITE_SOCKET_URL: socketUrl }
 });
 
-console.log(`[apk] 1/6 Building web app (API: ${apiUrl})`);
+console.log(`[apk] 1/8 Building web app (API: ${apiUrl})`);
 run('npm run build', { env: { ...process.env, VITE_API_URL: apiUrl, VITE_SOCKET_URL: socketUrl } });
 
-console.log('[apk] 2/6 Removing embedded APK from dist (avoid self-bundling)');
+// Verify what the bundle ACTUALLY baked in — not just the env vars we passed.
+// resolveApiBase() only falls back to the production backend when VITE_API_URL
+// is empty, so a stray .env.local (e.g. the Android-emulator address
+// http://10.0.2.2:5000) silently wins and ships an APK that can't reach the
+// API from a real phone. This ran for real: see verify-bundle-env.js.
+console.log('[apk] 2/8 Verifying baked API origin in dist');
+run(`node scripts/verify-bundle-env.js --target dist --expect ${apiUrl} --allow-apk`);
+
+console.log('[apk] 3/8 Removing embedded APK from dist (avoid self-bundling)');
 if (existsSync(resolve(distDir, 'genz-whatsapp.apk'))) rmSync(resolve(distDir, 'genz-whatsapp.apk'));
 
-console.log('[apk] 3/6 npx cap sync android');
+console.log('[apk] 4/8 npx cap sync android');
 run('npx cap sync android');
 
-console.log('[apk] 4/6 gradlew assembleRelease');
+// `cap sync` copies dist → android/app/src/main/assets/public but does not
+// prune files that no longer exist in dist, so a previously-synced copy of the
+// download APK stays behind and gets zipped INTO the app (21 MB instead of
+// 10 MB). Delete it from the native assets before Gradle runs.
+console.log('[apk] 5/8 Pruning stray .apk files from native assets');
+const nativeAssets = resolve(androidDir, 'app/src/main/assets/public');
+for (const staleApk of ['genz-whatsapp.apk', 'app-release.apk', 'app-debug.apk']) {
+  const stale = resolve(nativeAssets, staleApk);
+  if (existsSync(stale)) {
+    rmSync(stale, { force: true });
+    console.log(`  · removed assets/public/${staleApk}`);
+  }
+}
+// The native assets are what Gradle zip, so they must satisfy the same rules.
+run(`node scripts/verify-bundle-env.js --target android/app/src/main/assets/public --expect ${apiUrl} --no-apk`);
+
+console.log('[apk] 6/8 gradlew assembleRelease');
 // On Windows, cmd.exe cannot resolve a bare batch name when the cwd path
 // contains spaces, so always invoke the wrapper by its full quoted path.
 const gradlew = resolve(androidDir, process.platform === 'win32' ? 'gradlew.bat' : 'gradlew');
@@ -96,7 +120,7 @@ try {
   }
 }
 
-console.log('[apk] 5/6 Copying signed APK → public/genz-whatsapp.apk');
+console.log('[apk] 7/8 Copying signed APK → public/genz-whatsapp.apk');
 if (!existsSync(releaseApk)) {
   const possiblePaths = [
     resolve(androidDir, 'app/build/outputs/apk/debug/app-debug.apk'),
@@ -119,7 +143,7 @@ if (!existsSync(releaseApk)) {
 }
 console.log(`[apk] Done → ${publicApk} (${existsSync(publicApk) ? (statSync(publicApk).size / 1024 / 1024).toFixed(1) : 0} MB)`);
 
-// ── 6/6 Write public/version.json so users can see/verify the build ──
+// ── 8/8 Write public/version.json so users can see/verify the build ──
 // Served at /version.json and shown next to the Download button on the login
 // page (see src/pages/Login.jsx). sha256 lets users verify the file they got
 // really is the one we signed. The writer lives in scripts/lib/version-json.js

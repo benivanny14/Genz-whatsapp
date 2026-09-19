@@ -1,12 +1,15 @@
 {
-  "version": "1.2.2",
-  "versionCode": 37,
+  "version": "1.2.3",
+  "versionCode": 38,
   "apkUrl": "/genz-whatsapp.apk",
-  "sha256": "a26b0a49dc6db666e4be9b64f8b7511f0d0930a9d73f569e541f54032d9d1b9d",
-  "size": 11326554,
-  "releasedAt": "2026-09-18T18:47:14.382Z",
+  "sha256": "1184dc824a534d20f136d659dbe5b5304a5016e57939bbae13cebe068124beb4",
+  "size": 11326874,
+  "releasedAt": "2026-09-19T18:39:24.114Z",
   "changes": [
-    "Status reply input: auto-expanding textarea for long messages",
-    "Glassmorphism toasts: frosted-glass notifications with animated icons and smooth enter/exit"
+    "Channels removed — chats, groups na status tu",
+    "Group names sasa zinaonekana vizuri kwenye chat, export na search",
+    "Reply bar imeundwa upya — rounded na inaonekana wazi",
+    "Usalama: cleartext HTTP imezuiwa isipokuwa dev hosts",
+    "Test/seed data inaonekana kwenye app"
   ]
 }

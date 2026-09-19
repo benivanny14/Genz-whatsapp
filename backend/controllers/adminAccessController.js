@@ -19,7 +19,6 @@ const clampInt = (val, def, min, max) => {
 // ===========================================================================
 const AVAILABLE_PERMISSIONS = [
   { key: 'moderate_groups', label: 'Group content moderation' },
-  { key: 'moderate_channels', label: 'Channel content moderation' },
   { key: 'view_reports', label: 'View abuse reports' },
   { key: 'verified_badge', label: 'Verified badge' }
 ];

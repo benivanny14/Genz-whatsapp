@@ -31,7 +31,7 @@ const getConversationName = (conversation = {}, userId) => {
   const other = (conversation.participants || []).find((participant) => (
     String(participant?._id || participant?.id) !== String(userId)
   ));
-  return other?.username || other?.name || conversation.name || 'Chat';
+  return other?.username || other?.name || conversation.groupName || conversation.name || 'Chat';
 };
 
 const iconForType = (type) => {

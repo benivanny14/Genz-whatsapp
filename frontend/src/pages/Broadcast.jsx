@@ -87,7 +87,7 @@ const Broadcast = () => {
                 <p className="text-sm text-gray-400 mb-4">Select recipients:</p>
                 <div className="space-y-2 max-h-40 overflow-y-auto mb-4">
                 {(conversations || []).filter(conv =>
-                  conv && conv.name && conv._id
+                  conv && conv._id && (conv.groupName || conv.name)
                 ).map((conv) => (
                   <div
                     key={conv._id}
@@ -99,10 +99,10 @@ const Broadcast = () => {
                     }`}
                   >
                     <div className="w-10 h-10 bg-primary-600 rounded-full flex items-center justify-center text-white font-bold border border-white/20">
-                      {conv.name?.charAt(0).toUpperCase() || '?'}
+                      {(conv.groupName || conv.name)?.charAt(0).toUpperCase() || '?'}
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium text-white">{conv.name || 'Unknown'}</p>
+                      <p className="font-medium text-white">{conv.groupName || conv.name || 'Unknown'}</p>
                       <p className="text-xs text-gray-400">{conv.isGroup ? 'Group' : 'Chat'}</p>
                     </div>
                     <div className="w-6 h-6 rounded-full border-2 border-primary-600 flex items-center justify-center">

@@ -40,13 +40,17 @@ function bundleKeys(src, ctxVar) {
 }
 
 function destructureKeys(componentSrc) {
-  const endIdx = componentSrc.indexOf('} = ctx;');
-  assert.ok(endIdx !== -1, 'ctx destructure not found in component');
-  const before = componentSrc.slice(0, endIdx);
-  const lastConstBrace = before.lastIndexOf('const {');
-  assert.ok(lastConstBrace !== -1, 'const { not found before } = ctx;');
-  const open = componentSrc.indexOf('{', lastConstBrace);
-  const body = componentSrc.slice(open + 1, endIdx);
+  // Anchor on `} = ctx;` and walk BACK to the nearest `const {` before it.
+  // Scanning forward from the first `const {` in the file is wrong: a
+  // component may destructure something else first (e.g. MessageBubbleList's
+  // `const { getAuthToken } = await import('../utils/tokenStore')`), and the
+  // lazy match then runs on until the real ctx destructure, swallowing every
+  // identifier in between as if it were a bundle key.
+  const end = componentSrc.search(/\}\s*=\s*ctx\s*;/);
+  assert.ok(end !== -1, 'ctx destructure not found in component');
+  const start = componentSrc.lastIndexOf('const {', end);
+  assert.ok(start !== -1, 'ctx destructure not found in component');
+  const body = componentSrc.slice(start + 'const {'.length, end);
   return [...body.matchAll(/\b(\w+)\b/g)].map(x => x[1]);
 }
 

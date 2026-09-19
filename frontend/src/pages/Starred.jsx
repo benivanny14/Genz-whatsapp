@@ -45,7 +45,7 @@ const Starred = () => {
     const other = conversation.participants?.find(
       (participant) => String(participant?._id || participant) !== String(currentUserId)
     );
-    return other?.username || conversation.name || 'Unknown';
+    return other?.username || conversation.groupName || conversation.name || 'Unknown';
   };
 
   const handleCopy = async (message) => {

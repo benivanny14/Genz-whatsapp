@@ -147,7 +147,15 @@ const setupSocket = (io) => {
           userId: socket.userId,
           socketId: socket.id,
         });
-        if (typeof socket.disconnect === "function") socket.disconnect(true);
+        // Never throw from inside this timer: an uncaught error here kills the
+        // whole Node process. Sockets that don't implement disconnect() (test
+        // doubles, adapters) just stop being watched instead.
+        if (typeof socket.disconnect === "function") {
+          socket.disconnect(true);
+        } else {
+          clearInterval(heartbeatInterval);
+          clearInterval(staleCheckInterval);
+        }
       }
     }, 60000);
     socket.on("disconnect", () => {
@@ -300,39 +308,6 @@ const setupSocket = (io) => {
         userId: socket.userId,
         conversationId,
       });
-    });
-
-    // FIX (feature add): the new channel feed endpoints emit to
-    // `channel:${channelId}` for live post delivery, but nothing ever put a
-    // socket into that room — so no one actually received live updates
-    // until they refreshed. Mirrors join:conversation/leave:conversation.
-    socket.on("join:channel", async (channelId) => {
-      if (!channelId || !socket.userId) return;
-      try {
-        const Channel = require("../models/Channel");
-        const channel = await Channel.findById(channelId).select(
-          "isPublic followers owner",
-        );
-        if (!channel)
-          return socket.emit("error", { message: "Channel not found" });
-        const isFollower = channel.followers.some(
-          (f) => String(f) === String(socket.userId),
-        );
-        const isOwner = String(channel.owner) === String(socket.userId);
-        if (!channel.isPublic && !isFollower && !isOwner) {
-          return socket.emit("error", {
-            message: "Not authorized for this channel",
-          });
-        }
-        socket.join(`channel:${channelId}`);
-      } catch (error) {
-        logError("Error joining channel room:", error.message);
-      }
-    });
-
-    socket.on("leave:channel", (channelId) => {
-      if (!channelId) return;
-      socket.leave(`channel:${channelId}`);
     });
 
     // ── Feature handlers (split into modules, see header comment) ─────────

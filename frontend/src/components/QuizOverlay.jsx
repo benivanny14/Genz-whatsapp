@@ -12,9 +12,10 @@ const QuizOverlay = ({ status, onVote }) => {
   const [localPoll, setLocalPoll] = useState(null)
 
   const poll = localPoll || status?.poll
-  if (!poll) return null
+  const pollQuestion = poll?.question || poll?.quizQuestion || ''
+  const pollOptions = poll?.options || poll?.quizOptions || []
 
-  const total = poll.options?.reduce((sum, o) => sum + (o.votes || 0), 0) || 1
+  const total = pollOptions.reduce((sum, o) => sum + (o.votes || 0), 0) || 1
 
   // Check if user already voted (their option has votes)
   useEffect(() => {
@@ -69,10 +70,10 @@ const QuizOverlay = ({ status, onVote }) => {
       zIndex: 12
     }}>
       <h4 style={{ color: '#fff', marginBottom: 12, fontSize: 15, fontWeight: 600 }}>
-        {poll.question || poll.quizQuestion}
+        {pollQuestion}
       </h4>
 
-      {(poll.options || poll.quizOptions || []).map((opt) => {
+      {pollOptions.map((opt) => {
         const percent = total > 0 ? Math.round(((opt.votes || 0) / total) * 100) : 0
         const isSelected = selected.includes(opt.id || opt._id)
         const optId = opt.id || opt._id

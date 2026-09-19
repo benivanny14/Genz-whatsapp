@@ -1,6 +1,18 @@
 
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
+const { getConversationName } = require('../utils/conversationName');
+
+// Groups are named by `groupName`; a private chat is named after the other
+// participant. Reading `.name` (which the Conversation schema does not have)
+// returned undefined for every row before, so the file list showed no owner.
+const conversationLabel = (conversation, userId) => {
+  if (!conversation) return 'Chat';
+  const otherParticipant = (conversation.participants || []).find(
+    (participant) => String(participant?._id || participant) !== String(userId)
+  );
+  return getConversationName(conversation, otherParticipant?.username || 'Chat');
+};
 const { getUser, createSettingsMerger, createSettingsHandlers } = require('../services/userScopedService');
 
 const defaultSettings = {
@@ -69,7 +81,14 @@ exports.getUserFiles = async (req, res) => {
     }
 
     const messages = await Message.find(filter)
-      .populate('conversationId', 'name')
+      // Nested object form: chaining `.populate('conversationId.participants')`
+      // silently leaves the participants as raw ObjectIds here (verified),
+      // which is exactly the "every file says Chat" symptom.
+      .populate({
+        path: 'conversationId',
+        select: 'groupName name participants',
+        populate: { path: 'participants', select: 'username' },
+      })
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
       .skip(parseInt(offset));
@@ -82,7 +101,7 @@ exports.getUserFiles = async (req, res) => {
       type: msg.messageType,
       url: msg.mediaUrl,
       conversationId: msg.conversationId._id,
-      conversationName: msg.conversationId.name,
+      conversationName: conversationLabel(msg.conversationId, user._id),
       size: msg.fileSize || 0,
       createdAt: msg.createdAt
     }));
@@ -113,7 +132,11 @@ exports.getFilesByType = async (req, res) => {
       messageType: type,
       mediaUrl: { $exists: true }
     })
-      .populate('conversationId', 'name')
+      .populate({
+        path: 'conversationId',
+        select: 'groupName name participants',
+        populate: { path: 'participants', select: 'username' },
+      })
       .sort({ createdAt: -1 })
       .limit(parseInt(limit));
 
@@ -123,7 +146,7 @@ exports.getFilesByType = async (req, res) => {
       type: msg.messageType,
       url: msg.mediaUrl,
       conversationId: msg.conversationId._id,
-      conversationName: msg.conversationId.name,
+      conversationName: conversationLabel(msg.conversationId, user._id),
       createdAt: msg.createdAt
     }));
 

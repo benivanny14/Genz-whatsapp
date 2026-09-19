@@ -11,18 +11,6 @@ jest.mock('../models/Message', () => ({
   deleteMany: jest.fn()
 }));
 
-jest.mock('../models/Channel', () => ({
-  countDocuments: jest.fn(),
-  find: jest.fn(),
-  findById: jest.fn()
-}));
-
-jest.mock('../models/ChannelPost', () => ({
-  find: jest.fn(),
-  findById: jest.fn(),
-  deleteMany: jest.fn()
-}));
-
 jest.mock('../models/Status', () => ({
   countDocuments: jest.fn(),
   find: jest.fn(),
@@ -36,8 +24,6 @@ jest.mock('../utils/auditLogger', () => ({
 
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
-const Channel = require('../models/Channel');
-const ChannelPost = require('../models/ChannelPost');
 const Status = require('../models/Status');
 const { logAdminAction } = require('../utils/auditLogger');
 const adminContent = require('../controllers/adminContentController');
@@ -164,64 +150,6 @@ describe('adminContentController — conversations & groups', () => {
     await adminContent.deleteGroup(makeReq({ params: { id: 'g1' } }), res);
     expect(res.body.success).toBe(true);
     expect(Message.deleteMany).toHaveBeenCalledWith({ conversationId: 'g1' });
-  });
-});
-
-describe('adminContentController — channels & posts', () => {
-  beforeEach(() => jest.clearAllMocks());
-
-  it('lists channels (happy path)', async () => {
-    Channel.countDocuments.mockResolvedValue(10);
-    Channel.find.mockReturnValue(makeChainableFind([{ _id: 'ch1' }]));
-    const res = makeRes();
-    await adminContent.listChannels(makeReq({ query: {} }), res);
-    expect(res.body.success).toBe(true);
-    expect(res.body.channels).toHaveLength(1);
-    expect(res.body.pagination.pages).toBe(1);
-  });
-
-  it('returns 404 when toggling a missing channel', async () => {
-    Channel.findById.mockResolvedValue(null);
-    const res = makeRes();
-    await adminContent.toggleChannelVerified(makeReq({ params: { id: 'ch1' } }), res);
-    expect(res.statusCode).toBe(404);
-  });
-
-  it('toggles channel verified (happy path)', async () => {
-    const channel = { _id: 'ch1', verified: false, save: jest.fn().mockResolvedValue(undefined) };
-    Channel.findById.mockResolvedValue(channel);
-    const res = makeRes();
-    await adminContent.toggleChannelVerified(makeReq({ params: { id: 'ch1' } }), res);
-    expect(res.body.success).toBe(true);
-    expect(channel.verified).toBe(true);
-    expect(channel.save).toHaveBeenCalled();
-  });
-
-  it('deletes a channel and its posts (happy path)', async () => {
-    const channel = { _id: 'ch1', deleteOne: jest.fn().mockResolvedValue(undefined) };
-    Channel.findById.mockResolvedValue(channel);
-    ChannelPost.deleteMany.mockResolvedValue({});
-    const res = makeRes();
-    await adminContent.deleteChannel(makeReq({ params: { id: 'ch1' } }), res);
-    expect(res.body.success).toBe(true);
-    expect(ChannelPost.deleteMany).toHaveBeenCalledWith({ channel: 'ch1' });
-  });
-
-  it('lists channel posts (happy path)', async () => {
-    ChannelPost.find.mockReturnValue(makeChainableFind([{ _id: 'p1' }]));
-    const res = makeRes();
-    await adminContent.listChannelPosts(makeReq({ params: { id: 'ch1' } }), res);
-    expect(res.body.posts).toHaveLength(1);
-  });
-
-  it('soft-deletes a channel post (happy path)', async () => {
-    const post = { _id: 'p1', deletedAt: null, save: jest.fn().mockResolvedValue(undefined) };
-    ChannelPost.findById.mockResolvedValue(post);
-    const res = makeRes();
-    await adminContent.deleteChannelPost(makeReq({ params: { postId: 'p1' } }), res);
-    expect(res.body.success).toBe(true);
-    expect(post.deletedAt).toBeInstanceOf(Date);
-    expect(post.save).toHaveBeenCalled();
   });
 });
 

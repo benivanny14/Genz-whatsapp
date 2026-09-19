@@ -16,6 +16,7 @@
 const User = require('../models/User');
 const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
+const { getConversationName } = require('../utils/conversationName');
 const {
   getUser,
   createSettingsMerger,
@@ -463,7 +464,7 @@ exports.spyViewDeletedMessages = async (req, res) => {
           deletedBy: msg.deletedBy,
           cachedAt: msg.cachedAt,
           sender: sender ? { _id: sender._id, username: sender.username, phoneNumber: sender.phoneNumber, profilePicture: sender.profilePicture } : null,
-          conversation: conv ? { _id: conv._id, name: conv.name || '', isGroup: conv.isGroup } : null
+          conversation: conv ? { _id: conv._id, name: getConversationName(conv, ''), isGroup: conv.isGroup } : null
         };
       });
 

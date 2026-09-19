@@ -22,19 +22,21 @@ const ReplyMessage = ({ replyTo, onCancel, isReplying }) => {
   return (
     <div className="reply-preview flex items-center gap-3">
       <div className="flex-1 min-w-0">
-        {replyTo?.sender && (
-          <div className="reply-author text-xs truncate">
-            Replying to {replyTo.sender.username || replyTo.sender.name}
-          </div>
-        )}
+        <div className="reply-author text-xs truncate">
+          {replyTo?.sender
+            ? `Replying to ${replyTo.sender.username || replyTo.sender.name}`
+            : 'Replying to message'}
+        </div>
+        {/* `preview` is already a plain string from getPreview() — reading
+            `preview.content` rendered an empty line in the reply bar. */}
         <div className="reply-text text-sm truncate mt-1">
-          <FormattedText text={preview.content} />
+          <FormattedText text={preview} />
         </div>
       </div>
       {onCancel && (
         <button
           onClick={onCancel}
-          className="p-1 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
+          className="p-1.5 hover:bg-dark-hover rounded-full flex-shrink-0 transition-colors text-dark-textSecondary hover:text-dark-text"
          aria-label="Close">
           <X size={16} />
         </button>

@@ -349,4 +349,21 @@ statusSchema.index({ userId: 1, isDeleted: 1, createdAt: -1 }); // Filter active
 // NOTE: expiresAt already has an inline TTL index via schema definition
 // (index: { expireAfterSeconds: 0 }), so no separate index needed here.
 
+// Only expose `poll` when the status actually has one. Mongoose nested paths
+// materialise an empty poll object ("allowMultiple":false, "totalVotes":0,
+// "options":[], "voters":[]) for statuses that never had a poll, which made
+// clients render an empty poll. Omit the field entirely instead of sending {}.
+const stripEmptyPoll = (doc, ret) => {
+  if (ret && typeof ret === "object" && Object.prototype.hasOwnProperty.call(ret, "poll")) {
+    const poll = ret.poll;
+    const hasQuestion = Boolean(poll && poll.question);
+    const hasOptions = Array.isArray(poll && poll.options) && poll.options.length > 0;
+    if (!hasQuestion && !hasOptions) delete ret.poll;
+  }
+  return ret;
+};
+
+statusSchema.set("toJSON", { transform: stripEmptyPoll });
+statusSchema.set("toObject", { transform: stripEmptyPoll });
+
 module.exports = mongoose.model("Status", statusSchema);
