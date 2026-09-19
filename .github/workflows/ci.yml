@@ -41,7 +41,15 @@ jobs:
       - name: Run backend tests
         run: |
           cd backend
-          npx jest --runInBand --testPathIgnorePatterns='(integration|Integration|viewOnce\.flow|settingsAudit|blockUnblock\.audit|auth\.test|manualPaymentController)' --no-coverage --forceExit
+          npm run test:ci
+
+      # The pure-unit config (jest.unit.config.js) has its own setup file and is
+      # not part of `test:ci` (nor of the deploy gate), so nothing else would
+      # notice a stale setup or a suite that stopped loading. Run it explicitly.
+      - name: Run backend unit suite (jest.unit.config.js)
+        run: |
+          cd backend
+          npm run test:unit
 
   integration-tests:
     name: Integration tests (real MongoDB)
@@ -75,6 +83,54 @@ jobs:
           JWT_REFRESH_SECRET=ci-it-only-refresh-secret-0123456789abcdef \
           ADMIN_JWT_SECRET=ci-it-only-admin-secret-0123456789abcdef \
           npx jest tests/deletedMessageIntegration.test.js tests/adminPrepIntegration.test.js --runInBand --forceExit
+
+  migrations:
+    name: Migrations round-trip (real MongoDB)
+    runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          npm ci --legacy-peer-deps
+
+      # Nothing runs migrations automatically (see docs/MIGRATIONS_RUNBOOK.md),
+      # so a migration that crashes, silently no-ops or cannot be reverted would
+      # only be discovered in production. This job runs every migration CLI
+      # up/down against a real MongoDB and asserts the data round-trips.
+      - name: Run every migration up and down
+        run: |
+          cd backend
+          MONGO_TEST_URI=mongodb://127.0.0.1:27017/genz-migrations-test \
+          JWT_SECRET=ci-migrations-only-jwt-secret-0123456789abcdef \
+          JWT_REFRESH_SECRET=ci-migrations-only-refresh-secret-0123456789abcdef \
+          ADMIN_JWT_SECRET=ci-migrations-only-admin-secret-0123456789abcdef \
+          npx jest tests/migrationsRoundtrip.integration.test.js --runInBand --forceExit
+
+      # The exact dry-run commands the runbook tells operators to run first.
+      # The grep guards against a CLI that exits 0 without doing anything.
+      - name: Run the documented dry-run commands
+        run: |
+          cd backend
+          export MONGODB_URI=mongodb://127.0.0.1:27017/genz-migrations-test
+          node migrations/004_unset_empty_status_poll.js --dry-run | tee /tmp/migration-004.log
+          grep -q 'Dry run' /tmp/migration-004.log
+          node migrations/005_channel_abuse_reports_to_other.js --dry-run | tee /tmp/migration-005.log
+          grep -q 'Dry run' /tmp/migration-005.log
 
   frontend-tests:
     name: Frontend tests + build

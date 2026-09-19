@@ -20,7 +20,13 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+    # Throwaway MongoDB for the migration gate below — never the production one.
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -41,10 +47,25 @@ jobs:
           npm ci
       
       # ── QUALITY GATES: never ship broken code to production ──
-      - name: Run backend unit tests
+      # The suite selection lives in backend/jest.ci.config.js so CI, deploy and
+      # local runs cannot drift apart.
+      - name: Run backend tests (fast suite)
         run: |
           cd backend
-          npx jest --runInBand --testPathIgnorePatterns='(integration|Integration|viewOnce\.flow|settingsAudit|blockUnblock\.audit|auth\.test|manualPaymentController)' --no-coverage --forceExit
+          npm run test:ci
+
+      # Migrations are manual (see docs/MIGRATIONS_RUNBOOK.md), so a migration
+      # that crashes, silently no-ops or cannot be reverted would only be
+      # discovered while operating production. Gate the deploy on the same
+      # up/down round-trip CI runs.
+      - name: Migrations round-trip (deploy gate)
+        run: |
+          cd backend
+          MONGO_TEST_URI=mongodb://127.0.0.1:27017/genz-migrations-deploy-gate \
+          JWT_SECRET=deploy-gate-only-jwt-secret-0123456789abcdef \
+          JWT_REFRESH_SECRET=deploy-gate-only-refresh-secret-0123456789abcdef \
+          ADMIN_JWT_SECRET=deploy-gate-only-admin-secret-0123456789abcdef \
+          npx jest tests/migrationsRoundtrip.integration.test.js --runInBand --forceExit
       
       - name: Build frontend
         run: |

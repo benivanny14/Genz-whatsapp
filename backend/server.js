@@ -540,6 +540,18 @@ const startExpiredMessageCleanup = (ioInstance) => {
 
 const startBackgroundServices = async (ioInstance) => {
   await connectDB();
+
+  // Apply pending migrations before anything reads the database. Controlled by
+  // MIGRATIONS_ON_BOOT (false / dry-run / default auto-apply), lock-protected so
+  // a rolling deploy cannot run them twice, and never fatal: a failure is
+  // reported at GET /api/health/migrations and through the manual CLI.
+  try {
+    const { runMigrationsOnBoot } = require("./services/migrationRunner");
+    await runMigrationsOnBoot({ logger: console });
+  } catch (error) {
+    logger.error(`[Migrations] Boot hook failed: ${error.message}`);
+  }
+
   await ensureLocalUser();
   startScheduledMessageDispatcher(ioInstance);
   startExpiredMessageCleanup(ioInstance);
@@ -833,8 +845,28 @@ app.use(requestTimeout(30000));
 
 // SECURITY (4.5): health checks must never throw — wrap the payload builder so
 // a failing dependency reports unhealthy instead of crashing the handler.
-const getHealthPayload = () => {
+const getHealthPayload = async () => {
   try {
+    // Migrations are manual/boot-time (docs/MIGRATIONS_RUNBOOK.md); reporting
+    // the pending list here is how a missed one becomes visible instead of
+    // silently serving an old schema.
+    let migrations = null;
+    if (mongoose.connection.readyState === 1) {
+      try {
+        const { getMigrationStatus } = require("./services/migrationRunner");
+        const status = await getMigrationStatus();
+        migrations = {
+          appliedCount: status.appliedCount,
+          pendingCount: status.pendingCount,
+          pendingIds: status.pendingIds,
+          lastAppliedAt: status.lastAppliedAt,
+          mode: String(process.env.MIGRATIONS_ON_BOOT ?? "auto").toLowerCase(),
+        };
+      } catch (error) {
+        migrations = { error: error.message };
+      }
+    }
+
     return {
       success: true,
       status: "ok",
@@ -846,6 +878,7 @@ const getHealthPayload = () => {
         redis: redisClient?.isOpen ? "connected" : "disabled",
         mediaStorage: isCloudinaryConfigured() ? "cloudinary" : "local",
       },
+      migrations,
     };
   } catch (err) {
     return {
@@ -860,9 +893,7 @@ const getHealthPayload = () => {
 // Health payload is cached 5s so monitoring/polling bursts don't re-run the
 // ready-state check on every request.
 const getCachedHealthPayload = () =>
-  cachedResponse("health:payload", 5000, () =>
-    Promise.resolve(getHealthPayload()),
-  );
+  cachedResponse("health:payload", 5000, () => Promise.resolve(getHealthPayload()));
 
 app.get("/api/health", async (req, res) => {
   res.json(await getCachedHealthPayload());
@@ -885,6 +916,29 @@ app.get("/api/v1/health/live", (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// Detailed migration state, for operators and for uptime monitoring that wants
+// to alert on `pendingCount > 0` without parsing the whole health payload.
+const sendMigrationHealth = async (req, res) => {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({ success: false, message: "Database not connected" });
+  }
+  try {
+    const { getMigrationStatus } = require("./services/migrationRunner");
+    const status = await getMigrationStatus();
+    res.json({
+      success: true,
+      upToDate: status.pendingCount === 0,
+      mode: String(process.env.MIGRATIONS_ON_BOOT ?? "auto").toLowerCase(),
+      ...status,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+app.get("/api/health/migrations", sendMigrationHealth);
+app.get("/api/v1/health/migrations", sendMigrationHealth);
 
 app.get("/api/health/ready", async (req, res) => {
   const payload = await getCachedHealthPayload();
