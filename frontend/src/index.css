@@ -793,12 +793,22 @@ body {
 }
 
 /* Reply Message Styling */
+/* Reply bar above the composer.
+   This used to be a flat full-width strip (background + top border only, square
+   corners on the left), which read as part of the composer instead of a
+   distinct "you are replying to this" pill. Now it is a rounded card that
+   floats with its own margin, an accent bar on the left and a real border so
+   it stays visible against the chat background in both themes. */
 .reply-preview {
-  background: rgba(255, 255, 255, 0.05);
-  border-left: 3px solid var(--color-primary);
-  padding: 8px 12px;
+  /* Theme variables (not raw rgba) so the pill stays visible in light mode
+     too — `.light-mode` re-maps these to light surfaces. */
+  background: var(--color-dark-surface, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--color-dark-border, rgba(255, 255, 255, 0.09));
+  border-left: 4px solid var(--color-primary);
+  padding: 10px 14px;
   margin-bottom: 8px;
-  border-radius: 0 8px 8px 0;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
   font-size: 13px;
 }
 
@@ -809,7 +819,7 @@ body {
 }
 
 .reply-preview .reply-text {
-  color: #8696a0;
+  color: var(--color-dark-textSecondary, #9aa9b2);
   margin-top: 2px;
 }
 
@@ -1069,8 +1079,8 @@ body {
   background-image: none !important;
 }
 
-/* Roots that paint a full-screen inline background (Channels, ChannelView,
-   Status viewer, GENZ Settings). The !important stylesheet rule beats the
+/* Roots that paint a full-screen inline background (Status viewer, GENZ
+   Settings). The !important stylesheet rule beats the
    inline style. The tint follows the user's Glass Opacity slider
    (--genz-glass-tint on :root) just like every other surface. */
 .glass-mode-active .glass-surface {

@@ -11,7 +11,13 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.join(__dirname, '..');
 const backendDir = path.resolve(rootDir, '..', 'backend');
-const backendHealthUrl = 'http://127.0.0.1:5000/api/health';
+// Port the backend is started on (and the port this script health-checks).
+// Explicit so an unrelated PORT in the ambient environment cannot break
+// `npm run dev`: the backend validates PORT at boot, so a stray `PORT=0` used
+// to abort the whole dev startup with "PORT must be a number between 1 and
+// 65535" before Vite ever started. Overridable with GENZ_BACKEND_PORT.
+const BACKEND_PORT = String(process.env.GENZ_BACKEND_PORT || 5000);
+const backendHealthUrl = `http://127.0.0.1:${BACKEND_PORT}/api/health`;
 let backendServer = null;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -104,13 +110,13 @@ try {
 
 // 4. Start backend automatically so API and Socket.IO calls do not fail.
 console.log('\nStarting backend server...');
-if (isPortInUse(5000)) {
-  console.log('Backend port 5000 is already in use. Reusing existing backend.');
+if (isPortInUse(BACKEND_PORT)) {
+  console.log(`Backend port ${BACKEND_PORT} is already in use. Reusing existing backend.`);
 } else {
   backendServer = spawn(process.execPath, ['server.js'], {
     stdio: 'inherit',
     cwd: backendDir,
-    env: { ...process.env, FORCE_COLOR: '1' }
+    env: { ...process.env, PORT: BACKEND_PORT, FORCE_COLOR: '1' }
   });
 
   backendServer.on('error', (error) => {
@@ -126,23 +132,28 @@ if (isPortInUse(5000)) {
 }
 
 if (!(await waitForBackend())) {
-  console.error('Backend did not become ready on http://localhost:5000.');
+  console.error(`Backend did not become ready on http://localhost:${BACKEND_PORT}.`);
   if (backendServer) backendServer.kill('SIGTERM');
   process.exit(1);
 }
 
-console.log('Backend ready: http://localhost:5000');
+console.log(`Backend ready: http://localhost:${BACKEND_PORT}`);
 
 // 5. Start Vite directly (avoid `npm run dev` -> recursion).
 console.log('\nStarting Vite dev server...');
-console.log('Backend:  http://localhost:5000');
-console.log('Socket.IO: ws://localhost:5000\n');
+console.log(`Backend:  http://localhost:${BACKEND_PORT}`);
+console.log(`Socket.IO: ws://localhost:${BACKEND_PORT}\n`);
 
 const viteCli = path.join(rootDir, 'node_modules/vite/bin/vite.js');
 const devServer = spawn(process.execPath, [viteCli], {
   stdio: 'inherit',
   cwd: rootDir,
-  env: { ...process.env, FORCE_COLOR: '1' }
+  // Keep the dev proxy pointed at the same backend this script started.
+  env: {
+    ...process.env,
+    FORCE_COLOR: '1',
+    GENZ_BACKEND_TARGET: process.env.GENZ_BACKEND_TARGET || `http://localhost:${BACKEND_PORT}`
+  }
 });
 
 devServer.on('error', (error) => {
