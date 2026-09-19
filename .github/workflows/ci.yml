@@ -264,6 +264,13 @@ jobs:
           # and would trip the 100/15min auth budget (same throwaway-runner
           # rationale as ADMIN_* above).
           AUTH_RATE_MAX: '100000'
+          # The GLOBAL /api budget (5000/15min in production, 200 otherwise).
+          # Every step in this job — 29 Playwright specs, the three socket
+          # scripts, the smoke test (137 checks) and the full verification
+          # (186 checks) — calls the API from the same runner IP inside one
+          # 15-minute window, so the 200 default was exhausted and each later
+          # step failed with 429 instead of testing what it meant to test.
+          API_RATE_MAX: '100000'
           PHONE_VERIFICATION_REQUIRED: 'false'
           # CI-only throwaway signing secrets (never used outside this workflow).
           JWT_SECRET: ${{ secrets.CI_JWT_SECRET || 'ci-e2e-only-jwt-secret-0123456789abcdef' }}

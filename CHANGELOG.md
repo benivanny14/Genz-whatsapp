@@ -7,6 +7,46 @@ by commit.
 
 ---
 
+## [2026-09-19] — Web login was broken (bare `clearTokens()`), and the e2e job was red for two reasons
+
+**Fixed: signing in (and registering) failed in the browser with "Login failed."**
+
+- `authService.login()` and `authService.register()` called a bare
+  `clearTokens()`. The methods live as arrow properties on the `authService`
+  object literal, so an unqualified name does not resolve to a sibling method
+  (and arrow properties have no `this` either) — there is no module-scope
+  binding, so it threw `ReferenceError: clearTokens is not defined` **after** a
+  successful `POST /auth/login`, and the caller's `catch` turned that into the
+  generic "Login failed. Please try again.". Every UI sign-in failed, in the web
+  app and in the APK; only the HTTP-level tests (and the Playwright specs that
+  register users via the API) were unaffected.
+- Fixed to `authService.clearTokens()` and guarded by
+  `frontend/src/tests/authServiceBindings.test.js`, which reads the real file and
+  rejects any call to a sibling method through an unbound identifier.
+
+**Fixed: the CI e2e job was failing at the global `/api` rate limiter instead of at the feature under test.**
+
+- The **E2E (Playwright) workflow job** was failing every run at the global
+  `/api` rate limiter, not at the feature it was testing. All 29 Playwright
+  specs, the three socket scripts, the smoke test (137 checks) and the full
+  verification (186 checks) call the API from one runner IP inside a single
+  15-minute window, so the 200-request development budget was exhausted partway
+  through: 231 requests returned `429 Too many requests from this IP`. Because
+  the limiter is mounted at `/api/` it also covered the admin login path, so
+  every later step (including the 8-worker admin stress run) failed for a
+  reason unrelated to what it exercises.
+- New `API_RATE_MAX` env override for that global budget — the same escape hatch
+  `AUTH_RATE_MAX` already gives the auth budget — and the e2e job now sets it to
+  `100000`. The **production default is unchanged** (5000/15min per IP, 200 in
+  development, 100000 under `NODE_ENV=test`); the override is set by whoever
+  starts the process, never by a request.
+- Budget resolution moved into `backend/utils/apiRateBudget.js` with a unit guard
+  (`tests/apiRateBudget.unit.test.js`) that pins the production default, proves
+  the override reaches the live limiter over HTTP (4 allowed, 5th is 429), that
+  an unusable `API_RATE_MAX` falls back to the real default instead of disabling
+  the limiter, and that the CI e2e job keeps raising the budget above the
+  development default.
+
 ## [2026-09-07] — Keystore hardening: never ship a debug-signed APK
 
 - CI `build-apk` workflow now **refuses to publish to GitHub Releases** unless the

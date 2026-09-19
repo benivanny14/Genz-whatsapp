@@ -29,7 +29,10 @@ const authService = {
       if (!data.requiresTwoFactor) {
         // Only clear old tokens, NOT all user data (localStorage, IndexedDB)
         // during login. Full data cleanup happens on explicit logout/session switch.
-        clearTokens();
+        // NOTE: must be `authService.clearTokens()` — a bare `clearTokens()` is
+        // not a module-scope binding, so it throws a ReferenceError that the
+        // catch below swallows into "Login failed. Please try again.".
+        authService.clearTokens();
         authService.saveTokens(data);
       }
 
@@ -49,7 +52,7 @@ const authService = {
       const response = await api.post('/auth/register', payload);
       const data = response.data;
       // Light token cleanup only (not destructive clearAllUserData)
-      clearTokens();
+      authService.clearTokens();
       authService.saveTokens(data);
       return data;
     } catch (error) {

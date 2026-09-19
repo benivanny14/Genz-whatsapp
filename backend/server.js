@@ -741,9 +741,14 @@ app.use(
 );
 
 // Rate limiting for API endpoints
+// The global budget is overridable via API_RATE_MAX — see utils/apiRateBudget.js
+// for why (the e2e job shares one runner IP across every step) and for the
+// per-environment defaults, which the production posture still uses.
+const { resolveApiRateMax } = require("./utils/apiRateBudget");
+
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 5000 : 200,
+  max: resolveApiRateMax(),
   message: {
     success: false,
     error: "Too many requests from this IP, please try again later.",
