@@ -2,8 +2,28 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const path = require('path');
 
+// Stable tag used as Message.clientMessageId for seeded messages, so re-running
+// the seed does not duplicate them.
+const SEED_MESSAGE_TAG = 'seed-all-test-data';
+
+const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/genz-whatsapp';
+
+// Safety: dev seeders must not silently write to a remote/production database.
+const isLocalMongo = (uri) => {
+  try {
+    const host = new URL(uri.replace(/^mongodb(\+srv)?:\/\//, 'http://')).hostname;
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  } catch {
+    return false;
+  }
+};
+if (!isLocalMongo(MONGO_URI) && !process.argv.includes('--allow-remote')) {
+  console.error('⛔ Refusing to seed a non-local MongoDB. Re-run with --allow-remote only if you are certain.');
+  process.exit(1);
+}
+
 async function seed() {
-  await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/genz-whatsapp');
+  await mongoose.connect(MONGO_URI);
   console.log('Connected to MongoDB');
 
   const User = require('../models/User');
@@ -26,7 +46,6 @@ async function seed() {
   // 1. RICH STATUSES (text, image placeholders)
   // ═══════════════════════════════════════════
   console.log('\n--- Creating rich statuses ---');
-  await Status.deleteMany({});
 
   const statusUsers = allUsers.filter(u => String(u._id) !== String(admin._id)).slice(0, 8);
   const statusTexts = [
@@ -63,17 +82,28 @@ async function seed() {
         fontColor: st.textColor,
         fontStyle: 'normal'
       },
-      bgColor: st.bgColor,
+      backgroundColor: st.bgColor,
       textColor: st.textColor,
       privacy: 'contacts',
       createdAt: new Date(now - (i + 1) * 1200000), // 20min apart
       expiresAt: new Date(now + 86400000 * 3 - (i + 1) * 1200000),
-      viewers: []
+      views: []
     });
   }
 
-  const createdStatuses = await Status.insertMany(statusDocs);
-  console.log(`Created ${createdStatuses.length} statuses`);
+  const existingStatusKeys = new Set(
+    (await Status.find({
+      userId: { $in: statusDocs.map((d) => d.userId) },
+      content: { $in: statusDocs.map((d) => d.content) }
+    }).select('userId content')).map((s) => `${s.userId}:${s.content}`)
+  );
+  const missingStatusDocs = statusDocs.filter(
+    (d) => !existingStatusKeys.has(`${d.userId}:${d.content}`)
+  );
+  const createdStatuses = missingStatusDocs.length ? await Status.insertMany(missingStatusDocs) : [];
+  console.log(createdStatuses.length
+    ? `Created ${createdStatuses.length} statuses`
+    : '⏭️ Statuses already exist');
 
   // Make sure admin has bidirectional contacts
   for (const su of statusUsers) {
@@ -139,21 +169,30 @@ async function seed() {
     { sender: admin._id, content: 'Karibu! Winga ina categories nyingi —Nguo, Simu, Laptop n.k', time: -300000 },
   ];
 
-  for (const msg of groupMessages) {
-    const created = await Message.create({
+  let createdGroupMessages = 0;
+  for (let i = 0; i < groupMessages.length; i++) {
+    const msg = groupMessages[i];
+    const clientMessageId = `${SEED_MESSAGE_TAG}:${groupChat._id}:group:${i}`;
+    const exists = await Message.findOne({ conversationId: groupChat._id, clientMessageId }).select('_id');
+    if (exists) continue;
+    await Message.create({
       conversationId: groupChat._id,
       sender: msg.sender,
+      clientMessageId,
       content: msg.content,
       type: 'text',
       createdAt: new Date(now + msg.time),
       readBy: [msg.sender]
     });
+    createdGroupMessages += 1;
   }
 
   await Conversation.findByIdAndUpdate(groupChat._id, {
     lastMessage: (await Message.findOne({ conversationId: groupChat._id }).sort({ createdAt: -1 }))._id
   });
-  console.log(`Created ${groupMessages.length} group messages`);
+  console.log(createdGroupMessages > 0
+    ? `Created ${createdGroupMessages} group messages`
+    : '⏭️ Group messages already exist');
 
   // ═══════════════════════════════════════════
   // 3. More private conversations with messages
@@ -217,19 +256,22 @@ async function seed() {
       });
     }
 
-    // Clear old messages
-    await Message.deleteMany({ conversationId: conv._id });
-
+    let createdMessages = 0;
     for (let i = 0; i < chat.messages.length; i++) {
       const msg = chat.messages[i];
+      const clientMessageId = `${SEED_MESSAGE_TAG}:${conv._id}:${i}`;
+      const exists = await Message.findOne({ conversationId: conv._id, clientMessageId }).select('_id');
+      if (exists) continue;
       await Message.create({
         conversationId: conv._id,
         sender: msg.from._id,
+        clientMessageId,
         content: msg.content,
         type: 'text',
         createdAt: new Date(now - (chat.messages.length - i) * 600000),
         readBy: [msg.from._id]
       });
+      createdMessages += 1;
     }
 
     const lastMsg = await Message.findOne({ conversationId: conv._id }).sort({ createdAt: -1 });
@@ -237,7 +279,9 @@ async function seed() {
       await Conversation.findByIdAndUpdate(conv._id, { lastMessage: lastMsg._id });
     }
 
-    console.log(`Created ${chat.messages.length} messages with ${chat.user.username}`);
+    console.log(createdMessages > 0
+      ? `Created ${createdMessages} messages with ${chat.user.username}`
+      : `⏭️ Messages already exist with ${chat.user.username}`);
   }
 
   // ═══════════════════════════════════════════
@@ -247,7 +291,6 @@ async function seed() {
 
   try {
     const Product = require('../models/Product');
-    await Product.deleteMany({});
 
     const products = [
       { name: 'iPhone 14 Pro Max', description: '256GB, Space Black, Condition: Like New', price: 2500000, category: 'Simu', location: 'Dar es Salaam', seller: admin._id },
@@ -260,19 +303,25 @@ async function seed() {
       { name: 'PS5 Console', description: 'With 2 Controllers + 3 Games', price: 1500000, category: 'TV', location: 'Dar es Salaam', seller: statusUsers[3]?._id || admin._id },
     ];
 
+    let createdProducts = 0;
     for (const p of products) {
+      const exists = await Product.findOne({ name: p.name }).select('_id');
+      if (exists) continue;
       await Product.create({
         name: p.name,
         description: p.description,
         price: p.price,
         category: p.category,
         location: p.location,
-        seller: p.seller,
+        user: p.seller,
         status: 'active',
         createdAt: new Date(now - Math.random() * 86400000 * 7)
       });
+      createdProducts += 1;
     }
-    console.log(`Created ${products.length} Winga products`);
+    console.log(createdProducts > 0
+      ? `Created ${createdProducts} Winga products`
+      : '⏭️ Winga products already exist');
   } catch (err) {
     console.log('Product model might not exist, skipping:', err.message);
   }

@@ -18,6 +18,7 @@
 
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
+const { getConversationName } = require('../utils/conversationName');
 const { getUser, mergeSettings, createSettingsHandlers, createToggleHandler } = require('../services/userScopedService');
 
 // ── Shared helpers (previously duplicated across all three controllers) ─────
@@ -153,8 +154,8 @@ exports.searchConversations = async (req, res) => {
       const searchRegex = buildSearchRegex(query, settings);
 
       const matchingConversations = conversations.filter(conv =>
-        searchRegex.test(conv.name || '') ||
-        searchRegex.test(conv.description || '')
+        searchRegex.test(getConversationName(conv, '')) ||
+        searchRegex.test(conv.groupDescription || conv.description || '')
       );
 
       results.conversations = matchingConversations.slice(0, maxResults);
@@ -167,7 +168,7 @@ exports.searchConversations = async (req, res) => {
       const messages = await Message.find({
         sender: user._id,
         content: { $regex: searchRegex }
-      }).populate('conversationId', 'name isGroup');
+      }).populate('conversationId', 'groupName name isGroup');
 
       results.messages = messages.slice(0, maxResults);
     }

@@ -1,6 +1,7 @@
 
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
+const { getConversationName } = require('../utils/conversationName');
 const { uploadFile: uploadToMediaStorage } = require('../config/cloudinary');
 const { getUser, createSettingsMerger, createSettingsHandlers } = require('../services/userScopedService');
 
@@ -152,7 +153,7 @@ exports.exportChat = async (req, res) => {
     let exportData = '';
 
     if (format === 'txt') {
-      exportData = `Chat Export - ${conversation.name || 'Unknown'}\n`;
+      exportData = `Chat Export - ${getConversationName(conversation, 'Unknown')}\n`;
       exportData += `Date: ${new Date().toISOString()}\n`;
       exportData += `Total Messages: ${messages.length}\n\n`;
       
@@ -164,7 +165,7 @@ exports.exportChat = async (req, res) => {
     } else if (format === 'json') {
       exportData = JSON.stringify({
         conversationId,
-        conversationName: conversation.name,
+        conversationName: getConversationName(conversation, 'Unknown'),
         exportedAt: new Date().toISOString(),
         messageCount: messages.length,
         messages: messages.map(msg => ({

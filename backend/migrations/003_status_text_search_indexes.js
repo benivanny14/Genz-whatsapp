@@ -14,6 +14,7 @@
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 
 const mongoose = require('mongoose');
+const Status = require('../models/Status');
 
 const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/genz_whatsapp';
 
@@ -23,10 +24,17 @@ async function up() {
   console.log('✅ Connected to MongoDB');
 
   const db = mongoose.connection.db;
-  const collection = db.collection('statuses');
+  const collection = db.collection(Status.collection.name);
 
-  // List existing indexes
-  const existingIndexes = await collection.indexes();
+  // List existing indexes. `indexes()` throws NamespaceNotFound when the
+  // collection has not been created yet, which is fine for a fresh database.
+  let existingIndexes = [];
+  try {
+    existingIndexes = await collection.indexes();
+  } catch (err) {
+    if (err.code !== 26 && err.codeName !== 'NamespaceNotFound') throw err;
+    console.log('ℹ️  Collection does not exist yet; starting with no indexes');
+  }
   const existingNames = existingIndexes.map(idx => idx.name);
   console.log(`📋 Found ${existingIndexes.length} existing indexes`);
 
@@ -88,7 +96,7 @@ async function up() {
 
   // Verify final index list
   const finalIndexes = await collection.indexes();
-  console.log(`\n📋 Final indexes on 'statuses' collection (${finalIndexes.length}):`);
+  console.log(`\n📋 Final indexes on '${Status.collection.name}' collection (${finalIndexes.length}):`);
   for (const idx of finalIndexes) {
     const keys = Object.entries(idx.key).map(([k, v]) => `${k}:${v}`).join(', ');
     console.log(`   - ${idx.name}: { ${keys} }`);
@@ -102,7 +110,7 @@ async function down() {
   console.log('🔄 Connecting to MongoDB...');
   await mongoose.connect(MONGO_URI);
   const db = mongoose.connection.db;
-  const collection = db.collection('statuses');
+  const collection = db.collection(Status.collection.name);
 
   const indexesToDrop = [
     'content_text_caption_text',

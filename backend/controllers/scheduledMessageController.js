@@ -91,7 +91,7 @@ exports.getScheduledMessages = async (req, res) => {
     if (conversationId) query.conversationId = conversationId;
 
     const scheduledMessages = await ScheduledMessage.find(query)
-      .populate('conversationId', 'name type participants')
+      .populate('conversationId', 'groupName name type participants')
       .sort({ sendAt: 1 });
 
     res.status(200).json({
@@ -118,7 +118,7 @@ exports.getScheduledMessage = async (req, res) => {
     const sender = getCurrentUserId(req);
 
     const scheduledMessage = await ScheduledMessage.findById(id)
-      .populate('conversationId', 'name type participants');
+      .populate('conversationId', 'groupName name type participants');
 
     if (!scheduledMessage) {
       return res.status(404).json({

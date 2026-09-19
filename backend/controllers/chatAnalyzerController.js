@@ -1,6 +1,7 @@
 
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
+const { getConversationName } = require('../utils/conversationName');
 const { getUser, createSettingsMerger, createSettingsHandlers } = require('../services/userScopedService');
 
 const defaultSettings = {
@@ -189,7 +190,7 @@ exports.getUserChatStats = async (req, res) => {
       .map(([convId, count]) => ({
         conversationId: convId,
         messageCount: count,
-        conversationName: conversations.find(c => c._id.toString() === convId)?.name || 'Unknown'
+        conversationName: getConversationName(conversations.find(c => c._id.toString() === convId), 'Unknown')
       }));
 
     res.status(200).json({
@@ -370,7 +371,7 @@ exports.exportAnalysisData = async (req, res) => {
     } else if (format === 'json') {
       exportData = JSON.stringify({
         conversationId,
-        conversationName: conversation.name,
+        conversationName: getConversationName(conversation, 'Unknown'),
         exportedAt: new Date().toISOString(),
         messageCount: messages.length,
         messages: messages.map(msg => ({

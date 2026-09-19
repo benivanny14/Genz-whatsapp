@@ -218,9 +218,9 @@ const BulkSender = ({ onClose, conversations, user }) => {
                       className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                     <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                      {conversation.name?.[0] || '?'}
+                      {(conversation.groupName || conversation.name)?.[0] || '?'}
                     </div>
-                    <span className="text-sm text-gray-700">{conversation.name || 'Unknown'}</span>
+                    <span className="text-sm text-gray-700">{conversation.groupName || conversation.name || 'Unknown'}</span>
                   </div>
                 ))}
             </div>

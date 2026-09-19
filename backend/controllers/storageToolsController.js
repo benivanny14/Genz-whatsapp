@@ -14,6 +14,7 @@
 
 const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
+const { getConversationName } = require('../utils/conversationName');
 const {
   getUser,
   createSettingsMerger,
@@ -174,7 +175,7 @@ exports.getDataUsageByConversation = async (req, res) => {
 
         return {
           conversationId: conv._id,
-          name: conv.name || 'Unknown',
+          name: getConversationName(conv, 'Unknown'),
           isGroup: conv.isGroup,
           messageCount: messages.length,
           mediaCount,
@@ -448,7 +449,7 @@ exports.getConversationBreakdown = async (req, res) => {
 
         return {
           conversationId: conv._id,
-          name: conv.name || 'Unknown',
+          name: getConversationName(conv, 'Unknown'),
           isGroup: conv.isGroup,
           messageCount: messages.length,
           mediaCount,

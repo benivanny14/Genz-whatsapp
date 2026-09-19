@@ -550,7 +550,7 @@ exports.getBulkMessageHistory = async (req, res) => {
       sender: user._id,
       bulkMessage: true
     })
-      .populate('conversationId', 'name')
+      .populate('conversationId', 'groupName name')
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
       .skip(parseInt(offset));

@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Conversation = require('../models/Conversation');
+const { getConversationName } = require('../utils/conversationName');
 const Message = require('../models/Message');
 const { getUser, createSettingsMerger, createSettingsHandlers } = require('../services/userScopedService');
 
@@ -280,7 +281,7 @@ exports.getActiveLiveLocations = async (req, res) => {
         const conversation = await Conversation.findById(loc.conversationId);
         if (conversation) {
           if (conversation.isGroup) {
-            contactName = conversation.name || 'Group chat';
+            contactName = getConversationName(conversation, 'Group chat');
           } else {
             const otherId = conversation.participants.find(
               p => p.toString() !== user._id.toString()
