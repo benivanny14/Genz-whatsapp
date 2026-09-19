@@ -1,14 +1,15 @@
 {
-  "version": "1.1.27",
-  "versionCode": 32,
+  "version": "1.2.3",
+  "versionCode": 38,
   "apkUrl": "/genz-whatsapp.apk",
-  "sha256": "456e04d944fa33e12bcf8bfe54928d1c168b42d0b3884da70c2ca62b2baaca11",
-  "size": 11313525,
-  "releasedAt": "2026-09-19T16:09:10.493Z",
+  "sha256": "1184dc824a534d20f136d659dbe5b5304a5016e57939bbae13cebe068124beb4",
+  "size": 11326874,
+  "releasedAt": "2026-09-19T18:39:24.114Z",
   "changes": [
-    "Channels feature removed — chats, groups na status tu",
+    "Channels removed — chats, groups na status tu",
     "Group names sasa zinaonekana vizuri kwenye chat, export na search",
     "Reply bar imeundwa upya — rounded na inaonekana wazi",
-    "Usalama: cleartext HTTP imezuiwa isipokuwa dev hosts"
+    "Usalama: cleartext HTTP imezuiwa isipokuwa dev hosts",
+    "Test/seed data inaonekana kwenye app"
   ]
 }
