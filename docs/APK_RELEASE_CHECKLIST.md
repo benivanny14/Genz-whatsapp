@@ -55,9 +55,29 @@ Hii inabumia:
 ```bash
 npm run apk:build
 ```
-Pipeline: web build → `cap sync android` → `gradlew assembleRelease`
-(ime-signed na release keystore) → `public/genz-whatsapp.apk` +
-`public/version.json` (sasa ina **sha256 + size** halisi).
+Pipeline (hatua 8): pre-build checks → web build → **verify baked API origin**
+→ ondoa APK kwenye `dist` → `cap sync android` → **safisha `.apk` kwenye
+native assets + verify tena** → `gradlew assembleRelease` (ime-signed na
+release keystore) → `public/genz-whatsapp.apk` + `public/version.json` (sasa
+ina **sha256 + size** halisi).
+
+> ⚠️ **Usiweke VITE_API_URL kwenye `frontend/.env.local`.** Vite huload
+> `.env.local` kwenye **kila mode**, ikiwemo `vite build` — kwa hiyo thamani ya
+> dev (mfano `http://10.0.2.2:5000`, ambayo ni alias ya emulator kwa mashine
+> yako) inaweza ku-bake kwenye production build/APK. `resolveApiBase()`
+> inatumia `VITE_API_URL` ikiwa **haiko tupu**, hivyo thamani hiyo mbovu
+> inashinda na APK haiwezi kufika API kwenye simu halisi. Weka dev overrides
+> kwenye **`frontend/.env.development.local`** (haipatikani kwenye build).
+>
+> Kama ulishawahi kujenga kwa mkono (`npm run build` + `npx cap sync` +
+> `gradlew assembleRelease`) badala ya `npm run apk:build`, thibitisha build
+> halisi kwa:
+> ```bash
+> npm run verify:bundle -- --target android/app/src/main/assets/public \
+>   --expect https://genz-whatsapp.onrender.com/api --no-apk
+> ```
+> Hii inaangalia **kilichobake kwenye bundle** (si env vars tu) na inakataa
+> localhost/emulator origin pamoja na `.apk` iliyoingizwa ndani ya app.
 
 ### 3. Verify (mashine au kifaa halisi)
 - [ ] APK ina-install kwenye Android test device (na inaweza kusajiliwa juu

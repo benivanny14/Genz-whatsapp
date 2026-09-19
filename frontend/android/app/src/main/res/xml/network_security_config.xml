@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Cleartext (plain http://) traffic policy for the app.
+
+  The release APK talks to https://genz-whatsapp.onrender.com for both the API
+  and socket.io, so cleartext is never needed in production. It IS needed while
+  developing on the Android emulator, where the machine running the backend is
+  reachable as 10.0.2.2 (localhost/127.0.0.1 cover the on-device WebView case).
+
+  Previously AndroidManifest.xml set android:usesCleartextTraffic="true", which
+  allowed unencrypted HTTP to ANY host — a downgrade-attack surface that Play
+  Console also flags. Restricting it to the dev hosts keeps emulator workflow
+  working without weakening the shipped app.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>

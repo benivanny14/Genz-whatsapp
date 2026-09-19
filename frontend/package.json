@@ -15,6 +15,7 @@
     "clean": "node scripts/cleanup-dev.js",
     "verify": "node scripts/verify-fixes.js",
     "check:jsx": "node scripts/check-jsx-imports.mjs",
+    "verify:bundle": "node scripts/verify-bundle-env.js",
     "prebuild:check": "node scripts/pre-build-check.js",
     "apk:build": "node scripts/build-apk.js",
     "bump:apk": "node scripts/bump-app-version.js",
