@@ -86,7 +86,12 @@ beforeEach(() => {
       if (event === 'connection') connectionHandler = cb;
     }),
     to: jest.fn(() => ({ emit: jest.fn() })),
-    emit: jest.fn()
+    emit: jest.fn(),
+    sockets: {
+      adapter: {
+        rooms: new Map()
+      }
+    }
   };
   global.onlineUsers = new Map();
   setupSocket(io);
@@ -145,11 +150,11 @@ describe('socket security — targeted emits (1.2)', () => {
     const roomEmit = jest.fn();
     io.to.mockReturnValue({ emit: roomEmit });
 
-    await handlers['status:react']({ statusId: 's1', emoji: '❤️' });
+    await handlers['status:react']({ statusId: '64b9c5f2e4b0a1b2c3d4e5f6', emoji: '❤️' });
 
-    expect(Status.findById).toHaveBeenCalledWith('s1');
+    expect(Status.findById).toHaveBeenCalledWith('64b9c5f2e4b0a1b2c3d4e5f6');
     expect(io.to).toHaveBeenCalledWith('socket-owner');
-    expect(roomEmit).toHaveBeenCalledWith('status:reacted', expect.objectContaining({ statusId: 's1', userId: 'user-1', emoji: '❤️' }));
+    expect(roomEmit).toHaveBeenCalledWith('status:reacted', expect.objectContaining({ statusId: '64b9c5f2e4b0a1b2c3d4e5f6', userId: 'user-1', emoji: '❤️' }));
     expect(io.emit).not.toHaveBeenCalled();
   });
 });
@@ -167,7 +172,7 @@ describe('socket security — authorization (2.2/2.4/2.5/2.6)', () => {
   it('status:delete rejects deleting other users statuses', async () => {
     Status.findById.mockResolvedValue({ userId: 'user-9' });
 
-    await handlers['status:delete']({ statusId: 's1' });
+    await handlers['status:delete']({ statusId: '64b9c5f2e4b0a1b2c3d4e5f6' });
 
     expect(socket.emit).toHaveBeenCalledWith('error', expect.objectContaining({ message: expect.stringContaining('Not authorized') }));
     expect(io.to).not.toHaveBeenCalled();
@@ -580,7 +585,7 @@ describe('socket privacy — status:view refuses excluded viewers', () => {
     const roomEmit = jest.fn();
     io.to.mockReturnValue({ emit: roomEmit });
 
-    await handlers['status:view']({ statusId: 's1' });
+    await handlers['status:view']({ statusId: '64b9c5f2e4b0a1b2c3d4e5f6' });
 
     // no view recorded, no relay to the owner, nothing sent back to the viewer
     expect(Status.findByIdAndUpdate).not.toHaveBeenCalled();
@@ -589,8 +594,9 @@ describe('socket privacy — status:view refuses excluded viewers', () => {
   });
 
   it('records views from an allowed contact', async () => {
+    const STATUS_ID = '64b9c5f2e4b0a1b2c3d4e5f6';
     const firstRead = {
-      _id: 's1',
+      _id: STATUS_ID,
       userId: 'user-2',
       privacy: 'contacts_except',
       excludedViewers: ['user-3'],
@@ -602,10 +608,10 @@ describe('socket privacy — status:view refuses excluded viewers', () => {
       .mockResolvedValueOnce(firstRead)
       .mockReturnValueOnce({
         populate: jest.fn().mockResolvedValue({
-          _id: 's1',
+          _id: STATUS_ID,
           userId: { _id: 'user-2' },
           viewCount: 1,
-          toObject: () => ({ _id: 's1', userId: 'user-2' })
+          toObject: () => ({ _id: STATUS_ID, userId: 'user-2' })
         })
       });
     User.findById.mockReturnValue({
@@ -615,7 +621,7 @@ describe('socket privacy — status:view refuses excluded viewers', () => {
     const roomEmit = jest.fn();
     io.to.mockReturnValue({ emit: roomEmit });
 
-    await handlers['status:view']({ statusId: 's1' });
+    await handlers['status:view']({ statusId: STATUS_ID });
 
     expect(firstRead.save).toHaveBeenCalled();
     expect(io.to).toHaveBeenCalledWith('socket-owner');

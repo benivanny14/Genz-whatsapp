@@ -29,7 +29,7 @@ const DocumentMessage = ({ fileName, fileSize, fileUrl, messageType }) => {
   };
 
   const handlePreview = () => {
-    window.open(fileUrl, '_blank');
+    window.open(fileUrl, '_self');
   };
 
   return (

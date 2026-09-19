@@ -1,4 +1,4 @@
-import { getAuthToken, setAuthTokens } from '../utils/tokenStore';
+import { getAuthToken, setAuthTokens, clearAuthTokens } from '../utils/tokenStore';
 import api from '../utils/axios';
 import { clearAllUserData } from '../utils/authSession';
 
@@ -14,9 +14,11 @@ const authService = {
     }
   },
 
-  // Clear all auth data from localStorage
+  // Light cleanup: clear auth tokens only (used during login to discard old session).
+  // Full data cleanup (localStorage.clear, IndexedDB delete) happens on explicit logout.
   clearTokens: () => {
-    clearAllUserData();
+    clearAuthTokens();
+    localStorage.removeItem('user');
   },
 
   login: async (payload) => {
@@ -25,8 +27,9 @@ const authService = {
       const data = response.data;
 
       if (!data.requiresTwoFactor) {
-        // Clear previous session data before saving new tokens
-        await clearAllUserData();
+        // Only clear old tokens, NOT all user data (localStorage, IndexedDB)
+        // during login. Full data cleanup happens on explicit logout/session switch.
+        clearTokens();
         authService.saveTokens(data);
       }
 
@@ -45,8 +48,8 @@ const authService = {
     try {
       const response = await api.post('/auth/register', payload);
       const data = response.data;
-      // Clear previous session data before saving new tokens
-      await clearAllUserData();
+      // Light token cleanup only (not destructive clearAllUserData)
+      clearTokens();
       authService.saveTokens(data);
       return data;
     } catch (error) {
@@ -69,7 +72,7 @@ const authService = {
     } catch (error) {
       console.error('[AuthService] Logout error:', error);
     } finally {
-      authService.clearTokens();
+      await clearAllUserData();
     }
   },
 

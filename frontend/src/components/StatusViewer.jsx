@@ -54,6 +54,7 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
   const [replyText, setReplyText] = useState('')
   const [showReply, setShowReply] = useState(false)
   const [showViewers, setShowViewers] = useState(false)
+  const replyRef = useRef(null)
   const [viewers, setViewers] = useState([])
   const [viewerSearchQuery, setViewerSearchQuery] = useState('')
   const [duration, setDuration] = useState(5000) // default 5s for images
@@ -263,16 +264,9 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
     const url = sanitizeMediaUrl(s.content || s.mediaUrl || '')
     if (!url) return
     try {
-      const response = await fetch(url)
-      const blob = await response.blob()
-      const blobUrl = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = blobUrl
-      link.download = `genz-status-${s._id || Date.now()}.${s.type === 'video' ? 'mp4' : 'jpg'}`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(blobUrl)
+      const { downloadUrl } = await import('../services/capacitorBridge')
+      const ext = s.type === 'video' ? 'mp4' : 'jpg'
+      await downloadUrl(url, `genz-status-${s._id || Date.now()}.${ext}`)
       setCopyToast('Status downloaded!')
       setTimeout(() => setCopyToast(''), 2500)
     } catch (err) {
@@ -399,6 +393,7 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
         throw new Error(data.message || 'Failed to reply')
       }
       setReplyText('')
+      if (replyRef.current) replyRef.current.style.height = 'auto'
       setShowReply(false)
     } catch (err) {
       console.error('Status reply error:', err)
@@ -984,11 +979,16 @@ const StatusViewer = ({ user, initialIndex = 0, onClose, onReshare }) => {
         )}
         
         <div className="reply-input-container">
-          <input
-            type="text"
+          <textarea
+            ref={replyRef}
             placeholder="Reply..."
+            rows={1}
             value={replyText}
-            onChange={(e) => setReplyText(e.target.value)}
+            onChange={(e) => {
+              setReplyText(e.target.value);
+              e.target.style.height = 'auto';
+              e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+            }}
             onFocus={() => setIsPaused(true)}
             onBlur={() => setIsPaused(false)}
           />

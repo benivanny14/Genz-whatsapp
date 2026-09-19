@@ -187,6 +187,10 @@ const transformConversationForUser = async (conversation, userId) => {
   // Don't leak a view-once message's content into the chat-list preview
   if (conv.lastMessage) {
     stripViewOnceContent(conv.lastMessage);
+    // Don't leak raw PGP ciphertext into the chat-list preview
+    if (conv.lastMessage.encrypted && typeof conv.lastMessage.content === 'string' && conv.lastMessage.content.includes('-----BEGIN PGP MESSAGE-----')) {
+      conv.lastMessage.content = '\uD83D\uDD12 Encrypted message';
+    }
   }
 
   return conv;
@@ -198,7 +202,7 @@ const populateConversation = (query) =>
     // are filtered (missing them would silently leak privacy-restricted fields).
     .populate(
       "participants",
-      "username phoneNumber profilePicture isOnline lastSeen about settings contacts",
+      "username phoneNumber profilePicture isOnline lastSeen about settings contacts role",
     )
     .populate("admins", "username profilePicture")
     .populate("lastMessage");
@@ -549,8 +553,10 @@ exports.addParticipant = async (req, res) => {
       }
     }
 
-    conversation.participants.push(userId);
-    await conversation.save();
+    await Conversation.findByIdAndUpdate(
+      conversation._id,
+      { $addToSet: { participants: userId } }
+    );
 
     const updatedConversation = await populateConversation(Conversation.findById(conversation._id));
 
@@ -758,7 +764,7 @@ exports.getStarredMessages = async (req, res) => {
 
     messages.forEach(stripViewOnceContent);
 
-    res.json(messages);
+    res.json({ success: true, messages });
   } catch (error) {
     console.error("Get starred messages error:", error);
     res.status(500).json({
@@ -881,18 +887,25 @@ exports.sendMessage = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Your message contains disallowed words. Please change your message.' });
     }
 
-    // Check if the receiver has blocked the sender
-    const receiverId = conversation.participants.find(p => String(p) !== String(localUserId));
-    if (receiverId) {
-      const receiver = await User.findById(receiverId).select('blockedUsers');
-      if (receiver && receiver.blockedUsers && receiver.blockedUsers.some(id => String(id) === String(localUserId))) {
+    // Check if the receiver has blocked the sender (1:1 chats only)
+    if (!conversation.isGroup) {
+      const receiverId = conversation.participants.find(p => String(p) !== String(localUserId));
+      if (receiverId) {
+        const receiver = await User.findById(receiverId).select('blockedUsers');
+        if (receiver && receiver.blockedUsers && receiver.blockedUsers.some(id => String(id) === String(localUserId))) {
+          return res.status(403).json({ success: false, message: "Cannot message this user" });
+        }
+      }
+
+      if (await isConversationBlocked(conversation, localUserId)) {
         return res.status(403).json({ success: false, message: "Cannot message this user" });
       }
     }
 
-    if (await isConversationBlocked(conversation, localUserId)) {
-      return res.status(403).json({ success: false, message: "Cannot message this user" });
-    }
+    // Hoist receiverId for E2EE encryption below (line 1001)
+    const receiverId = (!conversation.isGroup)
+      ? conversation.participants.find(p => String(p) !== String(localUserId))
+      : null;
 
     if (conversation.isGroup) {
       const isAdmin = conversation.admins?.some((a) => String(a) === String(localUserId));
@@ -906,9 +919,27 @@ exports.sendMessage = async (req, res) => {
       if (conversation.canCreatePolls === false && messageType === 'poll') {
         return res.status(403).json({ success: false, message: 'Polls are disabled in this group' });
       }
+    } else {
+      // 1:1 chat with admin user: only admin can send messages
+      if (receiverId) {
+        const receiver = await User.findById(receiverId).select('role isAdmin username').lean();
+        const receiverIsAdmin = receiver?.role === 'admin' || receiver?.isAdmin || receiver?.username === 'GENZ Support';
+        const senderUser = await User.findById(localUserId).select('role isAdmin').lean();
+        const senderIsAdmin = senderUser?.role === 'admin' || senderUser?.isAdmin;
+        if (receiverIsAdmin && !senderIsAdmin) {
+          return res.status(403).json({ success: false, message: 'Only admins can send messages to this contact' });
+        }
+      }
     }
 
     const replyToId = normalizeReplyToId(replyTo);
+
+    if (replyToId) {
+      const replyMsg = await Message.findById(replyToId);
+      if (!replyMsg || replyMsg.conversationId.toString() !== finalConversationId) {
+        return res.status(400).json({ success: false, message: 'Invalid replyTo message' });
+      }
+    }
 
     const safeContent =
       content ||
@@ -920,6 +951,10 @@ exports.sendMessage = async (req, res) => {
         success: false,
         message: "Message content or media is required",
       });
+    }
+
+    if (safeContent.length > 10000) {
+      return res.status(400).json({ success: false, message: "Message too long (max 10,000 characters)" });
     }
 
     let mentionData = { mentions: [], mentionedUserIds: [], mentionedUsers: [] };
@@ -1063,7 +1098,9 @@ exports.sendMessage = async (req, res) => {
       $set: {
         lastMessage: message._id,
         updatedAt: new Date(),
-        deletedFor: []
+      },
+      $pull: {
+        deletedFor: localUserId
       }
     };
     if (Object.keys(incObject).length > 0) {
@@ -1135,6 +1172,9 @@ exports.sendMessage = async (req, res) => {
                 conversationId: finalConversationId,
                 unreadCount: getUnreadCount(updatedConversation, recipientId)
               });
+              // Mirror socket path: emit conversation:created so deleted chats
+              // are restored in the recipient's local state
+              io.to(recipientId).emit("conversation:created", updatedConversation);
             }
             notificationTasks.push((async () => {
               // FIX: previously every participant got a push notification for
@@ -1300,7 +1340,7 @@ exports.deleteMessage = async (req, res) => {
     }
 
     if (forEveryone) {
-      const isAdmin = conversation.isGroup &&
+      const isAdmin = !conversation.isGroup ||
         (conversation.admins || []).some(adminId => adminId.toString() === localUserId.toString()) ||
         conversation.createdBy?.toString() === localUserId.toString();
 
@@ -1361,7 +1401,18 @@ exports.deleteMessage = async (req, res) => {
       message.fileName = '';
       message.fileSize = 0;
       message.duration = 0;
+      await message.save();
       scheduleHardDelete(message, localUserId);
+
+      const io = req.app.get("io");
+      if (io) {
+        io.to(message.conversationId.toString()).emit("message:deleted", {
+          messageId: message._id,
+          forEveryone: true,
+          deletedBy: localUserId,
+        });
+      }
+      return res.status(200).json({ success: true, message: "Message deleted" });
     } else if (!includesId(message.deletedFor, localUserId)) {
       message.deletedFor.push(localUserId);
     }
@@ -1520,6 +1571,9 @@ exports.reportScreenshotAttempt = async (req, res) => {
         attemptedBy: userId,
         attemptedAt: new Date()
       });
+      if (message.screenshotAttempts.length > 50) {
+        message.screenshotAttempts = message.screenshotAttempts.slice(-50);
+      }
       
       await message.save();
 
@@ -2409,7 +2463,8 @@ exports.revealViewOnceMessage = async (req, res) => {
     try {
       await message.save();
     } catch (saveErr) {
-      console.warn('[ChatController] Failed to persist reveal audit:', saveErr?.message || saveErr);
+      console.error('[ChatController] Failed to persist reveal audit:', saveErr?.message || saveErr);
+      return res.status(500).json({ success: false, message: 'Failed to record view' });
     }
 
     // Live notify the sender that someone opened the view-once message,
@@ -2746,7 +2801,7 @@ exports.reportMessage = async (req, res) => {
     // Notify admins (if any admin sockets are joined to the admin room).
     const io = req.app.get('io');
     if (io) {
-      io.to('admin-room').emit('new:abuse-report', report);
+      io.to('admin-room').to('role:admin').emit('new:abuse-report', report);
     }
 
     res.status(201).json({ success: true, message: "Message reported successfully", reportId: report._id });
@@ -2970,7 +3025,7 @@ exports.getGroupInfo = async (req, res) => {
     if (isAdmin && !conversation.groupInviteCode) {
       groupWithInvite = await Conversation.findByIdAndUpdate(
         groupId,
-        { $set: { groupInviteCode: crypto.randomBytes(16).toString('hex') } },
+        { $set: { groupInviteCode: crypto.randomBytes(16).toString('hex'), groupInviteCodeExpiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) } },
         { new: true }
       ).select('+groupInviteCode');
     } else if (isAdmin) {
@@ -3081,11 +3136,11 @@ exports.deleteChat = async (req, res) => {
 
     if (!ensureParticipant(conversation, userId, res)) return;
 
-    // For group chats, only remove the user from participants
+    // For group chats, only hide from list (don't remove from group)
     if (conversation.isGroup) {
       await Conversation.findByIdAndUpdate(
         chatId,
-        { $pull: { participants: userId, admins: userId } }
+        { $addToSet: { deletedFor: userId } }
       );
     } else {
       // For individual chats, mark all messages as deleted for this user
@@ -3482,6 +3537,7 @@ exports.getGroupQRCode = async (req, res) => {
     if (!conversation.groupInviteCode) {
       const crypto = require('crypto');
       conversation.groupInviteCode = crypto.randomBytes(16).toString('hex');
+      conversation.groupInviteCodeExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
       await conversation.save();
     }
 
@@ -3639,6 +3695,8 @@ exports.markConversationAsRead = async (req, res) => {
           sender: { $ne: localUserId },
           status: { $ne: "read" },
           "readBy.user": { $ne: localUserId },
+          deletedForEveryone: { $ne: true },
+          deletedFor: { $ne: localUserId },
         },
         {
           $push: { readBy: { user: localUserId, readAt: new Date() } },

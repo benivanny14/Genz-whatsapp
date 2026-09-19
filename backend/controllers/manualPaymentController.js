@@ -4,10 +4,14 @@ const User = require('../models/User');
 const { parsePaymentSms, isValidTransactionId } = require('../utils/mobileMoneySmsParser');
 
 // The account users are instructed to pay into.
-const getReceiverDetails = () => ({
-  receiverName: process.env.MANUAL_PAYMENT_RECEIVER_NAME || 'ERASTOR GODFREY PAUL',
-  receiverNumber: process.env.MANUAL_PAYMENT_RECEIVER_NUMBER || '0639533428'
-});
+const getReceiverDetails = () => {
+  const name = process.env.MANUAL_PAYMENT_RECEIVER_NAME;
+  const number = process.env.MANUAL_PAYMENT_RECEIVER_NUMBER;
+  if (!name || !number) {
+    console.error('[ManualPayment] MANUAL_PAYMENT_RECEIVER_NAME and MANUAL_PAYMENT_RECEIVER_NUMBER must be set');
+  }
+  return { receiverName: name || '', receiverNumber: number || '' };
+};
 
 const SUBSCRIPTION_PLANS = {
   Premium: { days: 30, amount: 10000 }

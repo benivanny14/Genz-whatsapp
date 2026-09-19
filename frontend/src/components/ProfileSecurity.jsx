@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, X, Check, RefreshCw, Lock, Eye, EyeOff, AlertTriangle, Fingerprint, Smartphone, QrCode } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { useConfirm } from './/ConfirmDialog';
@@ -49,11 +50,11 @@ const ProfileSecurity = ({ user, securitySettings, onUpdateSecurity, onClose }) 
         setTwoFactorData({ qrCode: data.qrCodeDataUrl, secret: data.secret });
         setTwoFactorStep('verify');
       } else {
-        alert(data.message || 'Failed to generate 2FA secret');
+        toast.error(data.message || 'Failed to generate 2FA secret');
       }
     } catch (error) {
       console.error('Generate 2FA error:', error);
-      alert('Failed to connect to the server');
+      toast.error('Failed to connect to the server');
     } finally {
       setIsProcessing(false);
     }
@@ -61,7 +62,7 @@ const ProfileSecurity = ({ user, securitySettings, onUpdateSecurity, onClose }) 
 
   const handleVerifyTwoFactor = async () => {
     if (!twoFactorToken || twoFactorToken.length !== 6) {
-      alert('Please enter a valid 6-digit code');
+      toast.error('Please enter a valid 6-digit code');
       return;
     }
 
@@ -79,11 +80,11 @@ const ProfileSecurity = ({ user, securitySettings, onUpdateSecurity, onClose }) 
         setTwoFactorToken('');
         onUpdateSecurity?.({ ...securitySettings, twoFactor: true });
       } else {
-        alert(data.message || 'Invalid code. Please try again.');
+        toast.error(data.message || 'Invalid code. Please try again.');
       }
     } catch (error) {
       console.error('Verify 2FA error:', error);
-      alert('Failed to verify code');
+      toast.error('Failed to verify code');
     } finally {
       setIsProcessing(false);
     }
@@ -103,11 +104,11 @@ const ProfileSecurity = ({ user, securitySettings, onUpdateSecurity, onClose }) 
         setTwoFactorStep('status');
         onUpdateSecurity?.({ ...securitySettings, twoFactor: false });
       } else {
-        alert(data.message || 'Failed to disable 2FA');
+        toast.error(data.message || 'Failed to disable 2FA');
       }
     } catch (error) {
-      console.error('Disable 2FA error:', error);
-      alert('Failed to disable 2FA');
+      if (import.meta.env.DEV) console.error('Disable 2FA error:', error);
+      toast.error('Failed to disable 2FA');
     } finally {
       setIsProcessing(false);
     }
@@ -162,7 +163,7 @@ const ProfileSecurity = ({ user, securitySettings, onUpdateSecurity, onClose }) 
 
   const handleChangePassword = async () => {
     if (formData.newPassword !== formData.confirmPassword) {
-      alert('Passwords do not match');
+      toast.error('Passwords do not match');
       return;
     }
 
@@ -175,10 +176,10 @@ const ProfileSecurity = ({ user, securitySettings, onUpdateSecurity, onClose }) 
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(data.message || 'Failed to change password');
+        toast.error(data.message || 'Failed to change password');
         return;
       }
-      alert('Password imebadilishwa kwa mafanikio');
+      toast.success('Password changed successfully');
       onUpdateSecurity?.({
         ...securitySettings,
         passwordChanged: true
@@ -186,7 +187,7 @@ const ProfileSecurity = ({ user, securitySettings, onUpdateSecurity, onClose }) 
       setFormData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setShowChangePassword(false);
     } catch (err) {
-      alert('Failed to connect to the server. Please try again.');
+      toast.error('Failed to connect to the server. Please try again.');
     } finally {
       setIsProcessing(false);
     }

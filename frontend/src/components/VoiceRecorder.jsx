@@ -108,16 +108,18 @@ function audioBufferToWav(buffer) {
 async function blobToPlayablePreview(blob) {
   const t = blob?.type || '';
   if (t.includes('wav') || t.includes('mpeg')) return blob;
+  let ctx;
   try {
     const arrayBuffer = await blob.arrayBuffer();
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
     await ctx.resume?.();
     const audioBuf = await ctx.decodeAudioData(arrayBuffer.slice(0));
     const wav = audioBufferToWav(audioBuf);
-    await ctx.close();
     return wav;
   } catch {
     return blob;
+  } finally {
+    if (ctx) { try { await ctx.close(); } catch (_) {} }
   }
 }
 
@@ -146,12 +148,30 @@ const VoiceRecorder = ({
   const [isLocked, setIsLocked] = useState(false);
   const isLockedRef = useRef(false);
   const [isViewOnce, setIsViewOnce] = useState(false);
+  const isViewOnceRef = useRef(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [duration, setDuration] = useState(0);
   const [swipe, setSwipe] = useState(null);
   const [error, setError] = useState(null);
+  const errorRef = useRef(null);
   const [previewAudioUrl, setPreviewAudioUrl] = useState(null);
+  const appStateListenerRef = useRef(null);
+
+  useEffect(() => { isViewOnceRef.current = isViewOnce; }, [isViewOnce]);
+  useEffect(() => { errorRef.current = error; }, [error]);
+
+  useEffect(() => {
+    if (isNative()) {
+      import('@capacitor/app').then(({ App }) => {
+        try { appStateListenerRef.current?.remove(); } catch {}
+        App.addListener('appStateChange', ({ isActive }) => {
+          if (isActive && errorRef.current) setError(null);
+        }).then(h => { appStateListenerRef.current = h; }).catch(() => {});
+      }).catch(() => {});
+    }
+    return () => { try { appStateListenerRef.current?.remove(); } catch {}; appStateListenerRef.current = null; };
+  }, []);
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
   const [showEffects, setShowEffects] = useState(false);
   const [applyingEffect, setApplyingEffect] = useState(false);
@@ -231,6 +251,8 @@ const VoiceRecorder = ({
     previewAudioRef.current?.pause();
     setIsPlayingPreview(false);
     setPickerEffect(null);
+    try { appStateListenerRef.current?.remove(); } catch {}
+    appStateListenerRef.current = null;
     if (onActiveChange) onActiveChange(false);
     if (!ghostMode && sendRecordingStatus) sendRecordingStatus(false);
   }, [stopStream, ghostMode, sendRecordingStatus, onActiveChange]);
@@ -266,24 +288,28 @@ const VoiceRecorder = ({
         channelCount: 1
       };
 
-      // On native APK, request microphone permission explicitly.
-      // The web API getUserMedia handles the OS permission dialog on most
-      // devices, but on some Android WebViews we need to check first.
+      // On native APK, don't rely on navigator.permissions.query as source of truth.
+      // Android WebView's permissions.query is unreliable and may return 'denied'
+      // even after user granted in Settings. Instead, directly try getUserMedia
+      // and handle NotAllowedError with a Settings button. Also listen for app
+      // resume to auto-retry after user returns from Settings.
+      let appStateListener = null;
       if (isNative()) {
         try {
-          if (navigator.permissions && navigator.permissions.query) {
-            const status = await navigator.permissions.query({ name: 'microphone' });
-            if (status.state === 'denied') {
-              // TATIZO 1 FIX: Permission explicitly denied — tell the user,
-              // do NOT silently open a file picker which is confusing.
-              toast.error(
-                'Huna ruhusa ya microphone.\nNenda kwenye Settings za simu yako → Apps → GENZ → Permissions → Microphone uiruhusu.',
-                { duration: 8000, style: { maxWidth: 400 } }
-              );
-              return;
+          const { App } = await import('@capacitor/app');
+          // Auto-retry when user returns from Settings after granting permission
+          appStateListener = await App.addListener('appStateChange', ({ isActive }) => {
+            if (isActive && error) {
+              setError(null);
+              // Retry recording after permission was granted in Settings
+              setTimeout(() => {
+                if (!isRecording && !isLocked) {
+                  startRecording();
+                }
+              }, 300);
             }
-          }
-        } catch (_) { /* permissions API not supported — continue with getUserMedia */ }
+          });
+        } catch {}
       }
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -414,7 +440,7 @@ const VoiceRecorder = ({
         finalBlobRef.current = processed;
 
         if (!isLockedRef.current) {
-          if (onSend) onSend(processed, durationRef.current, fx, isViewOnce);
+          if (onSend) onSend(processed, durationRef.current, fx, isViewOnceRef.current);
           finalBlobRef.current = null;
           audioChunksRef.current = [];
           setIsRecording(false);
@@ -472,7 +498,8 @@ const VoiceRecorder = ({
     voiceConstraints,
     onActiveChange,
     stopAnalyser,
-    stopStream
+    stopStream,
+    onFallback
   ]);
 
   const pauseRecording = () => {
@@ -511,7 +538,7 @@ const VoiceRecorder = ({
       if (!ghostMode && sendRecordingStatus) sendRecordingStatus(false);
       if (onActiveChange) onActiveChange(false);
     } else if (finalBlobRef.current) {
-      if (onSend) onSend(finalBlobRef.current, durationRef.current, effectiveEffectRef.current, isViewOnce);
+      if (onSend) onSend(finalBlobRef.current, durationRef.current, effectiveEffectRef.current, isViewOnceRef.current);
       resetAll();
     }
   };
@@ -592,6 +619,8 @@ const VoiceRecorder = ({
   useEffect(
     () => () => {
       stopStream();
+      try { appStateListenerRef.current?.remove(); } catch {}
+      appStateListenerRef.current = null;
       if (previewObjectUrlRef.current) {
         URL.revokeObjectURL(previewObjectUrlRef.current);
         previewObjectUrlRef.current = null;

@@ -22,6 +22,7 @@ const {
   uploadFile: uploadToMediaStorage,
   isConfigured: isCloudinaryConfigured,
 } = require('../config/cloudinary');
+const { validateFileContent } = require('../middleware/fileValidation');
 const notificationService = require('../services/notificationService');
 
 // Multer config for status media uploads
@@ -1163,7 +1164,7 @@ router.post('/:id/favorite', protect, async (req, res) => {
 });
 
 // ============ UPLOAD MEDIA ============
-router.post('/upload', protect, upload.single('file'), async (req, res) => {
+router.post('/upload', protect, upload.single('file'), validateFileContent, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No file uploaded' });
@@ -1437,7 +1438,12 @@ router.post('/:id/poll/vote', protect, async (req, res) => {
 
     await status.save();
 
-    res.json({ success: true, status });
+    // Return populated status with poll data for the frontend
+    const updatedStatus = await Status.findById(status._id)
+      .populate('userId', 'username profilePicture')
+      .populate('user', 'username profilePicture');
+
+    res.json({ success: true, status: updatedStatus, poll: updatedStatus?.poll });
   } catch (err) {
     console.error('Vote poll error:', err);
     res.status(500).json({ success: false, message: err.message });
@@ -1571,6 +1577,22 @@ router.post('/link-preview', protect, async (req, res) => {
       parsedUrl = new URL(url);
     } catch {
       return res.status(400).json({ success: false, message: 'Invalid URL' });
+    }
+
+    // SSRF protection: only allow http/https, block private IPs and dangerous hosts
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      return res.status(400).json({ success: false, message: 'Only HTTP/HTTPS URLs are allowed' });
+    }
+    const hostname = parsedUrl.hostname.toLowerCase();
+    const ssrfBlocklist = [
+      'localhost', '127.0.0.1', '0.0.0.0', '::1', '169.254.169.254',
+      'metadata.google.internal', 'instance-data', '10.', '192.168.', '172.16.',
+      '172.17.', '172.18.', '172.19.', '172.20.', '172.21.', '172.22.', '172.23.',
+      '172.24.', '172.25.', '172.26.', '172.27.', '172.28.', '172.29.', '172.30.',
+      '172.31.', '[::ffff:127.0.0.1]', '[::ffff:10.', '[::ffff:192.168.'
+    ];
+    if (ssrfBlocklist.some(blocked => hostname === blocked || hostname.endsWith('.' + blocked))) {
+      return res.status(400).json({ success: false, message: 'Private/internal URLs are not allowed' });
     }
 
     const domain = parsedUrl.hostname;
@@ -1986,8 +2008,28 @@ router.delete('/scheduled/:id', protect, async (req, res) => {
 });
 
 // POST /api/status/publish-scheduled - Publish due scheduled statuses (called by cron)
-router.post('/publish-scheduled', protect, async (req, res) => {
+// Uses a secret key header instead of user auth for cron job compatibility
+router.post('/publish-scheduled', async (req, res) => {
   try {
+    // Verify cron secret or valid admin JWT
+    const cronSecret = req.headers['x-cron-secret'] || req.headers['x-admin-secret'];
+    const adminToken = req.headers.authorization?.replace('Bearer ', '');
+    
+    const isValidCron = process.env.CRON_SECRET && cronSecret === process.env.CRON_SECRET;
+    
+    let isValidAdmin = false;
+    if (adminToken && adminToken !== 'null') {
+      try {
+        const jwt = require('jsonwebtoken');
+        jwt.verify(adminToken, process.env.ADMIN_JWT_SECRET);
+        isValidAdmin = true;
+      } catch (e) { /* invalid token */ }
+    }
+    
+    if (!isValidCron && !isValidAdmin) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
     const dueStatuses = await Status.find({
       isScheduled: true,
       isPublished: false,

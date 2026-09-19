@@ -72,8 +72,17 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
           </div>
         )}
   
-        <div className="bg-dark-surface border-t border-dark-border px-1 py-1 sm:px-2 sm:py-2 lg:p-4 relative z-50 flex-shrink-0" style={{ flex: '0 0 auto', position: 'sticky', bottom: 0, paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)', background: 'var(--chat-bg, #111b21)' }}>          {/* Inline pickers are rendered AFTER the form below */}
-  
+        <div className="bg-dark-surface border-t border-dark-border px-1 py-1 sm:px-2 sm:py-2 lg:p-4 relative z-50 flex-shrink-0" style={{ flex: '0 0 auto', position: 'sticky', bottom: 0, paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)', background: 'var(--chat-bg, #111b21)' }}>
+          {/* ── Admin-only chat: read-only banner (user cannot send messages) ── */}
+          {adminOnlyMessagingEnabled && !currentUserIsAdmin ? (
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-dark-bg/80 border border-dark-border">
+              <ShieldCheck size={16} className="text-primary-400 flex-shrink-0" />
+              <span className="text-xs text-dark-textSecondary leading-tight">
+                This is an official admin channel. Only admins can send messages.
+              </span>
+            </div>
+          ) : (
+          <>
           {selectedMedia && (
             <div className={`mb-2 relative inline-block p-2 rounded-xl border border-dark-border max-w-[200px] ${selectedMedia.type === 'sticker' ? 'bg-transparent' : 'bg-dark-bg'}`}>
               <button
@@ -383,6 +392,8 @@ const MessageComposer = React.memo(function MessageComposer({ ctx }) {
                 <Send className="w-5 h-5 text-white" />
               </button>
             )}          </form>
+          </>
+          )}
 
           {/* ══════ INLINE EMOJI PICKER (WhatsApp-style: below input, replaces keyboard) ══════ */}
           {showMediaPanel && (

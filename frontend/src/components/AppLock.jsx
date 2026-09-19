@@ -3,6 +3,20 @@ import { Lock, Unlock, Eye, EyeOff, Clock, Shield, Check, X, RefreshCw, Smartpho
 import { motion, AnimatePresence } from 'framer-motion';
 import { isBiometricAvailable, authenticateWithBiometric } from '../services/capacitorBridge';
 
+const PIN_HASH_KEY = 'genz_applock_pin_hash';
+
+async function hashPin(pin) {
+  const salt = 'genz_lock_salt_v1';
+  const data = new TextEncoder().encode(salt + pin);
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function verifyPin(pin, storedHash) {
+  const computed = await hashPin(pin);
+  return computed === storedHash;
+}
+
 const AppLock = ({ isEnabled, onToggle, onUnlock, onClose }) => {
   const [lockType, setLockType] = useState('pin'); // 'pin', 'pattern', 'fingerprint'
   const [pin, setPin] = useState('');
@@ -56,6 +70,10 @@ const AppLock = ({ isEnabled, onToggle, onUnlock, onClose }) => {
     setIsVerifying(false);
 
     if (onToggle) {
+      if (lockType === 'pin') {
+        const hash = await hashPin(pin);
+        localStorage.setItem(PIN_HASH_KEY, hash);
+      }
       onToggle({
         type: lockType,
         pin: lockType === 'pin' ? pin : null,
@@ -70,16 +88,25 @@ const AppLock = ({ isEnabled, onToggle, onUnlock, onClose }) => {
 
   const handleUnlock = async () => {
     setIsVerifying(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 500));
     setIsVerifying(false);
 
-    if (pin === '1234') { // Simulated verification
+    const storedHash = localStorage.getItem(PIN_HASH_KEY);
+    if (storedHash) {
+      const valid = await verifyPin(pin, storedHash);
+      if (valid) {
+        onUnlock?.();
+        setPin('');
+        setError('');
+        return;
+      }
+    } else {
       onUnlock?.();
       setPin('');
       setError('');
-    } else {
-      setError('Incorrect PIN');
+      return;
     }
+    setError('Incorrect PIN');
   };
 
   return (

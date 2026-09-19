@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { Download, RefreshCw, X } from 'lucide-react';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { getAppInfo, isNative, downloadUrl } from '../services/capacitorBridge.js';
 import { trackUpdateEvent } from '../utils/updateAnalytics.js';
-import { fetchVersionManifest, apkDownloadUrl } from '../utils/versionManifest.js';
+import { fetchVersionManifest, apkDownloadUrl, VERSION_MANIFEST_ORIGIN } from '../utils/versionManifest.js';
 import { resolveApiBase } from '../utils/resolveApiBase';
 import { getAuthToken } from '../utils/tokenStore';
 
+const APKInstaller = registerPlugin('APKInstaller');
+
 const DISMISS_KEY = 'genz-update-dismissed-version';
+const DISMISS_SESSION = 'genz-update-dismissed-session';
 
 // Injected at build time from public/version.json (see vite.config.js) — the
 // versionCode this bundle was BUILT with. On the web there is no native
@@ -40,6 +44,11 @@ const UpdateBanner = () => {
 
     const isDismissed = (versionCode) => {
       try {
+        // APK: only dismiss for current session (reappears on next launch)
+        if (isNative()) {
+          return sessionStorage.getItem(DISMISS_SESSION) === String(versionCode);
+        }
+        // Web: persistent dismissal per version
         return localStorage.getItem(DISMISS_KEY) === String(versionCode);
       } catch {
         return false;
@@ -131,7 +140,12 @@ const UpdateBanner = () => {
   const dismiss = () => {
     setDismissed(true);
     try {
-      localStorage.setItem(DISMISS_KEY, String(update.versionCode || update.version));
+      if (isNative()) {
+        // APK: only dismiss for this session — banner reappears on next launch
+        sessionStorage.setItem(DISMISS_SESSION, String(update.versionCode || update.version));
+      } else {
+        localStorage.setItem(DISMISS_KEY, String(update.versionCode || update.version));
+      }
     } catch { /* ignore */ }
     trackUpdateEvent('update_dismissed', {
       version: update.version,
@@ -190,13 +204,29 @@ const UpdateBanner = () => {
           ) : (
             <>
               <button
-                onClick={() => {
+                onClick={async () => {
                   trackUpdateEvent('update_tapped', {
                     version: update.version,
                     versionCode: update.versionCode,
                     platform: 'apk',
                   });
-                  downloadUrl(update.apkUrl, `genz-whatsapp-v${update.version}.apk`);
+                  if (Capacitor.isNativePlatform?.()) {
+                    const fullUrl = update.apkUrl?.startsWith('http')
+                      ? update.apkUrl
+                      : `${VERSION_MANIFEST_ORIGIN}${update.apkUrl}`;
+                    try {
+                      await APKInstaller.install({
+                        url: fullUrl,
+                        filename: `genz-whatsapp-v${update.version}.apk`,
+                        version: update.version,
+                      });
+                    } catch (err) {
+                      console.warn('[UpdateBanner] APKInstaller failed, falling back:', err?.message);
+                      downloadUrl(update.apkUrl, `genz-whatsapp-v${update.version}.apk`);
+                    }
+                  } else {
+                    downloadUrl(update.apkUrl, `genz-whatsapp-v${update.version}.apk`);
+                  }
                 }}
                 className="rounded-lg bg-[#00a884] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#00c795]"
               >

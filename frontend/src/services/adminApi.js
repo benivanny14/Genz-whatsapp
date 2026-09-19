@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { resolveApiBase } from '../utils/resolveApiBase';
+import { navigateTo } from '../utils/navigate';
 
 // The regular app uses VITE_API_URL (e.g. https://host/api).
 // Admin login/auth uses the hidden gateway, while admin data endpoints are
@@ -54,15 +55,17 @@ adminApi.interceptors.response.use(
             .finally(() => { refreshingPromise = null; });
         }
         const { data } = await refreshingPromise;
-        adminTokenStore.setAccessToken(data.accessToken);
-        adminTokenStore.setRefreshToken(data.refreshToken);
-        original.headers.Authorization = `Bearer ${data.accessToken}`;
+        const newAccess = data.accessToken || data.token;
+        const newRefresh = data.refreshToken;
+        if (newAccess) adminTokenStore.setAccessToken(newAccess);
+        if (newRefresh) adminTokenStore.setRefreshToken(newRefresh);
+        original.headers.Authorization = `Bearer ${newAccess}`;
         return adminApi(original);
       } catch (refreshError) {
         adminTokenStore.clear();
         // Only redirect if we're not already on the login page to prevent redirect loops
         if (!window.location.pathname.includes('/system-control-x7k9/login')) {
-          window.location.href = '/system-control-x7k9/login';
+          navigateTo('/system-control-x7k9/login');
         }
         return Promise.reject(refreshError);
       }

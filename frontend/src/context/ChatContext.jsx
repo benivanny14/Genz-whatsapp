@@ -16,6 +16,7 @@ import api, { mediaAPI } from '../services/api';
 import { cleanupLocalBlobUrls, sanitizeBlobUrls } from '../utils/sanitizeStorage';
 import notificationService from '../services/notificationService';
 import { resolveApiBase, resolveSocketOrigin } from '../utils/resolveApiBase';
+import { navigateTo } from '../utils/navigate';
 
 import { applyVoiceEffect } from '../utils/voiceEffects';
 import {
@@ -242,9 +243,17 @@ export { applyVoiceEffect };
 export const getAudioDuration = async (audioBlob) => {
   return new Promise((resolve) => {
     const audio = new Audio();
-    audio.onloadedmetadata = () => resolve(audio.duration);
-    audio.onerror = () => resolve(0);
-    audio.src = URL.createObjectURL(audioBlob);
+    const objectUrl = URL.createObjectURL(audioBlob);
+    const cleanup = () => {
+      audio.onloadedmetadata = null;
+      audio.onerror = null;
+      audio.src = '';
+      URL.revokeObjectURL(objectUrl);
+    };
+    const timer = setTimeout(() => { cleanup(); resolve(0); }, 10000);
+    audio.onloadedmetadata = () => { const d = audio.duration; clearTimeout(timer); cleanup(); resolve(d); };
+    audio.onerror = () => { clearTimeout(timer); cleanup(); resolve(0); };
+    audio.src = objectUrl;
   });
 };
 
@@ -255,9 +264,10 @@ export const compressAudio = async (audioBlob, quality = 'medium') => {
 };
 
 export const analyzeAudioForWaveform = async (audioBlob) => {
+  let audioCtx;
   try {
     const arrayBuffer = await audioBlob.arrayBuffer();
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
     const channelData = audioBuffer.getChannelData(0);
 
@@ -274,11 +284,12 @@ export const analyzeAudioForWaveform = async (audioBlob) => {
       waveform[i] = Math.min(255, (sum / blockSize) * 255);
     }
 
-    await audioCtx.close();
     return waveform;
   } catch (e) {
     console.warn('Waveform analysis failed:', e);
     return null;
+  } finally {
+    if (audioCtx) { try { await audioCtx.close(); } catch (_) {} }
   }
 };
 
@@ -425,7 +436,7 @@ export const ChatProvider = ({ children }) => {
 
   useEffect(() => {
     refreshAllMessagesForStats();
-  }, [conversations.length, messages.length, refreshAllMessagesForStats]);
+  }, [conversations.length, refreshAllMessagesForStats]);
   const [contacts, setContacts] = useState([]);
 
   // Fetch the current user's matched contacts. Used on initial load, on the
@@ -1046,7 +1057,7 @@ export const ChatProvider = ({ children }) => {
       });
 
         socket.on('reconnect', async (attemptNumber) => {
-          console.log('Socket reconnected after', attemptNumber, 'attempts');
+          if (import.meta.env.DEV) console.log('Socket reconnected after', attemptNumber, 'attempts');
           setIsSocketConnected(true);
           let uid = currentUserId;
           try {
@@ -1063,6 +1074,12 @@ export const ChatProvider = ({ children }) => {
             } catch (_) { /* */ }
           }
           socket.emit('user:join', uid);
+
+          // Re-join the active conversation room so real-time messages resume
+          const rejoinConvId = getStoredSelectedConversationId();
+          if (rejoinConvId) {
+            socket.emit('join:conversation', rejoinConvId);
+          }
 
         // Re-confirm push subscription on reconnect (the real subscribe now
         // happens on app startup in App.jsx — this used to be the *only*
@@ -1115,7 +1132,7 @@ export const ChatProvider = ({ children }) => {
       });
 
       socket.on('reconnect_attempt', (attemptNumber) => {
-        console.log('Socket reconnection attempt:', attemptNumber);
+        if (import.meta.env.DEV) console.log('Socket reconnection attempt:', attemptNumber);
       });
 
       socket.on('reconnect_failed', () => {
@@ -1142,21 +1159,6 @@ export const ChatProvider = ({ children }) => {
         window.dispatchEvent(new CustomEvent('contacts:updated'));
       });
 
-      // ── Someone posted a status → live toast + refresh feed ──
-      socket.on('status:created', (statusObj) => {
-        try {
-          const posterId = String(statusObj?.userId || statusObj?.user?._id || statusObj?.user || '');
-          const myId = String(currentUserIdRef.current || '');
-          if (posterId && posterId !== myId && modsRef.current.activityNotifications !== false) {
-            const name = statusObj?.username || statusObj?.user?.username || 'Someone';
-            showActivityToastRef.current('status', `🟢 ${name} posted a status`);
-          }
-        } catch (_) { /* ignore */ }
-        apiService.getStatuses().then((data) => {
-          if (data?.success) setStatuses(data.statuses || []);
-        }).catch(() => {});
-      });
-
       // ── Someone posted a business on WINGA → live toast + refresh ──
       socket.on('winga:created', (listing) => {
         try {
@@ -1169,6 +1171,7 @@ export const ChatProvider = ({ children }) => {
         } catch (_) { /* ignore */ }
         fetchWingaRef.current();
       });
+      socket.on('winga:deleted', () => fetchWingaRef.current());
 
       // ── Someone placed an order on my listing → toast + refresh ──
       socket.on('winga:order', (order) => {
@@ -1206,23 +1209,24 @@ export const ChatProvider = ({ children }) => {
       // ── Admin-originated events (Kundi 3) ──
       socket.on('session:revoked', async () => {
         try { localStorage.clear(); } catch {}
-        window.location.href = '/login';
+        navigateTo('/login');
       });
       socket.on('session:revoked_all', async () => {
         try { localStorage.clear(); } catch {}
-        window.location.href = '/login';
+        navigateTo('/login');
       });
       socket.on('device:revoked', async (data) => {
         toast.error(`Device ${data?.deviceId || ''} revoked by admin`);
       });
       socket.on('user:deleted', async () => {
         try { localStorage.clear(); } catch {}
-        window.location.href = '/login';
+        navigateTo('/login');
       });
-      socket.on('user:blocked', async () => {
+      socket.on('user:blocked', async (data) => {
+        if (data?.blockerId) return;
         toast.error('Your account has been blocked by admin');
         try { localStorage.clear(); } catch {}
-        setTimeout(() => window.location.href = '/login', 1500);
+        setTimeout(() => navigateTo('/login'), 1500);
       });
       socket.on('conversation:deleted', (data) => {
         const cid = String(data?.conversationId || data?._id);
@@ -1243,25 +1247,21 @@ export const ChatProvider = ({ children }) => {
           selectedConversationIdRef.current = null;
         }
       });
-      socket.on('group:you_were_removed', (data) => {
-        const gid = String(data?.groupId);
-        if (!gid) return;
-        setConversations(prev => prev.filter(c => String(c._id) !== gid));
-        if (String(selectedConversationIdRef.current) === gid) {
-          setSelectedConversation(null);
-          selectedConversationIdRef.current = null;
-        }
-      });
-      socket.on('group:participant_removed', (data) => {
-        const gid = String(data?.groupId); const uid = String(data?.userId);
+      socket.on('group:participant_removed', ({ groupId, userId } = {}) => {
+        if (!groupId) return;
         const myId = String(currentUserIdRef.current);
-        if (uid === myId) {
-          setConversations(prev => prev.filter(c => String(c._id) !== gid));
-          if (String(selectedConversationIdRef.current) === gid) {
+        if (userId && String(userId) === myId) {
+          setConversations(prev => prev.filter(c => String(c._id) !== String(groupId)));
+          if (String(selectedConversationIdRef.current) === String(groupId)) {
             setSelectedConversation(null);
             selectedConversationIdRef.current = null;
           }
         }
+        updateGroupParticipants(groupId, (c) => ({
+          ...c,
+          participants: (c.participants || []).filter(p => String(p?._id || p) !== String(userId)),
+          admins: (c.admins || []).filter(a => String(a?._id || a) !== String(userId)),
+        }));
       });
       socket.on('message:deleted_for_everyone', (data) => {
         const mid = String(data?.messageId);
@@ -1289,10 +1289,14 @@ export const ChatProvider = ({ children }) => {
           // Treat as regular message
           const event = new CustomEvent('message:received', { detail: msg });
           window.dispatchEvent(event);
-          // Also directly handle
+          // Also directly handle — only add if it belongs to the currently open conversation
           setMessages(prev => {
             if (prev.some(m => String(m._id) === String(msg._id))) return prev;
-            return [...prev, msg];
+            const currentSelectedId = selectedConversationIdRef.current;
+            if (currentSelectedId && String(msg.conversationId) === String(currentSelectedId)) {
+              return [...prev, msg];
+            }
+            return prev;
           });
         }
       });
@@ -1310,14 +1314,14 @@ export const ChatProvider = ({ children }) => {
         try {
           const muteList = JSON.parse(localStorage.getItem('genz_muted_chats') || '[]');
           const isMuted = muteList.includes(String(msg.conversationId));
-          const isDND = JSON.parse(localStorage.getItem('genz_settings_comprehensive') || '{}').isDNDMode;
+          const isDND = JSON.parse(localStorage.getItem('genz_settings_comprehensive:' + currentUserId) || '{}').isDNDMode;
           if (!isMuted && !isDND) playMessageSound();
         } catch (_) {}
         if (blockedUsersRef.current.some((id) => String(id) === senderId)) {
           return;
         }
         if (modsRef.current.spamFilter && isLikelySpamMessage(incoming)) {
-          console.log('[ChatContext] Spam message filtered');
+          if (import.meta.env.DEV) console.log('[ChatContext] Spam message filtered');
           return;
         }
         if (senderId !== String(currentUserId) && modsRef.current.autoSaveMedia) {
@@ -1418,16 +1422,27 @@ export const ChatProvider = ({ children }) => {
           }
           await DB.saveMessage(incoming);
         } catch (e) { }
-        setConversations(prev => prev.map(c => {
-          if (c._id === incoming.conversationId) {
-            return {
-              ...c,
-              lastMessage: incoming,
-              updatedAt: new Date()
-            };
+        setConversations(prev => {
+          const exists = prev.some(c => c._id === incoming.conversationId);
+          if (exists) {
+            return prev.map(c => {
+              if (c._id === incoming.conversationId) {
+                return { ...c, lastMessage: incoming, updatedAt: new Date() };
+              }
+              return c;
+            });
           }
-          return c;
-        }));
+          // Conversation was deleted from local state — fetch and restore it
+          apiService.getConversation(incoming.conversationId).then(conv => {
+            if (conv?.data) {
+              setConversations(p => {
+                if (p.some(c => String(c._id) === String(conv.data._id))) return p;
+                return [conv.data, ...p];
+              });
+            }
+          }).catch(() => {});
+          return prev;
+        });
         } catch (err) {
           console.error('[ChatContext] message:received handler error:', err);
         }
@@ -1544,7 +1559,7 @@ export const ChatProvider = ({ children }) => {
       // ── Message edited ──
       socket.on('message:edited', (updatedMsg) => {
         setMessages(prev => prev.map(m => m._id === updatedMsg._id ? updatedMsg : m));
-        try { DB.saveMessage(updatedMsg); } catch (e) { }
+        DB.saveMessage(updatedMsg).catch(() => {});
       });
 
       // ── Live location: coordinates updated on the original message ──
@@ -1760,15 +1775,6 @@ export const ChatProvider = ({ children }) => {
         });
       });
 
-      socket.on('group:participant_removed', ({ groupId, userId } = {}) => {
-        if (!groupId) return;
-        updateGroupParticipants(groupId, (c) => ({
-          ...c,
-          participants: (c.participants || []).filter(p => String(p?._id || p) !== String(userId)),
-          admins: (c.admins || []).filter(a => String(a?._id || a) !== String(userId)),
-        }));
-      });
-
       socket.on('group:admin_added', ({ groupId, userId } = {}) => {
         if (!groupId) return;
         updateGroupParticipants(groupId, (c) => {
@@ -1877,7 +1883,7 @@ export const ChatProvider = ({ children }) => {
       // Admin status changes for current user
       socket.on('group:you_are_admin', ({ groupId } = {}) => {
         if (!groupId) return;
-        const currentId = socket.userId || authUserRef.current?._id;
+        const currentId = socket.userId || currentUserIdRef.current;
         if (!currentId) return;
         updateGroupParticipants(groupId, (c) => {
           const admins = c.admins || [];
@@ -1888,7 +1894,7 @@ export const ChatProvider = ({ children }) => {
 
       socket.on('group:your_admin_removed', ({ groupId } = {}) => {
         if (!groupId) return;
-        const currentId = socket.userId || authUserRef.current?._id;
+        const currentId = socket.userId || currentUserIdRef.current;
         if (!currentId) return;
         updateGroupParticipants(groupId, (c) => ({
           ...c,
@@ -1898,10 +1904,12 @@ export const ChatProvider = ({ children }) => {
 
       // ── Admin removed ──
       socket.on('admin:removed', ({ groupId, userId } = {}) => {
-        // Refresh group info
-        if (selectedConversation?._id === groupId) {
-          setSelectedConversation(prev => prev ? { ...prev, admins: prev.admins?.filter(a => a !== userId) } : prev);
+        // Refresh group info — use ref to avoid stale closure
+        if (selectedConversationIdRef.current === groupId) {
+          setSelectedConversation(prev => prev ? { ...prev, admins: prev.admins?.filter(a => String(a?._id || a) !== String(userId)) } : prev);
         }
+        // Also update conversations list
+        setConversations(prev => prev.map(c => String(c._id) === String(groupId) ? { ...c, admins: (c.admins || []).filter(a => String(a?._id || a) !== String(userId)) } : c));
       });
 
       // ── Payment expired: subscription ended — force logout ──
@@ -2066,7 +2074,7 @@ export const ChatProvider = ({ children }) => {
         const screenshotUser = username || userId || 'Someone';
         setOnlineNotification(`📸 ${screenshotUser} took a screenshot`);
         setTimeout(() => setOnlineNotification(null), 4000);
-        console.log(`[ChatContext] Screenshot attempt detected: ${screenshotUser} on message ${messageId}`);
+        if (import.meta.env.DEV) console.log(`[ChatContext] Screenshot attempt detected: ${screenshotUser} on message ${messageId}`);
       });
 
       // Read receipts — update state AND IndexedDB ──
@@ -2098,14 +2106,15 @@ export const ChatProvider = ({ children }) => {
       socket.on('message:delivered', async ({ messageId, serverMessageId } = {}) => {
         const clientId = messageId;
         const serverId = serverMessageId || messageId;
+        if (!serverId) return;
         setMessages(prev => prev.map(m =>
           (m._id === clientId || m._id === serverId)
-            ? { ...m, _id: serverId, status: 'delivered' }
+            ? { ...m, ...(serverId !== clientId ? { _id: serverId } : {}), status: 'delivered' }
             : m
         ));
         setConversations(prev => prev.map(c =>
           (c.lastMessage && (c.lastMessage._id === clientId || c.lastMessage._id === serverId))
-            ? { ...c, lastMessage: { ...c.lastMessage, _id: serverId, status: 'delivered' } }
+            ? { ...c, lastMessage: { ...c.lastMessage, ...(serverId !== clientId ? { _id: serverId } : {}), status: 'delivered' } }
             : c
         ));
         try { await DB.saveMessage({ _id: serverId, status: 'delivered' }); } catch (e) { }
@@ -2160,8 +2169,8 @@ export const ChatProvider = ({ children }) => {
               });
             }, 3000);
           }
+          setTimeout(() => setIsOtherUserRecording(false), 3000);
         }
-        setTimeout(() => setIsOtherUserRecording(false), 3000);
       });
 
       // ── Block / Unblock (live sync) ──
@@ -2263,6 +2272,13 @@ export const ChatProvider = ({ children }) => {
           const withoutUser = prev.filter((id) => String(id) !== String(userId));
           return status === 'away' ? [...withoutUser, String(userId)] : withoutUser;
         });
+        // When user comes back online, ensure they're in onlineUsers
+        if (status === 'online') {
+          setOnlineUsers(prev => {
+            if (prev.some(id => String(id) === String(userId))) return prev;
+            return [...prev, String(userId)];
+          });
+        }
       });
 
       // ── Reactions ──
@@ -2344,6 +2360,15 @@ export const ChatProvider = ({ children }) => {
       });
 
       socket.on('status:created', (status) => {
+        try {
+          const posterId = String(status?.userId || status?.user?._id || status?.user || '');
+          const myId = String(currentUserIdRef.current || '');
+          if (posterId && posterId !== myId && modsRef.current.activityNotifications !== false) {
+            const name = status?.username || status?.user?.username || 'Someone';
+            showActivityToastRef.current('status', `🟢 ${name} posted a status`);
+          }
+        } catch (_) { /* ignore */ }
+
         setStatuses(prev => {
           const serverId = String(status._id || '');
           const clientId = status.clientStatusId ? String(status.clientStatusId) : '';
@@ -2461,7 +2486,7 @@ export const ChatProvider = ({ children }) => {
       const queue = await DB.getOfflineQueue();
       if (!queue || queue.length === 0) return;
 
-      console.log(`[ChatContext] Processing ${queue.length} offline actions...`);
+      if (import.meta.env.DEV) console.log(`[ChatContext] Processing ${queue.length} offline actions...`);
       for (const action of queue) {
         if (action.type === 'sendMessage') {
           if (socketRef.current?.connected) {
@@ -2509,35 +2534,48 @@ export const ChatProvider = ({ children }) => {
   // ── Auto-Reply Bot (Item 3) ──
   // ── Auto-Reply removed as requested ──
 
+  // ── Disappearing messages: only create timers for NEW messages ──
+  const disappearingTimersRef2 = useRef({});
+  const prevMessageIdsRef = useRef(new Set());
+
   useEffect(() => {
-    const expiringMessages = (messages || []).filter(m => m.disappearAt);
-    if (!expiringMessages.length) return undefined;
-
+    const currentIds = new Set((messages || []).map(m => String(m._id || m.id)));
     const now = Date.now();
-    const expiredIds = expiringMessages
-      .filter(m => new Date(m.disappearAt).getTime() <= now)
-      .map(m => m._id || m.id)
-      .filter(Boolean);
 
-    if (expiredIds.length) {
-      const expiredSet = new Set(expiredIds.map(String));
-      setMessages(prev => prev.filter(m => !expiredSet.has(String(m._id || m.id))));
-      try { DB.deleteMessages(expiredIds); } catch (_) { /* cache cleanup is best-effort */ }
+    // Clean up timers for messages that no longer exist
+    for (const msgId of Object.keys(disappearingTimersRef2.current)) {
+      if (!currentIds.has(msgId)) {
+        clearTimeout(disappearingTimersRef2.current[msgId]);
+        delete disappearingTimersRef2.current[msgId];
+      }
     }
 
-    const timers = expiringMessages
-      .map((message) => {
-        const messageId = message._id || message.id;
-        const delay = new Date(message.disappearAt).getTime() - now;
-        if (!messageId || delay <= 0) return null;
-        return setTimeout(() => {
-          setMessages(prev => prev.filter(m => String(m._id || m.id) !== String(messageId)));
-          try { DB.deleteMessages([messageId]); } catch (_) { /* cache cleanup is best-effort */ }
-        }, Math.min(delay, 2147483647));
-      })
-      .filter(Boolean);
+    // Only set timers for NEW messages with disappearAt
+    for (const message of (messages || [])) {
+      const messageId = String(message._id || message.id);
+      if (prevMessageIdsRef.current.has(messageId)) continue; // already processed
+      if (!message.disappearAt) continue;
 
-    return () => timers.forEach(clearTimeout);
+      const delay = new Date(message.disappearAt).getTime() - now;
+      if (delay <= 0) {
+        // Already expired — remove immediately
+        setMessages(prev => prev.filter(m => String(m._id || m.id) !== messageId));
+        try { DB.deleteMessages([message._id || message.id]); } catch (_) {}
+        continue;
+      }
+      disappearingTimersRef2.current[messageId] = setTimeout(() => {
+        setMessages(prev => prev.filter(m => String(m._id || m.id) !== messageId));
+        try { DB.deleteMessages([message._id || message.id]); } catch (_) {}
+        delete disappearingTimersRef2.current[messageId];
+      }, Math.min(delay, 2147483647));
+    }
+
+    prevMessageIdsRef.current = currentIds;
+
+    return () => {
+      Object.values(disappearingTimersRef2.current).forEach(clearTimeout);
+      disappearingTimersRef2.current = {};
+    };
   }, [messages]);
 
   // ── Core messaging ──
@@ -2571,7 +2609,7 @@ export const ChatProvider = ({ children }) => {
       ...options,
     };
 
-    setMessages(prev => [...prev, optimisticMsg]);
+    setMessages(prev => [...prev, optimisticMsg].slice(-150));
 
     const newMessage = {
       _id: clientMessageId,
@@ -2627,7 +2665,7 @@ export const ChatProvider = ({ children }) => {
         font: typeof options.font === 'string' && options.font ? options.font : null
       };
 
-      console.log("Saving message to DB for room:", newMessage.conversationId);
+      if (import.meta.env.DEV) console.log("Saving message to DB for room:", newMessage.conversationId);
 
       let messageSent = false;
       let savedMessage = newMessage;
@@ -2635,7 +2673,7 @@ export const ChatProvider = ({ children }) => {
 
       // 1. Priority: Use Socket first (real-time) — wait for delivery ack
       if (socketRef.current?.connected) {
-        console.log("Sending message via Socket...");
+        if (import.meta.env.DEV) console.log("Sending message via Socket...");
         try {
           emitSafe('message:send', payload);
           messageSent = await new Promise((resolve) => {
@@ -2666,10 +2704,10 @@ export const ChatProvider = ({ children }) => {
               socketRef.current?.off('message:delivered', onDelivered);
               socketRef.current?.off('message:error', onError);
             };
-            socketRef.current.on('message:delivered', onDelivered);
-            socketRef.current.on('message:error', onError);
+            socketRef.current?.on('message:delivered', onDelivered);
+            socketRef.current?.on('message:error', onError);
           });
-          if (messageSent) console.log("Message sent via Socket");
+          if (messageSent && import.meta.env.DEV) console.log("Message sent via Socket");
         } catch (e) {
           console.error("Socket emit imefeli:", e);
         }
@@ -2677,7 +2715,7 @@ export const ChatProvider = ({ children }) => {
 
       // 2. Fallback: If Socket is not working, use HTTP API
       if (!messageSent && navigator.onLine && isMongoObjectId(newMessage.conversationId)) {
-        console.log("Socket not working, falling back to HTTP API...");
+        if (import.meta.env.DEV) console.log("Socket not working, falling back to HTTP API...");
         try {
           const data = await apiService.sendMessage(
             newMessage.conversationId,
@@ -2695,7 +2733,7 @@ export const ChatProvider = ({ children }) => {
             // Put it on screen (User A will see it)
             setMessages(prev => prev.map(m => m._id === clientMessageId ? savedMessage : m));
             await DB.saveMessage(savedMessage);
-            console.log("Message saved successfully to Database:", savedMessage._id);
+            if (import.meta.env.DEV) console.log("Message saved successfully to Database:", savedMessage._id);
           } else {
             console.error("API response success false:", data);
           }
@@ -2809,7 +2847,7 @@ export const ChatProvider = ({ children }) => {
   }, []);
 
   const selectConversation = async (conv) => {
-    console.log('[ChatContext] selectConversation called with:', conv);
+    if (import.meta.env.DEV) console.log('[ChatContext] selectConversation called with:', conv);
     
     if (!conv) {
       console.warn('[ChatContext] selectConversation called with null/undefined conversation');
@@ -2822,7 +2860,7 @@ export const ChatProvider = ({ children }) => {
       return;
     }
 
-    console.log('[ChatContext] Setting selected conversation:', conv._id);
+    if (import.meta.env.DEV) console.log('[ChatContext] Setting selected conversation:', conv._id);
     setSelectedConversation({ ...conv, unreadCount: 0 });
     historyPageRef.current = 1;
     setHasOlderMessages(true);
@@ -2840,19 +2878,19 @@ export const ChatProvider = ({ children }) => {
     try {
       // Check for demo messages first
       if (ENABLE_DEMO_DATA && DEMO_MESSAGES[conv._id]) {
-        console.log('[ChatContext] Loading demo messages for:', conv._id);
+        if (import.meta.env.DEV) console.log('[ChatContext] Loading demo messages for:', conv._id);
         setMessages(DEMO_MESSAGES[conv._id]);
         return;
       }
 
       const convId = conv._id;
-      console.log('[ChatContext] Loading messages for conversation:', convId);
+      if (import.meta.env.DEV) console.log('[ChatContext] Loading messages for conversation:', convId);
       let showedCache = false;
 
       if (isMongoObjectId(convId)) {
-        console.log('[ChatContext] Conversation is MongoDB ObjectId, loading from IndexedDB');
+        if (import.meta.env.DEV) console.log('[ChatContext] Conversation is MongoDB ObjectId, loading from IndexedDB');
         const offlineMsgs = await DB.getMessages(convId);
-        console.log('[ChatContext] Offline messages found:', offlineMsgs?.length || 0);
+        if (import.meta.env.DEV) console.log('[ChatContext] Offline messages found:', offlineMsgs?.length || 0);
         
         if (offlineMsgs?.length) {
           setMessages(offlineMsgs);
@@ -2862,7 +2900,7 @@ export const ChatProvider = ({ children }) => {
         }
 
         if (socketRef.current) {
-          console.log('[ChatContext] Emitting join:conversation for:', convId);
+          if (import.meta.env.DEV) console.log('[ChatContext] Emitting join:conversation for:', convId);
           socketRef.current.emit('join:conversation', convId);
         } else {
           console.warn('[ChatContext] Socket not available for join:conversation');
@@ -2873,7 +2911,12 @@ export const ChatProvider = ({ children }) => {
           if (String(selectedConversationIdRef.current) !== String(convId)) return;
           if (!remoteData?.success) return;
           const decrypted = remoteData.messages || [];
-          setMessages(decrypted);
+          setMessages(prev => {
+            const existingIds = new Set(prev.map(m => String(m._id || m.id)));
+            const fresh = decrypted.filter(m => !existingIds.has(String(m._id || m.id)));
+            if (fresh.length === 0 && decrypted.length < prev.length) return prev;
+            return fresh.length > 0 ? [...prev, ...fresh] : decrypted;
+          });
           try {
             await Promise.all(decrypted.map((message) => DB.saveMessage(message)));
           } catch (_) { /* IndexedDB cache is best-effort */ }
@@ -2883,7 +2926,7 @@ export const ChatProvider = ({ children }) => {
         return;
       }
 
-      console.log('[ChatContext] Conversation is not MongoDB ObjectId, loading directly');
+      if (import.meta.env.DEV) console.log('[ChatContext] Conversation is not MongoDB ObjectId, loading directly');
       const offlineMsgs = await DB.getMessages(conv._id);
       if (offlineMsgs?.length) {
         setMessages(offlineMsgs);
@@ -3067,27 +3110,22 @@ export const ChatProvider = ({ children }) => {
   };
   const sendRecordingStatus = (isRecording) => {
     if (!modsRef.current.ghostMode) {
-      emitSafe('recording', { conversationId: selectedConversation?._id });
+      emitSafe('recording', { conversationId: selectedConversation?._id, isRecording });
     }
-    setIsOtherUserRecording(isRecording);
   };
 
   // ── DND Mode: Real socket disconnect/reconnect (Item 16) ──
   const toggleDNDMode = () => {
     setIsDNDMode(prev => {
       const next = !prev;
-      if (next) {
-        // Disconnect socket — no messages or calls received
-        if (socketRef.current?.connected) {
+      setTimeout(() => {
+        if (next && socketRef.current?.connected) {
           socketRef.current.disconnect();
           setIsSocketConnected(false);
-        }
-      } else {
-        // Reconnect socket
-        if (socketRef.current && !socketRef.current.connected) {
+        } else if (!next && socketRef.current && !socketRef.current.connected) {
           socketRef.current.connect();
         }
-      }
+      }, 0);
       return next;
     });
   };
@@ -3359,12 +3397,12 @@ export const ChatProvider = ({ children }) => {
 
   const uploadCollageImages = async (files) => {
     const formData = new FormData();
-    files.forEach((file, index) => {
-      formData.append(`files`, file);
+    files.forEach((file) => {
+      formData.append('files', file);
     });
 
     try {
-      const response = await authFetch(`${BACKEND_URL}/status/collage-upload`, {
+      const response = await authFetch(`${BACKEND_URL}/media/upload-multiple`, {
         method: 'POST',
         body: formData
       });
@@ -3430,7 +3468,7 @@ export const ChatProvider = ({ children }) => {
   useEffect(() => {
     // Wait for auth restoration to complete before making API calls
     if (!isAuthReady) {
-      console.log('[ChatContext] Waiting for auth restoration to complete...');
+      if (import.meta.env.DEV) console.log('[ChatContext] Waiting for auth restoration to complete...');
       return;
     }
 
@@ -3438,7 +3476,7 @@ export const ChatProvider = ({ children }) => {
       return;
     }
     if (hasLoadedInitialData.current) {
-      console.log('[ChatContext] Initial data already loaded, skipping...');
+      if (import.meta.env.DEV) console.log('[ChatContext] Initial data already loaded, skipping...');
       return;
     }
 
@@ -3446,7 +3484,7 @@ export const ChatProvider = ({ children }) => {
 
     const loadInitialData = async () => {
       try {
-        console.log('[ChatContext] Loading initial data with optimized API service...');
+        if (import.meta.env.DEV) console.log('[ChatContext] Loading initial data with optimized API service...');
 
         // Use Promise.all for parallel loading instead of sequential
         const [devicesData, modsData, broadcastsData, statusesData, conversationsData] = await Promise.allSettled([
@@ -3460,23 +3498,23 @@ export const ChatProvider = ({ children }) => {
         // Process results
         if (devicesData.status === 'fulfilled' && devicesData.value) {
           setConnectedDevices(devicesData.value.devices || []);
-          console.log('[ChatContext] Devices loaded successfully');
+          if (import.meta.env.DEV) console.log('[ChatContext] Devices loaded successfully');
         }
 
         if (modsData.status === 'fulfilled' && modsData.value?.success) {
           // MERGE backend settings with local state — never replace, to preserve local-only data
           setModsState(prev => ({ ...prev, ...(modsData.value.settings || {}) }));
-          console.log('[ChatContext] GENZ settings loaded successfully');
+          if (import.meta.env.DEV) console.log('[ChatContext] GENZ settings loaded successfully');
         }
 
         if (broadcastsData.status === 'fulfilled' && broadcastsData.value?.success) {
           setBroadcasts(broadcastsData.value.broadcasts || []);
-          console.log('[ChatContext] Broadcasts loaded successfully');
+          if (import.meta.env.DEV) console.log('[ChatContext] Broadcasts loaded successfully');
         }
 
         if (statusesData.status === 'fulfilled' && statusesData.value?.success) {
           setStatuses(statusesData.value.statuses || []);
-          console.log('[ChatContext] Statuses loaded successfully');
+          if (import.meta.env.DEV) console.log('[ChatContext] Statuses loaded successfully');
         }
 
         if (conversationsData.status === 'fulfilled' && conversationsData.value?.success) {
@@ -3522,7 +3560,7 @@ export const ChatProvider = ({ children }) => {
               }
             }
           }
-          console.log('[ChatContext] Conversations loaded successfully');
+          if (import.meta.env.DEV) console.log('[ChatContext] Conversations loaded successfully');
         }
 
         // Fetch scheduled messages
@@ -3530,7 +3568,7 @@ export const ChatProvider = ({ children }) => {
           const scheduledData = await apiService.getScheduledMessages();
           if (scheduledData?.success) {
             setScheduledMessages(scheduledData.scheduledMessages || []);
-            console.log('[ChatContext] Scheduled messages loaded successfully');
+            if (import.meta.env.DEV) console.log('[ChatContext] Scheduled messages loaded successfully');
           }
         } catch (err) {
           console.error('[ChatContext] Failed to load scheduled messages:', err);
@@ -3539,7 +3577,6 @@ export const ChatProvider = ({ children }) => {
         // Fetch contacts from backend
         try {
           await loadContacts();
-          console.log('[ChatContext] Contacts loaded successfully:', contacts.length);
         } catch (err) {
           console.error('[ChatContext] Failed to load contacts:', err);
         }
@@ -3569,14 +3606,14 @@ export const ChatProvider = ({ children }) => {
 
   const generateQRCode = useCallback(async (deviceInfo = {}) => {
     if (isLoadingDevices.current) {
-      console.log('[ChatContext] QR generation already in progress');
+      if (import.meta.env.DEV) console.log('[ChatContext] QR generation already in progress');
       return { success: false, message: 'Request already in progress' };
     }
 
     isLoadingDevices.current = true;
     try {
       const data = await apiService.generateQR(deviceInfo);
-      console.log('[ChatContext] QR code generated successfully');
+      if (import.meta.env.DEV) console.log('[ChatContext] QR code generated successfully');
       return data;
     } catch (err) {
       console.error('[ChatContext] Generate QR error:', err);
@@ -3588,7 +3625,7 @@ export const ChatProvider = ({ children }) => {
 
   const pairDevice = useCallback(async (pairingToken) => {
     if (isLoadingDevices.current) {
-      console.log('[ChatContext] Device pairing already in progress');
+      if (import.meta.env.DEV) console.log('[ChatContext] Device pairing already in progress');
       return { success: false, message: 'Request already in progress' };
     }
 
@@ -3605,7 +3642,7 @@ export const ChatProvider = ({ children }) => {
         const devices = await apiService.getDevices();
         setConnectedDevices(devices?.devices || []);
       }
-      console.log('[ChatContext] Device paired successfully');
+      if (import.meta.env.DEV) console.log('[ChatContext] Device paired successfully');
       return data;
     } catch (err) {
       console.error('[ChatContext] Pair device error:', err);
@@ -3617,7 +3654,7 @@ export const ChatProvider = ({ children }) => {
 
   const getDevices = useCallback(async () => {
     if (isLoadingDevices.current) {
-      console.log('[ChatContext] Get devices already in progress');
+      if (import.meta.env.DEV) console.log('[ChatContext] Get devices already in progress');
       return [];
     }
 
@@ -3625,7 +3662,7 @@ export const ChatProvider = ({ children }) => {
     try {
       const data = await apiService.getDevices();
       setConnectedDevices(data?.devices || []);
-      console.log('[ChatContext] Devices retrieved successfully');
+      if (import.meta.env.DEV) console.log('[ChatContext] Devices retrieved successfully');
       return data?.devices || [];
     } catch (err) {
       console.error('[ChatContext] Get devices error:', err);
@@ -3637,7 +3674,7 @@ export const ChatProvider = ({ children }) => {
 
   const logoutDevice = useCallback(async (deviceId) => {
     if (isLoadingDevices.current) {
-      console.log('[ChatContext] Device logout already in progress');
+      if (import.meta.env.DEV) console.log('[ChatContext] Device logout already in progress');
       return { success: false, message: 'Request already in progress' };
     }
 
@@ -3646,7 +3683,7 @@ export const ChatProvider = ({ children }) => {
       const data = await apiService.logoutDevice(deviceId);
       const devices = await apiService.getDevices();
       setConnectedDevices(devices?.devices || []);
-      console.log('[ChatContext] Device logged out successfully');
+      if (import.meta.env.DEV) console.log('[ChatContext] Device logged out successfully');
       return data;
     } catch (err) {
       console.error('[ChatContext] Logout device error:', err);
@@ -4318,7 +4355,7 @@ export const ChatProvider = ({ children }) => {
         if (resData.success && resData.message) {
           // If the backend returns a string for a local status, skip replacing the local conversation IDs
           if (typeof resData.message === 'string') {
-            console.log('[ChatContext] Local status reply processed:', resData.message);
+            if (import.meta.env.DEV) console.log('[ChatContext] Local status reply processed:', resData.message);
             return { success: true };
           }
 

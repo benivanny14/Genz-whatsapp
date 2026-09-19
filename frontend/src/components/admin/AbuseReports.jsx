@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { AlertTriangle, Eye, CheckCircle, XCircle, Clock, Trash2, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
 import adminApi from '../../services/adminApi';
+import { getAdminSocket } from '../../services/adminSocket';
 import { Table, LoadingBlock, EmptyRow, StatCard, Pager } from './adminUi';
 import { useConfirm } from '../ConfirmDialog';
 
@@ -90,6 +91,18 @@ const AbuseReports = () => {
 
   useEffect(() => { load(1); }, [load]);
 
+  // Real-time: refresh when new abuse reports arrive
+  useEffect(() => {
+    const socket = getAdminSocket();
+    if (!socket) return;
+    const onNewReport = () => {
+      toast('New abuse report submitted', { icon: '🚨', duration: 5000 });
+      load(1);
+    };
+    socket.on('new:abuse-report', onNewReport);
+    return () => { socket.off('new:abuse-report', onNewReport); };
+  }, [load]);
+
   const viewReport = async (report) => {
     try {
       const { data } = await adminApi.get(`/admin/abuse-reports/${report._id}`);
@@ -108,7 +121,7 @@ const AbuseReports = () => {
         adminNotes
       });
       setViewing(data.report);
-      toast.success('Updated');
+      toast.success('Report updated');
       load(pagination.page);
     } catch {
       toast.error('Failed to update report');
@@ -119,11 +132,11 @@ const AbuseReports = () => {
     if (!(await confirm('Delete this report permanently?'))) return;
     try {
       await adminApi.delete(`/admin/abuse-reports/${id}`);
-      toast.success('Deleted');
+      toast.success('Report deleted');
       setViewing(null);
       load(pagination.page);
     } catch {
-      toast.error('Failed to delete');
+      toast.error('Failed to delete report');
     }
   };
 

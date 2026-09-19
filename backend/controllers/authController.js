@@ -556,7 +556,7 @@ exports.changeNumber = async (req, res) => {
     // generate and (in dev/mock) return it so the client can complete verify.
     // OTP is persisted on the user document (survives restarts / multi-instance).
     if (!otp && !verifyOtp) {
-      const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      const generatedOtp = String(crypto.randomInt(100000, 999999));
       const expiry = new Date(Date.now() + 5 * 60 * 1000);
       await User.updateOne(
         { _id: req.user._id },
@@ -1577,7 +1577,9 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ success: false, message: 'OTP has expired, please request a new one' });
     }
 
-    if (!crypto.timingSafeEqual(Buffer.from(String(user.resetOTP)), Buffer.from(String(otp)))) {
+    const resetOtpBuf = Buffer.from(String(user.resetOTP));
+    const resetInputBuf = Buffer.from(String(otp));
+    if (resetOtpBuf.length !== resetInputBuf.length || !crypto.timingSafeEqual(resetOtpBuf, resetInputBuf)) {
       return res.status(400).json({ success: false, message: 'Invalid OTP' });
     }
 
@@ -1627,7 +1629,9 @@ exports.verifyPhoneOTP = async (req, res) => {
       return res.status(400).json({ success: false, message: 'OTP has expired, please request a new one' });
     }
 
-    if (!crypto.timingSafeEqual(Buffer.from(String(user.phoneVerificationOTP)), Buffer.from(String(otp)))) {
+    const phoneOtpBuf = Buffer.from(String(user.phoneVerificationOTP));
+    const phoneInputBuf = Buffer.from(String(otp));
+    if (phoneOtpBuf.length !== phoneInputBuf.length || !crypto.timingSafeEqual(phoneOtpBuf, phoneInputBuf)) {
       return res.status(400).json({ success: false, message: 'Invalid OTP' });
     }
 

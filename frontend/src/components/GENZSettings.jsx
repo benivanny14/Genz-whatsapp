@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import {
   ArrowLeft, Shield, EyeOff, Zap, Palette, Lock, Bell, HardDrive,
   CameraOff, Timer, UserCheck, Image as ImageIcon, CheckCheck, Cloud,
@@ -177,7 +178,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
         if (updateUserProfile) updateUserProfile(currentProfile);
       } catch (e) {
         if (e.name === 'QuotaExceededError') {
-          alert('Profile picture is too large. Please choose a smaller image.');
+          toast.error('Profile picture is too large. Please choose a smaller image.');
         }
       }
     }, 800); // Increased debounce time for better performance
@@ -1042,6 +1043,22 @@ const AppearanceTab = ({ ctx }) => {
               { id: 'ios', name: 'iOS Style', icon: '🍎', colors: { customTheme: '#007aff', bubbleSentColor: '#007aff', bubbleReceivedColor: '#e5e5ea', fontFamily: 'San Francisco, Roboto', bubbleStyle: 'ios', tickStyle: 'ios' } },
               { id: 'telegram', name: 'Telegram Dark', icon: '✈️', colors: { customTheme: '#2b5278', bubbleSentColor: '#2b5278', bubbleReceivedColor: '#182533', fontFamily: 'Roboto', bubbleStyle: 'rounded', tickStyle: 'default' } },
               { id: 'hacker', name: 'Hacker Matrix', icon: '💻', colors: { customTheme: '#00ff00', bubbleSentColor: '#003300', bubbleReceivedColor: '#000000', fontFamily: 'JetBrains Mono', bubbleStyle: 'sharp', tickStyle: 'hacker' } },
+              { id: 'midnight', name: 'Midnight Blue', icon: '🌙', colors: { customTheme: '#1a1a2e', bubbleSentColor: '#16213e', bubbleReceivedColor: '#0f3460', fontFamily: 'Poppins', bubbleStyle: 'rounded', tickStyle: 'default' } },
+              { id: 'sunset', name: 'Sunset Glow', icon: '🌅', colors: { customTheme: '#ff6b6b', bubbleSentColor: '#ee5a24', bubbleReceivedColor: '#f8b739', fontFamily: 'Quicksand', bubbleStyle: 'default', tickStyle: 'default' } },
+              { id: 'forest', name: 'Forest Green', icon: '🌲', colors: { customTheme: '#2d6a4f', bubbleSentColor: '#40916c', bubbleReceivedColor: '#b7e4c7', fontFamily: 'Nunito', bubbleStyle: 'rounded', tickStyle: 'default' } },
+              { id: 'lavender', name: 'Lavender Dream', icon: '💜', colors: { customTheme: '#7c3aed', bubbleSentColor: '#8b5cf6', bubbleReceivedColor: '#ddd6fe', fontFamily: 'Quicksand', bubbleStyle: 'ios', tickStyle: 'ios' } },
+              { id: 'ocean', name: 'Ocean Breeze', icon: '🌊', colors: { customTheme: '#0077b6', bubbleSentColor: '#0096c7', bubbleReceivedColor: '#90e0ef', fontFamily: 'Inter', bubbleStyle: 'rounded', tickStyle: 'default' } },
+              { id: 'cherry', name: 'Cherry Blossom', icon: '🌸', colors: { customTheme: '#e91e63', bubbleSentColor: '#f06292', bubbleReceivedColor: '#fce4ec', fontFamily: 'Poppins', bubbleStyle: 'ios', tickStyle: 'ios' } },
+              { id: 'volcano', name: 'Volcano', icon: '🌋', colors: { customTheme: '#d32f2f', bubbleSentColor: '#b71c1c', bubbleReceivedColor: '#ff8a65', fontFamily: 'Roboto', bubbleStyle: 'sharp', tickStyle: 'default' } },
+              { id: 'neon', name: 'Neon Night', icon: '⚡', colors: { customTheme: '#ff00ff', bubbleSentColor: '#8800ff', bubbleReceivedColor: '#000033', fontFamily: 'JetBrains Mono', bubbleStyle: 'sharp', tickStyle: 'hacker' } },
+              { id: 'pastel', name: 'Pastel Soft', icon: '🎨', colors: { customTheme: '#a8d8ea', bubbleSentColor: '#aa96da', bubbleReceivedColor: '#fcbad3', fontFamily: 'Quicksand', bubbleStyle: 'default', tickStyle: 'default' } },
+              { id: 'emerald', name: 'Emerald City', icon: '💚', colors: { customTheme: '#00c853', bubbleSentColor: '#00e676', bubbleReceivedColor: '#1b5e20', fontFamily: 'Nunito', bubbleStyle: 'rounded', tickStyle: 'default' } },
+              { id: 'royal', name: 'Royal Purple', icon: '👑', colors: { customTheme: '#6a1b9a', bubbleSentColor: '#9c27b0', bubbleReceivedColor: '#f3e5f5', fontFamily: 'Poppins', bubbleStyle: 'ios', tickStyle: 'ios' } },
+              { id: 'arctic', name: 'Arctic Frost', icon: '❄️', colors: { customTheme: '#0288d1', bubbleSentColor: '#03a9f4', bubbleReceivedColor: '#e1f5fe', fontFamily: 'Inter', bubbleStyle: 'rounded', tickStyle: 'default' } },
+              { id: 'fire', name: 'Fire Storm', icon: '🔥', colors: { customTheme: '#ff5722', bubbleSentColor: '#ff7043', bubbleReceivedColor: '#fbe9e7', fontFamily: 'Roboto', bubbleStyle: 'sharp', tickStyle: 'default' } },
+              { id: 'gold', name: 'Golden Hour', icon: '✨', colors: { customTheme: '#ff8f00', bubbleSentColor: '#ffa000', bubbleReceivedColor: '#fff8e1', fontFamily: 'Quicksand', bubbleStyle: 'ios', tickStyle: 'ios' } },
+              { id: 'cyber', name: 'Cyberpunk', icon: '🤖', colors: { customTheme: '#00e5ff', bubbleSentColor: '#651fff', bubbleReceivedColor: '#1a1a2e', fontFamily: 'JetBrains Mono', bubbleStyle: 'sharp', tickStyle: 'hacker' } },
+              { id: 'minimal', name: 'Minimal White', icon: '🤍', colors: { customTheme: '#212121', bubbleSentColor: '#424242', bubbleReceivedColor: '#f5f5f5', fontFamily: 'Inter', bubbleStyle: 'default', tickStyle: 'default' } },
             ].map((theme) => (
               <button
                 key={theme.id}
@@ -2044,10 +2061,12 @@ const PrivacyTab = ({ ctx }) => {
                 locked={premiumLocked}
               />
 
+              {user?.role === 'admin' && (
               <FakeChatSection ctx={{ mods, toggleMod, isPrivacyLocked: premiumLocked }} />
+              )}
 
               <div
-                onClick={() => window.location.href = '/genz-after-work'}
+                onClick={() => navigate('/genz-after-work', { replace: true })}
                 className="flex items-center gap-3 p-3 bg-gradient-to-r from-purple-500/10 to-pink-500/10 hover:from-purple-500/20 hover:to-pink-500/20 border border-purple-500/20 rounded-xl cursor-pointer transition-all"
               >
                 <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
@@ -2606,7 +2625,8 @@ const ModsTab = ({ ctx }) => {
           </div>
         </section>
 
-        {/* ─── System Dashboard ─── */}
+        {/* ─── System Dashboard (admin only) ─── */}
+        {user?.role === 'admin' && (
         <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
           <div className="p-4 bg-gradient-to-r from-green-900/40 to-teal-900/40 border-b border-white/10 flex items-center gap-2 text-green-400 font-bold">
             <BarChart size={18} /> System Dashboard
@@ -2621,6 +2641,7 @@ const ModsTab = ({ ctx }) => {
             </button>
           </div>
         </section>
+        )}
 
         {/* ─── TikTok / Instagram Exclusive Features ─── */}
         <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">

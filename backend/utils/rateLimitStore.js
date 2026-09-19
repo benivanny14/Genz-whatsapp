@@ -9,7 +9,12 @@
  *
  * Falls back gracefully to in-memory when Redis is unavailable.
  */
-const { RedisStore } = require('rate-limit-redis');
+let RedisStore;
+try {
+  RedisStore = require('rate-limit-redis').RedisStore;
+} catch {
+  RedisStore = null;
+}
 
 let storeInstance = null;
 
@@ -20,7 +25,7 @@ let storeInstance = null;
  */
 function getRedisStore(redisClient) {
   if (storeInstance) return storeInstance;
-  if (!redisClient) return null;
+  if (!redisClient || !RedisStore) return null;
 
   try {
     storeInstance = new RedisStore({

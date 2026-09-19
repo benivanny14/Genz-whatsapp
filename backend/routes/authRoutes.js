@@ -105,6 +105,6 @@ router.post('/verify-otp', authSensitiveLimiter, verifyOtp);
 router.get('/whatsapp/status', getWhatsAppStatus);
 router.get('/whatsapp/qr', getWhatsAppQr);
 router.get('/whatsapp/qr/display', getWhatsAppQrDisplay);
-router.post('/whatsapp/reset', resetWhatsApp);
+router.post('/whatsapp/reset', protect, resetWhatsApp);
 
 module.exports = router;

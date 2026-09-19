@@ -126,6 +126,8 @@ describe('adminSupportController — tickets', () => {
   });
 });
 
+const VALID_USER_ID = '507f1f77bcf86cd799439011';
+
 describe('adminSupportController — direct chats', () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -139,35 +141,42 @@ describe('adminSupportController — direct chats', () => {
 
   it('rejects starting a chat without userId/message (validation)', async () => {
     const res = makeRes();
-    await adminSupport.startDirectChat(makeReq({ body: { userId: 'user-1' } }), res);
+    await adminSupport.startDirectChat(makeReq({ body: { userId: VALID_USER_ID } }), res);
     expect(res.statusCode).toBe(400);
     expect(res.body.message).toBe('userId and message are required');
+  });
+
+  it('returns 400 for an invalid userId format', async () => {
+    const res = makeRes();
+    await adminSupport.startDirectChat(makeReq({ body: { userId: 'user-1', message: 'Hi' } }), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe('Invalid userId format');
   });
 
   it('returns 404 when the target user does not exist', async () => {
     User.findById.mockResolvedValue(null);
     const res = makeRes();
-    await adminSupport.startDirectChat(makeReq({ body: { userId: 'user-1', message: 'Hi' } }), res);
+    await adminSupport.startDirectChat(makeReq({ body: { userId: VALID_USER_ID, message: 'Hi' } }), res);
     expect(res.statusCode).toBe(404);
   });
 
   it('starts a direct chat (happy path)', async () => {
-    User.findById.mockResolvedValue({ _id: 'user-1' });
+    User.findById.mockResolvedValue({ _id: VALID_USER_ID });
     SupportTicket.findOne.mockResolvedValue(null);
-    SupportTicket.mockImplementation(() => makeTicket());
+    SupportTicket.mockImplementation(() => makeTicket({ userId: VALID_USER_ID }));
     const res = makeRes();
-    await adminSupport.startDirectChat(makeReq({ body: { userId: 'user-1', message: 'Hi' } }), res);
+    await adminSupport.startDirectChat(makeReq({ body: { userId: VALID_USER_ID, message: 'Hi' } }), res);
     expect(res.body.success).toBe(true);
     expect(res.body.chat.conversation).toHaveLength(1);
     expect(res.body.chat.status).toBe('open');
   });
 
   it('reuses an existing direct chat instead of creating a new one', async () => {
-    User.findById.mockResolvedValue({ _id: 'user-1' });
-    const existing = makeTicket({ category: 'direct_message', conversation: [] });
+    User.findById.mockResolvedValue({ _id: VALID_USER_ID });
+    const existing = makeTicket({ userId: VALID_USER_ID, category: 'direct_message', conversation: [] });
     SupportTicket.findOne.mockResolvedValue(existing);
     const res = makeRes();
-    await adminSupport.startDirectChat(makeReq({ body: { userId: 'user-1', message: 'Hi' } }), res);
+    await adminSupport.startDirectChat(makeReq({ body: { userId: VALID_USER_ID, message: 'Hi' } }), res);
     expect(res.body.chat._id).toBe('t1');
     expect(existing.conversation).toHaveLength(1);
     expect(existing.save).toHaveBeenCalled();

@@ -73,7 +73,7 @@ const createRateLimiter = (options = {}) => {
  */
 const authRateLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 5 : 100 // Limit each IP to 5 requests per windowMs (100 in dev)
+  max: process.env.NODE_ENV === 'production' ? 50 : 100 // 50 in prod, 100 in dev
 });
 
 /**
@@ -104,12 +104,22 @@ const apiRateLimiter = createRateLimiter({
 const strictConfiguredMax = parseInt(process.env.ADMIN_STRICT_MAX, 10);
 const strictRateLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: Number.isFinite(strictConfiguredMax) && strictConfiguredMax > 0 ? strictConfiguredMax : 10, // Limit each admin to 10 requests per windowMs
+  max: Number.isFinite(strictConfiguredMax) && strictConfiguredMax > 0 ? strictConfiguredMax : 50, // 50 admin writes per hour
   // Per-admin-account key when authenticated; per-IP otherwise.
-  // NOTE: express-rate-limit v7 no longer exports ipKeyGenerator (removed in
-  // v7); fall back to req.ip (which respects trust proxy) for anonymous hits.
   keyGenerator: (req) =>
     req.admin?.id ? `admin:${req.admin.id}` : `ip:${req.ip || req.socket?.remoteAddress || 'unknown'}`
+});
+
+/**
+ * More permissive rate limiter for admin READ-only endpoints (GET requests).
+ * The admin dashboard fires 10+ parallel requests on load; strictRateLimiter
+ * would block them all. This allows 60 reads per 10-minute window.
+ */
+const adminReadRateLimiter = createRateLimiter({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: process.env.NODE_ENV === 'production' ? 200 : 60,
+  keyGenerator: (req) =>
+    req.admin?.id ? `admin-read:${req.admin.id}` : `ip:${req.ip || req.socket?.remoteAddress || 'unknown'}`
 });
 
 /**
@@ -304,6 +314,7 @@ module.exports = {
   authRateLimiter,
   apiRateLimiter,
   strictRateLimiter,
+  adminReadRateLimiter,
   validateOrigin,
   validateCSRF,
   sanitizeInput,

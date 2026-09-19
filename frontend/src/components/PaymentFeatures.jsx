@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
+import PaymentFeatureMedia from './PaymentFeatureMedia';
 const API_URL = resolveApiBase();
+import toast from 'react-hot-toast';
 import { DollarSign, MapPin, Star, Eye, Mail, Loader2, AlertCircle, Upload } from 'lucide-react';
 
 const PaymentFeatures = () => {
@@ -15,7 +17,7 @@ const PaymentFeatures = () => {
   const [sortBy, setSortBy] = useState('price-asc');
   const [selectedFeature, setSelectedFeature] = useState(null);
   const [showInquiryForm, setShowInquiryForm] = useState(false);
-  const [inquiryData, setInquiryData] = useState({ message: '', contactEmail: '' });
+  const [inquiryData, setInquiryData] = useState({ name: '', message: '', contactEmail: '' });
   
   const categories = ['Real Estate', 'Services', 'Business', 'Automotive', 'Jobs', 'Electronics', 'Other'];
   
@@ -56,9 +58,9 @@ const PaymentFeatures = () => {
   };
   
   const formatPrice = (price) => {
-    return new Intl.NumberFormat('en-ZA', {
+    return new Intl.NumberFormat('en-TZ', {
       style: 'currency',
-      currency: 'ZAR',
+      currency: 'TZS',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(price);
@@ -87,7 +89,7 @@ const PaymentFeatures = () => {
     e.preventDefault();
     
     if (!inquiryData.message.trim()) {
-      alert('Please enter a message');
+      toast.error('Please enter a message');
       return;
     }
     
@@ -103,17 +105,17 @@ const PaymentFeatures = () => {
       const data = await response.json();
       
       if (data.success) {
-        alert('Inquiry submitted successfully!');
+        toast.success('Inquiry submitted successfully!');
         setShowInquiryForm(false);
-        setInquiryData({ message: '', contactEmail: '' });
+        setInquiryData({ name: '', message: '', contactEmail: '' });
         // Update the feature with new inquiry count
         fetchFeatures();
       } else {
-        alert(`Error: ${data.message}`);
+        toast.error(data.message);
       }
     } catch (error) {
       console.error('Error submitting inquiry:', error);
-      alert('Error submitting inquiry');
+      toast.error('Failed to submit inquiry');
     }
   };
   
@@ -285,13 +287,7 @@ const PaymentFeatures = () => {
               <div className="bg-white rounded-lg shadow-md overflow-hidden">
                 <div className="md:flex">
                   <div className="md:w-1/2">
-                    {selectedFeature.primaryImage && (
-                      <img
-                        src={selectedFeature.primaryImage}
-                        alt={selectedFeature.name}
-                        className="w-full h-64 md:h-full object-cover"
-                      />
-                    )}
+                    <PaymentFeatureMedia feature={selectedFeature} className="h-64 md:h-full" />
                   </div>
                   <div className="md:w-1/2 p-6">
                     <h2 className="text-2xl font-bold mb-2">{selectedFeature.name}</h2>
@@ -359,6 +355,18 @@ const PaymentFeatures = () => {
                     <h3 className="text-xl font-semibold mb-4">Submit Inquiry</h3>
                     <form onSubmit={handleInquirySubmit}>
                       <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Your Name</label>
+                        <input
+                          type="text"
+                          value={inquiryData.name}
+                          onChange={(e) => setInquiryData(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="John Doe"
+                          className="px-3 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          required
+                        />
+                      </div>
+
+                      <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
                         <textarea
                           value={inquiryData.message}
@@ -411,17 +419,7 @@ const PaymentFeatures = () => {
                   onClick={() => handleFeatureClick(feature._id)}
                 >
                   <div className="relative">
-                    {feature.primaryImage ? (
-                      <img
-                        src={feature.primaryImage}
-                        alt={feature.name}
-                        className="w-full h-48 object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
-                        <Upload className="w-12 h-12 text-gray-400" />
-                      </div>
-                    )}
+                    <PaymentFeatureMedia feature={feature} compact className="h-48" />
                     {feature.featured && (
                       <span className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
                         <Star size={14} fill="currentColor" />

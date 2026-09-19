@@ -406,15 +406,16 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
   };
 
   // Export Chat to HTML/ZIP
-  const handleExportChat = (chatId) => {
+  const handleExportChat = async (chatId) => {
     const conv = conversations.find(c => c._id === chatId);
     if (!conv) return;
 
-    const format = prompt('Export format (html, txt, json, zip):', 'html');
+    const format = prompt('Export format (html, txt, json, pdf):', 'html');
     if (!format) return;
 
     const chatName = getConversationName(conv);
     const messages = conv.messages || [];
+    const { saveBlob } = await import('../services/capacitorBridge');
 
     if (format === 'html') {
       const htmlContent = `
@@ -445,24 +446,14 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
 </html>`;
       
       const blob = new Blob([htmlContent], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `chat_export_${chatName}_${Date.now()}.html`;
-      a.click();
-      URL.revokeObjectURL(url);
+      await saveBlob(blob, `chat_export_${chatName}_${Date.now()}.html`);
     } else if (format === 'txt') {
       const txtContent = messages.map(msg => 
         `[${new Date(msg.createdAt).toLocaleString()}] ${msg.senderName || 'Unknown'}: ${msg.content || ''}`
       ).join('\n');
       
       const blob = new Blob([txtContent], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `chat_export_${chatName}_${Date.now()}.txt`;
-      a.click();
-      URL.revokeObjectURL(url);
+      await saveBlob(blob, `chat_export_${chatName}_${Date.now()}.txt`);
     } else if (format === 'json') {
       const jsonContent = JSON.stringify({
         chatName,
@@ -471,17 +462,56 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
       }, null, 2);
       
       const blob = new Blob([jsonContent], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `chat_export_${chatName}_${Date.now()}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+      await saveBlob(blob, `chat_export_${chatName}_${Date.now()}.json`);
+    } else if (format === 'pdf') {
+      try {
+        if (!window.jspdf) {
+          await new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js';
+            s.onload = resolve;
+            s.onerror = reject;
+            document.head.appendChild(s);
+          });
+        }
+        if (!window.jspdfAutotable) {
+          await new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.4/jspdf.plugin.autotable.min.js';
+            s.onload = resolve;
+            s.onerror = reject;
+            document.head.appendChild(s);
+          });
+        }
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.setFontSize(16);
+        doc.text(`Chat Export - ${chatName}`, 14, 22);
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Exported on: ${new Date().toLocaleString()}`, 14, 30);
+        const rows = messages.map(msg => [
+          new Date(msg.createdAt).toLocaleString(),
+          msg.senderName || 'Unknown',
+          (msg.content || '').substring(0, 80)
+        ]);
+        doc.autoTable({
+          startY: 36,
+          head: [['Time', 'Sender', 'Message']],
+          body: rows,
+          styles: { fontSize: 8, cellPadding: 3 },
+          headStyles: { fillColor: [34, 197, 94] },
+          margin: { left: 14, right: 14 }
+        });
+        const pdfBlob = doc.output('blob');
+        await saveBlob(pdfBlob, `chat_export_${chatName}_${Date.now()}.pdf`);
+      } catch (err) {
+        toast.error('PDF export failed. Try HTML, TXT, or JSON format.');
+      }
     } else if (format === 'zip') {
-      // For ZIP export, we'll use JSZip if available, otherwise alert
-      alert('ZIP export requires JSZip library. Please use HTML, TXT, or JSON format instead.');
+      toast.error('ZIP export requires JSZip library. Please use HTML, TXT, or JSON format instead.');
     } else {
-      alert('Invalid format. Please use html, txt, json, or zip.');
+      toast.error('Invalid format. Please use html, txt, json, or pdf.');
     }
   };
 
@@ -823,7 +853,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
     if (!file) return;
 
     if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
-      alert('Please choose an image or video wallpaper');
+      toast.error('Please choose an image or video wallpaper');
       event.target.value = '';
       return;
     }
@@ -838,7 +868,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
       try {
         localStorage.setItem(chatListWallpaperKey, JSON.stringify(nextWallpaper));
       } catch (e) {
-        alert('Wallpaper file is too large for this browser storage');
+        toast.error('Wallpaper file is too large for this browser storage');
         event.target.value = '';
         return;
       }

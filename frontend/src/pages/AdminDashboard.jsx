@@ -10,6 +10,7 @@ import {
 import toast from 'react-hot-toast';
 import adminApi from '../services/adminApi';
 import { useAdminAuth } from '../context/AdminAuthContext';
+import { getAdminSocket, connectAdminSocket } from '../services/adminSocket';
 import PremiumCountdown from '../components/admin/PremiumCountdown';
 
 import ChatManagement from '../components/admin/ChatManagement';
@@ -29,6 +30,7 @@ import SessionManagement from '../components/admin/SessionManagement';
 import AbuseReports from '../components/admin/AbuseReports';
 import GenzAfterWorkManagement from '../components/admin/GenzAfterWorkManagement';
 import BackupManagement from '../components/admin/BackupManagement';
+import UpdateManagement from '../components/admin/UpdateManagement';
 import { usePrompt } from '../components/PromptDialog';
 
 // ---------------------------------------------------------------------
@@ -63,6 +65,7 @@ const SECTIONS = [
   { key: 'devices', label: 'Device Management', icon: Smartphone, group: 'Security', implemented: true },
   { key: 'sessions', label: 'Session Management', icon: Timer, group: 'Security', implemented: true },
   { key: 'backups', label: 'Backup Management', icon: Database, group: 'Security', implemented: true },
+  { key: 'updates', label: 'App Updates', icon: Smartphone, group: 'Core', implemented: true },
 ];
 
 const GROUP_ORDER = ['Core', 'Finance', 'Content', 'Communication', 'Reports', 'Security'];
@@ -742,12 +745,12 @@ const UsersSection = () => {
   };
 
   const bulkBlock = async (block) => {
-    if (selected.length === 0) return;
     try {
-      await Promise.all(selected.map(id => adminApi.post(`/admin/users/${id}/${block ? 'block' : 'unblock'}`)));
-      toast.success(`${selected.length} users ${block ? 'blocked' : 'unblocked'}`);
-      setSelected([]); load(search, filter, page);
-    } catch { toast.error('Bulk failed'); }
+      await adminApi.post('/admin/users/bulk', { action: block ? 'block' : 'unblock', userIds: selected });
+      setSelected([]);
+      load(search, filter, page);
+      toast.success(`Users ${block ? 'blocked' : 'unblocked'}`);
+    } catch { toast.error('Bulk action failed'); }
   };
 
   const exportCSV = () => {
@@ -871,7 +874,7 @@ const PaymentsSection = ({ statusFilter = 'All', title = 'Payment Management' })
     }
     try {
       await adminApi.post(`/admin/manual-payments/${id}/${action}`, body);
-      toast.success(action === 'approve' ? 'Approved' : 'Rejected');
+      toast.success(action === 'approve' ? 'Payment approved' : 'Payment rejected');
       load();
     } catch {
       toast.error('Failed to update payment');
@@ -1045,7 +1048,7 @@ class SectionErrorBoundary extends React.Component {
 // Main dashboard shell
 // ---------------------------------------------------------------------
 const AdminDashboard = () => {
-  const { logout, admin } = useAdminAuth();
+  const { logout, admin, isAuthenticated } = useAdminAuth();
   const [active, setActive] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dark, setDark] = useState(() => localStorage.getItem('genz_admin_theme') !== 'light');
@@ -1057,36 +1060,46 @@ const AdminDashboard = () => {
 
   // APK → Admin live feed (was polling only) — uses adminSocket (AdminOwner JWT) not user socket
   useEffect(() => {
-    let cleanup = null;
-    try {
-      const { getAdminSocket, connectAdminSocket } = require('../services/adminSocket');
-      const socket = getAdminSocket() || connectAdminSocket();
-      if (!socket) return;
-      const onLive = (payload) => {
-        const type = payload?.message?.messageType || payload?.type || 'update';
-        toast(`Live: new ${type}`, { icon: '🔔', duration: 3000 });
-      };
-      socket.on('admin:message_received', onLive);
-      socket.on('admin:status_created', onLive);
-      socket.on('admin:winga_created', onLive);
-      socket.on('admin:community_created', onLive);
-      socket.on('new:abuse-report', (report) => {
-        toast(`🚨 New abuse report from ${report?.username || 'a user'}`, { icon: '⚠️', duration: 5000 });
-      });
-      socket.on('admin:user_deleted', ({ userId, username } = {}) => {
-        toast(`🗑️ User ${username || userId} was deleted`, { icon: '🗑️', duration: 3000 });
-      });
-      cleanup = () => {
-        socket.off('admin:message_received', onLive);
-        socket.off('admin:status_created', onLive);
-        socket.off('admin:winga_created', onLive);
-        socket.off('admin:community_created', onLive);
-        socket.off('new:abuse-report');
-        socket.off('admin:user_deleted');
-      };
-    } catch {}
-    return () => { if (cleanup) cleanup(); };
-  }, []);
+    if (!isAuthenticated) return;
+    const socket = getAdminSocket() || connectAdminSocket();
+    if (!socket) return;
+    const onLive = (payload) => {
+      const type = payload?.message?.messageType || payload?.type || 'update';
+      toast(`Live: new ${type}`, { icon: '🔔', duration: 3000 });
+    };
+    const onPayment = () => toast('Live: new payment', { icon: '💰', duration: 3000 });
+    const onTicket = () => toast('Live: new ticket', { icon: '🎫', duration: 3000 });
+    socket.on('admin:message_received', onLive);
+    socket.on('admin:status_created', onLive);
+    socket.on('admin:winga_created', onLive);
+    socket.on('admin:community_created', onLive);
+    socket.on('payment:submitted', onPayment);
+    socket.on('payment:duplicate', onPayment);
+    socket.on('payment:message', onPayment);
+    socket.on('ticket:created', onTicket);
+    socket.on('ticket:reply', onTicket);
+    socket.on('new:abuse-report', (report) => toast(`🚨 New abuse report from ${report?.username || 'a user'}`, { icon: '⚠️', duration: 5000 }));
+    socket.on('new_pending_payment', () => toast('Live: new P2P payment request', { icon: '💸', duration: 3000 }));
+    socket.on('payment:expired', () => toast('Live: subscription expired', { icon: '⏰', duration: 3000 }));
+    socket.on('user:role_updated', () => toast('Live: user role updated', { icon: '👤', duration: 3000 }));
+    socket.on('admin:user_deleted', ({ username, userId } = {}) => toast(`🗑️ User ${username || userId} was deleted`, { icon: '🗑️', duration: 3000 }));
+    return () => {
+      socket.off('admin:message_received', onLive);
+      socket.off('admin:status_created', onLive);
+      socket.off('admin:winga_created', onLive);
+      socket.off('admin:community_created', onLive);
+      socket.off('payment:submitted', onPayment);
+      socket.off('payment:duplicate', onPayment);
+      socket.off('payment:message', onPayment);
+      socket.off('ticket:created', onTicket);
+      socket.off('ticket:reply', onTicket);
+      socket.off('new:abuse-report');
+      socket.off('new_pending_payment');
+      socket.off('payment:expired');
+      socket.off('user:role_updated');
+      socket.off('admin:user_deleted');
+    };
+  }, [isAuthenticated]);
 
   const grouped = useMemo(() => {
     const map = {};
@@ -1123,6 +1136,7 @@ const AdminDashboard = () => {
       case 'devices': return <AdminDeviceManagement />;
       case 'sessions': return <SessionManagement />;
       case 'backups': return <BackupManagement />;
+      case 'updates': return <UpdateManagement />;
       default: {
         const section = SECTIONS.find((s) => s.key === active);
         return <ComingSoonPanel label={section?.label || active} />;

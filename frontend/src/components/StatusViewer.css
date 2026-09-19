@@ -210,22 +210,27 @@
   min-width: 100px;
   max-width: 200px;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   background: rgba(255,255,255,0.15);
   border-radius: 24px;
   padding: 4px 4px 4px 12px;
 }
 
-.reply-input-container input {
+.reply-input-container textarea {
   flex: 1;
   background: none;
   border: none;
   color: #fff;
   font-size: 15px;
   outline: none;
+  resize: none;
+  max-height: 120px;
+  line-height: 1.4;
+  padding: 4px 0;
+  font-family: inherit;
 }
 
-.reply-input-container input::placeholder {
+.reply-input-container textarea::placeholder {
   color: rgba(255,255,255,0.6);
 }
 

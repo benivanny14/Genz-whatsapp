@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useChat, applyVoiceEffect } from '../context/ChatContext';
 import { useUser } from '../context/UserContext';
+import { useConfirm } from './ConfirmDialog';
 import { ArrowLeft, MoreVertical, Search, Smile, Paperclip, Send, Mic, Image as ImageIcon, MessageCircle, Ghost, Forward, Square, MapPin, ShieldCheck, Globe, BarChart2, CalendarClock, Info, UserMinus, UserCheck, ShieldAlert, Copy, Link, Pin, X, Edit, Briefcase, Plus, Eye, EyeOff, Clock, Lock, Sticker, Download, FileText, Camera, Contact, Trash2, Reply, Share2, Star, Archive, BellOff, Bell, Radio, Users, Languages, Grid3x3, Lock as LockIcon, Unlock, ChevronLeft, AtSign, DollarSign, Video as VideoIcon, Heart, Flag } from 'lucide-react';
 import { formatMessageTime, decryptMessage } from '../utils/formatDate';
 import { exportChatAsTxt, exportChatAsWhatsAppTxt } from '../utils/chatExporter';
@@ -72,6 +73,7 @@ import { usePrompt } from './PromptDialog';
 const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => { // Added mods and onOpenGENZSettings
   mods = mods || {};
   const safeMods = mods;
+  const confirm = useConfirm();
   const { user: localUser } = useUser();
   const {
     user: chatUser,
@@ -345,7 +347,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       if (audioTimerRef.current) clearInterval(audioTimerRef.current);
       if (timerRef.current) clearInterval(timerRef.current);
       if (videoTimerRef.current) clearInterval(videoTimerRef.current);
-      if (liveLocationIntervalRef.current) clearInterval(liveLocationIntervalRef.current);
+      if (liveLocationIntervalRef.current) clearTimeout(liveLocationIntervalRef.current);
       if (liveLocationWatchIdRef.current) navigator.geolocation.clearWatch(liveLocationWatchIdRef.current);
       if (cameraStreamRef.current) cameraStreamRef.current.getTracks().forEach(t => t.stop());
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -902,7 +904,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         }
       });
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+      const preferredMimeTypes = ['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/mp4;codecs=mp4a.40.2','audio/ogg;codecs=opus',''];
+      const mimeType = preferredMimeTypes.find(mt => !mt || MediaRecorder.isTypeSupported(mt)) || '';
+      const mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -1114,7 +1118,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       if (navigator.vibrate) navigator.vibrate(50);
     }
     // Swipe up to lock
-    else if (deltaY < -50) {
+    else if (deltaY > 50) {
       setSwipeDirection('up');
       if (navigator.vibrate) navigator.vibrate(50);
     }
@@ -1135,7 +1139,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
     }
     // Swipe up to lock
-    else if (deltaY < -50) {
+    else if (deltaY > 50) {
       handleLockRecording();
       if (navigator.vibrate) navigator.vibrate(100);
     }
@@ -1192,7 +1196,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
   const handleDeleteForEveryone = async (messageId) => {
     try {
-      if (!confirm('Delete this message for everyone?')) return;
+      if (!await confirm.confirm('Delete this message for everyone?')) return;
 
       if (String(messageId).startsWith('client-message-')) {
         deleteMessage(messageId, true);
@@ -1231,50 +1235,35 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     }
   };
 
-  const handleShareLocation = (type) => {
+  const handleShareLocation = async (type) => {
     setShowAttachmentMenu(false);
-    if (!navigator.geolocation) {
-      toast.error('Your browser does not support location sharing.');
-      return;
-    }
+    const { getCurrentPosition } = await import('../utils/nativeBridge');
 
     if (type === 'current') {
       const toastId = toast.loading('Fetching your current location...');
 
       try {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            toast.dismiss(toastId);
-            const { latitude, longitude, accuracy } = position.coords;
-            setCurrentLocationCoords({ latitude, longitude, accuracy: accuracy || 15 });
-            setCurrentLocationComment('');
-            setShowCurrentLocationModal(true);
-          },
-          (error) => {
-            toast.dismiss(toastId);
-            if (import.meta.env.DEV) console.warn('Geolocation error code:', error.code, error.message);
-            if (error.code === 1) {
-              // PERMISSION_DENIED — send user to system settings
-              toast.error(
-                'Location permission denied. Go to Settings > Apps > GENZ Messenger > Permissions and enable Location.',
-                { duration: 8000 }
-              );
-            } else if (error.code === 2) {
-              // POSITION_UNAVAILABLE
-              toast.error('Unable to determine your location. Please check that GPS is enabled and try again.', { duration: 5000 });
-            } else if (error.code === 3) {
-              // TIMEOUT
-              toast.error('Location request timed out. Please try again.', { duration: 5000 });
-            } else {
-              toast.error('Could not get your location. Please try again.', { duration: 5000 });
-            }
-          },
-          { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
-        );
-      } catch (err) {
+        const position = await getCurrentPosition({ enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
         toast.dismiss(toastId);
-        if (import.meta.env.DEV) console.error('Geolocation exception:', err);
-        toast.error('Location sharing is not available on this device.', { duration: 5000 });
+        const { latitude, longitude, accuracy } = position.coords;
+        setCurrentLocationCoords({ latitude, longitude, accuracy: accuracy || 15 });
+        setCurrentLocationComment('');
+        setShowCurrentLocationModal(true);
+      } catch (error) {
+        toast.dismiss(toastId);
+        if (import.meta.env.DEV) console.warn('Geolocation error:', error);
+        if (error?.message?.includes('denied') || error?.code === 1) {
+          toast.error(
+            'Location permission denied. Go to Settings > Apps > GENZ Messenger > Permissions and enable Location.',
+            { duration: 8000 }
+          );
+        } else if (error?.code === 2) {
+          toast.error('Unable to determine your location. Please check that GPS is enabled and try again.', { duration: 5000 });
+        } else if (error?.code === 3) {
+          toast.error('Location request timed out. Please try again.', { duration: 5000 });
+        } else {
+          toast.error('Could not get your location. Please try again.', { duration: 5000 });
+        }
       }
     } else if (type === 'live') {
       if (isLiveLocationActive) return; // Already sharing
@@ -1305,63 +1294,62 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     setCurrentLocationComment('');
   };
 
-  const confirmShareLiveLocation = () => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      async (startPos) => {
-        const { latitude, longitude } = startPos.coords;
-        const locationUrl = `https://www.google.com/maps?q=${latitude},${longitude}&layer=c`;
-        const msgText = liveLocationComment ? `${liveLocationComment}\n\n📍 Live Location Sharing Started\n${locationUrl}` : `📍 Live Location Sharing Started\n${locationUrl}`;
-        const expiresAt = new Date(Date.now() + liveLocationDuration * 60 * 1000).toISOString();
-        const result = await sendMessage(
-          msgText,
-          user?.username,
-          {
-            messageType: 'location',
-            latitude,
-            longitude,
-            isLiveLocation: true,
-            liveLocationExpiresAt: expiresAt,
-            duration: liveLocationDuration,
-            chatId: selectedConversation?._id,
-            isGroup: selectedConversation?.isGroup,
-            replyTo: replyingTo
+  const confirmShareLiveLocation = async () => {
+    const { getCurrentPosition, watchPosition } = await import('../utils/nativeBridge');
+    try {
+      const startPos = await getCurrentPosition({ enableHighAccuracy: true, timeout: 15000 });
+      const { latitude, longitude } = startPos.coords;
+      const locationUrl = `https://www.google.com/maps?q=${latitude},${longitude}&layer=c`;
+      const msgText = liveLocationComment ? `${liveLocationComment}\n\n📍 Live Location Sharing Started\n${locationUrl}` : `📍 Live Location Sharing Started\n${locationUrl}`;
+      const expiresAt = new Date(Date.now() + liveLocationDuration * 60 * 1000).toISOString();
+      const result = await sendMessage(
+        msgText,
+        user?.username,
+        {
+          messageType: 'location',
+          latitude,
+          longitude,
+          isLiveLocation: true,
+          liveLocationExpiresAt: expiresAt,
+          duration: liveLocationDuration,
+          chatId: selectedConversation?._id,
+          isGroup: selectedConversation?.isGroup,
+          replyTo: replyingTo
+        }
+      );
+      liveLocationMessageIdRef.current = result?.id || null;
+
+      setIsLiveLocationActive(true);
+      setShowLiveLocationModal(false);
+      setLiveLocationComment('');
+      setReplyingTo(null);
+      lastLocationSentRef.current = { latitude, longitude };
+
+      const watchId = await watchPosition(
+        (pos) => {
+          const newLat = pos.coords.latitude;
+          const newLng = pos.coords.longitude;
+          const last = lastLocationSentRef.current;
+          const moved = !last ||
+            Math.abs(newLat - last.latitude) > 0.0001 ||
+            Math.abs(newLng - last.longitude) > 0.0001;
+          if (moved && liveLocationMessageIdRef.current) {
+            lastLocationSentRef.current = { latitude: newLat, longitude: newLng };
+            updateLiveLocation(liveLocationMessageIdRef.current, newLat, newLng);
           }
-        );
-        // Remember the persisted message id so subsequent GPS ticks update
-        // THIS bubble in place instead of creating new chat messages.
-        liveLocationMessageIdRef.current = result?.id || null;
+        },
+        { maximumAge: 30000, timeout: 15000, enableHighAccuracy: true }
+      );
+      liveLocationWatchIdRef.current = watchId;
 
-        setIsLiveLocationActive(true);
-        setShowLiveLocationModal(false);
-        setLiveLocationComment('');
-        setReplyingTo(null);
-        lastLocationSentRef.current = { latitude, longitude };
-
-        liveLocationWatchIdRef.current = navigator.geolocation.watchPosition(
-          (pos) => {
-            const newLat = pos.coords.latitude;
-            const newLng = pos.coords.longitude;
-            const last = lastLocationSentRef.current;
-            const moved = !last ||
-              Math.abs(newLat - last.latitude) > 0.0001 ||
-              Math.abs(newLng - last.longitude) > 0.0001;
-            if (moved && liveLocationMessageIdRef.current) {
-              lastLocationSentRef.current = { latitude: newLat, longitude: newLng };
-              updateLiveLocation(liveLocationMessageIdRef.current, newLat, newLng);
-            }
-          },
-          (err) => { if (import.meta.env.DEV) console.warn('Live location error:', err); },
-          { maximumAge: 30000, timeout: 15000, enableHighAccuracy: true }
-        );
-
-        // Auto-stop after duration
-        setTimeout(() => {
-          handleStopLiveLocation();
-        }, liveLocationDuration * 60 * 1000);
-      },
-      () => toast.error('Failed to get your initial location.')
-    );
+      // Auto-stop after duration
+      liveLocationIntervalRef.current = setTimeout(() => {
+        handleStopLiveLocation();
+      }, liveLocationDuration * 60 * 1000);
+    } catch (err) {
+      if (import.meta.env.DEV) console.warn('Live location error:', err);
+      toast.error('Failed to get your initial location.');
+    }
   };
 
   const handleStopLiveLocation = () => {
@@ -1477,11 +1465,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         });
         setReplyingTo(null);
       } else {
-        toast.error(`Genz Messenger: ${data.error || data.message || 'Upload failed'}`);
+        toast.error(data.error || data.message || 'Upload failed');
       }
     } catch (error) {
       if (import.meta.env.DEV) console.error('Upload failed:', error);
-        toast.error("Genz Messenger: Failed to upload file. Please try again.");
+        toast.error("Failed to upload file. Please try again.");
     }
     setIsViewOnceEnabled(false);
     if (originalEvent?.target) originalEvent.target.value = '';
@@ -1605,7 +1593,22 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const openCamera = async () => {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        cameraInputRef.current?.click();
+        try {
+          const { pickImage } = await import('../utils/cameraHelper');
+          const result = await pickImage({ source: 'camera' });
+          if (result && result.blob) {
+            const file = new File([result.blob], result.name, { type: result.type });
+            const formData = new FormData();
+            formData.append('file', file);
+            const caption = prompt('Add a caption (optional):') || '';
+            const response = await authFetch(`${API_URL}/media/upload`, { method: 'POST', body: formData });
+            const data = await response.json();
+            if (data.success) {
+              sendMessage(caption || '', user?.username, { mediaUrl: data.url, messageType: 'image', caption, replyTo: replyingTo });
+              toast.success('Photo sent!');
+            }
+          }
+        } catch { cameraInputRef.current?.click(); }
         return;
       }
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -1621,6 +1624,11 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
   const closeCamera = () => {
     setShowCameraModal(false);
+    // Stop any in-progress video recording first
+    if (cameraMediaRecorderRef.current && isRecordingVideo) {
+      cameraMediaRecorderRef.current.stop();
+      setIsRecordingVideo(false);
+    }
     if (cameraStreamRef.current) {
       cameraStreamRef.current.getTracks().forEach(track => track.stop());
       cameraStreamRef.current = null;
@@ -1629,7 +1637,6 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       URL.revokeObjectURL(recordedVideoUrl);
       setRecordedVideoUrl(null);
     }
-    setIsRecordingVideo(false);
     clearInterval(videoTimerRef.current);
   };
 
@@ -1897,8 +1904,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   const startAudioAttachmentRecording = () => {
     if (!attachmentAudioStreamRef.current) return;
     attachmentAudioChunksRef.current = [];
-    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
-    const recorder = new MediaRecorder(attachmentAudioStreamRef.current, { mimeType });
+    const mimeTypes = ['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/mp4;codecs=mp4a.40.2','audio/ogg;codecs=opus',''];
+    const mimeType = mimeTypes.find(mt => !mt || MediaRecorder.isTypeSupported(mt)) || '';
+    const recorder = mimeType ? new MediaRecorder(attachmentAudioStreamRef.current, { mimeType }) : new MediaRecorder(attachmentAudioStreamRef.current);
     attachmentAudioRecorderRef.current = recorder;
 
     recorder.ondataavailable = (e) => {
@@ -2212,7 +2220,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     const chatId = selectedConversation?._id;
     if (!chatId) return;
     setShowHeaderMenu(false);
-    if (!confirm('Clear all messages in this chat?')) return;
+    if (!await confirm.confirm('Clear all messages in this chat?')) return;
 
     const result = await clearChat(chatId);
     if (result?.success) {
@@ -2226,7 +2234,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     const chatId = selectedConversation?._id;
     if (!chatId) return;
     setShowHeaderMenu(false);
-    if (!confirm('Delete this chat? This will remove it from your chat list.')) return;
+    if (!await confirm.confirm('Delete this chat? This will remove it from your chat list.')) return;
 
     const result = await deleteChat(chatId);
     if (result?.success) {
@@ -2255,7 +2263,13 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   // GENZ MOD: Logic moved here to ensure selectedConversation is not null
   const currentUserIsAdmin = selectedConversation?.isGroup &&
     (selectedConversation?.participants || []).find((p) => String(p?._id || p?.id || p) === String(user?.id || user?._id))?.role === 'admin';
-  const adminOnlyMessagingEnabled = selectedConversation?.isGroup && selectedConversation.adminOnlyMessaging;
+
+  // Detect admin-only chats: group with adminOnlyMessaging flag, OR 1:1 chat with an admin user
+  const otherParticipant = (selectedConversation?.participants || []).find((p) => String(p?._id || p?.id || p) !== String(user?.id || user?._id));
+  const isAdminUser = otherParticipant?.role === 'admin' || otherParticipant?.username === 'GENZ Support';
+  const adminOnlyMessagingEnabled = selectedConversation?.isGroup
+    ? selectedConversation.adminOnlyMessaging
+    : (!selectedConversation?.isGroup && isAdminUser);
   const canSendMedia = selectedConversation?.isGroup ? (selectedConversation.canSendMedia || currentUserIsAdmin) : true;
   const canCreatePolls = selectedConversation?.isGroup ? (selectedConversation.canCreatePolls || currentUserIsAdmin) : true;
   const canChangeGroupInfo = selectedConversation?.isGroup ? (selectedConversation.canChangeGroupInfo || currentUserIsAdmin) : true;
@@ -2413,8 +2427,8 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       typingByConversation, isOtherUserRecording, setShowSearchMessages,
       setShowMediaGallery, headerMenuRef, setShowHeaderMenu, showHeaderMenu,
       toggleDNDMode, isDNDMode, handleClearCurrentChat, handleDeleteCurrentChat,
-      handleExportChat, viewProfile, otherUser
-}), [safeMods, selectConversation, sidebarOpen, onOpenSidebar, isSearching, setIsSearching, chatSearchQuery, setChatSearchQuery, selectedConversation, setShowGroupInfo, setShowContactInfo, isLiveLocationActive, getConversationAvatar, getConversationName, peerPresence, isOtherUserTyping, groupOnlineCount, history, typingByConversation, isOtherUserRecording, setShowSearchMessages, setShowMediaGallery, headerMenuRef, setShowHeaderMenu, showHeaderMenu, toggleDNDMode, isDNDMode, handleClearCurrentChat, handleDeleteCurrentChat, handleExportChat, viewProfile, otherUser]);
+      handleExportChat, handleUploadWallpaper, viewProfile, otherUser
+}), [safeMods, selectConversation, sidebarOpen, onOpenSidebar, isSearching, setIsSearching, chatSearchQuery, setChatSearchQuery, selectedConversation, setShowGroupInfo, setShowContactInfo, isLiveLocationActive, getConversationAvatar, getConversationName, peerPresence, isOtherUserTyping, groupOnlineCount, history, typingByConversation, isOtherUserRecording, setShowSearchMessages, setShowMediaGallery, headerMenuRef, setShowHeaderMenu, showHeaderMenu, toggleDNDMode, isDNDMode, handleClearCurrentChat, handleDeleteCurrentChat, handleExportChat, handleUploadWallpaper, viewProfile, otherUser]);
 
   const listCtx = useMemo(() => ({
   messagesContainerRef, handleMessagesScroll, safeMods, activeDoodle,

@@ -143,7 +143,7 @@ describe('strictRateLimiter (admin sensitive ops)', () => {
     jest.dontMock('express-rate-limit');
 
     expect(limiter.windowMs).toBe(60 * 60 * 1000);
-    expect(limiter.max).toBe(10);
+    expect(limiter.max).toBe(50);
     expect(typeof limiter.keyGenerator).toBe('function');
     // Authenticated admin -> per-account key regardless of IP.
     expect(limiter.keyGenerator(makeReq({ ip: '9.9.9.9' }))).toBe('admin:admin-1');
@@ -152,8 +152,8 @@ describe('strictRateLimiter (admin sensitive ops)', () => {
     expect(limiter.keyGenerator(makeReq({ admin: undefined }))).toBe('ip:203.0.113.50');
   });
 
-  it('allows 10 sensitive ops per hour then returns 429', async () => {
-    for (let i = 0; i < 10; i++) {
+  it('allows 50 sensitive ops per hour then returns 429', async () => {
+    for (let i = 0; i < 50; i++) {
       expect((await call(makeReq())).statusCode).toBe(200);
     }
     expect((await call(makeReq())).statusCode).toBe(429);
@@ -161,7 +161,7 @@ describe('strictRateLimiter (admin sensitive ops)', () => {
 
   it('keeps separate budgets per admin account', async () => {
     // Exhaust admin-1's budget...
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 50; i++) {
       expect((await call(makeReq())).statusCode).toBe(200);
     }
     expect((await call(makeReq())).statusCode).toBe(429);

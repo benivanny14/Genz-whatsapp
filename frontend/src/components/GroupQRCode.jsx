@@ -40,14 +40,14 @@ const GroupQRCode = ({ groupId, groupName, onClose }) => {
     }
   };
 
-  const downloadQRCode = () => {
+  const downloadQRCode = async () => {
     if (qrCode) {
-      const link = document.createElement('a');
-      link.href = qrCode;
-      link.download = `${groupName || 'group'}-qrcode.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      try {
+        const { downloadUrl } = await import('../services/capacitorBridge');
+        await downloadUrl(qrCode, `${groupName || 'group'}-qrcode.png`);
+      } catch (err) {
+        console.error('QR download error:', err);
+      }
     }
   };
 

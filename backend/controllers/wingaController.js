@@ -271,6 +271,17 @@ exports.rateBusiness = async (req, res) => {
       ? { avg: Math.round(rows[0].avg * 10) / 10, count: rows[0].count }
       : { avg: 0, count: 0 };
 
+    try {
+      const Notification = require('../models/Notification');
+      await Notification.create({
+        userId: listing.userId,
+        type: 'winga_review',
+        data: { title: 'New Winga Review', body: `${user.username || 'Someone'} rated "${listing.title}" ${rating} stars`, listingId: String(listing._id), listingTitle: listing.title, rating, comment: comment.slice(0, 200) }
+      });
+      const io = req.app.get('io');
+      if (io) io.to(String(listing.userId)).emit('notification:new', { type: 'winga_review' });
+    } catch (e) { /* notification best-effort */ }
+
     res.json({ success: true, ratingSummary: summary, myRating: rating });
   } catch (err) {
     if (err && err.code === 11000) {
@@ -353,6 +364,16 @@ exports.placeOrder = async (req, res) => {
       const payload = order.toObject ? order.toObject() : order;
       io.emit('winga:order', payload);
     }
+
+    try {
+      const Notification = require('../models/Notification');
+      await Notification.create({
+        userId: listing.userId,
+        type: 'winga_order',
+        data: { title: 'New Winga Order', body: `${order.buyerUsername} ordered "${order.listingTitle}"`, orderId: String(order._id), listingId: String(listing._id), listingTitle: order.listingTitle }
+      });
+      if (io) io.to(String(listing.userId)).emit('notification:new', { type: 'winga_order' });
+    } catch (e) { /* notification best-effort */ }
 
     res.status(201).json({ success: true, order: order.toObject ? order.toObject() : order });
   } catch (err) {
@@ -439,6 +460,18 @@ exports.updateOrderStatus = async (req, res) => {
       payload.isSeller = isSeller;
       io.emit('winga:order-updated', payload);
     }
+
+    try {
+      const Notification = require('../models/Notification');
+      const notifyUserId = isBuyer ? order.sellerId : order.buyerId;
+      const statusLabels = { confirmed: 'confirmed', completed: 'completed', declined: 'declined', cancelled: 'cancelled' };
+      await Notification.create({
+        userId: notifyUserId,
+        type: 'winga_order_status',
+        data: { title: 'Winga Order Updated', body: `Order "${order.listingTitle}" has been ${statusLabels[status] || status}`, orderId: String(order._id), listingTitle: order.listingTitle, status }
+      });
+      if (io) io.to(String(notifyUserId)).emit('notification:new', { type: 'winga_order_status' });
+    } catch (e) { /* notification best-effort */ }
 
     res.json({ success: true, order: order.toObject ? order.toObject() : order });
   } catch (err) {

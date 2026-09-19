@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { adminAuthClient, adminApi, adminTokenStore } from '../services/adminApi';
+import { disconnectAdminSocket } from '../services/adminSocket';
 
 const AdminAuthContext = createContext(null);
 
@@ -70,6 +71,7 @@ export const AdminAuthProvider = ({ children }) => {
     try {
       await adminAuthClient.post('/logout', { refreshToken: adminTokenStore.getRefreshToken() });
     } catch { /* best effort */ }
+    disconnectAdminSocket();
     adminTokenStore.clear();
     setIsAuthenticated(false);
     setAdmin(null);

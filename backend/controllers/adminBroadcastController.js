@@ -61,39 +61,46 @@ exports.sendSystemAnnouncement = async (req, res) => {
     const recipients = await User.find(filter).select('_id').lean();
     const systemUser = await getOrCreateSystemUser();
     const io = req.app.get('io');
+    const messageContent = content.trim();
+    const recipientIds = recipients.map(r => r._id);
 
-    let sent = 0;
-    for (const { _id: recipientId } of recipients) {
-      try {
-        let conversation = await Conversation.findOne({
-          participants: { $all: [systemUser._id, recipientId] },
-          isGroup: false
-        });
-        if (!conversation) {
-          conversation = await Conversation.create({ participants: [systemUser._id, recipientId], isGroup: false });
-        }
-        const message = await Message.create({
-          conversationId: conversation._id,
-          sender: systemUser._id,
-          content: content.trim(),
-          messageType: 'system'
-        });
-        conversation.lastMessage = message._id;
-        conversation.updatedAt = new Date();
-        await conversation.save();
+    await logAdminAction(req.admin.id, 'admin_sent_system_announcement', { segment, recipientCount: recipientIds.length }, null, null, req);
 
-        if (io) {
-          io.to(String(recipientId)).emit('newMessage', message);
-          io.to(String(recipientId)).emit('message:received', message);
-        }
-        sent++;
-      } catch (err) {
-        console.error(`[AdminBroadcast] failed to message ${recipientId}:`, err.message);
+    res.json({ success: true, message: `Announcement queued for ${recipientIds.length} user(s)`, sent: recipientIds.length });
+
+    setImmediate(async () => {
+      let sent = 0;
+      const BATCH_SIZE = 10;
+      for (let i = 0; i < recipientIds.length; i += BATCH_SIZE) {
+        const batch = recipientIds.slice(i, i + BATCH_SIZE);
+        const results = await Promise.allSettled(batch.map(async (recipientId) => {
+          let conversation = await Conversation.findOne({
+            participants: { $all: [systemUser._id, recipientId] },
+            isGroup: false
+          });
+          if (!conversation) {
+            conversation = await Conversation.create({ participants: [systemUser._id, recipientId], isGroup: false });
+          }
+          const message = await Message.create({
+            conversationId: conversation._id,
+            sender: systemUser._id,
+            content: messageContent,
+            messageType: 'system'
+          });
+          conversation.lastMessage = message._id;
+          conversation.updatedAt = new Date();
+          await conversation.save();
+
+          if (io) {
+            io.to(String(recipientId)).emit('newMessage', message);
+            io.to(String(recipientId)).emit('message:received', message);
+          }
+          return message;
+        }));
+        sent += results.filter(r => r.status === 'fulfilled').length;
       }
-    }
-
-    await logAdminAction(req.admin.id, 'admin_sent_system_announcement', { segment, recipientCount: sent }, null, null, req);
-    res.json({ success: true, message: `Announcement sent to ${sent} user(s)`, sent });
+      console.log(`[AdminBroadcast] Announcement delivered to ${sent}/${recipientIds.length} users`);
+    });
   } catch (error) {
     console.error('[AdminBroadcast] sendSystemAnnouncement error:', error);
     res.status(500).json({ success: false, message: 'Failed to send announcement' });

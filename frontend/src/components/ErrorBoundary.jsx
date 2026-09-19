@@ -2,6 +2,7 @@ import { Component } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { getAuthToken } from '../utils/tokenStore';
 import { reportCrashToServer } from '../utils/crashReporting';
+import { navigateTo } from '../utils/navigate';
 
 // Opt-in server-side crash reporting: when the user enables it in GENZSettings
 // (Privacy → Crash Reporting), each caught render crash POSTs a small
@@ -21,10 +22,18 @@ class ErrorBoundary extends Component {
 
   componentDidCatch(error, errorInfo) {
     this.setState({ errorInfo });
-    // Log to console in dev; replace with Sentry in production
-    if (import.meta.env.DEV) {
-      console.error('[GENZ ErrorBoundary]', error, errorInfo);
-    }
+    console.error('[GENZ ErrorBoundary] CRASH:', error?.message, error?.stack, errorInfo?.componentStack);
+
+    // Store the last crash error + stack so it can be read via CDP/localStorage
+    try {
+      const crashDetail = {
+        message: error?.message || String(error),
+        stack: error?.stack?.substring(0, 1000),
+        componentStack: errorInfo?.componentStack?.substring(0, 500),
+        timestamp: Date.now()
+      };
+      localStorage.setItem('genz_last_crash', JSON.stringify(crashDetail));
+    } catch {}
 
     // Lightweight crash analytics: keep a per-route counter in localStorage so
     // regressions (missing imports, null-unsafe renders) are visible in
@@ -104,10 +113,23 @@ class ErrorBoundary extends Component {
           <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4 border border-red-500/20">
             <AlertTriangle size={32} className="text-red-400" />
           </div>
-          <h3 className="text-white font-bold text-lg mb-2">Kitu kimekosea</h3>
-          <p className="text-white/50 text-sm mb-6 max-w-xs">
-            An unexpected error occurred. Please try again.
-          </p>
+            <h3 className="text-white font-bold text-lg mb-2">Kitu kimekosea</h3>
+            <p className="text-white/60 text-sm mb-6">
+              An unexpected error occurred. Please try again.
+            </p>
+            {this.state.error && (
+              <details className="text-red-300 text-xs mb-4 max-w-xs">
+                <summary className="cursor-pointer">Error details</summary>
+                <p className="break-all font-mono mt-1">
+                  {this.state.error.message || String(this.state.error)}
+                </p>
+                {this.state.errorInfo?.componentStack && (
+                  <pre className="mt-1 text-[10px] whitespace-pre-wrap break-all">
+                    {this.state.errorInfo.componentStack.substring(0, 300)}
+                  </pre>
+                )}
+              </details>
+            )}
           <div className="flex gap-3">
             <button
               onClick={this.handleRetry}
@@ -116,7 +138,7 @@ class ErrorBoundary extends Component {
               <RefreshCw size={16} /> Try Again
             </button>
             <button
-              onClick={() => window.location.href = '/'}
+              onClick={() => navigateTo('/')}
               className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold text-sm transition-all"
             >
               <Home size={16} /> Home

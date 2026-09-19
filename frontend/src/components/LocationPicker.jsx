@@ -14,20 +14,19 @@ const LocationPicker = ({ onClose, onLocationSelect, currentUser, selectedChat }
   const [userLocation, setUserLocation] = useState(null);
   const mapRef = useRef(null);
 
-  // Get user's current location
+  // Get user's current location — use native bridge for APK
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setUserLocation({ lat: latitude, lng: longitude });
-          setMapCenter({ lat: latitude, lng: longitude });
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-        }
-      );
-    }
+    (async () => {
+      try {
+        const { getCurrentPosition } = await import('../utils/nativeBridge');
+        const pos = await getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 });
+        const { latitude, longitude } = pos.coords;
+        setUserLocation({ lat: latitude, lng: longitude });
+        setMapCenter({ lat: latitude, lng: longitude });
+      } catch (error) {
+        console.error('Error getting location:', error);
+      }
+    })();
   }, []);
 
   // Search for locations
@@ -37,17 +36,26 @@ const LocationPicker = ({ onClose, onLocationSelect, currentUser, selectedChat }
       setSearchResults([]);
       return;
     }
-
     setLoading(true);
     try {
-      // Using OpenStreetMap Nominatim API for search
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`
-      );
-      const data = await response.json();
-      setSearchResults(data);
+      // Debounced search via backend proxy to handle Nominatim rate limits and CORS on APK
+      const apiBase = (await import('../utils/resolveApiBase')).resolveApiBase();
+      let data;
+      try {
+        const res = await fetch(`${apiBase}/geocode/search?q=${encodeURIComponent(query)}&limit=5`);
+        if (res.ok) data = await res.json();
+      } catch {}
+      if (!data) {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`,
+          { headers: { 'Accept-Language': 'en' } }
+        );
+        data = await response.json();
+      }
+      setSearchResults(Array.isArray(data) ? data : data.results || []);
     } catch (error) {
       console.error('Error searching locations:', error);
+      setSearchResults([]);
     } finally {
       setLoading(false);
     }

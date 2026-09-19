@@ -27,7 +27,7 @@ const registerValidators = [
     .notEmpty().withMessage('Phone number is required')
     .matches(PHONE_RE).withMessage('Invalid phone number format'),
   body('password')
-    .isLength({ min: 8 }).withMessage('Password must be at least 8 characters long')
+    .isLength({ min: 12 }).withMessage('Password must be at least 12 characters long')
     .matches(PASSWORD_STRENGTH_RE).withMessage('Password must include uppercase, lowercase, number, and special character'),
   handleValidationErrors
 ];

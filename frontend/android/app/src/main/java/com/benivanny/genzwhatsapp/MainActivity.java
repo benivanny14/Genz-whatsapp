@@ -1,7 +1,9 @@
 package com.benivanny.genzwhatsapp;
 
+import android.Manifest;
 import android.app.DownloadManager;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -13,6 +15,7 @@ import android.webkit.URLUtil;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import androidx.core.content.ContextCompat;
 
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebChromeClient;
@@ -40,6 +43,11 @@ import com.google.firebase.FirebaseApp;
  */
 public class MainActivity extends BridgeActivity {
 
+    private static final int MIC_PERMISSION_REQUEST_CODE = 1001;
+    private static final int CAMERA_PERMISSION_REQUEST_CODE = 1002;
+    private PermissionRequest pendingPermissionRequest = null;
+    private String[] pendingPermissionResources = null;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         // Anti-screenshot: FLAG_SECURE blocks screenshots & screen recording (like TM WhatsApp)
@@ -54,6 +62,14 @@ public class MainActivity extends BridgeActivity {
             android.util.Log.w("MainActivity", "Firebase init skipped: " + e.getMessage());
         }
         super.onCreate(savedInstanceState);
+
+        // Register the APK installer plugin for auto-updates
+        try {
+            getBridge().registerPlugin(APKInstallerPlugin.class);
+            android.util.Log.i("MainActivity", "APKInstaller plugin registered");
+        } catch (Exception e) {
+            android.util.Log.w("MainActivity", "APKInstaller plugin registration failed: " + e.getMessage());
+        }
 
         // DEBUG builds only: allow mixed content (https://localhost webview →
         // http://10.0.2.2 dev backend). Release builds keep WebView defaults so
@@ -74,6 +90,32 @@ public class MainActivity extends BridgeActivity {
 
         // Native download listener
         setupDownloadListener();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        // CRITICAL: Resolve the WebView PermissionRequest BEFORE calling super.
+        // super.onRequestPermissionsResult dispatches to Capacitor plugins (e.g. camera)
+        // which can interfere with the WebView's pending PermissionRequest state.
+        if (pendingPermissionRequest != null) {
+            boolean allGranted = grantResults.length > 0;
+            for (int result : grantResults) {
+                if (result != PackageManager.PERMISSION_GRANTED) {
+                    allGranted = false;
+                    break;
+                }
+            }
+            if (allGranted) {
+                pendingPermissionRequest.grant(pendingPermissionResources);
+                android.util.Log.i("MainActivity", "Permission granted, granted WebView request");
+            } else {
+                pendingPermissionRequest.deny();
+                android.util.Log.w("MainActivity", "Permission denied, denied WebView request");
+            }
+            pendingPermissionRequest = null;
+            pendingPermissionResources = null;
+        }
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
     /**
@@ -101,22 +143,72 @@ public class MainActivity extends BridgeActivity {
                     @Override
                     public void onGeolocationPermissionsShowPrompt(
                             String origin, GeolocationPermissions.Callback callback) {
-                        // Auto-grant geolocation for our own origins
-                        callback.invoke(origin, true, false);
+                        if (origin != null && (origin.equals("https://localhost") || origin.equals("capacitor://localhost") || origin.contains("genz-whatsapp"))) {
+                            // Check Android runtime permission before granting WebView
+                            if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                                ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                                callback.invoke(origin, true, false);
+                            } else {
+                                callback.invoke(origin, false, false);
+                            }
+                        } else {
+                            callback.invoke(origin, false, false);
+                        }
                     }
 
                     @Override
                     public void onPermissionRequest(final PermissionRequest request) {
-                        // Grant camera + microphone permissions for WebRTC and MediaRecorder.
-                        // These map to Android runtime permissions (CAMERA, RECORD_AUDIO)
-                        // already declared in AndroidManifest.xml and prompted by the user
-                        // on first use.
+                        String origin = request.getOrigin() != null ? request.getOrigin().toString() : "";
+                        // Only grant for our own origins
+                        if (!origin.equals("https://localhost") && !origin.equals("capacitor://localhost") && !origin.contains("genz-whatsapp") && !origin.isEmpty()) {
+                            if (!origin.isEmpty()) {
+                                request.deny();
+                                return;
+                            }
+                        }
                         runOnUiThread(() -> {
                             try {
-                                request.grant(request.getResources());
+                                String[] resources = request.getResources();
+                                java.util.List<String> neededPermissions = new java.util.ArrayList<>();
+                                java.util.List<String> granted = new java.util.ArrayList<>();
+                                for (String r : resources) {
+                                    if (r.equals(PermissionRequest.RESOURCE_VIDEO_CAPTURE)) {
+                                        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                                            granted.add(r);
+                                        } else {
+                                            neededPermissions.add(Manifest.permission.CAMERA);
+                                        }
+                                    } else if (r.equals(PermissionRequest.RESOURCE_AUDIO_CAPTURE)) {
+                                        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                                            granted.add(r);
+                                        } else {
+                                            neededPermissions.add(Manifest.permission.RECORD_AUDIO);
+                                        }
+                                    } else {
+                                        granted.add(r);
+                                    }
+                                }
+                                if (!neededPermissions.isEmpty()) {
+                                    // Store pending request and ask for runtime permission
+                                    pendingPermissionRequest = request;
+                                    pendingPermissionResources = resources;
+                                    if (neededPermissions.contains(Manifest.permission.CAMERA) && neededPermissions.contains(Manifest.permission.RECORD_AUDIO)) {
+                                        requestPermissions(new String[]{Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO}, MIC_PERMISSION_REQUEST_CODE);
+                                    } else if (neededPermissions.contains(Manifest.permission.CAMERA)) {
+                                        requestPermissions(new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_REQUEST_CODE);
+                                    } else {
+                                        requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, MIC_PERMISSION_REQUEST_CODE);
+                                    }
+                                    return;
+                                }
+                                if (!granted.isEmpty()) {
+                                    request.grant(granted.toArray(new String[0]));
+                                } else {
+                                    request.deny();
+                                }
                             } catch (Exception e) {
-                                android.util.Log.w("MainActivity",
-                                        "Failed to grant permissions: " + e.getMessage());
+                                android.util.Log.w("MainActivity", "Failed to grant permissions: " + e.getMessage());
+                                try { request.deny(); } catch (Exception ignored) {}
                             }
                         });
                     }
@@ -145,12 +237,33 @@ public class MainActivity extends BridgeActivity {
             @Override
             public void onGeolocationPermissionsShowPrompt(
                     String origin, GeolocationPermissions.Callback callback) {
-                callback.invoke(origin, true, false);
+                if (origin != null && (origin.equals("https://localhost") || origin.equals("capacitor://localhost") || origin.contains("genz-whatsapp"))) {
+                    callback.invoke(origin, true, false);
+                } else {
+                    callback.invoke(origin, false, false);
+                }
             }
 
             @Override
             public void onPermissionRequest(final PermissionRequest request) {
-                runOnUiThread(() -> request.grant(request.getResources()));
+                runOnUiThread(() -> {
+                    try {
+                        String origin = request.getOrigin() != null ? request.getOrigin().toString() : "";
+                        if (!origin.equals("https://localhost") && !origin.equals("capacitor://localhost") && !origin.contains("genz-whatsapp") && !origin.isEmpty()) {
+                            request.deny(); return;
+                        }
+                        String[] resources = request.getResources();
+                        java.util.List<String> granted = new java.util.ArrayList<>();
+                        for (String r : resources) {
+                            if (r.equals(PermissionRequest.RESOURCE_VIDEO_CAPTURE)) {
+                                if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) granted.add(r);
+                            } else if (r.equals(PermissionRequest.RESOURCE_AUDIO_CAPTURE)) {
+                                if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) granted.add(r);
+                            } else granted.add(r);
+                        }
+                        if (!granted.isEmpty()) request.grant(granted.toArray(new String[0])); else request.deny();
+                    } catch (Exception e) { request.deny(); }
+                });
             }
         });
     }

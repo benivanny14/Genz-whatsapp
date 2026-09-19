@@ -1,6 +1,7 @@
 import { getAuthToken, clearAuthTokens } from '../utils/tokenStore';
 import React, { useState, useEffect } from 'react';
 import { resolveApiBase } from '../utils/resolveApiBase';
+import toast from 'react-hot-toast';
 import { X, MapPin, Navigation, Search, Star, Clock, CheckCircle, Plus } from 'lucide-react';
 
 const LocationTaggingPanel = ({ onClose, status, onLocationAdd }) => {
@@ -88,33 +89,24 @@ const LocationTaggingPanel = ({ onClose, status, onLocationAdd }) => {
 
   const handleConfirm = async () => {
     if (!selectedLocation) {
-      alert('Please select a location');
       return;
     }
 
     try {
-      const token = getAuthToken();
-      await fetch(`${resolveApiBase()}/status/${status?._id || status?.id}/location`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          latitude: selectedLocation.lat,
-          longitude: selectedLocation.lng,
-          address: selectedLocation.name,
-          placeName: selectedLocation.country
-        })
-      });
-
+      // Pass location data back to parent component (CreateStatus) — no separate API endpoint needed.
+      // The location is included when creating the status with type: 'location' + locationData.
       if (onLocationAdd) {
-        onLocationAdd(selectedLocation);
+        onLocationAdd({
+          lat: selectedLocation.lat,
+          lng: selectedLocation.lng,
+          name: selectedLocation.name || selectedLocation.country,
+          address: selectedLocation.name || ''
+        });
       }
       onClose();
     } catch (error) {
       console.error('Error adding location:', error);
-      alert('Failed to add location. Please try again.');
+      toast.error('Failed to add location. Please try again.');
     }
   };
 

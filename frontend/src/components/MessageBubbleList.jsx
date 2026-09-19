@@ -22,16 +22,15 @@ const E2EEText = ({ message, renderMentions = false, userId }) => {
     const doDecrypt = async () => {
       if (message.encrypted && message.content?.includes('-----BEGIN PGP MESSAGE-----')) {
         try {
-          // Try to get privateKey from multiple sources
           let priv = null;
-          try { priv = JSON.parse(localStorage.getItem('user') || '{}')?.privateKey || localStorage.getItem('e2ee_privateKey'); } catch {}
+          try { const u = JSON.parse(localStorage.getItem('user') || '{}'); priv = u?.privateKey || localStorage.getItem('e2ee_privateKey'); } catch {}
           if (!priv) {
-            // Fallback: fetch from /auth/me if needed (user object may have it)
             try {
-              const { getAuthToken } = await import('../utils/tokenStore');
-              const token = getAuthToken();
+              const mod = await import('../utils/tokenStore');
+              const { resolveApiBase } = await import('../utils/resolveApiBase');
+              const token = mod.getAuthToken();
               if (token) {
-                const res = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
+                const res = await fetch(`${resolveApiBase()}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
                 const data = await res.json();
                 priv = data?.user?.privateKey;
                 if (priv) localStorage.setItem('e2ee_privateKey', priv);
@@ -39,7 +38,7 @@ const E2EEText = ({ message, renderMentions = false, userId }) => {
             } catch {}
           }
           if (priv) {
-            const uid = userId || JSON.parse(localStorage.getItem('user') || '{}')?._id || '';
+            const uid = userId || (()=>{ try{ return JSON.parse(localStorage.getItem('user')||'{}')?._id||'' }catch{return ''} })();
             const dec = await decryptE2EE(message.content, priv, uid);
             if (!cancelled) setText(dec);
           }
@@ -101,7 +100,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                       position: { x: e.clientX, y: e.clientY }
                     });
                   }}
-                  onDoubleClick={() => handleDoubleClick(message._id || message.id)}
+                  onDoubleClick={() => handleDoubleClick(message.id || message._id)}
                 >
                   <div
                     className={`max-w-[75%] relative group shadow-sm transition-all duration-300 ${(message.messageType === 'audio' || message.messageType === 'voice' || message.messageType === 'sticker')
@@ -114,9 +113,8 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                       } ${isOwnMessage(message)
                         ? 'bg-primary-600 text-white rounded-tr-none ml-12'
                         : 'bg-dark-surface text-dark-text rounded-tl-none mr-12'}`
-                      }`}
+                      } ${message.isAdmin && !isOwnMessage(message) ? 'ring-1 ring-primary-500/40 bg-gradient-to-br from-dark-surface to-primary-900/20' : ''}`}
                     onClick={(e) => {
-                      // Removed double menu action on regular click, letting users use the 3-dot menu or long press
                       setActiveMessageMenu(null);
                     }}
                     style={
@@ -130,8 +128,16 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                     }
                   >
                     {message.isAdmin && (
-                      <div className="flex items-center gap-1 text-[10px] font-bold text-primary-600 mb-1 bg-white/90 px-2 py-0.5 rounded-full w-fit shadow-sm border border-primary-200">
-                        <ShieldCheck size={10} className="text-primary-600" /> GENZ ADMIN
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold text-primary-400 mb-1.5">
+                        <div className="flex items-center gap-1 bg-primary-500/20 border border-primary-500/30 px-2 py-0.5 rounded-full">
+                          <ShieldCheck size={11} className="text-primary-400" />
+                          <span className="text-primary-300">GENZ ADMIN</span>
+                        </div>
+                        {message.sender?.role === 'superadmin' && (
+                          <div className="flex items-center gap-0.5 bg-yellow-500/20 border border-yellow-500/30 px-1.5 py-0.5 rounded-full">
+                            <span className="text-yellow-400 text-[9px]">SUPER</span>
+                          </div>
+                        )}
                       </div>
                     )}
                     {/* ── Forwarded label (WhatsApp style) ── */}
@@ -196,15 +202,9 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                         )}
                       </div>
                     )}
-                    {/* ── Forwarded Label ── */}
-                    {message.isForwarded && !safeMods?.noForwardLabel && (
-                      <div className="flex items-center gap-1 text-[10px] opacity-60 italic mb-1">
-                        <Forward size={10} /> Forwarded
-                      </div>
-                    )}
 
                     {/* 📽️ Video Message 📽️ */}
-                    {message.messageType === 'video' && mediaSourceOf(message) && (
+                    {message.messageType === 'video' && (
                       (message.isViewOnce || message.isSelfDestruct) && message.isConsumed ? (
                         <div className="flex items-center gap-2 text-dark-textSecondary py-2 italic text-sm">
                           <Eye size={16} /> {message.isSelfDestruct ? 'Self-destructed' : 'Opened'}
@@ -345,7 +345,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                           {message.caption && <p className="text-xs mt-1 opacity-80">{typeof message.caption === 'string' ? message.caption : 'Caption'}</p>}
                           <button onClick={(e) => {
                             e.stopPropagation();
-                            window.open(mediaSourceOf(message), '_blank');
+                            downloadUrl(mediaSourceOf(message), message.fileName || 'download').catch(() => {});
                           }} className="mt-2 bg-primary-600 text-white px-3 py-1 rounded-full text-xs hover:bg-primary-700">
                             Download
                           </button>
@@ -357,7 +357,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                       <DocumentMessage
                         fileName={message.fileName || 'File'}
                         fileSize={message.fileSize}
-                        fileUrl={message.mediaUrl}
+                        fileUrl={mediaSourceOf(message)}
                         messageType={message.messageType}
                       />
                     )}
@@ -365,8 +365,9 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                       <div className="mb-2 min-w-[250px] bg-dark-bg/20 p-3 rounded-xl border border-dark-border/50">
                         <p className="font-bold text-dark-text mb-3">{typeof message.poll.question === 'string' ? message.poll.question : 'Poll Question'}</p>
                         <div className="space-y-2">
-                          {message.poll.options?.map((option, idx) => {
-                            const totalVotes = message.poll.options.reduce((sum, opt) => sum + (opt.votes?.length || 0), 0);
+                          {(() => {
+                            const totalVotes = message.poll.options?.reduce((sum, opt) => sum + (opt.votes?.length || 0), 0) || 0;
+                            return message.poll.options?.map((option, idx) => {
                             const optionVotes = option.votes?.length || 0;
                             const percentage = totalVotes > 0 ? Math.round((optionVotes / totalVotes) * 100) : 0;
                             const userId = user?._id || user?.id;
@@ -386,7 +387,8 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                                 </div>
                               </button>
                             );
-                          })}
+                          });
+                          })()}
                         </div>
                       </div>
                     )}
@@ -406,8 +408,8 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                        const timeRemaining = isLive && message.liveLocationExpiresAt
                          ? (() => { const diff = new Date(message.liveLocationExpiresAt) - new Date(); const h = Math.floor(diff / 3600000); const m = Math.floor((diff % 3600000) / 60000); return h > 0 ? `${h}h ${m}m` : `${m}m`; })()
                          : null;
-                       return (
-                         <div className="mb-1 w-[260px] rounded-lg overflow-hidden bg-[#0b141a] shadow-sm relative group cursor-pointer" onClick={() => { if (mapsUrl) window.open(mapsUrl, '_blank'); }}>
+                        return (
+                          <div className="mb-1 w-[260px] rounded-lg overflow-hidden bg-[#0b141a] shadow-sm relative group cursor-pointer" onClick={() => { if (mapsUrl) window.open(mapsUrl, '_self'); }}>
                        {/* Real Interactive Map Preview (Leaflet + OpenStreetMap tiles) */}
                        <div className="relative h-48 overflow-hidden">
                          <LeafletMap
@@ -417,7 +419,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                            zoom={15}
                            height="100%"
                            showLayerControl
-                           onClick={() => { if (mapsUrl) window.open(mapsUrl, '_blank'); }}
+                            onClick={() => { if (mapsUrl) window.open(mapsUrl, '_self'); }}
                          />
                          {/* Live Timer Badge */}
                          {timeRemaining && (
@@ -440,7 +442,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                              {directionsUrl && (
                                <button
                                  type="button"
-                                 onClick={(e) => { e.stopPropagation(); window.open(directionsUrl, '_blank'); }}
+                                  onClick={(e) => { e.stopPropagation(); window.open(directionsUrl, '_self'); }}
                                  className="mt-1.5 w-full flex items-center justify-center gap-1.5 rounded-lg bg-[#00a884] text-white text-xs font-semibold py-1.5 hover:bg-[#06cf9c] transition-colors"
                                >
                                  <Navigation size={12} /> Directions
@@ -464,7 +466,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                           duration={message.duration}
                           senderAvatar={senderAvatar}
                           senderName={senderName}
-                          autoPlay={safeMods?.voiceAutoPlay && index === messages.length - 1 && !isOwnMessage(message) && !message.isViewOnce}
+                          autoPlay={safeMods?.voiceAutoPlay && index === (filteredMessages || []).slice(-visibleCount).length - 1 && !isOwnMessage(message) && !message.isViewOnce}
                           defaultSpeed={safeMods?.voiceDefaultSpeed || 1}
                           messageId={message.id || message._id}
                           isLocked={message.isLocked || false}
@@ -472,11 +474,10 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                           onViewOnceComplete={() => markViewOnceViewed(message.id || message._id)}
                           senderId={message.sender?._id || message.sender}
                           onToggleLock={toggleMessageLock}
-                          onDownload={() => {
-                            const link = document.createElement('a');
-                            link.href = mediaSourceOf(message);
-                            link.download = `voice-note-${message.id || message._id}.webm`;
-                            link.click();
+                          onDownload={async () => {
+                            try {
+                              await downloadUrl(mediaSourceOf(message), `voice-note-${message.id || message._id}.webm`);
+                            } catch (err) { console.error('Voice download error:', err); }
                           }}
                         />
                       );
@@ -591,7 +592,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                         !message.isSelfDestruct &&
                         message.messageType === 'text' &&
                         !message.isConsumed
-                      ) && !message.isConsumed && (
+                      ) && !(message.isConsumed && message.isViewOnce) && (
                         <p
                           className="break-words whitespace-pre-wrap"
                           style={{ fontFamily: message.font ? FONT_OPTIONS.find(f => f.value === message.font)?.fontFamily : 'var(--message-font, inherit)', color: message.color || undefined }}
@@ -685,7 +686,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                         ).map(([emoji, count]) => (
                           <button
                             key={emoji}
-                            onClick={() => handleReaction(message._id || message.id, emoji)}
+                            onClick={() => handleReaction(message.id || message._id, emoji)}
                             className="flex items-center gap-0.5 text-[10px] md:text-xs bg-dark-bg/60 border border-dark-border rounded-full px-1 py-0.5 hover:bg-dark-hover transition-colors"
                           >
                             <span>{emoji}</span>
@@ -695,7 +696,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                       </div>
                     )}
                     {/* GENZ MOD: Three-dot Menu for Messages */}
-                    <div className="relative" ref={messageMenuRef}>
+                    <div className="relative" data-message-menu={message.id || message._id}>
                       <button
                         data-message-menu-button
                         onClick={(e) => {
@@ -857,7 +858,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 try {
-                                  const id = message._id || message.id;
+                                   const id = message.id || message._id;
                                   setMessageInfoId(id);
                                   setShowMessageInfoModal(true);
                                   setActiveMessageMenu(null);
@@ -912,7 +913,7 @@ const MessageBubbleList = React.memo(function MessageBubbleList({ ctx }) {
 
                     {/* Download button for media types — never for view-once */}
                     {!message.isViewOnce && (message.messageType === 'image' || message.messageType === 'video' || message.messageType === 'audio' || message.messageType === 'file') && mediaSourceOf(message) && (
-                      <button onClick={() => downloadUrl(mediaSourceOf(message), message.fileName || 'download')} className="absolute top-0 left-0 hidden group-hover:flex bg-dark-surface px-2 py-1 rounded text-sm hover:bg-dark-hover -mt-8" title="Download">
+                      <button onClick={() => downloadUrl(mediaSourceOf(message), message.fileName || 'download').catch(() => {})} className="absolute top-0 left-0 hidden group-hover:flex bg-dark-surface px-2 py-1 rounded text-sm hover:bg-dark-hover -mt-8" title="Download">
                         <Download size={14} />
                       </button>
                     )}

@@ -61,8 +61,6 @@ exports.generateTwoFactorSecret = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      secret: secret.base32,
-      otpauthUrl: secret.otpauth_url,
       qrCode,
       qrCodeDataUrl: qrCode
     });
@@ -153,12 +151,13 @@ exports.disableTwoFactor = async (req, res) => {
 
 exports.verifyTwoFactorLogin = async (req, res) => {
   try {
-    const { userId, token } = req.body;
+    const { token } = req.body;
+    const userId = req.user._id;
 
-    if (!token || !userId) {
+    if (!token) {
       return res.status(400).json({
         success: false,
-        message: 'User identifier and 2FA token are required'
+        message: '2FA token is required'
       });
     }
 

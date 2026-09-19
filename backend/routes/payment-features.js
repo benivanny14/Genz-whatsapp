@@ -47,6 +47,62 @@ const runPaymentUpload = (req, res, next) => {
   });
 };
 
+const parseJsonField = (value, fallback) => {
+  if (value === undefined || value === null || value === '') return fallback;
+  if (typeof value !== 'string') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    throw new Error('Invalid JSON form field');
+  }
+};
+
+const parseStringArrayField = (value) => {
+  const parsed = parseJsonField(value, []);
+  if (!Array.isArray(parsed)) throw new Error('Expected an array form field');
+  return parsed.filter(Boolean).map(String);
+};
+
+// Multer stores payment media in uploads/payment-features before it is sent to
+// Cloudinary.  The explicit local URL is important in development and in a
+// Cloudinary fallback: `/uploads/file.mp4` points at the wrong directory.
+const uploadPaymentMedia = async (file, type, name) => {
+  const result = await uploadFile(file.path, type, {
+    folder: `payment-features/${type}s`,
+    publicUrl: `/uploads/payment-features/${path.basename(file.path)}`,
+    transformation: type === 'image'
+      ? [{ width: 1200, quality: 'auto' }]
+      : [{ quality: 'auto', duration: 30 }]
+  });
+
+  if (result.storageProvider !== 'local') {
+    await fs.promises.unlink(file.path).catch(() => {});
+  }
+
+  return type === 'image'
+    ? {
+        url: result.url,
+        publicId: result.publicId,
+        alt: name,
+        thumbnailUrl: result.thumbnailUrl || null
+      }
+    : {
+        url: result.url,
+        publicId: result.publicId,
+        title: name,
+        thumbnailUrl: result.thumbnailUrl || null,
+        duration: result.duration || null
+      };
+};
+
+const uploadPaymentFiles = async (files, field, type, name) => {
+  const entries = [];
+  for (const file of files?.[field] || []) {
+    entries.push(await uploadPaymentMedia(file, type, name));
+  }
+  return entries;
+};
+
 // Create new payment feature (admin only)
 router.post('/', superAdminAuth, runPaymentUpload, async (req, res) => {
   try {
@@ -59,39 +115,12 @@ router.post('/', superAdminAuth, runPaymentUpload, async (req, res) => {
       });
     }
 
-    let images = [];
-    if (req.files && req.files.images) {
-      for (const file of req.files.images) {
-        const result = await uploadFile(file.path, 'image', {
-          folder: 'payment-features/images',
-          transformation: [{ width: 1200, quality: 'auto' }]
-        });
-        images.push({
-          url: result.url,
-          publicId: result.publicId,
-          alt: name
-        });
-      }
-    }
+    const images = await uploadPaymentFiles(req.files, 'images', 'image', name);
+    const videos = await uploadPaymentFiles(req.files, 'videos', 'video', name);
 
-    let videos = [];
-    if (req.files && req.files.videos) {
-      for (const file of req.files.videos) {
-        const result = await uploadFile(file.path, 'video', {
-          folder: 'payment-features/videos',
-          transformation: [{ quality: 'auto', duration: 30 }]
-        });
-        videos.push({
-          url: result.url,
-          publicId: result.publicId,
-          title: name
-        });
-      }
-    }
-
-    const parsedContactInfo = contactInfo ? JSON.parse(contactInfo) : {};
-    const parsedTags = tags ? JSON.parse(tags).filter(tag => tag.trim()) : [];
-    const parsedSpecifications = specifications ? JSON.parse(specifications) : {};
+    const parsedContactInfo = parseJsonField(contactInfo, {});
+    const parsedTags = parseStringArrayField(tags);
+    const parsedSpecifications = parseJsonField(specifications, {});
 
     const paymentFeature = new PaymentFeature({
       name,
@@ -230,11 +259,18 @@ router.put('/:id', superAdminAuth, runPaymentUpload, async (req, res) => {
       });
     }
 
-    const updateData = { ...req.body };
-
-    if (req.body.price) updateData.price = parseFloat(req.body.price);
-    if (req.body.maxPrice) updateData.maxPrice = parseFloat(req.body.maxPrice);
-    if (req.body.expiresAt) updateData.expiresAt = new Date(req.body.expiresAt);
+    const updateData = {};
+    const scalarFields = ['name', 'description', 'location', 'category', 'status'];
+    for (const field of scalarFields) {
+      if (req.body[field] !== undefined) updateData[field] = req.body[field];
+    }
+    if (req.body.price !== undefined && req.body.price !== '') updateData.price = parseFloat(req.body.price);
+    if (req.body.maxPrice !== undefined && req.body.maxPrice !== '') updateData.maxPrice = parseFloat(req.body.maxPrice);
+    if (req.body.expiresAt !== undefined) updateData.expiresAt = req.body.expiresAt ? new Date(req.body.expiresAt) : null;
+    if (req.body.isPrivate !== undefined) updateData.isPrivate = req.body.isPrivate === 'true' || req.body.isPrivate === true;
+    if (req.body.contactInfo !== undefined) updateData.contactInfo = parseJsonField(req.body.contactInfo, {});
+    if (req.body.tags !== undefined) updateData.tags = parseStringArrayField(req.body.tags);
+    if (req.body.specifications !== undefined) updateData.specifications = parseJsonField(req.body.specifications, {});
     if (req.body.status) {
       updateData.status = req.body.status;
       if (req.body.status === 'active' && req.user.isAdmin) {
@@ -243,15 +279,20 @@ router.put('/:id', superAdminAuth, runPaymentUpload, async (req, res) => {
       }
     }
 
-    if (req.body.images) {
-      const newImages = JSON.parse(req.body.images);
-      updateData.images = [...(paymentFeature.images || []), ...newImages];
-    }
+    const removeImagePublicIds = parseStringArrayField(req.body.removeImagePublicIds);
+    const removeVideoPublicIds = parseStringArrayField(req.body.removeVideoPublicIds);
+    const existingImages = (paymentFeature.images || []).filter((item) => !removeImagePublicIds.includes(item.publicId));
+    const existingVideos = (paymentFeature.videos || []).filter((item) => !removeVideoPublicIds.includes(item.publicId));
+    const newImages = await uploadPaymentFiles(req.files, 'images', 'image', req.body.name || paymentFeature.name);
+    const newVideos = await uploadPaymentFiles(req.files, 'videos', 'video', req.body.name || paymentFeature.name);
 
-    if (req.body.videos) {
-      const newVideos = JSON.parse(req.body.videos);
-      updateData.videos = [...(paymentFeature.videos || []), ...newVideos];
-    }
+    if (removeImagePublicIds.length || newImages.length) updateData.images = [...existingImages, ...newImages];
+    if (removeVideoPublicIds.length || newVideos.length) updateData.videos = [...existingVideos, ...newVideos];
+
+    // Delete removed remote media only after the document update inputs have
+    // been validated. Local files are ignored safely by deleteFile.
+    for (const publicId of [...removeImagePublicIds]) await deleteFile(publicId, 'image').catch(() => {});
+    for (const publicId of [...removeVideoPublicIds]) await deleteFile(publicId, 'video').catch(() => {});
 
     paymentFeature = await PaymentFeature.findByIdAndUpdate(
       req.params.id,

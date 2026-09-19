@@ -1,6 +1,7 @@
 import React from 'react';
 import { CalendarClock, Copy, Languages, Mic, Send, Square, Trash2, X } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 import AudioPlayer from './AudioPlayer';
 import ChunkedUploader from './ChunkedUploader';
 import ContactInfo from './ContactInfo';
@@ -806,7 +807,7 @@ const ChatModals = React.memo(function ChatModals({ ctx }) {
                   };
                 }
                 setMods(prev => ({ ...prev, customWallpapers }));
-                if (window.toast) window.toast.success('Chat wallpaper applied!');
+                toast.success('Chat wallpaper applied!');
               }}
               isMuted={selectedConversation?.isMuted}
               isBlocked={blockedUsers?.some(b => String(b._id || b) === String(otherUser?._id))}

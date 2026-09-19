@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { authFetch } from '../utils/authFetch';
 import { resolveApiBase } from '../utils/resolveApiBase';
+import PaymentFeatureMedia from './PaymentFeatureMedia';
 const API_URL = resolveApiBase();
+import toast from 'react-hot-toast';
 import { Upload, X, Camera, Video, MapPin, DollarSign, FileText, Check, XCircle, Clock, Star, Users, Phone, Mail, Edit3, Plus, Filter, Eye } from 'lucide-react';
 
 const PaymentFeaturesManager = () => {
@@ -132,34 +134,31 @@ const PaymentFeaturesManager = () => {
         }
       });
       
-      images.forEach((image, index) => {
-        formDataToSend.append(`images[${index}]`, image);
+      images.forEach((image) => {
+        formDataToSend.append('images', image);
       });
       
-      videos.forEach((video, index) => {
-        formDataToSend.append(`videos[${index}]`, video);
+      videos.forEach((video) => {
+        formDataToSend.append('videos', video);
       });
       
       const response = await authFetch(`${API_URL}/payment-features`, {
         method: 'POST',
         body: formDataToSend,
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
       });
       
       const data = await response.json();
       
       if (data.success) {
-        alert('Feature created successfully!');
+        toast.success('Feature created successfully!');
         resetForm();
         fetchFeatures();
       } else {
-        alert(`Error: ${data.message}`);
+        toast.error(data.message);
       }
     } catch (error) {
       console.error('Error creating feature:', error);
-      alert('Error creating feature');
+      toast.error('Failed to create feature');
     }
   };
   
@@ -200,34 +199,31 @@ const PaymentFeaturesManager = () => {
         }
       });
       
-      images.forEach((image, index) => {
-        formDataToSend.append(`images[${index}]`, image);
+      images.forEach((image) => {
+        formDataToSend.append('images', image);
       });
       
-      videos.forEach((video, index) => {
-        formDataToSend.append(`videos[${index}]`, video);
+      videos.forEach((video) => {
+        formDataToSend.append('videos', video);
       });
       
       const response = await authFetch(`${API_URL}/payment-features/${editingFeature._id}`, {
         method: 'PUT',
         body: formDataToSend,
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
       });
       
       const data = await response.json();
       
       if (data.success) {
-        alert('Feature updated successfully!');
+        toast.success('Feature updated successfully!');
         resetForm();
         fetchFeatures();
       } else {
-        alert(`Error: ${data.message}`);
+        toast.error(data.message);
       }
     } catch (error) {
       console.error('Error updating feature:', error);
-      alert('Error updating feature');
+      toast.error('Failed to update feature');
     }
   };
   
@@ -244,14 +240,14 @@ const PaymentFeaturesManager = () => {
       const data = await response.json();
       
       if (data.success) {
-        alert('Feature deleted successfully!');
+        toast.success('Feature deleted successfully!');
         fetchFeatures();
       } else {
-        alert(`Error: ${data.message}`);
+        toast.error(data.message);
       }
     } catch (error) {
       console.error('Error deleting feature:', error);
-      alert('Error deleting feature');
+      toast.error('Failed to delete feature');
     }
   };
   
@@ -264,14 +260,14 @@ const PaymentFeaturesManager = () => {
       const data = await response.json();
       
       if (data.success) {
-        alert(`Feature ${currentStatus === true ? 'unfeatured' : 'featured'} successfully!`);
+        toast.success(`Feature ${currentStatus === true ? 'unfeatured' : 'featured'} successfully!`);
         fetchFeatures();
       } else {
-        alert(`Error: ${data.message}`);
+        toast.error(data.message);
       }
     } catch (error) {
       console.error('Error toggling featured status:', error);
-      alert('Error toggling featured status');
+      toast.error('Failed to toggle featured status');
     }
   };
   
@@ -284,13 +280,13 @@ const PaymentFeaturesManager = () => {
       const data = await response.json();
       
       if (data.success) {
-        alert('Inquiry submitted successfully!');
+        toast.success('Inquiry submitted successfully!');
       } else {
-        alert(`Error: ${data.message}`);
+        toast.error(data.message);
       }
     } catch (error) {
       console.error('Error submitting inquiry:', error);
-      alert('Error submitting inquiry');
+      toast.error('Failed to submit inquiry');
     }
   };
   
@@ -318,9 +314,9 @@ const PaymentFeaturesManager = () => {
   };
   
   const formatPrice = (price) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-TZ', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'TZS',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(price);
@@ -742,17 +738,7 @@ const PaymentFeaturesManager = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
-                          {feature.primaryImage ? (
-                            <img
-                              src={feature.primaryImage}
-                              alt={feature.name}
-                              className="h-10 w-10 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                              <Upload className="h-5 w-5 text-gray-400" />
-                            </div>
-                          )}
+                          <PaymentFeatureMedia feature={feature} compact className="h-10 w-10 rounded-full" />
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">{feature.name}</div>

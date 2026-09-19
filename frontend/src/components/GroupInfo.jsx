@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChat } from '../context/ChatContext';
+import toast from 'react-hot-toast';
 import {
   ArrowLeft, Users, Image as ImageIcon, Shield, Trash2, UserPlus,
   Link as LinkIcon, Bell, BellOff, Clock, Search, Check, X, Edit2,
@@ -238,13 +239,13 @@ const GroupInfo = ({ group, onClose, currentUserId, onViewProfile, onStartChat }
       });
       const data = await res.json();
       if (data.success) {
-        alert('Report submitted successfully');
+        toast.success('Report submitted');
       } else {
-        alert(data.message || 'Failed to submit report');
+        toast.error(data.message || 'Failed to submit report');
       }
     } catch (error) {
       console.error('Report error:', error);
-      alert('Failed to submit report');
+      toast.error('Failed to submit report');
     }
   };
 
@@ -258,13 +259,13 @@ const GroupInfo = ({ group, onClose, currentUserId, onViewProfile, onStartChat }
       });
       const data = await res.json();
       if (data.success) {
-        alert('User blocked successfully');
+        toast.success('User blocked');
       } else {
-        alert(data.message || 'Failed to block user');
+        toast.error(data.message || 'Failed to block user');
       }
     } catch (error) {
       console.error('Block error:', error);
-      alert('Failed to block user');
+      toast.error('Failed to block user');
     }
   };
 
@@ -283,15 +284,15 @@ const GroupInfo = ({ group, onClose, currentUserId, onViewProfile, onStartChat }
   const handleAddMember = async (contact) => {
     if (!contact?._id) return;
     if (info?.participants?.some(p => sameId(p._id, contact._id))) {
-      alert(`${contact.username || contact.name} is already in this group`);
+      toast.error(`${contact.username || contact.name} is already in this group`);
       return;
     }
     setAddMemberBusy(true);
     try {
       const res = await addParticipant(group._id, contact._id);
-      if (res?.success === false) { alert(res.message || 'Could not add member'); return; }
+      if (res?.success === false) { toast.error(res.message || 'Could not add member'); return; }
       setInfo(prev => ({ ...prev, participants: [...(prev.participants || []), contact] }));
-    } catch { alert('Could not add member'); }
+    } catch { toast.error('Could not add member'); }
     finally { setAddMemberBusy(false); }
   };
 
@@ -303,7 +304,7 @@ const GroupInfo = ({ group, onClose, currentUserId, onViewProfile, onStartChat }
     try {
       const res = await mediaAPI.uploadFile(file);
       const fileUrl = res?.data?.fileUrl;
-      if (!fileUrl) { alert('Could not upload photo.'); return; }
+      if (!fileUrl) { toast.error('Could not upload photo.'); return; }
       const result = await updateGroupInfo(group._id, { groupPhoto: fileUrl });
       if (result?.success) setInfo(prev => ({ ...prev, groupPhoto: fileUrl }));
     } finally { setUploadingPhoto(false); }
@@ -326,7 +327,9 @@ const GroupInfo = ({ group, onClose, currentUserId, onViewProfile, onStartChat }
   };
 
   const handleShareInviteLink = async () => {
-    const link = `${window.location.origin}/join/${group._id}/${info?.groupInviteCode}`;
+    const { resolveApiBase } = await import('../utils/resolveApiBase');
+    const origin = resolveApiBase().replace(/\/api$/, '');
+    const link = `${origin}/join/${group._id}/${info?.groupInviteCode}`;
     const title = `Join ${info?.groupName || 'my group'} on Genz Messenger`;
     const text = `Tap the link to join ${info?.groupName || 'my group'} on Genz Messenger.`;
 
@@ -642,7 +645,7 @@ const GroupInfo = ({ group, onClose, currentUserId, onViewProfile, onStartChat }
                     onClick={async () => {
                       if (!(await confirm('Exit this group?'))) return;
                       const result = await leaveGroup(group._id);
-                      if (result?.success === false) { alert(result.message || 'Could not exit group'); return; }
+                      if (result?.success === false) { toast.error(result.message || 'Could not exit group'); return; }
                       onClose?.();
                     }}
                   />
@@ -705,7 +708,7 @@ const GroupInfo = ({ group, onClose, currentUserId, onViewProfile, onStartChat }
                           });
                         }
                       }}
-                      onClick={() => {
+                      onClick={(e) => {
                         if (!isSelf) {
                           setMemberContextMenu({
                             member,

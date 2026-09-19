@@ -160,6 +160,21 @@ PaymentFeatureSchema.virtual('mainVideo').get(function() {
   return this.videos && this.videos.length > 0 ? this.videos[0].url : null;
 });
 
+// A feature can contain both images and videos.  Keep the legacy `images` and
+// `videos` arrays for backwards compatibility, but expose one normalized
+// gallery for every client so mixed media can be rendered as a carousel.
+PaymentFeatureSchema.virtual('mediaGallery').get(function() {
+  const images = (this.images || []).map((media, index) => {
+    const plain = media?.toObject ? media.toObject() : media;
+    return { ...plain, type: 'image', order: index };
+  });
+  const videos = (this.videos || []).map((media, index) => {
+    const plain = media?.toObject ? media.toObject() : media;
+    return { ...plain, type: 'video', order: images.length + index };
+  });
+  return [...images, ...videos];
+});
+
 // Instance method to increment views
 PaymentFeatureSchema.methods.incrementViews = function() {
   this.views += 1;

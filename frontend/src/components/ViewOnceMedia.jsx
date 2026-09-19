@@ -71,7 +71,7 @@ const ViewOnceMedia = ({ media, onViewed, onClose }) => {
     const blockKeys = (e) => {
       if (e.key === 'PrintScreen' || (e.metaKey && e.shiftKey && (e.key === 's' || e.key === 'S' || e.key === '3' || e.key === '4'))) {
         e.preventDefault();
-        navigator.clipboard?.writeText('').catch(() => {});
+        import('../utils/nativeBridge').then(m => m.writeClipboard('')).catch(() => {});
       }
     };
     const handleVisibility = () => {

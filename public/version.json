@@ -1,13 +1,14 @@
 {
-  "version": "1.1.23",
-  "versionCode": 26,
+  "version": "1.1.26",
+  "versionCode": 31,
   "apkUrl": "/genz-whatsapp.apk",
-  "sha256": "32177be49214cba328e707d3b4ac231269c9c7b33838bb1ca9b70c95e5b22884",
-  "size": 11093329,
-  "releasedAt": "2026-09-05T23:10:46.470Z",
+  "sha256": "f979a120b6437d6546f96b465b63f36ad1261a913aa4ab2432070606283f058c",
+  "size": 21250655,
+  "releasedAt": "2026-09-10T19:49:15.359Z",
   "changes": [
-    "Fixed native APK networking and reliable in-app updates",
-    "Added Status location and voice support",
-    "Release signing and version manifest verification"
+    "App Lock fingerprint unlock fix (works like TM WhatsApp)",
+    "Custom message fonts free for all users",
+    "Anti-screenshot verified on-device",
+    "Status (video/photo/voice/location), Winga & voice notes QA passed"
   ]
 }

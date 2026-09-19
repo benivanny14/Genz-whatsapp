@@ -173,6 +173,16 @@ const makeMessage = (overrides = {}) => ({
   ...overrides
 });
 
+// User.findById().select() chain that also supports .lean() (controller
+// calls .lean() on the 1:1 admin check at line 921).
+const userSelectChain = (val) => {
+  const chain = {};
+  chain.lean = jest.fn().mockResolvedValue(val);
+  chain.then = (resolve, reject) => Promise.resolve(val).then(resolve, reject);
+  chain.catch = (resolve, reject) => Promise.resolve(val).catch(resolve, reject);
+  return chain;
+};
+
 // populateConversation: find -> populate x3 (last one resolves)
 const populateChain = (result) => {
   const c3 = { populate: jest.fn().mockResolvedValue(result) };
@@ -425,12 +435,12 @@ describe('chatController — groups', () => {
     Conversation.findById
       .mockResolvedValueOnce(conv)
       .mockReturnValueOnce(populateChain(conv));
+    Conversation.findByIdAndUpdate.mockResolvedValue({});
     User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ _id: 'user-3', username: 'carol', settings: {}, contacts: [] }) });
     Message.create.mockResolvedValue(makeMessage());
     const res = makeRes();
     await chat.addParticipant(makeReq({ params: { id: 'c1' }, body: { userId: 'user-3' } }), res);
-    expect(conv.participants).toContain('user-3');
-    expect(conv.save).toHaveBeenCalled();
+    expect(Conversation.findByIdAndUpdate).toHaveBeenCalledWith(conv._id, { $addToSet: { participants: 'user-3' } });
     expect(res.body.success).toBe(true);
   });
 
@@ -460,20 +470,21 @@ describe('chatController — groups', () => {
     Conversation.findById
       .mockResolvedValueOnce(conv)
       .mockReturnValueOnce(populateChain(conv));
+    Conversation.findByIdAndUpdate.mockResolvedValue({});
     User.findById.mockReturnValue({
-      select: jest.fn().mockResolvedValue({
+      select: jest.fn().mockReturnValue(userSelectChain({
         _id: 'user-3',
         username: 'carol',
         settings: { privacy: { groups: 'contacts_except' } },
         contacts: [{ user: 'user-1', savedName: 'Alice' }]
-      })
+      }))
     });
     PrivacyExcludedContact.findOne.mockResolvedValue(null);
     Message.create.mockResolvedValue(makeMessage());
     const res = makeRes();
     await chat.addParticipant(makeReq({ params: { id: 'c1' }, body: { userId: 'user-3' } }), res);
     expect(res.statusCode).toBe(200);
-    expect(conv.participants).toContain('user-3');
+    expect(Conversation.findByIdAndUpdate).toHaveBeenCalledWith(conv._id, { $addToSet: { participants: 'user-3' } });
   });
 
   it('removeParticipant forbids non-admins (403)', async () => {
@@ -582,7 +593,7 @@ describe('chatController — messages', () => {
 
   it('sendMessage rejects missing content (validation)', async () => {
     Conversation.findById.mockResolvedValue(makeConv());
-    User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ blockedUsers: [], premium: true, subscriptionExpiresAt: new Date(Date.now() + 86400000) }) });
+    User.findById.mockReturnValue({ select: jest.fn().mockReturnValue(userSelectChain({ blockedUsers: [], premium: true, subscriptionExpiresAt: new Date(Date.now() + 86400000) })) });
     const res = makeRes();
     await chat.sendMessage(makeReq({ body: { conversationId: VALID_ID } }), res);
     expect(res.statusCode).toBe(400);
@@ -591,7 +602,7 @@ describe('chatController — messages', () => {
 
   it('sendMessage enforces admin-only messaging in groups (403)', async () => {
     Conversation.findById.mockResolvedValue(makeConv({ isGroup: true, admins: ['user-9'], adminOnlyMessaging: true }));
-    User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ blockedUsers: [], premium: true, subscriptionExpiresAt: new Date(Date.now() + 86400000) }) });
+    User.findById.mockReturnValue({ select: jest.fn().mockReturnValue(userSelectChain({ blockedUsers: [], premium: true, subscriptionExpiresAt: new Date(Date.now() + 86400000) })) });
     const res = makeRes();
     await chat.sendMessage(makeReq({ body: { conversationId: VALID_ID, content: 'hi' } }), res);
     expect(res.statusCode).toBe(403);
@@ -601,7 +612,7 @@ describe('chatController — messages', () => {
   it('sendMessage stores and returns the message (happy path)', async () => {
     const conv = makeConv({ participants: ['user-1', 'user-2'] });
     Conversation.findById.mockResolvedValue(conv);
-    User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ blockedUsers: [], premium: true, subscriptionExpiresAt: new Date(Date.now() + 86400000) }) });
+    User.findById.mockReturnValue({ select: jest.fn().mockReturnValue(userSelectChain({ blockedUsers: [], premium: true, subscriptionExpiresAt: new Date(Date.now() + 86400000) })) });
     const raw = makeMessage({ content: 'Mambo' });
     const populated = makeMessage({ content: 'Mambo', sender: { _id: 'user-1', username: 'alice' } });
     Message.create.mockResolvedValue(raw);
@@ -619,7 +630,7 @@ describe('chatController — messages', () => {
 
   it('sendMessage returns the existing message on duplicate clientMessageId', async () => {
     Conversation.findById.mockResolvedValue(makeConv());
-    User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ blockedUsers: [], premium: true, subscriptionExpiresAt: new Date(Date.now() + 86400000) }) });
+    User.findById.mockReturnValue({ select: jest.fn().mockReturnValue(userSelectChain({ blockedUsers: [], premium: true, subscriptionExpiresAt: new Date(Date.now() + 86400000) })) });
     const existing = { _id: 'm9', content: 'dup' };
     Message.findOne.mockReturnValue({ select: jest.fn().mockResolvedValue({ _id: 'm9' }) });
     Message.findById.mockReturnValue({ populate: jest.fn().mockResolvedValue(existing) });
@@ -831,7 +842,7 @@ describe('chatController — contacts and moderation', () => {
   });
 
   it('searchUsers returns privacy-filtered matches (happy path)', async () => {
-    User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ blockedUsers: [], premium: true, subscriptionExpiresAt: new Date(Date.now() + 86400000) }) });
+    User.findById.mockReturnValue({ select: jest.fn().mockReturnValue(userSelectChain({ blockedUsers: [], premium: true, subscriptionExpiresAt: new Date(Date.now() + 86400000) })) });
     const found = [{ _id: 'user-2', username: 'bob' }];
     User.find.mockReturnValue({
       select: jest.fn().mockReturnValue({ limit: jest.fn().mockResolvedValue(found) })
@@ -1270,7 +1281,7 @@ describe('chatController — forward/clear/delete chat', () => {
     Conversation.findByIdAndUpdate.mockResolvedValue({});
     const res = makeRes();
     await chat.deleteChat(makeReq({ params: { chatId: 'c1' } }), res);
-    expect(Conversation.findByIdAndUpdate).toHaveBeenCalledWith('c1', { $pull: { participants: 'user-1', admins: 'user-1' } });
+    expect(Conversation.findByIdAndUpdate).toHaveBeenCalledWith('c1', { $addToSet: { deletedFor: 'user-1' } });
     expect(res.body.message).toBe('Chat deleted successfully');
   });
 
@@ -1689,7 +1700,7 @@ describe('chatController — view-once privacy', () => {
   it('sendMessage sets a 24h TTL disappearAt for view-once messages', async () => {
     const conv = makeConv({ participants: ['user-1', 'user-2'] });
     Conversation.findById.mockResolvedValue(conv);
-    User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ blockedUsers: [], premium: true, subscriptionExpiresAt: new Date(Date.now() + 86400000) }) });
+    User.findById.mockReturnValue({ select: jest.fn().mockReturnValue(userSelectChain({ blockedUsers: [], premium: true, subscriptionExpiresAt: new Date(Date.now() + 86400000) })) });
     const populated = makeMessage({ content: 'secret', sender: { _id: 'user-1', username: 'alice' } });
     Message.create.mockResolvedValue(makeMessage({ content: 'secret' }));
     Message.findById.mockReturnValue(msgById3(populated));
@@ -1774,7 +1785,7 @@ describe('chatController — view-once privacy', () => {
       disappearingMessages: { enabled: true, timer: 1 }
     });
     Conversation.findById.mockResolvedValue(conv);
-    User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ blockedUsers: [], premium: true, subscriptionExpiresAt: new Date(Date.now() + 86400000) }) });
+    User.findById.mockReturnValue({ select: jest.fn().mockReturnValue(userSelectChain({ blockedUsers: [], premium: true, subscriptionExpiresAt: new Date(Date.now() + 86400000) })) });
     const populated = makeMessage({ content: 'secret', sender: { _id: 'user-1', username: 'alice' } });
     Message.create.mockResolvedValue(makeMessage({ content: 'secret' }));
     Message.findById.mockReturnValue(msgById3(populated));
@@ -1789,7 +1800,7 @@ describe('chatController — view-once privacy', () => {
   it('sendMessage persists allowScreenshot=false for view-once (anti-screenshot)', async () => {
     const conv = makeConv({ participants: ['user-1', 'user-2'] });
     Conversation.findById.mockResolvedValue(conv);
-    User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ blockedUsers: [], premium: true, subscriptionExpiresAt: new Date(Date.now() + 86400000) }) });
+    User.findById.mockReturnValue({ select: jest.fn().mockReturnValue(userSelectChain({ blockedUsers: [], premium: true, subscriptionExpiresAt: new Date(Date.now() + 86400000) })) });
     const populated = makeMessage({ content: 'secret', sender: { _id: 'user-1', username: 'alice' } });
     Message.create.mockResolvedValue(makeMessage({ content: 'secret' }));
     Message.findById.mockReturnValue(msgById3(populated));
@@ -1807,7 +1818,7 @@ describe('chatController — view-once privacy', () => {
   it('sendMessage omits allowScreenshot when the sender does not opt out', async () => {
     const conv = makeConv({ participants: ['user-1', 'user-2'] });
     Conversation.findById.mockResolvedValue(conv);
-    User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ blockedUsers: [], premium: true, subscriptionExpiresAt: new Date(Date.now() + 86400000) }) });
+    User.findById.mockReturnValue({ select: jest.fn().mockReturnValue(userSelectChain({ blockedUsers: [], premium: true, subscriptionExpiresAt: new Date(Date.now() + 86400000) })) });
     const populated = makeMessage({ content: 'plain', sender: { _id: 'user-1', username: 'alice' } });
     Message.create.mockResolvedValue(makeMessage({ content: 'plain' }));
     Message.findById.mockReturnValue(msgById3(populated));

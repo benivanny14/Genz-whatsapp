@@ -36,13 +36,7 @@
                 <data android:scheme="https" android:host="genz-whatsapp-1.onrender.com" android:pathPrefix="/status/" />
                 <data android:scheme="https" android:host="genz-whatsapp.onrender.com" android:pathPrefix="/status/" />
             </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="http" android:host="localhost" android:pathPrefix="/status/" />
-                <data android:scheme="https" android:host="localhost" android:pathPrefix="/status/" />
-            </intent-filter>
+            <!-- localhost deep link removed for production security -->
 
 
             <!-- Custom scheme for in-app deep links -->
@@ -117,6 +111,7 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
 
     <!-- Biometric features (optional — only needed if device has fingerprint/face -->
     <uses-feature android:name="android.hardware.fingerprint" android:required="false" />

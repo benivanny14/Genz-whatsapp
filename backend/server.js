@@ -238,11 +238,14 @@ if (redisUrl) {
       if (app) app.set("redisClient", redisClient);
       logger.info("✅ Redis connected for distributed socket architecture");
       return true;
-    })().catch((err) => {
+    })().catch(async (err) => {
       logger.warn(
         "Redis connection failed, running in single-instance mode:",
         err.message,
       );
+      try { await redisClient?.quit?.(); } catch {}
+      try { await pubClient?.quit?.(); } catch {}
+      try { await subClient?.quit?.(); } catch {}
       redisClient = null;
       pubClient = null;
       subClient = null;
@@ -312,15 +315,26 @@ const startScheduledMessageDispatcher = (ioInstance) => {
       if (mongoose.connection.readyState !== 1) return;
 
       const now = new Date();
-      const dueMessages = await ScheduledMessage.find({
-        status: "pending",
-        sendAt: { $lte: now },
-      })
-        .populate("conversationId")
-        .limit(50);
+      // Atomically claim pending messages to prevent duplicates in distributed mode
+      const dueMessages = [];
+      for (let i = 0; i < 50; i++) {
+        const claimed = await ScheduledMessage.findOneAndUpdate(
+          { status: "pending", sendAt: { $lte: now } },
+          { $set: { status: "processing" } },
+          { new: false }
+        ).populate("conversationId");
+        if (!claimed) break;
+        dueMessages.push(claimed);
+      }
 
       for (const scheduledMsg of dueMessages) {
         try {
+          if (!scheduledMsg.conversationId) {
+            scheduledMsg.status = "failed";
+            scheduledMsg.errorMessage = "Conversation not found";
+            await scheduledMsg.save();
+            continue;
+          }
           // Create the actual message
           const message = await Message.create({
             conversationId: scheduledMsg.conversationId._id,
@@ -666,6 +680,21 @@ app.use(securityHeaders);
 // CSRF defense-in-depth: reject state-changing requests from unlisted origins
 app.use(validateOrigin(appOrigins));
 
+// CSRF (M6): reject state-changing no-origin requests without Authorization.
+// Skip login/auth endpoints that legitimately have no origin or auth header.
+app.use((req, res, next) => {
+  if (!req.headers.origin && req.method !== 'GET' && req.method !== 'HEAD' && req.method !== 'OPTIONS') {
+    if (process.env.NODE_ENV === 'production' && !req.headers.authorization) {
+      const p = req.path || '';
+      if (p.startsWith('/auth/login') || p.startsWith('/auth/register') || p.startsWith('/auth/verify-2fa') || p.startsWith('/auth/refresh') || p.startsWith('/webhook/')) {
+        return next();
+      }
+      return res.status(403).json({ success: false, error: 'CSRF: No origin and no authorization header' });
+    }
+  }
+  next();
+});
+
 // Security headers for production
 app.use(
   helmet({
@@ -714,13 +743,19 @@ app.use(
 // Rate limiting for API endpoints
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200,
+  max: process.env.NODE_ENV === 'production' ? 5000 : 200,
   message: {
     success: false,
     error: "Too many requests from this IP, please try again later.",
   },
   standardHeaders: true,
   legacyHeaders: false,
+  // On Render all traffic shares one IP — skip rate limiting for read-heavy
+  // endpoints that the APK polls continuously (auth/me, status, health).
+  skip: (req) => {
+    const p = req.path;
+    return p.includes('/auth/me') || p.includes('/health') || p.includes('/status') || p.includes('/updates/check');
+  },
 });
 
 // Split auth rate limiting so a burst of authenticated calls (background
@@ -1236,14 +1271,14 @@ const ADMIN_BASE_PATH =
 // localhost whitelisted for operational tooling.
 const adminLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: process.env.NODE_ENV === 'production' ? 200 : 20,
   message: {
     success: false,
     error: "Too many admin requests, please try again later.",
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.ip === "127.0.0.1" || req.ip === "::1",
+  skip: (req) => process.env.NODE_ENV !== 'production' && (req.ip === "127.0.0.1" || req.ip === "::1"),
 });
 app.use(`${ADMIN_BASE_PATH}`, safeMiddleware(adminLimiter));
 
@@ -1378,15 +1413,17 @@ app.get("/health/ready", async (req, res) => {
 });
 
 // ── API documentation (C.4) ────────────────────────────────────────────────
-// OpenAPI 3.0 spec served with swagger-ui-express at /api-docs. Guarded so
-// docs load even if the spec file changes shape — never crashes the app.
-try {
-  const swaggerUi = require("swagger-ui-express");
-  const openApiSpec = require("./swagger/openapi");
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openApiSpec));
-  app.get("/api-docs.json", (req, res) => res.json(openApiSpec));
-} catch (docsErr) {
-  logger.warn("Swagger docs unavailable:", docsErr?.message || docsErr);
+// OpenAPI 3.0 spec served with swagger-ui-express at /api-docs. Only in
+// non-production to avoid exposing the full attack surface publicly.
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    const swaggerUi = require("swagger-ui-express");
+    const openApiSpec = require("./swagger/openapi");
+    app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openApiSpec));
+    app.get("/api-docs.json", (req, res) => res.json(openApiSpec));
+  } catch (docsErr) {
+    logger.warn("Swagger docs unavailable:", docsErr?.message || docsErr);
+  }
 }
 
 // IMPORTANT: API Fallback - Never return HTML for API routes

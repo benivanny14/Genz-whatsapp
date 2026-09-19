@@ -241,7 +241,7 @@ export const DB = {
           resolve();
         };
       });
-      console.log('[DB] Deleted user-specific database:', dbName);
+      if (import.meta.env.DEV) console.log('[DB] Deleted user-specific database:', dbName);
     } catch (err) {
       console.error('[DB] Failed to delete database:', err);
     }

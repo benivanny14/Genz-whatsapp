@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import adminApi from '../../services/adminApi';
 import toast from 'react-hot-toast';
+import { useConfirm } from '../ConfirmDialog';
 
 export default function WingaManagement() {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const confirm = useConfirm();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -19,12 +21,12 @@ export default function WingaManagement() {
   useEffect(() => { load(); }, [load]);
 
   const handleDelete = async (id) => {
-    if (!confirm('Delete this listing?')) return;
+    if (!(await confirm('Delete this listing?', { danger: true }))) return;
     try {
       await adminApi.delete(`/admin/winga/${id}`);
       toast.success('Listing deleted');
       load();
-    } catch { toast.error('Failed to delete'); }
+    } catch { toast.error('Failed to delete listing'); }
   };
 
   return (

@@ -73,6 +73,7 @@ const serializeOutgoingMessage = (msgObj = {}, extras = {}) => {
         }))
       : [],
     status: base.status || 'sent',
+    encrypted: Boolean(base.encrypted),
     createdAt: base.createdAt,
     // FIX: quotedStatus (the "replying to @user's status" quote) was not
     // part of this shared whitelist, so every place that serializes a
