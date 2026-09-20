@@ -131,19 +131,24 @@ const sendToUsers = async (userIds, notification, data = {}) => {
  * @returns {Promise<Object>} Send result
  */
 const sendNewMessageNotification = async (userId, messageData) => {
+  const conversationId = messageData.conversationId || '';
+  const deepLink = messageData.deepLink || `app.genzwhatsapp://chat?conversationId=${encodeURIComponent(conversationId)}`;
   const notification = {
     title: messageData.senderName || 'New Message',
-    body: messageData.text || 'New message received',
+    body: messageData.showPreview === false ? 'New message' : (messageData.text || 'New message received'),
     type: 'message',
-    clickAction: `/chat?conversationId=${messageData.conversationId}`,
-    tag: `message-${messageData.conversationId}`,
+    clickAction: deepLink,
+    tag: `message-${conversationId}`,
     priority: 'high'
   };
 
   const data = {
-    conversationId: messageData.conversationId,
-    senderId: messageData.senderId,
-    messageType: messageData.type || 'text'
+    conversationId,
+    senderId: messageData.senderId || '',
+    messageType: messageData.type || 'text',
+    type: 'message',
+    deepLink,
+    timestamp: Date.now().toString()
   };
 
   return sendToUser(userId, notification, data);
@@ -185,18 +190,26 @@ const sendIncomingCallNotification = async (userId, callData) => {
     title: `${callData.callerName || 'Incoming Call'}`,
     body: callData.callType === 'video' ? 'Video call' : 'Audio call',
     type: 'incoming_call',
-    clickAction: callData.conversationId ? `/chat?conversationId=${callData.conversationId}` : '/calls',
+    clickAction: callData.conversationId
+      ? `app.genzwhatsapp://chat?conversationId=${encodeURIComponent(callData.conversationId)}`
+      : 'app.genzwhatsapp://chat',
     tag: `call-${callData.callId}`,
     priority: 'high',
     sound: 'ringtone'
   };
 
+  const conversationId = callData.conversationId || '';
+  const deepLink = conversationId
+    ? `app.genzwhatsapp://chat?conversationId=${encodeURIComponent(conversationId)}`
+    : 'app.genzwhatsapp://chat';
   const data = {
     callId: callData.callId,
     callerId: callData.callerId,
-    conversationId: callData.conversationId,
+    conversationId,
     callType: callData.callType || 'audio',
-    offer: callData.offer
+    type: 'incoming_call',
+    deepLink,
+    timestamp: Date.now().toString()
   };
 
   return sendToUser(userId, notification, data);
@@ -213,7 +226,7 @@ const sendNewStatusNotification = async (userId, statusData) => {
     title: `${statusData.userName || 'Contact'} added a status`,
     body: 'Tap to view',
     type: 'status',
-    clickAction: '/status',
+    clickAction: 'app.genzwhatsapp://status',
     tag: `status-${statusData.statusId}`,
     priority: 'normal'
   };
@@ -221,7 +234,10 @@ const sendNewStatusNotification = async (userId, statusData) => {
   const data = {
     statusId: statusData.statusId,
     userId: statusData.userId,
-    statusType: statusData.type || 'image'
+    statusType: statusData.type || 'image',
+    type: 'status',
+    deepLink: 'app.genzwhatsapp://status',
+    timestamp: Date.now().toString()
   };
 
   return sendToUser(userId, notification, data);
@@ -260,19 +276,29 @@ const sendMentionNotification = async (userId, mentionData) => {
  * @returns {Promise<Object>} Send result
  */
 const sendGroupNotification = async (groupId, userIds, groupData) => {
+  const conversationId = groupData.conversationId || groupId;
+  const deepLink = groupData.deepLink || `app.genzwhatsapp://chat?conversationId=${encodeURIComponent(conversationId)}`;
+  const body = groupData.showPreview === false
+    ? 'New message'
+    : `${groupData.senderName || 'GENZ'}: ${groupData.text || 'New message'}`;
   const notification = {
     title: groupData.groupName || 'Group Message',
-    body: `${groupData.senderName}: ${groupData.text || 'New message'}`,
+    body,
     type: 'group_message',
-    clickAction: `/chat?conversationId=${groupId}`,
+    clickAction: deepLink,
     tag: `group-${groupId}`,
     priority: 'normal'
   };
 
   const data = {
-    groupId: groupId,
-    senderId: groupData.senderId,
-    messageType: groupData.type || 'text'
+    groupId: String(groupId || ''),
+    groupName: groupData.groupName || 'Group',
+    conversationId: String(conversationId || ''),
+    senderId: groupData.senderId || '',
+    messageType: groupData.type || 'text',
+    type: 'group_message',
+    deepLink,
+    timestamp: Date.now().toString()
   };
 
   return sendToUsers(userIds, notification, data);

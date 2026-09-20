@@ -3,13 +3,14 @@ const router = express.Router();
 const { protect } = require('../middleware/auth');
 const {
   createStatus, getStatuses, viewStatus,
-  reactToStatus, deleteStatus, getViewers
+  reactToStatus, replyToStatus, deleteStatus, getViewers
 } = require('../controllers/statusController');
 
 router.post('/', protect, createStatus);
 router.get('/', protect, getStatuses);
 router.post('/:id/view', protect, viewStatus);
 router.post('/:id/react', protect, reactToStatus);
+router.post('/:id/reply', protect, replyToStatus);
 router.delete('/:id', protect, deleteStatus);
 router.get('/:id/viewers', protect, getViewers);
 

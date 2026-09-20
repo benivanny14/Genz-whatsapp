@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const QRCode = require('qrcode');
 
 const LOCAL_USER_ID = process.env.LOCAL_USER_ID || '60d5ecb8b392cb371c664c12';
-const getCurrentUserId = (req) => req.user?._id?.toString() || LOCAL_USER_ID;
+const getCurrentUserId = (req) => req.user?._id?.toString() || req.user?.id?.toString() || LOCAL_USER_ID;
 
 const serializeDevice = (device = {}, currentDeviceId = '') => {
   const id = device.deviceId || device.id || device._id?.toString() || 'unknown';
@@ -81,7 +81,9 @@ exports.generateQRCode = async (req, res) => {
     res.status(200).json({
       success: true,
       qrCode: qrCodeImage || null,
+      qrUrl: qrCodeImage || null,
       pairingToken: pairingToken,
+      code: pairingToken,
       deviceId: tempDevice?.deviceId || crypto.randomUUID(),
       expiresAt: new Date(Date.now() + 300000) // 5 minutes
     });
@@ -105,16 +107,18 @@ exports.pairDevice = async (req, res) => {
     }
     
     // Find device with this pairing token
-    const device = await Device.findOne({ 
-      pairingToken: pairingToken,
-      localUserId: currentUserId
-    });
+    const device = await Device.findOne({ pairingToken });
     
     if (!device) {
-      return res.status(404).json({ message: 'Invalid or expired pairing token' });
+      return res.status(404).json({ success: false, message: 'Invalid or expired pairing token' });
+    }
+
+    if (device.localUserId && device.localUserId.toString() !== currentUserId) {
+      return res.status(403).json({ success: false, message: 'This pairing code belongs to another account' });
     }
     
     // Update device with pairing info
+    device.localUserId = currentUserId;
     device.deviceName = deviceName || device.deviceName;
     device.deviceType = deviceType || device.deviceType;
     device.platform = platform || device.platform;
@@ -137,7 +141,7 @@ exports.pairDevice = async (req, res) => {
       success: true,
       message: 'Device paired successfully',
       device: {
-        ...serializeDevice(device),
+        ...serializeDevice(device, device.deviceId),
         pairedAt: device.createdAt
       }
     });

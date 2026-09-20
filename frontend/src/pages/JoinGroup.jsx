@@ -19,6 +19,13 @@ const JoinGroup = () => {
   useEffect(() => {
     let cancelled = false;
 
+    const openGroup = async (conversation) => {
+      await refreshConversations?.();
+      const target = conversation || { _id: groupId };
+      selectConversation?.(target);
+      navigate('/chat', { replace: true, state: { openConversationId: groupId } });
+    };
+
     const join = async () => {
       if (!groupId || !code) {
         setStatus('error');
@@ -43,20 +50,15 @@ const JoinGroup = () => {
         if (data?.success || data?.alreadyMember) {
           setStatus(data.alreadyMember ? 'already' : 'success');
           setMessage(data.alreadyMember ? 'You are already in this group.' : 'You joined the group!');
-          
-          await refreshConversations?.();
-          
           setTimeout(() => {
-            selectConversation?.(groupId);
-            navigate('/chat', { replace: true });
-          }, 1500);
+            openGroup(data.conversation);
+          }, 1200);
         } else if (response.status === 400 && /already a member/i.test(data?.message || '')) {
           setStatus('already');
           setMessage('You are already in this group.');
           setTimeout(() => {
-            selectConversation?.(groupId);
-            navigate('/chat', { replace: true });
-          }, 1500);
+            openGroup(data.conversation);
+          }, 1200);
         } else {
           setStatus('error');
           setMessage(data?.message || 'This invite link is no longer valid.');
@@ -72,11 +74,12 @@ const JoinGroup = () => {
 
     join();
     return () => { cancelled = true; };
-  }, [groupId, code]);
+  }, [groupId, code, navigate, refreshConversations, selectConversation]);
 
-  const goToChat = () => {
-    selectConversation?.(groupId);
-    navigate('/chat', { replace: true });
+  const goToChat = async () => {
+    await refreshConversations?.();
+    selectConversation?.({ _id: groupId });
+    navigate('/chat', { replace: true, state: { openConversationId: groupId } });
   };
 
   return (

@@ -44,6 +44,7 @@ import ContactPickerModal from './ContactPickerModal';
 import ProductCatalogue from './ProductCatalogue';
 import AutoRefreshIndicator from './AutoRefreshIndicator';
 import { getNotificationSettings, vibrateTyping } from '../services/notificationService';
+import { pickNativeMedia, setKeepAwake } from '../native';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -873,6 +874,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       };
 
       mediaRecorder.onstop = async () => {
+        await setKeepAwake(false);
         if (audioChunksRef.current.length === 0) {
           audioContext.close();
           return;
@@ -940,6 +942,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       setShowRecordingUI(true);
       setSwipeDirection(null);
       startTimer();
+      setKeepAwake(true);
       if (!safeMods.ghostMode) sendRecordingStatus(true);
 
       // Haptic feedback for mobile
@@ -1300,8 +1303,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
     sendMessage('🛑 Live Location Sharing Stopped.', user?.username, { messageType: 'text' });
   };
 
-  const handleFileUpload = async (e, forcedType = null, isViewOnce = isViewOnceEnabled) => {
-    const file = e.target.files[0];
+  const processMediaFile = async (file, forcedType = null, isViewOnce = isViewOnceEnabled) => {
     if (!file) return;
 
     const maxSize = (safeMods?.highResMedia ? 50 : 10) * 1024 * 1024;
@@ -1310,18 +1312,33 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       return;
     }
 
-    // GENZ MOD: Ask for caption if it's an image or video
+    let uploadFile = file;
+    if (file.type.startsWith('image/')) {
+      try {
+        const compressed = await compressImage(file);
+        if (typeof compressed === 'string' && compressed.startsWith('data:')) {
+          const [meta, data] = compressed.split(',');
+          const mime = (meta.match(/data:([^;]+)/) || [])[1] || 'image/jpeg';
+          const binary = atob(data);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+          uploadFile = new File([bytes], file.name.replace(/\.\w+$/, '.jpg'), { type: mime });
+        } else if (compressed instanceof Blob) {
+          uploadFile = compressed;
+        }
+      } catch (_) {
+        uploadFile = file;
+      }
+    }
+
     const caption = (file.type.startsWith('image/') || file.type.startsWith('video/')) ? window.prompt("Add a caption (optional):") : null;
 
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', uploadFile);
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || '';
       const response = await authFetch(`${API_URL}/media/upload`, {
         method: 'POST',
-        // No auth headers needed
-
         body: formData,
       });
       const data = await response.json().catch(() => ({}));
@@ -1341,6 +1358,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
         await sendMessage(mediaContent, user?.username, {
           messageType: type,
           mediaUrl: uploadedUrl,
+          thumbnailUrl: data.thumbnailUrl || undefined,
           fileName: file.name,
           caption: caption,
           isViewOnce: isViewOnce,
@@ -1352,10 +1370,33 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       }
     } catch (error) {
       console.error('Upload failed:', error);
-        toast.error("GENZ WhatsApp: Failed to upload file. Please try again.");
+      toast.error("GENZ WhatsApp: Failed to upload file. Please try again.");
     }
     setIsViewOnceEnabled(false);
+  };
+
+  const handleFileUpload = async (e, forcedType = null, isViewOnce = isViewOnceEnabled) => {
+    const file = e.target.files[0];
+    await processMediaFile(file, forcedType, isViewOnce);
     if (e?.target) e.target.value = '';
+  };
+
+  const pickAndUpload = async (kind, forcedType = null) => {
+    try {
+      const nativeFile = await pickNativeMedia(kind);
+      if (nativeFile) {
+        await processMediaFile(nativeFile, forcedType);
+        return;
+      }
+    } catch (error) {
+      if (!/denied|permission/i.test(error?.message || '')) {
+        toast.error('Could not open media picker');
+      }
+    }
+    if (kind === 'document') docInputRef.current?.click();
+    else if (kind === 'audio') audioInputRef.current?.click();
+    else if (kind === 'camera') cameraInputRef.current?.click();
+    else fileInputRef.current?.click();
   };
 
   // Open View Once modal - shows content without marking as viewed yet
@@ -1387,6 +1428,12 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
   // --- CAMERA MODAL HANDLERS ---
   const openCamera = async () => {
     try {
+      const nativeFile = await pickNativeMedia('camera');
+      if (nativeFile) {
+        setShowAttachmentMenu(false);
+        await processMediaFile(nativeFile, 'image');
+        return;
+      }
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         cameraInputRef.current?.click();
         return;
@@ -1396,6 +1443,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
       setRecordedVideoUrl(null);
       setShowCameraModal(true);
       setShowAttachmentMenu(false);
+      await setKeepAwake(true);
     } catch (err) {
       console.error('Camera error:', err);
       cameraInputRef.current?.click();
@@ -1404,6 +1452,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
 
   const closeCamera = () => {
     setShowCameraModal(false);
+    setKeepAwake(false);
     if (cameraStreamRef.current) {
       cameraStreamRef.current.getTracks().forEach(track => track.stop());
       cameraStreamRef.current = null;
@@ -2258,7 +2307,13 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
               </button>
 
               {showHeaderMenu && (
-                <div className="fixed inset-y-0 right-0 w-80 bg-dark-surface/95 backdrop-blur-md border-l border-dark-border shadow-2xl z-50 overflow-y-auto">
+                <>
+                  <div
+                    className="fixed inset-0 z-[90] bg-black/40"
+                    onClick={() => setShowHeaderMenu(false)}
+                    aria-hidden="true"
+                  />
+                <div className="fixed inset-y-0 right-0 w-[min(100vw,320px)] bg-dark-surface/95 backdrop-blur-md border-l border-dark-border shadow-2xl z-[100] overflow-y-auto">
                   <div className="p-4 border-b border-dark-border flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-white">Menu</h2>
                     <button
@@ -2381,6 +2436,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                   )}
                   </div>
                 </div>
+                </>
               )}
             </div>
           </div>
@@ -2637,6 +2693,9 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                             controls
                             className="max-w-full rounded-lg max-h-64 w-full"
                             preload="metadata"
+                            onPlay={() => setKeepAwake(true)}
+                            onPause={() => setKeepAwake(false)}
+                            onEnded={() => setKeepAwake(false)}
                           />
                           {message.caption && <p className="text-xs mt-1 opacity-80">{typeof message.caption === 'string' ? message.caption : 'Caption'}</p>}
                         </div>
@@ -3385,7 +3444,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
           {/* Attachment Menu */}
           {showAttachmentMenu && (
             <div className="absolute bottom-14 left-2 right-2 md:left-0 md:right-auto md:w-max md:max-w-2xl bg-dark-surface border border-dark-border rounded-xl shadow-xl p-3 grid grid-cols-4 gap-2 md:flex md:flex-row md:flex-wrap md:gap-2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
-              <AttachmentIcon icon={<FileText className="text-blue-500" />} label="Document" onClick={() => docInputRef.current?.click()} disabled={!canSendMedia && !currentUserIsAdmin} />
+              <AttachmentIcon icon={<FileText className="text-blue-500" />} label="Document" onClick={() => pickAndUpload('document', 'file')} disabled={!canSendMedia && !currentUserIsAdmin} />
               <AttachmentIcon
                 icon={<Camera className="text-pink-500" />}
                 label="Camera"
@@ -3393,7 +3452,7 @@ const ChatArea = ({ sidebarOpen, onOpenSidebar, mods, onOpenGENZSettings }) => {
                 disabled={!canSendMedia && !currentUserIsAdmin}
                 title="Camera (Emulator may need permission)"
               />
-              <AttachmentIcon icon={<ImageIcon className="text-purple-500" />} label="Gallery" onClick={() => fileInputRef.current?.click()} disabled={!canSendMedia && !currentUserIsAdmin} />
+              <AttachmentIcon icon={<ImageIcon className="text-purple-500" />} label="Gallery" onClick={() => pickAndUpload('gallery')} disabled={!canSendMedia && !currentUserIsAdmin} />
               <AttachmentIcon icon={<Headphones className="text-orange-500" />} label="Audio" onClick={openAudioAttachment} disabled={!canSendMedia && !currentUserIsAdmin} title="Audio (Emulator may need permission)" />
               <AttachmentIcon icon={<MapPin className="text-green-500" />} label="Location" onClick={() => handleShareLocation('current')} disabled={!canSendMedia && !currentUserIsAdmin} />
               <AttachmentIcon icon={<MapPin className="text-red-500" />} label="Live Loc." onClick={() => handleShareLocation('live')} disabled={!canSendMedia && !currentUserIsAdmin} />

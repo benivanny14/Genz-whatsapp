@@ -58,20 +58,34 @@ if ('serviceWorker' in navigator) {
     try {
       const registration = await navigator.serviceWorker.register('/service-worker.js', { scope: '/' });
 
-      // When a new SW version activates and takes control, reload once so
-      // this tab picks up the fresh app shell + asset hashes instead of
-      // continuing to run on a stale bundle (which breaks lazy-loaded routes).
+      const notifyUpdateAvailable = () => {
+        window.dispatchEvent(new CustomEvent('pwa-update-available'));
+      };
+
+      registration.addEventListener('updatefound', () => {
+        const installingWorker = registration.installing;
+        if (!installingWorker) return;
+        installingWorker.addEventListener('statechange', () => {
+          if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            notifyUpdateAvailable();
+          }
+        });
+      });
+
+      // When a new SW version activates and takes control, prompt the user
+      // to reload so lazy-loaded routes and hashed assets stay in sync.
       let hasReloaded = false;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (hasReloaded) return;
-        hasReloaded = true;
-        // Dispatch event instead of forcing a disruptive reload
-        window.dispatchEvent(new CustomEvent('pwa-update-available'));
+        notifyUpdateAvailable();
       });
 
-      // Handle SW messages (open chat from notification click)
       navigator.serviceWorker.addEventListener('message', (event) => {
         const { type, conversationId } = event.data || {};
+        if (type === 'SW_UPDATE_AVAILABLE') {
+          notifyUpdateAvailable();
+          return;
+        }
         if (type === 'OPEN_CHAT' && conversationId) {
           window.dispatchEvent(new CustomEvent('open-chat', { detail: { conversationId } }));
         }
@@ -83,9 +97,9 @@ if ('serviceWorker' in navigator) {
         }
       });
 
-      // Request push notification permission
-      if ('Notification' in window && Notification.permission === 'default') {
-        await Notification.requestPermission();
+      const isNativeShell = typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.();
+      if (!isNativeShell && 'Notification' in window && Notification.permission === 'default') {
+        // Web only: native FCM permission is requested after login.
       }
 
     } catch (error) {

@@ -73,3 +73,17 @@ temp/
 *.seed
 *.pid.lock
 Genz-whatsapp-fixed.zip
+
+# Android signing and Firebase secrets
+*.jks
+*.keystore
+google-services.json
+!frontend/android/app/google-services.json.example
+frontend/android/keystore/
+frontend/android/.gradle/
+frontend/android/app/build/
+frontend/android/build/
+frontend/android/local.properties
+backend/downloads/*.apk
+frontend/public/downloads/*.apk
+frontend/dist/downloads/*.apk

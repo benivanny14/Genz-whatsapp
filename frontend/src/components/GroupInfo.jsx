@@ -390,11 +390,16 @@ const GroupInfo = ({ group, onClose, currentUserId }) => {
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
+    <>
+      <div
+        className="fixed inset-0 z-[110] bg-black/40"
+        onClick={onClose}
+        aria-hidden="true"
+      />
     <motion.div
       initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className="fixed inset-0 md:relative md:inset-auto bg-[#0b141a] z-50 flex flex-col overflow-hidden"
-      style={{ maxWidth: '400px', marginLeft: 'auto' }}
+      className="fixed inset-y-0 right-0 z-[120] bg-[#0b141a] flex flex-col overflow-hidden w-full sm:max-w-[400px] shadow-2xl border-l border-white/10"
     >
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 bg-[#202c33] flex-shrink-0">
@@ -1045,6 +1050,7 @@ const GroupInfo = ({ group, onClose, currentUserId }) => {
         <MediaGallery conversationId={group._id} onClose={() => setShowMediaGallery(false)} />
       )}
     </motion.div>
+    </>
   );
 };
 

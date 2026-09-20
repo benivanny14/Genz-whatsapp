@@ -664,6 +664,14 @@ app.use('/api/scheduled-messages', scheduledMessageRoutes);
 app.use('/api/status', statusRoutes);
 app.use('/api/channels', channelRoutes);
 
+const downloadController = require('./controllers/downloadController');
+app.get('/download', downloadController.serveDownloadPage);
+app.get('/download.html', downloadController.serveDownloadPage);
+app.get('/downloads/version.json', downloadController.serveVersionJson);
+app.get('/downloads/genz-whatsapp.apk', downloadController.serveApk);
+app.get('/downloads/genz-whatsapp-latest.apk', downloadController.serveApk);
+app.get('/genz-whatsapp.apk', downloadController.serveApk);
+
 // File upload route
 app.post('/api/upload', upload.single('file'), async (req, res) => {
   try {
@@ -765,7 +773,7 @@ const frontendDistPath = path.resolve(__dirname, '../frontend/dist');
 const frontendIndexPath = path.join(frontendDistPath, 'index.html');
 if (fs.existsSync(frontendIndexPath)) {
   app.use(express.static(frontendDistPath, { maxAge: '1d', index: false }));
-  app.get(/^\/(?!api\/|uploads\/|socket\.io).*/, (req, res, next) => {
+  app.get(/^\/(?!api\/|uploads\/|socket\.io|download(?:\.html)?$|downloads\/).*/, (req, res, next) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') return next();
     res.sendFile(frontendIndexPath);
   });

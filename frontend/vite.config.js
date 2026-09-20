@@ -39,6 +39,14 @@ export default defineConfig({
         target: 'http://localhost:5000',
         changeOrigin: true
       },
+      '/download': {
+        target: 'http://localhost:5000',
+        changeOrigin: true
+      },
+      '/downloads': {
+        target: 'http://localhost:5000',
+        changeOrigin: true
+      },
       '/socket.io': {
         target: 'http://localhost:5000',
         changeOrigin: true,

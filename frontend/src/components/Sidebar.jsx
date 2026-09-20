@@ -500,8 +500,14 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                 <MoreVertical className="w-5 h-5 text-dark-text" />
               </button>
               {showMenu && (
-                <div className="absolute left-full top-0 ml-2 w-64 bg-dark-surface border border-dark-border rounded-lg shadow-2xl z-[100] overflow-y-auto max-h-[80vh]">
-                  <div className="p-3 border-b border-dark-border flex items-center justify-between">
+                <>
+                  <div
+                    className="fixed inset-0 z-[199] bg-black/50"
+                    onClick={() => setShowMenu(false)}
+                    aria-hidden="true"
+                  />
+                  <div className="fixed inset-y-0 right-0 z-[200] w-[min(100vw,320px)] bg-dark-surface border-l border-dark-border shadow-2xl overflow-y-auto flex flex-col">
+                  <div className="p-3 border-b border-dark-border flex items-center justify-between sticky top-0 bg-dark-surface z-10">
                     <h2 className="text-base font-semibold text-dark-text">Menu</h2>
                     <button
                       onClick={() => setShowMenu(false)}
@@ -510,7 +516,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                       <X className="w-4 h-4 text-dark-textSecondary" />
                     </button>
                   </div>
-                  <div className="py-1">
+                  <div className="py-1 flex-1">
                   {/* Header Actions (Moved to Menu) */}
                   <button
                     onClick={(e) => {
@@ -661,7 +667,8 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
                     <span>Logout</span>
                   </button>
                   </div>
-                </div>
+                  </div>
+                </>
               )}
             </div>
             <button
@@ -912,11 +919,16 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
 
         {/* GENZ MOD: Context Menu for Mute */}
         {contextMenu && (
-          <div
-            className="fixed z-[200] bg-dark-surface border border-dark-border rounded-lg shadow-2xl py-2 w-48"
-            style={{ top: contextMenu.y, left: contextMenu.x }}
-            onMouseLeave={() => setContextMenu(null)}
-          >
+          <>
+            <div
+              className="fixed inset-0 z-[199] bg-black/40"
+              onClick={() => setContextMenu(null)}
+              aria-hidden="true"
+            />
+            <div
+              className="fixed inset-y-0 right-0 z-[200] bg-dark-surface border-l border-dark-border shadow-2xl py-2 w-[min(100vw,280px)] overflow-y-auto"
+              onMouseLeave={() => setContextMenu(null)}
+            >
             <button
               onClick={() => { toggleMuteChat(contextMenu.chatId); setContextMenu(null); }}
               className="w-full flex items-center gap-3 px-4 py-2 hover:bg-dark-hover text-dark-text transition-colors"
@@ -966,6 +978,7 @@ const Sidebar = ({ isOpen, onToggle, onLogout, openGENZ, mods }) => { // Added m
               <span>Delete Chat</span>
             </button>
           </div>
+          </>
         )}
         {isOpen && activeTab === 'calls' && (
           <div className="p-2 space-y-1">

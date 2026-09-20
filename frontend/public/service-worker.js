@@ -1,12 +1,19 @@
-// GENZ WhatsApp Service Worker v3
+// GENZ WhatsApp Service Worker v4
 // Handles: Push notifications (foreground+background), offline cache, background sync
 
-const CACHE_NAME = 'genz-wa-v3';
+const CACHE_NAME = 'genz-wa-v4';
 const STATIC_CACHE = ['/manifest.json'];
 
 // ── Install ──────────────────────────────────────────────────────────────
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(STATIC_CACHE)).then(() => self.skipWaiting()));
+  e.waitUntil(
+    caches.open(CACHE_NAME).then(c => c.addAll(STATIC_CACHE)).then(() => {
+      self.skipWaiting();
+      return self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+        clients.forEach((client) => client.postMessage({ type: 'SW_UPDATE_AVAILABLE' }));
+      });
+    })
+  );
 });
 
 // ── Activate ─────────────────────────────────────────────────────────────
@@ -14,7 +21,11 @@ self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then(keys => Promise.all(
       keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
-    )).then(() => clients.claim())
+    )).then(() => clients.claim()).then(() =>
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+        clients.forEach((client) => client.postMessage({ type: 'SW_UPDATE_AVAILABLE' }));
+      })
+    )
   );
 });
 

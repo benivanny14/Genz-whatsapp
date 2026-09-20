@@ -26,6 +26,11 @@ import {
   autoSaveMediaFromMessage
 } from '../utils/genzModsNormalize';
 import { applyAntiScreenshot, initAntiScreenshotListeners, setScreenshotAttemptCallback } from '../utils/antiScreenshot';
+import {
+  addHiddenConversationId,
+  filterHiddenConversations,
+  getHiddenConversationIds,
+} from '../utils/hiddenConversations';
 
 export const ChatContext = createContext();
 
@@ -736,7 +741,7 @@ export const ChatProvider = ({ children }) => {
         }
         const savedMods = await DB.getSetting('mods');
         if (savedMods) setModsState(prev => ({ ...prev, ...savedMods }));
-        const offlineConvs = await DB.getConversations();
+        const offlineConvs = filterHiddenConversations(await DB.getConversations(), currentUserId);
         if (offlineConvs && offlineConvs.length > 0) {
           setConversations(offlineConvs);
           // FIX: Usifungue chat yoyote kiotomatiki hapa. Awali mfumo ulikuwa
@@ -911,29 +916,38 @@ export const ChatProvider = ({ children }) => {
         try {
           const data = await apiService.getConversations();
           if (data?.success && Array.isArray(data.conversations)) {
+            const remoteConversations = filterHiddenConversations(data.conversations, currentUserId);
+            const hiddenIds = new Set(getHiddenConversationIds(currentUserId));
             const openChatId = getStoredSelectedConversationId();
             setConversations(prev => {
               const localOnlyConvs = prev.filter(c => c._id && (c._id.startsWith('conv-') || c._id.startsWith('temp-')));
               const mergedMap = new Map();
               localOnlyConvs.forEach(c => mergedMap.set(c._id, c));
-              data.conversations.forEach(c => {
+              remoteConversations.forEach(c => {
                 const isOpen = openChatId && String(c._id) === String(openChatId);
                 mergedMap.set(c._id, isOpen ? { ...c, unreadCount: 0 } : c);
               });
-              return Array.from(mergedMap.values()).sort(
-                (a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
-              );
+              return Array.from(mergedMap.values())
+                .filter(c => !hiddenIds.has(String(c._id)))
+                .sort(
+                  (a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
+                );
             });
             try {
-              const remoteIds = new Set(data.conversations.map(c => String(c._id)));
+              const remoteIds = new Set(remoteConversations.map(c => String(c._id)));
               const offlineConvs = await DB.getConversations();
               for (const c of offlineConvs) {
-                if (!c._id.startsWith('conv-') && !c._id.startsWith('temp-') && !remoteIds.has(String(c._id))) {
+                const id = String(c._id);
+                if (hiddenIds.has(id) || (!id.startsWith('conv-') && !id.startsWith('temp-') && !remoteIds.has(id))) {
                   await DB.deleteConversation(c._id);
                   await DB.deleteMessagesForConversation(c._id);
                 }
               }
-              await Promise.all(data.conversations.map(c => DB.saveConversation(c)));
+              await Promise.all(
+                remoteConversations
+                  .filter(c => !hiddenIds.has(String(c._id)))
+                  .map(c => DB.saveConversation(c))
+              );
             } catch (_) {}
           }
         } catch (e) {
@@ -2292,10 +2306,12 @@ export const ChatProvider = ({ children }) => {
         throw new Error(data?.message || 'Failed to delete chat');
       }
 
+      addHiddenConversationId(currentUserId, chatId);
       setConversations(prev => prev.filter(c => c._id !== chatId));
       if (selectedConversation?._id === chatId) {
         setSelectedConversation(null);
         setMessages([]);
+        clearStoredSelectedConversationId();
       }
       try {
         await DB.deleteMessagesForConversation(chatId);
@@ -2832,25 +2848,36 @@ export const ChatProvider = ({ children }) => {
         }
 
         if (conversationsData.status === 'fulfilled' && conversationsData.value?.success) {
-          const remoteConversations = conversationsData.value.conversations || [];
+          const remoteConversations = filterHiddenConversations(
+            conversationsData.value.conversations || [],
+            currentUserId
+          );
+          const hiddenIds = new Set(getHiddenConversationIds(currentUserId));
           if (remoteConversations.length > 0 || !ENABLE_DEMO_DATA) {
             setConversations(prev => {
               const localOnlyConvs = prev.filter(c => c._id && (c._id.startsWith('conv-') || c._id.startsWith('temp-')));
               const mergedMap = new Map();
               localOnlyConvs.forEach(c => mergedMap.set(c._id, c));
               remoteConversations.forEach(c => mergedMap.set(c._id, c));
-              return Array.from(mergedMap.values()).sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+              return Array.from(mergedMap.values())
+                .filter(c => !hiddenIds.has(String(c._id)))
+                .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
             });
             try {
               const remoteIds = new Set(remoteConversations.map(c => String(c._id)));
               const offlineConvs = await DB.getConversations();
               for (const c of offlineConvs) {
-                if (!c._id.startsWith('conv-') && !c._id.startsWith('temp-') && !remoteIds.has(String(c._id))) {
+                const id = String(c._id);
+                if (hiddenIds.has(id) || (!id.startsWith('conv-') && !id.startsWith('temp-') && !remoteIds.has(id))) {
                   await DB.deleteConversation(c._id);
                   await DB.deleteMessagesForConversation(c._id);
                 }
               }
-              await Promise.all(remoteConversations.map((conversation) => DB.saveConversation(conversation)));
+              await Promise.all(
+                remoteConversations
+                  .filter(c => !hiddenIds.has(String(c._id)))
+                  .map((conversation) => DB.saveConversation(conversation))
+              );
             } catch (_) { /* IndexedDB cache is best-effort */ }
             const storedId = getStoredSelectedConversationId();
             if (storedId) {
@@ -2937,7 +2964,7 @@ export const ChatProvider = ({ children }) => {
     }
   }, []);
 
-  const pairDevice = useCallback(async (pairingToken) => {
+  const pairDevice = useCallback(async (pairingToken, deviceInfo = {}) => {
     if (isLoadingDevices.current) {
       console.log('[ChatContext] Device pairing already in progress');
       return { success: false, message: 'Request already in progress' };
@@ -2945,7 +2972,7 @@ export const ChatProvider = ({ children }) => {
 
     isLoadingDevices.current = true;
     try {
-      const data = await apiService.pairDevice(pairingToken);
+      const data = await apiService.pairDevice(pairingToken, deviceInfo);
       if (data?.success) {
         const devices = await apiService.getDevices();
         setConnectedDevices(devices?.devices || []);
@@ -2954,7 +2981,7 @@ export const ChatProvider = ({ children }) => {
       return data;
     } catch (err) {
       console.error('[ChatContext] Pair device error:', err);
-      return { success: false, message: 'Failed to pair device' };
+      return { success: false, message: err.message || 'Failed to pair device' };
     } finally {
       isLoadingDevices.current = false;
     }
@@ -4619,9 +4646,13 @@ export const ChatProvider = ({ children }) => {
       });
       const data = await response.json();
       if (data.success) {
+        addHiddenConversationId(currentUserId, groupId);
         setConversations(prev => prev.filter(conv => conv._id !== groupId));
-        setSelectedConversation(prev => (prev?._id === groupId ? null : prev));
-        // Delete from IndexedDB to prevent reappearing after refresh
+        if (selectedConversation?._id === groupId) {
+          setSelectedConversation(null);
+          setMessages([]);
+          clearStoredSelectedConversationId();
+        }
         try {
           await DB.deleteConversation(groupId);
           await DB.deleteMessagesForConversation(groupId);
@@ -4639,23 +4670,32 @@ export const ChatProvider = ({ children }) => {
     try {
       const data = await apiService.getConversations();
       if (data?.success && Array.isArray(data.conversations)) {
+        const remoteConversations = filterHiddenConversations(data.conversations, currentUserId);
+        const hiddenIds = new Set(getHiddenConversationIds(currentUserId));
         setConversations(prev => {
           const localOnlyConvs = prev.filter(c => c._id && (c._id.startsWith('conv-') || c._id.startsWith('temp-')));
           const mergedMap = new Map();
           localOnlyConvs.forEach(c => mergedMap.set(c._id, c));
-          data.conversations.forEach(c => mergedMap.set(c._id, c));
-          return Array.from(mergedMap.values()).sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+          remoteConversations.forEach(c => mergedMap.set(c._id, c));
+          return Array.from(mergedMap.values())
+            .filter(c => !hiddenIds.has(String(c._id)))
+            .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
         });
         try {
-          const remoteIds = new Set(data.conversations.map(c => String(c._id)));
+          const remoteIds = new Set(remoteConversations.map(c => String(c._id)));
           const offlineConvs = await DB.getConversations();
           for (const c of offlineConvs) {
-            if (!c._id.startsWith('conv-') && !c._id.startsWith('temp-') && !remoteIds.has(String(c._id))) {
+            const id = String(c._id);
+            if (hiddenIds.has(id) || (!id.startsWith('conv-') && !id.startsWith('temp-') && !remoteIds.has(id))) {
               await DB.deleteConversation(c._id);
               await DB.deleteMessagesForConversation(c._id);
             }
           }
-          await Promise.all(data.conversations.map(c => DB.saveConversation(c)));
+          await Promise.all(
+            remoteConversations
+              .filter(c => !hiddenIds.has(String(c._id)))
+              .map(c => DB.saveConversation(c))
+          );
         } catch (_) {}
       }
       return data;

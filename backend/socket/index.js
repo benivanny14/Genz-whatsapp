@@ -9,9 +9,9 @@ const activeCalls = require('../utils/activeCalls');
 const { resolveMessageMentions } = require('../utils/mentions');
 const {
   sendMentionNotification,
-  sendNewMessageNotification,
   sendIncomingCallNotification
 } = require('../services/notificationService');
+const { notifyConversationMessage } = require('../utils/conversationPush');
 const { ensureUnreadMap, getUnreadCount, setUnreadCount } = require('../utils/unreadCount');
 const { serializeOutgoingMessage } = require('../utils/messageSerializer');
 const {
@@ -488,14 +488,6 @@ const setupSocket = (io) => {
         // Deliver once per recipient via their user room (avoids duplicate events)
         const updatedConversation = await Conversation.findById(conversationId);
         if (conversation.participants && Array.isArray(conversation.participants)) {
-          const notificationTasks = [];
-          const notificationText =
-            messageType === 'image' ? 'Photo' :
-            messageType === 'video' ? 'Video' :
-            messageType === 'audio' || messageType === 'voice' ? 'Voice note' :
-            messageType === 'sticker' ? 'Sticker' :
-            messageType === 'gif' ? 'GIF' :
-            String(safeContent || 'New message').slice(0, 120);
           for (const participantId of conversation.participants) {
             if (participantId.toString() === socket.userId.toString()) continue;
             const isBlocked = await isEitherUserBlocked(socket.userId, participantId);
@@ -508,19 +500,17 @@ const setupSocket = (io) => {
                 unreadCount: getUnreadCount(updatedConversation, userId)
               });
             }
-            notificationTasks.push(sendNewMessageNotification(userId, {
-              senderName: populatedMessage.sender?.username || 'GENZ',
-              text: notificationText,
-              conversationId: String(conversationId),
-              senderId: String(socket.userId),
-              type: messageType || 'text'
-            }));
           }
-          if (notificationTasks.length) {
-            Promise.allSettled(notificationTasks).catch((notifyErr) => {
-              console.warn('[Socket] Message push notification failed:', notifyErr?.message || notifyErr);
-            });
-          }
+          notifyConversationMessage({
+            conversation: updatedConversation || conversation,
+            senderId: socket.userId,
+            senderName: populatedMessage.sender?.username || 'GENZ',
+            text: safeContent,
+            messageType,
+            conversationId
+          }).catch((notifyErr) => {
+            console.warn('[Socket] Message push notification failed:', notifyErr?.message || notifyErr);
+          });
         }
 
         socket.emit('message:delivered', {

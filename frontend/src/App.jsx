@@ -10,6 +10,8 @@ import { cleanupLocalBlobUrls, sanitizeBlobUrls } from './utils/sanitizeStorage'
 import { applyAntiScreenshot, initAntiScreenshotListeners } from './utils/antiScreenshot';
 import { initViewportHeightFix } from './utils/useViewportHeight';
 import toast from 'react-hot-toast';
+import NativeBootstrap from './native/NativeBootstrap';
+import { isNative } from './native/platform';
 
 const originalToastError = toast.error;
 toast.error = (msg, options) => {
@@ -49,7 +51,7 @@ const JoinGroup = lazy(() => import('./pages/JoinGroup'));
 
 // Loading fallback component
 const PageLoader = () => (
-  <div className="flex items-center justify-center min-h-screen bg-gray-900">
+  <div className="flex items-center justify-center min-h-screen bg-[#0b141a]">
     <div className="flex flex-col items-center gap-4">
       <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
       <p className="text-white text-sm font-semibold">Loading GENZ...</p>
@@ -136,10 +138,11 @@ function App() {
 
   // --- Notifications ---
   useEffect(() => {
-    notificationService.requestNotificationPermission();
+    if (isNative()) return undefined;
     notificationService.registerServiceWorker().then(() => {
       notificationService.setupBackgroundNotificationHandler();
     });
+    return undefined;
   }, []);
 
   // --- PWA Updates ---
@@ -175,6 +178,7 @@ function App() {
 
   return (
     <ErrorBoundary>
+      <NativeBootstrap />
       <OfflineBanner />
       <InstallAppPrompt />
       <InAppNotification

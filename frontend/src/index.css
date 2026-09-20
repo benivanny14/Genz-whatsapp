@@ -5,6 +5,25 @@
 @tailwind components;
 @tailwind utilities;
 
+html.genz-native,
+html.genz-native body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: auto;
+  touch-action: manipulation;
+  height: 100%;
+}
+html.genz-native body {
+  overflow: hidden;
+  background: #0b141a;
+}
+html.genz-native input,
+html.genz-native textarea {
+  font-size: 16px;
+}
+html.genz-native * {
+  overscroll-behavior: none;
+}
+
 :root {
   --color-primary: #00a884;
   --color-primary-dark: #008f6f;

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#0b141a" />
+  <title>Download GENZ WhatsApp APK</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      font-family: Inter, system-ui, sans-serif;
+      background: radial-gradient(circle at top, #12232c 0%, #0b141a 55%);
+      color: #e9edef;
+      display: flex;
+      justify-content: center;
+      padding: 24px 16px 48px;
+    }
+    .card {
+      width: min(520px, 100%);
+      background: #111b21;
+      border: 1px solid #233138;
+      border-radius: 28px;
+      padding: 28px 22px;
+      box-shadow: 0 24px 80px rgba(0,0,0,.35);
+    }
+    .icon {
+      width: 84px;
+      height: 84px;
+      border-radius: 22px;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 16px;
+      background: linear-gradient(180deg, #25d366, #128c7e);
+      font-size: 42px;
+    }
+    h1 { text-align: center; margin: 0 0 8px; font-size: 1.7rem; }
+    p { color: #8696a0; line-height: 1.5; }
+    .meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 18px 0 24px;
+    }
+    .meta div {
+      background: #0b141a;
+      border-radius: 16px;
+      padding: 12px;
+      font-size: 13px;
+    }
+    .meta span { display: block; color: #8696a0; font-size: 11px; margin-bottom: 4px; }
+    .download {
+      display: block;
+      width: 100%;
+      text-align: center;
+      text-decoration: none;
+      background: #25d366;
+      color: #073b28;
+      font-weight: 800;
+      letter-spacing: .04em;
+      padding: 18px 16px;
+      border-radius: 18px;
+      font-size: 1.05rem;
+    }
+    ol { padding-left: 18px; color: #d1d7db; }
+    code { color: #25d366; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="icon">G</div>
+    <h1>GENZ WhatsApp</h1>
+    <p style="text-align:center">Download APK ya Android. Chrome itahifadhi faili, kisha fungua ili kusakinisha au kusasisha.</p>
+    <div class="meta">
+      <div><span>Version</span><strong id="version">...</strong></div>
+      <div><span>Build</span><strong id="code">...</strong></div>
+      <div><span>Size</span><strong id="size">...</strong></div>
+      <div><span>SHA256</span><strong id="sha" style="word-break:break-all;font-size:10px">...</strong></div>
+    </div>
+    <a class="download" id="download" href="/downloads/genz-whatsapp.apk" download="genz-whatsapp.apk">DOWNLOAD APK</a>
+    <h2>Jinsi ya kusakinisha / kusasisha</h2>
+    <ol>
+      <li>Bofya <strong>DOWNLOAD APK</strong> kwenye Chrome ya Android.</li>
+      <li>Fungua notification ya download au <code>Downloads</code>.</li>
+      <li>Ruhusu Chrome kusakinisha apps unknown sources ikiwa itaombwa.</li>
+      <li>Kwa update, sakinisha juu ya version ya zamani bila kufuta data.</li>
+    </ol>
+  </main>
+  <script>
+    const formatSize = (bytes) => {
+      const n = Number(bytes || 0);
+      if (!n) return 'Pending build';
+      if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+      return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+    };
+    fetch('/downloads/version.json', { cache: 'no-store' })
+      .then((res) => res.ok ? res.json() : Promise.reject())
+      .then((data) => {
+        document.getElementById('version').textContent = data.versionName || data.version || '1.0.0';
+        document.getElementById('code').textContent = data.versionCode || '-';
+        document.getElementById('size').textContent = formatSize(data.size);
+        document.getElementById('sha').textContent = data.sha256 || 'unavailable';
+        document.getElementById('download').href = data.apkUrl || '/downloads/genz-whatsapp.apk';
+      })
+      .catch(() => {
+        document.getElementById('version').textContent = 'Not published';
+        document.getElementById('size').textContent = 'APK bado haijajengwa';
+      });
+  </script>
+</body>
+</html>

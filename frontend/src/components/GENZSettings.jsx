@@ -748,6 +748,25 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
     { id: 'advanced',   label: 'Advanced',   icon: '⚙️' },
   ];
 
+  const renderPremiumLock = (title = 'Premium Required') => (
+    <div className="p-8 text-center">
+      <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+        <Lock size={40} className="text-red-500" />
+      </div>
+      <h3 className="text-white text-xl font-bold mb-2">{title}</h3>
+      <p className="text-gray-400 text-sm mb-4">
+        Pay <span className="text-yellow-400 font-black">Tsh 10,000</span> for 60 days to unlock this section
+      </p>
+      <button
+        onClick={() => setShowPaymentModal(true)}
+        className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2"
+      >
+        <Lock size={20} />
+        Upgrade to Premium - Tsh 10,000
+      </button>
+    </div>
+  );
+
   return (
     <div className="absolute inset-0 flex flex-col overflow-x-hidden" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0f2440 50%, #0a1628 100%)' }}>
 
@@ -1823,6 +1842,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
 
       {/* ──────────── TAB: MODS ──────────── */}
       {activeTab === 'mods' && (
+        isPrivacyLocked ? renderPremiumLock('Premium Required for GENZ Mods') : (
         <>
         {/* Advanced Tools */}
         <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
@@ -1972,11 +1992,12 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
              />
           </div>
         </section>
-        </> /* end mods tab */
+        </> )
       )}
 
       {/* ──────────── TAB: SOCIAL ──────────── */}
       {activeTab === 'social' && (
+        isPrivacyLocked ? renderPremiumLock('Premium Required for Social Features') : (
         <>
         {/* TikTok / Instagram Exclusive Features */}
         <section className="bg-white/5 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-white/10">
@@ -2082,11 +2103,12 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
             </div>
           </div>
         </section>
-        </> /* end social tab */
+        </> )
       )}
 
       {/* ──────────── TAB: ADVANCED ──────────── */}
       {activeTab === 'advanced' && (
+        isPrivacyLocked ? renderPremiumLock('Premium Required for Advanced Features') : (
         <>
         {/* Online History */}
         <button
@@ -2307,7 +2329,7 @@ const GENZSettings = ({ close, mods, setMods, lockType, setLockType, setLockPin 
 
           </div>
         </section>
-        </> /* end advanced tab */
+        </> )
       )}
       </div> {/* end overflow-y-auto */}
 

@@ -19,19 +19,20 @@ const initializeFirebase = () => {
     return firebaseApp;
   }
 
-  // Check if Firebase credentials are configured
-  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-
-  if (!projectId || !clientEmail || !privateKey) {
-    console.warn('[Firebase] Firebase credentials not configured. Push notifications will be disabled.');
-    return null;
-  }
-
-  try {
-    const serviceAccountConfig = {
+  const parseServiceAccount = () => {
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      try {
+        return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+      } catch (error) {
+        console.error('[Firebase] FIREBASE_SERVICE_ACCOUNT is not valid JSON');
+        return null;
+      }
+    }
+    const projectId = process.env.FIREBASE_PROJECT_ID;
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+    if (!projectId || !clientEmail || !privateKey) return null;
+    return {
       type: 'service_account',
       project_id: projectId,
       private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID || '',
@@ -41,9 +42,17 @@ const initializeFirebase = () => {
       auth_uri: 'https://accounts.google.com/o/oauth2/auth',
       token_uri: 'https://oauth2.googleapis.com/token',
       auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
-      client_x509_cert_url: `https://www.googleapis.com/robot/v1/metadata/x509/${clientEmail}`
+      client_x509_cert_url: `https://www.googleapis.com/robot/v1/metadata/x509/${encodeURIComponent(clientEmail)}`
     };
+  };
 
+  const serviceAccountConfig = parseServiceAccount();
+  if (!serviceAccountConfig) {
+    console.warn('[Firebase] Firebase credentials not configured. Push notifications will be disabled.');
+    return null;
+  }
+
+  try {
     firebaseApp = admin.initializeApp({
       credential: admin.credential.cert(serviceAccountConfig)
     }, 'genz-whatsapp');
@@ -77,9 +86,36 @@ const validateToken = (token) => {
   if (!token || typeof token !== 'string') {
     return false;
   }
-  // FCM tokens are typically 160-200 characters
-  return token.length >= 100 && token.length <= 300;
+  return token.length >= 50 && token.length <= 4096;
 };
+
+const stringifyData = (data = {}) => {
+  const out = {};
+  Object.entries(data || {}).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    out[key] = typeof value === 'string' ? value : String(value);
+  });
+  return out;
+};
+
+const channelForType = (type = 'message') => {
+  if (type === 'group_message' || type === 'group') return 'genz_groups';
+  if (type === 'status') return 'genz_status';
+  if (type === 'silent') return 'genz_silent';
+  return 'genz_messages';
+};
+
+const buildAndroid = (notification = {}, data = {}) => ({
+  priority: notification.priority === 'normal' ? 'normal' : 'high',
+  notification: {
+    channelId: notification.channelId || channelForType(notification.type || data.type),
+    icon: 'ic_stat_genz',
+    color: '#128C7E',
+    sound: notification.sound || 'default',
+    tag: notification.tag || 'genz',
+    clickAction: notification.clickAction || data.deepLink || '/'
+  }
+});
 
 /**
  * Send push notification to a single device
@@ -101,29 +137,20 @@ const sendNotification = async (token, notification, data = {}) => {
   }
 
   try {
+    const dataPayload = stringifyData({
+      ...data,
+      type: notification.type || data.type || 'message',
+      timestamp: Date.now().toString(),
+      deepLink: data.deepLink || notification.clickAction || '/'
+    });
     const message = {
       token: token,
       notification: {
         title: notification.title || 'GENZ WhatsApp',
-        body: notification.body || '',
-        icon: notification.icon || '/icon-192x192.png',
-        badge: notification.badge || '/badge-72x72.png',
-        sound: notification.sound || 'default',
-        click_action: notification.clickAction || '/',
-        tag: notification.tag || 'default'
+        body: notification.body || ''
       },
-      data: {
-        ...data,
-        type: notification.type || 'message',
-        timestamp: Date.now().toString()
-      },
-      android: {
-        notification: {
-          channelId: 'genz-whatsapp',
-          priority: notification.priority || 'high',
-          sound: notification.sound || 'default'
-        }
-      },
+      data: dataPayload,
+      android: buildAndroid(notification, dataPayload),
       apns: {
         payload: {
           aps: {
@@ -146,10 +173,11 @@ const sendNotification = async (token, notification, data = {}) => {
       messageId: response
     };
   } catch (error) {
-    console.error('[Firebase] Failed to send notification:', error);
+    console.error('[Firebase] Failed to send notification:', error?.code || error.message);
     
     // Check if token is invalid/expired
     if (error.code === 'messaging/registration-token-not-registered' || 
+        error.code === 'messaging/invalid-registration-token' ||
         error.code === 'UNREGISTERED') {
       return {
         success: false,
@@ -184,29 +212,24 @@ const sendMulticastNotification = async (tokens, notification, data = {}) => {
   }
 
   try {
+    const validTokens = (tokens || []).filter(validateToken);
+    if (!validTokens.length) {
+      return { success: false, error: 'No valid tokens provided', invalidTokens: tokens || [] };
+    }
+    const dataPayload = stringifyData({
+      ...data,
+      type: notification.type || data.type || 'message',
+      timestamp: Date.now().toString(),
+      deepLink: data.deepLink || notification.clickAction || '/'
+    });
     const message = {
-      tokens: tokens,
+      tokens: validTokens,
       notification: {
         title: notification.title || 'GENZ WhatsApp',
-        body: notification.body || '',
-        icon: notification.icon || '/icon-192x192.png',
-        badge: notification.badge || '/badge-72x72.png',
-        sound: notification.sound || 'default',
-        click_action: notification.clickAction || '/',
-        tag: notification.tag || 'default'
+        body: notification.body || ''
       },
-      data: {
-        ...data,
-        type: notification.type || 'message',
-        timestamp: Date.now().toString()
-      },
-      android: {
-        notification: {
-          channelId: 'genz-whatsapp',
-          priority: notification.priority || 'high',
-          sound: notification.sound || 'default'
-        }
-      },
+      data: dataPayload,
+      android: buildAndroid(notification, dataPayload),
       apns: {
         payload: {
           aps: {
@@ -221,20 +244,24 @@ const sendMulticastNotification = async (tokens, notification, data = {}) => {
       }
     };
 
-    const response = await messaging.sendMulticast(message);
+    const sendMany = typeof messaging.sendEachForMulticast === 'function'
+      ? messaging.sendEachForMulticast.bind(messaging)
+      : messaging.sendMulticast.bind(messaging);
+    const response = await sendMany(message);
     
     console.log('[Firebase] Multicast notification sent:', {
       successCount: response.successCount,
       failureCount: response.failureCount
     });
     
-    // Extract invalid tokens
     const invalidTokens = [];
-    response.responses.forEach((resp, index) => {
+    (response.responses || []).forEach((resp, index) => {
       if (!resp.success) {
-        if (resp.error.code === 'messaging/registration-token-not-registered' || 
-            resp.error.code === 'UNREGISTERED') {
-          invalidTokens.push(tokens[index]);
+        const code = resp.error?.code || '';
+        if (code === 'messaging/registration-token-not-registered' ||
+            code === 'messaging/invalid-registration-token' ||
+            code === 'UNREGISTERED') {
+          invalidTokens.push(validTokens[index]);
         }
       }
     });
@@ -387,8 +414,9 @@ const unsubscribeFromTopic = async (token, topic) => {
  * @returns {boolean} True if configured
  */
 const isConfigured = () => {
-  return !!process.env.FIREBASE_PROJECT_ID && 
-         !!process.env.FIREBASE_CLIENT_EMAIL && 
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) return true;
+  return !!process.env.FIREBASE_PROJECT_ID &&
+         !!process.env.FIREBASE_CLIENT_EMAIL &&
          !!process.env.FIREBASE_PRIVATE_KEY;
 };
 

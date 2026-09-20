@@ -471,13 +471,17 @@ const ContactInfo = ({
 
   return (
     <>
-      {/* ── Slide-in Panel ── */}
+      <div
+        className="fixed inset-0 z-[120] bg-black/40"
+        onClick={onClose}
+        aria-hidden="true"
+      />
       <motion.div
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'tween', duration: 0.25, ease: 'easeOut' }}
-        className="absolute inset-y-0 right-0 z-[100] w-full sm:w-[400px] bg-[#111b21] flex flex-col border-l border-white/10 shadow-2xl"
+        className="fixed inset-y-0 right-0 z-[130] w-full sm:w-[400px] bg-[#111b21] flex flex-col border-l border-white/10 shadow-2xl"
       >
         {/* ─── 1. Header ─── */}
         <div className="flex items-center gap-4 px-4 py-3 bg-[#202c33] flex-shrink-0">

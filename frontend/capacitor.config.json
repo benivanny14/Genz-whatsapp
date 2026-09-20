@@ -1,0 +1,68 @@
+{
+  "appId": "app.genzwhatsapp",
+  "appName": "GENZ WhatsApp",
+  "webDir": "dist",
+  "version": "1.0.0",
+  "backgroundColor": "#0b141a",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1800,
+      "launchAutoHide": true,
+      "backgroundColor": "#0b141a",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false,
+      "splashFullScreen": true,
+      "splashImmersive": true
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#0b141a",
+      "overlaysWebView": false
+    },
+    "NavigationBar": {
+      "backgroundColor": "#0b141a",
+      "buttonStyle": "LIGHT"
+    },
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    },
+    "Camera": {
+      "permissions": ["camera", "photos"]
+    },
+    "Browser": {
+      "toolbarColor": "#0b141a"
+    }
+  },
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#0b141a",
+    "webContentsDebuggingEnabled": false,
+    "overrideUserAgent": "GENZWhatsAppAndroid",
+    "version": "1.0.0",
+    "versionCode": 1,
+    "includePlugins": [
+      "@capacitor/app",
+      "@capacitor/browser",
+      "@capacitor/camera",
+      "@capacitor/filesystem",
+      "@capacitor/push-notifications",
+      "@capacitor/share",
+      "@capacitor/splash-screen",
+      "@capacitor/status-bar",
+      "@capacitor/navigation-bar",
+      "@capacitor-community/keep-awake",
+      "capacitor-file-picker"
+    ]
+  },
+  "ios": {
+    "contentInset": "automatic",
+    "backgroundColor": "#0b141a",
+    "preferredContentMode": "mobile",
+    "version": "1.0.0",
+    "versionCode": "1"
+  }
+}

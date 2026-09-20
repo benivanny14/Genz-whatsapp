@@ -81,9 +81,9 @@ export const apiService = {
     method: 'POST',
     data: deviceInfo
   }),
-  pairDevice: (pairingToken) => apiCall('/device/pair', {
+  pairDevice: (pairingToken, deviceInfo = {}) => apiCall('/device/pair', {
     method: 'POST',
-    data: { pairingToken }
+    data: { pairingToken, code: pairingToken, ...deviceInfo }
   }),
   
   // Settings management

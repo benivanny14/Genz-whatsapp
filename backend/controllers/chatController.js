@@ -12,7 +12,8 @@ const {
   isEitherUserBlocked
 } = require("../utils/messageSendHelpers");
 const { serializeOutgoingMessage } = require("../utils/messageSerializer");
-const { sendMentionNotification, sendNewMessageNotification } = require("../services/notificationService");
+const { sendMentionNotification } = require("../services/notificationService");
+const { notifyConversationMessage } = require("../utils/conversationPush");
 const { ensureUnreadMap, getUnreadCount, setUnreadCount } = require("../utils/unreadCount");
 
 const LOCAL_USER_ID = process.env.LOCAL_USER_ID || "60d5ecb8b392cb371c664c12";
@@ -888,14 +889,6 @@ exports.sendMessage = async (req, res) => {
 
         if (conversation.participants && Array.isArray(conversation.participants)) {
           const updatedConversation = await Conversation.findById(finalConversationId);
-          const notificationTasks = [];
-          const notificationText =
-            messageType === 'image' ? 'Photo' :
-            messageType === 'video' ? 'Video' :
-            messageType === 'audio' || messageType === 'voice' ? 'Voice note' :
-            messageType === 'sticker' ? 'Sticker' :
-            messageType === 'gif' ? 'GIF' :
-            String(safeContent || 'New message').slice(0, 120);
           for (const participantId of conversation.participants) {
             if (String(participantId) === String(localUserId)) continue;
             const blocked = await isEitherUserBlocked(localUserId, participantId);
@@ -908,19 +901,17 @@ exports.sendMessage = async (req, res) => {
                 unreadCount: getUnreadCount(updatedConversation, recipientId)
               });
             }
-            notificationTasks.push(sendNewMessageNotification(recipientId, {
-              senderName: populatedMessage?.sender?.username || 'GENZ',
-              text: notificationText,
-              conversationId: finalConversationId.toString(),
-              senderId: localUserId.toString(),
-              type: messageType || 'text'
-            }));
           }
-          if (notificationTasks.length) {
-            Promise.allSettled(notificationTasks).catch((notifyErr) => {
-              console.warn("[ChatController] Push notification failed:", notifyErr?.message || notifyErr);
-            });
-          }
+          notifyConversationMessage({
+            conversation: updatedConversation || conversation,
+            senderId: localUserId,
+            senderName: populatedMessage?.sender?.username || 'GENZ',
+            text: safeContent,
+            messageType,
+            conversationId: finalConversationId
+          }).catch((notifyErr) => {
+            console.warn("[ChatController] Push notification failed:", notifyErr?.message || notifyErr);
+          });
         }
       }
     } catch (emitErr) {
